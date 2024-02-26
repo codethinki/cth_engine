@@ -46,4 +46,4 @@ public:
 
 }
 
-//TEMP left off here, clean this up and make use of the Instance class continue refactoring afterwards
+//TEMP left off here, clean this up and make use of the Instance class continue refactoring afterward
