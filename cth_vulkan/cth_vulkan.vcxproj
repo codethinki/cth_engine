@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="HlcApp.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="vulkan\core\CthInstance.cpp" />
+    <ClCompile Include="vulkan\core\HlcDevice.cpp" />
+    <ClCompile Include="vulkan\core\HlcPipeline.cpp" />
+    <ClCompile Include="vulkan\core\HlcRenderer.cpp" />
+    <ClCompile Include="vulkan\core\HlcSwapchain.cpp" />
+    <ClCompile Include="vulkan\core\HlcWindow.cpp" />
+    <ClCompile Include="vulkan\memory\HlcBuffer.cpp" />
+    <ClCompile Include="vulkan\memory\HlcDescriptor.cpp" />
+    <ClCompile Include="vulkan\memory\HlcMemoryChunk.cpp" />
+    <ClCompile Include="vulkan\memory\HlcMemoryManager.cpp" />
+    <ClCompile Include="vulkan\memory\HlcOldChunkUpdateQueue.cpp" />
+    <ClCompile Include="vulkan\memory\HlcOldMemoryManager.cpp" />
+    <ClCompile Include="vulkan\models\HlcImage.cpp" />
+    <ClCompile Include="vulkan\models\HlcModel.cpp" />
+    <ClCompile Include="vulkan\models\HlcModelManager.cpp" />
+    <ClCompile Include="vulkan\models\HlcOldMesh.cpp" />
+    <ClCompile Include="vulkan\models\HlcOldModel.cpp" />
+    <ClCompile Include="vulkan\models\HlcTextureSampler.cpp" />
+    <ClCompile Include="vulkan\models\HlcVertex.cpp" />
+    <ClCompile Include="vulkan\objects\HlcStandardObject.cpp" />
+    <ClCompile Include="vulkan\user\HlcCamera.cpp" />
+    <ClCompile Include="vulkan\user\HlcInputController.cpp" />
+    <ClCompile Include="vulkan\utils\CthDebugMessenger.cpp" />
+    <ClCompile Include="vulkan\utils\HlcRenderSystem.cpp" />
+    <ClCompile Include="vulkan\utils\HlcShader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="HlcApp.hpp" />
+    <ClInclude Include="vulkan\core\CthInstance.hpp" />
+    <ClInclude Include="vulkan\core\HlcDevice.hpp" />
+    <ClInclude Include="vulkan\core\HlcPipeline.hpp" />
+    <ClInclude Include="vulkan\core\HlcRenderer.hpp" />
+    <ClInclude Include="vulkan\core\HlcSwapchain.hpp" />
+    <ClInclude Include="vulkan\core\HlcWindow.hpp" />
+    <ClInclude Include="vulkan\memory\HlcBuffer.hpp" />
+    <ClInclude Include="vulkan\memory\HlcDescriptor.hpp" />
+    <ClInclude Include="vulkan\memory\HlcMemoryChunk.hpp" />
+    <ClInclude Include="vulkan\memory\HlcMemoryManager.hpp" />
+    <ClInclude Include="vulkan\memory\HlcOldChunkUpdateQueue.hpp" />
+    <ClInclude Include="vulkan\memory\HlcOldMemoryChunkInfo.hpp" />
+    <ClInclude Include="vulkan\memory\HlcOldMemoryChunkList.hpp" />
+    <ClInclude Include="vulkan\memory\HlcOldMemoryManager.hpp" />
+    <ClInclude Include="vulkan\models\HlcImage.hpp" />
+    <ClInclude Include="vulkan\models\HlcModel.hpp" />
+    <ClInclude Include="vulkan\models\HlcModelManager.hpp" />
+    <ClInclude Include="vulkan\models\HlcOldMesh.hpp" />
+    <ClInclude Include="vulkan\models\HlcOldModel.hpp" />
+    <ClInclude Include="vulkan\models\HlcTextureSampler.hpp" />
+    <ClInclude Include="vulkan\models\HlcVertex.hpp" />
+    <ClInclude Include="vulkan\objects\HlcRenderObject.hpp" />
+    <ClInclude Include="vulkan\objects\HlcStandardObject.hpp" />
+    <ClInclude Include="vulkan\user\HlcCamera.hpp" />
+    <ClInclude Include="vulkan\user\HlcInputController.hpp" />
+    <ClInclude Include="vulkan\user\HlcUser.hpp" />
+    <ClInclude Include="vulkan\utils\CthDebugMessenger.hpp" />
+    <ClInclude Include="vulkan\utils\cth_vk_specific_utils.hpp" />
+    <ClInclude Include="vulkan\utils\HlcFrameInfo.hpp" />
+    <ClInclude Include="vulkan\utils\HlcPushConstant.hpp" />
+    <ClInclude Include="vulkan\utils\HlcRenderSystem.hpp" />
+    <ClInclude Include="vulkan\utils\HlcShader.hpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{d37c8e34-74ea-444e-a15e-bdc27cdcfe82}</ProjectGuid>
+    <RootNamespace>cthvulkan</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\out\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\out\</IntDir>
+    <ExternalIncludePath>$(SolutionDir)..\..\sdks\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(SolutionDir)..\cth\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\out\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\out\</IntDir>
+    <ExternalIncludePath>$(SolutionDir)..\..\sdks\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(SolutionDir)..\cth\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\out\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\out\</IntDir>
+    <ExternalIncludePath>$(SolutionDir)..\..\sdks\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(SolutionDir)..\cth\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\out\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\out\</IntDir>
+    <ExternalIncludePath>$(SolutionDir)..\..\sdks\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(SolutionDir)..\cth\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
