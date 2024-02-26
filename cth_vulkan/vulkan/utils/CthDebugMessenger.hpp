@@ -28,6 +28,7 @@ public:
     [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return vkMessenger; }
 
     [[nodiscard]] VkDebugUtilsMessengerCreateInfoEXT createInfo() const;
+
 private:
     void setCallback(const function<callback_t>& callback);
 
@@ -36,6 +37,7 @@ private:
     VkDebugUtilsMessengerEXT vkMessenger = VK_NULL_HANDLE;
 
     bool active = false;
+
 public:
     // Not copyable or movable
     DebugMessenger(const DebugMessenger&) = delete;
@@ -43,7 +45,10 @@ public:
     DebugMessenger(DebugMessenger&&) = delete;
     DebugMessenger& operator=(DebugMessenger&&) = delete;
 };
-
+} // namespace cth
+namespace cth::dev {
+VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+    void* user_data);
 }
 
-//TEMP left off here, clean this up and make use of the Instance class continue refactoring afterward

@@ -82,6 +82,9 @@
     <ClInclude Include="vulkan\utils\HlcRenderSystem.hpp" />
     <ClInclude Include="vulkan\utils\HlcShader.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="roadmap.md" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

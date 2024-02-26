@@ -1,0 +1,12 @@
+# roadmap
+
+## 1. modernize everything
+in progress:
+- HlcDevice.hpp/cpp
+completed:
+- CthInstance.hpp/cpp
+- CthDebugMessenger.hpp/cpp
+
+## 2. solve all compiler errors
+
+## 3. implement the new memeory system

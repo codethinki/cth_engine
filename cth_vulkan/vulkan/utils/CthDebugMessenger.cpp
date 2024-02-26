@@ -48,7 +48,7 @@ void DebugMessenger::destroy(VkInstance instance) const {
 
 
 void DebugMessenger::setCallback(const function<callback_t>& callback) {
-    this->callback = callback == nullptr ? dev::defaultDebugCallback : callback;
+    this->callback = callback == nullptr ? cth::dev::defaultDebugCallback : callback;
 }
 VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::createInfo() const {
     VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
@@ -68,7 +68,7 @@ VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::createInfo() const {
 
 }
 
-}
+} // namespace cth
 
 namespace cth::dev {
 VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
