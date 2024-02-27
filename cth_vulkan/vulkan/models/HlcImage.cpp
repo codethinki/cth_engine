@@ -4,7 +4,7 @@
 
 #include <stb_image.h>
 
-#include "../core/HlcDevice.hpp"
+#include "..\core\CthDevice.hpp"
 #include "../core/HlcSwapchain.hpp"
 #include "../memory/HlcBuffer.hpp"
 

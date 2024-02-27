@@ -1,13 +1,14 @@
 #pragma once
 
+#include <algorithm>
 #include <vulkan/vulkan_core.h>
 
 #include <array>
 
 namespace cth {
 
-[[nodiscard]] inline std::array<VkBool32, 55> deviceFeaturesToArray(const VkPhysicalDeviceFeatures& features) {
-    return std::array{
+[[nodiscard]] inline std::array<bool, 55> deviceFeaturesToArray(const VkPhysicalDeviceFeatures& features) {
+    std::array<VkBool32, 55> arr{
         features.robustBufferAccess,
         features.fullDrawIndexUint32,
         features.imageCubeArray,
@@ -64,6 +65,9 @@ namespace cth {
         features.variableMultisampleRate,
         features.inheritedQueries
     };
+
+    std::array<bool, 55> ret{};
+    ranges::transform(arr, ret.begin(), [](const VkBool32& b) { return b == VK_TRUE; });
 };
 [[nodiscard]] constexpr std::string_view deviceFeatureIndexToString(const size_t index) {
     switch(index) {

@@ -5,7 +5,7 @@
 #include "HlcMemoryChunk.hpp"
 
 
-#include "../core/HlcDevice.hpp"
+#include "..\core\CthDevice.hpp"
 #include "../objects/HlcRenderObject.hpp"
 
 

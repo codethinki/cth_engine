@@ -16,8 +16,14 @@ public:
     static constexpr array<const char*, 1> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation"
     };
+    static constexpr array<const char*, 1> VALIDATION_LAYER_EXTENSIONS{
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+    };
 
-
+    /**
+     *\throws cth::except::default_exception
+     *\throws cth::except::data_exception data: VkResult of vkCreateInstance()
+     */
     explicit Instance(const string& name, const vector<const char*>& required_extensions);
     ~Instance();
 
@@ -35,11 +41,11 @@ private:
     /**
      * \throws cth::except::default_exception reason: required extension not supported
      */
-    void checkInstanceExtensionsSupport();
+    void checkInstanceExtensionSupport();
     /**
      * \throws cth::except::default_exception reason: required layers not supported
      */
-    void checkValidationLayersSupport();
+    void checkValidationLayerSupport();
     [[nodiscard]] static vector<const char*> getAvailableValidationLayers();
 
     string name;

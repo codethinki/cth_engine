@@ -8,9 +8,7 @@ DebugMessenger::DebugMessenger(VkInstance instance, const function<callback_t>& 
     setCallback(callback);
     init(instance);
 }
-DebugMessenger::~DebugMessenger() {
-    if(active) destroy<false>(vkInstance);
-}
+DebugMessenger::~DebugMessenger() { if(active) destroy<false>(vkInstance); }
 
 void DebugMessenger::init(VkInstance instance) {
     this->vkInstance = instance;
@@ -22,6 +20,8 @@ void DebugMessenger::init(VkInstance instance) {
 
     const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+
+    CTH_STABLE_ERR(func != nullptr, "vkGetInstanceProcAddr returned nullptr") throw details->exception();
 
     const VkResult createResult = func(instance, &info, nullptr, &vkMessenger);
 
@@ -40,10 +40,8 @@ void DebugMessenger::destroy(VkInstance instance) const {
     if(func != nullptr) func(instance, vkMessenger, nullptr);
 
     else if constexpr(Throw)
-        CTH_STABLE_ERR(false, "failed to destroy debug messenger") {
-            details->add("vkGetInstanceProcAddr result was nullptr");
-            throw details->exception();
-        }
+        CTH_STABLE_ERR(false, "vkGetInstanceProcAddr result was nullptr") throw details->exception();
+
 }
 
 

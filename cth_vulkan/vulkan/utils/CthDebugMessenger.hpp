@@ -13,15 +13,31 @@ public:
     using callback_t = VkBool32(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT*,
         void*);
 
+    /**
+     * \param callback == nullptr -> default callback function
+     */
     explicit DebugMessenger(const function<callback_t>& callback = nullptr);
+    /**
+ * \param callback == nullptr -> default callback function
+ * \throws cth::except::default_exception
+ * \throws cth::except::data_exception data: VkResult
+ */
     explicit DebugMessenger(VkInstance instance, const function<callback_t>& callback = nullptr);
     ~DebugMessenger();
 
 
     /**
      * \throws cth::except::default_exception reason: messenger already active
+     * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
+     * \throws cth::except::data_exception data: VkResult of vkCreateDebugUtilsMessengerEXT()
      */
     void init(VkInstance instance);
+
+    /**
+     * \tparam Throw throw exceptions?
+     * \throws cth::except::default_exception reason: messenger not active
+     * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
+     */
     template<bool Throw>
     void destroy(VkInstance instance) const;
 

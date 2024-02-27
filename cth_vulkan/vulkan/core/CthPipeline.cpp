@@ -1,9 +1,9 @@
-#include "HlcPipeline.hpp"
+#include "CthPipeline.hpp"
 
-#include "HlcDevice.hpp"
+#include "CthDevice.hpp"
 #include "../models/HlcVertex.hpp"
 
-#include "HlcSwapchain.hpp"
+#include <cth/cth_log.hpp>
 
 #include <cassert>
 #include <stdexcept>
@@ -12,21 +12,23 @@
 namespace cth {
 using namespace std;
 
-HlcPipeline::HlcPipeline(Device& device, const PipelineConfigInfo& config_info) : hlcDevice{device} { createGraphicsPipeline(config_info); }
-HlcPipeline::~HlcPipeline() {
-    hlcDevice.vertShader->destroyModule(hlcDevice.device());
-    hlcDevice.fragShader->destroyModule(hlcDevice.device());
-    vkDestroyPipeline(hlcDevice.device(), vkGraphicsPipeline, nullptr);
+Pipeline::Pipeline(Device* device, const PipelineConfigInfo& config_info) : device{device} { createGraphicsPipeline(config_info); }
+Pipeline::~Pipeline() {
+    device->vertShader->destroyModule(device->device());
+    device->fragShader->destroyModule(device->device());
+    vkDestroyPipeline(device->device(), vkGraphicsPipeline, nullptr);
 }
 
-void HlcPipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
-    assert(config_info.pipelineLayout != VK_NULL_HANDLE && "Cannot create graphics pipeline no pipelineLayout provided in config_info");
-    assert(config_info.renderPass != VK_NULL_HANDLE && "Cannot create graphics pipeline no pipelineLayout provided in config_info");
+void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
+    CTH_STABLE_ERR(config_info.pipelineLayout != VK_NULL_HANDLE, "pipelineLayout missing in config_info")
+        throw cth::except::data_exception{config_info, details->exception()};
+    CTH_STABLE_ERR(config_info.renderPass != VK_NULL_HANDLE, "renderPass missing in config_info")
+        throw cth::except::data_exception{config_info, details->exception()};
 
-    VkPipelineShaderStageCreateInfo shaderStages[2] = {{}, {}};
+    array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
     shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-    shaderStages[0].module = hlcDevice.vertShader->getModule();
+    shaderStages[0].module = device->vertShader->getModule();
     shaderStages[0].pName = "main";
     shaderStages[0].flags = 0;
     shaderStages[0].pNext = nullptr;
@@ -34,7 +36,7 @@ void HlcPipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) 
 
     shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    shaderStages[1].module = hlcDevice.fragShader->getModule();
+    shaderStages[1].module = device->fragShader->getModule();
     shaderStages[1].pName = "main";
     shaderStages[1].flags = 0;
     shaderStages[1].pNext = nullptr;
@@ -52,7 +54,7 @@ void HlcPipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
-    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pStages = shaderStages.data();
     pipelineInfo.pVertexInputState = &vertexInputInfo;
     pipelineInfo.pInputAssemblyState = &config_info.inputAssemblyInfo;
     pipelineInfo.pViewportState = &config_info.viewportInfo;
@@ -67,26 +69,31 @@ void HlcPipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) 
     pipelineInfo.basePipelineIndex = -1;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-    if(vkCreateGraphicsPipelines(hlcDevice.device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &vkGraphicsPipeline) !=
-        VK_SUCCESS)
-        throw runtime_error("failed to create graphics pipeline");
+    const VkResult createResult = vkCreateGraphicsPipelines(device->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+        &vkGraphicsPipeline);
+
+
+    CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create graphics pipeline")
+        throw cth::except::data_exception{
+            createResult, details->exception()};
 }
 
-void HlcPipeline::createShaderModule(const vector<char>& code, VkShaderModule* shader_module) const {
+void Pipeline::createShaderModule(const vector<char>& code, VkShaderModule* shader_module) const {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
-    if(vkCreateShaderModule(hlcDevice.device(), &createInfo, nullptr, shader_module) != VK_SUCCESS)
-        throw runtime_error(
-            "createShaderModule: failed to create shader module");
+    const VkResult createResult = vkCreateShaderModule(device->device(), &createInfo, nullptr, shader_module);
+    CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create shader module")
+        throw cth::except::data_exception{createResult, details->exception()};
+
 }
 
-void HlcPipeline::bind(VkCommandBuffer command_buffer) { vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkGraphicsPipeline); }
+void Pipeline::bind(VkCommandBuffer command_buffer) const { vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkGraphicsPipeline); }
 
 
-void HlcPipeline::defaultPipelineConfigInfo(PipelineConfigInfo& config_info) {
+void Pipeline::defaultPipelineConfigInfo(PipelineConfigInfo& config_info) {
 
     config_info.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     config_info.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;

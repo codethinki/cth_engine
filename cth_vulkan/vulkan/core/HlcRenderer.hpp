@@ -1,6 +1,6 @@
 #pragma once
 
-#include  "../core/HlcDevice.hpp"
+#include  "CthDevice.hpp"
 #include "../core/HlcSwapchain.hpp"
 #include "../core/HlcWindow.hpp"
 #include "../utils/HlcShader.hpp"

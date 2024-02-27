@@ -6,15 +6,17 @@
 
 namespace cth {
 
-Instance::Instance(const string& name, const vector<const char*>& required_extensions) : name(name), requiredExt{required_extensions},
+Instance::Instance(const string& app_name, const vector<const char*>& required_extensions) : name(name), requiredExt{required_extensions},
     availableExt{getAvailableInstanceExtensions()} {
 
     if constexpr(ENABLE_VALIDATION_LAYERS) {
         availableLayers = getAvailableValidationLayers();
-        checkValidationLayersSupport();
+        checkValidationLayerSupport();
         debugMessenger = make_unique<DebugMessenger>();
+
+        requiredExt.insert(requiredExt.begin(), VALIDATION_LAYER_EXTENSIONS.begin(), VALIDATION_LAYER_EXTENSIONS.end());
     }
-    checkInstanceExtensionsSupport();
+    checkInstanceExtensionSupport();
 
     const auto createInfo = this->createInfo();
     const VkResult createInstanceResult = vkCreateInstance(&createInfo, nullptr, &vkInstance);
@@ -22,7 +24,7 @@ Instance::Instance(const string& name, const vector<const char*>& required_exten
         throw cth::except::data_exception{createInstanceResult, details->exception()};
 
 
-    debugMessenger->init(get()); //IMPORTANT
+    debugMessenger->init(vkInstance); //IMPORTANT
 }
 Instance::~Instance() { vkDestroyInstance(vkInstance, nullptr); }
 
@@ -61,7 +63,7 @@ VkInstanceCreateInfo Instance::createInfo() const {
     return createInfo;
 }
 
-void Instance::checkInstanceExtensionsSupport() {
+void Instance::checkInstanceExtensionSupport() {
     vector<const char*> missingExtensions{};
 
     ranges::for_each(requiredExt, [&](const char* extension) {
@@ -73,7 +75,7 @@ void Instance::checkInstanceExtensionsSupport() {
         throw details->exception();
     }
 }
-void Instance::checkValidationLayersSupport() {
+void Instance::checkValidationLayerSupport() {
     if constexpr(ENABLE_VALIDATION_LAYERS) {
         vector<const char*> missingLayers{};
 

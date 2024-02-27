@@ -1,6 +1,6 @@
 #pragma once
 
-#include "HlcDevice.hpp"
+#include "CthDevice.hpp"
 
 // vulkan headers
 #include <vulkan/vulkan.h>

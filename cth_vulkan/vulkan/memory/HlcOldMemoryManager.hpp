@@ -3,7 +3,7 @@
 
 #include "HlcChunkUpdateQueue.hpp"
 #include "HlcMemoryChunkList.hpp"
-#include "../core/HlcDevice.hpp"
+#include "..\core\CthDevice.hpp"
 #include "../models/HlcMesh.hpp"
 #include "../objects/HlcRenderObject.hpp"
 

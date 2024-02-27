@@ -101,11 +101,11 @@ void RenderSystem::createPipelineLayout() {
 void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
     assert(pipelineLayout != NULL && "create Pipeline: Cannot create pipeline without a layout");
     PipelineConfigInfo pipelineConfig{};
-    HlcPipeline::defaultPipelineConfigInfo(pipelineConfig);
+    Pipeline::defaultPipelineConfigInfo(pipelineConfig);
     pipelineConfig.renderPass = render_pass;
     pipelineConfig.multisampleInfo.rasterizationSamples = msaa_samples;
     pipelineConfig.pipelineLayout = pipelineLayout;
-    hlcPipeline = std::make_unique<HlcPipeline>(hlcDevice, pipelineConfig);
+    hlcPipeline = std::make_unique<Pipeline>(hlcDevice, pipelineConfig);
 }
 
 

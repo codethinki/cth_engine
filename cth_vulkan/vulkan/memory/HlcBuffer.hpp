@@ -1,5 +1,5 @@
 #pragma once
-#include "../core/HlcDevice.hpp"
+#include "..\core\CthDevice.hpp"
 
 
 namespace cth {

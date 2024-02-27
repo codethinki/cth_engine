@@ -1,7 +1,7 @@
 #pragma once
 #include "HlcFrameInfo.hpp"
-#include  "../core/HlcDevice.hpp"
-#include "../core/HlcPipeline.hpp"
+#include  "..\core\CthDevice.hpp"
+#include "..\core\CthPipeline.hpp"
 #include "../memory/HlcDescriptor.hpp"
 #include "..\models\HlcOldModel.hpp"
 
@@ -60,7 +60,7 @@ private:
 	vector<unique_ptr<Buffer>> descriptedBuffers;
 
 	//vector<unique_ptr<Image>> descriptedImages;
-	unique_ptr<HlcPipeline> hlcPipeline;
+	unique_ptr<Pipeline> hlcPipeline;
 	VkPipelineLayout pipelineLayout{};
 };
 }

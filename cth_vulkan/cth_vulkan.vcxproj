@@ -22,8 +22,8 @@
     <ClCompile Include="HlcApp.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="vulkan\core\CthInstance.cpp" />
-    <ClCompile Include="vulkan\core\HlcDevice.cpp" />
-    <ClCompile Include="vulkan\core\HlcPipeline.cpp" />
+    <ClCompile Include="vulkan\core\CthDevice.cpp" />
+    <ClCompile Include="vulkan\core\CthPipeline.cpp" />
     <ClCompile Include="vulkan\core\HlcRenderer.cpp" />
     <ClCompile Include="vulkan\core\HlcSwapchain.cpp" />
     <ClCompile Include="vulkan\core\HlcWindow.cpp" />
@@ -50,8 +50,8 @@
   <ItemGroup>
     <ClInclude Include="HlcApp.hpp" />
     <ClInclude Include="vulkan\core\CthInstance.hpp" />
-    <ClInclude Include="vulkan\core\HlcDevice.hpp" />
-    <ClInclude Include="vulkan\core\HlcPipeline.hpp" />
+    <ClInclude Include="vulkan\core\CthDevice.hpp" />
+    <ClInclude Include="vulkan\core\CthPipeline.hpp" />
     <ClInclude Include="vulkan\core\HlcRenderer.hpp" />
     <ClInclude Include="vulkan\core\HlcSwapchain.hpp" />
     <ClInclude Include="vulkan\core\HlcWindow.hpp" />

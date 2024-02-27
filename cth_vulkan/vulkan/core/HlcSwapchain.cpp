@@ -152,9 +152,9 @@ void HlcSwapchain::createSwapchain() {
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 	const QueueFamilyIndices indices = device.findPhysicalQueueFamilies();
-	const uint32_t queueFamilyIndices[] = {indices.graphicsFamily, indices.presentFamily};
+	const uint32_t queueFamilyIndices[] = {indices.graphicsFamilyIndex, indices.presentFamilyIndex};
 
-	if(indices.graphicsFamily != indices.presentFamily) {
+	if(indices.graphicsFamilyIndex != indices.presentFamilyIndex) {
 		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		createInfo.queueFamilyIndexCount = 2;
 		createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -453,7 +453,7 @@ void HlcSwapchain::setMsaaSampleCount() { msaaSamples = evaluateMsaaSampleCount(
 
 
 VkFormat HlcSwapchain::findDepthFormat() const {
-	return device.findSupportedFormat(
+	return device.findSupportedFormat( 
 		{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);

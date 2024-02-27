@@ -63,10 +63,10 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\core\HlcDevice.cpp">
+    <ClCompile Include="vulkan\core\CthDevice.cpp">
       <Filter>Source Files\vulkan\core</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\core\HlcPipeline.cpp">
+    <ClCompile Include="vulkan\core\CthPipeline.cpp">
       <Filter>Source Files\vulkan\core</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\core\HlcRenderer.cpp">
@@ -143,10 +143,10 @@
     <ClInclude Include="HlcApp.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vulkan\core\HlcDevice.hpp">
+    <ClInclude Include="vulkan\core\CthDevice.hpp">
       <Filter>Header Files\vulkan\core</Filter>
     </ClInclude>
-    <ClInclude Include="vulkan\core\HlcPipeline.hpp">
+    <ClInclude Include="vulkan\core\CthPipeline.hpp">
       <Filter>Header Files\vulkan\core</Filter>
     </ClInclude>
     <ClInclude Include="vulkan\core\HlcRenderer.hpp">

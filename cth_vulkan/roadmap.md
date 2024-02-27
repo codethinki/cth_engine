@@ -2,10 +2,11 @@
 
 ## 1. modernize everything
 in progress:
-- HlcDevice.hpp/cpp
 completed:
+- CthPipeline.hpp/cpp
 - CthInstance.hpp/cpp
 - CthDebugMessenger.hpp/cpp
+- HlcDevice.hpp/cpp
 
 ## 2. solve all compiler errors
 
