@@ -58,7 +58,7 @@ vector<const char*> Device::getRequiredInstanceExtensions() const {
 void Device::createInstance() { instance = make_unique<Instance>("app", getRequiredInstanceExtensions()); }
 
 //create surface
-void Device::createSurface() { window.createWindowSurface(instance->get(), &windowSurface); }
+void Device::createSurface() { window->createWindowSurface(instance->get(), &windowSurface); }
 
 
 //pickPhysicalDevice helpers
@@ -395,7 +395,7 @@ void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMe
     CTH_STABLE_ERR(bindResult == VK_SUCCESS, "Vk: failed to bind image memory") throw cth::except::data_exception{bindResult, details->exception()};
 }
 
-Device::Device(Window& window) : window{window} {
+Device::Device(Window* window) : window{window} {
     createInstance();
     createSurface();
     pickPhysicalDevice();

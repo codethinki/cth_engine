@@ -16,13 +16,14 @@ class HlcSwapchain {
 public:
 	static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
-	HlcSwapchain(Device& device_ref, VkExtent2D window_extent);
-	HlcSwapchain(Device& device_ref, VkExtent2D window_extent, std::shared_ptr<HlcSwapchain> previous);
+	HlcSwapchain(Device* device_ref, VkExtent2D window_extent);
+	HlcSwapchain(Device* device_ref, VkExtent2D window_extent, std::shared_ptr<HlcSwapchain> previous);
 	~HlcSwapchain();
 
 	HlcSwapchain(const HlcSwapchain&) = delete;
 	HlcSwapchain& operator=(const HlcSwapchain&) = delete;
 
+	//TODO make this uint32_t
 	[[nodiscard]] VkFramebuffer getFrameBuffer(const int index) const { return swapchainFramebuffers[index]; }
 	[[nodiscard]] VkRenderPass getRenderPass() const { return renderPass; }
 	[[nodiscard]] VkImageView getImageView(const int index) const { return imageViewsSwapchain[index]; }
@@ -92,7 +93,7 @@ private:
 	VkExtent2D windowExtent;
 
 	VkSwapchainKHR swapchain;
-	shared_ptr<HlcSwapchain> oldSwapchain;
+	shared_ptr<HlcSwapchain> oldSwapchain; //TODO why is this a shared_ptr?
 
 	vector<VkSemaphore> imageAvailableSemaphores;
 	vector<VkSemaphore> renderFinishedSemaphores;

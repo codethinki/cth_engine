@@ -41,7 +41,7 @@ public:
         return features;
     }();
 
-    explicit Device(Window& window);
+    explicit Device(Window* window);
     ~Device();
 
     [[nodiscard]] SwapchainSupportDetails getSwapchainSupport() const { return querySwapchainSupport(physicalDevice); }
@@ -123,7 +123,7 @@ private:
 
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    Window& window;
+    Window* window;
     VkCommandPool commandPool;
 
     VkDevice logicalDevice;

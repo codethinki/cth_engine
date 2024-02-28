@@ -69,7 +69,7 @@
     <ClCompile Include="vulkan\core\CthPipeline.cpp">
       <Filter>Source Files\vulkan\core</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\core\HlcRenderer.cpp">
+    <ClCompile Include="vulkan\core\CthRenderer.cpp">
       <Filter>Source Files\vulkan\core</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\core\HlcSwapchain.cpp">
@@ -149,7 +149,7 @@
     <ClInclude Include="vulkan\core\CthPipeline.hpp">
       <Filter>Header Files\vulkan\core</Filter>
     </ClInclude>
-    <ClInclude Include="vulkan\core\HlcRenderer.hpp">
+    <ClInclude Include="vulkan\core\CthRenderer.hpp">
       <Filter>Header Files\vulkan\core</Filter>
     </ClInclude>
     <ClInclude Include="vulkan\core\HlcSwapchain.hpp">

@@ -57,7 +57,7 @@ void App::run() {
 
         renderSystem.updateDynamicChunks();
 
-        FrameInfo info = {hlcRenderer.getFrameIndex(), 0.f, commandBuffer, camera};
+        FrameInfo info = {hlcRenderer.frameIndex(), 0.f, commandBuffer, camera};
 
         hlcRenderer.beginSwapchainRenderPass(info.commandBuffer);
         renderSystem.render(staticObjectsRenderData, info);
