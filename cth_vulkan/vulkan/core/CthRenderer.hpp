@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../core/HlcSwapchain.hpp"
+#include "CThSwapchain.hpp"
 
 #include <cstdint>
 #include <memory>

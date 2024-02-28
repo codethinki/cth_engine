@@ -1,10 +1,13 @@
 #include "CthRenderer.hpp"
 
+#include "CthDevice.hpp"
+#include "HlcWindow.hpp"
 #include "../user/HlcCamera.hpp"
 
 #include <cth/cth_log.hpp>
 
 #include <array>
+
 
 
 namespace cth {
@@ -99,7 +102,7 @@ void Renderer::endFrame() {
         throw cth::except::data_exception{recordResult, details->exception()};
 
 
-    const VkResult submitResult = swapchain->submitCommandBuffers(&buffer, &currentImageIndex);
+    const VkResult submitResult = swapchain->submitCommandBuffer(buffer, currentImageIndex);
 
     if(submitResult == VK_ERROR_OUT_OF_DATE_KHR || submitResult == VK_SUBOPTIMAL_KHR || Window::windowResized()) {
         Window::resetWindowResized();
@@ -122,7 +125,7 @@ void Renderer::beginSwapchainRenderPass(VkCommandBuffer command_buffer) const {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = swapchain->getRenderPass();
-    renderPassInfo.framebuffer = swapchain->getFrameBuffer(static_cast<int>(currentImageIndex)); //TODO change this to uint32_t
+    renderPassInfo.framebuffer = swapchain->getFrameBuffer(currentImageIndex);
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapchain->getSwapchainExtent();
 

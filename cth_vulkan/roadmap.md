@@ -2,7 +2,7 @@
 
 ## 1. modernize everything
 ### in progress:
-	- HlcRenderer.hpp/cpp
+	
 ### completed:
 	core:
 	- CthPipeline.hpp/cpp
@@ -10,6 +10,7 @@
 	- CthDebugMessenger.hpp/cpp
 	- CthDevice.hpp/cpp
 	- CthRenderer.hpp/cpp
+	- CthSwapchain.hpp/cpp
 
 ## 2. solve all compiler errors
 

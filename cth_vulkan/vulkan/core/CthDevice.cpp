@@ -235,7 +235,7 @@ void Device::createCommandPool() {
     CTH_STABLE_ERR(result == VK_SUCCESS, "VK: failed to create command pool") throw cth::except::data_exception{result, details->exception()};
 }
 void Device::initShaders() {
-    //TEMP does this have to be with the device?
+    //TODO create a shader manager so it is not in the device class
 
 
     vertShader = make_unique<Shader>(VERTEX_SHADER_CODE_PATH, VERTEX_SHADER_BINARIES_PATH, SHADER_COMPILER_PATH);

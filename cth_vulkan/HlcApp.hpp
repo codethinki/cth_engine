@@ -1,6 +1,6 @@
 #pragma once
-#include  "vulkan\core\CthDevice.hpp"
-#include "vulkan/core/HlcRenderer.hpp"
+#include  "vulkan/core/CthDevice.hpp"
+#include "vulkan/core/CthRenderer.hpp"
 #include "vulkan/core/HlcWindow.hpp"
 #include "vulkan/memory/HlcMemoryManager.hpp"
 #include "vulkan/user/HlcCamera.hpp"

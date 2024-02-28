@@ -70,7 +70,7 @@ public:
     void copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size) const;
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer_count) const;
 
-
+    //TODO put this into the image class maybe
     /**
      * \throws cth::except::data_exception data: VkResult of vkCreateImage()
      * \throws cth::except::data_exception data: VkResult of vkAllocateMemory()
@@ -79,7 +79,7 @@ public:
     void createImageWithInfo(const VkImageCreateInfo& image_info, VkMemoryPropertyFlags properties, VkImage& image,
         VkDeviceMemory& image_memory) const;
 
-    //TEMP fix this
+
     VkPhysicalDeviceProperties physicalProperties;
     unique_ptr<Shader> vertShader;
     unique_ptr<Shader> fragShader;
@@ -147,4 +147,3 @@ public:
     [[nodiscard]] VkQueue getPresentQueue() const { return presentQueue; }
 };
 } // namespace cth
-//TEMP left off here, clean this up and make use of the Instance class continue refactoring afterward
