@@ -3,7 +3,7 @@ import hlc.math;
 #include "HlcRenderSystem.hpp"
 
 #include "HlcPushConstant.hpp"
-#include "..\core\CThSwapchain.hpp"
+#include "..\core\CthSwapchain.hpp"
 #include "../memory/HlcMemoryManager.hpp"
 #include "../objects/HlcRenderObject.hpp"
 

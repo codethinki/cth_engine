@@ -53,7 +53,7 @@
     <ClInclude Include="vulkan\core\CthDevice.hpp" />
     <ClInclude Include="vulkan\core\CthPipeline.hpp" />
     <ClInclude Include="vulkan\core\CthRenderer.hpp" />
-    <ClInclude Include="vulkan\core\CThSwapchain.hpp" />
+    <ClInclude Include="vulkan\core\CthSwapchain.hpp" />
     <ClInclude Include="vulkan\core\HlcWindow.hpp" />
     <ClInclude Include="vulkan\memory\HlcBuffer.hpp" />
     <ClInclude Include="vulkan\memory\HlcDescriptor.hpp" />

@@ -1,4 +1,4 @@
-#include "CThSwapchain.hpp"
+#include "CthSwapchain.hpp"
 
 #include "CthDevice.hpp"
 

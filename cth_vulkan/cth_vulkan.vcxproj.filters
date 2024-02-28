@@ -152,7 +152,7 @@
     <ClInclude Include="vulkan\core\CthRenderer.hpp">
       <Filter>Header Files\vulkan\core</Filter>
     </ClInclude>
-    <ClInclude Include="vulkan\core\CThSwapchain.hpp">
+    <ClInclude Include="vulkan\core\CthSwapchain.hpp">
       <Filter>Header Files\vulkan\core</Filter>
     </ClInclude>
     <ClInclude Include="vulkan\core\HlcWindow.hpp">
