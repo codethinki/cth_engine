@@ -24,15 +24,17 @@ int main() { //TEMP edit this back to be invisible
 
     App app{};
     try { app.run(); }
-    catch(const exception& e) {
-        cerr << e.what() << endl;
-#ifdef _DEBUG
-        throw runtime_error("stop");
-        return EXIT_FAILURE;
-#else
-		other::messageBox(L"Program Error", L"Program crashed :(", MB_OK | MB_ICONERROR);
-		return EXIT_FAILURE;
-#endif
+    catch(const cth::except::data_exception<VkResult>& e) {
+        
+    }
+    catch(const cth::except::default_exception& e) {
+        cth::out::error.println(e.string());
+    }
+    catch(const std::exception& e) {
+        cth::out::error.println(e.what());
+    }
+    catch(...) {
+        cth::out::error.println("Unknown exception");
     }
     return EXIT_SUCCESS;
 }

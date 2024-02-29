@@ -1,6 +1,5 @@
 #pragma once
 #include <functional>
-#include <cth/cth_log.hpp>
 #include <vulkan/vulkan.h>
 
 
@@ -20,7 +19,7 @@ public:
     /**
  * \param callback == nullptr -> default callback function
  * \throws cth::except::default_exception
- * \throws cth::except::data_exception data: VkResult
+ * \throws cth::except::vk_result_exception
  */
     explicit DebugMessenger(VkInstance instance, const function<callback_t>& callback = nullptr);
     ~DebugMessenger();
@@ -29,7 +28,7 @@ public:
     /**
      * \throws cth::except::default_exception reason: messenger already active
      * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
-     * \throws cth::except::data_exception data: VkResult of vkCreateDebugUtilsMessengerEXT()
+     * \throws cth::except::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
      */
     void init(VkInstance instance);
 

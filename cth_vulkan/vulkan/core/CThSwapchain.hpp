@@ -24,7 +24,7 @@ public:
 
     VkResult acquireNextImage(uint32_t image_index) const;
     /**
-     * \throws cth::except::data_exception data: VkResult of vkQueueSubmit()
+     * \throws cth::except::vk_result_exception result of vkQueueSubmit()
      */
     VkResult submitCommandBuffer(VkCommandBuffer buffer, uint32_t image_index);
 
@@ -50,7 +50,7 @@ private:
     [[nodiscard]] VkSubpassDescription createSubpassDescription() const;
     [[nodiscard]] VkSubpassDependency createSubpassDependency() const;
     /**
-     * \throws cth::except::data_exception data: VkResult of vkCreateRenderPass()
+     * \throws cth::except::vk_result_exception result of vkCreateRenderPass()
      */
     void createRenderPass();
     //createColorImageInfo
@@ -61,11 +61,11 @@ private:
     void createDepthResources();
 
     /**
-     * \throws cth::except::data_exception data: VkResult of vkCreateFramebuffer()
+     * \throws cth::except::vk_result_exception result of vkCreateFramebuffer()
      */
     void createFramebuffers();
     /**
-     * \throws cth::except::data_exception data: VkResult of vkCreateSemaphore() / vkCreateFence()
+     * \throws cth::except::vk_result_exception result of vkCreateSemaphore() / vkCreateFence()
      */
     void createSyncObjects();
 

@@ -1,6 +1,9 @@
 #include "CthDebugMessenger.hpp"
 
+#include "cth_vk_specific_utils.hpp"
 #include "../core/CthInstance.hpp"
+
+#include <cth/cth_log.hpp>
 
 namespace cth {
 DebugMessenger::DebugMessenger(const function<callback_t>& callback) { setCallback(callback); }
@@ -26,7 +29,7 @@ void DebugMessenger::init(VkInstance instance) {
     const VkResult createResult = func(instance, &info, nullptr, &vkMessenger);
 
     CTH_STABLE_ERR(createResult == VK_SUCCESS, "failed to set up debug messenger")
-        throw cth::except::data_exception{createResult, details->exception()};
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 template<bool Throw = true>
 void DebugMessenger::destroy(VkInstance instance) const {

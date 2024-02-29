@@ -214,8 +214,9 @@ void Device::createLogicalDevice() {
     } else createInfo.enabledLayerCount = 0;
 
 
-    const VkResult result = vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice);
-    CTH_STABLE_ERR(result == VK_SUCCESS, "VK: failed to create logical device") throw cth::except::data_exception{result, details->exception()};
+    const VkResult createResult = vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice);
+    CTH_STABLE_ERR(createResult == VK_SUCCESS, "VK: failed to create logical device")
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 
     vkGetDeviceQueue(logicalDevice, indices.graphicsFamilyIndex, 0, &graphicsQueue);
     vkGetDeviceQueue(logicalDevice, indices.presentFamilyIndex, 0, &presentQueue);
@@ -231,8 +232,9 @@ void Device::createCommandPool() {
         VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 
-    const VkResult result = vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool);
-    CTH_STABLE_ERR(result == VK_SUCCESS, "VK: failed to create command pool") throw cth::except::data_exception{result, details->exception()};
+    const VkResult createResult = vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool);
+    CTH_STABLE_ERR(createResult == VK_SUCCESS, "VK: failed to create command pool")
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 void Device::initShaders() {
     //TODO create a shader manager so it is not in the device class
@@ -244,8 +246,14 @@ void Device::initShaders() {
 #ifdef _DEBUG
     const auto vertResult = vertShader->compile();
     const auto fragResult = fragShader->compile();
-    CTH_ERR(vertResult.empty(), "vertex shader glsl compiling failed") throw cth::except::data_exception{vertResult, details->exception()};
-    CTH_ERR(fragResult.empty(), "fragment shader glsl compiling failed") throw cth::except::data_exception{fragResult, details->exception()};
+    CTH_ERR(vertResult.empty(), "vertex shader glsl compiling failed") {
+        ranges::for_each(vertResult, [&details](const string& str) { details->add(str); });
+        throw details->exception();
+    }
+    CTH_ERR(fragResult.empty(), "fragment shader glsl compiling failed") {
+        ranges::for_each(vertResult, [&details](const string& str) { details->add(str); });
+        throw details->exception();
+    }
 #endif
     vertShader->loadSpv();
     vertShader->createModule(device());
@@ -322,10 +330,9 @@ void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    const VkResult createBufferResult = vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer);
-    CTH_STABLE_ERR(createBufferResult == VK_SUCCESS, "Vk: failed to create buffer")
-        throw cth::except::data_exception{createBufferResult,
-            details->exception()};
+    const VkResult createResult = vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer);
+    CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create buffer")
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
@@ -336,11 +343,13 @@ void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
     const VkResult allocResult = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &buffer_memory);
-    CTH_STABLE_ERR(allocResult == VK_SUCCESS, "Vk: failed to allocate buffer memory") throw details->exception();
+    CTH_STABLE_ERR(allocResult == VK_SUCCESS, "Vk: failed to allocate buffer memory")
+        throw cth::except::vk_result_exception{allocResult, details->exception()};
 
     vkBindBufferMemory(logicalDevice, buffer, buffer_memory, 0);
 }
-void Device::copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, const VkDeviceSize size, const VkDeviceSize src_offset, const VkDeviceSize dst_offset) const {
+void Device::copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, const VkDeviceSize size, const VkDeviceSize src_offset,
+    const VkDeviceSize dst_offset) const {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
     VkBufferCopy copyRegion;
@@ -374,9 +383,9 @@ void Device::copyBufferToImage(VkBuffer buffer, VkImage image, const uint32_t wi
 void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMemoryPropertyFlags properties, VkImage& image,
     VkDeviceMemory& image_memory) const {
 
-    const VkResult createImageResult = vkCreateImage(logicalDevice, &image_info, nullptr, &image);
-    CTH_STABLE_ERR(createImageResult == VK_SUCCESS, "Vk: failed to create image")
-        throw cth::except::data_exception{createImageResult, details->exception()};
+    const VkResult createResult = vkCreateImage(logicalDevice, &image_info, nullptr, &image);
+    CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create image") throw cth::except::vk_result_exception{createResult,
+        details->exception()};
 
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
@@ -386,13 +395,14 @@ void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMe
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    const VkResult imgAllocResult = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &image_memory);
+    const VkResult allocResult = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &image_memory);
 
-    CTH_STABLE_ERR(imgAllocResult == VK_SUCCESS, "Vk: failed to allocate image memory")
-        throw cth::except::data_exception{imgAllocResult, details->exception()};
+    CTH_STABLE_ERR(allocResult == VK_SUCCESS, "Vk: failed to allocate image memory")
+        throw cth::except::vk_result_exception{allocResult, details->exception()};
 
     const VkResult bindResult = vkBindImageMemory(logicalDevice, image, image_memory, 0);
-    CTH_STABLE_ERR(bindResult == VK_SUCCESS, "Vk: failed to bind image memory") throw cth::except::data_exception{bindResult, details->exception()};
+    CTH_STABLE_ERR(bindResult == VK_SUCCESS, "Vk: failed to bind image memory")
+        throw cth::except::vk_result_exception{bindResult, details->exception()};
 }
 
 Device::Device(Window* window) : window{window} {

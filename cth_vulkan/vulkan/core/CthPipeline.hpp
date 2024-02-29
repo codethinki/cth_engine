@@ -29,12 +29,12 @@ class Pipeline {
 public:
     /**
      *\throws cth::except::data_exception data: config_info
-     *\throws cth::except::data_exception data: VkResult of vkCreateGraphicsPipelines()
+     *\throws cth::except::vk_result_exception result of vkCreateGraphicsPipelines()
      */
     void createGraphicsPipeline(const PipelineConfigInfo& config_info);
 
     /**
-     *\throws cth::except::data_exception data: VkResult
+     *\throws cth::except::vk_result_exception
      */
     Pipeline(Device* device, const PipelineConfigInfo& config_info);
     ~Pipeline();
@@ -47,7 +47,7 @@ public:
     static void defaultPipelineConfigInfo(PipelineConfigInfo& config_info);
 
     /**
-     *\throws cth::except::data_exception data: VkResult of vkCreateShaderModule()
+     *\throws cth::except::vk_result_exception result of vkCreateShaderModule()
      */
     void createShaderModule(const vector<char>& code, VkShaderModule* shader_module) const;
 

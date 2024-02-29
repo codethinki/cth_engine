@@ -22,9 +22,9 @@ public:
 
     /**
      *\throws cth::except::default_exception
-     *\throws cth::except::data_exception data: VkResult of vkCreateInstance()
+     *\throws cth::except::vk_result_exception result of vkCreateInstance()
      */
-    explicit Instance(const string& name, const vector<const char*>& required_extensions);
+    explicit Instance(string app_name, const vector<const char*>& required_extensions);
     ~Instance();
 
     [[nodiscard]] VkInstance get() const { return vkInstance; }

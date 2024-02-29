@@ -2,11 +2,14 @@
 
 #include "CthDevice.hpp"
 #include "../models/HlcVertex.hpp"
+#include "../utils/cth_vk_specific_utils.hpp"
 
 #include <cth/cth_log.hpp>
 
+
 #include <cassert>
 #include <stdexcept>
+
 
 
 namespace cth {
@@ -74,8 +77,7 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
 
 
     CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create graphics pipeline")
-        throw cth::except::data_exception{
-            createResult, details->exception()};
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 
 void Pipeline::createShaderModule(const vector<char>& code, VkShaderModule* shader_module) const {
@@ -86,7 +88,7 @@ void Pipeline::createShaderModule(const vector<char>& code, VkShaderModule* shad
 
     const VkResult createResult = vkCreateShaderModule(device->device(), &createInfo, nullptr, shader_module);
     CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create shader module")
-        throw cth::except::data_exception{createResult, details->exception()};
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 
 }
 

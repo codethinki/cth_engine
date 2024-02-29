@@ -1,9 +1,12 @@
 #include "CthBuffer.hpp"
 
+#include "../utils/cth_vk_specific_utils.hpp"
+
 #include <cassert>
 #include <cstring>
 #include <cth/cth_log.hpp>
 #include <glm/ext/scalar_uint_sized.hpp>
+
 
 
 namespace cth {
@@ -19,7 +22,7 @@ span<char> cth::DefaultBuffer::map(const VkDeviceSize size, const VkDeviceSize o
     void* mappedPtr = nullptr;
     const VkResult mapResult = vkMapMemory(device->device(), vkMemory, offset, size, 0, &mappedPtr);
     CTH_STABLE_ERR(mapResult == VK_SUCCESS, "Vk: memory mapping failed")
-        throw cth::except::data_exception{mapResult, details->exception()};
+        throw cth::except::vk_result_exception{mapResult, details->exception()};
 
     return span<char>{static_cast<char*>(mappedPtr), size};
 }
@@ -30,7 +33,7 @@ span<char> DefaultBuffer::map() {
     void* mappedPtr = nullptr;
     const VkResult mapResult = vkMapMemory(device->device(), vkMemory, 0, VK_WHOLE_SIZE, 0, &mappedPtr);
     CTH_STABLE_ERR(mapResult == VK_SUCCESS, "Vk: memory mapping failed")
-        throw cth::except::data_exception{mapResult, details->exception()};
+        throw cth::except::vk_result_exception{mapResult, details->exception()};
 
     mapped = span<char>(static_cast<char*>(mappedPtr), bufferSize - padding);
     return mapped;

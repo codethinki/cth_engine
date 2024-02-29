@@ -14,13 +14,13 @@ using namespace std;
 class Renderer {
 public:
     /**
-     * \throws cth::except::data_exception data: VkResult of  Swapchain::acquireNextImage()
-     * \throws cth::except:data_exception data: VkResult of vkBeginCommandBuffer()
+     * \throws cth::except::vk_result_exception result of  Swapchain::acquireNextImage()
+     * \throws cth::except:vk_result_exception result of vkBeginCommandBuffer()
      */
     VkCommandBuffer beginFrame();
     /**
-     * \throws cth::except::data_exception data: VkResult of Swapchain::submitCommandBuffers()
-     * \throws cth::ecept::data_exception data: VkResult of vkEndCommandBuffer()
+     * \throws cth::except::vk_result_exception result of Swapchain::submitCommandBuffers()
+     * \throws cth::except::vk_result_exception result of vkEndCommandBuffer()
      */
     void endFrame();
 
@@ -41,7 +41,7 @@ private:
     VkExtent2D minimizedState() const;
 
     /**
-     * \throws cth::except::data_exception data: VkResult of vkAllocateCommandBuffers()
+     * \throws cth::except::vk_result_exception result of vkAllocateCommandBuffers()
      */
     void createCommandBuffers();
     void freeCommandBuffers();

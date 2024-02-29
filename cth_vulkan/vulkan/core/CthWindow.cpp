@@ -1,12 +1,14 @@
 #include "CthWindow.hpp"
 
 #include "../user/HlcInputController.hpp"
+#include "../utils/cth_vk_specific_utils.hpp"
 
 #include <cth/cth_log.hpp>
 #include <cth/cth_numeric.hpp>
 
 #include <iostream>
 #include <stdexcept>
+
 
 namespace cth {
 Window::Window(std::string name, const uint32_t width, const uint32_t height) : width(static_cast<int>(width)), height(static_cast<int>(height)),
@@ -46,7 +48,7 @@ void Window::createWindowSurface(VkInstance instance, VkSurfaceKHR* surface) con
     const VkResult result = glfwCreateWindowSurface(instance, glfwWindow, nullptr, surface);
 
     CTH_STABLE_ERR(result == VK_SUCCESS, "Vk: failed to create GLFW window surface")
-        throw cth::except::data_exception{result, details->exception()};
+        throw cth::except::vk_result_exception{result, details->exception()};
 }
 
 

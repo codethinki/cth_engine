@@ -1,12 +1,15 @@
 #include "CthInstance.hpp"
-#include "../utils/CthDebugMessenger.hpp"
 
-#include <cth/cth_exception.hpp>
+#include "../utils/CthDebugMessenger.hpp"
+#include "../utils/cth_vk_specific_utils.hpp"
+
 #include <cth/cth_log.hpp>
+
+
 
 namespace cth {
 
-Instance::Instance(const string& app_name, const vector<const char*>& required_extensions) : name(name), requiredExt{required_extensions},
+Instance::Instance(string app_name, const vector<const char*>& required_extensions) : name(std::move(app_name)), requiredExt{required_extensions},
     availableExt{getAvailableInstanceExtensions()} {
 
     if constexpr(ENABLE_VALIDATION_LAYERS) {
@@ -21,7 +24,7 @@ Instance::Instance(const string& app_name, const vector<const char*>& required_e
     const auto createInfo = this->createInfo();
     const VkResult createInstanceResult = vkCreateInstance(&createInfo, nullptr, &vkInstance);
     CTH_STABLE_ERR(createInstanceResult == VK_SUCCESS, "VK: failed to create instance!")
-        throw cth::except::data_exception{createInstanceResult, details->exception()};
+        throw cth::except::vk_result_exception{createInstanceResult, details->exception()};
 
 
     debugMessenger->init(vkInstance); //IMPORTANT

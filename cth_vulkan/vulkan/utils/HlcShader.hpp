@@ -14,7 +14,7 @@ class Shader {
 public:
     enum Shader_Type { TYPE_FRAGMENT, TYPE_VERTEX, TYPES_SIZE };
 
-    [[nodiscard]] vector<wstring> compile(const wstring& flags = L"-O") const;
+    [[nodiscard]] vector<string> compile(const wstring& flags = L"-O") const;
 
     void loadSpv();
 

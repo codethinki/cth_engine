@@ -1,6 +1,7 @@
 #include "CthSwapchain.hpp"
 
 #include "CthDevice.hpp"
+#include "../utils/cth_vk_specific_utils.hpp"
 
 #include <cth/cth_log.hpp>
 
@@ -8,6 +9,7 @@
 #include <iostream>
 #include <limits>
 #include <glm/ext/scalar_uint_sized.hpp>
+
 
 
 namespace cth {
@@ -87,7 +89,7 @@ VkResult HlcSwapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_
 
     const VkResult submitResult = vkQueueSubmit(device->getGraphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]);
     CTH_STABLE_ERR(submitResult == VK_SUCCESS, "failed to submit draw call")
-        throw cth::except::data_exception{submitResult, details->exception()};
+        throw cth::except::vk_result_exception{submitResult, details->exception()};
 
 
     const auto presentInfo = createPresentInfo(image_index);
@@ -184,7 +186,7 @@ void HlcSwapchain::createSwapchain() {
 
     const VkResult createResult = vkCreateSwapchainKHR(device->device(), &createInfo, nullptr, &vkSwapchain);
     CTH_STABLE_ERR(createResult == VK_SUCCESS, "failed to create swapchain")
-        throw cth::except::data_exception{createResult, details->exception()};
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 
     swapchainImageFormat = surfaceFormat.format;
     swapchainExtent = extent;
@@ -297,7 +299,7 @@ void HlcSwapchain::createRenderPass() {
     const VkResult createResult = vkCreateRenderPass(device->device(), &renderPassInfo, nullptr, &renderPass);
 
     CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create render pass")
-        throw cth::except::data_exception{createResult, details->exception()};
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 
 
@@ -393,7 +395,7 @@ void HlcSwapchain::createFramebuffers() {
         const VkResult createResult = vkCreateFramebuffer(device->device(), &framebufferInfo, nullptr, &swapchainFramebuffers[i]);
 
         CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create framebuffer")
-            throw cth::except::data_exception{createResult, details->exception()};
+            throw cth::except::vk_result_exception{createResult, details->exception()};
     }
 }
 
@@ -421,7 +423,7 @@ void HlcSwapchain::createSyncObjects() {
             if(createSignalSemaphoreResult != VK_SUCCESS) details->add("signal semaphore creation failed");
             if(createFenceResult != VK_SUCCESS) details->add("fence creation failed");
 
-            throw cth::except::data_exception{createWaitSemaphoreResult | createSignalSemaphoreResult | createFenceResult,
+            throw cth::except::vk_result_exception{static_cast<VkResult>(createWaitSemaphoreResult | createSignalSemaphoreResult | createFenceResult),
                 details->exception()};
         }
     }

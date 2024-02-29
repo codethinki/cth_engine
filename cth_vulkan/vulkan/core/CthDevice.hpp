@@ -59,8 +59,8 @@ public:
     // Buffer Helper Functions
 
     /**
-     * \throws cth::except::data_exception data: VkResult of vkCreateBuffer()
-     * \throws cth::except::data_exception data: VkResult of vkAllocateMemory()
+     * \throws cth::except::vk_result_exception result of vkCreateBuffer()
+     * \throws cth::except::vk_result_exception result of vkAllocateMemory()
      */
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
         VkBuffer& buffer, VkDeviceMemory& buffer_memory) const;
@@ -78,9 +78,9 @@ public:
 
     //TODO put this into the image class maybe
     /**
-     * \throws cth::except::data_exception data: VkResult of vkCreateImage()
-     * \throws cth::except::data_exception data: VkResult of vkAllocateMemory()
-     * \throws cth::except::data_exception data: VkResult of vkBindImageMemory()
+     * \throws cth::except::vk_result_exception result of vkCreateImage()
+     * \throws cth::except::vk_result_exception result of vkAllocateMemory()
+     * \throws cth::except::vk_result_exception result of vkBindImageMemory()
      */
     void createImageWithInfo(const VkImageCreateInfo& image_info, VkMemoryPropertyFlags properties, VkImage& image,
         VkDeviceMemory& image_memory) const;
@@ -95,10 +95,10 @@ private:
     static [[nodiscard]] vector<const char*> getGLFWInstanceExtensions();
     [[nodiscard]] vector<const char*> getRequiredInstanceExtensions() const;
     /**
- * \throws cth::except::data_exception data: VkResult vkCreateInstance()
- * \throws cth::except::default_exception reason: missing required instance extensions
- * \throws cth::except::default_exception reason: missing required validation layers
- */
+    * \throws cth::except::vk_result_exception result vkCreateInstance()
+    * \throws cth::except::default_exception reason: missing required instance extensions
+    * \throws cth::except::default_exception reason: missing required validation layers
+    */
     void createInstance();
     //createSurface
     void createSurface();
@@ -116,12 +116,12 @@ private:
     void pickPhysicalDevice();
     //createLogicalDevice
     /**
-* \throws cth::except::data_exception data: VkResult of vkCreateDevice()
-*/
+    * \throws cth::except::vk_result_exception result of vkCreateDevice()
+    */
     void createLogicalDevice();
     //createCommandPool
     /**
-     * \throws cth::except::data_exception data: VkResult of vkCreateCommandPool()
+     * \throws cth::except::vk_result_exception result of vkCreateCommandPool()
      */
     void createCommandPool();
     //initShaders

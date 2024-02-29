@@ -3,10 +3,13 @@
 #include "CthDevice.hpp"
 #include "CthWindow.hpp"
 #include "../user/HlcCamera.hpp"
+#include "../utils/cth_vk_specific_utils.hpp"
 
 #include <cth/cth_log.hpp>
 
 #include <array>
+
+
 
 
 
@@ -59,7 +62,7 @@ void Renderer::createCommandBuffers() {
     const VkResult allocResult = vkAllocateCommandBuffers(device->device(), &allocInfo, commandBuffers.data());
 
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "Vk: failed to allocate command buffers")
-        throw cth::except::data_exception{allocResult, details->exception()};
+        throw cth::except::vk_result_exception{allocResult, details->exception()};
 };
 void Renderer::freeCommandBuffers() {
     vkFreeCommandBuffers(device->device(), device->getCommandPool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
@@ -78,7 +81,7 @@ VkCommandBuffer Renderer::beginFrame() {
     }
 
     CTH_STABLE_ERR(nextImageResult == VK_SUCCESS || nextImageResult == VK_SUBOPTIMAL_KHR, "failed to acquire swapchain image")
-        throw cth::except::data_exception{nextImageResult, details->exception()};
+        throw cth::except::vk_result_exception{nextImageResult, details->exception()};
 
     frameStarted = true;
 
@@ -88,7 +91,7 @@ VkCommandBuffer Renderer::beginFrame() {
 
     const VkResult beginResult = vkBeginCommandBuffer(buffer, &beginInfo);
     CTH_STABLE_ERR(beginResult == VK_SUCCESS, "Vk: failed to begin command buffer")
-        throw cth::except::data_exception{beginResult, details->exception()};
+        throw cth::except::vk_result_exception{beginResult, details->exception()};
 
     return buffer;
 }
@@ -99,7 +102,7 @@ void Renderer::endFrame() {
     const VkResult recordResult = vkEndCommandBuffer(buffer);
 
     CTH_STABLE_ERR(recordResult == VK_SUCCESS, "Vk: commandBuffer recording failed")
-        throw cth::except::data_exception{recordResult, details->exception()};
+        throw cth::except::vk_result_exception{recordResult, details->exception()};
 
 
     const VkResult submitResult = swapchain->submitCommandBuffer(buffer, currentImageIndex);
@@ -110,7 +113,7 @@ void Renderer::endFrame() {
         window->resetWindowResized();
     } else
         CTH_STABLE_ERR(submitResult == VK_SUCCESS, "presenting swapchain image failed")
-            throw cth::except::data_exception{submitResult, details->exception()};
+            throw cth::except::vk_result_exception{submitResult, details->exception()};
 
     frameStarted = false;
     ++currentFrameIndex %= HlcSwapchain::MAX_FRAMES_IN_FLIGHT;

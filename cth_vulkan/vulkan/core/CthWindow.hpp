@@ -13,7 +13,7 @@ public:
     ~Window();
 
     /**
-     * \throws cth::except::data_exception data: VkResult of glfwCreateWindowSurface() 
+     * \throws cth::except::vk_result_exception result of glfwCreateWindowSurface() 
      */
     void createWindowSurface(VkInstance instance, VkSurfaceKHR* surface) const;
     void resetWindowResized() { framebufferResized = false; }

@@ -12,7 +12,7 @@
 
 
 namespace cth {
-vector<wstring> Shader::compile(const wstring& flags) const {
+vector<string> Shader::compile(const wstring& flags) const {
     using filesystem::absolute;
     const wstring currentPath = filesystem::current_path();
 
@@ -28,12 +28,12 @@ vector<wstring> Shader::compile(const wstring& flags) const {
 
     CTH_STABLE_ERR(result == -1, "compile command failed") throw cth::except::data_exception{command, details->exception()};
 
-    auto debugInfo = cth::win::file::loadTxt<wstring>(format(L"{0}\\shaderCompileLog.txt", currentPath));
+    auto debugInfo = cth::win::file::loadTxt<string>(format(L"{0}\\shaderCompileLog.txt", currentPath));
 
     if(debugInfo.empty()) {
         cth::win::cmd::hidden(L"del shaderCompileLog.txt");
         wcout << "compiled " << glslPath << '\n';
-        return vector<wstring>{};
+        return vector<string>{};
     }
 
     //TODO add proper error output
