@@ -7,6 +7,7 @@
 #include <vector>
 
 namespace cth {
+class Window;
 class Camera;
 
 using namespace std;
@@ -26,7 +27,7 @@ public:
     void beginSwapchainRenderPass(VkCommandBuffer command_buffer) const;
     void endSwapchainRenderPass(VkCommandBuffer command_buffer) const;
 
-    explicit Renderer(Camera* camera, Device* device);
+    explicit Renderer(Camera* camera, Window* window, Device* device);
     ~Renderer();
 
     Renderer(const Renderer&) = delete;
@@ -37,7 +38,7 @@ private:
      * \brief waits until not longer minimized
      * \return new window extent
      */
-    VkExtent2D minimizedState();
+    VkExtent2D minimizedState() const;
 
     /**
      * \throws cth::except::data_exception data: VkResult of vkAllocateCommandBuffers()
@@ -54,6 +55,7 @@ private:
 
     Device* device;
     Camera* camera;
+    Window* window;
 
     unique_ptr<HlcSwapchain> swapchain;
     vector<VkCommandBuffer> commandBuffers;

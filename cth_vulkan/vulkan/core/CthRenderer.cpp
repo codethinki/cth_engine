@@ -1,7 +1,7 @@
 #include "CthRenderer.hpp"
 
 #include "CthDevice.hpp"
-#include "HlcWindow.hpp"
+#include "CthWindow.hpp"
 #include "../user/HlcCamera.hpp"
 
 #include <cth/cth_log.hpp>
@@ -11,10 +11,10 @@
 
 
 namespace cth {
-VkExtent2D Renderer::minimizedState() {
-    auto extent = Window::getExtent();
+VkExtent2D Renderer::minimizedState() const {
+    auto extent = window->getExtent();
     while(extent.width == 0 || extent.height == 0) {
-        extent = Window::getExtent();
+        extent = window->getExtent();
         glfwWaitEvents();
     }
     return extent;
@@ -70,7 +70,7 @@ VkCommandBuffer Renderer::beginFrame() {
     CTH_ERR(!frameStarted, "more than one frame started")
         throw details->exception();
 
-    const VkResult nextImageResult = swapchain->acquireNextImage(&currentImageIndex);
+    const VkResult nextImageResult = swapchain->acquireNextImage(currentImageIndex);
 
     if(nextImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapchain();
@@ -104,11 +104,10 @@ void Renderer::endFrame() {
 
     const VkResult submitResult = swapchain->submitCommandBuffer(buffer, currentImageIndex);
 
-    if(submitResult == VK_ERROR_OUT_OF_DATE_KHR || submitResult == VK_SUBOPTIMAL_KHR || Window::windowResized()) {
-        Window::resetWindowResized();
+    if(submitResult == VK_ERROR_OUT_OF_DATE_KHR || submitResult == VK_SUBOPTIMAL_KHR || window->windowResized()) {
         recreateSwapchain();
-
         camera->correctViewRatio(screenRatio());
+        window->resetWindowResized();
     } else
         CTH_STABLE_ERR(submitResult == VK_SUCCESS, "presenting swapchain image failed")
             throw cth::except::data_exception{submitResult, details->exception()};
@@ -157,7 +156,7 @@ void Renderer::endSwapchainRenderPass(VkCommandBuffer command_buffer) const {
     vkCmdEndRenderPass(command_buffer);
 }
 
-Renderer::Renderer(Camera* camera, Device* device) : device{device}, camera{camera}, currentImageIndex{0} {
+Renderer::Renderer(Camera* camera, Window* window, Device* device) : device{device}, window(window), camera{camera}, currentImageIndex{0} {
     recreateSwapchain();
     createCommandBuffers();
 }
