@@ -1,7 +1,7 @@
 #pragma once
 #include <cth/cth_log.hpp>
 
-#include "HlcBuffer.hpp"
+#include "CthBuffer.hpp"
 #include "HlcMemoryChunk.hpp"
 
 

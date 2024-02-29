@@ -1,5 +1,5 @@
 #pragma once
-#include "HlcBuffer.hpp"
+#include "CthBuffer.hpp"
 
 #include "HlcChunkUpdateQueue.hpp"
 #include "HlcMemoryChunkList.hpp"

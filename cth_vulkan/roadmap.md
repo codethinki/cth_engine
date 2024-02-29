@@ -12,6 +12,7 @@
 	- CthRenderer.hpp/cpp
 	- CthSwapchain.hpp/cpp
 	- CthWindow.hpp/cpp
+	- CthBuffer.hpp/cpp
 
 ## 2. solve all compiler errors
 

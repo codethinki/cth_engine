@@ -340,12 +340,12 @@ void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
 
     vkBindBufferMemory(logicalDevice, buffer, buffer_memory, 0);
 }
-void Device::copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, const VkDeviceSize size) const {
+void Device::copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, const VkDeviceSize size, const VkDeviceSize src_offset, const VkDeviceSize dst_offset) const {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
     VkBufferCopy copyRegion;
-    copyRegion.srcOffset = 0; // Optional
-    copyRegion.dstOffset = 0; // Optional
+    copyRegion.srcOffset = src_offset;
+    copyRegion.dstOffset = dst_offset;
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, src_buffer, dst_buffer, 1, &copyRegion);
 

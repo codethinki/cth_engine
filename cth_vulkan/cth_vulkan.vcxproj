@@ -27,7 +27,7 @@
     <ClCompile Include="vulkan\core\CthRenderer.cpp" />
     <ClCompile Include="vulkan\core\CthSwapchain.cpp" />
     <ClCompile Include="vulkan\core\CthWindow.cpp" />
-    <ClCompile Include="vulkan\memory\HlcBuffer.cpp" />
+    <ClCompile Include="vulkan\memory\CthBuffer.cpp" />
     <ClCompile Include="vulkan\memory\HlcDescriptor.cpp" />
     <ClCompile Include="vulkan\memory\HlcMemoryChunk.cpp" />
     <ClCompile Include="vulkan\memory\HlcMemoryManager.cpp" />
@@ -55,7 +55,7 @@
     <ClInclude Include="vulkan\core\CthRenderer.hpp" />
     <ClInclude Include="vulkan\core\CthSwapchain.hpp" />
     <ClInclude Include="vulkan\core\CthWindow.hpp" />
-    <ClInclude Include="vulkan\memory\HlcBuffer.hpp" />
+    <ClInclude Include="vulkan\memory\CthBuffer.hpp" />
     <ClInclude Include="vulkan\memory\HlcDescriptor.hpp" />
     <ClInclude Include="vulkan\memory\HlcMemoryChunk.hpp" />
     <ClInclude Include="vulkan\memory\HlcMemoryManager.hpp" />

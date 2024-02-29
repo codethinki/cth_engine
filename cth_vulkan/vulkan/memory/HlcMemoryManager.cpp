@@ -84,14 +84,14 @@ MemoryChunk<T>* MemoryManager::getMemoryChunk(const uint32_t id) {
 //	VkBuffer bufferI;
 //	if(render_group & RenderObject::RENDER_GROUP_STATIC ||
 //		render_group & RenderObject::RENDER_GROUP_STATIC_VERTICES)
-//		buffersV = {staticVertexBuffer->getBuffer()};
-//	else buffersV = {dynamicVertexBuffer->getBuffer()};
+//		buffersV = {staticVertexBuffer->get()};
+//	else buffersV = {dynamicVertexBuffer->get()};
 //
 //
 //	if(render_group & RenderObject::RENDER_GROUP_STATIC ||
 //		render_group & RenderObject::RENDER_GROUP_STATIC_INDICES)
-//		bufferI = staticIndexBuffer->getBuffer();
-//	else bufferI = dynamicIndexBuffer->getBuffer();
+//		bufferI = staticIndexBuffer->get();
+//	else bufferI = dynamicIndexBuffer->get();
 //
 //	vkCmdBindVertexBuffers(frame_info.commandBuffer, 0, 1, buffersV.data(), offsets);
 //	vkCmdBindIndexBuffer(frame_info.commandBuffer, bufferI, 0, VK_INDEX_TYPE_UINT32);

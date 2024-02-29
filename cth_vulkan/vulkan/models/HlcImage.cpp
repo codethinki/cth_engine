@@ -6,7 +6,7 @@
 
 #include "..\core\CthDevice.hpp"
 #include "..\core\CthSwapchain.hpp"
-#include "../memory/HlcBuffer.hpp"
+#include "..\memory\CthBuffer.hpp"
 
 
 
@@ -17,10 +17,7 @@ Image::Image(Device& device) : device{device}, image{nullptr} {}
 void Image::loadImage(const string& path) {
     uint8_t* img = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
-    const auto buffer = make_unique<Buffer>(device,
-        sizeof(img[0]) * 4,
-        width * height,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    const auto buffer = make_unique<Buffer>(device, sizeof(img[0]) * 4, width * height, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     buffer->map();
     buffer->writeToBuffer(img);

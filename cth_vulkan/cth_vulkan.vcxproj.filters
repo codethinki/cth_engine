@@ -78,7 +78,7 @@
     <ClCompile Include="vulkan\core\CthWindow.cpp">
       <Filter>Source Files\vulkan\core</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\memory\HlcBuffer.cpp">
+    <ClCompile Include="vulkan\memory\CthBuffer.cpp">
       <Filter>Source Files\vulkan\memory</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\memory\HlcDescriptor.cpp">
@@ -158,7 +158,7 @@
     <ClInclude Include="vulkan\core\CthWindow.hpp">
       <Filter>Header Files\vulkan\core</Filter>
     </ClInclude>
-    <ClInclude Include="vulkan\memory\HlcBuffer.hpp">
+    <ClInclude Include="vulkan\memory\CthBuffer.hpp">
       <Filter>Header Files\vulkan\memory</Filter>
     </ClInclude>
     <ClInclude Include="vulkan\memory\HlcDescriptor.hpp">

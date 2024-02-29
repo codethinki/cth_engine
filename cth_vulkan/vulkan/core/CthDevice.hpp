@@ -67,7 +67,13 @@ public:
 
     [[nodiscard]] VkCommandBuffer beginSingleTimeCommands() const;
     void endSingleTimeCommands(VkCommandBuffer command_buffer) const;
-    void copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size) const;
+    //TODO why is this here
+    /**
+     * \param size in bytes 
+     * \param src_offset in bytes
+     * \param dst_offset in bytes
+     */
+    void copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size, VkDeviceSize src_offset = 0, VkDeviceSize dst_offset = 0) const;
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer_count) const;
 
     //TODO put this into the image class maybe
