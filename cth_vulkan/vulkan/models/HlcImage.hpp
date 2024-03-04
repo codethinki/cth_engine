@@ -2,6 +2,7 @@
 #include <string>
 #include <vulkan/vulkan.h>
 
+//TODO add inheritance from descripted resource class
 
 namespace cth {
 using namespace std;

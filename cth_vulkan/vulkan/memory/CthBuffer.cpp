@@ -1,15 +1,14 @@
 #include "CthBuffer.hpp"
 
+#include "../core/CthDevice.hpp"
 #include "../utils/cth_vk_specific_utils.hpp"
 
-#include <cassert>
-#include <cstring>
 #include <cth/cth_log.hpp>
-#include <glm/ext/scalar_uint_sized.hpp>
 
 
 
 namespace cth {
+
 VkDeviceSize DefaultBuffer::calcAlignedSize(const VkDeviceSize actual_size, const VkDeviceSize min_offset_alignment) {
     if(min_offset_alignment > 0) return actual_size + actual_size % min_offset_alignment;
     return actual_size;
@@ -75,9 +74,11 @@ VkResult DefaultBuffer::flush(const VkDeviceSize size, const VkDeviceSize offset
     mappedRange.size = size;
     return vkFlushMappedMemoryRanges(device->device(), 1, &mappedRange);
 }
-VkDescriptorBufferInfo DefaultBuffer::descriptorInfo(const VkDeviceSize size, const VkDeviceSize offset) const {
-    return VkDescriptorBufferInfo{vkBuffer, offset, size};
+
+DescriptedResource::descriptor_info_t DefaultBuffer::descriptorInfo(const VkDeviceSize size, const VkDeviceSize offset) const {
+    return VkDescriptorBufferInfo{vkBuffer, offset, size == VK_WHOLE_SIZE ? bufferSize : size};
 }
+
 VkResult DefaultBuffer::invalidate(const VkDeviceSize size, const VkDeviceSize offset) const {
     VkMappedMemoryRange mappedRange = {};
     mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
@@ -108,9 +109,8 @@ void DefaultBuffer::copyBuffer(const DefaultBuffer* src, const DefaultBuffer* ds
 }
 
 DefaultBuffer::DefaultBuffer(Device* device, const VkDeviceSize buffer_size, const VkBufferUsageFlags usage_flags,
-    const VkMemoryPropertyFlags memory_property_flags,
-    const VkDeviceSize min_offset_alignment) : device(device), bufferSize(calcAlignedSize(buffer_size, min_offset_alignment)),
-    padding(buffer_size - bufferSize),
+    const VkMemoryPropertyFlags memory_property_flags, const VkDeviceSize min_offset_alignment) : device(device),
+    bufferSize(calcAlignedSize(buffer_size, min_offset_alignment)), padding(buffer_size - bufferSize),
     vkUsageFlags(usage_flags), vkMemoryPropertyFlags(memory_property_flags) {
     device->createBuffer(bufferSize, usage_flags, memory_property_flags, vkBuffer, vkMemory);
 }
@@ -154,7 +154,8 @@ VkResult Buffer<T>::flush(const VkDeviceSize size, const VkDeviceSize offset) co
     return DefaultBuffer::flush(size * sizeof(T), offset * sizeof(T));
 }
 template<typename T>
-VkDescriptorBufferInfo Buffer<T>::descriptorInfo(const VkDeviceSize size, const VkDeviceSize offset) const {
+DescriptedResource::descriptor_info_t Buffer<T>::descriptorInfo(const VkDeviceSize size, const VkDeviceSize offset) const {
+    if(size == VK_WHOLE_SIZE) return DefaultBuffer::descriptorInfo(VK_WHOLE_SIZE, 0);
     return DefaultBuffer::descriptorInfo(size * sizeof(T), offset * sizeof(T));
 }
 template<typename T>
@@ -177,7 +178,8 @@ template<typename T> void Buffer<T>::copyBuffer(const Buffer<T>* src, const Buff
 }
 template<typename T> Buffer<T>::Buffer(Device* device, const VkDeviceSize element_count, const VkBufferUsageFlags usage_flags,
     const VkMemoryPropertyFlags memory_property_flags, const VkDeviceSize min_offset_alignment) : DefaultBuffer(device, element_count * sizeof(T),
-        usage_flags, memory_property_flags, min_offset_alignment), elements(element_count) {}
+    usage_flags, memory_property_flags,
+    min_offset_alignment), elements(element_count) {}
 
 
 

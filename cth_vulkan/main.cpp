@@ -10,6 +10,7 @@
 #include <__msvc_filebuf.hpp>
 
 #include "HlcApp.hpp"
+#include "vulkan/utils/cth_vk_specific_utils.hpp"
 
 #ifdef _DEBUG
 int main() {
@@ -24,17 +25,21 @@ int main() { //TEMP edit this back to be invisible
 
     App app{};
     try { app.run(); }
-    catch(const cth::except::data_exception<VkResult>& e) {
-        
+    catch(const cth::except::vk_result_exception& e) {
+        cth::out::error.println(e.string());
+        std::terminate();
     }
     catch(const cth::except::default_exception& e) {
         cth::out::error.println(e.string());
+        std::terminate();
     }
     catch(const std::exception& e) {
         cth::out::error.println(e.what());
+        std::terminate();
     }
     catch(...) {
         cth::out::error.println("Unknown exception");
+        std::terminate();
     }
     return EXIT_SUCCESS;
 }

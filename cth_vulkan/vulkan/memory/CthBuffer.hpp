@@ -1,12 +1,17 @@
 #pragma once
-#include <span>
+#include "CthDescriptedResource.hpp"
+
 #include <cth/cth_log.hpp>
 
-#include "..\core\CthDevice.hpp"
+#include <span>
+
 
 
 namespace cth {
-class DefaultBuffer {
+using namespace std;
+class Device;
+
+class DefaultBuffer : public DescriptedResource {
 public:
     /**
 * \brief calculates the min size compatible with the devices minOffsetAlignment
@@ -60,7 +65,7 @@ public:
      * \param size in bytes, VK_WHOLE_SIZE -> whole buffer
      * \param offset in bytes
      */
-    [[nodiscard]] virtual VkDescriptorBufferInfo descriptorInfo(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) const;
+    [[nodiscard]] descriptor_info_t descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const override;
 
     /**
     * \brief
@@ -77,7 +82,8 @@ public:
      * \param src_offset in bytes
      * \param dst_offset in bytes
      */
-    virtual void copyFromBuffer(const DefaultBuffer* src, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize src_offset = 0, VkDeviceSize dst_offset = 0) const;
+    virtual void copyFromBuffer(const DefaultBuffer* src, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize src_offset = 0,
+        VkDeviceSize dst_offset = 0) const;
 
     /**
      * \brief copies data from one buffer to another on the gpu
@@ -102,7 +108,7 @@ private:
 public:
     DefaultBuffer(Device* device, VkDeviceSize buffer_size, VkBufferUsageFlags usage_flags,
         VkMemoryPropertyFlags memory_property_flags, VkDeviceSize min_offset_alignment = 1);
-    virtual ~DefaultBuffer();
+    ~DefaultBuffer() override;
 
     [[nodiscard]] VkBuffer get() const { return vkBuffer; }
     [[nodiscard]] span<char> mappedMemory() const {
@@ -163,7 +169,7 @@ public:
     * \param size in bytes, VK_WHOLE_SIZE -> whole buffer
     * \param offset in bytes
     */
-    [[nodiscard]] VkDescriptorBufferInfo descriptorInfo(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) const override;
+    [[nodiscard]] descriptor_info_t descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const override;
     /**
      * \brief 
      * \param size in elements

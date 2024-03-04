@@ -2,7 +2,7 @@
 
 ## 1. modernize everything
 ### in progress:
-	
+	- HlcDescriptor.hpp/cpp
 ### completed:
 	core:
 	- CthPipeline.hpp/cpp

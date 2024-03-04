@@ -5,31 +5,12 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\vulkan">
-      <UniqueIdentifier>{2188f224-d26f-41dc-8766-148daeb9d7c8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\vulkan">
       <UniqueIdentifier>{38c06094-40e5-4794-bd06-5fcb3721ecaa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\vulkan\objects">
-      <UniqueIdentifier>{49699ed9-137a-44e4-a78e-5fbda8f1254e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\vulkan\user">
-      <UniqueIdentifier>{bcf6e167-d954-45da-bce6-5805c447ef4d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\vulkan\models">
-      <UniqueIdentifier>{9f17b8f2-c005-4e2b-9b04-50611fea7244}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\vulkan\core">
-      <UniqueIdentifier>{96f389dc-1646-4f4e-a796-6a810e772107}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files\vulkan\core">
       <UniqueIdentifier>{2ab0c0ed-fc93-431a-b2ec-e7d963417df3}</UniqueIdentifier>
@@ -49,11 +30,39 @@
     <Filter Include="Source Files\vulkan\utils">
       <UniqueIdentifier>{05f654d7-62ac-4bc0-94c7-69acb3ef3989}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\vulkan\shader">
+      <UniqueIdentifier>{9e3bb6f3-b855-413f-813f-31a273728937}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="old">
+      <UniqueIdentifier>{2d2a43e1-9b0d-4f91-ae4f-da64691ca55d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Header Files\vulkan">
+      <UniqueIdentifier>{2188f224-d26f-41dc-8766-148daeb9d7c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\vulkan\objects">
+      <UniqueIdentifier>{49699ed9-137a-44e4-a78e-5fbda8f1254e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\vulkan\user">
+      <UniqueIdentifier>{bcf6e167-d954-45da-bce6-5805c447ef4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\vulkan\models">
+      <UniqueIdentifier>{9f17b8f2-c005-4e2b-9b04-50611fea7244}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\vulkan\core">
+      <UniqueIdentifier>{96f389dc-1646-4f4e-a796-6a810e772107}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Header Files\vulkan\memory">
       <UniqueIdentifier>{3883b21c-8ae5-4a8f-81d7-1237cb514fc8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\vulkan\utils">
       <UniqueIdentifier>{62ae335a-7cff-46bb-899c-1a31d60bcf85}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\vulkan\shader">
+      <UniqueIdentifier>{a7f7ee0b-6056-43b7-a15a-31af115c3272}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -90,12 +99,6 @@
     <ClCompile Include="vulkan\memory\HlcMemoryManager.cpp">
       <Filter>Source Files\vulkan\memory</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\memory\HlcOldChunkUpdateQueue.cpp">
-      <Filter>Source Files\vulkan\memory</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan\memory\HlcOldMemoryManager.cpp">
-      <Filter>Source Files\vulkan\memory</Filter>
-    </ClCompile>
     <ClCompile Include="vulkan\models\HlcModel.cpp">
       <Filter>Source Files\vulkan\models</Filter>
     </ClCompile>
@@ -103,12 +106,6 @@
       <Filter>Source Files\vulkan\models</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\models\HlcModelManager.cpp">
-      <Filter>Source Files\vulkan\models</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan\models\HlcOldMesh.cpp">
-      <Filter>Source Files\vulkan\models</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan\models\HlcOldModel.cpp">
       <Filter>Source Files\vulkan\models</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\models\HlcTextureSampler.cpp">
@@ -129,14 +126,29 @@
     <ClCompile Include="vulkan\utils\HlcRenderSystem.cpp">
       <Filter>Source Files\vulkan\utils</Filter>
     </ClCompile>
-    <ClCompile Include="vulkan\utils\HlcShader.cpp">
-      <Filter>Source Files\vulkan\utils</Filter>
-    </ClCompile>
     <ClCompile Include="vulkan\core\CthInstance.cpp">
       <Filter>Source Files\vulkan\core</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\utils\CthDebugMessenger.cpp">
       <Filter>Source Files\vulkan\utils</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\utils\HlcShader.cpp">
+      <Filter>Source Files\vulkan\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\memory\CthDescriptor.cpp">
+      <Filter>Source Files\vulkan\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\memory\HlcOldMemoryManager.cpp">
+      <Filter>old</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\memory\HlcOldChunkUpdateQueue.cpp">
+      <Filter>Source Files\vulkan\models</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\models\HlcOldModel.cpp">
+      <Filter>old</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\models\HlcOldMesh.cpp">
+      <Filter>old</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -170,18 +182,6 @@
     <ClInclude Include="vulkan\memory\HlcMemoryManager.hpp">
       <Filter>Header Files\vulkan\memory</Filter>
     </ClInclude>
-    <ClInclude Include="vulkan\memory\HlcOldChunkUpdateQueue.hpp">
-      <Filter>Header Files\vulkan\memory</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\memory\HlcOldMemoryChunkInfo.hpp">
-      <Filter>Header Files\vulkan\memory</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\memory\HlcOldMemoryChunkList.hpp">
-      <Filter>Header Files\vulkan\memory</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\memory\HlcOldMemoryManager.hpp">
-      <Filter>Header Files\vulkan\memory</Filter>
-    </ClInclude>
     <ClInclude Include="vulkan\models\HlcImage.hpp">
       <Filter>Header Files\vulkan\models</Filter>
     </ClInclude>
@@ -189,12 +189,6 @@
       <Filter>Header Files\vulkan\models</Filter>
     </ClInclude>
     <ClInclude Include="vulkan\models\HlcModelManager.hpp">
-      <Filter>Header Files\vulkan\models</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\models\HlcOldMesh.hpp">
-      <Filter>Header Files\vulkan\models</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\models\HlcOldModel.hpp">
       <Filter>Header Files\vulkan\models</Filter>
     </ClInclude>
     <ClInclude Include="vulkan\models\HlcTextureSampler.hpp">
@@ -227,9 +221,6 @@
     <ClInclude Include="vulkan\utils\HlcRenderSystem.hpp">
       <Filter>Header Files\vulkan\utils</Filter>
     </ClInclude>
-    <ClInclude Include="vulkan\utils\HlcShader.hpp">
-      <Filter>Header Files\vulkan\utils</Filter>
-    </ClInclude>
     <ClInclude Include="vulkan\utils\cth_vk_specific_utils.hpp">
       <Filter>Header Files\vulkan\utils</Filter>
     </ClInclude>
@@ -238,6 +229,33 @@
     </ClInclude>
     <ClInclude Include="vulkan\utils\CthDebugMessenger.hpp">
       <Filter>Header Files\vulkan\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\utils\HlcShader.hpp">
+      <Filter>Header Files\vulkan\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\memory\CthDescriptor.hpp">
+      <Filter>Header Files\vulkan\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\memory\CthDescriptedResource.hpp">
+      <Filter>Header Files\vulkan\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\memory\HlcOldMemoryChunkList.hpp">
+      <Filter>old</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\memory\HlcOldMemoryManager.hpp">
+      <Filter>old</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\memory\HlcOldMemoryChunkInfo.hpp">
+      <Filter>old</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\memory\HlcOldChunkUpdateQueue.hpp">
+      <Filter>old</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\models\HlcOldMesh.hpp">
+      <Filter>old</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\models\HlcOldModel.hpp">
+      <Filter>old</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
