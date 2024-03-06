@@ -158,7 +158,7 @@ bool Device::physicalDeviceSuitable(VkPhysicalDevice device) const {
 void Device::pickPhysicalDevice() {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance->get(), &deviceCount, nullptr);
-    CTH_STABLE_ERR(deviceCount != 0, "no vulkan GPUs found") throw details->exception();
+    CTH_STABLE_ERR(deviceCount == 0, "no vulkan GPUs found") throw details->exception();
 
     cth::log::msg(cth::except::INFO, "device count: {}", deviceCount);
 
@@ -169,7 +169,7 @@ void Device::pickPhysicalDevice() {
     const auto deviceIt = ranges::find_if(devices, [this](const VkPhysicalDevice& device) { return physicalDeviceSuitable(device); });
     physicalDevice = *deviceIt;
 
-    CTH_STABLE_ERR(deviceIt != devices.end(), "no GPU is suitable") throw details->exception();
+    CTH_STABLE_ERR(deviceIt == devices.end(), "no GPU is suitable") throw details->exception();
 
 
     vkGetPhysicalDeviceProperties(physicalDevice, &physicalProperties);
@@ -215,7 +215,7 @@ void Device::createLogicalDevice() {
 
 
     const VkResult createResult = vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice);
-    CTH_STABLE_ERR(createResult == VK_SUCCESS, "VK: failed to create logical device")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create logical device")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
     vkGetDeviceQueue(logicalDevice, indices.graphicsFamilyIndex, 0, &graphicsQueue);
@@ -233,7 +233,7 @@ void Device::createCommandPool() {
 
 
     const VkResult createResult = vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool);
-    CTH_STABLE_ERR(createResult == VK_SUCCESS, "VK: failed to create command pool")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create command pool")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 void Device::initShaders() {
@@ -246,11 +246,11 @@ void Device::initShaders() {
 #ifdef _DEBUG
     const auto vertResult = vertShader->compile();
     const auto fragResult = fragShader->compile();
-    CTH_ERR(vertResult.empty(), "vertex shader glsl compiling failed") {
+    CTH_ERR(!vertResult.empty(), "vertex shader glsl compiling failed") {
         ranges::for_each(vertResult, [&details](const string& str) { details->add(str); });
         throw details->exception();
     }
-    CTH_ERR(fragResult.empty(), "fragment shader glsl compiling failed") {
+    CTH_ERR(!fragResult.empty(), "fragment shader glsl compiling failed") {
         ranges::for_each(vertResult, [&details](const string& str) { details->add(str); });
         throw details->exception();
     }
@@ -274,7 +274,7 @@ VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, co
         if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
             return format;
     }
-    CTH_STABLE_ERR(false, "format unsupported") throw cth::except::data_exception{features, details->exception()};
+    CTH_STABLE_ERR(true, "format unsupported") throw cth::except::data_exception{features, details->exception()};
 }
 uint32_t Device::findMemoryType(const uint32_t type_filter, const VkMemoryPropertyFlags properties) const {
     VkPhysicalDeviceMemoryProperties memProperties;
@@ -284,7 +284,7 @@ uint32_t Device::findMemoryType(const uint32_t type_filter, const VkMemoryProper
         if((type_filter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
             return i;
 
-    CTH_STABLE_ERR(false, "no suitable memory type available") throw details->exception();
+    CTH_STABLE_ERR(true, "no suitable memory type available") throw details->exception();
 }
 
 //---------------------------
@@ -331,7 +331,7 @@ void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     const VkResult createResult = vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer);
-    CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create buffer")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create buffer")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
     VkMemoryRequirements memRequirements;
@@ -343,7 +343,7 @@ void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
     const VkResult allocResult = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &buffer_memory);
-    CTH_STABLE_ERR(allocResult == VK_SUCCESS, "Vk: failed to allocate buffer memory")
+    CTH_STABLE_ERR(allocResult != VK_SUCCESS, "Vk: failed to allocate buffer memory")
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 
     vkBindBufferMemory(logicalDevice, buffer, buffer_memory, 0);
@@ -384,7 +384,7 @@ void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMe
     VkDeviceMemory& image_memory) const {
 
     const VkResult createResult = vkCreateImage(logicalDevice, &image_info, nullptr, &image);
-    CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create image") throw cth::except::vk_result_exception{createResult,
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create image") throw cth::except::vk_result_exception{createResult,
         details->exception()};
 
     VkMemoryRequirements memRequirements;
@@ -397,11 +397,11 @@ void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMe
 
     const VkResult allocResult = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &image_memory);
 
-    CTH_STABLE_ERR(allocResult == VK_SUCCESS, "Vk: failed to allocate image memory")
+    CTH_STABLE_ERR(allocResult != VK_SUCCESS, "Vk: failed to allocate image memory")
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 
     const VkResult bindResult = vkBindImageMemory(logicalDevice, image, image_memory, 0);
-    CTH_STABLE_ERR(bindResult == VK_SUCCESS, "Vk: failed to bind image memory")
+    CTH_STABLE_ERR(bindResult != VK_SUCCESS, "Vk: failed to bind image memory")
         throw cth::except::vk_result_exception{bindResult, details->exception()};
 }
 

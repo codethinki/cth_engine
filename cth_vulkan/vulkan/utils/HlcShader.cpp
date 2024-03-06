@@ -19,7 +19,7 @@ vector<string> Shader::compile(const wstring& flags) const {
     cth::win::cmd::hidden(L"del shaderCompileLog.txt");
 
 
-    CTH_ERR(!compilerPath.empty(), "empty compiler path") throw cth::except::data_exception{compilerPath, details->exception()};
+    CTH_ERR(compilerPath.empty(), "empty compiler path") throw cth::except::data_exception{compilerPath, details->exception()};
 
     const string command = std::format(R"("{0}" {1} "{2}" -o "{3}">NUL 2>shader_compile_log.txt)",
         compilerPath, flags, glslPath, spvPath);
@@ -84,7 +84,7 @@ Shader::Shader(const filesystem::path& glsl_path, const filesystem::path& spv_pa
     if(extension == L".frag") type = TYPE_FRAGMENT;
     else if(extension == L".vert") type = TYPE_VERTEX;
     else
-        CTH_ERR(false, "unknown shader type") throw details->exception();
+        CTH_ERR(true, "unknown shader type") throw details->exception();
 }
 
 }

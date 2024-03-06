@@ -43,7 +43,7 @@ HlcDescriptorSetLayout::HlcDescriptorSetLayout(
     descriptorSetLayoutInfo.pBindings = setLayoutBindings.data();
 
     const VkResult result = vkCreateDescriptorSetLayout(hlc_device.device(), &descriptorSetLayoutInfo, nullptr, &descriptorSetLayout);
-    CTH_STABLE_ERR(result == VK_SUCCESS, "Vk: failed to create descriptor set layout")
+    CTH_STABLE_ERR(result != VK_SUCCESS, "Vk: failed to create descriptor set layout")
         throw cth::except::vk_result_exception(result, details->exception());
 }
 

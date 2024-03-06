@@ -14,24 +14,24 @@ VkDeviceSize DefaultBuffer::calcAlignedSize(const VkDeviceSize actual_size, cons
     return actual_size;
 }
 span<char> cth::DefaultBuffer::map(const VkDeviceSize size, const VkDeviceSize offset) {
-    CTH_ERR(vkBuffer && vkMemory, "buffer not created yet") throw details->exception();
-    CTH_ERR(size + offset <= bufferSize - padding, "memory out of bounds")
+    CTH_ERR(!vkBuffer || !vkMemory, "buffer not created yet") throw details->exception();
+    CTH_ERR(size + offset > bufferSize - padding, "memory out of bounds")
         throw details->exception();
 
     void* mappedPtr = nullptr;
     const VkResult mapResult = vkMapMemory(device->device(), vkMemory, offset, size, 0, &mappedPtr);
-    CTH_STABLE_ERR(mapResult == VK_SUCCESS, "Vk: memory mapping failed")
+    CTH_STABLE_ERR(mapResult != VK_SUCCESS, "Vk: memory mapping failed")
         throw cth::except::vk_result_exception{mapResult, details->exception()};
 
     return span<char>{static_cast<char*>(mappedPtr), size};
 }
 span<char> DefaultBuffer::map() {
-    CTH_ERR(!mapped.data(), "buffer already mapped") throw details->exception();
-    CTH_ERR(vkBuffer && vkMemory, "buffer not created yet") throw details->exception();
+    CTH_ERR(mapped.data(), "buffer already mapped") throw details->exception();
+    CTH_ERR(!vkBuffer || !vkMemory, "buffer not created yet") throw details->exception();
 
     void* mappedPtr = nullptr;
     const VkResult mapResult = vkMapMemory(device->device(), vkMemory, 0, VK_WHOLE_SIZE, 0, &mappedPtr);
-    CTH_STABLE_ERR(mapResult == VK_SUCCESS, "Vk: memory mapping failed")
+    CTH_STABLE_ERR(mapResult != VK_SUCCESS, "Vk: memory mapping failed")
         throw cth::except::vk_result_exception{mapResult, details->exception()};
 
     mapped = span<char>(static_cast<char*>(mappedPtr), bufferSize - padding);
@@ -60,7 +60,7 @@ void DefaultBuffer::writeToBuffer(const span<char> data, const span<char> mapped
     memcpy(mapped_memory.data() + mapped_offset, data.data(), data.size());
 }
 void DefaultBuffer::writeToBuffer(const span<char> data, const VkDeviceSize mapped_offset) const {
-    CTH_ERR(mapped.data(), "mapped_memory invalid or buffer was not mapped entirely")
+    CTH_ERR(!mapped.data(), "mapped_memory invalid or buffer was not mapped entirely")
         throw details->exception();
 
     memcpy(mapped.data() + mapped_offset, data.data(), data.size());
@@ -75,7 +75,7 @@ VkResult DefaultBuffer::flush(const VkDeviceSize size, const VkDeviceSize offset
     return vkFlushMappedMemoryRanges(device->device(), 1, &mappedRange);
 }
 
-DescriptedResource::descriptor_info_t DefaultBuffer::descriptorInfo(const VkDeviceSize size, const VkDeviceSize offset) const {
+Descriptor::descriptor_info_t DefaultBuffer::descriptorInfo(const VkDeviceSize size, const VkDeviceSize offset) const {
     return VkDescriptorBufferInfo{vkBuffer, offset, size == VK_WHOLE_SIZE ? bufferSize : size};
 }
 
@@ -93,7 +93,7 @@ void DefaultBuffer::copyBuffer(const DefaultBuffer* src, const DefaultBuffer* ds
     VkDeviceSize dst_offset) {
     const VkDeviceSize copySize = size == VK_WHOLE_SIZE ? min(src->bufferSize, dst->bufferSize) : size;
 
-    CTH_ERR(src_offset + copySize <= src->bufferSize && dst_offset + copySize <= dst->bufferSize, "copy operation out of bounds") {
+    CTH_ERR(src_offset + copySize > src->bufferSize || dst_offset + copySize > dst->bufferSize, "copy operation out of bounds") {
         if(src_offset + copySize > src->bufferSize) {
             details->add("src buffer out of bounds");
             details->add("{0} + {1} > {2} (off + copy_size > src.size)", src_offset, copySize, src->bufferSize);
@@ -154,7 +154,7 @@ VkResult Buffer<T>::flush(const VkDeviceSize size, const VkDeviceSize offset) co
     return DefaultBuffer::flush(size * sizeof(T), offset * sizeof(T));
 }
 template<typename T>
-DescriptedResource::descriptor_info_t Buffer<T>::descriptorInfo(const VkDeviceSize size, const VkDeviceSize offset) const {
+Descriptor::descriptor_info_t Buffer<T>::descriptorInfo(const VkDeviceSize size, const VkDeviceSize offset) const {
     if(size == VK_WHOLE_SIZE) return DefaultBuffer::descriptorInfo(VK_WHOLE_SIZE, 0);
     return DefaultBuffer::descriptorInfo(size * sizeof(T), offset * sizeof(T));
 }

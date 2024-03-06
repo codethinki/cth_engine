@@ -16,7 +16,7 @@ DebugMessenger::~DebugMessenger() { if(active) destroy<false>(vkInstance); }
 void DebugMessenger::init(VkInstance instance) {
     this->vkInstance = instance;
 
-    CTH_STABLE_ERR(!active, "double initialization is not allowed") throw details->exception();
+    CTH_STABLE_ERR(active, "double initialization is not allowed") throw details->exception();
     active = true;
 
     const VkDebugUtilsMessengerCreateInfoEXT info = createInfo();
@@ -24,17 +24,17 @@ void DebugMessenger::init(VkInstance instance) {
     const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
 
-    CTH_STABLE_ERR(func != nullptr, "vkGetInstanceProcAddr returned nullptr") throw details->exception();
+    CTH_STABLE_ERR(func == nullptr, "vkGetInstanceProcAddr returned nullptr") throw details->exception();
 
     const VkResult createResult = func(instance, &info, nullptr, &vkMessenger);
 
-    CTH_STABLE_ERR(createResult == VK_SUCCESS, "failed to set up debug messenger")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to set up debug messenger")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 template<bool Throw = true>
 void DebugMessenger::destroy(VkInstance instance) const {
     if constexpr(Throw)
-        CTH_STABLE_ERR(active, "cannot destroy uninitialized messenger") throw details->exception();
+        CTH_STABLE_ERR(!active, "cannot destroy uninitialized messenger") throw details->exception();
     if(!active) return;
 
     const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
@@ -43,7 +43,7 @@ void DebugMessenger::destroy(VkInstance instance) const {
     if(func != nullptr) func(instance, vkMessenger, nullptr);
 
     else if constexpr(Throw)
-        CTH_STABLE_ERR(false, "vkGetInstanceProcAddr result was nullptr") throw details->exception();
+        CTH_STABLE_ERR(true, "vkGetInstanceProcAddr result was nullptr") throw details->exception();
 
 }
 

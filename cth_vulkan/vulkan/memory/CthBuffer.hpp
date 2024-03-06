@@ -112,7 +112,7 @@ public:
 
     [[nodiscard]] VkBuffer get() const { return vkBuffer; }
     [[nodiscard]] span<char> mappedMemory() const {
-        CTH_STABLE_ERR(mapped.data(), "whole buffer was not mapped");
+        CTH_STABLE_ERR(!mapped.data(), "whole buffer was not mapped");
         return mapped;
     }
     [[nodiscard]] VkBufferUsageFlags usageFlags() const { return vkUsageFlags; }

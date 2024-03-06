@@ -23,9 +23,9 @@ Pipeline::~Pipeline() {
 }
 
 void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
-    CTH_STABLE_ERR(config_info.pipelineLayout != VK_NULL_HANDLE, "pipelineLayout missing in config_info")
+    CTH_STABLE_ERR(config_info.pipelineLayout == VK_NULL_HANDLE, "pipelineLayout missing in config_info")
         throw cth::except::data_exception{config_info, details->exception()};
-    CTH_STABLE_ERR(config_info.renderPass != VK_NULL_HANDLE, "renderPass missing in config_info")
+    CTH_STABLE_ERR(config_info.renderPass == VK_NULL_HANDLE, "renderPass missing in config_info")
         throw cth::except::data_exception{config_info, details->exception()};
 
     array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
@@ -76,7 +76,7 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
         &vkGraphicsPipeline);
 
 
-    CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create graphics pipeline")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create graphics pipeline")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 
@@ -87,7 +87,7 @@ void Pipeline::createShaderModule(const vector<char>& code, VkShaderModule* shad
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
     const VkResult createResult = vkCreateShaderModule(device->device(), &createInfo, nullptr, shader_module);
-    CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create shader module")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create shader module")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
 }

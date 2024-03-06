@@ -47,7 +47,7 @@ void Window::initWindow() {
 void Window::createWindowSurface(VkInstance instance, VkSurfaceKHR* surface) const {
     const VkResult result = glfwCreateWindowSurface(instance, glfwWindow, nullptr, surface);
 
-    CTH_STABLE_ERR(result == VK_SUCCESS, "Vk: failed to create GLFW window surface")
+    CTH_STABLE_ERR(result != VK_SUCCESS, "Vk: failed to create GLFW window surface")
         throw cth::except::vk_result_exception{result, details->exception()};
 }
 

@@ -37,17 +37,17 @@ void Renderer::recreateSwapchain() {
     shared_ptr oldSwapchain = std::move(swapchain);
     swapchain = make_unique<HlcSwapchain>(device, windowExtent, oldSwapchain);
 
-    const bool compareResult = oldSwapchain->compareSwapFormats(*swapchain);
+    const bool noChange = oldSwapchain->compareSwapFormats(*swapchain);
 
-    CTH_STABLE_ERR(compareResult, "depth or image format changed")
+    CTH_STABLE_ERR(!noChange, "depth or image format changed")
         throw details->exception();
 }
 VkCommandBuffer Renderer::commandBuffer() const {
-    CTH_ERR(frameStarted, "no frame active") throw details->exception();
+    CTH_ERR(!frameStarted, "no frame active") throw details->exception();
     return commandBuffers[currentFrameIndex];
 }
 uint32_t Renderer::frameIndex() const {
-    CTH_ERR(frameStarted, "no frame active") throw details->exception();
+    CTH_ERR(!frameStarted, "no frame active") throw details->exception();
     return currentFrameIndex;
 }
 
@@ -70,7 +70,7 @@ void Renderer::freeCommandBuffers() {
 }
 
 VkCommandBuffer Renderer::beginFrame() {
-    CTH_ERR(!frameStarted, "more than one frame started")
+    CTH_ERR(frameStarted, "more than one frame started")
         throw details->exception();
 
     const VkResult nextImageResult = swapchain->acquireNextImage(currentImageIndex);
@@ -80,7 +80,7 @@ VkCommandBuffer Renderer::beginFrame() {
         return nullptr;
     }
 
-    CTH_STABLE_ERR(nextImageResult == VK_SUCCESS || nextImageResult == VK_SUBOPTIMAL_KHR, "failed to acquire swapchain image")
+    CTH_STABLE_ERR(nextImageResult != VK_SUCCESS || nextImageResult != VK_SUBOPTIMAL_KHR, "failed to acquire swapchain image")
         throw cth::except::vk_result_exception{nextImageResult, details->exception()};
 
     frameStarted = true;
@@ -90,18 +90,18 @@ VkCommandBuffer Renderer::beginFrame() {
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
     const VkResult beginResult = vkBeginCommandBuffer(buffer, &beginInfo);
-    CTH_STABLE_ERR(beginResult == VK_SUCCESS, "Vk: failed to begin command buffer")
+    CTH_STABLE_ERR(beginResult != VK_SUCCESS, "Vk: failed to begin command buffer")
         throw cth::except::vk_result_exception{beginResult, details->exception()};
 
     return buffer;
 }
 void Renderer::endFrame() {
-    CTH_ERR(frameStarted, "no frame active") throw details->exception();
+    CTH_ERR(!frameStarted, "no frame active") throw details->exception();
 
     const auto buffer = commandBuffer();
     const VkResult recordResult = vkEndCommandBuffer(buffer);
 
-    CTH_STABLE_ERR(recordResult == VK_SUCCESS, "Vk: commandBuffer recording failed")
+    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "Vk: commandBuffer recording failed")
         throw cth::except::vk_result_exception{recordResult, details->exception()};
 
 
@@ -112,7 +112,7 @@ void Renderer::endFrame() {
         camera->correctViewRatio(screenRatio());
         window->resetWindowResized();
     } else
-        CTH_STABLE_ERR(submitResult == VK_SUCCESS, "presenting swapchain image failed")
+        CTH_STABLE_ERR(submitResult != VK_SUCCESS, "presenting swapchain image failed")
             throw cth::except::vk_result_exception{submitResult, details->exception()};
 
     frameStarted = false;
@@ -120,8 +120,8 @@ void Renderer::endFrame() {
 }
 
 void Renderer::beginSwapchainRenderPass(VkCommandBuffer command_buffer) const {
-    CTH_ERR(frameStarted, "no frame started") throw details->exception();
-    CTH_ERR(command_buffer == commandBuffer(), "renderPass already started")
+    CTH_ERR(!frameStarted, "no frame started") throw details->exception();
+    CTH_ERR(command_buffer != commandBuffer(), "renderPass already started")
         throw details->exception();
 
     VkRenderPassBeginInfo renderPassInfo{};

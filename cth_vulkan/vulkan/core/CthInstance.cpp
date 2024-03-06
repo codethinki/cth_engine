@@ -23,7 +23,7 @@ Instance::Instance(string app_name, const vector<const char*>& required_extensio
 
     const auto createInfo = this->createInfo();
     const VkResult createInstanceResult = vkCreateInstance(&createInfo, nullptr, &vkInstance);
-    CTH_STABLE_ERR(createInstanceResult == VK_SUCCESS, "VK: failed to create instance!")
+    CTH_STABLE_ERR(createInstanceResult != VK_SUCCESS, "VK: failed to create instance!")
         throw cth::except::vk_result_exception{createInstanceResult, details->exception()};
 
 
@@ -72,7 +72,7 @@ void Instance::checkInstanceExtensionSupport() {
     ranges::for_each(requiredExt, [&](const char* extension) {
         if(!ranges::contains(availableExt, extension)) missingExtensions.push_back(extension);
     });
-    CTH_STABLE_ERR(missingExtensions.empty(), "missing instance extensions:") {
+    CTH_STABLE_ERR(!missingExtensions.empty(), "instance extensions missing") {
         ranges::for_each(missingExtensions, [&details](const char* extension) { details->add(extension); });
 
         throw details->exception();
@@ -83,7 +83,7 @@ void Instance::checkValidationLayerSupport() {
         vector<const char*> missingLayers{};
 
         ranges::for_each(VALIDATION_LAYERS, [&](const char* layer) { if(!ranges::contains(availableLayers, layer)) missingLayers.push_back(layer); });
-        CTH_STABLE_ERR(missingLayers.empty(), "missing validation layers:") {
+        CTH_STABLE_ERR(!missingLayers.empty(), "validation layers missing") {
             ranges::for_each(missingLayers, [&details](const char* layer) { details->add(layer); });
 
             throw details->exception();

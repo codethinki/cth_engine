@@ -88,7 +88,7 @@ VkResult HlcSwapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_
     const auto submitInfo = createSubmitInfo(buffer);
 
     const VkResult submitResult = vkQueueSubmit(device->getGraphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]);
-    CTH_STABLE_ERR(submitResult == VK_SUCCESS, "failed to submit draw call")
+    CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to submit draw call")
         throw cth::except::vk_result_exception{submitResult, details->exception()};
 
 
@@ -109,7 +109,7 @@ VkSurfaceFormatKHR HlcSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSur
             available_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
     });
 
-    CTH_STABLE_WARN(it != available_formats.end(), "no suitable format found choosing [0]") return available_formats[0];
+    CTH_STABLE_WARN(it == available_formats.end(), "no suitable format found choosing [0]") return available_formats[0];
 
     return *it;
 }
@@ -185,7 +185,7 @@ void HlcSwapchain::createSwapchain() {
     createInfo.oldSwapchain = oldSwapchain == nullptr ? VK_NULL_HANDLE : oldSwapchain->vkSwapchain;
 
     const VkResult createResult = vkCreateSwapchainKHR(device->device(), &createInfo, nullptr, &vkSwapchain);
-    CTH_STABLE_ERR(createResult == VK_SUCCESS, "failed to create swapchain")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create swapchain")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
     swapchainImageFormat = surfaceFormat.format;
@@ -298,7 +298,7 @@ void HlcSwapchain::createRenderPass() {
 
     const VkResult createResult = vkCreateRenderPass(device->device(), &renderPassInfo, nullptr, &renderPass);
 
-    CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create render pass")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create render pass")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 
@@ -394,7 +394,7 @@ void HlcSwapchain::createFramebuffers() {
 
         const VkResult createResult = vkCreateFramebuffer(device->device(), &framebufferInfo, nullptr, &swapchainFramebuffers[i]);
 
-        CTH_STABLE_ERR(createResult == VK_SUCCESS, "Vk: failed to create framebuffer")
+        CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create framebuffer")
             throw cth::except::vk_result_exception{createResult, details->exception()};
     }
 }
@@ -417,8 +417,8 @@ void HlcSwapchain::createSyncObjects() {
         const VkResult createSignalSemaphoreResult = vkCreateSemaphore(device->device(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]);
         const VkResult createFenceResult = vkCreateFence(device->device(), &fenceInfo, nullptr, &inFlightFences[i]);
 
-        CTH_STABLE_ERR(createWaitSemaphoreResult == createSignalSemaphoreResult == createFenceResult ==
-            VK_SUCCESS, "Vk: failed to create synchronization objects") {
+        CTH_STABLE_ERR(!(createWaitSemaphoreResult == createSignalSemaphoreResult ==
+            createFenceResult == VK_SUCCESS), "Vk: failed to create synchronization objects") {
             if(createWaitSemaphoreResult != VK_SUCCESS) details->add("wait semaphore creation failed");
             if(createSignalSemaphoreResult != VK_SUCCESS) details->add("signal semaphore creation failed");
             if(createFenceResult != VK_SUCCESS) details->add("fence creation failed");

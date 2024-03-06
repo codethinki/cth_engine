@@ -23,12 +23,12 @@ public:
     using descriptor_info_t = optional<variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>>;
 
     [[nodiscard]] VkDescriptorBufferInfo bufferInfo() const {
-        CTH_ERR(resInfo != std::nullopt && holds_alternative<VkDescriptorBufferInfo>(*resInfo), "invalid, no buffer info present")
+        CTH_ERR(resInfo == std::nullopt || !holds_alternative<VkDescriptorBufferInfo>(*resInfo), "invalid, no buffer info present")
             throw details->exception();
         return get<VkDescriptorBufferInfo>(*resInfo);
     }
     [[nodiscard]] VkDescriptorImageInfo imageInfo() const {
-        CTH_ERR(resInfo != std::nullopt && holds_alternative<VkDescriptorImageInfo>(*resInfo), "invalid, no image info present")
+        CTH_ERR(resInfo == std::nullopt || !holds_alternative<VkDescriptorImageInfo>(*resInfo), "invalid, no image info present")
             throw details->exception();
         return get<VkDescriptorImageInfo>(*resInfo);
     }
@@ -79,6 +79,12 @@ public:
 };
 
 class DescriptorSet {
+    enum class InfoType {
+        BUFFER,
+        IMAGE,
+        NONE
+    };
+
 public:
     struct Builder {
         explicit Builder(DescriptorSetLayout* layout);
@@ -99,12 +105,16 @@ public:
 
     void alloc(DescriptorPool* pool);
 
+
 private:
-    VkDescriptorSet vkSet = VK_NULL_HANDLE;
-    vector<VkWriteDescriptorSet> writes{};
+    void addWrites(const Builder& builder);
+
+    [[nodiscard]] static InfoType infoType(VkDescriptorType type);
 
     bool allocated = false;
+    VkDescriptorSet vkSet = VK_NULL_HANDLE;
 
+    vector<VkWriteDescriptorSet> writes{};
     vector<VkDescriptorBufferInfo> bufferInfos{};
     vector<VkDescriptorImageInfo> imageInfos{};
 
