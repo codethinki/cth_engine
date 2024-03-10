@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <cth/cth_log.hpp>
 
 namespace cth {
 class Device;
@@ -36,7 +37,6 @@ public:
     };
 
 
-    //TEMP left off here implement this
     /**
      * \param sets to allocate, the ptr will be stored
      * \return result of vkAllocateDescriptorSets()
@@ -44,31 +44,30 @@ public:
      * \note the pool does not take ownership of the sets
      * \note all already stored, unallocated descriptor sets will be allocated too
      */
-    VkResult allocSets(const vector<DescriptorSet*>& sets);
+    VkResult writeSets(const vector<DescriptorSet*>& sets);
 
 
 
     /**
-     * \brief resets the pool -> resets all descriptor set slots
-     * \param clear_sets remove all stored descriptor set pointers
+     * \brief resets the pool -> resets all descriptor sets
      */
-    void reset(bool clear_sets = true);
-    /**
-     * \param set must be an unallocated set
-     */
-    void removeDescriptorSet(DescriptorSet* set);
-    /**
-     * \brief
-     * \param sets must be unallocated sets
-     */
-    void removeDescriptorSets(const vector<DescriptorSet*>& sets);
-
-    /**
-     * \brief removes all descriptor sets from the pool, pool must be reset before
-     */
-    void clear();
+    void reset();
 
 private:
+    struct SetLayoutEntry {
+        void reset() {
+            used = 0;
+        }
+        [[nodiscard]] VkDescriptorSet newVkSet() {
+            CTH_ERR(used >= span.size(), "out of descriptor sets") throw details->exception();
+            return span[used++];
+        }
+        [[nodiscard]] size_t size() const { return span.size(); }
+
+        span<VkDescriptorSet> span{};
+        uint32_t used = 0;
+    };
+
     vector<VkDescriptorPoolSize> calcPoolSizes();
 
     /**
@@ -76,13 +75,14 @@ private:
      */
     void create();
 
+    void allocSets();
+
     void descriptorSetDestroyed(DescriptorSet* set);
 
     Device* device;
-    uint32_t maxAllocatedSets;
 
-    unordered_map<DescriptorSetLayout*, uint32_t> maxDescriptorSets{};
-    unordered_map<DescriptorSetLayout*, uint32_t> descriptorSetUses{};
+    unordered_map<DescriptorSetLayout*, SetLayoutEntry> allocatedSets{};
+    vector<VkDescriptorSet> vkSets{};
 
     unordered_set<DescriptorSet*> descriptorSets{};
 
@@ -94,12 +94,17 @@ private:
 
 public:
     /**
-    * \param max_descriptor_sets [layout, count] pairs -> limit for allocated sets per layout
+    * \param builder [layout, count] pairs -> limit for allocated sets per layout
     * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
     */
-    DescriptorPool(Device* device, const Builder& max_descriptor_sets);
+    DescriptorPool(Device* device, const Builder& builder);
     ~DescriptorPool();
 
     [[nodiscard]] VkDescriptorPool get() const { return vkPool; }
+
+    DescriptorPool(const DescriptorPool& other) = delete;
+    DescriptorPool(DescriptorPool&& other) = delete;
+    DescriptorPool& operator=(const DescriptorPool& other) = delete;
+    DescriptorPool& operator=(DescriptorPool&& other) = delete;
 };
 } // namespace cth

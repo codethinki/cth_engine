@@ -2,10 +2,6 @@
 #include "CthDescriptor.hpp"
 
 
-//TEMP left off here, create a virtual base class for any vk object that might return a descriptor info
-//use std::variant in the descriptorInfo thing to store different types of descriptor info
-//also change the Image and Buffer classes accordingly and make them publicly inherit from this virtual base class
-
 namespace cth {
 using std::variant;
 using std::optional;

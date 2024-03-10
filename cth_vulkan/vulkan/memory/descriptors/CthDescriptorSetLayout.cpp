@@ -30,14 +30,17 @@ DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(const 
 }
 
 
-DescriptorSetLayout::DescriptorSetLayout(const Device& device, const Builder& builder) : vkBindings(builder.bindings) {
+DescriptorSetLayout::DescriptorSetLayout(Device* device, const Builder& builder) : device(device), vkBindings(builder.bindings) {
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
     descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     descriptorSetLayoutInfo.bindingCount = static_cast<uint32_t>(vkBindings.size());
     descriptorSetLayoutInfo.pBindings = vkBindings.data();
 
-    const VkResult result = vkCreateDescriptorSetLayout(device.device(), &descriptorSetLayoutInfo, nullptr, &vkLayout);
+    const VkResult result = vkCreateDescriptorSetLayout(device->device(), &descriptorSetLayoutInfo, nullptr, &vkLayout);
     CTH_STABLE_ERR(result != VK_SUCCESS, "Vk: failed to create descriptor set layout")
         throw cth::except::vk_result_exception(result, details->exception());
+}
+DescriptorSetLayout::~DescriptorSetLayout() {
+    vkDestroyDescriptorSetLayout(device->device(), vkLayout, nullptr);
 }
 } // namespace cth

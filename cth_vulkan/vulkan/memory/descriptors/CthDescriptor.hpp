@@ -3,10 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include <unordered_map>
-#include <unordered_set>
 #include <variant>
-#include <vector>
 
 
 namespace cth {
@@ -32,16 +29,14 @@ public:
             throw details->exception();
         return get<VkDescriptorImageInfo>(*resInfo);
     }
-
-
-    Descriptor(VkDescriptorType type, const DescriptedResource& resource, VkDeviceSize size, VkDeviceSize resource_offset);
-    Descriptor(const VkDescriptorType type, const descriptor_info_t& info) : vkType(type), resInfo(info) {}
-
 private:
     VkDescriptorType vkType;
     descriptor_info_t resInfo;
 
 public:
+    Descriptor(VkDescriptorType type, const DescriptedResource& resource, VkDeviceSize size, VkDeviceSize resource_offset);
+    ~Descriptor() = default;
+
     [[nodiscard]] VkDescriptorType type() const { return vkType; }
 
     Descriptor(const Descriptor& other) = delete;

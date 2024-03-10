@@ -38,12 +38,13 @@ public:
     explicit DescriptorSet(const Builder& builder);
     virtual ~DescriptorSet();
 
-protected:
+
+private:
+    void alloc(VkDescriptorSet set, DescriptorPool* pool);
+    void deallocate();
     [[nodiscard]] virtual vector<VkWriteDescriptorSet> writes();
 
     void clearDescriptors() { descriptors.clear(); }
-
-private:
     void copyInfos();
 
     [[nodiscard]] static InfoType infoType(VkDescriptorType type);
@@ -55,7 +56,7 @@ private:
     vector<VkDescriptorImageInfo> imageInfos{};
 
     VkDescriptorSet vkSet = VK_NULL_HANDLE;
-    bool allocState = false;
+    bool _written = false;
 
     DescriptorPool* pool = nullptr;
     friend DescriptorPool;
@@ -68,29 +69,7 @@ public:
 
 
     [[nodiscard]] VkDescriptorSet get() const { return vkSet; }
-    [[nodiscard]] bool allocated() const { return allocState; }
-};
-
-
-/**
- * \brief caches the set allocation writes, useful for sets persisting though pool.reset()
- */
-class GlobalDescriptorSet : public DescriptorSet {
-public:
-    explicit GlobalDescriptorSet(const Builder& builder);
-    ~GlobalDescriptorSet() override = default;
-
-protected:
-    [[nodiscard]] vector<VkWriteDescriptorSet> writes() override;
-
-private:
-    vector<VkWriteDescriptorSet> _writes;
-
-public:
-    GlobalDescriptorSet(const GlobalDescriptorSet& other) = delete;
-    GlobalDescriptorSet(GlobalDescriptorSet&& other) = delete;
-    GlobalDescriptorSet& operator=(const GlobalDescriptorSet& other) = delete;
-    GlobalDescriptorSet& operator=(GlobalDescriptorSet&& other) = delete;
+    [[nodiscard]] bool written() const { return _written; }
 };
 
 }

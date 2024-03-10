@@ -8,10 +8,11 @@
 
 #include "CthDescriptorPool.hpp"
 
+//Builder
 
 namespace cth {
 DescriptorSet::Builder::Builder(DescriptorSetLayout* layout) : layout(layout) {
-    const auto& bindings = layout->bindings();
+    const auto& bindings = layout->bindingsVec();
     descriptors.resize(bindings.size());
 
     ranges::for_each(bindings, [this](const VkDescriptorSetLayoutBinding& binding) { descriptors[binding.binding].resize(binding.descriptorCount); });
@@ -69,9 +70,75 @@ DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(const uint32_t
     return *this;
 }
 
+}
+
+//DescriptorSet
+
+namespace cth {
 
 DescriptorSet::DescriptorSet(const Builder& builder) : layout(builder.layout), descriptors(builder.descriptors) { copyInfos(); }
 DescriptorSet::~DescriptorSet() { if(pool != nullptr) pool->descriptorSetDestroyed(this); }
+
+void DescriptorSet::alloc(VkDescriptorSet set, DescriptorPool* pool) {
+    vkSet = set;
+    this->pool = pool;
+}
+void DescriptorSet::deallocate() {
+    vkSet = VK_NULL_HANDLE;
+    _written = false;
+    pool = nullptr;
+}
+
+
+vector<VkWriteDescriptorSet> DescriptorSet::writes() {
+    CTH_ERR(vkSet == VK_NULL_HANDLE, "no descriptor set provided, call alloc() first")
+        throw details->exception();
+
+    _written = true;
+
+    vector<VkWriteDescriptorSet> writes{};
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = vkSet;
+
+    for(auto [binding, binding_descriptors] : descriptors | views::enumerate) {
+
+        write.dstBinding = static_cast<uint32_t>(binding);
+        write.descriptorType = layout->bindingType(static_cast<uint32_t>(binding));
+        const auto type = infoType(write.descriptorType);
+
+
+        write.dstArrayElement = 0;
+        write.descriptorCount = 0;
+
+        for(auto [index, descriptor] : binding_descriptors | views::enumerate) {
+            if(descriptor != nullptr) {
+                write.descriptorCount++;
+                continue;
+            }
+
+            //if no descriptor -> cannot write to it -> new write bc no "skip" placeholder exists for empty array index in binding.
+            //ptr to bufferInfo = size - infoCount bc binding has only one type
+            if(type == InfoType::BUFFER) write.pBufferInfo = &bufferInfos[bufferInfos.size() - write.descriptorCount];
+            else write.pImageInfo = &imageInfos[imageInfos.size() - write.descriptorCount];
+
+            //if write is usable -> push_back
+            if(write.descriptorCount > 0) writes.push_back(write);
+
+            write.dstArrayElement = static_cast<uint32_t>(index + 1); //next array index
+            write.descriptorCount = 0; //reset descriptor count
+        }
+
+        if(write.descriptorCount == 0) continue;
+
+        if(type == InfoType::BUFFER) write.pBufferInfo = &bufferInfos[bufferInfos.size() - write.descriptorCount];
+        else write.pImageInfo = &imageInfos[imageInfos.size() - write.descriptorCount];
+
+        writes.push_back(write);
+    }
+
+    return writes;
+}
 
 void DescriptorSet::copyInfos() {
     for(auto [binding, binding_descriptors] : descriptors | views::enumerate) {
@@ -102,48 +169,6 @@ void DescriptorSet::copyInfos() {
         }
     }
 }
-vector<VkWriteDescriptorSet> DescriptorSet::writes() {
-    vector<VkWriteDescriptorSet> writes{};
-
-    for(auto [binding, binding_descriptors] : descriptors | views::enumerate) {
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-
-        write.descriptorType = layout->bindingType(static_cast<uint32_t>(binding));
-        const auto type = infoType(write.descriptorType);
-
-
-        write.dstArrayElement = 0;
-        write.descriptorCount = 0;
-
-        for(auto [index, descriptor] : binding_descriptors | views::enumerate) {
-            if(descriptor != nullptr) {
-                write.descriptorCount++;
-                continue;
-            }
-
-            //if no descriptor -> cannot write to it -> new write bc no "skip" placeholder exists for empty array index in binding.
-            //ptr to bufferInfo = size - infoCount bc binding has only one type
-            if(type == InfoType::BUFFER) write.pBufferInfo = &bufferInfos[bufferInfos.size() - write.descriptorCount];
-            else write.pImageInfo = &imageInfos[imageInfos.size() - write.descriptorCount];
-
-            //if write is usable -> push_back
-            if(write.descriptorCount > 0) writes.push_back(write);
-
-            write.dstArrayElement = static_cast<uint32_t>(index + 1); //next array index
-            write.descriptorCount = 0; //reset descriptor count
-        }
-        if(write.descriptorCount == 0) continue;
-
-        if(type == InfoType::BUFFER) write.pBufferInfo = &bufferInfos[bufferInfos.size() - write.descriptorCount];
-        else write.pImageInfo = &imageInfos[imageInfos.size() - write.descriptorCount];
-
-        writes.push_back(write);
-    }
-
-    return writes;
-}
-
 
 DescriptorSet::InfoType DescriptorSet::infoType(const VkDescriptorType descriptor_type) {
     switch(descriptor_type) {
@@ -170,16 +195,3 @@ DescriptorSet::InfoType DescriptorSet::infoType(const VkDescriptorType descripto
 }
 } // namespace cth
 
-//GlobalDescriptorSet
-
-namespace cth {
-GlobalDescriptorSet::GlobalDescriptorSet(const Builder& builder) : DescriptorSet(builder), _writes{DescriptorSet::writes()} {
-    clearDescriptors();
-}
-vector<VkWriteDescriptorSet> GlobalDescriptorSet::writes() {
-    return _writes;
-}
-
-
-
-}

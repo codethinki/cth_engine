@@ -4,9 +4,8 @@
 #include "../../core/CthDevice.hpp"
 #include "../../utils/cth_vk_specific_utils.hpp"
 
-#include <iterator>
 #include <algorithm>
-#include <Windows.h>
+#include <iterator>
 
 #include <cth/cth_log.hpp>
 
@@ -45,34 +44,16 @@ void DescriptorPool::Builder::removeLayouts(const unordered_map<DescriptorSetLay
 namespace cth {
 
 
-VkResult DescriptorPool::allocSets(const vector<DescriptorSet*>& sets) {
-    CTH_ERR(sets.empty(), "sets vector empty") throw details->exception();
+VkResult DescriptorPool::writeSets(const vector<DescriptorSet*>& sets) {
+    CTH_WARN(sets.empty(), "sets vector empty") throw details->exception();
 
-    vector<VkDescriptorSetLayout> vkLayouts{sets.size()};
-    ranges::transform(sets, vkLayouts.begin(), [](const DescriptorSet* set) { return set->layout->get(); });
-
-    vector<VkDescriptorSet> vkSets{sets.size()};
-    ranges::transform(sets, vkSets.begin(), [](const DescriptorSet* set) { return set->get(); });
-
-
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = vkPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(sets.size());
-    allocInfo.pSetLayouts = vkLayouts.data();
-
-    const VkResult allocResult = vkAllocateDescriptorSets(device->device(), &allocInfo, vkSets.data());
-
-
-    //TEMP left off here. recode the pool so that the descriptor sets are allocated beforehand and "allocating" is just writing to them so maybe use different descriptor set layouts as "max_sets" and calculate the max_descriptor_uses from that
     vector<VkWriteDescriptorSet> writes{};
 
     ranges::for_each(sets, [this, &writes](DescriptorSet* set) {
         CTH_ERR(set == nullptr, "set ptr invalid") throw details->exception();
-        CTH_ERR(set->allocated() || (set->pool != nullptr && set->pool != this), "set already registered in other pool") throw details->exception();
+        CTH_ERR(set->written() || (set->pool != nullptr && set->pool != this), "set already registered in other pool") throw details->exception();
 
-        set->pool = this;
-        set->allocState = true;
+        set->alloc(allocatedSets[set->layout].newVkSet(), this);
 
         const auto setWrites = set->writes();
 
@@ -80,57 +61,30 @@ VkResult DescriptorPool::allocSets(const vector<DescriptorSet*>& sets) {
     });
 
 
+    vkUpdateDescriptorSets(device->device(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
-void DescriptorPool::reset(const bool clear_sets) {
-    CTH_WARN(_reset, "descriptor pool already reset");
-
+void DescriptorPool::reset() {
     const VkResult resetResult = vkResetDescriptorPool(device->device(), vkPool, 0);
 
+
     ranges::for_each(descriptorSets, [](DescriptorSet* set) {
-        set->allocState = false;
-
-        //TEMP remove this after testing and then also remove the set->allocState flag if resetSet == VK_NULL_HANDLE
-        CTH_INFORM(set->vkSet == VK_NULL_HANDLE, "sets are reset to VK_NULL_HANDLE after resetting the pool")
-
-            set->vkSet = VK_NULL_HANDLE;
+        set->deallocate();
     });
 
-    if(clear_sets) clear();
+    descriptorSets.clear();
 
     CTH_STABLE_ERR(resetResult != VK_SUCCESS, "vk: descriptor pool reset failed");
-}
-
-void DescriptorPool::removeDescriptorSet(DescriptorSet* set) {
-    CTH_ERR(set == nullptr, "set ptr invalid")
-        throw details->exception();
-    CTH_ERR(!descriptorSets.contains(set), "set not present in pool")
-        throw details->exception();
-    CTH_ERR(set->allocated(), "removing requires unallocated set")
-        throw details->exception();
-
-    set->pool = nullptr;
-    descriptorSets.erase(set);
-}
-void DescriptorPool::removeDescriptorSets(const vector<DescriptorSet*>& sets) {
-    ranges::for_each(sets, [this](DescriptorSet* set) { removeDescriptorSet(set); });
-}
-void DescriptorPool::clear() {
-    CTH_ERR(!_reset, "requires reset pool") throw details->exception();
-
-    ranges::for_each(descriptorSets, [](DescriptorSet* set) { set->pool = nullptr; });
 }
 
 
 vector<VkDescriptorPoolSize> DescriptorPool::calcPoolSizes() {
     unordered_map<VkDescriptorType, uint32_t> maxDescriptorUses{};
-    ranges::for_each(maxDescriptorSets, [&maxDescriptorUses](const std::pair<DescriptorSetLayout*, uint32_t>& pair) {
-        const auto& bindings = pair.first->bindings();
 
-        ranges::for_each(bindings, [&maxDescriptorUses](const VkDescriptorSetLayoutBinding& binding) {
-            maxDescriptorUses[binding.descriptorType] += binding.descriptorCount;
-        });
-    });
+    for(const auto& layout : allocatedSets | views::keys) {
+        const auto& bindings = layout->bindingsVec();
+        for(auto& binding : bindings) maxDescriptorUses[binding.descriptorType] += binding.descriptorCount;
+    }
 
 
     vector<VkDescriptorPoolSize> poolSizes{maxDescriptorUses.size()};
@@ -141,43 +95,58 @@ vector<VkDescriptorPoolSize> DescriptorPool::calcPoolSizes() {
 
 void DescriptorPool::create() {
     const vector<VkDescriptorPoolSize> poolSizes = calcPoolSizes();
-    const uint32_t maxSets = ranges::fold_left(maxDescriptorSets, 0, [](uint32_t sum, const auto& pair) { return sum + pair.second; });
 
     VkDescriptorPoolCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     createInfo.pPoolSizes = poolSizes.data();
     createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    createInfo.maxSets = maxSets;
+    createInfo.maxSets = static_cast<uint32_t>(vkSets.size());
 
     const VkResult createResult = vkCreateDescriptorPool(device->device(), &createInfo, nullptr, &vkPool);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "vk: failed to create descriptor pool")
         throw cth::except::vk_result_exception(createResult, details->exception());
 }
 
+void DescriptorPool::allocSets() {
+    vector<VkDescriptorSetLayout> vkLayouts{};
+    vkLayouts.reserve(vkSets.size());
+
+    for(const auto& [layout, entry] : allocatedSets)
+        ranges::fill_n(std::back_inserter(vkLayouts), entry.size(), layout->get());
+
+
+
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = vkPool;
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(vkSets.size());
+    allocInfo.pSetLayouts = vkLayouts.data();
+
+    const VkResult allocResult = vkAllocateDescriptorSets(device->device(), &allocInfo, vkSets.data());
+
+    CTH_STABLE_ERR(allocResult != VK_SUCCESS, "vk: failed to allocate descriptor sets")
+        throw cth::except::vk_result_exception(allocResult, details->exception());
+}
+
 void DescriptorPool::descriptorSetDestroyed(DescriptorSet* set) {
-    CTH_ERR(set == nullptr, "set ptr invalid");
-    CTH_ERR(!descriptorSets.contains(set), "set not present in pool");
-    CTH_ERR(set->allocated(), "destroying requires unallocated set");
+    CTH_WARN(set == nullptr, "set ptr invalid");
+    CTH_WARN(!descriptorSets.contains(set), "set not present in pool");
 
     descriptorSets.erase(set);
 }
-//TEMP remove
-//DescriptorPool::DescriptorPool(Device* device, const uint32_t max_allocated_sets,
-//    const unordered_map<VkDescriptorType, uint32_t>& max_descriptor_uses) : device(device), maxAllocatedSets(max_allocated_sets) {
-//    std::ranges::for_each(max_descriptor_uses, [this](const auto& pair) {
-//        const auto [type, count] = pair;
-//        maxDescriptorUses[type] = count;
-//    });
-//
-//
-//    create();
-//}
 
-DescriptorPool::DescriptorPool(Device* device, const Builder& builder) : device(device), maxDescriptorSets{builder.maxDescriptorSets} { create(); }
+DescriptorPool::DescriptorPool(Device* device, const Builder& builder) : device(device) {
+    for(auto& [layout, count] : builder.maxDescriptorSets) {
+        vkSets.resize(vkSets.size() + count);
+        allocatedSets[layout].span = span{&vkSets[vkSets.size() - count], count};
+    }
+
+    create();
+    allocSets();
+}
 
 DescriptorPool::~DescriptorPool() {
     if(vkPool == VK_NULL_HANDLE) return;
-    if(!_reset) reset(true);
     vkDestroyDescriptorPool(device->device(), vkPool, nullptr);
 }
 } // namespace cth

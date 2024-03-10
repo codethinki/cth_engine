@@ -1,7 +1,6 @@
 #include "CthDescriptor.hpp"
 
 #include "CthDescriptedResource.hpp"
-#include "../../core/CthDevice.hpp"
 #include "../../utils/cth_vk_specific_utils.hpp"
 
 
