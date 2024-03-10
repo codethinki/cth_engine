@@ -8,26 +8,26 @@
 #include "../utils/HlcFrameInfo.hpp"
 
 
-namespace cth {
-template<render_type T>
-MemoryChunkInfo<T>::MemoryChunkInfo(const string& unique_name, bool dynamic, uint32_t size) : MemoryChunkInfo(unique_name, dynamic,
-    MEMORY_TYPE_TO_ENUM<T>(), size) {}
-
-
-
-MemoryManager::MemoryManager(Device& device) : device(device) {}
-
-uint32_t MemoryManager::getMemoryChunkId(const string& name) {
-    CTH_ASSERT(memoryChunkIds.contains(name) && "getMemoryChunkId: memory chunk not registered");
-    return memoryChunkIds[name];
-}
-
-
-template<render_type T>
-MemoryChunk<T>* MemoryManager::getMemoryChunk(const uint32_t id) {
-    CTH_ASSERT(memoryChunks[id].type != MEMORY_TYPE_TO_ENUM<T>() && "getMemoryChunk: type mismatch (T != chunk.type)");
-    return static_cast<T*>(&memoryChunks[id]);
-}
+//namespace cth {
+//template<render_type T>
+//MemoryChunkInfo<T>::MemoryChunkInfo(const string& unique_name, bool dynamic, uint32_t size) : MemoryChunkInfo(unique_name, dynamic,
+//    MEMORY_TYPE_TO_ENUM<T>(), size) {}
+//
+//
+//
+//MemoryManager::MemoryManager(Device& device) : device(device) {}
+//
+//uint32_t MemoryManager::getMemoryChunkId(const string& name) {
+//    CTH_ASSERT(memoryChunkIds.contains(name), "getMemoryChunkId: memory chunk not registered");
+//    return memoryChunkIds[name];
+//}
+//
+//
+//template<render_type T>
+//MemoryChunk<T>* MemoryManager::getMemoryChunk(const uint32_t id) {
+//    CTH_ASSERT(memoryChunks[id].type != MEMORY_TYPE_TO_ENUM<T>(), "getMemoryChunk: type mismatch (T != chunk.type)");
+//    return static_cast<T*>(&memoryChunks[id]);
+//}
 
 
 //void MemoryManager::allocateBuffers() {
@@ -106,38 +106,38 @@ CTH_ASSERT(allowedRenderGroups & render_group && "prohibited render group called
 
 
 
-template<render_type T>
-MemoryChunk<T>* MemoryManager::newMemoryChunk(const string& unique_name, bool dynamic, uint32_t size) {
-    CTH_ASSERT(!memoryChunkIds.contains(unique_name) && "newMemoryChunk: memory chunk already exists");
-    CTH_ASSERT(memoryChunks.size() < MAX_MEMORY_CHUNKS && "newMemoryChunk: max chunk count reached");
-
-    memoryChunkIds[unique_name] = memoryChunks.size();
-
-    const span<T> chunkMemory = getMemorySpan<T>(dynamic, size);
-
-    memoryChunks.emplace_back(MemoryChunk<T>(memoryChunks.size(), unique_name, dynamic, MEMORY_TYPE_TO_ENUM<T>(), chunkMemory));
-
-    return static_cast<T*>(&memoryChunks.back());
-}
-
-
-template<render_type T>
-span<T> MemoryManager::getMemorySpan(const bool dynamic, uint32_t size) {
-    const int memoryTypeValue = MEMORY_TYPE_TO_ENUM<T>();
-    const uint32_t allocByteSize = sizeof(T) * size;
-    auto& buffer = memoryBuffers[Memory_Type::MEMORY_TYPE_SIZE * dynamic + memoryTypeValue];
-
-    CTH_ASSERT(buffer.size() + allocByteSize < buffer.capacity() && "getMemorySpan: exceeding buffer size");
-
-    buffer.push_back(allocByteSize);
-
-    return span<T>{static_cast<T*>(&buffer.back()), size};
-}
-
-template<typename T>
-enable_if_t<_Is_any_of_v<T, vertex_t, index_t>, void> MemoryManager::deallocateVectorMemory(vector<T>& vec) {
-    vec.clear();
-    vec.shrink_to_fit();
-}
-
-}
+//template<render_type T>
+//MemoryChunk<T>* MemoryManager::newMemoryChunk(const string& unique_name, bool dynamic, uint32_t size) {
+//    CTH_ASSERT(!memoryChunkIds.contains(unique_name), "newMemoryChunk: memory chunk already exists");
+//    CTH_ASSERT(memoryChunks.size() < MAX_MEMORY_CHUNKS, "newMemoryChunk: max chunk count reached");
+//
+//    memoryChunkIds[unique_name] = memoryChunks.size();
+//
+//    const span<T> chunkMemory = getMemorySpan<T>(dynamic, size);
+//
+//    memoryChunks.emplace_back(MemoryChunk<T>(memoryChunks.size(), unique_name, dynamic, MEMORY_TYPE_TO_ENUM<T>(), chunkMemory));
+//
+//    return static_cast<T*>(&memoryChunks.back());
+//}
+//
+//
+//template<render_type T>
+//span<T> MemoryManager::getMemorySpan(const bool dynamic, uint32_t size) {
+//    const int memoryTypeValue = MEMORY_TYPE_TO_ENUM<T>();
+//    const uint32_t allocByteSize = sizeof(T) * size;
+//    auto& buffer = memoryBuffers[Memory_Type::MEMORY_TYPE_SIZE * dynamic + memoryTypeValue];
+//
+//    CTH_ASSERT(buffer.size() + allocByteSize < buffer.capacity(), "getMemorySpan: exceeding buffer size");
+//
+//    buffer.push_back(allocByteSize);
+//
+//    return span<T>{static_cast<T*>(&buffer.back()), size};
+//}
+//
+//template<typename T>
+//enable_if_t<_Is_any_of_v<T, vertex_t, index_t>, void> MemoryManager::deallocateVectorMemory(vector<T>& vec) {
+//    vec.clear();
+//    vec.shrink_to_fit();
+//}
+//
+//}

@@ -17,15 +17,16 @@ Image::Image(Device& device) : device{device}, image{nullptr} {}
 void Image::loadImage(const string& path) {
     uint8_t* img = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
-    const auto buffer = make_unique<Buffer>(device, sizeof(img[0]) * 4, width * height, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    //TEMP fix this
+   /* const auto buffer = make_unique<Buffer>(device, sizeof(img[0]) * 4, width * height, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     buffer->map();
-    buffer->writeToBuffer(img);
+    buffer->writeToBuffer(img);*/
     stbi_image_free(img);
 
     createThisImage(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
     allocateThisImage();
-    stage(buffer->getBuffer());
+    //stage(buffer->getBuffer());
 
     imageView = HlcSwapchain::createImageView(device.device(), image, imageInfo.format);
 

@@ -1,54 +1,14 @@
+#include "CthDescriptorSet.hpp"
+
 #include "CthDescriptor.hpp"
+#include "CthDescriptorSetLayout.hpp"
 
-#include "CthBuffer.hpp"
-#include "CthDescriptedResource.hpp"
-#include "../core/CthDevice.hpp"
-#include "../models/HlcImage.hpp"
-#include "../utils/cth_vk_specific_utils.hpp"
+#include <algorithm>
+#include <cth/cth_log.hpp>
 
-
-//Descriptor
-namespace cth {}
-
-//DescriptorSetLayout
-namespace cth {
-Descriptor::Descriptor(const VkDescriptorType type, const DescriptedResource& resource, const VkDeviceSize size,
-    const VkDeviceSize resource_offset) : vkType(type), resInfo(resource.descriptorInfo(size, resource_offset)) {}
+#include "CthDescriptorPool.hpp"
 
 
-DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(const uint32_t binding, const VkDescriptorType type,
-    const VkShaderStageFlags flags, const uint32_t count) {
-    CTH_WARN(count == 0, "empty binding created (count = 0)");
-    if(binding > bindings.size()) bindings.resize(binding + 1);
-
-
-    VkDescriptorSetLayoutBinding& layoutBinding = bindings[binding];
-    layoutBinding.binding = binding;
-    layoutBinding.descriptorType = type;
-    layoutBinding.stageFlags = flags;
-    layoutBinding.descriptorCount = count;
-
-    return *this;
-}
-DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(const uint32_t binding) {
-    bindings[binding] = VkDescriptorSetLayoutBinding{};
-    return *this;
-}
-
-
-DescriptorSetLayout::DescriptorSetLayout(const Device& device, const Builder& builder) : vkBindings(builder.bindings) {
-    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutInfo{};
-    descriptorSetLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    descriptorSetLayoutInfo.bindingCount = static_cast<uint32_t>(vkBindings.size());
-    descriptorSetLayoutInfo.pBindings = vkBindings.data();
-
-    const VkResult result = vkCreateDescriptorSetLayout(device.device(), &descriptorSetLayoutInfo, nullptr, &vkLayout);
-    CTH_STABLE_ERR(result != VK_SUCCESS, "Vk: failed to create descriptor set layout")
-        throw cth::except::vk_result_exception(result, details->exception());
-}
-} // namespace cth
-
-//DescriptorSet
 namespace cth {
 DescriptorSet::Builder::Builder(DescriptorSetLayout* layout) : layout(layout) {
     const auto& bindings = layout->bindings();
@@ -110,55 +70,64 @@ DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(const uint32_t
 }
 
 
-DescriptorSet::DescriptorSet(const Builder& builder) {
-    addWrites(builder);
-}
+DescriptorSet::DescriptorSet(const Builder& builder) : layout(builder.layout), descriptors(builder.descriptors) { copyInfos(); }
+DescriptorSet::~DescriptorSet() { if(pool != nullptr) pool->descriptorSetDestroyed(this); }
 
+void DescriptorSet::copyInfos() {
+    for(auto [binding, binding_descriptors] : descriptors | views::enumerate) {
+        const auto vkType = layout->bindingType(static_cast<uint32_t>(binding));
+        const auto type = infoType(vkType);
 
-
-void DescriptorSet::addWrites(const Builder& builder) {
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-
-    for(auto [binding, binding_descriptors] : builder.descriptors | views::enumerate) {
         CTH_WARN(binding_descriptors.empty(), "empty binding discovered")
             details->add("binding: {}", binding);
 
-        write.descriptorType = builder.layout->bindingType(static_cast<uint32_t>(binding));
-        const auto type = infoType(write.descriptorType);
-
         CTH_STABLE_ASSERT(type != InfoType::NONE, "descriptor with no info not implemented") {
             details->add("binding: {}", binding);
-            details->add("descriptor type: {}", to_string(write.descriptorType));
+            details->add("descriptor type: {}", to_string(vkType));
         }
 
 
-        write.dstArrayElement = 0;
-        write.descriptorCount = 0;
-
         for(auto [index, descriptor] : binding_descriptors | views::enumerate) {
             const bool empty = descriptor == nullptr;
-
-            if(!empty) {
-                if(type == InfoType::BUFFER) bufferInfos.push_back(descriptor->bufferInfo());
-                else imageInfos.push_back(descriptor->imageInfo());
-
-                write.descriptorCount++;
-                continue;
-            }
 
             CTH_WARN(empty, "empty descriptor added") {
                 details->add("binding: {}", binding);
                 details->add("array index: {}", index);
             }
 
+            if(empty) continue;
+
+            if(type == InfoType::BUFFER) bufferInfos.push_back(descriptor->bufferInfo());
+            else imageInfos.push_back(descriptor->imageInfo());
+        }
+    }
+}
+vector<VkWriteDescriptorSet> DescriptorSet::writes() {
+    vector<VkWriteDescriptorSet> writes{};
+
+    for(auto [binding, binding_descriptors] : descriptors | views::enumerate) {
+        VkWriteDescriptorSet write{};
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+
+        write.descriptorType = layout->bindingType(static_cast<uint32_t>(binding));
+        const auto type = infoType(write.descriptorType);
+
+
+        write.dstArrayElement = 0;
+        write.descriptorCount = 0;
+
+        for(auto [index, descriptor] : binding_descriptors | views::enumerate) {
+            if(descriptor != nullptr) {
+                write.descriptorCount++;
+                continue;
+            }
 
             //if no descriptor -> cannot write to it -> new write bc no "skip" placeholder exists for empty array index in binding.
             //ptr to bufferInfo = size - infoCount bc binding has only one type
             if(type == InfoType::BUFFER) write.pBufferInfo = &bufferInfos[bufferInfos.size() - write.descriptorCount];
             else write.pImageInfo = &imageInfos[imageInfos.size() - write.descriptorCount];
 
-            //if write is usable create
+            //if write is usable -> push_back
             if(write.descriptorCount > 0) writes.push_back(write);
 
             write.dstArrayElement = static_cast<uint32_t>(index + 1); //next array index
@@ -171,6 +140,8 @@ void DescriptorSet::addWrites(const Builder& builder) {
 
         writes.push_back(write);
     }
+
+    return writes;
 }
 
 
@@ -197,5 +168,18 @@ DescriptorSet::InfoType DescriptorSet::infoType(const VkDescriptorType descripto
             return InfoType::NONE;
     }
 }
-
 } // namespace cth
+
+//GlobalDescriptorSet
+
+namespace cth {
+GlobalDescriptorSet::GlobalDescriptorSet(const Builder& builder) : DescriptorSet(builder), _writes{DescriptorSet::writes()} {
+    clearDescriptors();
+}
+vector<VkWriteDescriptorSet> GlobalDescriptorSet::writes() {
+    return _writes;
+}
+
+
+
+}

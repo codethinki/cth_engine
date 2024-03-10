@@ -69,6 +69,8 @@ namespace cth {
 
     std::array<bool, 55> ret{};
     ranges::transform(arr, ret.begin(), [](const VkBool32& b) { return b == VK_TRUE; });
+
+    return ret;
 };
 [[nodiscard]] constexpr std::string_view deviceFeatureIndexToString(const size_t index) {
     switch(index) {

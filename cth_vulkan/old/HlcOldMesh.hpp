@@ -1,6 +1,5 @@
 #pragma once
-import hlc.typedefs;
-import hlc.math;
+
 
 #include<array>
 #include<vector>

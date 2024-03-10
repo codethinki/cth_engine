@@ -53,7 +53,7 @@ private:
 	Device& hlcDevice;
 	MemoryManager& memoryManager;
 
-	unique_ptr<HlcDescriptorPool> descriptorPool{};
+	unique_ptr<CthDescriptorPool> descriptorPool{};
 	unique_ptr<HlcDescriptorSetLayout> descriptorSetLayout{};
 	//unique_ptr<HlcTextureSampler> defaultTextureSampler;
 	vector<VkDescriptorSet> descriptorSets;

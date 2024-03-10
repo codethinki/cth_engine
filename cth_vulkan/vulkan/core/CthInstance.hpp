@@ -1,4 +1,6 @@
 #pragma once
+#include "../utils/CthDebugMessenger.hpp"
+
 #include <array>
 #include <memory>
 #include <string_view>
@@ -9,7 +11,6 @@
 namespace cth {
 using namespace std;
 
-class DebugMessenger;
 
 class Instance {
 public:

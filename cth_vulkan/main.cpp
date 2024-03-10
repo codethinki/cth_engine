@@ -12,6 +12,7 @@
 #include "HlcApp.hpp"
 #include "vulkan/utils/cth_vk_specific_utils.hpp"
 
+
 #ifdef _DEBUG
 int main() {
 #else

@@ -1,5 +1,5 @@
 #pragma once
-#include "CthDescriptedResource.hpp"
+#include "descriptors/CthDescriptedResource.hpp"
 
 #include <cth/cth_log.hpp>
 
@@ -65,7 +65,7 @@ public:
      * \param size in bytes, VK_WHOLE_SIZE -> whole buffer
      * \param offset in bytes
      */
-    [[nodiscard]] descriptor_info_t descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const override;
+    [[nodiscard]] Descriptor::descriptor_info_t descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const override;
 
     /**
     * \brief
@@ -169,7 +169,7 @@ public:
     * \param size in bytes, VK_WHOLE_SIZE -> whole buffer
     * \param offset in bytes
     */
-    [[nodiscard]] descriptor_info_t descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const override;
+    [[nodiscard]] Descriptor::descriptor_info_t descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const override;
     /**
      * \brief 
      * \param size in elements

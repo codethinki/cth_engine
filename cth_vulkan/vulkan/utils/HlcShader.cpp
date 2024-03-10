@@ -12,7 +12,7 @@
 
 
 namespace cth {
-vector<string> Shader::compile(const wstring& flags) const {
+vector<string> Shader::compile(const string& flags) const {
     using filesystem::absolute;
     const wstring currentPath = filesystem::current_path();
 
@@ -21,14 +21,14 @@ vector<string> Shader::compile(const wstring& flags) const {
 
     CTH_ERR(compilerPath.empty(), "empty compiler path") throw cth::except::data_exception{compilerPath, details->exception()};
 
-    const string command = std::format(R"("{0}" {1} "{2}" -o "{3}">NUL 2>shader_compile_log.txt)",
-        compilerPath, flags, glslPath, spvPath);
+    const string command = std::format("\"{0}\" {1} \"{2}\" -o \"{3}\">NUL 2>shader_compile_log.txt",
+        compilerPath.string(), flags, glslPath.string(), spvPath.string());
 
     const int result = cth::win::cmd::hidden(command);
 
     CTH_STABLE_ERR(result == -1, "compile command failed") throw cth::except::data_exception{command, details->exception()};
 
-    auto debugInfo = cth::win::file::loadTxt<string>(format(L"{0}\\shaderCompileLog.txt", currentPath));
+    auto debugInfo = cth::win::file::loadTxt<char>(filesystem::path(format(L"{0}\\shaderCompileLog.txt", currentPath)));
 
     if(debugInfo.empty()) {
         cth::win::cmd::hidden(L"del shaderCompileLog.txt");

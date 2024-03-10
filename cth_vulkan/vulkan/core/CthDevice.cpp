@@ -10,8 +10,6 @@
 #include <set>
 #include <unordered_set>
 
-#include <Windows.h>
-#include <glm/detail/func_common.inl>
 
 
 namespace cth {

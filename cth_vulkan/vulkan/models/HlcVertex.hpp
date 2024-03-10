@@ -1,12 +1,15 @@
 #pragma once
-import hlc.functional;
+#include <cth/cth_algorithm.hpp>
+
+
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtx/hash.hpp>
+#include <vulkan/vulkan.h>
 
 #include <array>
 #include <functional>
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
-
-
 namespace cth {
 using namespace std;
 
@@ -65,7 +68,7 @@ template<>
 struct std::hash<cth::Vertex> {
     size_t operator()(cth::Vertex const& vertex) const {
         size_t seed = 0;
-        cth::func::hash::combine(seed, vertex.position, vertex.normal, vertex.materialUV, vertex.uv);
+        cth::algorithm::hash::combine(seed, vertex.position, vertex.normal, vertex.materialUV, vertex.uv);
         return seed;
     }
 };
