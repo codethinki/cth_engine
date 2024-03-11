@@ -24,8 +24,14 @@ int main() { //TEMP edit this back to be invisible
     using namespace cth;
 
 
+    App::init();
+
+
     App app{};
-    try { app.run(); }
+    app.run();
+    //try {
+
+   /* }
     catch(const cth::except::vk_result_exception& e) {
         cth::out::error.println(e.string());
         std::terminate();
@@ -41,6 +47,8 @@ int main() { //TEMP edit this back to be invisible
     catch(...) {
         cth::out::error.println("Unknown exception");
         std::terminate();
-    }
+    }*/
+
+    App::terminate();
     return EXIT_SUCCESS;
 }

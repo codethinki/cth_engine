@@ -6,7 +6,8 @@
 #include <cth/cth_log.hpp>
 
 namespace cth {
-DebugMessenger::DebugMessenger(const function<callback_t>& callback) { setCallback(callback); }
+
+DebugMessenger::DebugMessenger(const function<callback_t>& custom_callback) { setCallback(custom_callback); }
 DebugMessenger::DebugMessenger(VkInstance instance, const function<callback_t>& callback) {
     setCallback(callback);
     init(instance);
@@ -48,8 +49,9 @@ void DebugMessenger::destroy(VkInstance instance) const {
 }
 
 
-void DebugMessenger::setCallback(const function<callback_t>& callback) {
-    this->callback = callback == nullptr ? cth::dev::defaultDebugCallback : callback;
+void DebugMessenger::setCallback(const function<callback_t>& custom_callback) {
+    callback = custom_callback == nullptr ? cth::dev::defaultDebugCallback : custom_callback;
+
 }
 VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::createInfo() const {
     VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
@@ -62,7 +64,7 @@ VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::createInfo() const {
         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
-    createInfo.pfnUserCallback = callback.target<callback_t>();
+    createInfo.pfnUserCallback = *callback.target<callback_t*>();
     createInfo.pUserData = nullptr; // Optional
 
     return createInfo;

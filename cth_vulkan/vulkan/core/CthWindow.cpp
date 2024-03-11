@@ -1,3 +1,4 @@
+#define GLFW_INCLUDE_VULKAN
 #include "CthWindow.hpp"
 
 #include "../user/HlcInputController.hpp"
@@ -12,13 +13,16 @@
 
 namespace cth {
 Window::Window(std::string name, const uint32_t width, const uint32_t height) : width(static_cast<int>(width)), height(static_cast<int>(height)),
-    windowName{std::move(name)} { initWindow(); }
+    windowName{std::move(name)} {
+    initWindow();
+
+    setCallbacks();
+}
 Window::~Window() {
     glfwDestroyWindow(glfwWindow);
-    glfwTerminate();
 }
 
-void Window::setGLFWWindowSettings() {
+void Window::setGLFWWindowHints() {
     //const vector windowIcons = loadWindowIcons();
     //glfwSetWindowIcon(hlcWindow, static_cast<int>(windowIcons.size()), windowIcons.data());
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -27,8 +31,6 @@ void Window::setGLFWWindowSettings() {
     glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
 }
 void Window::setCallbacks() {
-
-
     glfwSetWindowUserPointer(glfwWindow, this);
     glfwSetKeyCallback(glfwWindow, staticKeyCallback);
     glfwSetMouseButtonCallback(glfwWindow, staticMouseCallback);
@@ -38,8 +40,6 @@ void Window::setCallbacks() {
     //glfwSetCursorPosCallback(hlcWindow, staticMovementCallback);
 }
 void Window::initWindow() {
-    glfwInit();
-
     glfwWindow = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
     glfwGetWindowSize(glfwWindow, &width, &height);
 }
@@ -86,6 +86,27 @@ void Window::framebufferResizeCallback(const int new_width, const int new_height
 //static methods
 namespace cth {
 Window* Window::window_ptr(GLFWwindow* glfw_window) { return static_cast<Window*>(glfwGetWindowUserPointer(glfw_window)); }
+vector<string> Window::getGLFWInstanceExtensions() {
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    span<const char*> extensionsSpan{glfwExtensions, glfwExtensionCount};
+    vector<string> extensions{extensionsSpan.size()};
+    ranges::transform(extensionsSpan, extensions.begin(), [](const string_view c) { return string(c); });
+
+    return extensions;
+}
+void Window::init() {
+    glfwInit();
+    CTH_STABLE_ERR(glfwVulkanSupported() != VK_TRUE, "GLFW: Vulkan not supported")
+        throw details->exception();
+    setGLFWWindowHints();
+}
+void Window::terminate() {
+    glfwTerminate();
+}
+
+
 
 void Window::staticKeyCallback(GLFWwindow* glfw_window, const int key, const int scan_code, const int action, const int mods) {
     if(key < 0) return;

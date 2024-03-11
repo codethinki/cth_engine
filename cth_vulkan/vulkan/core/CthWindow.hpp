@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 
 #include <string>
+#include <vector>
 
 namespace cth {
 using namespace std;
@@ -19,7 +20,7 @@ public:
     void resetWindowResized() { framebufferResized = false; }
 
 private:
-    void setGLFWWindowSettings();
+    static void setGLFWWindowHints();
     void setCallbacks();
     void initWindow();
 
@@ -31,12 +32,6 @@ private:
     void focusCallback(int focused);
     void framebufferResizeCallback(int new_width, int new_height);
 
-    static Window* window_ptr(GLFWwindow* glfw_window);
-    static void staticKeyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods);
-    static void staticMouseCallback(GLFWwindow* glfw_window, int button, int action, int mods);
-    static void staticScrollCallback(GLFWwindow* glfw_window, double x_offset, double y_offset);
-    static void staticFramebufferResizeCallback(GLFWwindow* glfw_window, int width, int height);
-    static void staticFocusCallback(GLFWwindow* glfw_window, int focused);
 
     bool focus = true;
     bool framebufferResized = false;
@@ -44,12 +39,25 @@ private:
     int width, height;
     std::string windowName;
     GLFWwindow* glfwWindow;
+
+    static Window* window_ptr(GLFWwindow* glfw_window);
+
+    static void staticKeyCallback(GLFWwindow* window, int key, int scan_code, int action, int mods);
+    static void staticMouseCallback(GLFWwindow* glfw_window, int button, int action, int mods);
+    static void staticScrollCallback(GLFWwindow* glfw_window, double x_offset, double y_offset);
+    static void staticFramebufferResizeCallback(GLFWwindow* glfw_window, int width, int height);
+    static void staticFocusCallback(GLFWwindow* glfw_window, int focused);
+
 public:
     [[nodiscard]] bool shouldClose() const { return glfwWindowShouldClose(glfwWindow); }
     [[nodiscard]] VkExtent2D getExtent() const { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; }
     [[nodiscard]] bool windowResized() const { return framebufferResized; }
     [[nodiscard]] GLFWwindow* window() const { return glfwWindow; }
     [[nodiscard]] bool focused() const { return focus; }
+
+    static vector<string> getGLFWInstanceExtensions();
+    static void init();
+    static void terminate();
 
     Window(const Window& other) = delete;
     Window& operator=(const Window& other) = delete;

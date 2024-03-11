@@ -22,10 +22,11 @@ public:
     };
 
     /**
-     *\throws cth::except::default_exception
-     *\throws cth::except::vk_result_exception result of vkCreateInstance()
-     */
-    explicit Instance(string app_name, const vector<const char*>& required_extensions);
+    * \throws cth::except::vk_result_exception result vkCreateInstance()
+    * \throws cth::except::default_exception reason: missing required instance extensions
+    * \throws cth::except::default_exception reason: missing required validation layers
+    */
+    explicit Instance(string app_name, const vector<string>& required_extensions);
     ~Instance();
 
     [[nodiscard]] VkInstance get() const { return vkInstance; }
@@ -33,12 +34,15 @@ public:
     [[nodiscard]] VkApplicationInfo appInfo() const;
 
 
-    [[nodiscard]] vector<const char*> availableExtensions() const { return availableExt; }
-    [[nodiscard]] vector<const char*> requiredExtensions() const { return availableExt; }
-    [[nodiscard]] vector<const char*> availableValidationLayers() const { return availableLayers; }
+    [[nodiscard]] vector<string> availableExtensions() const { return availableExt; }
+    [[nodiscard]] vector<string> requiredExtensions() const { return availableExt; }
+    [[nodiscard]] vector<string> availableValidationLayers() const { return availableLayers; }
 
 private:
-    [[nodiscard]] VkInstanceCreateInfo createInfo() const;
+    /**
+     * \throws cth::except::vk_result_exception result of vkCreateInstance()
+     */
+    void create();
     /**
      * \throws cth::except::default_exception reason: required extension not supported
      */
@@ -47,21 +51,20 @@ private:
      * \throws cth::except::default_exception reason: required layers not supported
      */
     void checkValidationLayerSupport();
-    [[nodiscard]] static vector<const char*> getAvailableValidationLayers();
+    [[nodiscard]] static vector<string> getAvailableValidationLayers();
 
     string name;
 
-    vector<const char*> requiredExt;
-    vector<const char*> availableExt;
-    vector<const char*> availableLayers{};
+    vector<string> requiredExt;
+    vector<string> availableExt;
+    vector<string> availableLayers{};
 
     VkInstance vkInstance = VK_NULL_HANDLE;
     unique_ptr<DebugMessenger> debugMessenger = nullptr;
 
 
 
-    static vector<const char*> getAvailableInstanceExtensions();
-
+    [[nodiscard]] static vector<string> getAvailableInstanceExtensions();
 public:
     static constexpr bool ENABLE_VALIDATION_LAYERS = []() {
 #ifdef NDEBUG
@@ -70,7 +73,6 @@ public:
         return true;
 #endif
     }();
-
 
     // Not copyable or movable
     Instance(const Instance&) = delete;

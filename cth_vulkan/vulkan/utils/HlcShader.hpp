@@ -1,6 +1,6 @@
 #pragma once
 
-#include "..\core\CthWindow.hpp"
+#include "../core/CthWindow.hpp"
 #include <string>
 #include <filesystem>
 

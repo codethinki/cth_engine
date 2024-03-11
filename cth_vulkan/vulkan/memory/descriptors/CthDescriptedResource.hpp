@@ -23,4 +23,4 @@ public:
     DescriptedResource& operator=(const DescriptedResource& other) = delete;
     DescriptedResource& operator=(DescriptedResource&& other) = default;
 };
-}
+} // namespace cth

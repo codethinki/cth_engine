@@ -55,20 +55,22 @@ void Shader::loadSpv() {
     file.read(bytecode.data(), static_cast<streamsize>(fileSize));
     file.close();
 
-    CTH_STABLE_ERR(!bytecode.empty(), "failed to load bytecode") throw cth::except::data_exception{spvPath, details->exception()};
+    CTH_STABLE_ERR(bytecode.empty(), "failed to load bytecode") throw cth::except::data_exception{spvPath, details->exception()};
 }
 
 void Shader::createModule(VkDevice device) {
-    CTH_ERR(!bytecode.empty(), "byte code for shader module missing") throw details->exception();
+    CTH_ERR(bytecode.empty(), "byte code for shader module missing") throw details->exception();
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = bytecode.size();
     createInfo.pCode = reinterpret_cast<uint32_t*>(bytecode.data());
-    CTH_STABLE_ERR(vkCreateShaderModule(device, &createInfo, nullptr, &module) != VK_SUCCESS, "VK: failed to create shader module")
-        throw details->
-            exception();
+    const VkResult createResult = vkCreateShaderModule(device, &createInfo, nullptr, &module);
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create shader module")
+        throw details->exception();
 
     //TEMP left off here
+    //BUG some memory leak somewhere (maybe the loading is not working)
+    //BUG also fix the compile stuff
 
     wcout << glslPath.extension().wstring() << " shader Module created; size: " << bytecode.size() << " bytes" << endl;
     hasModule = true;

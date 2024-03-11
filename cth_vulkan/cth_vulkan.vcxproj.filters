@@ -73,6 +73,15 @@
     <Filter Include="Source Files\old">
       <UniqueIdentifier>{918151da-39c2-4fda-b9e9-629f7c37216a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resource Files\shaders">
+      <UniqueIdentifier>{6c6f57bb-f3d6-4701-b9a2-08f4207e5434}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\vulkan\memory\buffer">
+      <UniqueIdentifier>{4426b709-6f91-40a8-9719-035436075422}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\vulkan\memory\buffer">
+      <UniqueIdentifier>{e10c0f9c-d0dc-4f2b-a094-6e3d4f15faca}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HlcApp.cpp">
@@ -95,9 +104,6 @@
     </ClCompile>
     <ClCompile Include="vulkan\core\CthWindow.cpp">
       <Filter>Source Files\vulkan\core</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan\memory\CthBuffer.cpp">
-      <Filter>Source Files\vulkan\memory</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\memory\HlcMemoryChunk.cpp">
       <Filter>Source Files\vulkan\memory</Filter>
@@ -168,6 +174,12 @@
     <ClCompile Include="vulkan\memory\descriptors\CthDescriptorPool.cpp">
       <Filter>Source Files\vulkan\memory\descriptors</Filter>
     </ClCompile>
+    <ClCompile Include="vulkan\memory\buffer\CthBuffer.cpp">
+      <Filter>Source Files\vulkan\memory\buffer</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\memory\buffer\CthDefaultBuffer.cpp">
+      <Filter>Source Files\vulkan\memory\buffer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HlcApp.hpp">
@@ -187,9 +199,6 @@
     </ClInclude>
     <ClInclude Include="vulkan\core\CthWindow.hpp">
       <Filter>Header Files\vulkan\core</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\memory\CthBuffer.hpp">
-      <Filter>Header Files\vulkan\memory</Filter>
     </ClInclude>
     <ClInclude Include="vulkan\memory\HlcMemoryChunk.hpp">
       <Filter>Header Files\vulkan\memory</Filter>
@@ -284,10 +293,25 @@
     <ClInclude Include="vulkan\memory\descriptors\CthDescriptorPool.hpp">
       <Filter>Header Files\vulkan\memory\descriptors</Filter>
     </ClInclude>
+    <ClInclude Include="vulkan\memory\buffer\CthDefaultBuffer.hpp">
+      <Filter>Header Files\vulkan\memory\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\memory\buffer\CthBuffer.hpp">
+      <Filter>Header Files\vulkan\memory\buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\memory\buffer\CthBuffer.inl">
+      <Filter>Source Files\vulkan\memory\buffer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="roadmap.md">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="resources\shaders\fragShader.frag">
+      <Filter>Resource Files\shaders</Filter>
+    </None>
+    <None Include="resources\shaders\vertShader.vert">
+      <Filter>Resource Files\shaders</Filter>
     </None>
   </ItemGroup>
 </Project>

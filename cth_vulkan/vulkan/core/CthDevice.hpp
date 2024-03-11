@@ -26,7 +26,7 @@ struct QueueFamilyIndices {
     uint32_t presentFamilyIndex = MAX;
     [[nodiscard]] bool graphicsFamily() const { return graphicsFamilyIndex != MAX; }
     [[nodiscard]] bool presentFamily() const { return presentFamilyIndex != MAX; }
-    [[nodiscard]] bool complete() const { return graphicsFamily() && presentFamily(); }
+    [[nodiscard]] bool complete() const { return graphicsFamily() && presentFamily() && graphicsFamilyIndex != presentFamilyIndex; }
 
 private:
     static constexpr uint32_t MAX = numeric_limits<uint32_t>::max();
@@ -41,7 +41,7 @@ public:
         return features;
     }();
 
-    explicit Device(Window* window);
+    explicit Device(Window* window, Instance* instance);
     ~Device();
 
     [[nodiscard]] SwapchainSupportDetails getSwapchainSupport() const { return querySwapchainSupport(physicalDevice); }
@@ -91,24 +91,15 @@ public:
     unique_ptr<Shader> fragShader;
 
 private:
-    //createInstance
-    static [[nodiscard]] vector<const char*> getGLFWInstanceExtensions();
-    [[nodiscard]] vector<const char*> getRequiredInstanceExtensions() const;
-    /**
-    * \throws cth::except::vk_result_exception result vkCreateInstance()
-    * \throws cth::except::default_exception reason: missing required instance extensions
-    * \throws cth::except::default_exception reason: missing required validation layers
-    */
-    void createInstance();
     //createSurface
     void createSurface();
 
     //pickPhysicalDevice
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const;
     SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device) const;
-    [[nodiscard]] vector<const char*> checkDeviceExtensionSupport(VkPhysicalDevice device) const;
+    [[nodiscard]] vector<string> checkDeviceExtensionSupport(VkPhysicalDevice device) const;
     [[nodiscard]] vector<uint32_t> checkDeviceFeatureSupport(const VkPhysicalDevice& device) const;
-    [[nodiscard]] bool physicalDeviceSuitable(VkPhysicalDevice device) const;
+    [[nodiscard]] bool physicalDeviceSuitable(VkPhysicalDevice physical_device) const;
     /**
      * \throws cth::except::default_exception reason: no vulkan gpus
      * \throws cth::except::default_exception reason: no suitable gpu
@@ -127,17 +118,17 @@ private:
     //initShaders
     void initShaders();
 
+    Window* window;
+    Instance* instance;
+
 
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    Window* window;
-    VkCommandPool commandPool;
+    VkCommandPool commandPool = VK_NULL_HANDLE;
 
-    VkDevice logicalDevice;
-    VkSurfaceKHR windowSurface;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
-
-    unique_ptr<Instance> instance;
+    VkDevice logicalDevice = VK_NULL_HANDLE;
+    VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
+    VkQueue graphicsQueue = VK_NULL_HANDLE;
+    VkQueue presentQueue = VK_NULL_HANDLE;
 
 public:
     // Not copyable or movable

@@ -68,9 +68,7 @@ void DescriptorPool::reset() {
     const VkResult resetResult = vkResetDescriptorPool(device->device(), vkPool, 0);
 
 
-    ranges::for_each(descriptorSets, [](DescriptorSet* set) {
-        set->deallocate();
-    });
+    ranges::for_each(descriptorSets, [](DescriptorSet* set) { set->deallocate(); });
 
     descriptorSets.clear();
 
@@ -113,7 +111,6 @@ void DescriptorPool::allocSets() {
 
     for(const auto& [layout, entry] : allocatedSets)
         ranges::fill_n(std::back_inserter(vkLayouts), entry.size(), layout->get());
-
 
 
     VkDescriptorSetAllocateInfo allocInfo{};

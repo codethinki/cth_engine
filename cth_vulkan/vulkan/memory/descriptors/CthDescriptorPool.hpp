@@ -50,6 +50,7 @@ public:
 
     /**
      * \brief resets the pool -> resets all descriptor sets
+     * \throws cth::except::vk_result_exception data: VkResult of vkResetDescriptorPool()
      */
     void reset();
 
@@ -75,6 +76,9 @@ private:
      */
     void create();
 
+    /**
+     * \throws cth::except::vk_result_exception data: VkResult of vkAllocateDescriptorSets()
+     */
     void allocSets();
 
     void descriptorSetDestroyed(DescriptorSet* set);

@@ -1,6 +1,6 @@
 #include "HlcTextureSampler.hpp"
 
-#include "..\core\CthDevice.hpp"
+#include "../core/CthDevice.hpp"
 
 #include <stdexcept>
 

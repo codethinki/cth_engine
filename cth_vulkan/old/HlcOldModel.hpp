@@ -1,6 +1,6 @@
 #pragma once
 #include "HlcVertex.hpp"
-#include "..\memory\CthBuffer.hpp"
+#include "../memory/CthBuffer.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

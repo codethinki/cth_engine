@@ -45,6 +45,7 @@ private:
     [[nodiscard]] virtual vector<VkWriteDescriptorSet> writes();
 
     void clearDescriptors() { descriptors.clear(); }
+
     void copyInfos();
 
     [[nodiscard]] static InfoType infoType(VkDescriptorType type);

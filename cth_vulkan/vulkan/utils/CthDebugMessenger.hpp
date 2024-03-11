@@ -9,13 +9,13 @@ class Instance;
 
 class DebugMessenger {
 public:
-    using callback_t = VkBool32(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT*,
+    using callback_t = VkBool32(const VkDebugUtilsMessageSeverityFlagBitsEXT, const VkDebugUtilsMessageTypeFlagsEXT, const VkDebugUtilsMessengerCallbackDataEXT*,
         void*);
 
     /**
-     * \param callback == nullptr -> default callback function
+     * \param custom_callback == nullptr -> default callback function
      */
-    explicit DebugMessenger(const function<callback_t>& callback = nullptr);
+    explicit DebugMessenger(const function<callback_t>& custom_callback = nullptr);
     /**
  * \param callback == nullptr -> default callback function
  * \throws cth::except::default_exception
@@ -45,7 +45,7 @@ public:
     [[nodiscard]] VkDebugUtilsMessengerCreateInfoEXT createInfo() const;
 
 private:
-    void setCallback(const function<callback_t>& callback);
+    void setCallback(const function<callback_t>& custom_callback);
 
     function<callback_t> callback;
     VkInstance vkInstance = nullptr;

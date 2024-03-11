@@ -4,9 +4,9 @@
 
 #include <stb_image.h>
 
-#include "..\core\CthDevice.hpp"
-#include "..\core\CthSwapchain.hpp"
-#include "..\memory\CthBuffer.hpp"
+#include "../core/CthDevice.hpp"
+#include "../core/CthSwapchain.hpp"
+#include "../memory/buffer/CthBuffer.hpp"
 
 
 

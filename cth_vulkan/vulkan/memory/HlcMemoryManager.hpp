@@ -1,11 +1,11 @@
 #pragma once
 #include <cth/cth_log.hpp>
 
-#include "CthBuffer.hpp"
+#include "buffer/CthBuffer.hpp"
 #include "HlcMemoryChunk.hpp"
 
 
-#include "..\core\CthDevice.hpp"
+#include "../core/CthDevice.hpp"
 #include "../objects/HlcRenderObject.hpp"
 
 //TEMP refactor this

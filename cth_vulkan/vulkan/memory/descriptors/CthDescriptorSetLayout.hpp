@@ -30,6 +30,7 @@ private:
 public:
     /**
      * \brief creates a DescriptorSetLayout with the copied builder data
+     * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorSetLayout()
      */
     explicit DescriptorSetLayout(Device* device, const Builder& builder);
     ~DescriptorSetLayout();

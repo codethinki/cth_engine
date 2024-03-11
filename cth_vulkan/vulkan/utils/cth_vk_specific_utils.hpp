@@ -210,6 +210,13 @@ inline std::string to_string(const VkDescriptorType type) {
     }
 }
 
+[[nodiscard]] inline vector<const char*> toCharVec(const vector<string>& str_vec) {
+    vector<const char*> charVec(str_vec.size());
+    ranges::transform(str_vec, charVec.begin(), [](const string& str) { return str.c_str(); });
+
+    return charVec;
+}
+
 
 
 } // namespace cth
