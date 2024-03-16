@@ -7,11 +7,9 @@
 #include <vector>
 
 namespace cth {
-inline const std::filesystem::path SHADER_COMPILER_PATH = L"E:/visual_studio/SDK/Vulkan/Bin/glslc.exe";
-inline const std::filesystem::path VERTEX_SHADER_CODE_PATH = L"resources/shaders/vertShader.vert";
-inline const std::filesystem::path FRAGMENT_SHADER_CODE_PATH = L"resources/shaders/fragShader.frag";
-inline const std::filesystem::path VERTEX_SHADER_BINARIES_PATH = L"resources/shaders/vertShader.spv";
-inline const std::filesystem::path FRAGMENT_SHADER_BINARIES_PATH = L"resources/shaders/fragShader.spv";
+inline constexpr string_view GLSL_COMPILER_DIR = "../../sdks/Vulkan/Bin/glslc.exe";
+inline constexpr string_view SHADER_GLSL_DIR = "vulkan/shader/";
+inline constexpr string_view SHADER_BINARY_DIR = "res/bin/shader/";
 
 class Instance;
 

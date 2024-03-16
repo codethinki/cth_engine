@@ -237,8 +237,8 @@ void Device::initShaders() {
     //TODO create a shader manager so it is not in the device class
 
 
-    vertShader = make_unique<Shader>(VERTEX_SHADER_CODE_PATH, VERTEX_SHADER_BINARIES_PATH, SHADER_COMPILER_PATH);
-    fragShader = make_unique<Shader>(FRAGMENT_SHADER_CODE_PATH, FRAGMENT_SHADER_BINARIES_PATH, SHADER_COMPILER_PATH);
+    vertShader = make_unique<Shader>(VERTEX_SHADER_CODE_PATH, VERTEX_SHADER_BINARIES_PATH, GLSL_COMPILER_PATH);
+    fragShader = make_unique<Shader>(FRAGMENT_SHADER_CODE_PATH, FRAGMENT_SHADER_BINARIES_PATH, GLSL_COMPILER_PATH);
 
 #ifdef _DEBUG
     const auto vertResult = vertShader->compile();

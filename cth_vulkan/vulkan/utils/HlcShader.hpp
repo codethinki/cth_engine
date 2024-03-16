@@ -5,8 +5,9 @@
 #include <filesystem>
 
 #include <vector>
+#include <cth/cth_windows.hpp>
 
-
+//TEMP left off here refactor this
 namespace cth {
 using namespace std;
 
@@ -14,6 +15,10 @@ class Shader {
 public:
     enum Shader_Type { TYPE_FRAGMENT, TYPE_VERTEX, TYPES_SIZE };
 
+    /**
+     * \brief 
+     * \return debug info
+     */
     [[nodiscard]] vector<string> compile(const string& flags = "-O") const;
 
     void loadSpv();
@@ -22,19 +27,18 @@ public:
     void destroyModule(VkDevice device);
 
 
-    [[nodiscard]] vector<char> getBytecode() const { return bytecode; }
-    [[nodiscard]] VkShaderModule getModule() const { return module; }
-    /**
-     *@note shader class for vulkan glsl shaders
-     *@param glsl_path path to the glsl code file
-     *@param spv_path path to the SPIR-V bytecode file
-     *@param compiler_path path to the glsl compiler
-     */
-    Shader(const filesystem::path& glsl_path, const filesystem::path& spv_path, const wstring& compiler_path = L"");
+    [[nodiscard]] vector<char> binary() const { return bytecode; }
+    [[nodiscard]] size_t size(){return bytecode.size();}
+    [[nodiscard]] VkShaderModule get() const { return module; }
+
+
+    explicit Shader(string_view spv_path, string_view  glsl_path = "", string_view compiler_path = "");
 
 private:
     Shader_Type type;
-    filesystem::path glslPath, spvPath, compilerPath;
+
+    const string spvPath, glslPath, compilerPath;
+
     vector<char> bytecode;
     VkShaderModule module{};
     bool hasModule = false;

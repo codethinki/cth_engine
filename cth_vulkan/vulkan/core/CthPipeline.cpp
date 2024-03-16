@@ -31,7 +31,7 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
     array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
     shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-    shaderStages[0].module = device->vertShader->getModule();
+    shaderStages[0].module = device->vertShader->get();
     shaderStages[0].pName = "main";
     shaderStages[0].flags = 0;
     shaderStages[0].pNext = nullptr;
@@ -39,7 +39,7 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
 
     shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    shaderStages[1].module = device->fragShader->getModule();
+    shaderStages[1].module = device->fragShader->get();
     shaderStages[1].pName = "main";
     shaderStages[1].flags = 0;
     shaderStages[1].pNext = nullptr;
@@ -81,6 +81,7 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
 }
 
 void Pipeline::createShaderModule(const vector<char>& code, VkShaderModule* shader_module) const {
+    //BUG move this wtf
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();

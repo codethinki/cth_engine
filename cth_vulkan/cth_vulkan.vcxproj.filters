@@ -307,10 +307,10 @@
     <None Include="roadmap.md">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="resources\shaders\fragShader.frag">
+    <None Include="res\shaders\shader.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
-    <None Include="resources\shaders\vertShader.vert">
+    <None Include="res\shaders\shader.vert">
       <Filter>Resource Files\shaders</Filter>
     </None>
   </ItemGroup>

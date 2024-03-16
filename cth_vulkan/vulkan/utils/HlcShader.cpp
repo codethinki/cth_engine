@@ -13,37 +13,34 @@
 
 namespace cth {
 vector<string> Shader::compile(const string& flags) const {
-    using filesystem::absolute;
-    const wstring currentPath = filesystem::current_path();
+    constexpr string_view logFile = "shader_compile_log.txt";
 
-    cth::win::cmd::hidden(L"del shaderCompileLog.txt");
+    const string currentPath = filesystem::current_path().string();
 
+   cth::win::cmd::hidden("del {0}", logFile.data());
 
-    CTH_ERR(compilerPath.empty(), "empty compiler path") throw cth::except::data_exception{compilerPath, details->exception()};
+    CTH_ERR(compilerPath.empty(), "empty compiler path") throw details->exception();
 
-    const string command = std::format("\"{0}\" {1} \"{2}\" -o \"{3}\">NUL 2>shader_compile_log.txt",
-        compilerPath.string(), flags, glslPath.string(), spvPath.string());
+    const string command = std::format("\"{0}\"-c  \"{1}\" {2} -o \"{3}\">NUL 2>{4}",
+        compilerPath.string(), glslPath.string(), flags, spvPath.string(), logFile.data());
 
     const int result = cth::win::cmd::hidden(command);
 
-    CTH_STABLE_ERR(result == -1, "compile command failed") throw cth::except::data_exception{command, details->exception()};
-
-    auto debugInfo = cth::win::file::loadTxt<char>(filesystem::path(format(L"{0}\\shaderCompileLog.txt", currentPath)));
-
-    if(debugInfo.empty()) {
-        cth::win::cmd::hidden(L"del shaderCompileLog.txt");
-        wcout << "compiled " << glslPath << '\n';
-        return vector<string>{};
+    CTH_STABLE_ERR(result != 0, "compile command failed") {
+        details->add("command: \"{0}\"", command);
+        throw details->exception();
     }
 
-    //TODO add proper error output
-    //error output
-    /*debugInfo.replace(0, debugInfo.find(L':', debugInfo.find(L':') + 1), L"");
-    wcout << shader_path.filename() << L" error in line "
-        << debugInfo.substr(debugInfo.find(L':') + 1, debugInfo.find(L':', debugInfo.find(L':') + 1) - debugInfo.find(L':')) << '\n';
-    wcout << debugInfo.replace(0, debugInfo.find(L"error:"), L"") << '\n';*/
+    auto debugInfo = cth::win::file::loadTxt<char>(format("{0}\\{1}", currentPath, logFile.data()));
+    if(!debugInfo.empty()) debugInfo.resize(debugInfo.size() - 1);
+
+    CTH_INFORM(debugInfo.empty(), std::format("compiled {0} shader", glslPath.filename().string()));
+
+
+    for(auto& line : debugInfo) line = std::format("line{0}", line.substr(line.find(glslPath.filename().string())));
 
     return debugInfo;
+
 }
 
 void Shader::loadSpv() {
@@ -65,8 +62,7 @@ void Shader::createModule(VkDevice device) {
     createInfo.codeSize = bytecode.size();
     createInfo.pCode = reinterpret_cast<uint32_t*>(bytecode.data());
     const VkResult createResult = vkCreateShaderModule(device, &createInfo, nullptr, &module);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create shader module")
-        throw details->exception();
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create shader module") throw details->exception();
 
     //TEMP left off here
     //BUG some memory leak somewhere (maybe the loading is not working)

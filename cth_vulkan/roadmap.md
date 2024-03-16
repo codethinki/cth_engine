@@ -2,6 +2,7 @@
 
 ## 1. modernize everything
 ### in progress:
+	HlcShader.hpp/cpp
 
 ### completed (untested):
 	core:

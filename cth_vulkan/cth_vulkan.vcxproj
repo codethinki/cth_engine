@@ -154,8 +154,8 @@
     <ClInclude Include="vulkan\utils\HlcShader.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources\shaders\fragShader.frag" />
-    <None Include="resources\shaders\vertShader.vert" />
+    <None Include="res\shaders\shader.frag" />
+    <None Include="res\shaders\shader.vert" />
     <None Include="roadmap.md" />
     <ClInclude Include="vulkan\memory\buffer\CthBuffer.inl">
       <FileType>Document</FileType>
