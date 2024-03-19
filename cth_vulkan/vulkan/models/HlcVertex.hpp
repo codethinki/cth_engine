@@ -22,7 +22,7 @@ struct Vertex {
     inline static constexpr int ATTRIBUTES = 4;
     inline static constexpr int BINDINGS = 1;
     static constexpr array<VkVertexInputBindingDescription, BINDINGS> getBindingDescriptions() {
-        constexpr array<VkVertexInputBindingDescription, BINDINGS> bindingDescriptions{{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
+        constexpr array<VkVertexInputBindingDescription, BINDINGS> bindingDescriptions{{{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}}};
         return bindingDescriptions;
     }
     static constexpr std::array<VkVertexInputAttributeDescription, ATTRIBUTES> getAttributeDescriptions() {

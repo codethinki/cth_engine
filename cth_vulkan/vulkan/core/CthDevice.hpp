@@ -1,17 +1,23 @@
 #pragma once
 #include <array>
-
-#include "../utils/HlcShader.hpp"
-
+#include <string>
 #include <memory>
 #include <vector>
+#include <numeric>
+
+#include <vulkan/vulkan.h>
+
 
 namespace cth {
-inline constexpr string_view GLSL_COMPILER_DIR = "../../sdks/Vulkan/Bin/glslc.exe";
-inline constexpr string_view SHADER_GLSL_DIR = "vulkan/shader/";
-inline constexpr string_view SHADER_BINARY_DIR = "res/bin/shader/";
+using namespace std;
+
+inline const string GLSL_COMPILER_PATH = R"(..\..\..\sdks\Vulkan\Bin\glslc.exe)";
+inline const string SHADER_GLSL_DIR = "vulkan\\shader\\";
+inline const string SHADER_BINARY_DIR = "res\\bin\\shader\\";
 
 class Instance;
+class Window;
+class Shader; //TEMP
 
 struct SwapchainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities{};
@@ -85,8 +91,9 @@ public:
 
 
     VkPhysicalDeviceProperties physicalProperties;
-    unique_ptr<Shader> vertShader;
-    unique_ptr<Shader> fragShader;
+
+    unique_ptr<Shader> vertShader; //TEMP move this
+    unique_ptr<Shader> fragShader; //TEMP move this
 
 private:
     //createSurface

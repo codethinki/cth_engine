@@ -1,10 +1,12 @@
 #pragma once
+#include <cth/cth_exception.hpp>
 
-#include <algorithm>
 #include <vulkan/vulkan_core.h>
 
+
+#include <algorithm>
 #include <array>
-#include <cth/cth_exception.hpp>
+
 
 namespace cth {
 

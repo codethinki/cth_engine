@@ -3,6 +3,7 @@
 #include "CthDevice.hpp"
 #include "../models/HlcVertex.hpp"
 #include "../utils/cth_vk_specific_utils.hpp"
+#include "../utils/HlcShader.hpp"
 
 #include <cth/cth_log.hpp>
 
@@ -17,8 +18,6 @@ using namespace std;
 
 Pipeline::Pipeline(Device* device, const PipelineConfigInfo& config_info) : device{device} { createGraphicsPipeline(config_info); }
 Pipeline::~Pipeline() {
-    device->vertShader->destroyModule(device->device());
-    device->fragShader->destroyModule(device->device());
     vkDestroyPipeline(device->device(), vkGraphicsPipeline, nullptr);
 }
 
@@ -78,20 +77,10 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create graphics pipeline")
         throw cth::except::vk_result_exception{createResult, details->exception()};
-}
 
-void Pipeline::createShaderModule(const vector<char>& code, VkShaderModule* shader_module) const {
-    //BUG move this wtf
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = code.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-    const VkResult createResult = vkCreateShaderModule(device->device(), &createInfo, nullptr, shader_module);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create shader module")
-        throw cth::except::vk_result_exception{createResult, details->exception()};
 
 }
+
 
 void Pipeline::bind(VkCommandBuffer command_buffer) const { vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkGraphicsPipeline); }
 

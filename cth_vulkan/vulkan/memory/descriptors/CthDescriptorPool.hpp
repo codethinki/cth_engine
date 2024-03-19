@@ -38,13 +38,10 @@ public:
 
 
     /**
-     * \param sets to allocate, the ptr will be stored
-     * \return result of vkAllocateDescriptorSets()
      * \note descriptor sets are not required to stay valid
      * \note the pool does not take ownership of the sets
-     * \note all already stored, unallocated descriptor sets will be allocated too
      */
-    VkResult writeSets(const vector<DescriptorSet*>& sets);
+    void writeSets(const vector<DescriptorSet*>& sets);
 
 
 

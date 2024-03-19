@@ -1,12 +1,15 @@
 #pragma once
-
 #include "CthSwapchain.hpp"
+
+#include <vulkan/vulkan.h>
 
 #include <cstdint>
 #include <memory>
 #include <vector>
 
+
 namespace cth {
+class Device;
 class Window;
 class Camera;
 
@@ -27,7 +30,7 @@ public:
     void beginSwapchainRenderPass(VkCommandBuffer command_buffer) const;
     void endSwapchainRenderPass(VkCommandBuffer command_buffer) const;
 
-    explicit Renderer(Camera* camera, Window* window, Device* device);
+    explicit Renderer(Device* device, Camera* camera, Window* window);
     ~Renderer();
 
     Renderer(const Renderer&) = delete;
@@ -57,7 +60,7 @@ private:
     Camera* camera;
     Window* window;
 
-    unique_ptr<HlcSwapchain> swapchain;
+    unique_ptr<Swapchain> swapchain;
     vector<VkCommandBuffer> commandBuffers;
 
     uint32_t currentImageIndex;

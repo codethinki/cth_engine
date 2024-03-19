@@ -36,9 +36,9 @@ RenderSystem::~RenderSystem() { vkDestroyPipelineLayout(hlcDevice->device(), pip
 
 void RenderSystem::initDescriptorUtils() {
     //descriptorPool = HlcDescriptorPool::Builder(hlcDevice)
-    //                 .setMaxSets(HlcSwapchain::MAX_FRAMES_IN_FLIGHT)
-    //                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, HlcSwapchain::MAX_FRAMES_IN_FLIGHT)
-    //                 // .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, HlcSwapchain::MAX_FRAMES_IN_FLIGHT)
+    //                 .setMaxSets(Swapchain::MAX_FRAMES_IN_FLIGHT)
+    //                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, Swapchain::MAX_FRAMES_IN_FLIGHT)
+    //                 // .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Swapchain::MAX_FRAMES_IN_FLIGHT)
     //                 .build();
 
     //descriptorSetLayout = HlcDescriptorSetLayout::Builder(hlcDevice)
@@ -55,7 +55,7 @@ void RenderSystem::initDescriptorSets() {
     //initDescriptedBuffers(bufferInfos);
     ////initDescriptedTextures(descriptorSetIndex, imageInfos);
 
-    //for(int i = 0; i < HlcSwapchain::MAX_FRAMES_IN_FLIGHT; i++) {
+    //for(int i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++) {
     //    HlcDescriptorWriter(*descriptorSetLayout, *descriptorPool)
     //        .writeBuffer(0, &bufferInfos[i])
     //        .build(descriptorSets[i]);
@@ -63,7 +63,7 @@ void RenderSystem::initDescriptorSets() {
 }
 
 void RenderSystem::initDescriptedBuffers(vector<VkDescriptorBufferInfo>& buffer_infos) {
-    /*for(int i = 0; i < HlcSwapchain::MAX_FRAMES_IN_FLIGHT; i++) {
+    /*for(int i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++) {
         descriptedBuffers.push_back(make_unique<Buffer>(hlcDevice,
             sizeof(UniformBuffer),
             1,

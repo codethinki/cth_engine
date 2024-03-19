@@ -48,7 +48,7 @@ private:
 
     InputController inputController{};
     Camera camera{};
-    unique_ptr<Renderer> hlcRenderer = make_unique<Renderer>(&camera, hlcWindow.get(), hlcDevice.get());
+    unique_ptr<Renderer> hlcRenderer = make_unique<Renderer>(hlcDevice.get(), &camera, hlcWindow.get());
 
     RenderSystem renderSystem{hlcDevice.get(), hlcRenderer->swapchainRenderPass(), hlcRenderer->msaaSampleCount()};
 

@@ -44,7 +44,7 @@ void DescriptorPool::Builder::removeLayouts(const unordered_map<DescriptorSetLay
 namespace cth {
 
 
-VkResult DescriptorPool::writeSets(const vector<DescriptorSet*>& sets) {
+void DescriptorPool::writeSets(const vector<DescriptorSet*>& sets) {
     CTH_WARN(sets.empty(), "sets vector empty") throw details->exception();
 
     vector<VkWriteDescriptorSet> writes{};

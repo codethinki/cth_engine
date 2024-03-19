@@ -28,7 +28,7 @@ void Image::loadImage(const string& path) {
     allocateThisImage();
     //stage(buffer->getBuffer());
 
-    imageView = HlcSwapchain::createImageView(device.device(), image, imageInfo.format);
+    imageView = Swapchain::createImageView(device.device(), image, imageInfo.format);
 
     createDescriptorInfo();
 }

@@ -13,7 +13,7 @@
 
 namespace cth {
 //public
-VkImageView HlcSwapchain::createImageView(const VkDevice& device, const VkImage image, const VkFormat format, const VkImageAspectFlags aspect_flags,
+VkImageView Swapchain::createImageView(const VkDevice& device,  VkImage image, const VkFormat format, const VkImageAspectFlags aspect_flags,
     const uint32_t mip_levels) {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -30,14 +30,14 @@ VkImageView HlcSwapchain::createImageView(const VkDevice& device, const VkImage 
     return imageView;
 }
 
-VkFormat HlcSwapchain::findDepthFormat() const {
+VkFormat Swapchain::findDepthFormat() const {
     return device->findSupportedFormat(
         {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-VkResult HlcSwapchain::acquireNextImage(uint32_t image_index) const {
+VkResult Swapchain::acquireNextImage(uint32_t image_index) const {
     vkWaitForFences(device->device(), 1, &inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 
     const VkResult result = vkAcquireNextImageKHR(device->device(), vkSwapchain, std::numeric_limits<uint64_t>::max(),
@@ -46,7 +46,7 @@ VkResult HlcSwapchain::acquireNextImage(uint32_t image_index) const {
     return result;
 }
 
-VkSubmitInfo HlcSwapchain::createSubmitInfo(VkCommandBuffer buffer) const {
+VkSubmitInfo Swapchain::createSubmitInfo(VkCommandBuffer buffer) const {
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -63,7 +63,7 @@ VkSubmitInfo HlcSwapchain::createSubmitInfo(VkCommandBuffer buffer) const {
 
     return submitInfo;
 }
-VkPresentInfoKHR HlcSwapchain::createPresentInfo(const uint32_t image_index) const {
+VkPresentInfoKHR Swapchain::createPresentInfo(const uint32_t image_index) const {
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -78,7 +78,7 @@ VkPresentInfoKHR HlcSwapchain::createPresentInfo(const uint32_t image_index) con
 
     return presentInfo;
 }
-VkResult HlcSwapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_t image_index) {
+VkResult Swapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_t image_index) {
     if(imagesInFlight[image_index] != VK_NULL_HANDLE) vkWaitForFences(device->device(), 1, &imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
     imagesInFlight[image_index] = inFlightFences[currentFrame];
 
@@ -102,7 +102,7 @@ VkResult HlcSwapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_
 
 
 
-VkSurfaceFormatKHR HlcSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& available_formats) {
+VkSurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& available_formats) {
     const auto it = ranges::find_if(available_formats, [](const VkSurfaceFormatKHR& available_format) {
         return available_format.format == VK_FORMAT_B8G8R8A8_UNORM &&
             available_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
@@ -112,7 +112,7 @@ VkSurfaceFormatKHR HlcSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSur
 
     return *it;
 }
-VkPresentModeKHR HlcSwapchain::chooseSwapPresentMode(
+VkPresentModeKHR Swapchain::chooseSwapPresentMode(
     const std::vector<VkPresentModeKHR>& available_present_modes) {
     const auto it = ranges::find(available_present_modes, VK_PRESENT_MODE_MAILBOX_KHR);
 
@@ -125,7 +125,7 @@ VkPresentModeKHR HlcSwapchain::chooseSwapPresentMode(
 
     //VK_PRESENT_MODE_IMMEDIATE_KHR
 }
-VkExtent2D HlcSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const {
+VkExtent2D Swapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const {
     if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) return capabilities.currentExtent;
 
     VkExtent2D actualExtent = windowExtent;
@@ -139,7 +139,7 @@ VkExtent2D HlcSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabi
     return actualExtent;
 }
 
-void HlcSwapchain::createSwapchain() {
+void Swapchain::createSwapchain() {
     const SwapchainSupportDetails swapchainSupport = device->getSwapchainSupport();
 
     const VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
@@ -190,13 +190,13 @@ void HlcSwapchain::createSwapchain() {
     swapchainImageFormat = surfaceFormat.format;
     swapchainExtent = extent;
 }
-void HlcSwapchain::createImageViews() {
+void Swapchain::createImageViews() {
     swapchainImageViews.resize(swapchainImages.size());
 
     for(size_t i = 0; i < swapchainImages.size(); i++)
         swapchainImageViews[i] = createImageView(device->device(), swapchainImages[i], swapchainImageFormat);
 }
-void HlcSwapchain::setImageCount() {
+void Swapchain::setImageCount() {
     // we only specified a minimum number of images in the swap chain, so the implementation is
     // allowed to create a swap chain with more. That's why we'll first query the final number of
     // images with vkGetSwapchainImagesKHR, then resize the container and finally call it again to
@@ -206,9 +206,9 @@ void HlcSwapchain::setImageCount() {
     swapchainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(device->device(), vkSwapchain, &imageCount, swapchainImages.data());
 }
-void HlcSwapchain::setMsaaSampleCount() { msaaSamples = evaluateMsaaSampleCount(); }
+void Swapchain::setMsaaSampleCount() { msaaSamples = evaluateMsaaSampleCount(); }
 
-VkAttachmentDescription HlcSwapchain::createColorAttachmentDescription() const {
+VkAttachmentDescription Swapchain::createColorAttachmentDescription() const {
     VkAttachmentDescription attachment = {};
     attachment.format = getSwapchainImageFormat();
     attachment.samples = msaaSamples;
@@ -221,7 +221,7 @@ VkAttachmentDescription HlcSwapchain::createColorAttachmentDescription() const {
 
     return attachment;
 }
-VkAttachmentDescription HlcSwapchain::createDepthAttachment() const {
+VkAttachmentDescription Swapchain::createDepthAttachment() const {
     VkAttachmentDescription attachment{};
     attachment.format = findDepthFormat();
     attachment.samples = msaaSamples;
@@ -234,7 +234,7 @@ VkAttachmentDescription HlcSwapchain::createDepthAttachment() const {
 
     return attachment;
 }
-VkAttachmentDescription HlcSwapchain::createColorAttachmentResolve() const {
+VkAttachmentDescription Swapchain::createColorAttachmentResolve() const {
     VkAttachmentDescription attachment{};
     attachment.format = swapchainImageFormat;
     attachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -247,7 +247,7 @@ VkAttachmentDescription HlcSwapchain::createColorAttachmentResolve() const {
 
     return attachment;
 }
-VkSubpassDescription HlcSwapchain::createSubpassDescription() const {
+VkSubpassDescription Swapchain::createSubpassDescription() const {
     constexpr VkAttachmentReference colorAttachmentRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
     constexpr VkAttachmentReference depthAttachmentRef{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
     constexpr VkAttachmentReference colorAttachmentResolveRef{2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
@@ -261,7 +261,7 @@ VkSubpassDescription HlcSwapchain::createSubpassDescription() const {
 
     return description;
 }
-VkSubpassDependency HlcSwapchain::createSubpassDependency() const {
+VkSubpassDependency Swapchain::createSubpassDependency() const {
     VkSubpassDependency dependency = {};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.srcAccessMask = 0;
@@ -276,7 +276,7 @@ VkSubpassDependency HlcSwapchain::createSubpassDependency() const {
     return dependency;
 }
 
-void HlcSwapchain::createRenderPass() {
+void Swapchain::createRenderPass() {
     const auto colorAttachment = createColorAttachmentDescription();
     const auto depthAttachment = createDepthAttachment();
     const auto colorAttachmentResolve = createColorAttachmentResolve();
@@ -302,7 +302,7 @@ void HlcSwapchain::createRenderPass() {
 }
 
 
-VkImageCreateInfo HlcSwapchain::createColorImageInfo() const {
+VkImageCreateInfo Swapchain::createColorImageInfo() const {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -321,7 +321,7 @@ VkImageCreateInfo HlcSwapchain::createColorImageInfo() const {
 
     return imageInfo;
 }
-VkImageCreateInfo HlcSwapchain::createDepthImageInfo(VkFormat depth_format) const {
+VkImageCreateInfo Swapchain::createDepthImageInfo(VkFormat depth_format) const {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -340,7 +340,7 @@ VkImageCreateInfo HlcSwapchain::createDepthImageInfo(VkFormat depth_format) cons
 
     return imageInfo;
 }
-void HlcSwapchain::createColorResources() {
+void Swapchain::createColorResources() {
     //TODO maybe use the image class here
 
     msaaImages.resize(imageCount());
@@ -356,7 +356,7 @@ void HlcSwapchain::createColorResources() {
     }
 }
 
-void HlcSwapchain::createDepthResources() {
+void Swapchain::createDepthResources() {
     const VkFormat depthFormat = findDepthFormat();
     swapchainImageFormat = depthFormat;
 
@@ -375,7 +375,7 @@ void HlcSwapchain::createDepthResources() {
 }
 
 
-void HlcSwapchain::createFramebuffers() {
+void Swapchain::createFramebuffers() {
     swapchainFramebuffers.resize(imageCount());
 
     for(size_t i = 0; i < imageCount(); i++) {
@@ -398,7 +398,7 @@ void HlcSwapchain::createFramebuffers() {
     }
 }
 
-void HlcSwapchain::createSyncObjects() {
+void Swapchain::createSyncObjects() {
     imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -429,7 +429,7 @@ void HlcSwapchain::createSyncObjects() {
 }
 
 
-void HlcSwapchain::init() {
+void Swapchain::init() {
     createSwapchain();
     setImageCount();
     createImageViews();
@@ -445,13 +445,13 @@ void HlcSwapchain::init() {
 
 
 
-HlcSwapchain::HlcSwapchain(Device* device, const VkExtent2D window_extent) : device{device}, windowExtent{window_extent} { init(); }
-HlcSwapchain::HlcSwapchain(Device* device, const VkExtent2D window_extent, shared_ptr<HlcSwapchain> previous) : device{device},
+Swapchain::Swapchain(Device* device, const VkExtent2D window_extent) : device{device}, windowExtent{window_extent} { init(); }
+Swapchain::Swapchain(Device* device, const VkExtent2D window_extent, shared_ptr<Swapchain> previous) : device{device},
     windowExtent{window_extent}, oldSwapchain{std::move(previous)} {
     init();
     oldSwapchain = nullptr;
 }
-HlcSwapchain::~HlcSwapchain() {
+Swapchain::~Swapchain() {
     ranges::for_each(swapchainImageViews, [this](VkImageView image_view) { vkDestroyImageView(device->device(), image_view, nullptr); });
     swapchainImageViews.clear();
 
@@ -485,7 +485,7 @@ HlcSwapchain::~HlcSwapchain() {
 
 
 
-VkSampleCountFlagBits HlcSwapchain::evaluateMsaaSampleCount() const {
+VkSampleCountFlagBits Swapchain::evaluateMsaaSampleCount() const {
     const uint32_t maxSamples = device->evaluateMaxUsableSampleCount();
 
     uint32_t samples = 1;

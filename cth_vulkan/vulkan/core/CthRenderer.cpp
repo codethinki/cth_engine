@@ -30,12 +30,12 @@ void Renderer::recreateSwapchain() {
     vkDeviceWaitIdle(device->device());
 
     if(swapchain == nullptr) {
-        swapchain = make_unique<HlcSwapchain>(device, windowExtent);
+        swapchain = make_unique<Swapchain>(device, windowExtent);
         return;
     }
 
     shared_ptr oldSwapchain = std::move(swapchain);
-    swapchain = make_unique<HlcSwapchain>(device, windowExtent, oldSwapchain);
+    swapchain = make_unique<Swapchain>(device, windowExtent, oldSwapchain);
 
     const bool noChange = oldSwapchain->compareSwapFormats(*swapchain);
 
@@ -116,7 +116,7 @@ void Renderer::endFrame() {
             throw cth::except::vk_result_exception{submitResult, details->exception()};
 
     frameStarted = false;
-    ++currentFrameIndex %= HlcSwapchain::MAX_FRAMES_IN_FLIGHT;
+    ++currentFrameIndex %= Swapchain::MAX_FRAMES_IN_FLIGHT;
 }
 
 void Renderer::beginSwapchainRenderPass(VkCommandBuffer command_buffer) const {
@@ -159,7 +159,7 @@ void Renderer::endSwapchainRenderPass(VkCommandBuffer command_buffer) const {
     vkCmdEndRenderPass(command_buffer);
 }
 
-Renderer::Renderer(Camera* camera, Window* window, Device* device) : device{device}, window(window), camera{camera}, currentImageIndex{0} {
+Renderer::Renderer(Device* device, Camera* camera, Window* window) : device{device}, camera{camera}, window(window), currentImageIndex{0} {
     recreateSwapchain();
     createCommandBuffers();
 }

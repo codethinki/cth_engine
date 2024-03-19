@@ -1,5 +1,4 @@
 #pragma once
-
 #include <vulkan/vulkan.h>
 
 
@@ -12,7 +11,7 @@ namespace cth {
 
 class Device;
 
-class HlcSwapchain {
+class Swapchain {
 public:
     static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -22,7 +21,7 @@ public:
 
     [[nodiscard]] VkFormat findDepthFormat() const;
 
-    VkResult acquireNextImage(uint32_t image_index) const;
+    [[nodiscard]] VkResult acquireNextImage(uint32_t image_index) const;
     /**
      * \throws cth::except::vk_result_exception result of vkQueueSubmit()
      */
@@ -99,7 +98,7 @@ private:
     VkExtent2D windowExtent;
 
     VkSwapchainKHR vkSwapchain;
-    shared_ptr<HlcSwapchain> oldSwapchain; //TODO why is this a shared_ptr?
+    shared_ptr<Swapchain> oldSwapchain; //TODO why is this a shared_ptr?
 
     vector<VkSemaphore> imageAvailableSemaphores;
     vector<VkSemaphore> renderFinishedSemaphores;
@@ -111,12 +110,12 @@ private:
     static constexpr VkSampleCountFlagBits MAX_MSAA_COUNT = VK_SAMPLE_COUNT_8_BIT;
 
 public:
-    HlcSwapchain(Device* device, VkExtent2D window_extent);
-    HlcSwapchain(Device* device, VkExtent2D window_extent, shared_ptr<HlcSwapchain> previous);
-    ~HlcSwapchain();
+    Swapchain(Device* device, VkExtent2D window_extent);
+    Swapchain(Device* device, VkExtent2D window_extent, shared_ptr<Swapchain> previous);
+    ~Swapchain();
 
     [[nodiscard]] float extentAspectRatio() const { return static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height); }
-    [[nodiscard]] bool compareSwapFormats(const HlcSwapchain& other) const {
+    [[nodiscard]] bool compareSwapFormats(const Swapchain& other) const {
         return other.swapchainDepthFormat == swapchainDepthFormat && other.swapchainImageFormat ==
             swapchainImageFormat;
     }
@@ -133,8 +132,8 @@ public:
     [[nodiscard]] VkSampleCountFlagBits getMsaaSampleCount() const { return msaaSamples; }
 
 
-    HlcSwapchain(const HlcSwapchain&) = delete;
-    HlcSwapchain& operator=(const HlcSwapchain&) = delete;
+    Swapchain(const Swapchain&) = delete;
+    Swapchain& operator=(const Swapchain&) = delete;
 
 };
 

@@ -1,14 +1,12 @@
 #include "CthDevice.hpp"
+
 #include "CthInstance.hpp"
+#include "CthWindow.hpp"
 #include "../utils/cth_vk_specific_utils.hpp"
+#include "../utils/HlcShader.hpp"
 
 #include <cth/cth_log.hpp>
 
-
-#include <cstring>
-#include <iostream>
-#include <set>
-#include <unordered_set>
 
 
 
@@ -55,7 +53,6 @@ QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice device) cons
     QueueFamilyIndices indices;
     vector<uint32_t> graphicFamilies{};
     vector<uint32_t> presentFamilies{};
-
 
 
     for(auto [i, queueFamily] : queueFamilies | views::enumerate) {
@@ -183,7 +180,7 @@ void Device::createLogicalDevice() {
     vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     float queuePriority = 1.0f;
-    ranges::for_each(uniqueQueueFamilies, [this, &queueCreateInfos, queuePriority](const uint32_t queue_family) {
+    ranges::for_each(uniqueQueueFamilies, [&queueCreateInfos, queuePriority](const uint32_t queue_family) {
         VkDeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queue_family;
@@ -234,29 +231,17 @@ void Device::createCommandPool() {
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 void Device::initShaders() {
-    //TODO create a shader manager so it is not in the device class
 
-
-    vertShader = make_unique<Shader>(VERTEX_SHADER_CODE_PATH, VERTEX_SHADER_BINARIES_PATH, GLSL_COMPILER_PATH);
-    fragShader = make_unique<Shader>(FRAGMENT_SHADER_CODE_PATH, FRAGMENT_SHADER_BINARIES_PATH, GLSL_COMPILER_PATH);
-
-#ifdef _DEBUG
-    const auto vertResult = vertShader->compile();
-    const auto fragResult = fragShader->compile();
-    CTH_ERR(!vertResult.empty(), "vertex shader glsl compiling failed") {
-        ranges::for_each(vertResult, [&details](const string& str) { details->add(str); });
-        throw details->exception();
-    }
-    CTH_ERR(!fragResult.empty(), "fragment shader glsl compiling failed") {
-        ranges::for_each(vertResult, [&details](const string& str) { details->add(str); });
-        throw details->exception();
-    }
+    //TEMP move this
+#ifdef _FINAL
+    vertShader = make_unique<Shader>(this, Shader::TYPE_VERTEX, format("{}shader.vert.spv", SHADER_BINARY_DIR));
+    fragShader = make_unique<Shader>(this, Shader::TYPE_FRAGMENT, format("{}shader.frag.spv", SHADER_BINARY_DIR));
+#else
+    vertShader = make_unique<Shader>(this, Shader::TYPE_VERTEX, format("{}shader.vert.spv", SHADER_BINARY_DIR),
+        format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
+    fragShader = make_unique<Shader>(this, Shader::TYPE_FRAGMENT, format("{}shader.frag.spv", SHADER_BINARY_DIR),
+        format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
 #endif
-    vertShader->loadSpv();
-    vertShader->createModule(device());
-    fragShader->loadSpv();
-    fragShader->createModule(device());
-
 }
 
 
@@ -381,8 +366,9 @@ void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMe
     VkDeviceMemory& image_memory) const {
 
     const VkResult createResult = vkCreateImage(logicalDevice, &image_info, nullptr, &image);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create image") throw cth::except::vk_result_exception{createResult,
-        details->exception()};
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create image")
+        throw cth::except::vk_result_exception{createResult,
+            details->exception()};
 
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
