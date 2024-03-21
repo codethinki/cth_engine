@@ -21,14 +21,6 @@ public:
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME
     };
 
-    /**
-    * \throws cth::except::vk_result_exception result vkCreateInstance()
-    * \throws cth::except::default_exception reason: missing required instance extensions
-    * \throws cth::except::default_exception reason: missing required validation layers
-    */
-    explicit Instance(string app_name, const vector<string>& required_extensions);
-    ~Instance();
-
     [[nodiscard]] VkInstance get() const { return vkInstance; }
 
     [[nodiscard]] VkApplicationInfo appInfo() const;
@@ -73,6 +65,13 @@ public:
         return true;
 #endif
     }();
+    /**
+    * \throws cth::except::vk_result_exception result vkCreateInstance()
+    * \throws cth::except::default_exception reason: missing required instance extensions
+    * \throws cth::except::default_exception reason: missing required validation layers
+    */
+    explicit Instance(string app_name, const vector<string>& required_extensions);
+    ~Instance();
 
     // Not copyable or movable
     Instance(const Instance&) = delete;

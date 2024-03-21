@@ -63,7 +63,7 @@ private:
     unique_ptr<Swapchain> swapchain;
     vector<VkCommandBuffer> commandBuffers;
 
-    uint32_t currentImageIndex;
+    uint32_t currentImageIndex = 0;
     uint_fast8_t currentFrameIndex = 0;
     bool frameStarted = false;
 

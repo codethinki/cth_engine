@@ -39,8 +39,6 @@ VkSampleCountFlagBits Device::evaluateMaxUsableSampleCount() const {
     return VK_SAMPLE_COUNT_1_BIT;
 }
 
-//create surface
-void Device::createSurface() { window->createWindowSurface(instance->get(), &windowSurface); }
 
 
 //pickPhysicalDevice helpers
@@ -60,17 +58,15 @@ QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice device) cons
 
         if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) graphicFamilies.push_back(i);
 
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, windowSurface, &presentSupport);
-        if(presentSupport) presentFamilies.push_back(i);
+        if(window->surfaceSupport(device, i)) presentFamilies.push_back(i);
     }
 
     //iterate through all possible combinations of graphic and present indices
     for(const auto graphicFamily : graphicFamilies) {
         indices.graphicsFamilyIndex = graphicFamily;
         for(const auto presentFamily : presentFamilies) {
-            indices.presentFamilyIndex = presentFamily;
             if(graphicFamily == presentFamily) continue;
+            indices.presentFamilyIndex = presentFamily;
             if(indices.complete()) return indices;
         }
     }
@@ -93,24 +89,13 @@ vector<string> Device::checkDeviceExtensionSupport(VkPhysicalDevice device) cons
     return missingExtensions;
 }
 SwapchainSupportDetails Device::querySwapchainSupport(const VkPhysicalDevice device) const {
-    SwapchainSupportDetails details;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, windowSurface, &details.capabilities);
+    SwapchainSupportDetails details{};
+    details.capabilities = window->surfaceCapabilities(device);
 
-    uint32_t formatCount = 0;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, windowSurface, &formatCount, nullptr);
+    details.formats = window->surfaceFormats(device);
 
-    if(formatCount != 0) {
-        details.formats.resize(formatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, windowSurface, &formatCount, details.formats.data());
-    }
+    details.presentModes = window->presentModes(device);
 
-    uint32_t presentModeCount = 0;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, windowSurface, &presentModeCount, nullptr);
-
-    if(presentModeCount != 0) {
-        details.presentModes.resize(presentModeCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, windowSurface, &presentModeCount, details.presentModes.data());
-    }
     return details;
 }
 bool Device::physicalDeviceSuitable(VkPhysicalDevice physical_device) const {
@@ -145,7 +130,7 @@ bool Device::physicalDeviceSuitable(VkPhysicalDevice physical_device) const {
             [&details](const uint32_t feature) { details += '\t' + string(deviceFeatureIndexToString(feature)) + '\n'; });
     }
 
-    if(!suitable) cth::log::msg(cth::except::INFO, "device {} not suitable\n{}", physicalProperties.deviceName, details);
+    if(!suitable) cth::log::msg<except::INFO>("device {} not suitable\n{}", physicalProperties.deviceName, details);
     return suitable;
 }
 
@@ -154,7 +139,7 @@ void Device::pickPhysicalDevice() {
     vkEnumeratePhysicalDevices(instance->get(), &deviceCount, nullptr);
     CTH_STABLE_ERR(deviceCount == 0, "no vulkan GPUs found") throw details->exception();
 
-    cth::log::msg(cth::except::INFO, "device count: {}", deviceCount);
+    cth::log::msg<except::INFO>("device count: {}", deviceCount);
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance->get(), &deviceCount, devices.data());
@@ -168,7 +153,7 @@ void Device::pickPhysicalDevice() {
 
     vkGetPhysicalDeviceProperties(physicalDevice, &physicalProperties);
 
-    cth::log::msg(cth::except::INFO, "chosen physical device: {}", physicalProperties.deviceName);
+    cth::log::msg<except::INFO>("chosen physical device: {}", physicalProperties.deviceName);
 }
 
 
@@ -389,7 +374,6 @@ void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMe
 }
 
 Device::Device(Window* window, Instance* instance) : window(window), instance(instance) {
-    createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
     createCommandPool();
@@ -397,7 +381,13 @@ Device::Device(Window* window, Instance* instance) : window(window), instance(in
 }
 Device::~Device() {
     vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+
+    vertShader = nullptr;
+    fragShader = nullptr;
+
     vkDestroyDevice(logicalDevice, nullptr);
+
+    cth::log::msg<except::LOG>("destroyed device");
 }
 
 

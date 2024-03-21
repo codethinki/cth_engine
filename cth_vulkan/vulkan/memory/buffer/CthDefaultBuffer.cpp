@@ -7,7 +7,7 @@
 namespace cth {
 
     VkDeviceSize DefaultBuffer::calcAlignedSize(const VkDeviceSize actual_size, const VkDeviceSize min_offset_alignment) {
-        if(min_offset_alignment > 0) return actual_size + actual_size % min_offset_alignment;
+        if(min_offset_alignment > 0) return actual_size + (min_offset_alignment - actual_size % min_offset_alignment);
         return actual_size;
     }
     span<char> DefaultBuffer::default_map(const VkDeviceSize size, const VkDeviceSize offset) {
@@ -90,6 +90,12 @@ namespace cth {
     }
     void DefaultBuffer::copyBuffer(const DefaultBuffer* src, const DefaultBuffer* dst, const VkDeviceSize size, VkDeviceSize src_offset,
         VkDeviceSize dst_offset) {
+        CTH_ERR(!(src->usageFlags() & VK_BUFFER_USAGE_TRANSFER_SRC_BIT), "src buffer usage must be marked as transfer source")
+            throw details->exception();
+        CTH_ERR(!(dst->usageFlags() & VK_BUFFER_USAGE_TRANSFER_DST_BIT), "dst buffer usage must be marked as transfer destination")
+            throw details->exception();
+
+
         const VkDeviceSize copySize = size == VK_WHOLE_SIZE ? min(src->bufferSize, dst->bufferSize) : size;
 
         CTH_ERR(src_offset + copySize > src->bufferSize || dst_offset + copySize > dst->bufferSize, "copy operation out of bounds") {

@@ -47,10 +47,10 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInputInfo.vertexAttributeDescriptionCount = Vertex::ATTRIBUTES;
-    vertexInputInfo.pVertexAttributeDescriptions = Vertex::getAttributeDescriptions().data();
+    vertexInputInfo.pVertexAttributeDescriptions = VERTEX_ATTRIBUTE_DESCRIPTIONS.data();
 
     vertexInputInfo.vertexBindingDescriptionCount = Vertex::BINDINGS;
-    vertexInputInfo.pVertexBindingDescriptions = Vertex::getBindingDescriptions().data();
+    vertexInputInfo.pVertexBindingDescriptions = VERTEX_BINDING_DESCRIPTIONS.data();
 
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};

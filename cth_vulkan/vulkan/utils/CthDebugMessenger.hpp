@@ -17,11 +17,11 @@ public:
      */
     explicit DebugMessenger(const function<callback_t>& custom_callback = nullptr);
     /**
- * \param callback == nullptr -> default callback function
+ * \param custom_callback == nullptr -> default callback function
  * \throws cth::except::default_exception
  * \throws cth::except::vk_result_exception
  */
-    explicit DebugMessenger(VkInstance instance, const function<callback_t>& callback = nullptr);
+    explicit DebugMessenger(Instance* instance, const function<callback_t>& custom_callback = nullptr);
     ~DebugMessenger();
 
 
@@ -30,15 +30,13 @@ public:
      * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      * \throws cth::except::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
      */
-    void init(VkInstance instance);
+    void init(Instance* instance);
 
     /**
-     * \tparam Throw throw exceptions?
      * \throws cth::except::default_exception reason: messenger not active
      * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      */
-    template<bool Throw>
-    void destroy(VkInstance instance) const;
+    void destroy();
 
     [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return vkMessenger; }
 
@@ -48,10 +46,8 @@ private:
     void setCallback(const function<callback_t>& custom_callback);
 
     function<callback_t> callback;
-    VkInstance vkInstance = nullptr;
+    Instance* instance = nullptr;
     VkDebugUtilsMessengerEXT vkMessenger = VK_NULL_HANDLE;
-
-    bool active = false;
 
 public:
     // Not copyable or movable

@@ -1,6 +1,6 @@
-#define GLFW_INCLUDE_VULKAN
 #include "CthWindow.hpp"
 
+#include "CthInstance.hpp"
 #include "../user/HlcInputController.hpp"
 #include "../utils/cth_vk_specific_utils.hpp"
 
@@ -12,14 +12,56 @@
 
 
 namespace cth {
-Window::Window(std::string name, const uint32_t width, const uint32_t height) : width(static_cast<int>(width)), height(static_cast<int>(height)),
-    windowName{std::move(name)} {
-    initWindow();
 
-    setCallbacks();
+
+
+vector<VkPresentModeKHR> Window::presentModes(VkPhysicalDevice physical_device) const {
+    uint32_t size;
+    const VkResult result1 = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, vkSurface, &size, nullptr);
+    CTH_STABLE_ERR(result1 != VK_SUCCESS, "device-surface present modes query failed")
+        throw cth::except::vk_result_exception{result1, details->exception()};
+
+    if(!size) return {};
+
+    vector<VkPresentModeKHR> modes(size);
+    const VkResult result2 = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, vkSurface, &size, modes.data());
+    CTH_STABLE_ERR(result2 != VK_SUCCESS, "device-surface present modes query failed")
+        throw cth::except::vk_result_exception{result2, details->exception()};
+
+    return modes;
 }
-Window::~Window() {
-    glfwDestroyWindow(glfwWindow);
+vector<VkSurfaceFormatKHR> Window::surfaceFormats(VkPhysicalDevice physical_device) const {
+    uint32_t size;
+    const VkResult result1 = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, vkSurface, &size, nullptr);
+
+    CTH_STABLE_ERR(result1 != VK_SUCCESS, "device-surface formats query failed")
+        throw except::vk_result_exception{result1, details->exception()};
+
+    if(!size) return {};
+    vector<VkSurfaceFormatKHR> formats(size);
+    const VkResult result2 = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, vkSurface, &size, formats.data());
+    CTH_STABLE_ERR(result2 != VK_SUCCESS, "device-surface formats query failed")
+        throw except::vk_result_exception{result2, details->exception()};
+
+    return formats;
+}
+VkSurfaceCapabilitiesKHR Window::surfaceCapabilities(VkPhysicalDevice physical_device) const {
+    VkSurfaceCapabilitiesKHR cap;
+    const auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, vkSurface, &cap);
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface capabilities query failed")
+        throw except::vk_result_exception{result, details->exception()};
+
+    return cap;
+}
+VkBool32 Window::surfaceSupport(VkPhysicalDevice physical_device, const uint32_t family_index) const {
+    VkBool32 support;
+    const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, family_index, vkSurface, &support);
+    CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface support query failed")
+        throw except::vk_result_exception{result, details->exception()};
+
+
+    return support;
 }
 
 void Window::setGLFWWindowHints() {
@@ -43,13 +85,13 @@ void Window::initWindow() {
     glfwWindow = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
     glfwGetWindowSize(glfwWindow, &width, &height);
 }
+void Window::createSurface() {
+    const auto result = glfwCreateWindowSurface(instance->get(), glfwWindow, nullptr, &vkSurface);
 
-void Window::createWindowSurface(VkInstance instance, VkSurfaceKHR* surface) const {
-    const VkResult result = glfwCreateWindowSurface(instance, glfwWindow, nullptr, surface);
-
-    CTH_STABLE_ERR(result != VK_SUCCESS, "Vk: failed to create GLFW window surface")
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create GLFW window surface")
         throw cth::except::vk_result_exception{result, details->exception()};
 }
+
 
 
 void Window::keyCallback(int key, int scan_code, int action, int mods) {}
@@ -58,8 +100,8 @@ void Window::scrollCallback(double x_offset, double y_offset) {} //FEATURE scrol
 void Window::focusCallback(const int focused) {
     focus = static_cast<bool>(focused);
 
-    if(focus) cth::log::msg(except::LOG, "window focused");
-    else cth::log::msg(except::LOG, "window unfocused");
+    if(focus) cth::log::msg<except::LOG>("window focused");
+    else cth::log::msg<except::LOG>("window unfocused");
 
     //TODO review this later and probably move it into an app function
     /*double x = 0, y = 0;
@@ -77,13 +119,15 @@ void Window::framebufferResizeCallback(const int new_width, const int new_height
     width = new_width;
     height = new_height;
 
-    cth::log::msg(except::INFO, "framebuffer resized to {0}x{1}", new_width, new_height);
+    cth::log::msg<except::INFO>("framebuffer resized to {0}x{1}", new_width, new_height);
 }
 
 
 }
+
 
 //static methods
+
 namespace cth {
 Window* Window::window_ptr(GLFWwindow* glfw_window) { return static_cast<Window*>(glfwGetWindowUserPointer(glfw_window)); }
 vector<string> Window::getGLFWInstanceExtensions() {
@@ -101,9 +145,13 @@ void Window::init() {
     CTH_STABLE_ERR(glfwVulkanSupported() != VK_TRUE, "GLFW: Vulkan not supported")
         throw details->exception();
     setGLFWWindowHints();
+
+    log::msg("initialized window");
 }
+
 void Window::terminate() {
     glfwTerminate();
+    log::msg("terminated window");
 }
 
 
@@ -123,4 +171,22 @@ void Window::staticFramebufferResizeCallback(GLFWwindow* glfw_window, const int 
     window_ptr(glfw_window)->framebufferResizeCallback(width, height);
 }
 void Window::staticFocusCallback(GLFWwindow* glfw_window, const int focused) { window_ptr(glfw_window)->focusCallback(focused); }
+
+Window::Window(Instance* instance, std::string name, const uint32_t width, const uint32_t height) : windowName{std::move(name)},
+    width(static_cast<int>(width)), height(static_cast<int>(height)),
+    instance(instance) {
+    initWindow();
+
+    setCallbacks();
+
+    createSurface();
 }
+Window::~Window() {
+    vkDestroySurfaceKHR(instance->get(), vkSurface, nullptr);
+    log::msg("destroyed surface");
+
+    glfwDestroyWindow(glfwWindow);
+    cth::log::msg("destroyed window");
+}
+
+} // namespace cth

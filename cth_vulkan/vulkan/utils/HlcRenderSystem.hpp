@@ -62,7 +62,7 @@ private:
 
     //vector<unique_ptr<Image>> descriptedImages;
     unique_ptr<Pipeline> hlcPipeline;
-    VkPipelineLayout pipelineLayout{};
+    VkPipelineLayout vkPipelineLayout{};
 
 
     //TEMP remove this

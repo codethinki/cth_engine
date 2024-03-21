@@ -11,8 +11,6 @@
 
 
 
-
-
 namespace cth {
 VkExtent2D Renderer::minimizedState() const {
     auto extent = window->getExtent();
@@ -30,12 +28,12 @@ void Renderer::recreateSwapchain() {
     vkDeviceWaitIdle(device->device());
 
     if(swapchain == nullptr) {
-        swapchain = make_unique<Swapchain>(device, windowExtent);
+        swapchain = make_unique<Swapchain>(device, window, windowExtent);
         return;
     }
 
     shared_ptr oldSwapchain = std::move(swapchain);
-    swapchain = make_unique<Swapchain>(device, windowExtent, oldSwapchain);
+    swapchain = make_unique<Swapchain>(device, window, windowExtent, oldSwapchain);
 
     const bool noChange = oldSwapchain->compareSwapFormats(*swapchain);
 
@@ -73,14 +71,14 @@ VkCommandBuffer Renderer::beginFrame() {
     CTH_ERR(frameStarted, "more than one frame started")
         throw details->exception();
 
-    const VkResult nextImageResult = swapchain->acquireNextImage(currentImageIndex);
+    const VkResult nextImageResult = swapchain->acquireNextImage(&currentImageIndex);
 
     if(nextImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
         recreateSwapchain();
         return nullptr;
     }
 
-    CTH_STABLE_ERR(nextImageResult != VK_SUCCESS || nextImageResult != VK_SUBOPTIMAL_KHR, "failed to acquire swapchain image")
+    CTH_STABLE_ERR(nextImageResult != VK_SUCCESS && nextImageResult != VK_SUBOPTIMAL_KHR, "failed to acquire swapchain image")
         throw cth::except::vk_result_exception{nextImageResult, details->exception()};
 
     frameStarted = true;
@@ -90,7 +88,7 @@ VkCommandBuffer Renderer::beginFrame() {
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
     const VkResult beginResult = vkBeginCommandBuffer(buffer, &beginInfo);
-    CTH_STABLE_ERR(beginResult != VK_SUCCESS, "Vk: failed to begin command buffer")
+    CTH_STABLE_ERR(beginResult != VK_SUCCESS, "failed to begin command buffer")
         throw cth::except::vk_result_exception{beginResult, details->exception()};
 
     return buffer;
@@ -101,7 +99,7 @@ void Renderer::endFrame() {
     const auto buffer = commandBuffer();
     const VkResult recordResult = vkEndCommandBuffer(buffer);
 
-    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "Vk: commandBuffer recording failed")
+    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
         throw cth::except::vk_result_exception{recordResult, details->exception()};
 
 
@@ -112,7 +110,7 @@ void Renderer::endFrame() {
         camera->correctViewRatio(screenRatio());
         window->resetWindowResized();
     } else
-        CTH_STABLE_ERR(submitResult != VK_SUCCESS, "presenting swapchain image failed")
+        CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to present swapchain image")
             throw cth::except::vk_result_exception{submitResult, details->exception()};
 
     frameStarted = false;
@@ -152,8 +150,8 @@ void Renderer::beginSwapchainRenderPass(VkCommandBuffer command_buffer) const {
 
 }
 void Renderer::endSwapchainRenderPass(VkCommandBuffer command_buffer) const {
-    CTH_ERR(frameStarted, "no frame active") throw details->exception();
-    CTH_ERR(command_buffer == commandBuffer(), "only current render pass allowed")
+    CTH_ERR(!frameStarted, "no frame active") throw details->exception();
+    CTH_ERR(command_buffer != commandBuffer(), "only one command buffer allowed")
         throw details->exception();
 
     vkCmdEndRenderPass(command_buffer);

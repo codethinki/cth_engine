@@ -1,19 +1,19 @@
 #include "CthSwapchain.hpp"
 
 #include "CthDevice.hpp"
+#include "CthWindow.hpp"
 #include "../utils/cth_vk_specific_utils.hpp"
 
 #include <cth/cth_log.hpp>
 
 #include <array>
-#include <iostream>
 #include <limits>
 
 
 
 namespace cth {
 //public
-VkImageView Swapchain::createImageView(const VkDevice& device,  VkImage image, const VkFormat format, const VkImageAspectFlags aspect_flags,
+VkImageView Swapchain::createImageView(const VkDevice& device, VkImage image, const VkFormat format, const VkImageAspectFlags aspect_flags,
     const uint32_t mip_levels) {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -37,16 +37,17 @@ VkFormat Swapchain::findDepthFormat() const {
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-VkResult Swapchain::acquireNextImage(uint32_t image_index) const {
+VkResult Swapchain::acquireNextImage(uint32_t* image_index) const {
     vkWaitForFences(device->device(), 1, &inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 
     const VkResult result = vkAcquireNextImageKHR(device->device(), vkSwapchain, std::numeric_limits<uint64_t>::max(),
-        imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &image_index);
+        imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, image_index);
 
     return result;
 }
 
-VkSubmitInfo Swapchain::createSubmitInfo(VkCommandBuffer buffer) const {
+
+VkResult Swapchain::submit(VkCommandBuffer command_buffer) const {
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -56,19 +57,19 @@ VkSubmitInfo Swapchain::createSubmitInfo(VkCommandBuffer buffer) const {
     constexpr array<VkPipelineStageFlags, 1> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.commandBufferCount = 1u;
-    submitInfo.pCommandBuffers = &buffer;
+    submitInfo.pCommandBuffers = &command_buffer;
 
     submitInfo.signalSemaphoreCount = 1u;
     submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
 
-    return submitInfo;
+    return vkQueueSubmit(device->getGraphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]);
 }
-VkPresentInfoKHR Swapchain::createPresentInfo(const uint32_t image_index) const {
+VkResult Swapchain::present(const uint32_t image_index) const {
     VkPresentInfoKHR presentInfo = {};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &imageAvailableSemaphores[currentFrame];
+    presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentFrame];
 
     const array<VkSwapchainKHR, 1> swapchains{vkSwapchain};
 
@@ -76,25 +77,22 @@ VkPresentInfoKHR Swapchain::createPresentInfo(const uint32_t image_index) const 
     presentInfo.pSwapchains = swapchains.data();
     presentInfo.pImageIndices = &image_index;
 
-    return presentInfo;
+    return vkQueuePresentKHR(device->getPresentQueue(), &presentInfo);
 }
+
 VkResult Swapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_t image_index) {
     if(imagesInFlight[image_index] != VK_NULL_HANDLE) vkWaitForFences(device->device(), 1, &imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
+
     imagesInFlight[image_index] = inFlightFences[currentFrame];
 
     vkResetFences(device->device(), 1, &inFlightFences[currentFrame]);
 
-    const auto submitInfo = createSubmitInfo(buffer);
 
-    const VkResult submitResult = vkQueueSubmit(device->getGraphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]);
+    const VkResult submitResult = submit(buffer);
     CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to submit draw call")
-        throw cth::except::vk_result_exception{submitResult, details->exception()};
+        throw cth::except::vk_result_exception{submitResult, details->exception()}; //TEMP this is bad structure
 
-
-    const auto presentInfo = createPresentInfo(image_index);
-
-    const VkResult presentResult = vkQueuePresentKHR(device->getPresentQueue(), &presentInfo);
-
+    const auto presentResult = present(image_index);
 
     ++currentFrame %= MAX_FRAMES_IN_FLIGHT;
     return presentResult;
@@ -117,10 +115,10 @@ VkPresentModeKHR Swapchain::chooseSwapPresentMode(
     const auto it = ranges::find(available_present_modes, VK_PRESENT_MODE_MAILBOX_KHR);
 
     if(it == available_present_modes.end()) {
-        cth::log::msg(except::INFO, "present mode: FIFO (V-Sync)");
+        cth::log::msg<except::INFO>("present mode: FIFO (V-Sync)");
         return VK_PRESENT_MODE_FIFO_KHR;
     }
-    cth::log::msg(except::INFO, "present mode: MAILBOX");
+    cth::log::msg<except::INFO>("present mode: MAILBOX");
     return VK_PRESENT_MODE_MAILBOX_KHR;
 
     //VK_PRESENT_MODE_IMMEDIATE_KHR
@@ -153,7 +151,7 @@ void Swapchain::createSwapchain() {
 
     VkSwapchainCreateInfoKHR createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = device->surface();
+    createInfo.surface = window->surface();
 
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
@@ -247,19 +245,13 @@ VkAttachmentDescription Swapchain::createColorAttachmentResolve() const {
 
     return attachment;
 }
-VkSubpassDescription Swapchain::createSubpassDescription() const {
+SubpassDescription Swapchain::createSubpassDescription() const {
     constexpr VkAttachmentReference colorAttachmentRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
     constexpr VkAttachmentReference depthAttachmentRef{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
     constexpr VkAttachmentReference colorAttachmentResolveRef{2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+    //TEMP left off here this doesn't work
 
-    VkSubpassDescription description = {};
-    description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    description.colorAttachmentCount = 1;
-    description.pColorAttachments = &colorAttachmentRef;
-    description.pDepthStencilAttachment = &depthAttachmentRef;
-    description.pResolveAttachments = &colorAttachmentResolveRef;
-
-    return description;
+    return SubpassDescription(VK_PIPELINE_BIND_POINT_GRAPHICS, vector{colorAttachmentRef}, depthAttachmentRef, vector{colorAttachmentResolveRef});
 }
 VkSubpassDependency Swapchain::createSubpassDependency() const {
     VkSubpassDependency dependency = {};
@@ -282,7 +274,8 @@ void Swapchain::createRenderPass() {
     const auto colorAttachmentResolve = createColorAttachmentResolve();
 
 
-    const auto subpassDescription = createSubpassDescription();
+    auto subpassDescription = createSubpassDescription();
+
     const auto subpassDependency = createSubpassDependency();
 
     const array<VkAttachmentDescription, 3> attachments = {colorAttachment, depthAttachment, colorAttachmentResolve};
@@ -291,13 +284,13 @@ void Swapchain::createRenderPass() {
     renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
     renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpassDescription;
+    renderPassInfo.pSubpasses = subpassDescription.ptr();
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &subpassDependency;
 
     const VkResult createResult = vkCreateRenderPass(device->device(), &renderPassInfo, nullptr, &renderPass);
 
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create render pass")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create render pass")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 
@@ -445,8 +438,10 @@ void Swapchain::init() {
 
 
 
-Swapchain::Swapchain(Device* device, const VkExtent2D window_extent) : device{device}, windowExtent{window_extent} { init(); }
-Swapchain::Swapchain(Device* device, const VkExtent2D window_extent, shared_ptr<Swapchain> previous) : device{device},
+Swapchain::Swapchain(Device* device, Window* window, const VkExtent2D window_extent) : device(device), window(window), windowExtent{window_extent} {
+    init();
+}
+Swapchain::Swapchain(Device* device, Window* window, const VkExtent2D window_extent, shared_ptr<Swapchain> previous) : device{device}, window(window),
     windowExtent{window_extent}, oldSwapchain{std::move(previous)} {
     init();
     oldSwapchain = nullptr;
@@ -486,10 +481,10 @@ Swapchain::~Swapchain() {
 
 
 VkSampleCountFlagBits Swapchain::evaluateMsaaSampleCount() const {
-    const uint32_t maxSamples = device->evaluateMaxUsableSampleCount();
+    const uint32_t maxSamples = device->evaluateMaxUsableSampleCount(); //TEMP
 
     uint32_t samples = 1;
-    while(samples < maxSamples && samples < MAX_MSAA_COUNT) samples *= 2;
+    while(samples < maxSamples && samples < MAX_MSAA_SAMPLES) samples *= 2;
 
     return static_cast<VkSampleCountFlagBits>(samples);
 }

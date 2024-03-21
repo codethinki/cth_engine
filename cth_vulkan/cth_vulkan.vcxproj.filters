@@ -73,9 +73,6 @@
     <Filter Include="Source Files\old">
       <UniqueIdentifier>{918151da-39c2-4fda-b9e9-629f7c37216a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files\shaders">
-      <UniqueIdentifier>{6c6f57bb-f3d6-4701-b9a2-08f4207e5434}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\vulkan\memory\buffer">
       <UniqueIdentifier>{4426b709-6f91-40a8-9719-035436075422}</UniqueIdentifier>
     </Filter>
@@ -302,16 +299,19 @@
     <ClInclude Include="vulkan\memory\buffer\CthBuffer.inl">
       <Filter>Source Files\vulkan\memory\buffer</Filter>
     </ClInclude>
+    <ClInclude Include="vulkan\utils\cth_render_pass_utils.hpp">
+      <Filter>Header Files\vulkan\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="roadmap.md">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="res\shaders\shader.frag">
-      <Filter>Resource Files\shaders</Filter>
+    <None Include="vulkan\shader\shader.frag">
+      <Filter>Source Files\vulkan\shader</Filter>
     </None>
-    <None Include="res\shaders\shader.vert">
-      <Filter>Resource Files\shaders</Filter>
+    <None Include="vulkan\shader\shader.vert">
+      <Filter>Source Files\vulkan\shader</Filter>
     </None>
   </ItemGroup>
 </Project>

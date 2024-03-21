@@ -7,23 +7,22 @@
 
 namespace cth {
 using namespace std;
+class Instance;
 
 class Window {
 public:
-    Window(string name, uint32_t width, uint32_t height);
-    ~Window();
-
-    /**
-     * \throws cth::except::vk_result_exception result of glfwCreateWindowSurface() 
-     */
-    void createWindowSurface(VkInstance instance, VkSurfaceKHR* surface) const;
     void resetWindowResized() { framebufferResized = false; }
+
+    [[nodiscard]] vector<VkPresentModeKHR> presentModes(VkPhysicalDevice physical_device) const;
+    [[nodiscard]] vector<VkSurfaceFormatKHR> surfaceFormats(VkPhysicalDevice physical_device) const;
+    [[nodiscard]] VkSurfaceCapabilitiesKHR surfaceCapabilities(VkPhysicalDevice physical_device) const;
+    [[nodiscard]] VkBool32 surfaceSupport(VkPhysicalDevice physical_device, uint32_t family_index) const;
 
 private:
     static void setGLFWWindowHints();
     void setCallbacks();
     void initWindow();
-
+    void createSurface();
 
 
     void keyCallback(int key, int scan_code, int action, int mods);
@@ -36,9 +35,12 @@ private:
     bool focus = true;
     bool framebufferResized = false;
 
-    int width, height;
     std::string windowName;
-    GLFWwindow* glfwWindow;
+    int width, height;
+
+    Instance* instance;
+    GLFWwindow* glfwWindow = nullptr;
+    VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
 
     static Window* window_ptr(GLFWwindow* glfw_window);
 
@@ -49,11 +51,15 @@ private:
     static void staticFocusCallback(GLFWwindow* glfw_window, int focused);
 
 public:
+    Window(Instance* instance, string name, uint32_t width, uint32_t height);
+    ~Window();
+
     [[nodiscard]] bool shouldClose() const { return glfwWindowShouldClose(glfwWindow); }
     [[nodiscard]] VkExtent2D getExtent() const { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; }
     [[nodiscard]] bool windowResized() const { return framebufferResized; }
     [[nodiscard]] GLFWwindow* window() const { return glfwWindow; }
     [[nodiscard]] bool focused() const { return focus; }
+    [[nodiscard]] VkSurfaceKHR surface() const {return vkSurface; }
 
     static vector<string> getGLFWInstanceExtensions();
     static void init();

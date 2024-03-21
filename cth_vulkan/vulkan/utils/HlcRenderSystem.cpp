@@ -10,7 +10,6 @@
 
 
 
-
 namespace cth {
 struct UniformBuffer {
     glm::mat4 projectionView;
@@ -28,7 +27,7 @@ RenderSystem::RenderSystem(Device* device, VkRenderPass render_pass, const VkSam
 
     createDefaultTriangle();
 }
-RenderSystem::~RenderSystem() { vkDestroyPipelineLayout(hlcDevice->device(), pipelineLayout, nullptr); }
+RenderSystem::~RenderSystem() { vkDestroyPipelineLayout(hlcDevice->device(), vkPipelineLayout, nullptr); }
 
 //void RenderSystem::initSamplers() {
 //	defaultTextureSampler = make_unique<HlcTextureSampler>(hlcDevice, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
@@ -93,39 +92,48 @@ void RenderSystem::createPipelineLayout() {
     pipelineLayoutInfo.pSetLayouts = nullptr; //descriptorSetLayouts.data();
     pipelineLayoutInfo.pushConstantRangeCount = push_info::RANGE_COUNT;
     pipelineLayoutInfo.pPushConstantRanges = &push_info::RANGE_INFO;
-    if(vkCreatePipelineLayout(hlcDevice->device(), &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-        throw std::runtime_error(
-            "failed to create pipeline layout");
+
+    const VkResult createResult = vkCreatePipelineLayout(hlcDevice->device(), &pipelineLayoutInfo, nullptr, &vkPipelineLayout);
+
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create pipeline layout")
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
-    CTH_ERR(pipelineLayout != nullptr, "pipeline layout missing") throw details->exception();
+    CTH_ERR(vkPipelineLayout == VK_NULL_HANDLE, "pipeline layout missing")
+        throw details->exception();
 
     PipelineConfigInfo pipelineConfig{};
     Pipeline::defaultPipelineConfigInfo(pipelineConfig);
     pipelineConfig.renderPass = render_pass;
     pipelineConfig.multisampleInfo.rasterizationSamples = msaa_samples;
-    pipelineConfig.pipelineLayout = pipelineLayout;
+    pipelineConfig.pipelineLayout = vkPipelineLayout;
     hlcPipeline = std::make_unique<Pipeline>(hlcDevice, pipelineConfig);
 }
 
 
 array<Vertex, 3> defaultTriangle{
-    Vertex{{-1.f, -0.5f, 0.f}, {}, {}, {}},
-    Vertex{{0, 1.f, 0.f}, {}, {}, {}},
-    Vertex{{1.f, -0.5f, 0.f}, {}, {}, {}},
+    Vertex{{-1.f, -0.5f, 0.2f}, {}, {}, {}},
+    Vertex{{0, 1.f, 0.2f}, {}, {}, {}},
+    Vertex{{1.f, -0.5f, 0.2f}, {}, {}, {}},
 };
 
 void RenderSystem::createDefaultTriangle() {
-    defaultTriangleBuffer = make_unique<Buffer<Vertex>>(hlcDevice, 3, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    defaultTriangleBuffer = make_unique<Buffer<Vertex>>(hlcDevice, 3,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     defaultTriangleBuffer->stage({defaultTriangle.data(), 3});
 }
 
 void RenderSystem::render(FrameInfo& frame_info) const {
     hlcPipeline->bind(frame_info.commandBuffer);
+    const vector<VkBuffer> vertexBuffers{defaultTriangleBuffer->get()};
+    const vector<VkDeviceSize> offsets(vertexBuffers.size());
+
+    vkCmdBindVertexBuffers(frame_info.commandBuffer, 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data());
 
     //TEMP remove this
-    vkCmdDraw(frame_info.commandBuffer, defaultTriangleBuffer->size(), 1, 0, 0);
+    vkCmdDraw(frame_info.commandBuffer, static_cast<uint32_t>(defaultTriangleBuffer->size()), 1, 0, 0);
 
 
     //const UniformBuffer uniformBuffer{frame_info.camera.getProjection() * frame_info.camera.getView()};
@@ -136,7 +144,7 @@ void RenderSystem::render(FrameInfo& frame_info) const {
     /*vkCmdBindDescriptorSets(frame_info.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
         &descriptorSets[frame_info.frameIndex], 0, nullptr);*/
 
-    frame_info.pipelineLayout = pipelineLayout;
+    frame_info.pipelineLayout = vkPipelineLayout;
 
 
     /*uint32_t index = 0;

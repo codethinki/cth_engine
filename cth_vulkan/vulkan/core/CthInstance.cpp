@@ -9,24 +9,6 @@
 
 namespace cth {
 
-Instance::Instance(string app_name, const vector<string>& required_extensions) : name(std::move(app_name)), requiredExt{required_extensions},
-    availableExt{getAvailableInstanceExtensions()} {
-
-    if constexpr(ENABLE_VALIDATION_LAYERS) {
-        availableLayers = getAvailableValidationLayers();
-        checkValidationLayerSupport();
-        debugMessenger = make_unique<DebugMessenger>();
-
-        requiredExt.insert(requiredExt.begin(), VALIDATION_LAYER_EXTENSIONS.begin(), VALIDATION_LAYER_EXTENSIONS.end());
-    }
-    checkInstanceExtensionSupport();
-
-    create();
-
-    debugMessenger->init(vkInstance); //IMPORTANT
-}
-Instance::~Instance() { vkDestroyInstance(vkInstance, nullptr); }
-
 VkApplicationInfo Instance::appInfo() const {
     VkApplicationInfo appInfo = {};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -81,7 +63,9 @@ void Instance::checkValidationLayerSupport() {
     if constexpr(ENABLE_VALIDATION_LAYERS) {
         vector<string> missingLayers{};
 
-        ranges::for_each(VALIDATION_LAYERS, [&](const string_view layer) { if(!ranges::contains(availableLayers, layer)) missingLayers.emplace_back(layer); });
+        ranges::for_each(VALIDATION_LAYERS, [&](const string_view layer) {
+            if(!ranges::contains(availableLayers, layer)) missingLayers.emplace_back(layer);
+        });
         CTH_STABLE_ERR(!missingLayers.empty(), "validation layers missing") {
             ranges::for_each(missingLayers, [&details](const string_view layer) { details->add(layer); });
 
@@ -113,6 +97,29 @@ vector<string> Instance::getAvailableInstanceExtensions() {
 
 
     return availableExtensionsStr;
+}
+
+Instance::Instance(string app_name, const vector<string>& required_extensions) : name(std::move(app_name)), requiredExt{required_extensions},
+    availableExt{getAvailableInstanceExtensions()} {
+
+    if constexpr(ENABLE_VALIDATION_LAYERS) {
+        availableLayers = getAvailableValidationLayers();
+        checkValidationLayerSupport();
+        debugMessenger = make_unique<DebugMessenger>();
+
+        requiredExt.insert(requiredExt.begin(), VALIDATION_LAYER_EXTENSIONS.begin(), VALIDATION_LAYER_EXTENSIONS.end());
+    }
+    checkInstanceExtensionSupport();
+
+    create();
+
+    if constexpr(ENABLE_VALIDATION_LAYERS) debugMessenger->init(this); //IMPORTANT
+}
+Instance::~Instance() {
+    if constexpr(ENABLE_VALIDATION_LAYERS) debugMessenger = nullptr;
+    vkDestroyInstance(vkInstance, nullptr);
+
+    cth::log::msg<except::LOG>("destroyed instance");
 }
 
 } // namespace cth

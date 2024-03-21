@@ -42,15 +42,15 @@ private:
     void updateFpsDisplay(size_t frame_index, float frame_time) const;
 
 
-    unique_ptr<Window> hlcWindow = make_unique<Window>(WINDOW_NAME.data(), WIDTH, HEIGHT);
     unique_ptr<Instance> instance = make_unique<Instance>("app", getRequiredInstanceExtensions());
-    unique_ptr<Device> hlcDevice = make_unique<Device>(hlcWindow.get(), instance.get());
+    unique_ptr<Window> window = make_unique<Window>(instance.get(), WINDOW_NAME.data(), WIDTH, HEIGHT);
+    unique_ptr<Device> device = make_unique<Device>(window.get(), instance.get());
 
     InputController inputController{};
     Camera camera{};
-    unique_ptr<Renderer> hlcRenderer = make_unique<Renderer>(hlcDevice.get(), &camera, hlcWindow.get());
+    unique_ptr<Renderer> hlcRenderer = make_unique<Renderer>(device.get(), &camera, window.get());
 
-    RenderSystem renderSystem{hlcDevice.get(), hlcRenderer->swapchainRenderPass(), hlcRenderer->msaaSampleCount()};
+    RenderSystem renderSystem{device.get(), hlcRenderer->swapchainRenderPass(), hlcRenderer->msaaSampleCount()};
 
 
     size_t frameIndex = 0;

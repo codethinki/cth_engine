@@ -1,4 +1,6 @@
 #pragma once
+#include "../utils/cth_render_pass_utils.hpp"
+
 #include <vulkan/vulkan.h>
 
 
@@ -6,8 +8,10 @@
 #include <vector>
 
 
+
 namespace cth {
-    using namespace std;
+class Window;
+using namespace std;
 
 class Device;
 
@@ -21,7 +25,8 @@ public:
 
     [[nodiscard]] VkFormat findDepthFormat() const;
 
-    [[nodiscard]] VkResult acquireNextImage(uint32_t image_index) const;
+    [[nodiscard]] VkResult acquireNextImage(uint32_t* image_index) const;
+
     /**
      * \throws cth::except::vk_result_exception result of vkQueueSubmit()
      */
@@ -46,7 +51,7 @@ private:
     [[nodiscard]] VkAttachmentDescription createColorAttachmentDescription() const;
     [[nodiscard]] VkAttachmentDescription createDepthAttachment() const;
     [[nodiscard]] VkAttachmentDescription createColorAttachmentResolve() const;
-    [[nodiscard]] VkSubpassDescription createSubpassDescription() const;
+    [[nodiscard]] SubpassDescription createSubpassDescription() const;
     [[nodiscard]] VkSubpassDependency createSubpassDependency() const;
     /**
      * \throws cth::except::vk_result_exception result of vkCreateRenderPass()
@@ -71,8 +76,9 @@ private:
     void init();
 
     //submitCommandBuffer helpers
-    [[nodiscard]] VkSubmitInfo createSubmitInfo(VkCommandBuffer buffer) const;
-    [[nodiscard]] VkPresentInfoKHR createPresentInfo(uint32_t image_index) const;
+    [[nodiscard]] VkResult submit(VkCommandBuffer command_buffer) const;
+    [[nodiscard]] VkResult present(uint32_t image_index) const;
+
 
 
     VkFormat swapchainImageFormat;
@@ -95,6 +101,7 @@ private:
 
 
     Device* device;
+    Window* window;
     VkExtent2D windowExtent;
 
     VkSwapchainKHR vkSwapchain;
@@ -107,11 +114,11 @@ private:
     size_t currentFrame = 0;
 
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-    static constexpr VkSampleCountFlagBits MAX_MSAA_COUNT = VK_SAMPLE_COUNT_8_BIT;
+    static constexpr VkSampleCountFlagBits MAX_MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
 
 public:
-    Swapchain(Device* device, VkExtent2D window_extent);
-    Swapchain(Device* device, VkExtent2D window_extent, shared_ptr<Swapchain> previous);
+    Swapchain(Device* device, Window* window, VkExtent2D window_extent);
+    Swapchain(Device* device, Window* window, VkExtent2D window_extent, shared_ptr<Swapchain> previous);
     ~Swapchain();
 
     [[nodiscard]] float extentAspectRatio() const { return static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height); }

@@ -8,44 +8,42 @@
 namespace cth {
 
 DebugMessenger::DebugMessenger(const function<callback_t>& custom_callback) { setCallback(custom_callback); }
-DebugMessenger::DebugMessenger(VkInstance instance, const function<callback_t>& callback) {
-    setCallback(callback);
+DebugMessenger::DebugMessenger(Instance* instance, const function<callback_t>& custom_callback) {
+    setCallback(custom_callback);
     init(instance);
 }
-DebugMessenger::~DebugMessenger() { if(active) destroy<false>(vkInstance); }
 
-void DebugMessenger::init(VkInstance instance) {
-    this->vkInstance = instance;
+DebugMessenger::~DebugMessenger() {
+    destroy();
+}
 
-    CTH_STABLE_ERR(active, "double initialization is not allowed") throw details->exception();
-    active = true;
+void DebugMessenger::init(Instance* instance) {
+    CTH_ERR(this->vkMessenger != VK_NULL_HANDLE, "double initialization is not allowed") throw details->exception();
+    this->instance = instance;
+
 
     const VkDebugUtilsMessengerCreateInfoEXT info = createInfo();
 
     const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+        vkGetInstanceProcAddr(instance->get(), "vkCreateDebugUtilsMessengerEXT"));
 
     CTH_STABLE_ERR(func == nullptr, "vkGetInstanceProcAddr returned nullptr") throw details->exception();
 
-    const VkResult createResult = func(instance, &info, nullptr, &vkMessenger);
+    const VkResult createResult = func(instance->get(), &info, nullptr, &vkMessenger);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to set up debug messenger")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
-template<bool Throw = true>
-void DebugMessenger::destroy(VkInstance instance) const {
-    if constexpr(Throw)
-        CTH_STABLE_ERR(!active, "cannot destroy uninitialized messenger") throw details->exception();
-    if(!active) return;
+void DebugMessenger::destroy() {
+    CTH_WARN(vkMessenger == VK_NULL_HANDLE, "debug messenger already inactive");
+    if(vkMessenger == VK_NULL_HANDLE) return;
 
     const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+        vkGetInstanceProcAddr(instance->get(), "vkDestroyDebugUtilsMessengerEXT"));
 
-    if(func != nullptr) func(instance, vkMessenger, nullptr);
-
-    else if constexpr(Throw)
-        CTH_STABLE_ERR(true, "vkGetInstanceProcAddr result was nullptr") throw details->exception();
-
+    if(func != nullptr) func(instance->get(), vkMessenger, nullptr);
+    vkMessenger = VK_NULL_HANDLE;
+    instance = nullptr;
 }
 
 
@@ -92,7 +90,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(const VkDebugUtilsMessageSev
     if(message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) type = "PERFORMANCE";
 
 
-    cth::log::msg(severity, "{0} VALIDATION LAYER {1}:\n CODE: {2}\n{3}", message_type, except::to_string(severity),
+    cth::log::msg(severity, "VALIDATION LAYER: {0} {1}:\n CODE: {2}\n{3}", type, except::to_string(severity),
         callback_data->messageIdNumber, callback_data->pMessage);
 
 

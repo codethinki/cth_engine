@@ -27,8 +27,9 @@ int main() { //TEMP edit this back to be invisible
     App::init();
 
 
-    App app{};
-    app.run();
+    unique_ptr<App> app = make_unique<App>();
+    app->run();
+    app = nullptr;
     //try {
 
    /* }

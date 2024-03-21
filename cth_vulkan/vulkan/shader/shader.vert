@@ -13,6 +13,6 @@ void main(){
 	//vec4 positionW = push.modelMatrix * vec4(position, 1);
 	//gl_Position =  ubo.viewMatrix * positionW;
 	//outColor = push.color;
-
+	gl_Position = vec4(position, 1);
 	outColor = vec4(1, 1, 1, 1);
 }

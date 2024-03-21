@@ -22,6 +22,8 @@
 
 ## 2. solve all compiler errors
 
-## 3. implement the new memory system
+## 3. modernize further
+	- new memory system and model management
+	- maybe render pass wrapper?
 
 ## 4. implement dear imgui support

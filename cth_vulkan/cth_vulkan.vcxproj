@@ -147,6 +147,7 @@
     <ClInclude Include="vulkan\user\HlcInputController.hpp" />
     <ClInclude Include="vulkan\user\HlcUser.hpp" />
     <ClInclude Include="vulkan\utils\CthDebugMessenger.hpp" />
+    <ClInclude Include="vulkan\utils\cth_render_pass_utils.hpp" />
     <ClInclude Include="vulkan\utils\cth_vk_specific_utils.hpp" />
     <ClInclude Include="vulkan\utils\HlcFrameInfo.hpp" />
     <ClInclude Include="vulkan\utils\HlcPushConstant.hpp" />
@@ -154,12 +155,12 @@
     <ClInclude Include="vulkan\utils\HlcShader.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\shaders\shader.frag" />
-    <None Include="res\shaders\shader.vert" />
     <None Include="roadmap.md" />
     <ClInclude Include="vulkan\memory\buffer\CthBuffer.inl">
       <FileType>Document</FileType>
     </ClInclude>
+    <None Include="vulkan\shader\shader.frag" />
+    <None Include="vulkan\shader\shader.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

@@ -18,7 +18,7 @@ void App::run() {
     frameIndex = 0;
     auto frameStart = chrono::high_resolution_clock::now();
 
-    while(!hlcWindow->shouldClose()) {
+    while(!window->shouldClose()) {
         const auto commandBuffer = hlcRenderer->beginFrame();
         if(commandBuffer == nullptr) continue;
 
@@ -50,7 +50,7 @@ void App::run() {
 
         frameIndex++;
     }
-    vkDeviceWaitIdle(hlcDevice->device());
+    vkDeviceWaitIdle(device->device());
 
     //OldModel::clearModels();
 }
@@ -125,7 +125,7 @@ void App::updateFpsDisplay(const size_t frame_index, const float frame_time) con
     frameTimeSum = 0;
     oldFrameIndex = frame_index;
 
-    glfwSetWindowTitle(hlcWindow->window(), x.c_str());
+    glfwSetWindowTitle(window->window(), x.c_str());
 }
 vector<string> App::getRequiredInstanceExtensions() {
     auto extensions = Window::getGLFWInstanceExtensions();
@@ -141,17 +141,25 @@ App::App() {
     allocateObjectModels();
     setRenderData();
 };
-App::~App() = default;
+App::~App() {
+    log::msg<except::INFO>("destroying app");
+}
 
 void App::init() {
-    initialized = true;
+    cth::log::msg<except::INFO>("initializing...");
 
     Window::init();
+
+    log::msg<except::INFO>("initialized app");
+    initialized = true;
 }
 void App::terminate() {
-    initialized = false;
+    cth::log::msg<except::INFO>("terminating...");
 
     Window::terminate();
+
+    log::msg<except::INFO>("terminated app");
+    initialized = false;
 }
 
 

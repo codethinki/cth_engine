@@ -13,22 +13,21 @@
 namespace cth {
 void Shader::loadSpv() {
     CTH_STABLE_ERR(!filesystem::exists(spvPath), "file does not exist") {
-        details->add("path: {0}", spvPath);
+        details->add("file: {0}", spvPath);
         throw details->exception();
     }
 
 
     std::ifstream file{spvPath, ios::binary};
     CTH_STABLE_ERR(!file.is_open(), "failed to open file") {
-        details->add("path: ", spvPath);
+        details->add("file: {0}", spvPath);
         throw details->exception();
     }
 
     const size_t fileSize = filesystem::file_size(spvPath);
-    CTH_INFORM(fileSize > 0, "loading shader") {
-        details->add("path: {0}", spvPath);
+    CTH_LOG(fileSize > 0, "loading shader") {
+        details->add("file: {0}", filesystem::path(spvPath).filename().string());
         details->add("file size: {0} bytes", fileSize);
-        throw details->exception();
     }
 
     bytecode.resize(fileSize);
@@ -36,7 +35,7 @@ void Shader::loadSpv() {
     file.close();
 
     CTH_STABLE_ERR(bytecode.empty(), "failed to load bytecode") {
-        details->add("path: {0}", spvPath);
+        details->add("file: {0}", spvPath);
         throw details->exception();
     }
 }
@@ -52,10 +51,8 @@ void Shader::create() {
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create shader module")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
-    CTH_INFORM(true, "created shader module: ") {
-        details->add("path: {0}", filesystem::path(spvPath).filename().string());
-        details->add("size: {0} bytes", bytecode.size());
-    }
+    CTH_LOG(true, "created shader module: ") 
+        details->add("file: {0}", filesystem::path(spvPath).filename().string());
 }
 void Shader::init() {
     loadSpv();
@@ -65,7 +62,7 @@ void Shader::init() {
 
 
 #ifndef _FINAL
-vector<string> Shader::compile(const string_view flags) const {
+void Shader::compile(const string_view flags) const {
     CTH_ERR(!filesystem::exists(compilerPath), "invalid compiler path") {
         details->add("path: {0}", compilerPath);
         throw details->exception();
@@ -78,30 +75,33 @@ vector<string> Shader::compile(const string_view flags) const {
     constexpr string_view logFile = "shader_compile_log.txt";
     const string glslFilename = filesystem::path(glslPath).filename().string();
 
-    if(filesystem::exists(logFile)) filesystem::remove(logFile);
-
     const string command = std::format(R"("{0}" {1} -c "{2}" -o "{3}">NUL 2>"{4}")",
         compilerPath, flags, glslPath, spvPath, logFile.data());
     //TEMP command not working fix this
     const int result = cth::win::cmd::hidden(command);
 
-    CTH_STABLE_ERR(result != 0, "compile command failed") {
-        details->add("command: \"{0}\"", command);
-        throw details->exception();
-    }
-
     vector<string> debugInfo = cth::win::file::loadTxt(logFile);
 
     if(debugInfo.empty()) {
-        CTH_INFORM(debugInfo.empty(), std::format("compiled {0} shader", glslFilename));
+        CTH_STABLE_ERR(result != 0, "compile command failed") {
+            details->add("command: \"{0}\"", command);
+            throw details->exception();
+        }
+        CTH_LOG(debugInfo.empty(), "compiled shader")
+            details->add("file: {0}", glslFilename);
 
-        return debugInfo;
+        if(filesystem::exists(logFile)) filesystem::remove(logFile);
+        return;
     }
 
     debugInfo.resize(debugInfo.size() - 1);
     for(auto& line : debugInfo) line = std::format("line{0}", line.substr(line.find(glslFilename)));
 
-    return debugInfo;
+    CTH_STABLE_ABORT(true, "shader compilation failed") {
+        details->add("{} errors:", debugInfo.size());
+        for(auto& line : debugInfo)
+            details->add("\t{}", line);
+    }
 }
 
 void Shader::checkExtension() const {
@@ -125,12 +125,7 @@ Shader::Shader(Device* device, const Shader_Type type, const string_view spv_pat
 
     checkExtension();
 
-    const auto debugInfo = compile();
-    CTH_STABLE_ASSERT(!debugInfo.empty(), "shader compilation failed") {
-        details->add("{} errors:", debugInfo.size());
-        for(auto& line : debugInfo)
-            details->add("\t{}", line);
-    }
+    compile();
 
     init();
 }

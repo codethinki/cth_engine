@@ -22,11 +22,8 @@ private:
     void init();
 #ifndef _FINAL
     void checkExtension() const;
-    /**
-    * \brief
-    * \return debug info
-    */
-    [[nodiscard]] vector<string> compile(string_view = "-O") const;
+
+    void compile(string_view = "-O") const;
 #endif
 
     Device* device;

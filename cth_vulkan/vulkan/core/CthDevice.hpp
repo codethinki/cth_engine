@@ -45,9 +45,6 @@ public:
         return features;
     }();
 
-    explicit Device(Window* window, Instance* instance);
-    ~Device();
-
     [[nodiscard]] SwapchainSupportDetails getSwapchainSupport() const { return querySwapchainSupport(physicalDevice); }
     /**
      * \throws cth::except::default_exception reason: no suitable memory type
@@ -96,9 +93,6 @@ public:
     unique_ptr<Shader> fragShader; //TEMP move this
 
 private:
-    //createSurface
-    void createSurface();
-
     //pickPhysicalDevice
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const;
     SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device) const;
@@ -131,12 +125,13 @@ private:
     VkCommandPool commandPool = VK_NULL_HANDLE;
 
     VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkSurfaceKHR windowSurface = VK_NULL_HANDLE;
     VkQueue graphicsQueue = VK_NULL_HANDLE;
     VkQueue presentQueue = VK_NULL_HANDLE;
 
 public:
-    // Not copyable or movable
+    explicit Device(Window* window, Instance* instance);
+    ~Device();
+
     Device(const Device&) = delete;
     Device& operator=(const Device&) = delete;
     Device(Device&&) = delete;
@@ -144,7 +139,6 @@ public:
 
     [[nodiscard]] VkCommandPool getCommandPool() const { return commandPool; }
     [[nodiscard]] VkDevice device() const { return logicalDevice; } //TODO rename this to get()
-    [[nodiscard]] VkSurfaceKHR surface() const { return windowSurface; }
     [[nodiscard]] VkQueue getGraphicsQueue() const { return graphicsQueue; }
     [[nodiscard]] VkQueue getPresentQueue() const { return presentQueue; }
 };
