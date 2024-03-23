@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{f624c322-d2ae-4460-a313-859164bf6fd3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="res">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="doc">
+      <UniqueIdentifier>{6d6a73d0-0444-43dc-a43a-9db65eb04e36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\dec">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="src\def">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="res\bin">
+      <UniqueIdentifier>{dcd41cb9-fe98-4ef4-9cf4-079767d4eed3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="res\bin\shader">
+      <UniqueIdentifier>{2b633cd3-560e-4a0d-a09d-37b2d80d4a28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\dec\debug">
+      <UniqueIdentifier>{c93afe88-3458-4e0b-96df-dab4acca7278}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\dec\interface">
+      <UniqueIdentifier>{d027792b-dc69-4449-b1e2-f12f047ec698}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\old">
+      <UniqueIdentifier>{c3b53f6b-a737-48d9-86ae-480a73e9050f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\dec\vulkan">
+      <UniqueIdentifier>{d52b86a5-53c0-4224-a55a-9e3b0bf60576}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\dec\interface\graphics">
+      <UniqueIdentifier>{1e1298ae-0f1d-4edc-8d2d-6d663dd9e0c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\dec\interface\objects">
+      <UniqueIdentifier>{0fce8dda-e35d-49cc-b90b-6b0aceae6f02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\dec\interface\user">
+      <UniqueIdentifier>{893dc65d-9e81-4975-8673-18b153a5be4a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src\dec</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="doc\roadmap.md">
+      <Filter>doc</Filter>
+    </None>
+    <None Include="doc\scene.md">
+      <Filter>doc</Filter>
+    </None>
+    <None Include="doc\tinygltf.md">
+      <Filter>doc</Filter>
+    </None>
+    <None Include="res\bin\shader\shader.frag.spv">
+      <Filter>res\bin\shader</Filter>
+    </None>
+    <None Include="res\bin\shader\shader.vert.spv">
+      <Filter>res\bin\shader</Filter>
+    </None>
+  </ItemGroup>
+</Project>
