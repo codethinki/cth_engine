@@ -18,9 +18,6 @@
     <Filter Include="Source Files\vulkan\memory">
       <UniqueIdentifier>{59708fb6-14be-4632-9454-eb597dc655be}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\vulkan\models">
-      <UniqueIdentifier>{08099e61-b3ae-464c-91f9-4dec6bc6cbe7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\vulkan\objects">
       <UniqueIdentifier>{7e4340a7-37ca-48bc-b01c-d0de56c23b70}</UniqueIdentifier>
     </Filter>
@@ -45,9 +42,6 @@
     </Filter>
     <Filter Include="Header Files\vulkan\user">
       <UniqueIdentifier>{bcf6e167-d954-45da-bce6-5805c447ef4d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\vulkan\models">
-      <UniqueIdentifier>{9f17b8f2-c005-4e2b-9b04-50611fea7244}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\vulkan\core">
       <UniqueIdentifier>{96f389dc-1646-4f4e-a796-6a810e772107}</UniqueIdentifier>
@@ -79,6 +73,15 @@
     <Filter Include="Header Files\vulkan\memory\buffer">
       <UniqueIdentifier>{e10c0f9c-d0dc-4f2b-a094-6e3d4f15faca}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\vulkan\model">
+      <UniqueIdentifier>{9f17b8f2-c005-4e2b-9b04-50611fea7244}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\vulkan\model\pools">
+      <UniqueIdentifier>{a5cfb864-8107-4849-b92b-9ff94fdf33f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\vulkan\model">
+      <UniqueIdentifier>{08099e61-b3ae-464c-91f9-4dec6bc6cbe7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HlcApp.cpp">
@@ -107,21 +110,6 @@
     </ClCompile>
     <ClCompile Include="vulkan\memory\HlcMemoryManager.cpp">
       <Filter>Source Files\vulkan\memory</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan\models\HlcModel.cpp">
-      <Filter>Source Files\vulkan\models</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan\models\HlcImage.cpp">
-      <Filter>Source Files\vulkan\models</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan\models\HlcModelManager.cpp">
-      <Filter>Source Files\vulkan\models</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan\models\HlcTextureSampler.cpp">
-      <Filter>Source Files\vulkan\models</Filter>
-    </ClCompile>
-    <ClCompile Include="vulkan\models\HlcVertex.cpp">
-      <Filter>Source Files\vulkan\models</Filter>
     </ClCompile>
     <ClCompile Include="vulkan\objects\HlcStandardObject.cpp">
       <Filter>Source Files\vulkan\objects</Filter>
@@ -177,6 +165,21 @@
     <ClCompile Include="vulkan\memory\buffer\CthDefaultBuffer.cpp">
       <Filter>Source Files\vulkan\memory\buffer</Filter>
     </ClCompile>
+    <ClCompile Include="vulkan\model\HlcImage.cpp">
+      <Filter>Source Files\vulkan\model</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\model\HlcModel.cpp">
+      <Filter>Source Files\vulkan\model</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\model\HlcModelManager.cpp">
+      <Filter>Source Files\vulkan\model</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\model\HlcTextureSampler.cpp">
+      <Filter>Source Files\vulkan\model</Filter>
+    </ClCompile>
+    <ClCompile Include="vulkan\model\HlcVertex.cpp">
+      <Filter>Source Files\vulkan\model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HlcApp.hpp">
@@ -202,21 +205,6 @@
     </ClInclude>
     <ClInclude Include="vulkan\memory\HlcMemoryManager.hpp">
       <Filter>Header Files\vulkan\memory</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\models\HlcImage.hpp">
-      <Filter>Header Files\vulkan\models</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\models\HlcModel.hpp">
-      <Filter>Header Files\vulkan\models</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\models\HlcModelManager.hpp">
-      <Filter>Header Files\vulkan\models</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\models\HlcTextureSampler.hpp">
-      <Filter>Header Files\vulkan\models</Filter>
-    </ClInclude>
-    <ClInclude Include="vulkan\models\HlcVertex.hpp">
-      <Filter>Header Files\vulkan\models</Filter>
     </ClInclude>
     <ClInclude Include="vulkan\objects\HlcRenderObject.hpp">
       <Filter>Header Files\vulkan\objects</Filter>
@@ -302,6 +290,21 @@
     <ClInclude Include="vulkan\utils\cth_render_pass_utils.hpp">
       <Filter>Header Files\vulkan\utils</Filter>
     </ClInclude>
+    <ClInclude Include="vulkan\model\HlcVertex.hpp">
+      <Filter>Header Files\vulkan\model</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\model\HlcTextureSampler.hpp">
+      <Filter>Header Files\vulkan\model</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\model\HlcModelManager.hpp">
+      <Filter>Header Files\vulkan\model</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\model\HlcModel.hpp">
+      <Filter>Header Files\vulkan\model</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkan\model\HlcImage.hpp">
+      <Filter>Header Files\vulkan\model</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="roadmap.md">
@@ -312,6 +315,12 @@
     </None>
     <None Include="vulkan\shader\shader.vert">
       <Filter>Source Files\vulkan\shader</Filter>
+    </None>
+    <None Include="scene.md">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="assimp.md">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
 </Project>

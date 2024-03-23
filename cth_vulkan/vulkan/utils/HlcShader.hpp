@@ -39,8 +39,14 @@ private:
 
 public:
 #ifndef _FINAL
+    /**
+    *\throws cth::except::vk_result_exception result of vkCreateShaderModule()
+    */
     explicit Shader(Device* device, Shader_Type type, string_view spv_path, string_view glsl_path, string_view compiler_path);
 #endif
+    /**
+     *\throws cth::except::vk_result_exception result of vkCreateShaderModule()
+     */
     explicit Shader(Device* device, Shader_Type type, string_view spv_path);
     ~Shader();
 

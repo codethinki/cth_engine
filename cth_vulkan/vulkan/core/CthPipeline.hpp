@@ -45,12 +45,6 @@ public:
     void bind(VkCommandBuffer command_buffer) const;
 
     static void defaultPipelineConfigInfo(PipelineConfigInfo& config_info);
-
-    /**
-     *\throws cth::except::vk_result_exception result of vkCreateShaderModule()
-     */
-    void createShaderModule(const vector<char>& code, VkShaderModule* shader_module) const;
-
 private:
     Device* device;
     VkPipeline vkGraphicsPipeline{};

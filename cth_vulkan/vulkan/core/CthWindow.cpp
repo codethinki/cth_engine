@@ -100,8 +100,8 @@ void Window::scrollCallback(double x_offset, double y_offset) {} //FEATURE scrol
 void Window::focusCallback(const int focused) {
     focus = static_cast<bool>(focused);
 
-    if(focus) cth::log::msg<except::LOG>("window focused");
-    else cth::log::msg<except::LOG>("window unfocused");
+    if(focus) cth::log::msg("window focused");
+    else cth::log::msg("window unfocused");
 
     //TODO review this later and probably move it into an app function
     /*double x = 0, y = 0;
@@ -119,7 +119,7 @@ void Window::framebufferResizeCallback(const int new_width, const int new_height
     width = new_width;
     height = new_height;
 
-    cth::log::msg<except::INFO>("framebuffer resized to {0}x{1}", new_width, new_height);
+    cth::log::msg("framebuffer resized to {0}x{1}", new_width, new_height);
 }
 
 

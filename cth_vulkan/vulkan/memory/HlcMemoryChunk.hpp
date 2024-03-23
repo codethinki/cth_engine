@@ -5,7 +5,7 @@
 
 #include <cth/cth_log.hpp>
 
-#include "../models/HlcVertex.hpp"
+#include "../model/HlcVertex.hpp"
 
 
 //namespace cth {

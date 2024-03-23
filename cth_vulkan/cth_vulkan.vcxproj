@@ -65,11 +65,11 @@
     <ClCompile Include="vulkan\memory\descriptors\CthDescriptorSetLayout.cpp" />
     <ClCompile Include="vulkan\memory\HlcMemoryChunk.cpp" />
     <ClCompile Include="vulkan\memory\HlcMemoryManager.cpp" />
-    <ClCompile Include="vulkan\models\HlcImage.cpp" />
-    <ClCompile Include="vulkan\models\HlcModel.cpp" />
-    <ClCompile Include="vulkan\models\HlcModelManager.cpp" />
-    <ClCompile Include="vulkan\models\HlcTextureSampler.cpp" />
-    <ClCompile Include="vulkan\models\HlcVertex.cpp" />
+    <ClCompile Include="vulkan\model\HlcImage.cpp" />
+    <ClCompile Include="vulkan\model\HlcModel.cpp" />
+    <ClCompile Include="vulkan\model\HlcModelManager.cpp" />
+    <ClCompile Include="vulkan\model\HlcTextureSampler.cpp" />
+    <ClCompile Include="vulkan\model\HlcVertex.cpp" />
     <ClCompile Include="vulkan\objects\HlcStandardObject.cpp" />
     <ClCompile Include="vulkan\user\HlcCamera.cpp" />
     <ClCompile Include="vulkan\user\HlcInputController.cpp" />
@@ -136,11 +136,11 @@
     <ClInclude Include="vulkan\memory\descriptors\CthDescriptorSetLayout.hpp" />
     <ClInclude Include="vulkan\memory\HlcMemoryChunk.hpp" />
     <ClInclude Include="vulkan\memory\HlcMemoryManager.hpp" />
-    <ClInclude Include="vulkan\models\HlcImage.hpp" />
-    <ClInclude Include="vulkan\models\HlcModel.hpp" />
-    <ClInclude Include="vulkan\models\HlcModelManager.hpp" />
-    <ClInclude Include="vulkan\models\HlcTextureSampler.hpp" />
-    <ClInclude Include="vulkan\models\HlcVertex.hpp" />
+    <ClInclude Include="vulkan\model\HlcImage.hpp" />
+    <ClInclude Include="vulkan\model\HlcModel.hpp" />
+    <ClInclude Include="vulkan\model\HlcModelManager.hpp" />
+    <ClInclude Include="vulkan\model\HlcTextureSampler.hpp" />
+    <ClInclude Include="vulkan\model\HlcVertex.hpp" />
     <ClInclude Include="vulkan\objects\HlcRenderObject.hpp" />
     <ClInclude Include="vulkan\objects\HlcStandardObject.hpp" />
     <ClInclude Include="vulkan\user\HlcCamera.hpp" />
@@ -155,6 +155,8 @@
     <ClInclude Include="vulkan\utils\HlcShader.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assimp.md" />
+    <None Include="scene.md" />
     <None Include="roadmap.md" />
     <ClInclude Include="vulkan\memory\buffer\CthBuffer.inl">
       <FileType>Document</FileType>

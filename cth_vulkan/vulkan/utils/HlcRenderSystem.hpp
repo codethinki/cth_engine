@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-#include "../models/HlcVertex.hpp"
+#include "../model/HlcVertex.hpp"
 
 
 namespace cth {

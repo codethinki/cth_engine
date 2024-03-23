@@ -1,7 +1,7 @@
 #include "CthPipeline.hpp"
 
 #include "CthDevice.hpp"
-#include "../models/HlcVertex.hpp"
+#include "../model/HlcVertex.hpp"
 #include "../utils/cth_vk_specific_utils.hpp"
 #include "../utils/HlcShader.hpp"
 
@@ -46,10 +46,10 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputInfo.vertexAttributeDescriptionCount = Vertex::ATTRIBUTES;
+    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(VERTEX_ATTRIBUTE_DESCRIPTIONS.size());
     vertexInputInfo.pVertexAttributeDescriptions = VERTEX_ATTRIBUTE_DESCRIPTIONS.data();
 
-    vertexInputInfo.vertexBindingDescriptionCount = Vertex::BINDINGS;
+    vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(VERTEX_BINDING_DESCRIPTIONS.size());
     vertexInputInfo.pVertexBindingDescriptions = VERTEX_BINDING_DESCRIPTIONS.data();
 
 

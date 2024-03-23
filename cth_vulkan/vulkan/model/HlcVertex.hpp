@@ -20,18 +20,14 @@ using namespace std;
 struct Vertex {
     glm::vec3 position{};
     glm::vec3 normal{};
-    glm::vec2 materialUV{};
     glm::vec2 uv{};
-
-    inline static constexpr int ATTRIBUTES = 4;
-    inline static constexpr int BINDINGS = 1;
 
     constexpr Vertex() = default;
     constexpr Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec2& material_uv, const glm::vec2& uv) : position(position),
-        normal(normal), materialUV(material_uv), uv(uv) {}
+        normal(normal), uv(uv) {}
 
     constexpr bool operator==(const Vertex& other) const {
-        return position == other.position && normal == other.normal && uv == other.uv && materialUV == other.materialUV;
+        return position == other.position && normal == other.normal && uv == other.uv;
     }
 
     constexpr Vertex(const Vertex& other) = default;
@@ -41,14 +37,13 @@ struct Vertex {
 
 
 };
-inline constexpr array<VkVertexInputBindingDescription, Vertex::BINDINGS> VERTEX_BINDING_DESCRIPTIONS{{
+inline constexpr array<VkVertexInputBindingDescription, 1> VERTEX_BINDING_DESCRIPTIONS{{
     {0, static_cast<uint32_t>(sizeof(Vertex)), VK_VERTEX_INPUT_RATE_VERTEX}
 }};
-inline constexpr array<VkVertexInputAttributeDescription, Vertex::ATTRIBUTES> VERTEX_ATTRIBUTE_DESCRIPTIONS{{
+inline constexpr array<VkVertexInputAttributeDescription, 3> VERTEX_ATTRIBUTE_DESCRIPTIONS{{
     {0, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<uint32_t>(offsetof(Vertex, position))},
     {1, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<uint32_t>(offsetof(Vertex, normal))},
     {2, 0, VK_FORMAT_R32G32_SFLOAT, static_cast<uint32_t>(offsetof(Vertex, uv))},
-    {3, 0, VK_FORMAT_R32G32_SFLOAT, static_cast<uint32_t>(offsetof(Vertex, materialUV))}
 }};
 
 
@@ -73,7 +68,7 @@ template<>
 struct std::hash<cth::Vertex> {
     size_t operator()(cth::Vertex const& vertex) const {
         size_t seed = 0;
-        cth::algorithm::hash::combine(seed, vertex.position, vertex.normal, vertex.materialUV, vertex.uv);
+        cth::algorithm::hash::combine(seed, vertex.position, vertex.normal, vertex.uv);
         return seed;
     }
 };
