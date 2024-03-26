@@ -10,9 +10,9 @@
 namespace cth {
 using namespace std;
 
-inline const string GLSL_COMPILER_PATH = R"(..\..\..\sdks\Vulkan\Bin\glslc.exe)";
-inline const string SHADER_GLSL_DIR = "vulkan\\shader\\";
-inline const string SHADER_BINARY_DIR = "res\\bin\\shader\\";
+inline const string GLSL_COMPILER_PATH = R"(..\..\..\sdk\Vulkan\Bin\glslc.exe)";
+inline const string SHADER_GLSL_DIR = R"(vulkan\shader\)";
+inline const string SHADER_BINARY_DIR = R"(res\bin\shader\)";
 
 class Instance;
 class Window;
@@ -44,12 +44,12 @@ public:
         return features;
     }();
 
-    [[nodiscard]] SwapchainSupportDetails getSwapchainSupport() const { return querySwapchainSupport(physicalDevice); }
+    [[nodiscard]] SwapchainSupportDetails getSwapchainSupport() const { return querySwapchainSupport(vkPhysicalDevice); }
     /**
      * \throws cth::except::default_exception reason: no suitable memory type
      */
     [[nodiscard]] uint32_t findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties) const;
-    [[nodiscard]] QueueFamilyIndices findPhysicalQueueFamilies() const { return findQueueFamilies(physicalDevice); }
+    [[nodiscard]] QueueFamilyIndices findPhysicalQueueFamilies() const { return findQueueFamilies(vkPhysicalDevice); }
     /**
      *\throws cth::except::data_exception data: features param
      */
@@ -93,9 +93,9 @@ public:
 
 private:
     //pickPhysicalDevice
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) const;
-    SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice device) const;
-    [[nodiscard]] vector<string> checkDeviceExtensionSupport(VkPhysicalDevice device) const;
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physical_device) const;
+    SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice physical_device) const;
+    [[nodiscard]] vector<string> checkDeviceExtensionSupport(VkPhysicalDevice physical_device) const;
     [[nodiscard]] vector<uint32_t> checkDeviceFeatureSupport(const VkPhysicalDevice& device) const;
     [[nodiscard]] bool physicalDeviceSuitable(VkPhysicalDevice physical_device) const;
     /**
@@ -120,12 +120,12 @@ private:
     Instance* instance;
 
 
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
     VkCommandPool commandPool = VK_NULL_HANDLE;
 
-    VkDevice logicalDevice = VK_NULL_HANDLE;
-    VkQueue graphicsQueue = VK_NULL_HANDLE;
-    VkQueue presentQueue = VK_NULL_HANDLE;
+    VkDevice vkDevice = VK_NULL_HANDLE;
+    VkQueue vkGraphicsQueue = VK_NULL_HANDLE;
+    VkQueue vkPresentQueue = VK_NULL_HANDLE;
 
 public:
     explicit Device(Window* window, Instance* instance);
@@ -137,8 +137,9 @@ public:
     Device& operator=(Device&&) = delete;
 
     [[nodiscard]] VkCommandPool getCommandPool() const { return commandPool; }
-    [[nodiscard]] VkDevice device() const { return logicalDevice; } //TODO rename this to get()
-    [[nodiscard]] VkQueue getGraphicsQueue() const { return graphicsQueue; }
-    [[nodiscard]] VkQueue getPresentQueue() const { return presentQueue; }
+    [[nodiscard]] VkDevice get() const { return vkDevice; } //TODO rename this to get()
+    [[nodiscard]] VkQueue graphicsQueue() const { return vkGraphicsQueue; }
+    [[nodiscard]] VkQueue presentQueue() const { return vkPresentQueue; }
+    [[nodiscard]] VkPhysicalDeviceLimits limits() const { return physicalProperties.limits; }
 };
 } // namespace cth

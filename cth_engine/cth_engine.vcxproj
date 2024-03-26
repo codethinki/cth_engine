@@ -44,6 +44,7 @@
     <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptorSet.hpp" />
     <ClInclude Include="src\vulkan\pipeline\CthPipeline.hpp" />
     <ClInclude Include="src\vulkan\pipeline\layout\CthDescriptorSetLayout.hpp" />
+    <ClInclude Include="src\vulkan\pipeline\layout\CthPipelineLayout.hpp" />
     <ClInclude Include="src\vulkan\pipeline\shader\CthShader.hpp" />
     <ClInclude Include="src\vulkan\pipeline\shader\HlcPushConstant.hpp" />
     <ClInclude Include="src\vulkan\render\model\HlcImage.hpp" />
@@ -78,6 +79,7 @@
     <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptorSet.cpp" />
     <ClCompile Include="src\vulkan\pipeline\CthPipeline.cpp" />
     <ClCompile Include="src\vulkan\pipeline\layout\CthDescriptorSetLayout.cpp" />
+    <ClCompile Include="src\vulkan\pipeline\layout\CthPipelineLayout.cpp" />
     <ClCompile Include="src\vulkan\pipeline\shader\CthShader.cpp" />
     <ClCompile Include="src\vulkan\render\model\HlcImage.cpp" />
     <ClCompile Include="src\vulkan\render\model\HlcModel.cpp" />

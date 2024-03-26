@@ -35,10 +35,10 @@ namespace cth {
 		samplerInfo.minLod = 0.f;
 		samplerInfo.maxLod = 0.f;
 
-		if(vkCreateSampler(device.device(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) throw runtime_error("HlcTextureSampler: failed to create texture sampler");
+		if(vkCreateSampler(device.get(), &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) throw runtime_error("HlcTextureSampler: failed to create texture sampler");
 }
 	HlcTextureSampler::~HlcTextureSampler() {
-		vkDestroySampler(device.device(), textureSampler, nullptr);	
+		vkDestroySampler(device.get(), textureSampler, nullptr);	
 	}
 
 }

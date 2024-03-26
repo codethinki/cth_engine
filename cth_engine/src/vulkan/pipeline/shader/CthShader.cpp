@@ -46,7 +46,7 @@ void Shader::create() {
     createInfo.codeSize = bytecode.size();
     createInfo.pCode = reinterpret_cast<uint32_t*>(bytecode.data());
 
-    const VkResult createResult = vkCreateShaderModule(device->device(), &createInfo, nullptr, &vkModule);
+    const VkResult createResult = vkCreateShaderModule(device->get(), &createInfo, nullptr, &vkModule);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create shader module")
         throw cth::except::vk_result_exception{createResult, details->exception()};
@@ -135,7 +135,7 @@ Shader::Shader(Device* device, const Shader_Type type, const string_view spv_pat
 Shader::Shader(Device* device, const Shader_Type type, const string_view spv_path) : device(device), type(type), spvPath(spv_path) {
     init();
 }
-Shader::~Shader() { vkDestroyShaderModule(device->device(), vkModule, nullptr); }
+Shader::~Shader() { vkDestroyShaderModule(device->get(), vkModule, nullptr); }
 
 }
 

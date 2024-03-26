@@ -16,7 +16,7 @@ namespace cth {
             throw details->exception();
 
         void* mappedPtr = nullptr;
-        const VkResult mapResult = vkMapMemory(device->device(), vkMemory, offset, size, 0, &mappedPtr);
+        const VkResult mapResult = vkMapMemory(device->get(), vkMemory, offset, size, 0, &mappedPtr);
         CTH_STABLE_ERR(mapResult != VK_SUCCESS, "Vk: memory mapping failed")
             throw except::vk_result_exception{mapResult, details->exception()};
 
@@ -27,7 +27,7 @@ namespace cth {
         CTH_ERR(!vkBuffer || !vkMemory, "buffer not created yet") throw details->exception();
 
         void* mappedPtr = nullptr;
-        const VkResult mapResult = vkMapMemory(device->device(), vkMemory, 0, VK_WHOLE_SIZE, 0, &mappedPtr);
+        const VkResult mapResult = vkMapMemory(device->get(), vkMemory, 0, VK_WHOLE_SIZE, 0, &mappedPtr);
         CTH_STABLE_ERR(mapResult != VK_SUCCESS, "Vk: memory mapping failed")
             throw except::vk_result_exception{mapResult, details->exception()};
 
@@ -38,7 +38,7 @@ namespace cth {
     void DefaultBuffer::unmap() {
         if(!mapped.data()) return;
 
-        vkUnmapMemory(device->device(), vkMemory);
+        vkUnmapMemory(device->get(), vkMemory);
         mapped = span<char>();
     }
 
@@ -69,7 +69,7 @@ namespace cth {
         mappedRange.memory = vkMemory;
         mappedRange.offset = offset;
         mappedRange.size = size;
-        return vkFlushMappedMemoryRanges(device->device(), 1, &mappedRange);
+        return vkFlushMappedMemoryRanges(device->get(), 1, &mappedRange);
     }
 
     Descriptor::descriptor_info_t DefaultBuffer::descriptorInfo(const VkDeviceSize size, const VkDeviceSize offset) const {
@@ -82,7 +82,7 @@ namespace cth {
         mappedRange.memory = vkMemory;
         mappedRange.offset = offset;
         mappedRange.size = size;
-        return vkInvalidateMappedMemoryRanges(device->device(), 1, &mappedRange);
+        return vkInvalidateMappedMemoryRanges(device->get(), 1, &mappedRange);
     }
     void DefaultBuffer::copyFromBuffer(const DefaultBuffer* src, const VkDeviceSize size, const VkDeviceSize src_offset,
         const VkDeviceSize dst_offset) const {
@@ -122,8 +122,8 @@ namespace cth {
 
     DefaultBuffer::~DefaultBuffer() {
         unmap();
-        vkDestroyBuffer(device->device(), vkBuffer, nullptr);
-        vkFreeMemory(device->device(), vkMemory, nullptr);
+        vkDestroyBuffer(device->get(), vkBuffer, nullptr);
+        vkFreeMemory(device->get(), vkMemory, nullptr);
     }
 
 

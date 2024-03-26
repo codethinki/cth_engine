@@ -25,7 +25,7 @@ VkExtent2D Renderer::minimizedState() const {
 void Renderer::recreateSwapchain() {
     VkExtent2D windowExtent = minimizedState();
 
-    vkDeviceWaitIdle(device->device());
+    vkDeviceWaitIdle(device->get());
 
     if(swapchain == nullptr) {
         swapchain = make_unique<Swapchain>(device, window, windowExtent);
@@ -57,13 +57,13 @@ void Renderer::createCommandBuffers() {
     allocInfo.commandPool = device->getCommandPool();
     allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-    const VkResult allocResult = vkAllocateCommandBuffers(device->device(), &allocInfo, commandBuffers.data());
+    const VkResult allocResult = vkAllocateCommandBuffers(device->get(), &allocInfo, commandBuffers.data());
 
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "Vk: failed to allocate command buffers")
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 };
 void Renderer::freeCommandBuffers() {
-    vkFreeCommandBuffers(device->device(), device->getCommandPool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+    vkFreeCommandBuffers(device->get(), device->getCommandPool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
     commandBuffers.clear();
 }
 

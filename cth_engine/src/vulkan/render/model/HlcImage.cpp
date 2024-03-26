@@ -21,7 +21,7 @@ void Image::loadImage(const string& path) {
     uint8_t* img = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
     //TEMP fix this
-   /* const auto buffer = make_unique<Buffer>(device, sizeof(img[0]) * 4, width * height, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+   /* const auto buffer = make_unique<Buffer>(get, sizeof(img[0]) * 4, width * height, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     buffer->map();
     buffer->writeToBuffer(img);*/
@@ -31,7 +31,7 @@ void Image::loadImage(const string& path) {
     allocateThisImage();
     //stage(buffer->getBuffer());
 
-    imageView = Swapchain::createImageView(device.device(), image, imageInfo.format);
+    imageView = Swapchain::createImageView(device.get(), image, imageInfo.format);
 
     createDescriptorInfo();
 }
@@ -67,19 +67,19 @@ void Image::createThisImage(const VkImageTiling tiling, const VkImageUsageFlags 
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.flags = 0; //
-    if(vkCreateImage(device.device(), &imageInfo, nullptr, &image) != VK_SUCCESS) throw runtime_error("createImage: failed to create image");
+    if(vkCreateImage(device.get(), &imageInfo, nullptr, &image) != VK_SUCCESS) throw runtime_error("createImage: failed to create image");
 }
 void Image::allocateThisImage() {
-    vkGetImageMemoryRequirements(device.device(), image, &memoryRequirements);
+    vkGetImageMemoryRequirements(device.get(), image, &memoryRequirements);
 
     allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocateInfo.allocationSize = memoryRequirements.size;
     allocateInfo.memoryTypeIndex = device.findMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    if(vkAllocateMemory(device.device(), &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS)
+    if(vkAllocateMemory(device.get(), &allocateInfo, nullptr, &imageMemory) != VK_SUCCESS)
         throw runtime_error(
             "allocateImage: failed to allocate memory");
 
-    vkBindImageMemory(device.device(), image, imageMemory, 0);
+    vkBindImageMemory(device.get(), image, imageMemory, 0);
 }
 
 void Image::transitionImageLayout(const VkImageLayout new_layout) {
@@ -140,10 +140,10 @@ void Image::copyBufferToImage(const VkBuffer buffer) const {
 }
 
 Image::~Image() {
-    vkDestroyImageView(device.device(), imageView, nullptr);
+    vkDestroyImageView(device.get(), imageView, nullptr);
 
-    vkDestroyImage(device.device(), image, nullptr);
-    vkFreeMemory(device.device(), imageMemory, nullptr);
+    vkDestroyImage(device.get(), image, nullptr);
+    vkFreeMemory(device.get(), imageMemory, nullptr);
 }
 
 void Image::createImage(const uint32_t width, const uint32_t height, const uint32_t mip_levels, const VkSampleCountFlagBits num_samples,
@@ -164,19 +164,19 @@ void Image::createImage(const uint32_t width, const uint32_t height, const uint3
     imageInfo.samples = num_samples;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if(vkCreateImage(device.device(), &imageInfo, nullptr, &image) != VK_SUCCESS) throw std::runtime_error("failed to create image!");
+    if(vkCreateImage(device.get(), &imageInfo, nullptr, &image) != VK_SUCCESS) throw std::runtime_error("failed to create image!");
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(device.device(), image, &memRequirements);
+    vkGetImageMemoryRequirements(device.get(), image, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = device.findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    if(vkAllocateMemory(device.device(), &allocInfo, nullptr, &image_memory) != VK_SUCCESS) throw std::runtime_error(
+    if(vkAllocateMemory(device.get(), &allocInfo, nullptr, &image_memory) != VK_SUCCESS) throw std::runtime_error(
         "failed to allocate image memory!");
 
-    vkBindImageMemory(device.device(), image, image_memory, 0);
+    vkBindImageMemory(device.get(), image, image_memory, 0);
 }
 }

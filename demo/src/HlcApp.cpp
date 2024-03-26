@@ -47,7 +47,7 @@ void App::run() {
 
         frameIndex++;
     }
-    vkDeviceWaitIdle(device->device());
+    vkDeviceWaitIdle(device->get());
 
     //OldModel::clearModels();
 }

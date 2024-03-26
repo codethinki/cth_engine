@@ -27,7 +27,7 @@ RenderSystem::RenderSystem(Device* device, VkRenderPass render_pass, const VkSam
 
     createDefaultTriangle();
 }
-RenderSystem::~RenderSystem() { vkDestroyPipelineLayout(hlcDevice->device(), vkPipelineLayout, nullptr); }
+RenderSystem::~RenderSystem() { vkDestroyPipelineLayout(hlcDevice->get(), vkPipelineLayout, nullptr); }
 
 //void RenderSystem::initSamplers() {
 //	defaultTextureSampler = make_unique<HlcTextureSampler>(hlcDevice, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
@@ -93,7 +93,7 @@ void RenderSystem::createPipelineLayout() {
     pipelineLayoutInfo.pushConstantRangeCount = push_info::RANGE_COUNT;
     pipelineLayoutInfo.pPushConstantRanges = &push_info::RANGE_INFO;
 
-    const VkResult createResult = vkCreatePipelineLayout(hlcDevice->device(), &pipelineLayoutInfo, nullptr, &vkPipelineLayout);
+    const VkResult createResult = vkCreatePipelineLayout(hlcDevice->get(), &pipelineLayoutInfo, nullptr, &vkPipelineLayout);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create pipeline layout")
         throw cth::except::vk_result_exception{createResult, details->exception()};

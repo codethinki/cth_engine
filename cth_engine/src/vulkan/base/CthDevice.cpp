@@ -30,6 +30,7 @@ vector<uint32_t> Device::checkDeviceFeatureSupport(const VkPhysicalDevice& devic
 VkSampleCountFlagBits Device::evaluateMaxUsableSampleCount() const {
     const VkSampleCountFlags counts = physicalProperties.limits.framebufferColorSampleCounts &
         physicalProperties.limits.framebufferDepthSampleCounts;
+
     if(counts & VK_SAMPLE_COUNT_64_BIT) return VK_SAMPLE_COUNT_64_BIT;
     if(counts & VK_SAMPLE_COUNT_32_BIT) return VK_SAMPLE_COUNT_32_BIT;
     if(counts & VK_SAMPLE_COUNT_16_BIT) return VK_SAMPLE_COUNT_16_BIT;
@@ -43,11 +44,11 @@ VkSampleCountFlagBits Device::evaluateMaxUsableSampleCount() const {
 
 
 //pickPhysicalDevice helpers
-QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice device) const {
+QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice physical_device) const {
     uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, nullptr);
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queueFamilyCount, queueFamilies.data());
 
     QueueFamilyIndices indices;
     vector<uint32_t> graphicFamilies{};
@@ -59,7 +60,7 @@ QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice device) cons
 
         if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) graphicFamilies.push_back(i);
 
-        if(window->surfaceSupport(device, i)) presentFamilies.push_back(i);
+        if(window->surfaceSupport(physical_device, i)) presentFamilies.push_back(i);
     }
 
     //iterate through all possible combinations of graphic and present indices
@@ -74,11 +75,11 @@ QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice device) cons
 
     return indices;
 }
-vector<string> Device::checkDeviceExtensionSupport(VkPhysicalDevice device) const {
+vector<string> Device::checkDeviceExtensionSupport(VkPhysicalDevice physical_device) const {
     uint32_t extensionCount = 0;
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount, nullptr);
     vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+    vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount, availableExtensions.data());
 
     vector<string> missingExtensions{};
     ranges::for_each(REQUIRED_DEVICE_EXTENSIONS, [&missingExtensions, availableExtensions](string_view required_extension_name) {
@@ -89,13 +90,13 @@ vector<string> Device::checkDeviceExtensionSupport(VkPhysicalDevice device) cons
     });
     return missingExtensions;
 }
-SwapchainSupportDetails Device::querySwapchainSupport(const VkPhysicalDevice device) const {
+SwapchainSupportDetails Device::querySwapchainSupport(const VkPhysicalDevice physical_device) const {
     SwapchainSupportDetails details{};
-    details.capabilities = window->surfaceCapabilities(device);
+    details.capabilities = window->surfaceCapabilities(physical_device);
 
-    details.formats = window->surfaceFormats(device);
+    details.formats = window->surfaceFormats(physical_device);
 
-    details.presentModes = window->presentModes(device);
+    details.presentModes = window->presentModes(physical_device);
 
     return details;
 }
@@ -112,7 +113,7 @@ bool Device::physicalDeviceSuitable(VkPhysicalDevice physical_device) const {
 
     auto missingExtensions = checkDeviceExtensionSupport(physical_device);
     if(!(suitable = missingExtensions.empty())) {
-        details += "\n missing device extensions:\n";
+        details += "\n missing get extensions:\n";
         ranges::for_each(missingExtensions, [&details](const string_view extension) { details += '\t' + string(extension) + '\n'; });
     }
 
@@ -126,12 +127,12 @@ bool Device::physicalDeviceSuitable(VkPhysicalDevice physical_device) const {
 
     const auto missingFeatures = checkDeviceFeatureSupport(physical_device);
     if(!(suitable = missingFeatures.empty())) {
-        details += "\n missing device features:\n";
+        details += "\n missing get features:\n";
         ranges::for_each(missingFeatures,
             [&details](const uint32_t feature) { details += '\t' + string(deviceFeatureIndexToString(feature)) + '\n'; });
     }
 
-    if(!suitable) cth::log::msg<except::INFO>("device {} not suitable\n{}", physicalProperties.deviceName, details);
+    if(!suitable) cth::log::msg<except::INFO>("get {} not suitable\n{}", physicalProperties.deviceName, details);
     return suitable;
 }
 
@@ -140,27 +141,27 @@ void Device::pickPhysicalDevice() {
     vkEnumeratePhysicalDevices(instance->get(), &deviceCount, nullptr);
     CTH_STABLE_ERR(deviceCount == 0, "no vulkan GPUs found") throw details->exception();
 
-    cth::log::msg<except::INFO>("device count: {}", deviceCount);
+    cth::log::msg<except::INFO>("get count: {}", deviceCount);
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance->get(), &deviceCount, devices.data());
 
     //TODO implement proper scoring
     const auto deviceIt = ranges::find_if(devices, [this](const VkPhysicalDevice& device) { return physicalDeviceSuitable(device); });
-    physicalDevice = *deviceIt;
+    vkPhysicalDevice = *deviceIt;
 
     CTH_STABLE_ERR(deviceIt == devices.end(), "no GPU is suitable") throw details->exception();
 
 
-    vkGetPhysicalDeviceProperties(physicalDevice, &physicalProperties);
+    vkGetPhysicalDeviceProperties(vkPhysicalDevice, &physicalProperties);
 
-    cth::log::msg<except::INFO>("chosen physical device: {}", physicalProperties.deviceName);
+    cth::log::msg<except::INFO>("chosen physical get: {}", physicalProperties.deviceName);
 }
 
 
 
 void Device::createLogicalDevice() {
-    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    QueueFamilyIndices indices = findQueueFamilies(vkPhysicalDevice);
 
     const vector<uint32_t> uniqueQueueFamilies = {indices.graphicsFamilyIndex, indices.presentFamilyIndex};
     vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -186,7 +187,7 @@ void Device::createLogicalDevice() {
     createInfo.enabledExtensionCount = static_cast<uint32_t>(REQUIRED_DEVICE_EXTENSIONS.size());
     createInfo.ppEnabledExtensionNames = REQUIRED_DEVICE_EXTENSIONS.data();
 
-    // might not really be necessary anymore because device specific validation layers
+    // might not really be necessary anymore because get specific validation layers
     // have been deprecated
     if constexpr(Instance::ENABLE_VALIDATION_LAYERS) {
         createInfo.enabledLayerCount = Instance::VALIDATION_LAYERS.size();
@@ -194,12 +195,12 @@ void Device::createLogicalDevice() {
     } else createInfo.enabledLayerCount = 0;
 
 
-    const VkResult createResult = vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create logical device")
+    const VkResult createResult = vkCreateDevice(vkPhysicalDevice, &createInfo, nullptr, &vkDevice);
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create logical get")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
-    vkGetDeviceQueue(logicalDevice, indices.graphicsFamilyIndex, 0, &graphicsQueue);
-    vkGetDeviceQueue(logicalDevice, indices.presentFamilyIndex, 0, &presentQueue);
+    vkGetDeviceQueue(vkDevice, indices.graphicsFamilyIndex, 0, &vkGraphicsQueue);
+    vkGetDeviceQueue(vkDevice, indices.presentFamilyIndex, 0, &vkPresentQueue);
 }
 
 void Device::createCommandPool() {
@@ -212,7 +213,7 @@ void Device::createCommandPool() {
         VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 
-    const VkResult createResult = vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool);
+    const VkResult createResult = vkCreateCommandPool(vkDevice, &poolInfo, nullptr, &commandPool);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create command pool")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
@@ -236,7 +237,7 @@ VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, co
     const VkFormatFeatureFlags features) const {
     for(const VkFormat format : candidates) {
         VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+        vkGetPhysicalDeviceFormatProperties(vkPhysicalDevice, format, &props);
 
         if(tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) return format;
         if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
@@ -246,7 +247,7 @@ VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, co
 }
 uint32_t Device::findMemoryType(const uint32_t type_filter, const VkMemoryPropertyFlags properties) const {
     VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(vkPhysicalDevice, &memProperties);
 
     for(uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
         if((type_filter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
@@ -267,7 +268,7 @@ VkCommandBuffer Device::beginSingleTimeCommands() const {
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(logicalDevice, &allocInfo, &commandBuffer);
+    vkAllocateCommandBuffers(vkDevice, &allocInfo, &commandBuffer);
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -284,10 +285,10 @@ void Device::endSingleTimeCommands(VkCommandBuffer command_buffer) const {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &command_buffer;
 
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue);
+    vkQueueSubmit(vkGraphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(vkGraphicsQueue);
 
-    vkFreeCommandBuffers(logicalDevice, commandPool, 1, &command_buffer);
+    vkFreeCommandBuffers(vkDevice, commandPool, 1, &command_buffer);
 }
 
 void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties,
@@ -298,23 +299,23 @@ void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    const VkResult createResult = vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer);
+    const VkResult createResult = vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &buffer);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create buffer")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
+    vkGetBufferMemoryRequirements(vkDevice, buffer, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    const VkResult allocResult = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &buffer_memory);
+    const VkResult allocResult = vkAllocateMemory(vkDevice, &allocInfo, nullptr, &buffer_memory);
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "Vk: failed to allocate buffer memory")
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 
-    vkBindBufferMemory(logicalDevice, buffer, buffer_memory, 0);
+    vkBindBufferMemory(vkDevice, buffer, buffer_memory, 0);
 }
 void Device::copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, const VkDeviceSize size, const VkDeviceSize src_offset,
     const VkDeviceSize dst_offset) const {
@@ -351,25 +352,25 @@ void Device::copyBufferToImage(VkBuffer buffer, VkImage image, const uint32_t wi
 void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMemoryPropertyFlags properties, VkImage& image,
     VkDeviceMemory& image_memory) const {
 
-    const VkResult createResult = vkCreateImage(logicalDevice, &image_info, nullptr, &image);
+    const VkResult createResult = vkCreateImage(vkDevice, &image_info, nullptr, &image);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create image")
         throw cth::except::vk_result_exception{createResult,
             details->exception()};
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
+    vkGetImageMemoryRequirements(vkDevice, image, &memRequirements);
 
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
-    const VkResult allocResult = vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &image_memory);
+    const VkResult allocResult = vkAllocateMemory(vkDevice, &allocInfo, nullptr, &image_memory);
 
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "Vk: failed to allocate image memory")
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 
-    const VkResult bindResult = vkBindImageMemory(logicalDevice, image, image_memory, 0);
+    const VkResult bindResult = vkBindImageMemory(vkDevice, image, image_memory, 0);
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "Vk: failed to bind image memory")
         throw cth::except::vk_result_exception{bindResult, details->exception()};
 }
@@ -381,14 +382,14 @@ Device::Device(Window* window, Instance* instance) : window(window), instance(in
     initShaders();
 }
 Device::~Device() {
-    vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+    vkDestroyCommandPool(vkDevice, commandPool, nullptr);
 
     vertShader = nullptr;
     fragShader = nullptr;
 
-    vkDestroyDevice(logicalDevice, nullptr);
+    vkDestroyDevice(vkDevice, nullptr);
 
-    cth::log::msg<except::LOG>("destroyed device");
+    cth::log::msg<except::LOG>("destroyed get");
 }
 
 

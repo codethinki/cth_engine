@@ -1,27 +1,25 @@
-#include <cstdlib>
-#include <future>
-#include <iostream>
-#include <random>
+#include "HlcApp.hpp"
 
-#include <filesystem>
+#include <cth/cth_log.hpp>
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include <__msvc_filebuf.hpp>
 
-#include "HlcApp.hpp"
+#include <fstream>
 
 
-#ifdef _DEBUG
+using namespace std;
+using namespace cth;
+#ifndef _FINAL
 int main() {
+    cth::log::msg<except::INFO>("exec dir: {}", cth::filesystem::current_path().string());
 #else
 #include <Windows.h>
-int main() { //TEMP edit this back to be invisible 
-    //INT WINAPI WinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, char* lp_cmd_line, int n_cmd_show) {
+INT WINAPI WinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, char* lp_cmd_line, int n_cmd_show) {
+    const unique_ptr<ofstream> logStream = make_unique<ofstream>("log.txt", ios::ate);
+    cth::log::setLogStream(out::col_stream{logStream.get()});
 #endif
-    using namespace std;
-    using namespace cth;
-
 
     App::init();
 
@@ -31,23 +29,23 @@ int main() { //TEMP edit this back to be invisible
     app = nullptr;
     //try {
 
-   /* }
-    catch(const cth::except::vk_result_exception& e) {
-        cth::out::error.println(e.string());
-        std::terminate();
-    }
-    catch(const cth::except::default_exception& e) {
-        cth::out::error.println(e.string());
-        std::terminate();
-    }
-    catch(const std::exception& e) {
-        cth::out::error.println(e.what());
-        std::terminate();
-    }
-    catch(...) {
-        cth::out::error.println("Unknown exception");
-        std::terminate();
-    }*/
+    /* }
+     catch(const cth::except::vk_result_exception& e) {
+         cth::out::error.println(e.string());
+         std::terminate();
+     }
+     catch(const cth::except::default_exception& e) {
+         cth::out::error.println(e.string());
+         std::terminate();
+     }
+     catch(const std::exception& e) {
+         cth::out::error.println(e.what());
+         std::terminate();
+     }
+     catch(...) {
+         cth::out::error.println("Unknown exception");
+         std::terminate();
+     }*/
 
     App::terminate();
     return EXIT_SUCCESS;

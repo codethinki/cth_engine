@@ -63,11 +63,11 @@ void DescriptorPool::writeSets(const vector<DescriptorSet*>& sets) {
     });
 
 
-    vkUpdateDescriptorSets(device->device(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    vkUpdateDescriptorSets(device->get(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void DescriptorPool::reset() {
-    const VkResult resetResult = vkResetDescriptorPool(device->device(), vkPool, 0);
+    const VkResult resetResult = vkResetDescriptorPool(device->get(), vkPool, 0);
 
 
     ranges::for_each(descriptorSets, [](DescriptorSet* set) { set->deallocate(); });
@@ -102,7 +102,7 @@ void DescriptorPool::create() {
     createInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     createInfo.maxSets = static_cast<uint32_t>(vkSets.size());
 
-    const VkResult createResult = vkCreateDescriptorPool(device->device(), &createInfo, nullptr, &vkPool);
+    const VkResult createResult = vkCreateDescriptorPool(device->get(), &createInfo, nullptr, &vkPool);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "vk: failed to create descriptor pool")
         throw cth::except::vk_result_exception(createResult, details->exception());
 }
@@ -121,7 +121,7 @@ void DescriptorPool::allocSets() {
     allocInfo.descriptorSetCount = static_cast<uint32_t>(vkSets.size());
     allocInfo.pSetLayouts = vkLayouts.data();
 
-    const VkResult allocResult = vkAllocateDescriptorSets(device->device(), &allocInfo, vkSets.data());
+    const VkResult allocResult = vkAllocateDescriptorSets(device->get(), &allocInfo, vkSets.data());
 
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "vk: failed to allocate descriptor sets")
         throw cth::except::vk_result_exception(allocResult, details->exception());
@@ -146,6 +146,6 @@ DescriptorPool::DescriptorPool(Device* device, const Builder& builder) : device(
 
 DescriptorPool::~DescriptorPool() {
     if(vkPool == VK_NULL_HANDLE) return;
-    vkDestroyDescriptorPool(device->device(), vkPool, nullptr);
+    vkDestroyDescriptorPool(device->get(), vkPool, nullptr);
 }
 } // namespace cth
