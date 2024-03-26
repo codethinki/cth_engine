@@ -27,7 +27,7 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
     shaderStages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
     shaderStages[0].module = device->vertShader->get();
-    shaderStages[0].pName = "vert";
+    shaderStages[0].pName = "main";
     shaderStages[0].flags = 0;
     shaderStages[0].pNext = nullptr;
     shaderStages[0].pSpecializationInfo = nullptr;
@@ -35,7 +35,7 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
     shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
     shaderStages[1].module = device->fragShader->get();
-    shaderStages[1].pName = "frag";
+    shaderStages[1].pName = "main";
     shaderStages[1].flags = 0;
     shaderStages[1].pNext = nullptr;
     shaderStages[1].pSpecializationInfo = nullptr;
@@ -71,7 +71,7 @@ void Pipeline::createGraphicsPipeline(const PipelineConfigInfo& config_info) {
         &vkGraphicsPipeline);
 
 
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create graphics pipeline")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create graphics pipeline")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
 

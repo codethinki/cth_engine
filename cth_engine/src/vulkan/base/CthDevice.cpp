@@ -10,7 +10,6 @@
 
 
 
-
 namespace cth {
 
 
@@ -113,7 +112,7 @@ bool Device::physicalDeviceSuitable(VkPhysicalDevice physical_device) const {
 
     auto missingExtensions = checkDeviceExtensionSupport(physical_device);
     if(!(suitable = missingExtensions.empty())) {
-        details += "\n missing get extensions:\n";
+        details += "\n missing device extensions:\n";
         ranges::for_each(missingExtensions, [&details](const string_view extension) { details += '\t' + string(extension) + '\n'; });
     }
 
@@ -127,12 +126,12 @@ bool Device::physicalDeviceSuitable(VkPhysicalDevice physical_device) const {
 
     const auto missingFeatures = checkDeviceFeatureSupport(physical_device);
     if(!(suitable = missingFeatures.empty())) {
-        details += "\n missing get features:\n";
+        details += "\n missing device features:\n";
         ranges::for_each(missingFeatures,
             [&details](const uint32_t feature) { details += '\t' + string(deviceFeatureIndexToString(feature)) + '\n'; });
     }
 
-    if(!suitable) cth::log::msg<except::INFO>("get {} not suitable\n{}", physicalProperties.deviceName, details);
+    if(!suitable) cth::log::msg<except::INFO>("device {} not suitable\n{}", physicalProperties.deviceName, details);
     return suitable;
 }
 
@@ -141,7 +140,7 @@ void Device::pickPhysicalDevice() {
     vkEnumeratePhysicalDevices(instance->get(), &deviceCount, nullptr);
     CTH_STABLE_ERR(deviceCount == 0, "no vulkan GPUs found") throw details->exception();
 
-    cth::log::msg<except::INFO>("get count: {}", deviceCount);
+    cth::log::msg<except::INFO>("device count: {}", deviceCount);
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance->get(), &deviceCount, devices.data());
@@ -155,7 +154,7 @@ void Device::pickPhysicalDevice() {
 
     vkGetPhysicalDeviceProperties(vkPhysicalDevice, &physicalProperties);
 
-    cth::log::msg<except::INFO>("chosen physical get: {}", physicalProperties.deviceName);
+    cth::log::msg<except::INFO>("chosen physical device: {}", physicalProperties.deviceName);
 }
 
 
@@ -187,7 +186,7 @@ void Device::createLogicalDevice() {
     createInfo.enabledExtensionCount = static_cast<uint32_t>(REQUIRED_DEVICE_EXTENSIONS.size());
     createInfo.ppEnabledExtensionNames = REQUIRED_DEVICE_EXTENSIONS.data();
 
-    // might not really be necessary anymore because get specific validation layers
+    // might not really be necessary anymore because device specific validation layers
     // have been deprecated
     if constexpr(Instance::ENABLE_VALIDATION_LAYERS) {
         createInfo.enabledLayerCount = Instance::VALIDATION_LAYERS.size();
@@ -196,7 +195,7 @@ void Device::createLogicalDevice() {
 
 
     const VkResult createResult = vkCreateDevice(vkPhysicalDevice, &createInfo, nullptr, &vkDevice);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create logical get")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create logical device")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
     vkGetDeviceQueue(vkDevice, indices.graphicsFamilyIndex, 0, &vkGraphicsQueue);
@@ -214,7 +213,7 @@ void Device::createCommandPool() {
 
 
     const VkResult createResult = vkCreateCommandPool(vkDevice, &poolInfo, nullptr, &commandPool);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "VK: failed to create command pool")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create command pool")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 void Device::initShaders() {
@@ -300,7 +299,7 @@ void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     const VkResult createResult = vkCreateBuffer(vkDevice, &bufferInfo, nullptr, &buffer);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create buffer")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create buffer")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
     VkMemoryRequirements memRequirements;
@@ -312,7 +311,7 @@ void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
     allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
 
     const VkResult allocResult = vkAllocateMemory(vkDevice, &allocInfo, nullptr, &buffer_memory);
-    CTH_STABLE_ERR(allocResult != VK_SUCCESS, "Vk: failed to allocate buffer memory")
+    CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate buffer memory")
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 
     vkBindBufferMemory(vkDevice, buffer, buffer_memory, 0);
@@ -353,9 +352,8 @@ void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMe
     VkDeviceMemory& image_memory) const {
 
     const VkResult createResult = vkCreateImage(vkDevice, &image_info, nullptr, &image);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create image")
-        throw cth::except::vk_result_exception{createResult,
-            details->exception()};
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create image")
+        throw cth::except::vk_result_exception{createResult, details->exception()};
 
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(vkDevice, image, &memRequirements);
@@ -367,11 +365,11 @@ void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMe
 
     const VkResult allocResult = vkAllocateMemory(vkDevice, &allocInfo, nullptr, &image_memory);
 
-    CTH_STABLE_ERR(allocResult != VK_SUCCESS, "Vk: failed to allocate image memory")
+    CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate image memory")
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 
     const VkResult bindResult = vkBindImageMemory(vkDevice, image, image_memory, 0);
-    CTH_STABLE_ERR(bindResult != VK_SUCCESS, "Vk: failed to bind image memory")
+    CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind image memory")
         throw cth::except::vk_result_exception{bindResult, details->exception()};
 }
 
@@ -389,7 +387,7 @@ Device::~Device() {
 
     vkDestroyDevice(vkDevice, nullptr);
 
-    cth::log::msg<except::LOG>("destroyed get");
+    cth::log::msg<except::LOG>("destroyed device");
 }
 
 

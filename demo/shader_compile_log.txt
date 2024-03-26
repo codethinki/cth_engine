@@ -1,1 +1,0 @@
-glslc: error: cannot open output file: '..\cth_engine\res\bin\shader\shader.vert.spv': No such file or directory

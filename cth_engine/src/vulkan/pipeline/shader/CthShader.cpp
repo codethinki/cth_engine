@@ -51,7 +51,7 @@ void Shader::create() {
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create shader module")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
-    CTH_LOG(true, "created shader module: ") 
+    CTH_LOG(true, "created shader module: ")
         details->add("file: {0}", filesystem::path(spvPath).filename().string());
 }
 void Shader::init() {
@@ -76,7 +76,7 @@ void Shader::compile(const string_view flags) const {
     const string glslFilename = filesystem::path(glslPath).filename().string();
 
     const string command = std::format(R"("{0}" {1} -c "{2}" -o "{3}">NUL 2>"{4}")",
-        compilerPath, flags, glslPath, spvPath, logFile.data());
+        compilerPath, flags, glslPath, spvPath, logFile);
     //TEMP command not working fix this
     const int result = cth::win::cmd::hidden(command);
 
@@ -94,9 +94,10 @@ void Shader::compile(const string_view flags) const {
         return;
     }
 
-    debugInfo.resize(debugInfo.size() - 1);
-    for(auto& line : debugInfo) line = std::format("line{0}", line.substr(line.find(glslFilename)));
-
+    if(debugInfo.size() > 2) {
+        debugInfo.resize(debugInfo.size() - 1);
+        for(auto& line : debugInfo) line = std::format("line {}: ", line.substr(line.find(glslFilename) + glslFilename.size()));
+    }
     CTH_STABLE_ABORT(true, "shader compilation failed") {
         details->add("{} errors:", debugInfo.size());
         for(auto& line : debugInfo)
@@ -132,10 +133,7 @@ Shader::Shader(Device* device, const Shader_Type type, const string_view spv_pat
 
 #endif //_FINAL
 
-Shader::Shader(Device* device, const Shader_Type type, const string_view spv_path) : device(device), type(type), spvPath(spv_path) {
-    init();
-}
+Shader::Shader(Device* device, const Shader_Type type, const string_view spv_path) : device(device), type(type), spvPath(spv_path) { init(); }
 Shader::~Shader() { vkDestroyShaderModule(device->get(), vkModule, nullptr); }
 
 }
-
