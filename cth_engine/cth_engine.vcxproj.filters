@@ -1,93 +1,73 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="src">
-      <UniqueIdentifier>{af1c9e50-ba0e-46c3-a1b3-97834cddb39d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="doc">
-      <UniqueIdentifier>{353c4248-4e7b-48d5-acae-3ec215b5a72e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="res">
-      <UniqueIdentifier>{59ed5d0a-0372-429c-bc30-711d9659e5d1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\def">
-      <UniqueIdentifier>{c437649a-6c19-4fe4-aff8-bde688c05e5c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\dec">
-      <UniqueIdentifier>{41dcea87-336f-4d7c-9cec-d9a0e7371867}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\dec\vulkan\utility\CthVkUtils.hpp" />
-    <ClInclude Include="src\dec\interface\objects\HlcRenderObject.hpp" />
-    <ClInclude Include="src\dec\interface\objects\HlcStandardObject.hpp" />
-    <ClInclude Include="src\dec\interface\user\HlcCamera.hpp" />
-    <ClInclude Include="src\dec\interface\user\HlcInputController.hpp" />
-    <ClInclude Include="src\dec\interface\user\HlcUser.hpp" />
-    <ClInclude Include="src\dec\vulkan\base\CthDevice.hpp" />
-    <ClInclude Include="src\dec\vulkan\base\CthInstance.hpp" />
-    <ClInclude Include="src\dec\vulkan\memory\buffer\CthBuffer.hpp" />
-    <ClInclude Include="src\dec\vulkan\memory\buffer\CthDefaultBuffer.hpp" />
-    <ClInclude Include="src\dec\vulkan\memory\descriptor\CthDescriptedResource.hpp" />
-    <ClInclude Include="src\dec\vulkan\memory\descriptor\CthDescriptor.hpp" />
-    <ClInclude Include="src\dec\vulkan\memory\descriptor\CthDescriptorPool.hpp" />
-    <ClInclude Include="src\dec\vulkan\memory\descriptor\CthDescriptorSet.hpp" />
-    <ClInclude Include="src\dec\vulkan\pipeline\layout\CthDescriptorSetLayout.hpp" />
-    <ClInclude Include="src\dec\vulkan\pipeline\shader\CthShader.hpp" />
-    <ClInclude Include="src\dec\vulkan\pipeline\shader\HlcPushConstant.hpp" />
-    <ClInclude Include="src\dec\vulkan\pipeline\CthPipeline.hpp" />
-    <ClInclude Include="src\dec\vulkan\render\model\HlcTextureSampler.hpp" />
-    <ClInclude Include="src\dec\vulkan\render\model\HlcModelManager.hpp" />
-    <ClInclude Include="src\dec\vulkan\render\model\HlcModel.hpp" />
-    <ClInclude Include="src\dec\vulkan\render\model\HlcImage.hpp" />
-    <ClInclude Include="src\dec\vulkan\render\model\HlcVertex.hpp" />
-    <ClInclude Include="src\dec\vulkan\render\pass\cth_render_pass_utils.hpp" />
-    <ClInclude Include="src\dec\vulkan\render\pass\CthRenderer.hpp" />
-    <ClInclude Include="src\dec\vulkan\surface\CthSwapchain.hpp" />
-    <ClInclude Include="src\dec\vulkan\surface\CthWindow.hpp" />
     <ClInclude Include="cth_engine.hpp" />
     <ClInclude Include="include\cth_interface.hpp" />
     <ClInclude Include="include\cth_vulkan.hpp" />
     <ClInclude Include="include\cth_vk_base.hpp" />
-    <ClInclude Include="src\dec\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="include\cth_vk_debug.hpp" />
     <ClInclude Include="include\cth_vk_memory.hpp" />
     <ClInclude Include="include\cth_vk_pipeline.hpp" />
     <ClInclude Include="include\cth_vk_render.hpp" />
     <ClInclude Include="include\cth_vk_surface.hpp" />
+    <ClInclude Include="src\interface\objects\HlcRenderObject.hpp" />
+    <ClInclude Include="src\interface\objects\HlcStandardObject.hpp" />
+    <ClInclude Include="src\interface\user\HlcCamera.hpp" />
+    <ClInclude Include="src\interface\user\HlcInputController.hpp" />
+    <ClInclude Include="src\interface\user\HlcUser.hpp" />
+    <ClInclude Include="src\vulkan\base\CthDevice.hpp" />
+    <ClInclude Include="src\vulkan\base\CthInstance.hpp" />
+    <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
+    <ClInclude Include="src\vulkan\memory\buffer\CthBuffer.hpp" />
+    <ClInclude Include="src\vulkan\memory\buffer\CthDefaultBuffer.hpp" />
+    <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptedResource.hpp" />
+    <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptor.hpp" />
+    <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptorPool.hpp" />
+    <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptorSet.hpp" />
+    <ClInclude Include="src\vulkan\pipeline\layout\CthDescriptorSetLayout.hpp" />
+    <ClInclude Include="src\vulkan\pipeline\shader\CthShader.hpp" />
+    <ClInclude Include="src\vulkan\pipeline\shader\HlcPushConstant.hpp" />
+    <ClInclude Include="src\vulkan\pipeline\CthPipeline.hpp" />
+    <ClInclude Include="src\vulkan\render\model\HlcImage.hpp" />
+    <ClInclude Include="src\vulkan\render\model\HlcModel.hpp" />
+    <ClInclude Include="src\vulkan\render\model\HlcModelManager.hpp" />
+    <ClInclude Include="src\vulkan\render\model\HlcTextureSampler.hpp" />
+    <ClInclude Include="src\vulkan\render\model\HlcVertex.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\CthRenderer.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthSwapchain.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
+    <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
     <None Include="doc\scene.md" />
     <None Include="doc\tinygltf.md" />
-    <None Include="src\dec\vulkan\memory\buffer\CthBuffer.inl" />
-    <None Include="src\dec\vulkan\pipeline\shader\glsl\shader.vert" />
-    <None Include="src\dec\vulkan\pipeline\shader\glsl\shader.frag" />
-    <None Include="src\dec\vulkan\pipeline\shader\glsl\test.bat" />
-    <None Include="src\def\vulkan\memory\buffer\CthBuffer.inl" />
+    <None Include="src\vulkan\memory\buffer\CthBuffer.inl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\def\interface\objects\HlcStandardObject.cpp" />
-    <ClCompile Include="src\def\interface\user\HlcCamera.cpp" />
-    <ClCompile Include="src\def\interface\user\HlcInputController.cpp" />
-    <ClCompile Include="src\def\vulkan\base\CthDevice.cpp" />
-    <ClCompile Include="src\def\vulkan\base\CthInstance.cpp" />
-    <ClCompile Include="src\def\vulkan\debug\CthDebugMessenger.cpp" />
-    <ClCompile Include="src\def\vulkan\memory\buffer\CthBuffer.cpp" />
-    <ClCompile Include="src\def\vulkan\memory\buffer\CthDefaultBuffer.cpp" />
-    <ClCompile Include="src\def\vulkan\memory\descriptor\CthDescriptor.cpp" />
-    <ClCompile Include="src\def\vulkan\memory\descriptor\CthDescriptorPool.cpp" />
-    <ClCompile Include="src\def\vulkan\memory\descriptor\CthDescriptorSet.cpp" />
-    <ClCompile Include="src\def\vulkan\pipeline\layout\CthDescriptorSetLayout.cpp" />
-    <ClCompile Include="src\def\vulkan\pipeline\shader\CthShader.cpp" />
-    <ClCompile Include="src\def\vulkan\pipeline\CthPipeline.cpp" />
-    <ClCompile Include="src\def\vulkan\render\model\HlcImage.cpp" />
-    <ClCompile Include="src\def\vulkan\render\model\HlcModel.cpp" />
-    <ClCompile Include="src\def\vulkan\render\model\HlcModelManager.cpp" />
-    <ClCompile Include="src\def\vulkan\render\model\HlcTextureSampler.cpp" />
-    <ClCompile Include="src\def\vulkan\render\model\HlcVertex.cpp" />
-    <ClCompile Include="src\def\vulkan\render\pass\CthRenderer.cpp" />
-    <ClCompile Include="src\def\vulkan\surface\CthSwapchain.cpp" />
-    <ClCompile Include="src\def\vulkan\surface\CthWindow.cpp" />
+    <ClCompile Include="src\interface\objects\HlcStandardObject.cpp" />
+    <ClCompile Include="src\interface\user\HlcCamera.cpp" />
+    <ClCompile Include="src\interface\user\HlcInputController.cpp" />
+    <ClCompile Include="src\vulkan\base\CthDevice.cpp" />
+    <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
+    <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
+    <ClCompile Include="src\vulkan\memory\buffer\CthBuffer.cpp" />
+    <ClCompile Include="src\vulkan\memory\buffer\CthDefaultBuffer.cpp" />
+    <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptor.cpp" />
+    <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptorPool.cpp" />
+    <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptorSet.cpp" />
+    <ClCompile Include="src\vulkan\pipeline\layout\CthDescriptorSetLayout.cpp" />
+    <ClCompile Include="src\vulkan\pipeline\shader\CthShader.cpp" />
+    <ClCompile Include="src\vulkan\pipeline\CthPipeline.cpp" />
+    <ClCompile Include="src\vulkan\render\model\HlcImage.cpp" />
+    <ClCompile Include="src\vulkan\render\model\HlcModel.cpp" />
+    <ClCompile Include="src\vulkan\render\model\HlcModelManager.cpp" />
+    <ClCompile Include="src\vulkan\render\model\HlcTextureSampler.cpp" />
+    <ClCompile Include="src\vulkan\render\model\HlcVertex.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\CthRenderer.cpp" />
+    <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
+    <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
 </Project>

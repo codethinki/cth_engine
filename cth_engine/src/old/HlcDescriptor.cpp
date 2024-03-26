@@ -1,7 +1,7 @@
 #include "HlcDescriptor.hpp"
 
-#include "../core/CthDevice.hpp"
-#include "../utils/cth_vk_specific_utils.hpp"
+#include "vulkan/base/CthDevice.hpp"
+#include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>
 

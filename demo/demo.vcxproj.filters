@@ -1,45 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="src">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="doc">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="src\dec">
-      <UniqueIdentifier>{c89c5e6a-6baf-429b-b004-6cce5f9414f1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\def">
-      <UniqueIdentifier>{523266d4-8e36-47ab-b300-2cc83315ef15}</UniqueIdentifier>
-    </Filter>
+    <ClInclude Include="src\render\HlcFrameInfo.hpp" />
+    <ClInclude Include="src\render\HlcRenderSystem.hpp" />
+    <ClInclude Include="src\HlcApp.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp">
-      <Filter>src\def</Filter>
-    </ClCompile>
-    <ClCompile Include="src\def\render\HlcRenderSystem.cpp">
-      <Filter>doc</Filter>
-    </ClCompile>
-    <ClCompile Include="src\def\HlcApp.cpp">
-      <Filter>doc</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\dec\render\HlcFrameInfo.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\dec\render\HlcRenderSystem.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\dec\HlcApp.hpp">
-      <Filter>src</Filter>
-    </ClInclude>
+    <ClCompile Include="src\render\HlcRenderSystem.cpp" />
+    <ClCompile Include="src\HlcApp.cpp" />
+    <ClCompile Include="src\main.cpp" />
   </ItemGroup>
 </Project>
