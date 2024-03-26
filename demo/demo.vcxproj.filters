@@ -8,6 +8,6 @@
   <ItemGroup>
     <ClCompile Include="src\render\HlcRenderSystem.cpp" />
     <ClCompile Include="src\HlcApp.cpp" />
-    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\demo_main.cpp" />
   </ItemGroup>
 </Project>

@@ -64,7 +64,7 @@
     <None Include="src\vulkan\memory\buffer\CthBuffer.inl" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="engine_main.cpp" />
     <ClCompile Include="src\interface\objects\HlcStandardObject.cpp" />
     <ClCompile Include="src\interface\user\HlcCamera.cpp" />
     <ClCompile Include="src\interface\user\HlcInputController.cpp" />

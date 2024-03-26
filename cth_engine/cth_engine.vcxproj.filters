@@ -68,6 +68,6 @@
     <ClCompile Include="src\vulkan\render\pass\CthRenderer.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="engine_main.cpp" />
   </ItemGroup>
 </Project>

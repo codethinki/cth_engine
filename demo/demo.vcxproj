@@ -114,8 +114,7 @@
     </Link>
     <PostBuildEvent>
       <Command>
-
-</Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -138,8 +137,7 @@
     </Link>
     <PostBuildEvent>
       <Command>
-
-</Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -158,8 +156,7 @@
     </Link>
     <PostBuildEvent>
       <Command>
-
-</Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -182,8 +179,7 @@
     </Link>
     <PostBuildEvent>
       <Command>
-
-</Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -198,7 +194,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\HlcApp.cpp" />
-    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\demo_main.cpp" />
     <ClCompile Include="src\render\HlcRenderSystem.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
