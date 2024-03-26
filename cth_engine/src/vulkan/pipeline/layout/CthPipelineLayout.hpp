@@ -44,7 +44,7 @@ public:
 
     /**
      * \throws cth::except::vk_result_exception data: VkResult of vkCreatePipelineLayout()
-     * * \throws cth::except::exception reason: device limits exceeded, too many locations specified
+     * \throws cth::except::exception reason: device limits exceeded, too many locations specified
      */
     PipelineLayout(Device* device, const Builder& builder);
     ~PipelineLayout();

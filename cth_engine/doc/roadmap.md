@@ -4,26 +4,47 @@
 ### in progress:
 	HlcShader.hpp/cpp
 
-### completed (untested):
-	core:
-	- CthPipeline.hpp/cpp
-	- CthInstance.hpp/cpp
-	- CthDebugMessenger.hpp/cpp
-	- CthDevice.hpp/cpp
-	- CthRenderer.hpp/cpp
-	- CthSwapchain.hpp/cpp
-	- CthWindow.hpp/cpp
-	- CthBuffer.hpp/cpp
-	- CthDescriptor.hpp/cpp
-	- CthDescriptorSet.hpp/cpp
-	- CthDescriptorSetLayout.hpp/cpp
-	- CthDescriptorPool.hpp/cpp
+### completed (partially untested):
+	vulkan:
+		base:
+		- CthDevice.hpp/cpp
+		- CthInstance.hpp/cpp
+
+		memory:
+			buffer:
+			- CthBuffer.hpp/cpp
+			- CthDefaultBuffer.hpp/cpp
+			descriptor:
+			- CthDescriptedResource.hpp/cpp
+			- CthDescriptor.hpp/cpp
+			- CthDescriptorSet.hpp/cpp
+			- CthDescriptorPool.hpp/cpp
+
+		surface:
+		- CthSwapchain.hpp/cpp
+		- CthWindow.hpp/cpp
 
 
-## 2. solve all compiler errors
+		pipeline:
+		- CthPipeline.hpp/cpp
+			layout:
+			- CthGraphicsPipelineConfig.hpp/cpp
+			- CthPipelineLayout.hpp/cpp
+			- CthDescriptorSetLayout.hpp/cpp
+			shader:
+			- CthShader.hpp/cpp
+
+		render:
+		- CthRenderer.hpp/cpp (partially needs to be extended with a render pass abstraction)
+		
+		debug:
+		- CthDebugMessenger.hpp/cpp
+
 
 ## 3. modernize further
 	- new memory system and model management
-	- maybe render pass wrapper?
+	- add render pass wrapper
+		- add wrapper ptr to GraphicsPipelineConfig
+	- maybe add a command buffer manager
 
 ## 4. implement dear imgui support

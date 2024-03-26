@@ -9,6 +9,10 @@
 #include <fstream>
 
 
+namespace cth {
+ShaderSpecialization::ShaderSpecialization(span<VkSpecializationMapEntry> entries, span<char> data) : vkInfo{static_cast<uint32_t>(entries.size()),
+    entries.data(), data.size(), reinterpret_cast<void*>(data.data())} {}
+}
 
 namespace cth {
 void Shader::loadSpv() {
@@ -105,26 +109,13 @@ void Shader::compile(const string_view flags) const {
     }
 }
 
-void Shader::checkExtension() const {
-    const string extension = filesystem::path(glslPath).extension().string();
-    Shader_Type shaderType = TYPES_SIZE;
-    if(extension == ".frag") shaderType = TYPE_FRAGMENT;
-    else if(extension == ".vert") shaderType = TYPE_VERTEX;
 
-    CTH_ERR(shaderType != type, "shader type does not match with file extension") {
-        details->add("extension: {}", extension);
-        throw details->exception();
-    }
-}
-
-Shader::Shader(Device* device, const Shader_Type type, const string_view spv_path, const string_view glsl_path,
-    const string_view compiler_path) : device(device), type(type),
+Shader::Shader(Device* device, const VkShaderStageFlagBits stage, const string_view spv_path, const string_view glsl_path,
+    const string_view compiler_path) : device(device), vkStage(stage),
     spvPath{spv_path}, glslPath(glsl_path), compilerPath{compiler_path} {
 #ifndef _DEBUG
     CTH_STABLE_WARN(true, "compiling shaders on startup, only use this on debug");
 #endif
-
-    checkExtension();
 
     compile();
 
@@ -133,7 +124,9 @@ Shader::Shader(Device* device, const Shader_Type type, const string_view spv_pat
 
 #endif //_FINAL
 
-Shader::Shader(Device* device, const Shader_Type type, const string_view spv_path) : device(device), type(type), spvPath(spv_path) { init(); }
+Shader::Shader(Device* device, const VkShaderStageFlagBits stage, const string_view spv_path) : device(device), vkStage(stage), spvPath(spv_path) {
+    init();
+}
 Shader::~Shader() { vkDestroyShaderModule(device->get(), vkModule, nullptr); }
 
 }

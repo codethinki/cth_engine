@@ -49,7 +49,6 @@ private:
 
     size_t frameIndex = 0;
 
-    inline static bool initialized = false;
     inline static constexpr string_view WINDOW_NAME = "tetris_ai";
 
     [[nodiscard]] static vector<string> getRequiredInstanceExtensions();
@@ -57,9 +56,6 @@ private:
 public:
     App();
     ~App();
-
-    static void init();
-    static void terminate();
 
     App(const App& other) = delete;
     App(App&& other) = delete;

@@ -1,12 +1,13 @@
 #include "HlcRenderSystem.hpp"
 
 //TEMP replace this with #include <cth_engine/cth_engine.hpp> 
-#include "interface/objects/HlcRenderObject.hpp"
-#include "vulkan/render/model/HlcVertex.hpp"
-#include "vulkan/pipeline/shader/HlcPushConstant.hpp"
+#include "vulkan/pipeline/layout/CthPipelineConfig.hpp"
+#include "vulkan/pipeline/layout/CthPipelineLayout.hpp"
+#include "vulkan/pipeline/shader/CthShader.hpp"
 
 #include <span>
 #include <glm/glm.hpp>
+
 
 
 
@@ -16,98 +17,45 @@ struct UniformBuffer {
     explicit UniformBuffer(const glm::mat4& projection_view) : projectionView{projection_view} {}
 };
 
-RenderSystem::RenderSystem(Device* device, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : hlcDevice{device} {
-    //TEMP implement this
-    //initSamplers();
-    //initDescriptorUtils();
-    //initDescriptorSets();
+RenderSystem::RenderSystem(Device* device, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : device{device} {
+    initShaders();
 
     createPipelineLayout();
     createPipeline(render_pass, msaa_samples);
 
     createDefaultTriangle();
 }
-RenderSystem::~RenderSystem() { vkDestroyPipelineLayout(hlcDevice->get(), vkPipelineLayout, nullptr); }
+RenderSystem::~RenderSystem() {}
 
-//void RenderSystem::initSamplers() {
-//	defaultTextureSampler = make_unique<HlcTextureSampler>(hlcDevice, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-//}
+void RenderSystem::initShaders() {
 
-void RenderSystem::initDescriptorUtils() {
-    //descriptorPool = HlcDescriptorPool::Builder(hlcDevice)
-    //                 .setMaxSets(Swapchain::MAX_FRAMES_IN_FLIGHT)
-    //                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, Swapchain::MAX_FRAMES_IN_FLIGHT)
-    //                 // .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Swapchain::MAX_FRAMES_IN_FLIGHT)
-    //                 .build();
+    const string vertexBinary = format("{}shader.vert.spv", SHADER_BINARY_DIR);
+    const string fragmentBinary = format("{}shader.frag.spv", SHADER_BINARY_DIR);
 
-    //descriptorSetLayout = HlcDescriptorSetLayout::Builder(hlcDevice)
-    //                      .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-    //                      //.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-    //                      .build();
-    //descriptorSets.resize(descriptorPool->descriptorPoolInfo.maxSets);
+#ifdef _FINAL
+    vertShader = make_unique<Shader>(device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary);
+    fragShader = make_unique<Shader>(device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary);
+#else
+    vertexShader = make_unique<Shader>(device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
+        format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
+    fragmentShader = make_unique<Shader>(device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
+        format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
+#endif
 }
-void RenderSystem::initDescriptorSets() {
-    //vector<VkDescriptorBufferInfo> bufferInfos;
-    //vector<VkDescriptorImageInfo> imageInfos;
-
-    //uint32_t descriptorSetIndex = 0;
-    //initDescriptedBuffers(bufferInfos);
-    ////initDescriptedTextures(descriptorSetIndex, imageInfos);
-
-    //for(int i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++) {
-    //    HlcDescriptorWriter(*descriptorSetLayout, *descriptorPool)
-    //        .writeBuffer(0, &bufferInfos[i])
-    //        .build(descriptorSets[i]);
-    //}
-}
-
-void RenderSystem::initDescriptedBuffers(vector<VkDescriptorBufferInfo>& buffer_infos) {
-    /*for(int i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++) {
-        descriptedBuffers.push_back(make_unique<Buffer>(hlcDevice,
-            sizeof(UniformBuffer),
-            1,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-            hlcDevice.physicalProperties.limits.minUniformBufferOffsetAlignment));
-
-        descriptedBuffers.back()->map();
-        buffer_infos.push_back(descriptedBuffers.back()->descriptorInfo());
-    }*/
-}
-//void RenderSystem::initDescriptedTextures(uint32_t& descriptor_set_index, vector<VkDescriptorImageInfo>& image_infos) {
-//	image_infos.resize(IMAGES);
-//	descriptedImages.resize(IMAGES);
-//
-//	descriptedImages[WALL] = make_unique<Image>("resources/textures/wall.png", hlcDevice);
-//	image_infos[WALL] = descriptedImages[WALL]->getDescriptorInfo(defaultTextureSampler->sampler());
-//}
 
 
 void RenderSystem::createPipelineLayout() {
-    //vector<VkDescriptorSetLayout> descriptorSetLayouts{descriptorSetLayout->getDescriptorSetLayout()};
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 0; //static_cast<uint32_t>(descriptorSetLayouts.size());
-    pipelineLayoutInfo.pSetLayouts = nullptr; //descriptorSetLayouts.data();
-    pipelineLayoutInfo.pushConstantRangeCount = push_info::RANGE_COUNT;
-    pipelineLayoutInfo.pPushConstantRanges = &push_info::RANGE_INFO;
-
-    const VkResult createResult = vkCreatePipelineLayout(hlcDevice->get(), &pipelineLayoutInfo, nullptr, &vkPipelineLayout);
-
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create pipeline layout")
-        throw cth::except::vk_result_exception{createResult, details->exception()};
+    pipelineLayout = make_unique<PipelineLayout>(device, PipelineLayout::Builder{});
 }
 void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
-    CTH_ERR(vkPipelineLayout == VK_NULL_HANDLE, "pipeline layout missing")
-        throw details->exception();
+    GraphicsPipelineConfig config = GraphicsPipelineConfig::createDefault();
 
-    PipelineConfigInfo pipelineConfig{};
-    Pipeline::defaultPipelineConfigInfo(pipelineConfig);
-    pipelineConfig.renderPass = render_pass;
-    pipelineConfig.multisampleInfo.rasterizationSamples = msaa_samples;
-    pipelineConfig.pipelineLayout = vkPipelineLayout;
-    hlcPipeline = std::make_unique<Pipeline>(hlcDevice, pipelineConfig);
+    config.renderPass = render_pass;
+    config.multisampleInfo->rasterizationSamples = msaa_samples;
+    config.addShaderStage(vertexShader.get());
+    config.addShaderStage(fragmentShader.get());
+
+    pipeline = std::make_unique<Pipeline>(device, pipelineLayout.get(), config);
 }
 
 
@@ -118,7 +66,7 @@ array<Vertex, 3> defaultTriangle{
 };
 
 void RenderSystem::createDefaultTriangle() {
-    defaultTriangleBuffer = make_unique<Buffer<Vertex>>(hlcDevice, 3,
+    defaultTriangleBuffer = make_unique<Buffer<Vertex>>(device, 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
@@ -126,7 +74,7 @@ void RenderSystem::createDefaultTriangle() {
 }
 
 void RenderSystem::render(FrameInfo& frame_info) const {
-    hlcPipeline->bind(frame_info.commandBuffer);
+    pipeline->bind(frame_info.commandBuffer);
     const vector<VkBuffer> vertexBuffers{defaultTriangleBuffer->get()};
     const vector<VkDeviceSize> offsets(vertexBuffers.size());
 
@@ -144,7 +92,7 @@ void RenderSystem::render(FrameInfo& frame_info) const {
     /*vkCmdBindDescriptorSets(frame_info.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
         &descriptorSets[frame_info.frameIndex], 0, nullptr);*/
 
-    frame_info.pipelineLayout = vkPipelineLayout;
+    frame_info.pipelineLayout = pipelineLayout->get();
 
 
     /*uint32_t index = 0;
@@ -176,7 +124,60 @@ void RenderSystem::render(FrameInfo& frame_info) const {
         index += render_data.groupSizes[i];
     }*/
 }
+
 }
 
 
-//FEATURE create multiple command buffers and a manager
+//void RenderSystem::initSamplers() {
+//	defaultTextureSampler = make_unique<HlcTextureSampler>(hlcDevice, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+//}
+
+/*void RenderSystem::initDescriptorUtils() {
+    //descriptorPool = HlcDescriptorPool::Builder(hlcDevice)
+    //                 .setMaxSets(Swapchain::MAX_FRAMES_IN_FLIGHT)
+    //                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, Swapchain::MAX_FRAMES_IN_FLIGHT)
+    //                 // .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Swapchain::MAX_FRAMES_IN_FLIGHT)
+    //                 .build();
+
+    //descriptorSetLayout = HlcDescriptorSetLayout::Builder(hlcDevice)
+    //                      .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+    //                      //.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+    //                      .build();
+    //descriptorSets.resize(descriptorPool->descriptorPoolInfo.maxSets);
+}
+void RenderSystem::initDescriptorSets() {
+    //vector<VkDescriptorBufferInfo> bufferInfos;
+    //vector<VkDescriptorImageInfo> imageInfos;
+
+    //uint32_t descriptorSetIndex = 0;
+    //initDescriptedBuffers(bufferInfos);
+    ////initDescriptedTextures(descriptorSetIndex, imageInfos);
+
+    //for(int i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++) {
+    //    HlcDescriptorWriter(*descriptorSetLayout, *descriptorPool)
+    //        .writeBuffer(0, &bufferInfos[i])
+    //        .build(descriptorSets[i]);
+    //}
+}
+
+void RenderSystem::initDescriptedBuffers(vector<VkDescriptorBufferInfo>& buffer_infos) {
+    for(int i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++) {
+        descriptedBuffers.push_back(make_unique<Buffer>(hlcDevice,
+            sizeof(UniformBuffer),
+            1,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+            hlcDevice.physicalProperties.limits.minUniformBufferOffsetAlignment));
+
+        descriptedBuffers.back()->map();
+        buffer_infos.push_back(descriptedBuffers.back()->descriptorInfo());
+    }
+}
+//void RenderSystem::initDescriptedTextures(uint32_t& descriptor_set_index, vector<VkDescriptorImageInfo>& image_infos) {
+//	image_infos.resize(IMAGES);
+//	descriptedImages.resize(IMAGES);
+//
+//	descriptedImages[WALL] = make_unique<Image>("resources/textures/wall.png", hlcDevice);
+//	image_infos[WALL] = descriptedImages[WALL]->getDescriptorInfo(defaultTextureSampler->sampler());
+//}
+*/

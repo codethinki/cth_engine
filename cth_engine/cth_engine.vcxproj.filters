@@ -39,6 +39,8 @@
     <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
     <ClInclude Include="src\vulkan\pipeline\layout\CthPipelineLayout.hpp" />
+    <ClInclude Include="src\vulkan\pipeline\layout\CthPipelineConfig.hpp" />
+    <ClInclude Include="src\CthEngine.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -71,5 +73,7 @@
     <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
     <ClCompile Include="engine_main.cpp" />
     <ClCompile Include="src\vulkan\pipeline\layout\CthPipelineLayout.cpp" />
+    <ClCompile Include="src\vulkan\pipeline\layout\CthPipelineConfig.cpp" />
+    <ClCompile Include="src\CthEngine.cpp" />
   </ItemGroup>
 </Project>

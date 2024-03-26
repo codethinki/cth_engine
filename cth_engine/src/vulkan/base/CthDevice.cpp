@@ -218,16 +218,6 @@ void Device::createCommandPool() {
 }
 void Device::initShaders() {
 
-    //TEMP move this
-#ifdef _FINAL
-    vertShader = make_unique<Shader>(this, Shader::TYPE_VERTEX, format("{}shader.vert.spv", SHADER_BINARY_DIR));
-    fragShader = make_unique<Shader>(this, Shader::TYPE_FRAGMENT, format("{}shader.frag.spv", SHADER_BINARY_DIR));
-#else
-    vertShader = make_unique<Shader>(this, Shader::TYPE_VERTEX, format("{}shader.vert.spv", SHADER_BINARY_DIR),
-        format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
-    fragShader = make_unique<Shader>(this, Shader::TYPE_FRAGMENT, format("{}shader.frag.spv", SHADER_BINARY_DIR),
-        format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
-#endif
 }
 
 

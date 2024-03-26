@@ -139,25 +139,9 @@ App::App() {
     setRenderData();
 };
 App::~App() {
-    log::msg<except::INFO>("destroying app");
 }
 
-void App::init() {
-    cth::log::msg<except::INFO>("initializing...");
 
-    Window::init();
-
-    log::msg<except::INFO>("initialized app");
-    initialized = true;
-}
-void App::terminate() {
-    cth::log::msg<except::INFO>("terminating...");
-
-    Window::terminate();
-
-    log::msg<except::INFO>("terminated app");
-    initialized = false;
-}
 
 
 }
