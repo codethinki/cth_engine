@@ -1,4 +1,0 @@
-../shader/shader.frag:3: error: 'outColor' : redefinition
-../shader/shader.frag:4: error: 'location' : overlapping use of location 0
-../shader/shader.frag:9: error: '' :  syntax error, unexpected VOID, expecting COMMA or SEMICOLON
-3 errors generated.

@@ -11,8 +11,8 @@ namespace cth {
 using namespace std;
 
 inline const string GLSL_COMPILER_PATH = R"(..\..\..\sdk\Vulkan\Bin\glslc.exe)";
-inline const string SHADER_GLSL_DIR = R"(vulkan\shader\)";
-inline const string SHADER_BINARY_DIR = R"(res\bin\shader\)";
+inline const string SHADER_GLSL_DIR = R"(..\cth_engine\src\vulkan\pipeline\shader\glsl\)";
+inline const string SHADER_BINARY_DIR = R"(..\cth_engine\res\bin\shader\)";
 
 class Instance;
 class Window;
