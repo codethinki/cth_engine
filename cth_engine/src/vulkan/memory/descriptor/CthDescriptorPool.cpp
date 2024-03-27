@@ -13,34 +13,6 @@
 #include <cth/cth_log.hpp>
 
 
-//Builder
-
-namespace cth {
-void DescriptorPool::Builder::addLayout(DescriptorSetLayout* layout, uint32_t alloc_count) {
-    CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
-    CTH_WARN(alloc_count == 0, "alloc_count should be > 0");
-
-    maxDescriptorSets[layout] += alloc_count;
-}
-void DescriptorPool::Builder::addLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations) {
-    ranges::for_each(set_allocations, [this](const auto& pair) { this->addLayout(pair.first, pair.second); });
-}
-void DescriptorPool::Builder::removeLayout(DescriptorSetLayout* layout, const VkDeviceSize amount) {
-    CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
-    CTH_WARN(amount == 0, "alloc_count should be > 0");
-    CTH_ERR(!maxDescriptorSets.contains(layout), "builder does not contain layout") throw details->exception();
-
-    if(amount >= maxDescriptorSets[layout]) maxDescriptorSets.erase(layout);
-    else maxDescriptorSets[layout] -= amount;
-}
-void DescriptorPool::Builder::removeLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations) {
-    ranges::for_each(set_allocations, [this](const auto& pair) { this->removeLayout(pair.first, pair.second); });
-}
-
-} // namespace cth
-
-
-
 //DescriptorPool
 
 namespace cth {
@@ -81,9 +53,11 @@ void DescriptorPool::reset() {
 vector<VkDescriptorPoolSize> DescriptorPool::calcPoolSizes() {
     unordered_map<VkDescriptorType, uint32_t> maxDescriptorUses{};
 
-    for(const auto& layout : allocatedSets | views::keys) {
+    for(const auto& [layout, entry] : allocatedSets) {
         const auto& bindings = layout->bindingsVec();
-        for(auto& binding : bindings) maxDescriptorUses[binding.descriptorType] += binding.descriptorCount;
+        const auto uses = static_cast<uint32_t>(entry.size());
+
+        for(auto& binding : bindings) maxDescriptorUses[binding.descriptorType] += binding.descriptorCount * uses;
     }
 
 
@@ -148,4 +122,30 @@ DescriptorPool::~DescriptorPool() {
     if(vkPool == VK_NULL_HANDLE) return;
     vkDestroyDescriptorPool(device->get(), vkPool, nullptr);
 }
+} // namespace cth
+
+//Builder
+
+namespace cth {
+void DescriptorPool::Builder::addLayout(DescriptorSetLayout* layout, const uint32_t alloc_count) {
+    CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
+    CTH_WARN(alloc_count == 0, "alloc_count should be > 0");
+
+    maxDescriptorSets[layout] += alloc_count;
+}
+void DescriptorPool::Builder::addLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations) {
+    ranges::for_each(set_allocations, [this](const auto& pair) { this->addLayout(pair.first, pair.second); });
+}
+void DescriptorPool::Builder::removeLayout(DescriptorSetLayout* layout, const VkDeviceSize amount) {
+    CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
+    CTH_WARN(amount == 0, "alloc_count should be > 0");
+    CTH_ERR(!maxDescriptorSets.contains(layout), "builder does not contain layout") throw details->exception();
+
+    if(amount >= maxDescriptorSets[layout]) maxDescriptorSets.erase(layout);
+    else maxDescriptorSets[layout] -= amount;
+}
+void DescriptorPool::Builder::removeLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations) {
+    ranges::for_each(set_allocations, [this](const auto& pair) { this->removeLayout(pair.first, pair.second); });
+}
+
 } // namespace cth

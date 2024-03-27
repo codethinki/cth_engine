@@ -20,23 +20,7 @@ using namespace std;
  */
 class DescriptorPool {
 public:
-    struct Builder {
-        Builder() = default;
-        explicit Builder(const unordered_map<DescriptorSetLayout*, uint32_t>& max_descriptor_sets) { addLayouts(max_descriptor_sets); }
-
-        void addLayout(DescriptorSetLayout* layout, uint32_t alloc_count);
-        void addLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
-
-        void removeLayout(DescriptorSetLayout* layout, VkDeviceSize amount = VK_WHOLE_SIZE);
-        void removeLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
-
-    private:
-        unordered_map<DescriptorSetLayout*, VkDeviceSize> maxDescriptorSets;
-
-        friend DescriptorPool;
-    };
-
-
+    struct Builder;
     /**
      * \note descriptor sets are not required to stay valid
      * \note the pool does not take ownership of the sets
@@ -102,6 +86,22 @@ public:
     ~DescriptorPool();
 
     [[nodiscard]] VkDescriptorPool get() const { return vkPool; }
+
+    struct Builder {
+        Builder() = default;
+        explicit Builder(const unordered_map<DescriptorSetLayout*, uint32_t>& max_descriptor_sets) { addLayouts(max_descriptor_sets); }
+
+        void addLayout(DescriptorSetLayout* layout, uint32_t alloc_count);
+        void addLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
+
+        void removeLayout(DescriptorSetLayout* layout, VkDeviceSize amount = VK_WHOLE_SIZE);
+        void removeLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
+
+    private:
+        unordered_map<DescriptorSetLayout*, VkDeviceSize> maxDescriptorSets;
+
+        friend DescriptorPool;
+    };
 
     DescriptorPool(const DescriptorPool& other) = delete;
     DescriptorPool(DescriptorPool&& other) = delete;
