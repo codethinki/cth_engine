@@ -16,9 +16,12 @@ class Camera;
 using namespace std;
 class Renderer {
 public:
+    explicit Renderer(Device* device, Camera* camera, Window* window);
+    ~Renderer();
+
     /**
      * \throws cth::except::vk_result_exception result of  Swapchain::acquireNextImage()
-     * \throws cth::except:vk_result_exception result of vkBeginCommandBuffer()
+     * \throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
      */
     VkCommandBuffer beginFrame();
     /**
@@ -29,12 +32,6 @@ public:
 
     void beginSwapchainRenderPass(VkCommandBuffer command_buffer) const;
     void endSwapchainRenderPass(VkCommandBuffer command_buffer) const;
-
-    explicit Renderer(Device* device, Camera* camera, Window* window);
-    ~Renderer();
-
-    Renderer(const Renderer&) = delete;
-    Renderer& operator=(const Renderer&) = delete;
 
 private:
     /**
@@ -75,5 +72,7 @@ public:
     [[nodiscard]] uint32_t frameIndex() const;
     [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return swapchain->getMsaaSampleCount(); }
 
+    Renderer(const Renderer&) = delete;
+    Renderer& operator=(const Renderer&) = delete;
 };
 }

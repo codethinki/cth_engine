@@ -15,6 +15,17 @@ class Device;
 
 class Pipeline {
 public:
+    /**
+    *\throws from private void create(...)
+    */
+    Pipeline(Device* device, const PipelineLayout* pipeline_layout, const GraphicsPipelineConfig& config_info);
+    /**
+    *\throws from private void create(...)
+    */
+    Pipeline(Device* device, const Pipeline* parent, const GraphicsPipelineConfig& config_info);
+
+    ~Pipeline();
+
     void bind(VkCommandBuffer command_buffer) const;
 
 private:
@@ -28,19 +39,10 @@ private:
     VkPipeline vkGraphicsPipeline{};
 
 public:
-    /**
-    *\throws from private void create(...)
-    */
-    Pipeline(Device* device, const PipelineLayout* pipeline_layout, const GraphicsPipelineConfig& config_info);
-    /**
-    *\throws from private void create(...)
-    */
-    Pipeline(Device* device, const Pipeline* parent, const GraphicsPipelineConfig& config_info);
-
-    ~Pipeline();
-
-    Pipeline(const Pipeline&) = delete;
-    Pipeline& operator=(const Pipeline&) = delete;
+    Pipeline(const Pipeline& other) = delete;
+    Pipeline(Pipeline&& other) = delete;
+    Pipeline& operator=(const Pipeline& other) = delete;
+    Pipeline& operator=(Pipeline&& other) = delete;
 };
 
 }

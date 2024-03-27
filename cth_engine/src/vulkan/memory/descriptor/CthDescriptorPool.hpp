@@ -22,6 +22,12 @@ class DescriptorPool {
 public:
     struct Builder;
     /**
+    * \param builder [layout, count] pairs -> limit for allocated sets per layout
+    * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
+    */
+    DescriptorPool(Device* device, const Builder& builder);
+    ~DescriptorPool();
+    /**
      * \note descriptor sets are not required to stay valid
      * \note the pool does not take ownership of the sets
      */
@@ -37,9 +43,7 @@ public:
 
 private:
     struct SetLayoutEntry {
-        void reset() {
-            used = 0;
-        }
+        void reset() { used = 0; }
         [[nodiscard]] VkDescriptorSet newVkSet() {
             CTH_ERR(used >= span.size(), "out of descriptor sets") throw details->exception();
             return span[used++];
@@ -52,6 +56,7 @@ private:
 
     vector<VkDescriptorPoolSize> calcPoolSizes();
 
+    void initSetEntries(const Builder& builder);
     /**
      * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
      */
@@ -78,13 +83,6 @@ private:
     friend DescriptorSet;
 
 public:
-    /**
-    * \param builder [layout, count] pairs -> limit for allocated sets per layout
-    * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
-    */
-    DescriptorPool(Device* device, const Builder& builder);
-    ~DescriptorPool();
-
     [[nodiscard]] VkDescriptorPool get() const { return vkPool; }
 
     struct Builder {

@@ -20,24 +20,9 @@ class DescriptorSet {
     };
 
 public:
-    struct Builder {
-        explicit Builder(DescriptorSetLayout* layout);
-        Builder& addDescriptor(Descriptor* descriptor, uint32_t binding, uint32_t arr_index = 0);
-        Builder& addDescriptors(const vector<Descriptor*>& descriptors, uint32_t binding, uint32_t arr_first);
-
-        Builder& removeDescriptor(uint32_t binding, uint32_t arr_index);
-        Builder& removeDescriptors(uint32_t binding, uint32_t arr_first, uint32_t count);
-
-    private:
-        DescriptorSetLayout* layout;
-        vector<vector<Descriptor*>> descriptors{};
-
-        friend DescriptorSet;
-    };
-
-    explicit DescriptorSet(const Builder& builder);
-    virtual ~DescriptorSet();
-
+   struct Builder;
+   explicit DescriptorSet(const Builder& builder);
+   virtual ~DescriptorSet();
 
 private:
     void alloc(VkDescriptorSet set, DescriptorPool* pool);
@@ -63,14 +48,28 @@ private:
     friend DescriptorPool;
 
 public:
+    [[nodiscard]] VkDescriptorSet get() const { return vkSet; }
+    [[nodiscard]] bool written() const { return _written; }
+
+    struct Builder {
+        explicit Builder(DescriptorSetLayout* layout);
+        Builder& addDescriptor(Descriptor* descriptor, uint32_t binding, uint32_t arr_index = 0);
+        Builder& addDescriptors(const vector<Descriptor*>& descriptors, uint32_t binding, uint32_t arr_first);
+
+        Builder& removeDescriptor(uint32_t binding, uint32_t arr_index);
+        Builder& removeDescriptors(uint32_t binding, uint32_t arr_first, uint32_t count);
+
+    private:
+        DescriptorSetLayout* layout;
+        vector<vector<Descriptor*>> descriptors{};
+
+        friend DescriptorSet;
+    };
+
     DescriptorSet(const DescriptorSet& other) = delete;
     DescriptorSet(DescriptorSet&& other) = delete;
     DescriptorSet& operator=(const DescriptorSet& other) = delete;
     DescriptorSet& operator=(DescriptorSet&& other) = delete;
-
-
-    [[nodiscard]] VkDescriptorSet get() const { return vkSet; }
-    [[nodiscard]] bool written() const { return _written; }
 };
 
 }

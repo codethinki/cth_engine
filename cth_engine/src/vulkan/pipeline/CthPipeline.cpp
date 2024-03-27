@@ -13,7 +13,17 @@
 
 namespace cth {
 using namespace std;
+Pipeline::Pipeline(Device* device, const PipelineLayout* pipeline_layout, const GraphicsPipelineConfig& config_info) : device{device} {
+    create(config_info, pipeline_layout, nullptr);
+}
+Pipeline::Pipeline(Device* device, const Pipeline* parent, const GraphicsPipelineConfig& config_info) : device(device) {
+    create(config_info, nullptr, parent);
+}
 
+Pipeline::~Pipeline() {
+    vkDestroyPipeline(device->get(), vkGraphicsPipeline, nullptr);
+    log::msg("graphics pipeline destroyed");
+}
 
 
 void Pipeline::create(const GraphicsPipelineConfig& config_info, const PipelineLayout* pipeline_layout, const Pipeline* parent) {
@@ -64,17 +74,4 @@ void Pipeline::bind(VkCommandBuffer command_buffer) const {
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkGraphicsPipeline);
 }
 
-Pipeline::Pipeline(Device* device, const PipelineLayout* pipeline_layout, const GraphicsPipelineConfig& config_info) : device{device} {
-    create(config_info, pipeline_layout, nullptr);
-}
-Pipeline::Pipeline(Device* device, const Pipeline* parent, const GraphicsPipelineConfig& config_info) : device(device) {
-    create(config_info, nullptr, parent);
-}
-
-Pipeline::~Pipeline() {
-    vkDestroyPipeline(device->get(), vkGraphicsPipeline, nullptr);
-    log::msg("graphics pipeline destroyed");
-}
-
-
-}
+} //namespace cth

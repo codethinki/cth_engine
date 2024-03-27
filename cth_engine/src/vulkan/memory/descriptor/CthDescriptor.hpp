@@ -18,6 +18,8 @@ class DescriptedResource;
 class Descriptor {
 public:
     using descriptor_info_t = optional<variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>>;
+    Descriptor(VkDescriptorType type, const DescriptedResource& resource, VkDeviceSize size, VkDeviceSize resource_offset);
+    ~Descriptor() = default;
 
     [[nodiscard]] VkDescriptorBufferInfo bufferInfo() const {
         CTH_ERR(resInfo == std::nullopt || !holds_alternative<VkDescriptorBufferInfo>(*resInfo), "invalid, no buffer info present")
@@ -34,9 +36,6 @@ private:
     descriptor_info_t resInfo;
 
 public:
-    Descriptor(VkDescriptorType type, const DescriptedResource& resource, VkDeviceSize size, VkDeviceSize resource_offset);
-    ~Descriptor() = default;
-
     [[nodiscard]] VkDescriptorType type() const { return vkType; }
 
     Descriptor(const Descriptor& other) = delete;

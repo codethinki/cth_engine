@@ -9,74 +9,10 @@
 #include <cth/cth_log.hpp>
 
 
-//Builder
-
-namespace cth {
-DescriptorSet::Builder::Builder(DescriptorSetLayout* layout) : layout(layout) {
-    const auto& bindings = layout->bindingsVec();
-    descriptors.resize(bindings.size());
-
-    ranges::for_each(bindings, [this](const VkDescriptorSetLayoutBinding& binding) { descriptors[binding.binding].resize(binding.descriptorCount); });
-}
-
-DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descriptor, uint32_t binding, const uint32_t arr_index) {
-
-    CTH_ERR(descriptor != nullptr && (descriptor->type() != layout->bindingType(binding)), "descriptor and layout type at binding dont match") {
-        details->add("binding: {}", binding);
-        details->add("descriptor type: {}", to_string(descriptor->type()));
-        details->add("layout type at binding: {}", to_string(layout->bindingType(binding)));
-
-        throw cth::except::data_exception{layout->bindingType(binding), details->exception()};
-    }
-    CTH_WARN(descriptors[binding][arr_index] != nullptr, "overwriting already added descriptor") {
-        details->add("binding: {}", binding);
-        details->add("array index: {}", arr_index);
-    }
-    CTH_INFORM(descriptor == nullptr, "adding empty descriptor, consider using removeDescriptor() instead") {
-        details->add("binding: {}", binding);
-        details->add("array index: {}", arr_index);
-    }
-
-
-    descriptors[binding][arr_index] = descriptor;
-    return *this;
-}
-DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(const vector<Descriptor*>& binding_descriptors, uint32_t binding, uint32_t arr_first) {
-    CTH_ERR(descriptors.size() + arr_first > descriptors.size(), "out of range for layout size at binding") {
-        details->add("binding: {0}, layout size: {1}", binding, descriptors[binding].size());
-        details->add("binding descriptors: {0}, arr_first: {1}", binding_descriptors.size(), arr_first);
-        throw details->exception();
-    }
-    CTH_INFORM(ranges::any_of(binding_descriptors, [](Descriptor* descriptor) { return !descriptor; }),
-        "adding empty descriptors, consider using removeDescriptors() instead") {
-        details->add("binding: {}", binding);
-        details->add("array first: {}", arr_first);
-    }
-
-    ranges::copy(binding_descriptors, descriptors[binding].begin() + arr_first);
-
-    return *this;
-}
-DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptor(const uint32_t binding, const uint32_t arr_index) {
-    descriptors[binding][arr_index] = nullptr;
-    return *this;
-}
-DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(const uint32_t binding, const uint32_t arr_first, const uint32_t count) {
-    CTH_ERR(arr_first + count > descriptors[binding].size(), "out of ranger for layout size at binding") {
-        details->add("binding: {0}, layout size: {1}", binding, descriptors[binding].size());
-        details->add("arr_first: {0}, count: {1}", arr_first, count);
-        throw details->exception();
-    }
-    ranges::fill_n(descriptors[binding].begin() + arr_first, count, nullptr);
-    return *this;
-}
-
-}
 
 //DescriptorSet
 
 namespace cth {
-
 DescriptorSet::DescriptorSet(const Builder& builder) : layout(builder.layout), descriptors(builder.descriptors) { copyInfos(); }
 DescriptorSet::~DescriptorSet() { if(pool != nullptr) pool->descriptorSetDestroyed(this); }
 
@@ -103,7 +39,6 @@ vector<VkWriteDescriptorSet> DescriptorSet::writes() {
     write.dstSet = vkSet;
 
     for(auto [binding, binding_descriptors] : descriptors | views::enumerate) {
-
         write.dstBinding = static_cast<uint32_t>(binding);
         write.descriptorType = layout->bindingType(static_cast<uint32_t>(binding));
         const auto type = infoType(write.descriptorType);
@@ -194,5 +129,69 @@ DescriptorSet::InfoType DescriptorSet::infoType(const VkDescriptorType descripto
             return InfoType::NONE;
     }
 }
+
 } // namespace cth
 
+
+//Builder
+namespace cth {
+DescriptorSet::Builder::Builder(DescriptorSetLayout* layout) : layout(layout) {
+    const auto& bindings = layout->bindingsVec();
+    descriptors.resize(bindings.size());
+
+    ranges::for_each(bindings, [this](const VkDescriptorSetLayoutBinding& binding) { descriptors[binding.binding].resize(binding.descriptorCount); });
+}
+
+DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descriptor, uint32_t binding, const uint32_t arr_index) {
+
+    CTH_ERR(descriptor != nullptr && (descriptor->type() != layout->bindingType(binding)), "descriptor and layout type at binding dont match") {
+        details->add("binding: {}", binding);
+        details->add("descriptor type: {}", to_string(descriptor->type()));
+        details->add("layout type at binding: {}", to_string(layout->bindingType(binding)));
+
+        throw cth::except::data_exception{layout->bindingType(binding), details->exception()};
+    }
+    CTH_WARN(descriptors[binding][arr_index] != nullptr, "overwriting already added descriptor") {
+        details->add("binding: {}", binding);
+        details->add("array index: {}", arr_index);
+    }
+    CTH_INFORM(descriptor == nullptr, "adding empty descriptor, consider using removeDescriptor() instead") {
+        details->add("binding: {}", binding);
+        details->add("array index: {}", arr_index);
+    }
+
+
+    descriptors[binding][arr_index] = descriptor;
+    return *this;
+}
+DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(const vector<Descriptor*>& binding_descriptors, uint32_t binding, uint32_t arr_first) {
+    CTH_ERR(descriptors.size() + arr_first > descriptors.size(), "out of range for layout size at binding") {
+        details->add("binding: {0}, layout size: {1}", binding, descriptors[binding].size());
+        details->add("binding descriptors: {0}, arr_first: {1}", binding_descriptors.size(), arr_first);
+        throw details->exception();
+    }
+    CTH_INFORM(ranges::any_of(binding_descriptors, [](Descriptor* descriptor) { return !descriptor; }),
+        "adding empty descriptors, consider using removeDescriptors() instead") {
+        details->add("binding: {}", binding);
+        details->add("array first: {}", arr_first);
+    }
+
+    ranges::copy(binding_descriptors, descriptors[binding].begin() + arr_first);
+
+    return *this;
+}
+DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptor(const uint32_t binding, const uint32_t arr_index) {
+    descriptors[binding][arr_index] = nullptr;
+    return *this;
+}
+DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(const uint32_t binding, const uint32_t arr_first, const uint32_t count) {
+    CTH_ERR(arr_first + count > descriptors[binding].size(), "out of ranger for layout size at binding") {
+        details->add("binding: {0}, layout size: {1}", binding, descriptors[binding].size());
+        details->add("arr_first: {0}, count: {1}", arr_first, count);
+        throw details->exception();
+    }
+    ranges::fill_n(descriptors[binding].begin() + arr_first, count, nullptr);
+    return *this;
+}
+
+}

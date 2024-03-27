@@ -46,5 +46,6 @@
 	- add render pass wrapper
 		- add wrapper ptr to GraphicsPipelineConfig
 	- maybe add a command buffer manager
+	- put all the constructors at the top fuck me
 
 ## 4. implement dear imgui support

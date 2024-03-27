@@ -17,6 +17,18 @@
 
 namespace cth {
 
+DescriptorPool::DescriptorPool(Device* device, const Builder& builder) : device(device) {
+    initSetEntries(builder);
+    create();
+    allocSets();
+}
+
+DescriptorPool::~DescriptorPool() {
+    if(vkPool == VK_NULL_HANDLE) return;
+    vkDestroyDescriptorPool(device->get(), vkPool, nullptr);
+
+    log::msg("destroyed descriptor pool");
+}
 
 void DescriptorPool::writeSets(const vector<DescriptorSet*>& sets) {
     CTH_WARN(sets.empty(), "sets vector empty") throw details->exception();
@@ -66,6 +78,12 @@ vector<VkDescriptorPoolSize> DescriptorPool::calcPoolSizes() {
 
     return poolSizes;
 }
+void DescriptorPool::initSetEntries(const Builder& builder) {
+    for(auto& [layout, count] : builder.maxDescriptorSets) {
+        vkSets.resize(vkSets.size() + count);
+        allocatedSets[layout].span = span{&vkSets[vkSets.size() - count], count};
+    }
+}
 
 void DescriptorPool::create() {
     const vector<VkDescriptorPoolSize> poolSizes = calcPoolSizes();
@@ -79,6 +97,8 @@ void DescriptorPool::create() {
     const VkResult createResult = vkCreateDescriptorPool(device->get(), &createInfo, nullptr, &vkPool);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "vk: failed to create descriptor pool")
         throw cth::except::vk_result_exception(createResult, details->exception());
+
+    log::msg("created descriptor pool");
 }
 
 void DescriptorPool::allocSets() {
@@ -106,21 +126,6 @@ void DescriptorPool::descriptorSetDestroyed(DescriptorSet* set) {
     CTH_WARN(!descriptorSets.contains(set), "set not present in pool");
 
     descriptorSets.erase(set);
-}
-
-DescriptorPool::DescriptorPool(Device* device, const Builder& builder) : device(device) {
-    for(auto& [layout, count] : builder.maxDescriptorSets) {
-        vkSets.resize(vkSets.size() + count);
-        allocatedSets[layout].span = span{&vkSets[vkSets.size() - count], count};
-    }
-
-    create();
-    allocSets();
-}
-
-DescriptorPool::~DescriptorPool() {
-    if(vkPool == VK_NULL_HANDLE) return;
-    vkDestroyDescriptorPool(device->get(), vkPool, nullptr);
 }
 } // namespace cth
 

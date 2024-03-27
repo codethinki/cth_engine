@@ -22,6 +22,14 @@ public:
 };
 
 class Shader {
+public:
+    /**
+     *\throws cth::except::vk_result_exception result of vkCreateShaderModule()
+     */
+    explicit Shader(Device* device, VkShaderStageFlagBits stage, string_view spv_path);
+    ~Shader();
+
+private:
     void loadSpv();
     void create();
 
@@ -48,12 +56,6 @@ public:
     */
     explicit Shader(Device* device, VkShaderStageFlagBits stage, string_view spv_path, string_view glsl_path, string_view compiler_path);
 #endif
-    /**
-     *\throws cth::except::vk_result_exception result of vkCreateShaderModule()
-     */
-    explicit Shader(Device* device, VkShaderStageFlagBits stage, string_view spv_path);
-    ~Shader();
-
 
     [[nodiscard]] vector<char> binary() const { return bytecode; }
     [[nodiscard]] size_t size() const { return bytecode.size(); }

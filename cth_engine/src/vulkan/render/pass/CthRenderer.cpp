@@ -12,6 +12,12 @@
 
 
 namespace cth {
+Renderer::Renderer(Device* device, Camera* camera, Window* window) : device{device}, camera{camera}, window(window), currentImageIndex{0} {
+    recreateSwapchain();
+    createCommandBuffers();
+}
+Renderer::~Renderer() { freeCommandBuffers(); }
+
 VkExtent2D Renderer::minimizedState() const {
     auto extent = window->getExtent();
     while(extent.width == 0 || extent.height == 0) {
@@ -156,10 +162,4 @@ void Renderer::endSwapchainRenderPass(VkCommandBuffer command_buffer) const {
 
     vkCmdEndRenderPass(command_buffer);
 }
-
-Renderer::Renderer(Device* device, Camera* camera, Window* window) : device{device}, camera{camera}, window(window), currentImageIndex{0} {
-    recreateSwapchain();
-    createCommandBuffers();
-}
-Renderer::~Renderer() { freeCommandBuffers(); }
-}
+} // namespace cth

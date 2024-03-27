@@ -8,13 +8,24 @@
 #include <format>
 #include <fstream>
 
+//Specialization
 
 namespace cth {
 ShaderSpecialization::ShaderSpecialization(span<VkSpecializationMapEntry> entries, span<char> data) : vkInfo{static_cast<uint32_t>(entries.size()),
     entries.data(), data.size(), reinterpret_cast<void*>(data.data())} {}
 }
 
+//Shader
+
 namespace cth {
+Shader::Shader(Device* device, const VkShaderStageFlagBits stage, const string_view spv_path) : device(device), vkStage(stage), spvPath(spv_path) {
+    init();
+}
+Shader::~Shader() {
+    vkDestroyShaderModule(device->get(), vkModule, nullptr);
+    log::msg("destroyed shader module, spv-file: {0}", filesystem::path(spvPath).filename().string());
+}
+
 void Shader::loadSpv() {
     CTH_STABLE_ERR(!filesystem::exists(spvPath), "file does not exist") {
         details->add("file: {0}", spvPath);
@@ -55,8 +66,7 @@ void Shader::create() {
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create shader module")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
-    CTH_LOG(true, "created shader module: ")
-        details->add("file: {0}", filesystem::path(spvPath).filename().string());
+    log::msg("created shader module, spv-file: {0}", filesystem::path(spvPath).filename().string());
 }
 void Shader::init() {
     loadSpv();
@@ -123,10 +133,5 @@ Shader::Shader(Device* device, const VkShaderStageFlagBits stage, const string_v
 }
 
 #endif //_FINAL
-
-Shader::Shader(Device* device, const VkShaderStageFlagBits stage, const string_view spv_path) : device(device), vkStage(stage), spvPath(spv_path) {
-    init();
-}
-Shader::~Shader() { vkDestroyShaderModule(device->get(), vkModule, nullptr); }
 
 }
