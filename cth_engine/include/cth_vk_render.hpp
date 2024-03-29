@@ -4,7 +4,7 @@
 #include "vulkan/render/model/HlcModel.hpp"
 #include "vulkan/render/model/HlcModelManager.hpp"
 #include "vulkan/render/model/HlcTextureSampler.hpp"
-#include "vulkan/render/model/HlcVertex.hpp"
+#include "..\src\vulkan\render\model\CthVertex.hpp"
 
 
 #include "vulkan/render/pass/CthRenderer.hpp"

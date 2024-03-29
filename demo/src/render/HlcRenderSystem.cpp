@@ -60,9 +60,9 @@ void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSample
 
 
 array<Vertex, 3> defaultTriangle{
-    Vertex{{-1.f, -0.5f, 0.2f}, {}, {}, {}},
-    Vertex{{0, 1.f, 0.2f}, {}, {}, {}},
-    Vertex{{1.f, -0.5f, 0.2f}, {}, {}, {}},
+    Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {}, {}},
+    Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {}, {}},
+    Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {}, {}},
 };
 
 void RenderSystem::createDefaultTriangle() {

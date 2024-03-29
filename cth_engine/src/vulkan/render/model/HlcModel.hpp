@@ -1,5 +1,5 @@
 #pragma once
-#include "HlcVertex.hpp"
+#include "CthVertex.hpp"
 
 #include <string>
 

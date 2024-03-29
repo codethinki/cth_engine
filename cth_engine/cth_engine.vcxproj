@@ -53,7 +53,7 @@
     <ClInclude Include="src\vulkan\render\model\HlcModel.hpp" />
     <ClInclude Include="src\vulkan\render\model\HlcModelManager.hpp" />
     <ClInclude Include="src\vulkan\render\model\HlcTextureSampler.hpp" />
-    <ClInclude Include="src\vulkan\render\model\HlcVertex.hpp" />
+    <ClInclude Include="src\vulkan\render\model\CthVertex.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthRenderer.hpp" />
     <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSwapchain.hpp" />
@@ -89,7 +89,6 @@
     <ClCompile Include="src\vulkan\render\model\HlcModel.cpp" />
     <ClCompile Include="src\vulkan\render\model\HlcModelManager.cpp" />
     <ClCompile Include="src\vulkan\render\model\HlcTextureSampler.cpp" />
-    <ClCompile Include="src\vulkan\render\model\HlcVertex.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthRenderer.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />

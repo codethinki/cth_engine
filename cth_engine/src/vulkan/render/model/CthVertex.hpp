@@ -23,7 +23,7 @@ struct Vertex {
     glm::vec2 uv{};
 
     constexpr Vertex() = default;
-    constexpr Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec2& material_uv, const glm::vec2& uv) : position(position),
+    constexpr Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec2& uv) : position(position),
         normal(normal), uv(uv) {}
 
     constexpr bool operator==(const Vertex& other) const {
@@ -34,8 +34,6 @@ struct Vertex {
     constexpr Vertex& operator=(const Vertex& other) = default;
 
     //IMPLEMENT the per instance data field
-
-
 };
 inline constexpr array<VkVertexInputBindingDescription, 1> VERTEX_BINDING_DESCRIPTIONS{{
     {0, static_cast<uint32_t>(sizeof(Vertex)), VK_VERTEX_INPUT_RATE_VERTEX}
@@ -56,10 +54,6 @@ inline constexpr bool is_render_type_v = _Is_any_of_v<T, vertex_t, index_t, inst
 
 template<typename T>
 concept render_type = is_render_type_v<T>;
-
-
-
-
 
 }
 

@@ -1,7 +1,7 @@
 #include "CthPipelineConfig.hpp"
 
 #include "vulkan/pipeline/shader/CthShader.hpp"
-#include "vulkan/render/model/HlcVertex.hpp"
+#include "..\..\render\model\CthVertex.hpp"
 
 namespace cth {
 void GraphicsPipelineConfig::addShaderStage(const Shader* shader, const ShaderSpecialization* specialization_info,

@@ -6,7 +6,7 @@
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/memory/buffer/CthBuffer.hpp"
 #include "vulkan/pipeline/CthPipeline.hpp"
-#include "vulkan/render/model/HlcVertex.hpp"
+#include "..\..\..\cth_engine\src\vulkan\render\model\CthVertex.hpp"
 
 #include <memory>
 
