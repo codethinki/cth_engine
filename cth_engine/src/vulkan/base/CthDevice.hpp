@@ -11,7 +11,6 @@ namespace cth {
 using namespace std;
 class Instance;
 class Window;
-class Shader; //TEMP
 
 struct SwapchainSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities{};
@@ -38,6 +37,9 @@ public:
         features.samplerAnisotropy = true;
         return features;
     }();
+
+    explicit Device(Window* window, Instance* instance);
+    ~Device();
 
     [[nodiscard]] SwapchainSupportDetails getSwapchainSupport() const { return querySwapchainSupport(vkPhysicalDevice); }
     /**
@@ -80,12 +82,6 @@ public:
     void createImageWithInfo(const VkImageCreateInfo& image_info, VkMemoryPropertyFlags properties, VkImage& image,
         VkDeviceMemory& image_memory) const;
 
-
-    VkPhysicalDeviceProperties physicalProperties;
-
-    unique_ptr<Shader> vertShader; //TEMP move this
-    unique_ptr<Shader> fragShader; //TEMP move this
-
 private:
     //pickPhysicalDevice
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physical_device) const;
@@ -98,18 +94,20 @@ private:
      * \throws cth::except::default_exception reason: no suitable gpu
      */
     void pickPhysicalDevice();
+
+    void setDeviceSpecificConstants();
+
     //createLogicalDevice
     /**
     * \throws cth::except::vk_result_exception result of vkCreateDevice()
     */
     void createLogicalDevice();
+
     //createCommandPool
     /**
      * \throws cth::except::vk_result_exception result of vkCreateCommandPool()
      */
     void createCommandPool();
-    //initShaders
-    void initShaders();
 
     Window* window;
     Instance* instance;
@@ -122,19 +120,21 @@ private:
     VkQueue vkGraphicsQueue = VK_NULL_HANDLE;
     VkQueue vkPresentQueue = VK_NULL_HANDLE;
 
+    uint32_t _minBufferAlignment;
+    VkPhysicalDeviceProperties physicalProperties;
+
+
 public:
-    explicit Device(Window* window, Instance* instance);
-    ~Device();
+    [[nodiscard]] VkCommandPool getCommandPool() const { return commandPool; }
+    [[nodiscard]] VkDevice get() const { return vkDevice; }
+    [[nodiscard]] VkQueue graphicsQueue() const { return vkGraphicsQueue; }
+    [[nodiscard]] VkQueue presentQueue() const { return vkPresentQueue; }
+    [[nodiscard]] VkPhysicalDeviceLimits limits() const { return physicalProperties.limits; }
+    [[nodiscard]] uint32_t minBufferAlignment() const { return _minBufferAlignment; }
 
     Device(const Device&) = delete;
     Device& operator=(const Device&) = delete;
     Device(Device&&) = delete;
     Device& operator=(Device&&) = delete;
-
-    [[nodiscard]] VkCommandPool getCommandPool() const { return commandPool; }
-    [[nodiscard]] VkDevice get() const { return vkDevice; } //TODO rename this to get()
-    [[nodiscard]] VkQueue graphicsQueue() const { return vkGraphicsQueue; }
-    [[nodiscard]] VkQueue presentQueue() const { return vkPresentQueue; }
-    [[nodiscard]] VkPhysicalDeviceLimits limits() const { return physicalProperties.limits; }
 };
 } // namespace cth

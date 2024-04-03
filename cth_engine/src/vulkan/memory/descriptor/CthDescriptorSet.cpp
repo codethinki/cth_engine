@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cth/cth_log.hpp>
 
+#include "vulkan/utility/CthVkUtils.hpp"
+
 
 
 //DescriptorSet
@@ -86,7 +88,7 @@ void DescriptorSet::copyInfos() {
 
         CTH_STABLE_ASSERT(type != InfoType::NONE, "descriptor with no info not implemented") {
             details->add("binding: {}", binding);
-            details->add("descriptor type: {}", to_string(vkType));
+            details->add("descriptor type: {}", utils::to_string(vkType));
         }
 
 
@@ -134,6 +136,7 @@ DescriptorSet::InfoType DescriptorSet::infoType(const VkDescriptorType descripto
 
 
 //Builder
+
 namespace cth {
 DescriptorSet::Builder::Builder(DescriptorSetLayout* layout) : layout(layout) {
     const auto& bindings = layout->bindingsVec();
@@ -146,8 +149,8 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descri
 
     CTH_ERR(descriptor != nullptr && (descriptor->type() != layout->bindingType(binding)), "descriptor and layout type at binding dont match") {
         details->add("binding: {}", binding);
-        details->add("descriptor type: {}", to_string(descriptor->type()));
-        details->add("layout type at binding: {}", to_string(layout->bindingType(binding)));
+        details->add("descriptor type: {}", utils::to_string(descriptor->type()));
+        details->add("layout type at binding: {}", utils::to_string(layout->bindingType(binding)));
 
         throw cth::except::data_exception{layout->bindingType(binding), details->exception()};
     }

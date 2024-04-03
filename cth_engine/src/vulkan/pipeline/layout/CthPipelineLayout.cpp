@@ -23,10 +23,10 @@ namespace cth {
 
         const VkResult result = vkCreatePipelineLayout(device->get(), &pipelineLayoutInfo, nullptr, &vkLayout);
 
-        CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline layout")
+        CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline-layout")
             throw except::vk_result_exception(result, details->exception());
 
-        log::msg("created pipeline layout");
+        log::msg("created pipeline-layout");
     }
 
 
@@ -35,7 +35,7 @@ namespace cth {
     }
     PipelineLayout::~PipelineLayout() {
         vkDestroyPipelineLayout(device->get(), vkLayout, nullptr);
-        log::msg("destroyed pipeline layout");
+        log::msg("destroyed pipeline-layout");
     }
 }
 

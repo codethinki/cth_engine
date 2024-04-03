@@ -8,7 +8,7 @@
 #include <array>
 
 
-namespace cth {
+namespace cth::utils {
 
 [[nodiscard]] inline std::array<bool, 55> deviceFeaturesToArray(const VkPhysicalDeviceFeatures& features) {
     std::array<VkBool32, 55> arr{

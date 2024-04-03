@@ -12,15 +12,15 @@
 #include "vulkan/surface/CthSwapchain.hpp"
 
 
+//TEMP remove this file
 
 namespace cth {
 
-Image::Image(Device& device) : device{device}, image{nullptr} {}
+oldImage::oldImage(Device& device) : device{device}, image{nullptr} {}
 
-void Image::loadImage(const string& path) {
+void oldImage::loadImage(const string& path) {
     uint8_t* img = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
-    //TEMP fix this
    /* const auto buffer = make_unique<Buffer>(get, sizeof(img[0]) * 4, width * height, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     buffer->map();
@@ -37,28 +37,28 @@ void Image::loadImage(const string& path) {
 }
 
 
-void Image::stage(const VkBuffer buffer) {
+void oldImage::stage(const VkBuffer buffer) {
     transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     copyBufferToImage(buffer);
     transitionImageLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
-void Image::createDescriptorInfo() {
+void oldImage::createDescriptorInfo() {
     descriptorInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     descriptorInfo.imageView = imageView;
 }
 
 
-void Image::createThisImage(const VkImageTiling tiling, const VkImageUsageFlags usages) {
+void oldImage::createThisImage(const VkImageTiling tiling, const VkImageUsageFlags usages) {
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
     imageInfo.extent.width = width;
     imageInfo.extent.height = height;
     imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = 1;
+    imageInfo.mipLevels = 1; //mit level variable?
     imageInfo.arrayLayers = 1;
     //if(channels == 3) imageInfo.format = VK_FORMAT_R8G8B8_SRGB;
     //else if(channels == 4) imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
-    //else throw invalid_argument("createImage: unknown channel number");
+    //else throw invalid_argument("createImage: unknoaber wn channel number");
     imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
 
     imageInfo.tiling = tiling;
@@ -69,7 +69,7 @@ void Image::createThisImage(const VkImageTiling tiling, const VkImageUsageFlags 
     imageInfo.flags = 0; //
     if(vkCreateImage(device.get(), &imageInfo, nullptr, &image) != VK_SUCCESS) throw runtime_error("createImage: failed to create image");
 }
-void Image::allocateThisImage() {
+void oldImage::allocateThisImage() {
     vkGetImageMemoryRequirements(device.get(), image, &memoryRequirements);
 
     allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -82,7 +82,7 @@ void Image::allocateThisImage() {
     vkBindImageMemory(device.get(), image, imageMemory, 0);
 }
 
-void Image::transitionImageLayout(const VkImageLayout new_layout) {
+void oldImage::transitionImageLayout(const VkImageLayout new_layout) {
     const auto commandBuffer = device.beginSingleTimeCommands();
 
     VkImageMemoryBarrier barrier{};
@@ -94,7 +94,7 @@ void Image::transitionImageLayout(const VkImageLayout new_layout) {
     barrier.image = image;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.levelCount = 1; //mip levels?
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
@@ -121,7 +121,7 @@ void Image::transitionImageLayout(const VkImageLayout new_layout) {
 
     imageLayout = new_layout;
 }
-void Image::copyBufferToImage(const VkBuffer buffer) const {
+void oldImage::copyBufferToImage(const VkBuffer buffer) const {
     const auto commandBuffer = device.beginSingleTimeCommands();
 
     VkBufferImageCopy region{};
@@ -139,14 +139,14 @@ void Image::copyBufferToImage(const VkBuffer buffer) const {
     device.endSingleTimeCommands(commandBuffer);
 }
 
-Image::~Image() {
+oldImage::~oldImage() {
     vkDestroyImageView(device.get(), imageView, nullptr);
 
     vkDestroyImage(device.get(), image, nullptr);
     vkFreeMemory(device.get(), imageMemory, nullptr);
 }
 
-void Image::createImage(const uint32_t width, const uint32_t height, const uint32_t mip_levels, const VkSampleCountFlagBits num_samples,
+void oldImage::createImage(const uint32_t width, const uint32_t height, const uint32_t mip_levels, const VkSampleCountFlagBits num_samples,
     const VkFormat format, const VkImageTiling tiling,
     const VkImageUsageFlags usage, const VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& image_memory, const Device& device) {
     VkImageCreateInfo imageInfo{};

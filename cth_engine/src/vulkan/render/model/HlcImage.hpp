@@ -8,10 +8,10 @@ namespace cth {
 using namespace std;
 class Device;
 
-class Image {
+class oldImage {
 public:
-    Image(Device& device);
-    ~Image();
+    explicit oldImage(Device& device);
+    ~oldImage();
 
     void loadImage(const string& path);
 
@@ -20,8 +20,8 @@ public:
         return descriptorInfo;
     }
 
-    Image(const Image&) = delete;
-    Image& operator=(const Image&) = delete;
+    oldImage(const oldImage&) = delete;
+    oldImage& operator=(const oldImage&) = delete;
 
     int width, height, channels;
 

@@ -90,7 +90,7 @@ VkResult Swapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_t i
 
     const VkResult submitResult = submit(buffer);
     CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to submit draw call")
-        throw cth::except::vk_result_exception{submitResult, details->exception()}; //TEMP this is bad structure
+        throw cth::except::vk_result_exception{submitResult, details->exception()}; //TEMP this is bad structure because it returns a result but can still fail
 
     const auto presentResult = present(image_index);
 
@@ -249,7 +249,6 @@ SubpassDescription Swapchain::createSubpassDescription() const {
     constexpr VkAttachmentReference colorAttachmentRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
     constexpr VkAttachmentReference depthAttachmentRef{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
     constexpr VkAttachmentReference colorAttachmentResolveRef{2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    //TEMP left off here this doesn't work
 
     return SubpassDescription(VK_PIPELINE_BIND_POINT_GRAPHICS, vector{colorAttachmentRef}, depthAttachmentRef, vector{colorAttachmentResolveRef});
 }

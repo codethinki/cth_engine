@@ -20,7 +20,6 @@
     <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\memory\buffer\CthBuffer.hpp" />
     <ClInclude Include="src\vulkan\memory\buffer\CthDefaultBuffer.hpp" />
-    <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptedResource.hpp" />
     <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptor.hpp" />
     <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptorPool.hpp" />
     <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptorSet.hpp" />
@@ -39,8 +38,13 @@
     <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
     <ClInclude Include="src\vulkan\pipeline\layout\CthPipelineLayout.hpp" />
-    <ClInclude Include="src\vulkan\pipeline\layout\CthPipelineConfig.hpp" />
     <ClInclude Include="src\CthEngine.hpp" />
+    <ClInclude Include="src\vulkan\memory\image\CthImage.hpp" />
+    <ClInclude Include="src\vulkan\render\model\texture\CthSampler.hpp" />
+    <ClInclude Include="src\vulkan\memory\image\CthImageView.hpp" />
+    <ClInclude Include="src\vulkan\memory\descriptor\descriptors\CthImageDescriptors.hpp" />
+    <ClInclude Include="src\vulkan\memory\descriptor\descriptors\CthBufferDescriptors.hpp" />
+    <ClInclude Include="src\vulkan\render\model\texture\CthTexture.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -57,7 +61,6 @@
     <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\memory\buffer\CthBuffer.cpp" />
     <ClCompile Include="src\vulkan\memory\buffer\CthDefaultBuffer.cpp" />
-    <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptor.cpp" />
     <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptorPool.cpp" />
     <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptorSet.cpp" />
     <ClCompile Include="src\vulkan\pipeline\layout\CthDescriptorSetLayout.cpp" />
@@ -72,7 +75,10 @@
     <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
     <ClCompile Include="engine_main.cpp" />
     <ClCompile Include="src\vulkan\pipeline\layout\CthPipelineLayout.cpp" />
-    <ClCompile Include="src\vulkan\pipeline\layout\CthPipelineConfig.cpp" />
     <ClCompile Include="src\CthEngine.cpp" />
+    <ClCompile Include="src\vulkan\memory\image\CthImage.cpp" />
+    <ClCompile Include="src\vulkan\render\model\texture\CthSampler.cpp" />
+    <ClCompile Include="src\vulkan\memory\image\CthImageView.cpp" />
+    <ClCompile Include="src\vulkan\render\model\texture\CthTexture.cpp" />
   </ItemGroup>
 </Project>

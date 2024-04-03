@@ -30,7 +30,7 @@ void Instance::create() {
     const auto appInfo = this->appInfo();
     createInfo.pApplicationInfo = &appInfo;
 
-    const auto requiredExtVec = toCharVec(requiredExt);
+    const auto requiredExtVec = utils::toCharVec(requiredExt);
     createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtVec.size());
     createInfo.ppEnabledExtensionNames = requiredExtVec.data();
 

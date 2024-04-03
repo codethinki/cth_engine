@@ -12,6 +12,7 @@
 using namespace std;
 using namespace cth;
 #ifndef _FINAL
+
 int main() {
     cth::log::msg<except::INFO>("exec dir: {}", cth::filesystem::current_path().string());
 #else

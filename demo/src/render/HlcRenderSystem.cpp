@@ -1,7 +1,6 @@
 #include "HlcRenderSystem.hpp"
 
 //TEMP replace this with #include <cth_engine/cth_engine.hpp> 
-#include "vulkan/pipeline/layout/CthPipelineConfig.hpp"
 #include "vulkan/pipeline/layout/CthPipelineLayout.hpp"
 #include "vulkan/pipeline/shader/CthShader.hpp"
 
@@ -48,7 +47,7 @@ void RenderSystem::createPipelineLayout() {
     pipelineLayout = make_unique<PipelineLayout>(device, PipelineLayout::Builder{});
 }
 void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
-    GraphicsPipelineConfig config = GraphicsPipelineConfig::createDefault();
+    Pipeline::GraphicsConfig config = Pipeline::GraphicsConfig::createDefault();
 
     config.renderPass = render_pass;
     config.multisampleInfo->rasterizationSamples = msaa_samples;
@@ -60,9 +59,9 @@ void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSample
 
 
 array<Vertex, 3> defaultTriangle{
-    Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {}, {}},
-    Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {}, {}},
-    Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {}, {}},
+    Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {}},
+    Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {}},
+    Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {}},
 };
 
 void RenderSystem::createDefaultTriangle() {
@@ -80,7 +79,7 @@ void RenderSystem::render(FrameInfo& frame_info) const {
 
     vkCmdBindVertexBuffers(frame_info.commandBuffer, 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data());
 
-    //TEMP remove this
+    //TEMP replace this with model drawing
     vkCmdDraw(frame_info.commandBuffer, static_cast<uint32_t>(defaultTriangleBuffer->size()), 1, 0, 0);
 
 

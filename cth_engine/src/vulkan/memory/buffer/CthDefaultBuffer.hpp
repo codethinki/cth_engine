@@ -1,23 +1,22 @@
 #pragma once
-#include "vulkan/memory/descriptor/CthDescriptedResource.hpp"
 
 #include <cth/cth_log.hpp>
 
-#include <span>
+#include <vulkan/vulkan.h>
 
+#include <span>
 
 namespace cth {
 using namespace std;
 class Device;
 
-class DefaultBuffer : public DescriptedResource {
+class DefaultBuffer {
 public:
     /**
-* \brief calculates the min size compatible with the devices minOffsetAlignment
+* \brief aligns the buffer size to 16 bc i dont understand buffer alignment
 * \param actual_size in bytes
-* \param min_offset_alignment in bytes
 */
-    static VkDeviceSize calcAlignedSize(VkDeviceSize actual_size, VkDeviceSize min_offset_alignment);
+    static VkDeviceSize calcAlignedSize(VkDeviceSize actual_size);
     /**
      *\brief maps part of the buffer memory
     * \param size in bytes
@@ -41,17 +40,17 @@ public:
      * \brief stages a device local buffer with a temporary host visible buffer
      * \param buffer_offset in bytes
      */
-    void default_stage(span<char> data, VkDeviceSize buffer_offset = 0) const;
+    void default_stage(span<const char> data, VkDeviceSize buffer_offset = 0) const;
 
     /**
      * \brief writes to a mapped memory range
      */
-    void default_write(span<char> data, span<char> mapped_memory, VkDeviceSize mapped_offset = 0) const;
+    void default_write(span<const char> data, span<char> mapped_memory, VkDeviceSize mapped_offset = 0) const;
     /**
      * \brief writes to the mapped range of the whole buffer
      * \note CAUTION whole buffer must be mapped first
      */
-    void default_write(span<char> data, VkDeviceSize mapped_offset = 0) const;
+    void default_write(span<const char> data, VkDeviceSize mapped_offset = 0) const;
 
     /**
      * \brief updates non-coherent host visible memory
@@ -64,7 +63,7 @@ public:
      * \param size in bytes, VK_WHOLE_SIZE -> whole buffer
      * \param offset in bytes
      */
-    [[nodiscard]] Descriptor::descriptor_info_t descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const override;
+    [[nodiscard]] virtual VkDescriptorBufferInfo descriptorInfo(VkDeviceSize size, VkDeviceSize offset) const;
 
     /**
     * \brief
@@ -106,11 +105,11 @@ private:
 
 public:
     DefaultBuffer(Device* device, VkDeviceSize buffer_size, VkBufferUsageFlags usage_flags,
-        VkMemoryPropertyFlags memory_property_flags, VkDeviceSize min_offset_alignment = 1);
-    ~DefaultBuffer() override;
+        VkMemoryPropertyFlags memory_property_flags);
+    virtual ~DefaultBuffer();
 
     [[nodiscard]] VkBuffer get() const { return vkBuffer; }
-    [[nodiscard]] span<char> mappedMemory() const {
+    [[nodiscard]] span<const char> mappedMemory() const {
         CTH_STABLE_ERR(!mapped.data(), "whole buffer was not mapped");
         return mapped;
     }

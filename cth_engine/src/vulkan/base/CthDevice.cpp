@@ -1,5 +1,7 @@
 #include "CthDevice.hpp"
 
+#include <numeric>
+
 #include "CthInstance.hpp"
 
 #include "vulkan/pipeline/shader/CthShader.hpp"
@@ -12,13 +14,27 @@
 
 namespace cth {
 
+Device::Device(Window* window, Instance* instance) : window(window), instance(instance) {
+    pickPhysicalDevice();
+    setDeviceSpecificConstants();
+
+    createLogicalDevice();
+    createCommandPool();
+}
+Device::~Device() {
+    vkDestroyCommandPool(vkDevice, commandPool, nullptr);
+
+    vkDestroyDevice(vkDevice, nullptr);
+
+    cth::log::msg<except::LOG>("destroyed device");
+}
 
 vector<uint32_t> Device::checkDeviceFeatureSupport(const VkPhysicalDevice& device) const {
     VkPhysicalDeviceFeatures features;
     vkGetPhysicalDeviceFeatures(device, &features);
 
-    const auto availableFeatures = deviceFeaturesToArray(features);
-    const auto requiredFeatures = deviceFeaturesToArray(REQUIRED_DEVICE_FEATURES);
+    const auto availableFeatures = utils::deviceFeaturesToArray(features);
+    const auto requiredFeatures = utils::deviceFeaturesToArray(REQUIRED_DEVICE_FEATURES);
 
     vector<uint32_t> missingFeatures{};
 
@@ -55,11 +71,13 @@ QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice physical_dev
 
 
     for(auto [i, queueFamily] : queueFamilies | views::enumerate) {
+        const uint32_t index = static_cast<uint32_t>(i);
+
         if(queueFamily.queueCount == 0) continue;
 
-        if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) graphicFamilies.push_back(i);
+        if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) graphicFamilies.push_back(index);
 
-        if(window->surfaceSupport(physical_device, i)) presentFamilies.push_back(i);
+        if(window->surfaceSupport(physical_device, index)) presentFamilies.push_back(index);
     }
 
     //iterate through all possible combinations of graphic and present indices
@@ -128,7 +146,7 @@ bool Device::physicalDeviceSuitable(VkPhysicalDevice physical_device) const {
     if(!(suitable = missingFeatures.empty())) {
         details += "\n missing device features:\n";
         ranges::for_each(missingFeatures,
-            [&details](const uint32_t feature) { details += '\t' + string(deviceFeatureIndexToString(feature)) + '\n'; });
+            [&details](const uint32_t feature) { details += '\t' + string(utils::deviceFeatureIndexToString(feature)) + '\n'; });
     }
 
     if(!suitable) cth::log::msg<except::INFO>("device {} not suitable\n{}", physicalProperties.deviceName, details);
@@ -155,6 +173,10 @@ void Device::pickPhysicalDevice() {
     vkGetPhysicalDeviceProperties(vkPhysicalDevice, &physicalProperties);
 
     cth::log::msg<except::INFO>("chosen physical device: {}", physicalProperties.deviceName);
+}
+
+void Device::setDeviceSpecificConstants() {
+    vkGetPhysicalDeviceProperties(vkPhysicalDevice, &physicalProperties);
 }
 
 
@@ -189,7 +211,7 @@ void Device::createLogicalDevice() {
     // might not really be necessary anymore because device specific validation layers
     // have been deprecated
     if constexpr(Instance::ENABLE_VALIDATION_LAYERS) {
-        createInfo.enabledLayerCount = Instance::VALIDATION_LAYERS.size();
+        createInfo.enabledLayerCount = static_cast<uint32_t>(Instance::VALIDATION_LAYERS.size());
         createInfo.ppEnabledLayerNames = Instance::VALIDATION_LAYERS.data();
     } else createInfo.enabledLayerCount = 0;
 
@@ -216,10 +238,6 @@ void Device::createCommandPool() {
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create command pool")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
-void Device::initShaders() {
-
-}
-
 
 
 VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, const VkImageTiling tiling,
@@ -246,10 +264,11 @@ uint32_t Device::findMemoryType(const uint32_t type_filter, const VkMemoryProper
 }
 
 //---------------------------
-// Buffer Helper Functions
+// Buffer Helper Functions //BUG wtf is this move them to their appropriate classes
 //---------------------------
 
 VkCommandBuffer Device::beginSingleTimeCommands() const {
+    //TODO make a setup phase and group these commands
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -363,22 +382,6 @@ void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMe
         throw cth::except::vk_result_exception{bindResult, details->exception()};
 }
 
-Device::Device(Window* window, Instance* instance) : window(window), instance(instance) {
-    pickPhysicalDevice();
-    createLogicalDevice();
-    createCommandPool();
-    initShaders();
-}
-Device::~Device() {
-    vkDestroyCommandPool(vkDevice, commandPool, nullptr);
-
-    vertShader = nullptr;
-    fragShader = nullptr;
-
-    vkDestroyDevice(vkDevice, nullptr);
-
-    cth::log::msg<except::LOG>("destroyed device");
-}
 
 
 }

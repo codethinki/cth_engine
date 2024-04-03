@@ -13,9 +13,7 @@ DebugMessenger::DebugMessenger(Instance* instance, const function<callback_t>& c
     init(instance);
 }
 
-DebugMessenger::~DebugMessenger() {
-    destroy();
-}
+DebugMessenger::~DebugMessenger() { destroy(); }
 
 void DebugMessenger::init(Instance* instance) {
     CTH_ERR(this->vkMessenger != VK_NULL_HANDLE, "double initialization is not allowed") throw details->exception();
@@ -49,7 +47,6 @@ void DebugMessenger::destroy() {
 
 void DebugMessenger::setCallback(const function<callback_t>& custom_callback) {
     callback = custom_callback == nullptr ? cth::dev::defaultDebugCallback : custom_callback;
-
 }
 VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::createInfo() const {
     VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
@@ -84,13 +81,13 @@ VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(const VkDebugUtilsMessageSev
     else if(message_severity <= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) severity = except::ERR;
 
     string type = "UNKNOWN";
-
     if(message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) type = "GENERAL";
     if(message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) type = "VALIDATION";
     if(message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) type = "PERFORMANCE";
 
 
-    cth::log::msg(severity, "VALIDATION LAYER: {0} {1}:\n CODE: {2}\n{3}", type, except::to_string(severity),
+    cth::log::msg(severity, "VALIDATION LAYER: {0} {1}:\n   NAME: {2}\n\t (CODE: {3})\n{4}", type, except::to_string(severity),
+        callback_data->pMessageIdName,
         callback_data->messageIdNumber, callback_data->pMessage);
 
 

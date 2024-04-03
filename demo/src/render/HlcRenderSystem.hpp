@@ -3,10 +3,11 @@
 
 //TEMP for compile time speedup only include necessary headers
 //TEMP replace this with #include <cth_engine/cth_engine.hpp>
+#include <vulkan/render/model/CthVertex.hpp>
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/memory/buffer/CthBuffer.hpp"
 #include "vulkan/pipeline/CthPipeline.hpp"
-#include "..\..\..\cth_engine\src\vulkan\render\model\CthVertex.hpp"
+#include "vulkan/pipeline/shader/CthShader.hpp"
 
 #include <memory>
 
@@ -49,7 +50,7 @@ public:
 };
 } // namespace cth
 
-//IMPLEMENT this stuff
+//TEMP clean this up
 //public
 //void initDescriptedTextures(uint32_t& descriptor_set_index, vector<VkDescriptorImageInfo>& image_infos);
 
