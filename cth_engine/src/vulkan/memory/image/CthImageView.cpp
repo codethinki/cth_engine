@@ -14,9 +14,7 @@ ImageView::ImageView(Image* image, const Config& config) : _image(image) {
 
     create(config);
 }
-ImageView::~ImageView() {
-    vkDestroyImageView(_image->device->get(), vkImageView, nullptr);
-}
+ImageView::~ImageView() { vkDestroyImageView(_image->device->get(), vkImageView, nullptr); }
 
 void ImageView::create(const Config& config) {
     VkImageViewCreateInfo viewInfo{};
@@ -24,12 +22,17 @@ void ImageView::create(const Config& config) {
     viewInfo.image = _image->get();
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     viewInfo.format = _image->format();
-    if(config.range.aspectMask & VK_IMAGE_ASPECT_NONE) viewInfo.subresourceRange.aspectMask = _image->aspectFlags();
-    else viewInfo.subresourceRange.aspectMask = config.range.aspectMask;
-    if(config.range.levelCount == 0) viewInfo.subresourceRange.levelCount = _image->mipLevels();
-    else viewInfo.subresourceRange.levelCount = config.range.levelCount;
-    if(config.range.layerCount == 0) viewInfo.subresourceRange.layerCount = 1;
-    else viewInfo.subresourceRange.layerCount = config.range.layerCount;
+
+    viewInfo.subresourceRange = config.range();
+
+    const auto levels = config.levelCount == 0 ? config.baseMipLevel - _image->mipLevels() : config.levelCount;
+    viewInfo.subresourceRange.levelCount = levels;
+
+    const auto mask = _image->aspectMask(); //config.range.aspectMask == VK_IMAGE_ASPECT_NONE ? _image->aspectMask() : config.range.aspectMask;
+    viewInfo.subresourceRange.aspectMask = mask;
+
+    const auto layers = 1; //config.range.layerCount == 0 ? config.range.baseArrayLayer - _image->arrayLayers() : config.range.layerCount;
+    viewInfo.subresourceRange.layerCount = layers;
 
     const auto createResult = vkCreateImageView(_image->device->get(), &viewInfo, nullptr, &vkImageView);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create image-view")

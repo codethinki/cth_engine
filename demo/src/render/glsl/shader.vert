@@ -1,8 +1,7 @@
 #version 450
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
-layout(location = 2) in vec2 materialUV;
-layout(location = 3) in vec2 uv;
+layout(location = 2) in vec2 uv;
 
 layout(location = 0)  out vec4 outColor;
 
@@ -14,5 +13,5 @@ void main(){
 	//gl_Position =  ubo.viewMatrix * positionW;
 	//outColor = push.color;
 	gl_Position = vec4(position, 1);
-	outColor = vec4(normal.x, normal.y, normal.z, 1);
+	outColor = vec4(normal.x + uv.x, normal.y + uv.y, normal.z, 1);
 }

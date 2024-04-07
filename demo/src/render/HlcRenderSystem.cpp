@@ -1,13 +1,17 @@
 #include "HlcRenderSystem.hpp"
 
 //TEMP replace this with #include <cth_engine/cth_engine.hpp> 
+#include "vulkan/memory/descriptor/CthDescriptorPool.hpp"
+#include "vulkan/memory/descriptor/descriptors/CthImageDescriptors.hpp"
+#include "vulkan/pipeline/CthPipeline.hpp"
+#include "vulkan/pipeline/layout/CthDescriptorSetLayout.hpp"
 #include "vulkan/pipeline/layout/CthPipelineLayout.hpp"
 #include "vulkan/pipeline/shader/CthShader.hpp"
 
 #include <span>
 #include <glm/glm.hpp>
 
-
+#include "vulkan/memory/descriptor/CthDescriptorSet.hpp"
 
 
 namespace cth {
@@ -17,7 +21,7 @@ struct UniformBuffer {
 };
 
 RenderSystem::RenderSystem(Device* device, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : device{device} {
-    initShaders();
+    createShaders();
 
     createPipelineLayout();
     createPipeline(render_pass, msaa_samples);
@@ -26,7 +30,7 @@ RenderSystem::RenderSystem(Device* device, VkRenderPass render_pass, const VkSam
 }
 RenderSystem::~RenderSystem() {}
 
-void RenderSystem::initShaders() {
+void RenderSystem::createShaders() {
 
     const string vertexBinary = format("{}shader.vert.spv", SHADER_BINARY_DIR);
     const string fragmentBinary = format("{}shader.frag.spv", SHADER_BINARY_DIR);
@@ -41,10 +45,20 @@ void RenderSystem::initShaders() {
         format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
 #endif
 }
+void RenderSystem::createDescriptorSetLayouts() {
+    DescriptorSetLayout::Builder builder{};
+    builder.addBinding(0, TextureDescriptor::TYPE, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+
+
+    descriptorSetLayout = make_unique<DescriptorSetLayout>(device, builder);
+}
 
 
 void RenderSystem::createPipelineLayout() {
-    pipelineLayout = make_unique<PipelineLayout>(device, PipelineLayout::Builder{});
+    PipelineLayout::Builder builder{};
+    builder.addSetLayout(descriptorSetLayout.get(), 0);
+
+    pipelineLayout = make_unique<PipelineLayout>(device, builder);
 }
 void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
     Pipeline::GraphicsConfig config = Pipeline::GraphicsConfig::createDefault();
@@ -56,6 +70,22 @@ void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSample
 
     pipeline = std::make_unique<Pipeline>(device, pipelineLayout.get(), config);
 }
+void RenderSystem::createDescriptorPool() {
+    DescriptorPool::Builder builder{};
+    builder.addLayout(descriptorSetLayout.get(), 1);
+
+    descriptorPool = make_unique<DescriptorPool>(device, builder);
+}
+void RenderSystem::createDescriptorSets() {
+    textureDescriptor = make_unique<TextureDescriptor>()
+
+    DescriptorSet::Builder builder{};
+    //TEMP left off here complete the first texture descriptor and let it display
+    builder.addDescriptor()
+
+    descriptorSet = make_unique<DescriptorSet>();
+}
+
 
 
 array<Vertex, 3> defaultTriangle{

@@ -18,7 +18,7 @@ Sampler::~Sampler() {
 }
 
 void Sampler::create(const Config& config) {
-    const auto createInfo = config.info();
+    const auto createInfo = config.createInfo();
 
     const VkResult createResult = vkCreateSampler(device->get(), &createInfo, nullptr, &vkSampler);
 
@@ -36,25 +36,58 @@ void Sampler::create(const Config& config) {
 
 namespace cth {
 
-void Sampler::Config::setDefault(Config& config) {
-    auto& vkConfig = config.vkInfo;
+Sampler::Config::Config(const VkSamplerCreateInfo& create_info) {
 
-    vkConfig.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    vkConfig.magFilter = VK_FILTER_LINEAR;
-    vkConfig.minFilter = VK_FILTER_LINEAR;
-    vkConfig.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    vkConfig.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    vkConfig.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    vkConfig.anisotropyEnable = VK_TRUE;
-    vkConfig.maxAnisotropy = 16;
-    vkConfig.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    vkConfig.unnormalizedCoordinates = VK_FALSE;
-    vkConfig.compareEnable = VK_FALSE;
-    vkConfig.compareOp = VK_COMPARE_OP_ALWAYS;
-    vkConfig.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    vkConfig.mipLodBias = 0.f;
-    vkConfig.minLod = 0.f;
-    vkConfig.maxLod = 1000.f;
+    filters[0] = create_info.minFilter;
+    filters[1] = create_info.magFilter;
+
+    addressModes[0] = create_info.addressModeU;
+    addressModes[1] = create_info.addressModeV;
+    addressModes[2] = create_info.addressModeW;
+
+    mipmapMode = create_info.mipmapMode;
+    lodBias = create_info.mipLodBias;
+    lod[0] = create_info.minLod;
+    lod[1] = create_info.maxLod;
+
+    maxAnisotropy = create_info.maxAnisotropy;
+
+    compareOp = create_info.compareOp;
+
+    borderColor = create_info.borderColor;
+    unnormalizedCoordinates = create_info.unnormalizedCoordinates;
+
 }
+
+VkSamplerCreateInfo Sampler::Config::createInfo() const {
+    VkSamplerCreateInfo info{};
+
+    info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    info.pNext = nullptr;
+
+    info.minFilter = filters[0];
+    info.magFilter = filters[1];
+
+    info.addressModeU = addressModes[0];
+    info.addressModeV = addressModes[1];
+    info.addressModeW = addressModes[2];
+
+    info.mipmapMode = mipmapMode;
+    info.mipLodBias = lodBias;
+    info.minLod = lod[0];
+    info.maxLod = lod[1];
+
+    info.anisotropyEnable = static_cast<bool>(maxAnisotropy) ? VK_TRUE : VK_FALSE;
+    info.maxAnisotropy = maxAnisotropy;
+
+    info.compareEnable = (compareOp == VK_COMPARE_OP_NEVER) ? VK_FALSE : VK_TRUE;
+    info.compareOp = compareOp;
+
+    info.borderColor = borderColor;
+    info.unnormalizedCoordinates = unnormalizedCoordinates;
+
+    return info;
+}
+
 
 } // namespace cth

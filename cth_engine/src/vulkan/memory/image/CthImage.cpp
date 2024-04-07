@@ -7,19 +7,19 @@
 
 #include <cth/cth_log.hpp>
 
+#include <stb_image.h>
 
 namespace cth {
 using namespace std;
 
 
-Image::Image(Device* device, const VkExtent2D extent, const Config& config) : device(device), _extent(extent), _config{config} {
-    CTH_ERR(!(config.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT), "image must have transfer destination usage")
-        throw details->exception();
-
+Image::Image(Device* device, const VkExtent2D extent, const Config& config) : _extent(extent), device(device), _config{config} {
 
     create();
     allocate();
     bind();
+
+    std::ranges::fill_n(std::back_inserter(imageLayouts), _config.mipLevels, VK_IMAGE_LAYOUT_UNDEFINED);
 }
 Image::~Image() {
     vkDestroyImage(device->get(), vkImage, nullptr);
@@ -35,23 +35,6 @@ void Image::create() {
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create image")
         throw except::vk_result_exception{createResult, details->exception()};
-}
-
-void Image::createView() {
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = vkImage;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = _config.format;
-    viewInfo.subresourceRange.aspectMask = _config.aspectFlags;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = _config.mipLevels;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-    VkImageView imageView;
-    if(vkCreateImageView(device->get(), &viewInfo, nullptr, &imageView) != VK_SUCCESS)
-        throw runtime_error(
-            "createImageView: failed to create image view");
 }
 
 
@@ -75,20 +58,27 @@ void Image::bind() const {
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind image memory")
         throw except::vk_result_exception{bindResult, details->exception()};
 }
-void Image::write(const DefaultBuffer* buffer) const {
+void Image::write(const DefaultBuffer* buffer, const size_t offset, const uint32_t mip_level) const {
+    CTH_WARN(ranges::any_of(imageLayouts, [](const VkImageLayout layout) { return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }),\
+        "PERFORMANCE: image layout is not transfer dst optional");
+
+
     const auto commandBuffer = device->beginSingleTimeCommands();
 
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
+    VkBufferImageCopy region;
+    region.bufferOffset = offset;
     region.bufferRowLength = 0;
     region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
+
+    //const auto mask = aspect_mask == VK_IMAGE_ASPECT_NONE ? _config.aspectFlags : aspect_mask;
+    region.imageSubresource.aspectMask = _config.aspectMask;
+
+    region.imageSubresource.mipLevel = mip_level;
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {_extent.width, _extent.height, 1};
-    vkCmdCopyBufferToImage(commandBuffer, buffer->get(), vkImage, imageLayout, 1, &region);
+    vkCmdCopyBufferToImage(commandBuffer, buffer->get(), vkImage, imageLayouts[mip_level], 1, &region);
 
     device->endSingleTimeCommands(commandBuffer);
 }
@@ -108,24 +98,34 @@ Image::transition_config Image::transitionConfig(const VkImageLayout current_lay
     return {};
 }
 
-void Image::transitionLayout(const VkImageLayout new_layout) {
+void Image::transitionLayout(const VkImageLayout new_layout, const uint32_t first_mip_level, const uint32_t mip_levels) {
+    const auto oldLayout = imageLayouts[first_mip_level];
+    CTH_ERR(ranges::any_of(imageLayouts, [oldLayout](VkImageLayout layout){ return oldLayout != layout; }),
+        "all transitioned layouts must be the same")
+        throw details->exception();
+
     VkCommandBuffer commandBuffer = device->beginSingleTimeCommands();
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = imageLayout;
+    barrier.image = vkImage;
+    barrier.oldLayout = oldLayout;
     barrier.newLayout = new_layout;
+
+    //const auto mask = aspect_mask == VK_IMAGE_ASPECT_NONE ? _config.aspectMask : aspect_mask;
+    barrier.subresourceRange.aspectMask = _config.aspectMask;
+
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = vkImage;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; //TEMP make this configurable
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = _config.mipLevels;
+    barrier.subresourceRange.baseMipLevel = first_mip_level;
+
+    const auto levels = mip_levels == 0 ? first_mip_level - _config.mipLevels : mip_levels;
+    barrier.subresourceRange.levelCount = levels;
     //currently only 2d images
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    auto [srcAccess, dstAccess, srcStage, dstStage] = transitionConfig(imageLayout, new_layout);
+    auto [srcAccess, dstAccess, srcStage, dstStage] = transitionConfig(oldLayout, new_layout);
     barrier.srcAccessMask = srcAccess;
     barrier.dstAccessMask = dstAccess;
 
@@ -133,7 +133,10 @@ void Image::transitionLayout(const VkImageLayout new_layout) {
 
     device->endSingleTimeCommands(commandBuffer);
 
-    imageLayout = new_layout;
+    ranges::fill_n(imageLayouts.begin() + first_mip_level, levels, new_layout);
+}
+uint32_t Image::evalMipLevelCount(const VkExtent2D extent) {
+    return static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height))) + 1);
 }
 
 } // namespace cth

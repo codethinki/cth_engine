@@ -21,7 +21,7 @@ public:
 
     //TODO maybe move this to the image class
     static VkImageView createImageView(const VkDevice& device, VkImage image, VkFormat format,
-        VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT, uint32_t mip_levels = 1);
+        VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT, uint32_t mip_levels = 1); //TEMP remove this
 
     [[nodiscard]] VkFormat findDepthFormat() const;
 

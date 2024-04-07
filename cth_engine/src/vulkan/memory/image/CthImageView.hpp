@@ -30,8 +30,19 @@ public:
 namespace cth {
 struct ImageView::Config {
     explicit Config() = default;
-    Config(const VkImageSubresourceRange& range) : range{range} {}
+    Config(const VkImageSubresourceRange& range) : baseMipLevel(range.baseMipLevel), levelCount(range.levelCount) {}
 
-    VkImageSubresourceRange range{VK_IMAGE_ASPECT_NONE, 0, 0, 0, 0};
+    //VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_NONE;
+    uint32_t baseMipLevel = 0;
+    uint32_t levelCount = 0;
+    //uint32_t baseArrayLayer = 0;
+    //uint32_t layerCount = 0;
+
+    [[nodiscard]] VkImageSubresourceRange range() const {
+        VkImageSubresourceRange range{};
+        range.baseMipLevel = baseMipLevel;
+        range.levelCount = levelCount;
+        return range;
+    }
 };
 }

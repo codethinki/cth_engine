@@ -4,16 +4,29 @@
 //TEMP for compile time speedup only include necessary headers
 //TEMP replace this with #include <cth_engine/cth_engine.hpp>
 #include <vulkan/render/model/CthVertex.hpp>
-#include "vulkan/base/CthDevice.hpp"
 #include "vulkan/memory/buffer/CthBuffer.hpp"
-#include "vulkan/pipeline/CthPipeline.hpp"
-#include "vulkan/pipeline/shader/CthShader.hpp"
 
 #include <memory>
 
 
 namespace cth {
 using namespace std;
+class Device;
+
+class Shader;
+
+class PipelineLayout;
+class Pipeline;
+
+class DescriptorSetLayout;
+class DescriptorPool;
+class DescriptorSet;
+
+class TextureDescriptor;
+
+class ImageView;
+class Texture;
+class Sampler;
 
 inline constexpr string_view GLSL_COMPILER_PATH = R"(..\..\..\sdk\Vulkan\Bin\glslc.exe)";
 inline constexpr string_view SHADER_GLSL_DIR = R"(src\render\glsl\)";
@@ -24,12 +37,15 @@ public:
     void render(FrameInfo& frame_info) const;
 
 private:
-    void initShaders();
-   
+    void createShaders();
+    void createDescriptorSetLayouts();
 
     void createPipelineLayout();
     void createPipeline(VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
 
+    void createDescriptorPool();
+    void createDescriptorSets();
+    
     //TEMP replace this with actual model loading
     void createDefaultTriangle();
 
@@ -41,6 +57,16 @@ private:
 
     //TEMP replaced with actual model data once ready
     unique_ptr<Buffer<Vertex>> defaultTriangleBuffer{};
+
+    unique_ptr<DescriptorSetLayout> descriptorSetLayout;
+    unique_ptr<DescriptorPool> descriptorPool;
+    unique_ptr<DescriptorSet> descriptorSet;
+    unique_ptr<TextureDescriptor> textureDescriptor;
+
+    unique_ptr<Texture> firstTexture;
+    unique_ptr<ImageView> firstTextureView;
+    unique_ptr<Sampler> firstTextureSampler;
+
 public:
     RenderSystem(Device* device, VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
     ~RenderSystem();

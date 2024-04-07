@@ -59,7 +59,6 @@
     <ClCompile Include="src\vulkan\base\CthDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
     <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
-    <ClCompile Include="src\vulkan\memory\buffer\CthBuffer.cpp" />
     <ClCompile Include="src\vulkan\memory\buffer\CthDefaultBuffer.cpp" />
     <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptorPool.cpp" />
     <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptorSet.cpp" />

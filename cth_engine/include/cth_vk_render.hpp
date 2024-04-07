@@ -5,6 +5,7 @@
 #include "vulkan/render/model/HlcModel.hpp"
 #include "vulkan/render/model/HlcTextureSampler.hpp"
 #include "vulkan/render/model/texture/CthSampler.hpp"
+#include "vulkan/render/model/texture/CthTexture.hpp"
 
 
 #include "vulkan/render/pass/CthRenderer.hpp"

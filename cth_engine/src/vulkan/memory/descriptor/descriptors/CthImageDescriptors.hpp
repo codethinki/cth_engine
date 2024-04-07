@@ -1,9 +1,9 @@
 #pragma once
-#include "CthImageDescriptors.hpp"
 #include "../CthDescriptor.hpp"
 
 #include "vulkan/memory/image/CthImage.hpp"
 #include "vulkan/memory/image/CthImageView.hpp"
+#include "vulkan/render/model/texture/CthSampler.hpp"
 
 namespace cth {
 class ImageDescriptor : public Descriptor {
@@ -37,7 +37,15 @@ public:
         descriptor_size, descriptor_offset) {}
 };
 
+class TextureDescriptor : public ImageDescriptor {
+public:
+    inline static constexpr VkDescriptorType TYPE = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
+    explicit TextureDescriptor(const ImageView* image_view, const Sampler* sampler, const size_t descriptor_size,
+        const size_t descriptor_offset) : ImageDescriptor(TYPE,
+        VkDescriptorImageInfo{sampler->get(), image_view->get(), image_view->image()->layout()},
+        descriptor_size, descriptor_offset) {}
+};
 
 
 
