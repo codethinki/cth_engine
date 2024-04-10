@@ -1,4 +1,6 @@
 #pragma once
+#include <span>
+
 #include "vulkan/memory/image/CthImage.hpp"
 
 namespace cth {
@@ -26,10 +28,11 @@ private:
     void init(const DefaultBuffer* buffer, size_t offset = 0);
 
     /**
-    * \brief blits the image onto to the mipmaps
-    * \note first - 1 to first + levels - 1 will be transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    */
-    void genMipmaps(int32_t first = 1, int32_t levels = 0);
+     * \brief all mip levels will be transitioned to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+     * \param first first - 1 => src level
+     * \note src must be transfer src optimal
+     */
+    void blitMipLevels(int32_t first = 1, int32_t levels = 0);
 
     [[nodiscard]] static Image::Config imageConfig(VkExtent2D extent, const Config& config);
 
@@ -44,8 +47,21 @@ private:
 
 namespace cth {
 struct Texture::Config {
-    VkImageAspectFlagBits aspectMask;
-    VkFormat format;
+    explicit Config(const VkFormat format = VK_FORMAT_R8G8B8A8_SRGB, const VkImageAspectFlagBits aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT) :
+        format(format),
+        aspectMask(aspect_mask) {}
+
+    VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
+    VkImageAspectFlagBits aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+    [[nodiscard]] static Texture::Config Default();
 };
+
+inline cth::Texture::Config cth::Texture::Config::Default() {
+    Texture::Config config;
+    config.format = VK_FORMAT_R8G8B8A8_SRGB;
+    config.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    return config;
+}
 
 }

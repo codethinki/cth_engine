@@ -8,11 +8,13 @@
 #include "vulkan/pipeline/layout/CthPipelineLayout.hpp"
 #include "vulkan/pipeline/shader/CthShader.hpp"
 
+#include "vulkan/memory/descriptor/CthDescriptorSet.hpp"
+#include "vulkan/render/model/texture/CthTexture.hpp"
+
+#include <cth/cth_image.h>
+
 #include <span>
 #include <glm/glm.hpp>
-
-#include "vulkan/memory/descriptor/CthDescriptorSet.hpp"
-
 
 namespace cth {
 struct UniformBuffer {
@@ -23,10 +25,19 @@ struct UniformBuffer {
 RenderSystem::RenderSystem(Device* device, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : device{device} {
     createShaders();
 
+    createDescriptorSetLayouts();
+
     createPipelineLayout();
+
+    createDescriptorPool();
+    loadDescriptorData();
+
     createPipeline(render_pass, msaa_samples);
 
+    createDescriptorSets();
+
     createDefaultTriangle();
+
 }
 RenderSystem::~RenderSystem() {}
 
@@ -71,28 +82,37 @@ void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSample
     pipeline = std::make_unique<Pipeline>(device, pipelineLayout.get(), config);
 }
 void RenderSystem::createDescriptorPool() {
-    DescriptorPool::Builder builder{};
-    builder.addLayout(descriptorSetLayout.get(), 1);
 
-    descriptorPool = make_unique<DescriptorPool>(device, builder);
+    descriptorPool = make_unique<DescriptorPool>(device, DescriptorPool::Builder{{{descriptorSetLayout.get(), 1}}});
 }
+void RenderSystem::loadDescriptorData() {
+    const cth::img::stb_image image{std::format("{}first_texture3.png", TEXTURE_DIR), 4};
+
+    texture = make_unique<Texture>(device, VkExtent2D{image.width, image.height}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB}, image.raw());
+}
+
+
 void RenderSystem::createDescriptorSets() {
-    textureDescriptor = make_unique<TextureDescriptor>()
+    textureSampler = make_unique<Sampler>(device, Sampler::Config::Default());
 
-    DescriptorSet::Builder builder{};
+
+    textureView = make_unique<ImageView>(device, texture.get(), ImageView::Config::Default());
+    textureDescriptor = make_unique<TextureDescriptor>(textureView.get(), textureSampler.get());
+
     //TEMP left off here complete the first texture descriptor and let it display
-    builder.addDescriptor()
 
-    descriptorSet = make_unique<DescriptorSet>();
+    descriptorSet = make_unique<DescriptorSet>(DescriptorSet::Builder{descriptorSetLayout.get(), vector<Descriptor*>{textureDescriptor.get()}});
+
+    descriptorPool->writeSets(vector{descriptorSet.get()});
 }
-
-
-
 array<Vertex, 3> defaultTriangle{
-    Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {}},
-    Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {}},
-    Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {}},
+    Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {1, 0}},
+    Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {0.5, 1}},
+    Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {0, 0}},
 };
+
+
+
 
 void RenderSystem::createDefaultTriangle() {
     defaultTriangleBuffer = make_unique<Buffer<Vertex>>(device, 3,
@@ -106,7 +126,9 @@ void RenderSystem::render(FrameInfo& frame_info) const {
     pipeline->bind(frame_info.commandBuffer);
     const vector<VkBuffer> vertexBuffers{defaultTriangleBuffer->get()};
     const vector<VkDeviceSize> offsets(vertexBuffers.size());
+    const vector<VkDescriptorSet> descriptorSets{descriptorSet->get()};
 
+    vkCmdBindDescriptorSets(frame_info.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->get(), 0, 1, descriptorSets.data(), 0, nullptr);
     vkCmdBindVertexBuffers(frame_info.commandBuffer, 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data());
 
     //TEMP replace this with model drawing
@@ -154,40 +176,9 @@ void RenderSystem::render(FrameInfo& frame_info) const {
     }*/
 }
 
-}
+} // namespace cth
 
-
-//void RenderSystem::initSamplers() {
-//	defaultTextureSampler = make_unique<HlcTextureSampler>(hlcDevice, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
-//}
-
-/*void RenderSystem::initDescriptorUtils() {
-    //descriptorPool = HlcDescriptorPool::Builder(hlcDevice)
-    //                 .setMaxSets(Swapchain::MAX_FRAMES_IN_FLIGHT)
-    //                 .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, Swapchain::MAX_FRAMES_IN_FLIGHT)
-    //                 // .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, Swapchain::MAX_FRAMES_IN_FLIGHT)
-    //                 .build();
-
-    //descriptorSetLayout = HlcDescriptorSetLayout::Builder(hlcDevice)
-    //                      .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-    //                      //.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-    //                      .build();
-    //descriptorSets.resize(descriptorPool->descriptorPoolInfo.maxSets);
-}
-void RenderSystem::initDescriptorSets() {
-    //vector<VkDescriptorBufferInfo> bufferInfos;
-    //vector<VkDescriptorImageInfo> imageInfos;
-
-    //uint32_t descriptorSetIndex = 0;
-    //initDescriptedBuffers(bufferInfos);
-    ////initDescriptedTextures(descriptorSetIndex, imageInfos);
-
-    //for(int i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++) {
-    //    HlcDescriptorWriter(*descriptorSetLayout, *descriptorPool)
-    //        .writeBuffer(0, &bufferInfos[i])
-    //        .build(descriptorSets[i]);
-    //}
-}
+/*
 
 void RenderSystem::initDescriptedBuffers(vector<VkDescriptorBufferInfo>& buffer_infos) {
     for(int i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++) {
@@ -201,12 +192,4 @@ void RenderSystem::initDescriptedBuffers(vector<VkDescriptorBufferInfo>& buffer_
         descriptedBuffers.back()->map();
         buffer_infos.push_back(descriptedBuffers.back()->descriptorInfo());
     }
-}
-//void RenderSystem::initDescriptedTextures(uint32_t& descriptor_set_index, vector<VkDescriptorImageInfo>& image_infos) {
-//	image_infos.resize(IMAGES);
-//	descriptedImages.resize(IMAGES);
-//
-//	descriptedImages[WALL] = make_unique<Image>("resources/textures/wall.png", hlcDevice);
-//	image_infos[WALL] = descriptedImages[WALL]->getDescriptorInfo(defaultTextureSampler->sampler());
-//}
-*/
+} */

@@ -44,6 +44,8 @@ void DescriptorPool::writeSets(const vector<DescriptorSet*>& sets) {
         const auto setWrites = set->writes();
 
         writes.insert(writes.end(), setWrites.begin(), setWrites.end());
+
+        descriptorSets.insert(set);
     });
 
 

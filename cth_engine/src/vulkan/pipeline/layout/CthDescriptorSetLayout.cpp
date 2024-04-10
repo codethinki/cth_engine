@@ -6,11 +6,12 @@
 #include "vulkan/memory/descriptor/CthDescriptor.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
+#include <optional>
 
 
 namespace cth {
 
-DescriptorSetLayout::DescriptorSetLayout(Device* device, const Builder& builder) : device(device), vkBindings(builder.bindings) { create(); }
+DescriptorSetLayout::DescriptorSetLayout(Device* device, const Builder& builder) : device(device), vkBindings(builder.bindings()) { create(); }
 DescriptorSetLayout::~DescriptorSetLayout() {
     vkDestroyDescriptorSetLayout(device->get(), vkLayout, nullptr);
     log::msg("destroyed descriptor set layout");
@@ -29,22 +30,46 @@ void DescriptorSetLayout::create() {
     log::msg("created descriptor set layout");
 }
 
+} // namespace cth
+
+
+//Builder
+
+namespace cth {
+
 DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(const uint32_t binding, const VkDescriptorType type,
     const VkShaderStageFlags flags, const uint32_t count) {
     CTH_WARN(count == 0, "empty binding created (count = 0)");
-    if(binding > bindings.size()) bindings.resize(binding + 1);
+    if(binding >= _bindings.size()) _bindings.resize(binding + 1);
 
+    CTH_WARN(_bindings[binding].has_value(), "overwriting binding, consider using removeBinding first");
 
-    VkDescriptorSetLayoutBinding& layoutBinding = bindings[binding];
+    VkDescriptorSetLayoutBinding layoutBinding;
     layoutBinding.binding = binding;
     layoutBinding.descriptorType = type;
     layoutBinding.stageFlags = flags;
     layoutBinding.descriptorCount = count;
+    layoutBinding.pImmutableSamplers = nullptr;
+
+    _bindings[binding] = layoutBinding;
 
     return *this;
 }
 DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(const uint32_t binding) {
-    bindings[binding] = VkDescriptorSetLayoutBinding{};
+    _bindings[binding] = VkDescriptorSetLayoutBinding{};
     return *this;
+}
+vector<VkDescriptorSetLayoutBinding> DescriptorSetLayout::Builder::bindings() const {
+#ifdef _DEBUG
+    //TODO check this, may be possible
+    CTH_ERR(ranges::any_of(_bindings, [](const binding_t& binding){ return binding == nullopt;}), "bindings cannot be empty")
+        throw details->exception();
+
+    vector<VkDescriptorSetLayoutBinding> vec(_bindings.size());
+    ranges::transform(_bindings, vec.begin(), [](const binding_t& binding) { return binding.value(); });
+    return vec;
+#else
+    return _bindings;
+#endif
 }
 } // namespace cth

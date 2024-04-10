@@ -44,6 +44,7 @@
     <ClInclude Include="src\vulkan\memory\descriptor\CthDescriptorSet.hpp" />
     <ClInclude Include="src\vulkan\memory\descriptor\descriptors\CthBufferDescriptors.hpp" />
     <ClInclude Include="src\vulkan\memory\descriptor\descriptors\CthImageDescriptors.hpp" />
+    <ClInclude Include="src\vulkan\memory\image\CthBasicImage.hpp" />
     <ClInclude Include="src\vulkan\memory\image\CthImageView.hpp" />
     <ClInclude Include="src\vulkan\pipeline\CthPipeline.hpp" />
     <ClInclude Include="src\vulkan\pipeline\layout\CthDescriptorSetLayout.hpp" />
@@ -60,8 +61,10 @@
     <ClInclude Include="src\vulkan\render\model\texture\CthTexture.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthRenderer.hpp" />
     <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
+    <ClInclude Include="src\vulkan\surface\SwapchainImage.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -82,6 +85,7 @@
     <ClCompile Include="src\vulkan\memory\buffer\CthDefaultBuffer.cpp" />
     <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptorPool.cpp" />
     <ClCompile Include="src\vulkan\memory\descriptor\CthDescriptorSet.cpp" />
+    <ClCompile Include="src\vulkan\memory\image\CthBasicImage.cpp" />
     <ClCompile Include="src\vulkan\memory\image\CthImageView.cpp" />
     <ClCompile Include="src\vulkan\pipeline\CthPipeline.cpp" />
     <ClCompile Include="src\vulkan\pipeline\layout\CthDescriptorSetLayout.cpp" />
@@ -95,8 +99,10 @@
     <ClCompile Include="src\vulkan\render\model\texture\CthSampler.cpp" />
     <ClCompile Include="src\vulkan\render\model\texture\CthTexture.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthRenderer.cpp" />
+    <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
+    <ClCompile Include="src\vulkan\surface\SwapchainImage.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

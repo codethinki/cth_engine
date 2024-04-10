@@ -45,6 +45,9 @@
     <ClInclude Include="src\vulkan\memory\descriptor\descriptors\CthImageDescriptors.hpp" />
     <ClInclude Include="src\vulkan\memory\descriptor\descriptors\CthBufferDescriptors.hpp" />
     <ClInclude Include="src\vulkan\render\model\texture\CthTexture.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
+    <ClInclude Include="src\vulkan\surface\SwapchainImage.hpp" />
+    <ClInclude Include="src\vulkan\memory\image\CthBasicImage.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -79,5 +82,8 @@
     <ClCompile Include="src\vulkan\render\model\texture\CthSampler.cpp" />
     <ClCompile Include="src\vulkan\memory\image\CthImageView.cpp" />
     <ClCompile Include="src\vulkan\render\model\texture\CthTexture.cpp" />
+    <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />
+    <ClCompile Include="src\vulkan\surface\SwapchainImage.cpp" />
+    <ClCompile Include="src\vulkan\memory\image\CthBasicImage.cpp" />
   </ItemGroup>
 </Project>

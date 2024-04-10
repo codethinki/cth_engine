@@ -31,7 +31,7 @@ void oldImage::loadImage(const string& path) {
     allocateThisImage();
     //stage(buffer->getBuffer());
 
-    imageView = Swapchain::createImageView(device.get(), image, imageInfo.format);
+    //imageView = Swapchain::createImageView(device.get(), image, imageInfo.format);
 
     createDescriptorInfo();
 }

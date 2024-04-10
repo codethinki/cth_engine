@@ -19,9 +19,9 @@ Renderer::Renderer(Device* device, Camera* camera, Window* window) : device{devi
 Renderer::~Renderer() { freeCommandBuffers(); }
 
 VkExtent2D Renderer::minimizedState() const {
-    auto extent = window->getExtent();
+    VkExtent2D extent = window->extent();
     while(extent.width == 0 || extent.height == 0) {
-        extent = window->getExtent();
+        extent = window->extent();
         glfwWaitEvents();
     }
     return extent;
@@ -34,16 +34,17 @@ void Renderer::recreateSwapchain() {
     vkDeviceWaitIdle(device->get());
 
     if(swapchain == nullptr) {
-        swapchain = make_unique<Swapchain>(device, window, windowExtent);
+        swapchain = make_unique<Swapchain>(device, windowExtent, window->surface());
         return;
     }
 
     shared_ptr oldSwapchain = std::move(swapchain);
-    swapchain = make_unique<Swapchain>(device, window, windowExtent, oldSwapchain);
+    swapchain = make_unique<Swapchain>(device, windowExtent, window->surface(), oldSwapchain);
 
-    const bool noChange = oldSwapchain->compareSwapFormats(*swapchain);
+    //TODO i dont understand why the formats cant change?
+    const bool change = oldSwapchain->compareSwapFormats(*swapchain);
 
-    CTH_STABLE_ERR(!noChange, "depth or image format changed")
+    CTH_STABLE_ERR(change, "depth or image format changed")
         throw details->exception();
 }
 VkCommandBuffer Renderer::commandBuffer() const {
@@ -130,10 +131,10 @@ void Renderer::beginSwapchainRenderPass(VkCommandBuffer command_buffer) const {
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = swapchain->getRenderPass();
-    renderPassInfo.framebuffer = swapchain->getFrameBuffer(currentImageIndex);
+    renderPassInfo.renderPass = swapchain->renderPass();
+    renderPassInfo.framebuffer = swapchain->framebuffer(currentImageIndex);
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = swapchain->getSwapchainExtent();
+    renderPassInfo.renderArea.extent = swapchain->extent();
 
     array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {0, 0, 0, 1};
@@ -146,11 +147,11 @@ void Renderer::beginSwapchainRenderPass(VkCommandBuffer command_buffer) const {
     VkViewport viewport;
     viewport.x = 0;
     viewport.y = 0;
-    viewport.width = static_cast<float>(swapchain->getSwapchainExtent().width);
-    viewport.height = static_cast<float>(swapchain->getSwapchainExtent().height);
+    viewport.width = static_cast<float>(swapchain->extent().width);
+    viewport.height = static_cast<float>(swapchain->extent().height);
     viewport.minDepth = 0;
     viewport.maxDepth = 1.0f;
-    const VkRect2D scissor{{0, 0}, swapchain->getSwapchainExtent()};
+    const VkRect2D scissor{{0, 0}, swapchain->extent()};
     vkCmdSetViewport(command_buffer, 0, 1, &viewport);
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 

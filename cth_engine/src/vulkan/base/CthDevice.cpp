@@ -7,6 +7,7 @@
 #include "vulkan/pipeline/shader/CthShader.hpp"
 #include "vulkan/surface/CthWindow.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/surface/CthSurface.hpp"
 
 #include <cth/cth_log.hpp>
 
@@ -14,7 +15,9 @@
 
 namespace cth {
 
-Device::Device(Window* window, Instance* instance) : window(window), instance(instance) {
+
+
+Device::Device(Surface* surface, Instance* instance) : surface(surface), instance(instance) {
     pickPhysicalDevice();
     setDeviceSpecificConstants();
 
@@ -77,7 +80,7 @@ QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice physical_dev
 
         if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) graphicFamilies.push_back(index);
 
-        if(window->surfaceSupport(physical_device, index)) presentFamilies.push_back(index);
+        if(surface->support(physical_device, index)) presentFamilies.push_back(index);
     }
 
     //iterate through all possible combinations of graphic and present indices
@@ -109,11 +112,11 @@ vector<string> Device::checkDeviceExtensionSupport(VkPhysicalDevice physical_dev
 }
 SwapchainSupportDetails Device::querySwapchainSupport(const VkPhysicalDevice physical_device) const {
     SwapchainSupportDetails details{};
-    details.capabilities = window->surfaceCapabilities(physical_device);
+    details.capabilities = surface->capabilities(physical_device);
 
-    details.formats = window->surfaceFormats(physical_device);
+    details.formats = surface->formats(physical_device);
 
-    details.presentModes = window->presentModes(physical_device);
+    details.presentModes = surface->presentModes(physical_device);
 
     return details;
 }
@@ -135,6 +138,7 @@ bool Device::physicalDeviceSuitable(VkPhysicalDevice physical_device) const {
     }
 
     const SwapchainSupportDetails swapChainSupport = querySwapchainSupport(physical_device);
+
     const bool swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     if(!(suitable = swapChainAdequate)) {
         details += "\n swapchain capabilities insufficient:";
@@ -324,38 +328,6 @@ void Device::createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usag
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 
     vkBindBufferMemory(vkDevice, buffer, buffer_memory, 0);
-}
-void Device::copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, const VkDeviceSize size, const VkDeviceSize src_offset,
-    const VkDeviceSize dst_offset) const {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkBufferCopy copyRegion;
-    copyRegion.srcOffset = src_offset;
-    copyRegion.dstOffset = dst_offset;
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, src_buffer, dst_buffer, 1, &copyRegion);
-
-    endSingleTimeCommands(commandBuffer);
-}
-void Device::copyBufferToImage(VkBuffer buffer, VkImage image, const uint32_t width, const uint32_t height,
-    const uint32_t layer_count) const {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkBufferImageCopy region;
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = layer_count;
-
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {width, height, 1};
-
-    vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-    endSingleTimeCommands(commandBuffer);
 }
 void Device::createImageWithInfo(const VkImageCreateInfo& image_info, const VkMemoryPropertyFlags properties, VkImage& image,
     VkDeviceMemory& image_memory) const {

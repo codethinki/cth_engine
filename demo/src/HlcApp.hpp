@@ -37,8 +37,8 @@ private:
 
 
     unique_ptr<Instance> instance = make_unique<Instance>("app", getRequiredInstanceExtensions());
-    unique_ptr<Window> window = make_unique<Window>(instance.get(), WINDOW_NAME.data(), WIDTH, HEIGHT);
-    unique_ptr<Device> device = make_unique<Device>(window.get(), instance.get());
+    unique_ptr<Window> window = make_unique<Window>(WINDOW_NAME, WIDTH, HEIGHT, instance.get());
+    unique_ptr<Device> device = make_unique<Device>(window->surface(), instance.get());
 
     InputController inputController{};
     Camera camera{};

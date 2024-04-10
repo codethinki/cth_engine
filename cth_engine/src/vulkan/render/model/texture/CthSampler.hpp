@@ -40,7 +40,6 @@ struct Sampler::Config {
     Config() = default;
     explicit Config(const VkSamplerCreateInfo& create_info);
 
-
     array<VkFilter, 2> filters{VK_FILTER_LINEAR, VK_FILTER_LINEAR}; //minFilter, magFilter
     array<VkSamplerAddressMode, 3> addressModes{VK_SAMPLER_ADDRESS_MODE_REPEAT}; //u, v, w
 
@@ -56,8 +55,24 @@ struct Sampler::Config {
     VkBool32 unnormalizedCoordinates = VK_FALSE;
 
     [[nodiscard]] VkSamplerCreateInfo createInfo() const;
+
+    [[nodiscard]] static Config Default();
+
     friend Sampler;
 };
 
-
+inline cth::Sampler::Config cth::Sampler::Config::Default() {
+    Config defaultConfig;
+    defaultConfig.filters = {VK_FILTER_LINEAR, VK_FILTER_LINEAR};
+    defaultConfig.addressModes = {VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+    defaultConfig.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    defaultConfig.lodBias = 0.0f;
+    defaultConfig.lod = {0.0f, VK_LOD_CLAMP_NONE};
+    defaultConfig.maxAnisotropy = 16;
+    defaultConfig.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    defaultConfig.compareOp = VK_COMPARE_OP_NEVER;
+    defaultConfig.unnormalizedCoordinates = VK_FALSE;
+    return defaultConfig;
 }
+
+} // namespace cth

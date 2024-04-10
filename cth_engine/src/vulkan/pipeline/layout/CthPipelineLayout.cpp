@@ -12,38 +12,37 @@
 //PipelineLayout
 
 namespace cth {
-    void PipelineLayout::create() {
-        vector<VkDescriptorSetLayout> vkLayouts(setLayouts.size());
-        ranges::transform(setLayouts, vkLayouts.begin(), [](const DescriptorSetLayout* layout) { return layout->get(); });
+void PipelineLayout::create() {
+    vector<VkDescriptorSetLayout> vkLayouts(setLayouts.size());
+    ranges::transform(setLayouts, vkLayouts.begin(), [](const DescriptorSetLayout* layout) { return layout->get(); });
 
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(vkLayouts.size());
-        pipelineLayoutInfo.pSetLayouts = vkLayouts.data();
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(vkLayouts.size());
+    pipelineLayoutInfo.pSetLayouts = vkLayouts.data();
 
-        const VkResult result = vkCreatePipelineLayout(device->get(), &pipelineLayoutInfo, nullptr, &vkLayout);
+    const VkResult result = vkCreatePipelineLayout(device->get(), &pipelineLayoutInfo, nullptr, &vkLayout);
 
-        CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline-layout")
-            throw except::vk_result_exception(result, details->exception());
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline-layout")
+        throw except::vk_result_exception(result, details->exception());
 
-        log::msg("created pipeline-layout");
-    }
+    log::msg("created pipeline-layout");
+}
 
 
-    PipelineLayout::PipelineLayout(Device* device, const Builder& builder) : device(device), setLayouts(builder.build(device)) {
-        create();
-    }
-    PipelineLayout::~PipelineLayout() {
-        vkDestroyPipelineLayout(device->get(), vkLayout, nullptr);
-        log::msg("destroyed pipeline-layout");
-    }
+PipelineLayout::PipelineLayout(Device* device, const Builder& builder) : device(device),
+    setLayouts(builder.build(device->limits().maxBoundDescriptorSets)) { create(); }
+PipelineLayout::~PipelineLayout() {
+    vkDestroyPipelineLayout(device->get(), vkLayout, nullptr);
+    log::msg("destroyed pipeline-layout");
+}
 }
 
 
 //Builder
 
 namespace cth {
-PipelineLayout::Builder& PipelineLayout::Builder::addSetLayouts(const vector<DescriptorSetLayout*>& layouts, uint32_t location_offset) {
+PipelineLayout::Builder& PipelineLayout::Builder::addSetLayouts(const span<DescriptorSetLayout* const> layouts, uint32_t location_offset) {
     CTH_WARN(layouts.empty(), "layouts vector empty");
 
 
@@ -74,13 +73,13 @@ PipelineLayout::Builder& PipelineLayout::Builder::removeSetLayout(const uint32_t
     return *this;
 }
 
-PipelineLayout::Builder::Builder(const vector<DescriptorSetLayout*>& layouts) { addSetLayouts(layouts); }
+PipelineLayout::Builder::Builder(const span<DescriptorSetLayout*> layouts) { addSetLayouts(layouts); }
 
-vector<DescriptorSetLayout*> PipelineLayout::Builder::build(Device* device) const {
+vector<DescriptorSetLayout*> PipelineLayout::Builder::build(const uint32_t max_bound_descriptor_sets) const {
     vector<DescriptorSetLayout*> result(setLayouts.size());
 
-    CTH_STABLE_ERR(setLayouts.size() > device->limits().maxBoundDescriptorSets, "device limits exceeded, too many locations") {
-        details->add("specified: {0}, max: {1}", result.size(), device->limits().maxBoundDescriptorSets);
+    CTH_STABLE_ERR(setLayouts.size() > max_bound_descriptor_sets, "device limits exceeded, too many locations") {
+        details->add("specified: {0}, max: {1}", result.size(), max_bound_descriptor_sets);
         throw details->exception();
     }
 
@@ -91,5 +90,3 @@ vector<DescriptorSetLayout*> PipelineLayout::Builder::build(Device* device) cons
 }
 
 } // namespace cth
-
-

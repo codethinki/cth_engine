@@ -107,7 +107,15 @@ void DefaultBuffer::copyBuffer(const DefaultBuffer* src, const DefaultBuffer* ds
         throw details->exception();
     }
 
-    src->device->copyBuffer(src->vkBuffer, dst->vkBuffer, copySize, src_offset, dst_offset);
+    VkCommandBuffer commandBuffer = src->device->beginSingleTimeCommands();
+
+    VkBufferCopy copyRegion;
+    copyRegion.srcOffset = src_offset;
+    copyRegion.dstOffset = dst_offset;
+    copyRegion.size = size;
+    vkCmdCopyBuffer(commandBuffer, src->get(), dst->get(), 1, &copyRegion);
+
+    src->device->endSingleTimeCommands(commandBuffer);
 }
 
 DefaultBuffer::DefaultBuffer(Device* device, const VkDeviceSize buffer_size, const VkBufferUsageFlags usage_flags,

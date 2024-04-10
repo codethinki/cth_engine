@@ -31,6 +31,7 @@ class Sampler;
 inline constexpr string_view GLSL_COMPILER_PATH = R"(..\..\..\sdk\Vulkan\Bin\glslc.exe)";
 inline constexpr string_view SHADER_GLSL_DIR = R"(src\render\glsl\)";
 inline constexpr string_view SHADER_BINARY_DIR = R"(res\bin\shader\)";
+inline constexpr string_view TEXTURE_DIR = R"(res\img\texture\)";
 
 class RenderSystem {
 public:
@@ -44,6 +45,9 @@ private:
     void createPipeline(VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
 
     void createDescriptorPool();
+
+    void loadDescriptorData();
+
     void createDescriptorSets();
     
     //TEMP replace this with actual model loading
@@ -63,9 +67,9 @@ private:
     unique_ptr<DescriptorSet> descriptorSet;
     unique_ptr<TextureDescriptor> textureDescriptor;
 
-    unique_ptr<Texture> firstTexture;
-    unique_ptr<ImageView> firstTextureView;
-    unique_ptr<Sampler> firstTextureSampler;
+    unique_ptr<Texture> texture;
+    unique_ptr<ImageView> textureView;
+    unique_ptr<Sampler> textureSampler;
 
 public:
     RenderSystem(Device* device, VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);

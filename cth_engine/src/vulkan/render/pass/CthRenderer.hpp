@@ -65,12 +65,12 @@ private:
     bool frameStarted = false;
 
 public:
-    [[nodiscard]] VkRenderPass swapchainRenderPass() const { return swapchain->getRenderPass(); }
+    [[nodiscard]] VkRenderPass swapchainRenderPass() const { return swapchain->renderPass(); }
     [[nodiscard]] float screenRatio() const { return swapchain->extentAspectRatio(); }
     [[nodiscard]] bool frameInProgress() const { return frameStarted; }
     [[nodiscard]] VkCommandBuffer commandBuffer() const;
     [[nodiscard]] uint32_t frameIndex() const;
-    [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return swapchain->getMsaaSampleCount(); }
+    [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return swapchain->msaaSamples(); }
 
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;

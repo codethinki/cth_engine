@@ -138,12 +138,15 @@ DescriptorSet::InfoType DescriptorSet::infoType(const VkDescriptorType descripto
 //Builder
 
 namespace cth {
-DescriptorSet::Builder::Builder(DescriptorSetLayout* layout) : layout(layout) {
-    const auto& bindings = layout->bindingsVec();
-    descriptors.resize(bindings.size());
+DescriptorSet::Builder::Builder(DescriptorSetLayout* layout) : layout(layout) { init(layout); }
+DescriptorSet::Builder::Builder(DescriptorSetLayout* layout, const span<Descriptor* const> descriptors, const uint32_t binding_offset) : layout(layout) {
+    init(layout);
 
-    ranges::for_each(bindings, [this](const VkDescriptorSetLayoutBinding& binding) { descriptors[binding.binding].resize(binding.descriptorCount); });
+    for(uint32_t i = 0; i < static_cast<uint32_t>(descriptors.size()); i++)
+        addDescriptor(descriptors[i], binding_offset + i, 0);
 }
+
+
 
 DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descriptor, uint32_t binding, const uint32_t arr_index) {
 
@@ -167,7 +170,7 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descri
     descriptors[binding][arr_index] = descriptor;
     return *this;
 }
-DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(const vector<Descriptor*>& binding_descriptors, uint32_t binding, uint32_t arr_first) {
+DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(const span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first) {
     CTH_ERR(descriptors.size() + arr_first > descriptors.size(), "out of range for layout size at binding") {
         details->add("binding: {0}, layout size: {1}", binding, descriptors[binding].size());
         details->add("binding descriptors: {0}, arr_first: {1}", binding_descriptors.size(), arr_first);
@@ -195,6 +198,12 @@ DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(const uint32_t
     }
     ranges::fill_n(descriptors[binding].begin() + arr_first, count, nullptr);
     return *this;
+}
+void DescriptorSet::Builder::init(const DescriptorSetLayout* set_layout) {
+    const auto& bindings = set_layout->bindingsVec();
+    descriptors.resize(bindings.size());
+
+    ranges::for_each(bindings, [this](const VkDescriptorSetLayoutBinding& binding) { descriptors[binding.binding].resize(binding.descriptorCount); });
 }
 
 }

@@ -13,13 +13,11 @@ namespace cth {
 using namespace std;
 
 
-Image::Image(Device* device, const VkExtent2D extent, const Config& config) : _extent(extent), device(device), _config{config} {
+Image::Image(Device* device, const VkExtent2D extent, const BasicImage::Config& config) : BasicImage(extent, config, VK_NULL_HANDLE), device(device) {
 
     create();
     allocate();
     bind();
-
-    std::ranges::fill_n(std::back_inserter(imageLayouts), _config.mipLevels, VK_IMAGE_LAYOUT_UNDEFINED);
 }
 Image::~Image() {
     vkDestroyImage(device->get(), vkImage, nullptr);
@@ -59,7 +57,7 @@ void Image::bind() const {
         throw except::vk_result_exception{bindResult, details->exception()};
 }
 void Image::write(const DefaultBuffer* buffer, const size_t offset, const uint32_t mip_level) const {
-    CTH_WARN(ranges::any_of(imageLayouts, [](const VkImageLayout layout) { return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }),\
+    CTH_WARN(imageLayouts[mip_level] != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,\
         "PERFORMANCE: image layout is not transfer dst optional");
 
 
@@ -89,7 +87,10 @@ Image::transition_config Image::transitionConfig(const VkImageLayout current_lay
         return {0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
     if(current_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
         return {VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT};
-
+    if(current_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+        return {VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
+    if(current_layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        return {VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT};
     CTH_ERR(true, "unsupported layout transition") {
         details->add("transition: {0} -> {1}", static_cast<uint32_t>(current_layout), static_cast<uint32_t>(new_layout));
         throw details->exception();
@@ -99,9 +100,11 @@ Image::transition_config Image::transitionConfig(const VkImageLayout current_lay
 }
 
 void Image::transitionLayout(const VkImageLayout new_layout, const uint32_t first_mip_level, const uint32_t mip_levels) {
+    const auto levels = mip_levels == 0 ? _config.mipLevels - first_mip_level : mip_levels;
+
     const auto oldLayout = imageLayouts[first_mip_level];
-    CTH_ERR(ranges::any_of(imageLayouts, [oldLayout](VkImageLayout layout){ return oldLayout != layout; }),
-        "all transitioned layouts must be the same")
+    CTH_ERR(any_of(imageLayouts.begin() + first_mip_level, imageLayouts.begin() + first_mip_level + levels,\
+        [oldLayout](VkImageLayout layout){ return oldLayout != layout; }), "all transitioned layouts must be the same")
         throw details->exception();
 
     VkCommandBuffer commandBuffer = device->beginSingleTimeCommands();
@@ -119,7 +122,6 @@ void Image::transitionLayout(const VkImageLayout new_layout, const uint32_t firs
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.baseMipLevel = first_mip_level;
 
-    const auto levels = mip_levels == 0 ? first_mip_level - _config.mipLevels : mip_levels;
     barrier.subresourceRange.levelCount = levels;
     //currently only 2d images
     barrier.subresourceRange.baseArrayLayer = 0;
@@ -141,25 +143,4 @@ uint32_t Image::evalMipLevelCount(const VkExtent2D extent) {
 
 } // namespace cth
 
-//Config
 
-namespace cth {
-VkImageCreateInfo Image::Config::createInfo() const {
-    VkImageCreateInfo info{};
-    info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-
-    info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    info.imageType = VK_IMAGE_TYPE_2D;
-    info.arrayLayers = 1;
-    info.extent.depth = 1;
-
-    info.format = format;
-    info.tiling = tiling;
-    info.usage = usage;
-    info.mipLevels = mipLevels;
-    info.samples = samples;
-
-    return info;
-}
-} // namespace cth

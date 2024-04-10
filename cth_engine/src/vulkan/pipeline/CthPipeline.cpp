@@ -132,8 +132,8 @@ void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
     config.rasterizationInfo->rasterizerDiscardEnable = VK_FALSE;
     config.rasterizationInfo->polygonMode = VK_POLYGON_MODE_FILL;
     config.rasterizationInfo->lineWidth = 1.f;
-    config.rasterizationInfo->cullMode = VK_CULL_MODE_NONE;
     config.rasterizationInfo->frontFace = VK_FRONT_FACE_CLOCKWISE;
+    config.rasterizationInfo->cullMode = VK_CULL_MODE_BACK_BIT;
     config.rasterizationInfo->depthBiasEnable = VK_FALSE;
     config.rasterizationInfo->depthBiasConstantFactor = 0.f; // Optional
     config.rasterizationInfo->depthBiasClamp = 0.f; // Optional
@@ -149,10 +149,10 @@ void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
     config.multisampleInfo->alphaToOneEnable = VK_FALSE; // Optional
 
     config.colorBlendAttachment = make_unique<VkPipelineColorBlendAttachmentState>();
+    config.colorBlendAttachment->blendEnable = VK_TRUE;
     config.colorBlendAttachment->colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
-    config.colorBlendAttachment->blendEnable = VK_TRUE;
     config.colorBlendAttachment->srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA; // Optional
     config.colorBlendAttachment->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA; // Optional
     config.colorBlendAttachment->colorBlendOp = VK_BLEND_OP_ADD; // Optional

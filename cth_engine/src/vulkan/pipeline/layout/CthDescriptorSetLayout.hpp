@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vulkan/vulkan.h>
 
 #include <vector>
@@ -19,6 +20,7 @@ public:
     */
     explicit DescriptorSetLayout(Device* device, const Builder& builder);
     ~DescriptorSetLayout();
+
 private:
     void create();
 
@@ -27,16 +29,6 @@ private:
     vector<VkDescriptorSetLayoutBinding> vkBindings{};
 
 public:
-    struct Builder {
-        Builder() = default;
-        Builder& addBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags flags, uint32_t count = 1);
-        Builder& removeBinding(uint32_t binding);
-
-    private:
-        vector<VkDescriptorSetLayoutBinding> bindings{};
-        friend DescriptorSetLayout;
-    };
-
     [[nodiscard]] VkDescriptorSetLayout get() const { return vkLayout; }
     [[nodiscard]] uint32_t bindings() const { return static_cast<uint32_t>(vkBindings.size()); }
     [[nodiscard]] vector<VkDescriptorSetLayoutBinding> bindingsVec() const { return vkBindings; }
@@ -47,5 +39,27 @@ public:
     DescriptorSetLayout(DescriptorSetLayout&& other) = delete;
     DescriptorSetLayout& operator=(const DescriptorSetLayout& other) = delete;
     DescriptorSetLayout& operator=(DescriptorSetLayout&& other) = delete;
+};
+} // namespace cth
+
+//Builder
+
+namespace cth {
+struct DescriptorSetLayout::Builder {
+    Builder() = default;
+    Builder& addBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags flags, uint32_t count = 1);
+    Builder& removeBinding(uint32_t binding);
+
+private:
+#ifdef _DEBUG
+    using binding_t = optional<VkDescriptorSetLayoutBinding>;
+#else
+    using binding_t = VkDescriptorSetLayoutBinding;
+#endif
+
+    vector<binding_t> _bindings{};
+    [[nodiscard]] vector<VkDescriptorSetLayoutBinding> bindings() const;
+
+    friend DescriptorSetLayout;
 };
 }

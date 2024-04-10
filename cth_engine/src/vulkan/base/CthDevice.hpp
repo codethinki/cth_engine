@@ -9,6 +9,7 @@
 
 namespace cth {
 using namespace std;
+class Surface;
 class Instance;
 class Window;
 
@@ -38,10 +39,9 @@ public:
         return features;
     }();
 
-    explicit Device(Window* window, Instance* instance);
+    explicit Device(Surface* surface, Instance* instance);
     ~Device();
 
-    [[nodiscard]] SwapchainSupportDetails getSwapchainSupport() const { return querySwapchainSupport(vkPhysicalDevice); }
     /**
      * \throws cth::except::default_exception reason: no suitable memory type
      */
@@ -64,14 +64,6 @@ public:
 
     [[nodiscard]] VkCommandBuffer beginSingleTimeCommands() const;
     void endSingleTimeCommands(VkCommandBuffer command_buffer) const;
-    //TODO why is this here
-    /**
-     * \param size in bytes 
-     * \param src_offset in bytes
-     * \param dst_offset in bytes
-     */
-    void copyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size, VkDeviceSize src_offset = 0, VkDeviceSize dst_offset = 0) const;
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer_count) const;
 
     //TODO put this into the image class maybe
     /**
@@ -109,7 +101,7 @@ private:
      */
     void createCommandPool();
 
-    Window* window;
+    Surface* surface;
     Instance* instance;
 
 
@@ -120,9 +112,8 @@ private:
     VkQueue vkGraphicsQueue = VK_NULL_HANDLE;
     VkQueue vkPresentQueue = VK_NULL_HANDLE;
 
-    uint32_t _minBufferAlignment;
-    VkPhysicalDeviceProperties physicalProperties;
 
+    VkPhysicalDeviceProperties physicalProperties;
 
 public:
     [[nodiscard]] VkCommandPool getCommandPool() const { return commandPool; }
@@ -130,7 +121,8 @@ public:
     [[nodiscard]] VkQueue graphicsQueue() const { return vkGraphicsQueue; }
     [[nodiscard]] VkQueue presentQueue() const { return vkPresentQueue; }
     [[nodiscard]] VkPhysicalDeviceLimits limits() const { return physicalProperties.limits; }
-    [[nodiscard]] uint32_t minBufferAlignment() const { return _minBufferAlignment; }
+    [[nodiscard]] SwapchainSupportDetails getSwapchainSupport() const { return querySwapchainSupport(vkPhysicalDevice); }
+
 
     Device(const Device&) = delete;
     Device& operator=(const Device&) = delete;

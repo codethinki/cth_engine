@@ -2,26 +2,30 @@
 #include <algorithm>
 #include <vulkan/vulkan.h>
 
+
 namespace cth {
 using namespace std;
-class Image;
+class SwapchainImage;
+class BasicImage;
+class Device;
 
 class ImageView {
 public:
     struct Config;
 
-    ImageView(Image* image, const Config& config);
+    ImageView(Device* device, BasicImage* image, const Config& config);
     ~ImageView();
 
 private:
     void create(const Config& config);
 
-    Image* _image;
+    Device* device;
+    BasicImage* _image;
     VkImageView vkImageView = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkImageView get() const { return vkImageView; }
-    [[nodiscard]] Image* image() const { return _image; }
+    [[nodiscard]] BasicImage* image() const { return _image; }
 };
 } // namespace cth
 
@@ -34,15 +38,27 @@ struct ImageView::Config {
 
     //VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_NONE;
     uint32_t baseMipLevel = 0;
-    uint32_t levelCount = 0;
+    uint32_t levelCount = 0; //0 => imageLevels - baseMipLevel
     //uint32_t baseArrayLayer = 0;
     //uint32_t layerCount = 0;
+
+    [[nodiscard]] static Config Default();
 
     [[nodiscard]] VkImageSubresourceRange range() const {
         VkImageSubresourceRange range{};
         range.baseMipLevel = baseMipLevel;
         range.levelCount = levelCount;
+        range.baseArrayLayer = 0;
+        range.layerCount = 1;
         return range;
     }
 };
+
+inline cth::ImageView::Config cth::ImageView::Config::Default() {
+    Config config;
+    config.baseMipLevel = 0;
+    config.levelCount = 1;
+    return config;
+}
+
 }

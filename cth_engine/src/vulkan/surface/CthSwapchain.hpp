@@ -7,23 +7,28 @@
 #include <memory>
 #include <vector>
 
+#include "SwapchainImage.hpp"
+
 
 
 namespace cth {
-class Window;
 using namespace std;
 
 class Device;
+class Surface;
+
+class SwapchainImage;
 
 class Swapchain {
 public:
+    static constexpr VkSampleCountFlagBits MAX_MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
     static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
-    //TODO maybe move this to the image class
-    static VkImageView createImageView(const VkDevice& device, VkImage image, VkFormat format,
-        VkImageAspectFlags aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT, uint32_t mip_levels = 1); //TEMP remove this
+    Swapchain(Device* device, VkExtent2D window_extent, const Surface* surface);
+    Swapchain(Device* device, VkExtent2D window_extent, const Surface* surface, shared_ptr<Swapchain> previous);
+    ~Swapchain();
 
-    [[nodiscard]] VkFormat findDepthFormat() const;
+
 
     [[nodiscard]] VkResult acquireNextImage(uint32_t* image_index) const;
 
@@ -32,20 +37,25 @@ public:
      */
     VkResult submitCommandBuffer(VkCommandBuffer buffer, uint32_t image_index);
 
-
 private:
+    //setMsaaSampleCount
+    [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
+
     //createSwapchain
     [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const vector<VkSurfaceFormatKHR>& available_formats);
     [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(const vector<VkPresentModeKHR>& available_present_modes);
     [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
-    void createSwapchain();
-    //setImageCount
-    void setImageCount();
-    //createImageViews
-    void createImageViews();
-    //setMsaaSampleCount
-    [[nodiscard]] VkSampleCountFlagBits evaluateMsaaSampleCount() const;
-    void setMsaaSampleCount();
+
+    [[nodiscard]] uint32_t evalMinImageCount(uint32_t min, uint32_t max) const;
+    void createSwapchain(const Surface* surface);
+
+
+    void createMsaaResources();
+    [[nodiscard]] VkFormat findDepthFormat() const;
+    void createDepthResources();
+    [[nodiscard]] BasicImage::Config createImageConfig(VkImageAspectFlagBits aspect_mask, VkFormat format, VkImageUsageFlags usage) const;
+    void createSwapchainImages();
+
 
     //createRenderPass
     [[nodiscard]] VkAttachmentDescription createColorAttachmentDescription() const;
@@ -57,13 +67,6 @@ private:
      * \throws cth::except::vk_result_exception result of vkCreateRenderPass()
      */
     void createRenderPass();
-    //createColorImageInfo
-    [[nodiscard]] VkImageCreateInfo createColorImageInfo() const;
-    void createColorResources();
-    //createDepthResources
-    [[nodiscard]] VkImageCreateInfo createDepthImageInfo(VkFormat depth_format) const;
-    void createDepthResources();
-
     /**
      * \throws cth::except::vk_result_exception result of vkCreateFramebuffer()
      */
@@ -73,36 +76,31 @@ private:
      */
     void createSyncObjects();
 
-    void init();
+    void init(const Surface* surface);
 
-    //submitCommandBuffer helpers
     [[nodiscard]] VkResult submit(VkCommandBuffer command_buffer) const;
     [[nodiscard]] VkResult present(uint32_t image_index) const;
 
 
 
-    VkFormat swapchainImageFormat;
-    VkFormat swapchainDepthFormat;
-    VkExtent2D swapchainExtent;
+    Device* device;
+    VkExtent2D _extent;
+    VkExtent2D windowExtent;
+
 
     vector<VkFramebuffer> swapchainFramebuffers;
-    VkRenderPass renderPass;
+    VkRenderPass _renderPass = VK_NULL_HANDLE;
 
-    vector<VkImage> swapchainImages;
-    vector<VkImageView> swapchainImageViews;
+    VkFormat _imageFormat;
+    vector<SwapchainImage> swapchainImages;
+    vector<Image> msaaImages;
+    vector<ImageView> msaaImageViews;
 
-    vector<VkImage> depthImages;
-    vector<VkImageView> depthImageViews;
-    vector<VkDeviceMemory> depthImageMemories;
-
-    vector<VkImage> msaaImages;
-    vector<VkImageView> msaaImageViews;
-    vector<VkDeviceMemory> msaaImageMemories;
+    VkFormat _depthFormat;
+    vector<Image> depthImages;
+    vector<ImageView> depthImageViews;
 
 
-    Device* device;
-    Window* window;
-    VkExtent2D windowExtent;
 
     VkSwapchainKHR vkSwapchain;
     shared_ptr<Swapchain> oldSwapchain; //TODO why is this a shared_ptr?
@@ -111,32 +109,25 @@ private:
     vector<VkSemaphore> renderFinishedSemaphores;
     vector<VkFence> inFlightFences;
     vector<VkFence> imagesInFlight;
+
     size_t currentFrame = 0;
 
-    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-    static constexpr VkSampleCountFlagBits MAX_MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
+    VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
 public:
-    Swapchain(Device* device, Window* window, VkExtent2D window_extent);
-    Swapchain(Device* device, Window* window, VkExtent2D window_extent, shared_ptr<Swapchain> previous);
-    ~Swapchain();
-
-    [[nodiscard]] float extentAspectRatio() const { return static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height); }
+    [[nodiscard]] float extentAspectRatio() const { return static_cast<float>(_extent.width) / static_cast<float>(_extent.height); }
     [[nodiscard]] bool compareSwapFormats(const Swapchain& other) const {
-        return other.swapchainDepthFormat == swapchainDepthFormat && other.swapchainImageFormat ==
-            swapchainImageFormat;
+        return other._depthFormat != _depthFormat || other._imageFormat != _imageFormat;
     }
 
-    [[nodiscard]] VkFramebuffer getFrameBuffer(const uint32_t index) const { return swapchainFramebuffers[index]; }
-    [[nodiscard]] VkRenderPass getRenderPass() const { return renderPass; }
-    [[nodiscard]] VkImageView getImageView(const uint32_t index) const { return swapchainImageViews[index]; }
+    [[nodiscard]] VkFramebuffer framebuffer(const uint32_t index) const { return swapchainFramebuffers[index]; }
+    [[nodiscard]] VkRenderPass renderPass() const { return _renderPass; }
+    [[nodiscard]] VkImageView imageView(const size_t index) const { return swapchainImages[index].view(); }
     [[nodiscard]] size_t imageCount() const { return swapchainImages.size(); }
-    [[nodiscard]] VkFormat getSwapchainImageFormat() const { return swapchainImageFormat; }
-    [[nodiscard]] VkExtent2D getSwapchainExtent() const { return swapchainExtent; }
-    [[nodiscard]] uint32_t width() const { return swapchainExtent.width; }
-    [[nodiscard]] uint32_t height() const { return swapchainExtent.height; }
-    [[nodiscard]] VkImage getSwapchainImage(const int index) const { return swapchainImages[index]; }
-    [[nodiscard]] VkSampleCountFlagBits getMsaaSampleCount() const { return msaaSamples; }
+    [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
+    [[nodiscard]] VkExtent2D extent() const { return _extent; }
+    [[nodiscard]] const SwapchainImage* image(const size_t index) const { return &swapchainImages[index]; }
+    [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; }
 
 
     Swapchain(const Swapchain&) = delete;

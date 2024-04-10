@@ -15,8 +15,7 @@ class DescriptedResource;
 
 class Descriptor {
 public:
-    Descriptor(const VkDescriptorType type, const VkDeviceSize size, const VkDeviceSize resource_offset) : vkType(type),
-        _size(size), _offset(resource_offset) {}
+    explicit Descriptor(const VkDescriptorType type) : vkType(type) {}
     virtual ~Descriptor() = 0;
 
 
@@ -31,12 +30,9 @@ public:
 
 private:
     VkDescriptorType vkType;
-    size_t _size, _offset;
 
 public:
     [[nodiscard]] VkDescriptorType type() const { return vkType; }
-    [[nodiscard]] size_t size() const { return _size; }
-    [[nodiscard]] size_t offset() const { return _offset; }
 
     Descriptor(const Descriptor& other) = default;
     Descriptor(Descriptor&& other) = delete;
@@ -44,5 +40,6 @@ public:
     Descriptor& operator=(Descriptor&& other) = delete;
 };
 
+inline Descriptor::~Descriptor() = default;
 
 }
