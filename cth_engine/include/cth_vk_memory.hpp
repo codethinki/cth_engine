@@ -2,6 +2,7 @@
 #include "vulkan/memory/buffer/CthBuffer.hpp"
 #include "vulkan/memory/buffer/CthDefaultBuffer.hpp"
 
+#include "vulkan/memory/image/CthBasicImage.hpp"
 #include "vulkan/memory/image/CthImage.hpp"
 #include "vulkan/memory/image/CthImageView.hpp"
 

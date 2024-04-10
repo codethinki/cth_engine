@@ -52,10 +52,8 @@
     <ClInclude Include="src\vulkan\pipeline\shader\CthShader.hpp" />
     <ClInclude Include="src\vulkan\pipeline\shader\HlcPushConstant.hpp" />
     <ClInclude Include="src\vulkan\memory\image\CthImage.hpp" />
-    <ClInclude Include="src\vulkan\render\model\HlcImage.hpp" />
     <ClInclude Include="src\vulkan\render\model\HlcModel.hpp" />
     <ClInclude Include="src\vulkan\render\model\HlcModelManager.hpp" />
-    <ClInclude Include="src\vulkan\render\model\HlcTextureSampler.hpp" />
     <ClInclude Include="src\vulkan\render\model\CthVertex.hpp" />
     <ClInclude Include="src\vulkan\render\model\texture\CthSampler.hpp" />
     <ClInclude Include="src\vulkan\render\model\texture\CthTexture.hpp" />
@@ -92,10 +90,8 @@
     <ClCompile Include="src\vulkan\pipeline\layout\CthPipelineLayout.cpp" />
     <ClCompile Include="src\vulkan\pipeline\shader\CthShader.cpp" />
     <ClCompile Include="src\vulkan\memory\image\CthImage.cpp" />
-    <ClCompile Include="src\vulkan\render\model\HlcImage.cpp" />
     <ClCompile Include="src\vulkan\render\model\HlcModel.cpp" />
     <ClCompile Include="src\vulkan\render\model\HlcModelManager.cpp" />
-    <ClCompile Include="src\vulkan\render\model\HlcTextureSampler.cpp" />
     <ClCompile Include="src\vulkan\render\model\texture\CthSampler.cpp" />
     <ClCompile Include="src\vulkan\render\model\texture\CthTexture.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthRenderer.cpp" />

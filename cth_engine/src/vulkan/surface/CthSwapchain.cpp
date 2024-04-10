@@ -94,9 +94,9 @@ VkSurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfac
     return *it;
 }
 VkPresentModeKHR Swapchain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& available_present_modes) {
-    /*const auto it = ranges::find(available_present_modes, VK_PRESENT_MODE_MAILBOX_KHR);
+    const auto it = ranges::find(available_present_modes, VK_PRESENT_MODE_MAILBOX_KHR);
 
-     if(it != available_present_modes.end()) {
+    /* if(it != available_present_modes.end()) {
         cth::log::msg<except::INFO>("present mode: MAILBOX");
         return VK_PRESENT_MODE_MAILBOX_KHR;
     }*/
