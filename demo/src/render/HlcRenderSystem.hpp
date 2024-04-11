@@ -3,8 +3,8 @@
 
 //TEMP for compile time speedup only include necessary headers
 //TEMP replace this with #include <cth_engine/cth_engine.hpp>
-#include <vulkan/render/model/CthVertex.hpp>
-#include "vulkan/memory/buffer/CthBuffer.hpp"
+#include <interface/model/CthVertex.hpp>
+#include "vulkan/resource/buffer/CthBuffer.hpp"
 
 #include <memory>
 

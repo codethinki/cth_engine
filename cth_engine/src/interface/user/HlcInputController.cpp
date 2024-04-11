@@ -3,7 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <numeric>
-#include "../objects/HlcStandardObject.hpp"
+#include "../object/HlcStandardObject.hpp"
 
 
 namespace cth {

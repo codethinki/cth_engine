@@ -1,7 +1,7 @@
 #include "CthSwapchain.hpp"
 
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/memory/image/CthImageView.hpp"
+#include "vulkan/resource/image/CthImage.hpp"
 #include "vulkan/surface/CthSurface.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
@@ -175,13 +175,14 @@ void Swapchain::createSwapchain(const Surface* surface) {
     _extent = extent;
 }
 
-BasicImage::Config Swapchain::createImageConfig(const VkImageAspectFlagBits aspect_mask, const VkFormat format, const VkImageUsageFlags usage) const {
+BasicImage::Config Swapchain::createImageConfig() const {
     BasicImage::Config config;
-    config.aspectMask = aspect_mask;
-    config.format = format;
-    config.usage = usage;
-
     config.samples = _msaaSamples;
+
+    config.aspectMask = VK_IMAGE_ASPECT_NONE;
+    config.format = VK_FORMAT_UNDEFINED;
+    config.usage = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+
 
     config.mipLevels = 1;
     config.memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -189,6 +190,21 @@ BasicImage::Config Swapchain::createImageConfig(const VkImageAspectFlagBits aspe
 
     return config;
 }
+BasicImage::Config Swapchain::createColorImageConfig() const {
+    auto config = createImageConfig();
+    config.format = _imageFormat;
+    config.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    config.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    return config;
+}
+BasicImage::Config Swapchain::createDepthImageConfig() const {
+    auto config = createImageConfig();
+    config.format = _depthFormat;
+    config.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    config.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    return config;
+}
+
 
 void Swapchain::createSwapchainImages() {
     uint32_t imageCount; //only min specified, might be higher
@@ -197,13 +213,16 @@ void Swapchain::createSwapchainImages() {
     vector<VkImage> images(imageCount);
     vkGetSwapchainImagesKHR(device->get(), vkSwapchain, &imageCount, images.data());
 
-    for(auto image : images) swapchainImages.emplace_back(device, this, image);
+    const auto imageConfig = createColorImageConfig();
 
+    swapchainImages.reserve(imageCount);
+    for(auto image : images) swapchainImages.emplace_back(_extent, imageConfig, image);
+    swapchainImageViews.reserve(imageCount);
+    for(auto i = 0u; i < imageCount; i++) swapchainImageViews.emplace_back(device, &swapchainImages[i], ImageView::Config::Default());
 }
 
 void Swapchain::createMsaaResources() {
-    const auto imageConfig = createImageConfig(VK_IMAGE_ASPECT_COLOR_BIT, _imageFormat,
-        VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+    const auto imageConfig = createColorImageConfig();
 
     msaaImages.reserve(imageCount());
     msaaImageViews.reserve(imageCount());
@@ -222,7 +241,7 @@ VkFormat Swapchain::findDepthFormat() const {
 void Swapchain::createDepthResources() {
     _depthFormat = findDepthFormat();
 
-    const auto imageConfig = createImageConfig(VK_IMAGE_ASPECT_DEPTH_BIT, _depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    const auto imageConfig = createDepthImageConfig();
 
     depthImages.reserve(imageCount());
     depthImageViews.reserve(imageCount());
@@ -327,7 +346,7 @@ void Swapchain::createFramebuffers() {
     swapchainFramebuffers.resize(imageCount());
 
     for(size_t i = 0; i < imageCount(); i++) {
-        array<VkImageView, 3> attachments = {msaaImageViews[i].get(), depthImageViews[i].get(), swapchainImages[i].view()};
+        array<VkImageView, 3> attachments = {msaaImageViews[i].get(), depthImageViews[i].get(), swapchainImageViews[i].get()};
 
         const VkExtent2D swapchainExtent = _extent;
         VkFramebufferCreateInfo framebufferInfo = {};

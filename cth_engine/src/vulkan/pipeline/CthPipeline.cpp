@@ -8,7 +8,7 @@
 
 #include <cth/cth_log.hpp>
 
-#include "vulkan/render/model/CthVertex.hpp"
+#include "interface/model/CthVertex.hpp"
 
 
 

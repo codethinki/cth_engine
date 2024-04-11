@@ -78,30 +78,30 @@ void App::allocateObjectModels() {
 
 }
 
-void App::calculateRenderGroups(array<size_t, 4>& group_sizes, vector<uint32_t>& group_indices,
-    const vector<unique_ptr<RenderObject>>& objects) {
-    vector<uint32_t> staticGroup{};
-    vector<uint32_t> staticVerticesGroup{};
-    vector<uint32_t> staticIndicesGroup{};
-    vector<uint32_t> dynamicGroup{};
-
-    for(int i = 0; i < objects.size(); i++) {
-        const int renderGroup = objects[i]->renderGroupFlags;
-
-        assert(renderGroup != RenderObject::RENDER_GROUP_INVALID && "render Group must be defined");
-
-        if(renderGroup & RenderObject::RENDER_GROUP_STATIC) staticGroup.push_back(i);
-        if(renderGroup & RenderObject::RENDER_GROUP_STATIC_VERTICES) staticVerticesGroup.push_back(i);
-        if(renderGroup & RenderObject::RENDER_GROUP_STATIC_INDICES) staticIndicesGroup.push_back(i);
-        if(renderGroup & RenderObject::RENDER_GROUP_DYNAMIC) dynamicGroup.push_back(i);
-    }
-    group_sizes = {staticGroup.size(), staticVerticesGroup.size(), staticIndicesGroup.size(), dynamicGroup.size()};
-
-    group_indices.insert(group_indices.end(), staticGroup.begin(), staticGroup.end());
-    group_indices.insert(group_indices.end(), staticVerticesGroup.begin(), staticVerticesGroup.end());
-    group_indices.insert(group_indices.end(), staticIndicesGroup.begin(), staticIndicesGroup.end());
-    group_indices.insert(group_indices.end(), dynamicGroup.begin(), dynamicGroup.end());
-}
+//void App::calculateRenderGroups(array<size_t, 4>& group_sizes, vector<uint32_t>& group_indices,
+//    const vector<unique_ptr<RenderObject>>& objects) {
+//    vector<uint32_t> staticGroup{};
+//    vector<uint32_t> staticVerticesGroup{};
+//    vector<uint32_t> staticIndicesGroup{};
+//    vector<uint32_t> dynamicGroup{};
+//
+//    for(int i = 0; i < objects.size(); i++) {
+//        const int renderGroup = objects[i]->renderGroupFlags;
+//
+//        assert(renderGroup != RenderObject::RENDER_GROUP_INVALID && "render Group must be defined");
+//
+//        if(renderGroup & RenderObject::RENDER_GROUP_STATIC) staticGroup.push_back(i);
+//        if(renderGroup & RenderObject::RENDER_GROUP_STATIC_VERTICES) staticVerticesGroup.push_back(i);
+//        if(renderGroup & RenderObject::RENDER_GROUP_STATIC_INDICES) staticIndicesGroup.push_back(i);
+//        if(renderGroup & RenderObject::RENDER_GROUP_DYNAMIC) dynamicGroup.push_back(i);
+//    }
+//    group_sizes = {staticGroup.size(), staticVerticesGroup.size(), staticIndicesGroup.size(), dynamicGroup.size()};
+//
+//    group_indices.insert(group_indices.end(), staticGroup.begin(), staticGroup.end());
+//    group_indices.insert(group_indices.end(), staticVerticesGroup.begin(), staticVerticesGroup.end());
+//    group_indices.insert(group_indices.end(), staticIndicesGroup.begin(), staticIndicesGroup.end());
+//    group_indices.insert(group_indices.end(), dynamicGroup.begin(), dynamicGroup.end());
+//}
 
 void App::setRenderData() {
     //static objects render data

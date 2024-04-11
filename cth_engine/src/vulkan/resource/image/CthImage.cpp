@@ -2,7 +2,7 @@
 
 
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/memory/buffer/CthDefaultBuffer.hpp"
+#include "vulkan/resource/buffer/CthDefaultBuffer.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>

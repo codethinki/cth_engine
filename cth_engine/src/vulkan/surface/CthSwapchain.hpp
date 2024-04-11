@@ -7,7 +7,8 @@
 #include <memory>
 #include <vector>
 
-#include "SwapchainImage.hpp"
+#include "vulkan/resource/image/CthBasicImage.hpp"
+#include "vulkan/resource/image/CthImageView.hpp"
 
 
 
@@ -17,7 +18,8 @@ using namespace std;
 class Device;
 class Surface;
 
-class SwapchainImage;
+class ImageView;
+class Image;
 
 class Swapchain {
 public:
@@ -50,10 +52,13 @@ private:
     void createSwapchain(const Surface* surface);
 
 
+    [[nodiscard]] BasicImage::Config createImageConfig() const;
+    [[nodiscard]] BasicImage::Config createColorImageConfig() const;
+    [[nodiscard]] BasicImage::Config createDepthImageConfig() const;
     void createMsaaResources();
     [[nodiscard]] VkFormat findDepthFormat() const;
     void createDepthResources();
-    [[nodiscard]] BasicImage::Config createImageConfig(VkImageAspectFlagBits aspect_mask, VkFormat format, VkImageUsageFlags usage) const;
+
     void createSwapchainImages();
 
 
@@ -92,7 +97,8 @@ private:
     VkRenderPass _renderPass = VK_NULL_HANDLE;
 
     VkFormat _imageFormat;
-    vector<SwapchainImage> swapchainImages;
+    vector<BasicImage> swapchainImages;
+    vector<ImageView> swapchainImageViews;
     vector<Image> msaaImages;
     vector<ImageView> msaaImageViews;
 
@@ -122,11 +128,11 @@ public:
 
     [[nodiscard]] VkFramebuffer framebuffer(const uint32_t index) const { return swapchainFramebuffers[index]; }
     [[nodiscard]] VkRenderPass renderPass() const { return _renderPass; }
-    [[nodiscard]] VkImageView imageView(const size_t index) const { return swapchainImages[index].view(); }
+    [[nodiscard]] const ImageView* imageView(const size_t index) const { return &swapchainImageViews[index]; }
     [[nodiscard]] size_t imageCount() const { return swapchainImages.size(); }
     [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
     [[nodiscard]] VkExtent2D extent() const { return _extent; }
-    [[nodiscard]] const SwapchainImage* image(const size_t index) const { return &swapchainImages[index]; }
+    [[nodiscard]] const BasicImage* image(const size_t index) const { return &swapchainImages[index]; }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; }
 
 

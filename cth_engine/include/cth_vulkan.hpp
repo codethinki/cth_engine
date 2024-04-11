@@ -1,6 +1,6 @@
 #pragma once
-#include "cth_vk_base.hpp"
-#include "cth_vk_memory.hpp"
-#include "cth_vk_pipeline.hpp"
-#include "cth_vk_render.hpp"
-#include "cth_vk_surface.hpp"
+#include "vulkan/cth_base.hpp"
+#include "vulkan/cth_pipeline.hpp"
+#include "vulkan/cth_render.hpp"
+#include "vulkan/cth_resource.hpp"
+#include "vulkan/cth_surface.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 #include <span>
 
-#include "vulkan/memory/image/CthImage.hpp"
+#include "vulkan/resource/image/CthImage.hpp"
 
 namespace cth {
 

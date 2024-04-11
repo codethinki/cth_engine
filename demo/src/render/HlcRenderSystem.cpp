@@ -1,15 +1,15 @@
 #include "HlcRenderSystem.hpp"
 
 //TEMP replace this with #include <cth_engine/cth_engine.hpp> 
-#include "vulkan/memory/descriptor/CthDescriptorPool.hpp"
-#include "vulkan/memory/descriptor/descriptors/CthImageDescriptors.hpp"
 #include "vulkan/pipeline/CthPipeline.hpp"
 #include "vulkan/pipeline/layout/CthDescriptorSetLayout.hpp"
 #include "vulkan/pipeline/layout/CthPipelineLayout.hpp"
 #include "vulkan/pipeline/shader/CthShader.hpp"
+#include "vulkan/resource/descriptor/CthDescriptorPool.hpp"
+#include "vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
 
-#include "vulkan/memory/descriptor/CthDescriptorSet.hpp"
-#include "vulkan/render/model/texture/CthTexture.hpp"
+#include "vulkan/resource/descriptor/CthDescriptorSet.hpp"
+#include "vulkan/resource/image/texture/CthTexture.hpp"
 
 #include <cth/cth_image.h>
 

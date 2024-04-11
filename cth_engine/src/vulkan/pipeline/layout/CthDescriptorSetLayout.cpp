@@ -3,7 +3,7 @@
 
 
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/memory/descriptor/CthDescriptor.hpp"
+#include "vulkan/resource/descriptor/CthDescriptor.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 #include <optional>

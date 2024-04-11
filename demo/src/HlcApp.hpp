@@ -5,6 +5,9 @@
 
 #include <vector>
 
+//TEMP
+#include "interface/user/HlcInputController.hpp"
+#include "interface/user/HlcCamera.hpp"
 
 
 
@@ -29,8 +32,8 @@ private:
 
     void allocateObjectModels();
 
-    static void calculateRenderGroups(array<size_t, 4>& group_sizes, vector<uint32_t>& group_indices,
-        const vector<unique_ptr<RenderObject>>& objects);
+   /* static void calculateRenderGroups(array<size_t, 4>& group_sizes, vector<uint32_t>& group_indices,
+        const vector<unique_ptr<RenderObject>>& objects);*/
     void setRenderData();
 
     void updateFpsDisplay(size_t frame_index, float frame_time) const;

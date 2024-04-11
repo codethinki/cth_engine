@@ -1,6 +1,6 @@
 #include "CthTexture.hpp"
 
-#include "vulkan/memory/buffer/CthBuffer.hpp"
+#include "vulkan/resource/buffer/CthBuffer.hpp"
 
 
 namespace cth {
