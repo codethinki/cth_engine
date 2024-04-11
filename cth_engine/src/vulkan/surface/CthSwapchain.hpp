@@ -47,19 +47,18 @@ private:
     [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const vector<VkSurfaceFormatKHR>& available_formats);
     [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(const vector<VkPresentModeKHR>& available_present_modes);
     [[nodiscard]] VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
-
     [[nodiscard]] uint32_t evalMinImageCount(uint32_t min, uint32_t max) const;
-    void createSwapchain(const Surface* surface);
 
+    void createSwapchain(const Surface* surface);
 
     [[nodiscard]] BasicImage::Config createImageConfig() const;
     [[nodiscard]] BasicImage::Config createColorImageConfig() const;
-    [[nodiscard]] BasicImage::Config createDepthImageConfig() const;
+    void createSwapchainImages();
     void createMsaaResources();
+    [[nodiscard]] BasicImage::Config createDepthImageConfig() const;
     [[nodiscard]] VkFormat findDepthFormat() const;
     void createDepthResources();
 
-    void createSwapchainImages();
 
 
     //createRenderPass

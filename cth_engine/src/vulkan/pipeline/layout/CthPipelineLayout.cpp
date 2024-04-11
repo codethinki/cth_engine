@@ -7,6 +7,8 @@
 
 #include <cth/cth_log.hpp>
 
+#include "vulkan/base/CthPhysicalDevice.hpp"
+
 
 
 //PipelineLayout
@@ -31,7 +33,7 @@ void PipelineLayout::create() {
 
 
 PipelineLayout::PipelineLayout(Device* device, const Builder& builder) : device(device),
-    setLayouts(builder.build(device->limits().maxBoundDescriptorSets)) { create(); }
+    setLayouts(builder.build(device->physical()->limits().maxBoundDescriptorSets)) { create(); }
 PipelineLayout::~PipelineLayout() {
     vkDestroyPipelineLayout(device->get(), vkLayout, nullptr);
     log::msg("destroyed pipeline-layout");

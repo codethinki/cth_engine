@@ -41,7 +41,8 @@ private:
 
     unique_ptr<Instance> instance = make_unique<Instance>("app", getRequiredInstanceExtensions());
     unique_ptr<Window> window = make_unique<Window>(WINDOW_NAME, WIDTH, HEIGHT, instance.get());
-    unique_ptr<Device> device = make_unique<Device>(window->surface(), instance.get());
+    unique_ptr<PhysicalDevice> physicalDevice = PhysicalDevice::autoPick(window->surface(), instance.get());
+    unique_ptr<Device> device = make_unique<Device>(physicalDevice.get(), window->surface(), instance.get());
 
     InputController inputController{};
     Camera camera{};

@@ -1,6 +1,10 @@
 #pragma once
+#include "vulkan/base/CthInstance.hpp"
+
+#include <cth/cth_log.hpp>
+
+
 #include <vector>
-#include <vulkan/vulkan.h>
 
 namespace cth {
 using namespace std;
@@ -8,15 +12,14 @@ using namespace std;
 class Instance;
 class Window;
 
+
 class Surface {
 public:
-    explicit Surface(VkSurfaceKHR vk_surface, Instance* instance);
-    ~Surface();
-
-    [[nodiscard]] vector<VkPresentModeKHR> presentModes(VkPhysicalDevice physical_device) const;
-    [[nodiscard]] vector<VkSurfaceFormatKHR> formats(VkPhysicalDevice physical_device) const;
-    [[nodiscard]] VkSurfaceCapabilitiesKHR capabilities(VkPhysicalDevice physical_device) const;
-    [[nodiscard]] VkBool32 support(VkPhysicalDevice physical_device, uint32_t family_index) const;
+    explicit Surface(VkSurfaceKHR vk_surface, Instance* instance) : vkSurface(vk_surface), instance(instance) {}
+    ~Surface() {
+        vkDestroySurfaceKHR(instance->get(), vkSurface, nullptr);
+        log::msg("destroyed surface");
+    }
 
 private:
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;

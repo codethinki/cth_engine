@@ -11,47 +11,23 @@ namespace cth {
 using namespace std;
 class Surface;
 class Instance;
-class Window;
+class PhysicalDevice;
 
-struct SwapchainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities{};
-    vector<VkSurfaceFormatKHR> formats;
-    vector<VkPresentModeKHR> presentModes;
-};
 
-struct QueueFamilyIndices {
-    uint32_t graphicsFamilyIndex = MAX;
-    uint32_t presentFamilyIndex = MAX;
-    [[nodiscard]] bool graphicsFamily() const { return graphicsFamilyIndex != MAX; }
-    [[nodiscard]] bool presentFamily() const { return presentFamilyIndex != MAX; }
-    [[nodiscard]] bool complete() const { return graphicsFamily() && presentFamily() && graphicsFamilyIndex != presentFamilyIndex; }
-
-private:
-    static constexpr uint32_t MAX = numeric_limits<uint32_t>::max();
-};
 
 class Device {
 public:
-    static constexpr array<const char*, 2> REQUIRED_DEVICE_EXTENSIONS = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME};
-    static constexpr VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES = []() {
-        VkPhysicalDeviceFeatures features{};
-        features.samplerAnisotropy = true;
-        return features;
-    }();
-
-    explicit Device(Surface* surface, Instance* instance);
+    explicit Device(PhysicalDevice* physical_device, Surface* surface, Instance* instance);
     ~Device();
 
     /**
      * \throws cth::except::default_exception reason: no suitable memory type
      */
     [[nodiscard]] uint32_t findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties) const;
-    [[nodiscard]] QueueFamilyIndices findPhysicalQueueFamilies() const { return findQueueFamilies(vkPhysicalDevice); }
     /**
      *\throws cth::except::data_exception data: features param
      */
     [[nodiscard]] VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
-    [[nodiscard]] VkSampleCountFlagBits evaluateMaxUsableSampleCount() const;
 
     // Buffer Helper Functions
 
@@ -75,25 +51,11 @@ public:
         VkDeviceMemory& image_memory) const;
 
 private:
-    //pickPhysicalDevice
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physical_device) const;
-    SwapchainSupportDetails querySwapchainSupport(VkPhysicalDevice physical_device) const;
-    [[nodiscard]] vector<string> checkDeviceExtensionSupport(VkPhysicalDevice physical_device) const;
-    [[nodiscard]] vector<uint32_t> checkDeviceFeatureSupport(const VkPhysicalDevice& device) const;
-    [[nodiscard]] bool physicalDeviceSuitable(VkPhysicalDevice physical_device) const;
-    /**
-     * \throws cth::except::default_exception reason: no vulkan gpus
-     * \throws cth::except::default_exception reason: no suitable gpu
-     */
-    void pickPhysicalDevice();
-
-    void setDeviceSpecificConstants();
-
     //createLogicalDevice
     /**
     * \throws cth::except::vk_result_exception result of vkCreateDevice()
     */
-    void createLogicalDevice();
+    void createLogicalDevice(const Surface* surface);
 
     //createCommandPool
     /**
@@ -101,17 +63,19 @@ private:
      */
     void createCommandPool();
 
-    Surface* surface;
     Instance* instance;
+    PhysicalDevice* physicalDevice;
 
-
-    VkPhysicalDevice vkPhysicalDevice = VK_NULL_HANDLE;
     VkCommandPool commandPool = VK_NULL_HANDLE;
 
     VkDevice vkDevice = VK_NULL_HANDLE;
     VkQueue vkGraphicsQueue = VK_NULL_HANDLE;
     VkQueue vkPresentQueue = VK_NULL_HANDLE;
 
+    //TODO replace this with a better system 
+    vector<uint32_t> _queueIndices; //graphics, present
+    static constexpr uint32_t GRAPHICS_QUEUE_INDEX = 0;
+    static constexpr uint32_t PRESENT_QUEUE_INDEX = 1;
 
     VkPhysicalDeviceProperties physicalProperties;
 
@@ -120,9 +84,10 @@ public:
     [[nodiscard]] VkDevice get() const { return vkDevice; }
     [[nodiscard]] VkQueue graphicsQueue() const { return vkGraphicsQueue; }
     [[nodiscard]] VkQueue presentQueue() const { return vkPresentQueue; }
-    [[nodiscard]] VkPhysicalDeviceLimits limits() const { return physicalProperties.limits; }
-    [[nodiscard]] SwapchainSupportDetails getSwapchainSupport() const { return querySwapchainSupport(vkPhysicalDevice); }
-
+    [[nodiscard]] pair<uint32_t, uint32_t> queueIndices() const {
+        return pair{_queueIndices[GRAPHICS_QUEUE_INDEX], _queueIndices[PRESENT_QUEUE_INDEX]};
+    }
+    [[nodiscard]] const PhysicalDevice* physical() const { return physicalDevice; }
 
     Device(const Device&) = delete;
     Device& operator=(const Device&) = delete;

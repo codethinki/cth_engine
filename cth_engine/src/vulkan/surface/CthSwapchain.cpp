@@ -1,6 +1,7 @@
 #include "CthSwapchain.hpp"
 
 #include "vulkan/base/CthDevice.hpp"
+#include "vulkan/base/CthPhysicalDevice.hpp"
 #include "vulkan/resource/image/CthImage.hpp"
 #include "vulkan/surface/CthSurface.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
@@ -76,7 +77,7 @@ VkResult Swapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_t i
 }
 
 VkSampleCountFlagBits Swapchain::evalMsaaSampleCount() const {
-    const uint32_t maxSamples = device->evaluateMaxUsableSampleCount(); //TEMP
+    const uint32_t maxSamples = device->physical()->maxSampleCount(); //TEMP
 
     uint32_t samples = 1;
     while(samples < maxSamples && samples < MAX_MSAA_SAMPLES) samples *= 2;
@@ -89,7 +90,7 @@ VkSurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfac
         return available_format.format == VK_FORMAT_B8G8R8A8_SRGB && available_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
     });
 
-    CTH_STABLE_WARN(it == available_formats.end(), "no suitable format found choosing [0]") return available_formats[0];
+    CTH_STABLE_WARN(it == available_formats.end(), "no suitable format found, choosing [0]") return available_formats[0];
 
     return *it;
 }
@@ -127,13 +128,16 @@ uint32_t Swapchain::evalMinImageCount(const uint32_t min, const uint32_t max) co
 }
 
 void Swapchain::createSwapchain(const Surface* surface) {
-    const SwapchainSupportDetails swapchainSupport = device->getSwapchainSupport();
 
-    const VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
-    const VkPresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
-    const VkExtent2D extent = chooseSwapExtent(swapchainSupport.capabilities);
+    const auto surfaceFormats = device->physical()->supportedFormats(surface);
+    const auto presentModes = device->physical()->supportedPresentModes(surface);
+    const auto capabilities = device->physical()->capabilities(surface);
 
-    const uint32_t imageCount = evalMinImageCount(swapchainSupport.capabilities.minImageCount, swapchainSupport.capabilities.maxImageCount);
+    const VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats);
+    const VkPresentModeKHR presentMode = chooseSwapPresentMode(presentModes);
+    const VkExtent2D extent = chooseSwapExtent(capabilities);
+
+    const uint32_t imageCount = evalMinImageCount(capabilities.minImageCount, capabilities.maxImageCount);
 
     VkSwapchainCreateInfoKHR createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -146,7 +150,7 @@ void Swapchain::createSwapchain(const Surface* surface) {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    const auto [graphicsFamilyIndex, presentFamilyIndex] = device->findPhysicalQueueFamilies();
+    const auto [graphicsFamilyIndex, presentFamilyIndex] = device->queueIndices();
     const array<uint32_t, 2> queueFamilyIndices{graphicsFamilyIndex, presentFamilyIndex};
 
     if(graphicsFamilyIndex != presentFamilyIndex) {
@@ -159,7 +163,7 @@ void Swapchain::createSwapchain(const Surface* surface) {
         createInfo.pQueueFamilyIndices = nullptr; // Optional
     }
 
-    createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
+    createInfo.preTransform = capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
     createInfo.presentMode = presentMode;
@@ -205,7 +209,6 @@ BasicImage::Config Swapchain::createDepthImageConfig() const {
     return config;
 }
 
-
 void Swapchain::createSwapchainImages() {
     uint32_t imageCount; //only min specified, might be higher
     vkGetSwapchainImagesKHR(device->get(), vkSwapchain, &imageCount, nullptr);
@@ -220,7 +223,6 @@ void Swapchain::createSwapchainImages() {
     swapchainImageViews.reserve(imageCount);
     for(auto i = 0u; i < imageCount; i++) swapchainImageViews.emplace_back(device, &swapchainImages[i], ImageView::Config::Default());
 }
-
 void Swapchain::createMsaaResources() {
     const auto imageConfig = createColorImageConfig();
 
@@ -232,7 +234,6 @@ void Swapchain::createMsaaResources() {
         msaaImageViews.emplace_back(device, &msaaImages.back(), ImageView::Config::Default());
     }
 }
-
 VkFormat Swapchain::findDepthFormat() const {
     return device->findSupportedFormat(
         {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL,
@@ -251,6 +252,9 @@ void Swapchain::createDepthResources() {
         depthImageViews.emplace_back(device, &depthImages.back(), ImageView::Config::Default());
     }
 }
+
+
+
 
 VkAttachmentDescription Swapchain::createColorAttachmentDescription() const {
     VkAttachmentDescription attachment = {};
