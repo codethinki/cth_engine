@@ -104,11 +104,6 @@ void Renderer::endFrame() {
     CTH_ERR(!frameStarted, "no frame active") throw details->exception();
 
     const auto buffer = commandBuffer();
-    const VkResult recordResult = vkEndCommandBuffer(buffer);
-
-    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
-        throw cth::except::vk_result_exception{recordResult, details->exception()};
-
 
     const VkResult submitResult = swapchain->submitCommandBuffer(buffer, currentImageIndex);
 

@@ -60,18 +60,23 @@ VkResult Swapchain::acquireNextImage(uint32_t* image_index) const {
     return result;
 }
 VkResult Swapchain::submitCommandBuffer(VkCommandBuffer cmd_buffer, const uint32_t image_index) {
-    if(imagesInFlight[image_index] != VK_NULL_HANDLE) vkWaitForFences(device->get(), 1, &imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
 
-    imagesInFlight[image_index] = inFlightFences[currentFrame];
-
-    vkResetFences(device->get(), 1, &inFlightFences[currentFrame]);
-
-    if(device->presentQueueIndex() != device->graphicsQueueIndex()){
+    if(device->presentQueueIndex() != device->graphicsQueueIndex()) {
         ImageBarrier barrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
             {{&swapchainImages[image_index], ImageBarrier::Info::QueueTransition(0, device->graphicsQueueIndex(), 0, device->presentQueueIndex())}}
         };
         barrier.execute(cmd_buffer);
     }
+    const VkResult recordResult = vkEndCommandBuffer(cmd_buffer);
+
+    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
+        throw cth::except::vk_result_exception{recordResult, details->exception()};
+
+    if(imagesInFlight[image_index] != VK_NULL_HANDLE) vkWaitForFences(device->get(), 1, &imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
+
+    imagesInFlight[image_index] = inFlightFences[currentFrame];
+
+    vkResetFences(device->get(), 1, &inFlightFences[currentFrame]);
 
 
     const VkResult submitResult = submit(cmd_buffer);
