@@ -84,6 +84,26 @@ vector<string> PhysicalDevice::supports(span<const string> required_extensions) 
     return missingExtensions;
 }
 
+uint32_t PhysicalDevice::findMemoryType(const uint32_t type_filter, const VkMemoryPropertyFlags mem_properties) const {
+    for(uint32_t i = 0; i < _memProperties.memoryTypeCount; i++)
+        if((type_filter & (1 << i)) && (_memProperties.memoryTypes[i].propertyFlags & mem_properties) == mem_properties)
+            return i;
+
+    CTH_STABLE_ERR(true, "no suitable memory type available") throw details->exception();
+}
+
+VkFormat PhysicalDevice::findSupportedFormat(const span<const VkFormat> candidates, const VkImageTiling tiling,
+    const VkFormatFeatureFlags features) const {
+    for(const VkFormat format : candidates) {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(vkDevice, format, &props);
+
+        if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) return format;
+        if(tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) return format;
+    }
+    CTH_STABLE_ERR(true, "format unsupported") throw cth::except::data_exception{features, details->exception()};
+}
+
 vector<uint32_t> PhysicalDevice::queueFamilyIndices(const span<const VkQueueFlagBits> requested_queues, const Surface* surface) {
     const size_t queueCount = requested_queues.size() + (surface != nullptr ? 1 : 0);
     vector<VkQueueFlagBits> missingQueues{requested_queues.begin(), requested_queues.end()};
@@ -183,6 +203,9 @@ void PhysicalDevice::setExtensions() {
 }
 void PhysicalDevice::setProperties() {
     vkGetPhysicalDeviceProperties(vkDevice, &_properties);
+
+    VkPhysicalDeviceMemoryProperties memProperties;
+    vkGetPhysicalDeviceMemoryProperties(vkDevice, &memProperties);
 
     uint32_t count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &count, nullptr);

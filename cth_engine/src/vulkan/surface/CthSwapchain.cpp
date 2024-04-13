@@ -75,20 +75,19 @@ VkResult Swapchain::submitCommandBuffer(VkCommandBuffer cmd_buffer, const uint32
 
     //TEMP restructure this and find something better
 
-        //TODO add queue transfer between submit and present
-   /* if(device->presentQueueIndex() != device->graphicsQueueIndex()) {
-        ImageBarrier barrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-            {{&swapchainImages[image_index], ImageBarrier::Info::QueueTransition(0, device->graphicsQueueIndex(), 0, device->presentQueueIndex())}}
-        };
-        barrier.execute(cmd_buffer);
-    }*/
-
     //TEMP this is bad structure because it returns a result but can still fail
 
     const auto presentResult = present(image_index);
 
     ++currentFrame %= MAX_FRAMES_IN_FLIGHT;
     return presentResult;
+}
+void Swapchain::changeSwapchainImageQueue(VkCommandBuffer cmd_buffer, uint32_t new_queue_index, uint32_t image_index) {
+
+    ImageBarrier barrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        {{&swapchainImages[image_index], ImageBarrier::Info::QueueTransition(0, device->graphicsQueueIndex(), 0, device->presentQueueIndex())}}
+    };
+    barrier.execute(cmd_buffer);
 }
 
 
@@ -455,7 +454,6 @@ void Swapchain::init(const Surface* surface) {
     createFramebuffers();
     createSyncObjects();
 }
-
 
 
 

@@ -20,44 +20,18 @@ public:
     explicit Device(PhysicalDevice* physical_device, Surface* surface, Instance* instance);
     ~Device();
 
-    /**
-     * \throws cth::except::default_exception reason: no suitable memory type
-     */
-    [[nodiscard]] uint32_t findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties) const;
-    /**
-     *\throws cth::except::data_exception data: features param
-     */
-    [[nodiscard]] VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
-
-    // Buffer Helper Functions
-
-    /**
-     * \throws cth::except::vk_result_exception result of vkCreateBuffer()
-     * \throws cth::except::vk_result_exception result of vkAllocateMemory()
-     */
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-        VkBuffer& buffer, VkDeviceMemory& buffer_memory) const;
 
     [[nodiscard]] VkCommandBuffer beginSingleTimeCommands() const;
     void endSingleTimeCommands(VkCommandBuffer command_buffer) const;
 
-    //TODO put this into the image class maybe
-    /**
-     * \throws cth::except::vk_result_exception result of vkCreateImage()
-     * \throws cth::except::vk_result_exception result of vkAllocateMemory()
-     * \throws cth::except::vk_result_exception result of vkBindImageMemory()
-     */
-    void createImageWithInfo(const VkImageCreateInfo& image_info, VkMemoryPropertyFlags properties, VkImage& image,
-        VkDeviceMemory& image_memory) const;
-
 private:
-    //createLogicalDevice
     /**
     * \throws cth::except::vk_result_exception result of vkCreateDevice()
     */
     void createLogicalDevice(const Surface* surface);
+      
+    void setQueues();
 
-    //createCommandPool
     /**
      * \throws cth::except::vk_result_exception result of vkCreateCommandPool()
      */

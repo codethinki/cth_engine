@@ -40,6 +40,9 @@ public:
      */
     [[nodiscard]] vector<string> supports(span<const string> required_extensions);
 
+    [[nodiscard]] uint32_t findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags mem_properties) const;
+    [[nodiscard]] VkFormat findSupportedFormat(span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
+
     /**
      * \brief finds a combination of queue families that support the requested queue types
      * \param requested_queues requested queue types
@@ -56,6 +59,8 @@ public:
     [[nodiscard]] vector<VkSurfaceFormatKHR> supportedFormats(const Surface* surface) const;
     [[nodiscard]] VkSurfaceCapabilitiesKHR capabilities(const Surface* surface) const;
     [[nodiscard]] VkBool32 supportsFamily(const Surface* physical_device, uint32_t family_index) const;
+
+
 private:
     void setFeatures();
     void setExtensions();
@@ -67,6 +72,7 @@ private:
     VkPhysicalDeviceFeatures _features;
     vector<string> _extensions{};
     VkPhysicalDeviceProperties _properties;
+    VkPhysicalDeviceMemoryProperties _memProperties;
     vector<VkQueueFamilyProperties> queueFamilies{};
     VkSampleCountFlagBits _maxSampleCount;
 
@@ -74,7 +80,8 @@ public:
     [[nodiscard]] VkPhysicalDevice get() const { return vkDevice; }
     [[nodiscard]] const auto& features() const { return _features; }
     [[nodiscard]] span<const string> extensions() const { return _extensions; }
-    [[nodiscard]] const VkPhysicalDeviceProperties& properties() const { return _properties; }
+    [[nodiscard]] const auto& properties() const { return _properties; }
+    [[nodiscard]] const auto& memProperties() const { return _memProperties; }
     [[nodiscard]] VkSampleCountFlagBits maxSampleCount() const { return _maxSampleCount; }
     [[nodiscard]] const VkPhysicalDeviceLimits& limits() const { return _properties.limits; }
 

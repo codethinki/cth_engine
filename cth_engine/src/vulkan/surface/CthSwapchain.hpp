@@ -39,6 +39,8 @@ public:
      */
     VkResult submitCommandBuffer(VkCommandBuffer cmd_buffer, uint32_t image_index);
 
+    [[nodiscard]] void changeSwapchainImageQueue(VkCommandBuffer cmd_buffer, uint32_t new_queue_index, uint32_t image_index);
+
 private:
     [[nodiscard]] VkResult submit(VkCommandBuffer command_buffer) const;
     [[nodiscard]] VkResult present(uint32_t image_index) const;

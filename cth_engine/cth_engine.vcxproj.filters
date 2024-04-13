@@ -50,6 +50,8 @@
     <ClInclude Include="include\interface\cth_user.hpp" />
     <ClInclude Include="src\vulkan\base\CthPhysicalDevice.hpp" />
     <ClInclude Include="src\vulkan\pipeline\CthPipelineBarrier.hpp" />
+    <ClInclude Include="src\vulkan\render\cmd\CthCmdPool.hpp" />
+    <ClInclude Include="src\vulkan\render\cmd\CthCmdBuffer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -85,5 +87,7 @@
     <ClCompile Include="src\vulkan\resource\image\CthBasicImage.cpp" />
     <ClCompile Include="src\vulkan\base\CthPhysicalDevice.cpp" />
     <ClCompile Include="src\vulkan\pipeline\CthPipelineBarrier.cpp" />
+    <ClCompile Include="src\vulkan\render\cmd\CthCmdPool.cpp" />
+    <ClCompile Include="src\vulkan\render\cmd\CthCmdBuffer.cpp" />
   </ItemGroup>
 </Project>

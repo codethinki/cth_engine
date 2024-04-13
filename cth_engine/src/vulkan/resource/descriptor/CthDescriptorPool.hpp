@@ -92,11 +92,11 @@ public:
         void addLayout(DescriptorSetLayout* layout, uint32_t alloc_count);
         void addLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
 
-        void removeLayout(DescriptorSetLayout* layout, VkDeviceSize amount = VK_WHOLE_SIZE);
+        void removeLayout(DescriptorSetLayout* layout, size_t amount = VK_WHOLE_SIZE);
         void removeLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
 
     private:
-        unordered_map<DescriptorSetLayout*, VkDeviceSize> maxDescriptorSets;
+        unordered_map<DescriptorSetLayout*, size_t> maxDescriptorSets;
 
         friend DescriptorPool;
     };

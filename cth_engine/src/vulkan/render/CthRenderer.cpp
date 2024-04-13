@@ -103,14 +103,18 @@ VkCommandBuffer Renderer::beginFrame() {
 void Renderer::endFrame() {
     CTH_ERR(!frameStarted, "no frame active") throw details->exception();
 
-    const auto cmd_buffer = commandBuffer();
+    const auto cmdBuffer = commandBuffer();
+    //TODO finish this up
+ /*   if(device->presentQueueIndex() != device->graphicsQueueIndex())
+        swapchain->changeSwapchainImageQueue(cmdBuffer, device->presentQueueIndex(), currentImageIndex);*/
 
-    const VkResult recordResult = vkEndCommandBuffer(cmd_buffer);
+
+    const VkResult recordResult = vkEndCommandBuffer(cmdBuffer);
 
     CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
         throw cth::except::vk_result_exception{recordResult, details->exception()};
 
-    const VkResult submitResult = swapchain->submitCommandBuffer(cmd_buffer, currentImageIndex);
+    const VkResult submitResult = swapchain->submitCommandBuffer(cmdBuffer, currentImageIndex);
 
     if(submitResult == VK_ERROR_OUT_OF_DATE_KHR || submitResult == VK_SUBOPTIMAL_KHR || window->windowResized()) {
         recreateSwapchain();
@@ -162,5 +166,7 @@ void Renderer::endSwapchainRenderPass(VkCommandBuffer command_buffer) const {
         throw details->exception();
 
     vkCmdEndRenderPass(command_buffer);
+
+
 }
 } // namespace cth

@@ -143,7 +143,7 @@ void DescriptorPool::Builder::addLayout(DescriptorSetLayout* layout, const uint3
 void DescriptorPool::Builder::addLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations) {
     ranges::for_each(set_allocations, [this](const auto& pair) { this->addLayout(pair.first, pair.second); });
 }
-void DescriptorPool::Builder::removeLayout(DescriptorSetLayout* layout, const VkDeviceSize amount) {
+void DescriptorPool::Builder::removeLayout(DescriptorSetLayout* layout, const size_t amount) {
     CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
     CTH_WARN(amount == 0, "alloc_count should be > 0");
     CTH_ERR(!maxDescriptorSets.contains(layout), "builder does not contain layout") throw details->exception();

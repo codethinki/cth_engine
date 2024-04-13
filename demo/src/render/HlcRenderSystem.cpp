@@ -125,7 +125,7 @@ void RenderSystem::createDefaultTriangle() {
 void RenderSystem::render(FrameInfo& frame_info) const {
     pipeline->bind(frame_info.commandBuffer);
     const vector<VkBuffer> vertexBuffers{defaultTriangleBuffer->get()};
-    const vector<VkDeviceSize> offsets(vertexBuffers.size());
+    const vector<size_t> offsets(vertexBuffers.size());
     const vector<VkDescriptorSet> descriptorSets{descriptorSet->get()};
 
     vkCmdBindDescriptorSets(frame_info.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->get(), 0, 1, descriptorSets.data(), 0, nullptr);
