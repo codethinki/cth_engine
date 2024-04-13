@@ -61,16 +61,6 @@ VkResult Swapchain::acquireNextImage(uint32_t* image_index) const {
 }
 VkResult Swapchain::submitCommandBuffer(VkCommandBuffer cmd_buffer, const uint32_t image_index) {
 
-    if(device->presentQueueIndex() != device->graphicsQueueIndex()) {
-        ImageBarrier barrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-            {{&swapchainImages[image_index], ImageBarrier::Info::QueueTransition(0, device->graphicsQueueIndex(), 0, device->presentQueueIndex())}}
-        };
-        barrier.execute(cmd_buffer);
-    }
-    const VkResult recordResult = vkEndCommandBuffer(cmd_buffer);
-
-    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
-        throw cth::except::vk_result_exception{recordResult, details->exception()};
 
     if(imagesInFlight[image_index] != VK_NULL_HANDLE) vkWaitForFences(device->get(), 1, &imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
 
@@ -85,6 +75,13 @@ VkResult Swapchain::submitCommandBuffer(VkCommandBuffer cmd_buffer, const uint32
 
     //TEMP restructure this and find something better
 
+        //TODO add queue transfer between submit and present
+   /* if(device->presentQueueIndex() != device->graphicsQueueIndex()) {
+        ImageBarrier barrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            {{&swapchainImages[image_index], ImageBarrier::Info::QueueTransition(0, device->graphicsQueueIndex(), 0, device->presentQueueIndex())}}
+        };
+        barrier.execute(cmd_buffer);
+    }*/
 
     //TEMP this is bad structure because it returns a result but can still fail
 
@@ -92,6 +89,40 @@ VkResult Swapchain::submitCommandBuffer(VkCommandBuffer cmd_buffer, const uint32
 
     ++currentFrame %= MAX_FRAMES_IN_FLIGHT;
     return presentResult;
+}
+
+
+VkResult Swapchain::submit(VkCommandBuffer command_buffer) const {
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    submitInfo.waitSemaphoreCount = 1u;
+    submitInfo.pWaitSemaphores = &imageAvailableSemaphores[currentFrame];
+
+    constexpr array<VkPipelineStageFlags, 1> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submitInfo.pWaitDstStageMask = waitStages.data();
+    submitInfo.commandBufferCount = 1u;
+    submitInfo.pCommandBuffers = &command_buffer;
+
+    submitInfo.signalSemaphoreCount = 1u;
+    submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
+
+    return vkQueueSubmit(device->graphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]);
+}
+VkResult Swapchain::present(const uint32_t image_index) const {
+    VkPresentInfoKHR presentInfo = {};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentFrame];
+
+    const array<VkSwapchainKHR, 1> swapchains{vkSwapchain};
+
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapchains.data();
+    presentInfo.pImageIndices = &image_index;
+
+    return vkQueuePresentKHR(device->presentQueue(), &presentInfo);
 }
 
 VkSampleCountFlagBits Swapchain::evalMsaaSampleCount() const {
@@ -425,38 +456,7 @@ void Swapchain::init(const Surface* surface) {
     createSyncObjects();
 }
 
-VkResult Swapchain::submit(VkCommandBuffer command_buffer) const {
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    submitInfo.waitSemaphoreCount = 1u;
-    submitInfo.pWaitSemaphores = &imageAvailableSemaphores[currentFrame];
-
-    constexpr array<VkPipelineStageFlags, 1> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submitInfo.pWaitDstStageMask = waitStages.data();
-    submitInfo.commandBufferCount = 1u;
-    submitInfo.pCommandBuffers = &command_buffer;
-
-    submitInfo.signalSemaphoreCount = 1u;
-    submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
-
-    return vkQueueSubmit(device->graphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]);
-}
-VkResult Swapchain::present(const uint32_t image_index) const {
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentFrame];
-
-    const array<VkSwapchainKHR, 1> swapchains{vkSwapchain};
-
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapchains.data();
-    presentInfo.pImageIndices = &image_index;
-
-    return vkQueuePresentKHR(device->presentQueue(), &presentInfo);
-}
 
 
 } // namespace cth

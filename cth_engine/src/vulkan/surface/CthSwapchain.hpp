@@ -40,6 +40,9 @@ public:
     VkResult submitCommandBuffer(VkCommandBuffer cmd_buffer, uint32_t image_index);
 
 private:
+    [[nodiscard]] VkResult submit(VkCommandBuffer command_buffer) const;
+    [[nodiscard]] VkResult present(uint32_t image_index) const;
+
     //setMsaaSampleCount
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
 
@@ -82,8 +85,7 @@ private:
 
     void init(const Surface* surface);
 
-    [[nodiscard]] VkResult submit(VkCommandBuffer command_buffer) const;
-    [[nodiscard]] VkResult present(uint32_t image_index) const;
+  
 
 
     Device* device;

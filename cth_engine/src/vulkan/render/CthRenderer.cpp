@@ -103,9 +103,14 @@ VkCommandBuffer Renderer::beginFrame() {
 void Renderer::endFrame() {
     CTH_ERR(!frameStarted, "no frame active") throw details->exception();
 
-    const auto buffer = commandBuffer();
+    const auto cmd_buffer = commandBuffer();
 
-    const VkResult submitResult = swapchain->submitCommandBuffer(buffer, currentImageIndex);
+    const VkResult recordResult = vkEndCommandBuffer(cmd_buffer);
+
+    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
+        throw cth::except::vk_result_exception{recordResult, details->exception()};
+
+    const VkResult submitResult = swapchain->submitCommandBuffer(cmd_buffer, currentImageIndex);
 
     if(submitResult == VK_ERROR_OUT_OF_DATE_KHR || submitResult == VK_SUBOPTIMAL_KHR || window->windowResized()) {
         recreateSwapchain();

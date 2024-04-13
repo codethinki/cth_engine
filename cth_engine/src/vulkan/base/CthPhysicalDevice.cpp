@@ -95,12 +95,12 @@ vector<uint32_t> PhysicalDevice::queueFamilyIndices(const span<const VkQueueFlag
             if(queueFamilies[i].queueFlags & missingQueues[j]) {
                 queueIndices.push_back(i);
                 missingQueues.erase(missingQueues.begin() + j--);
-                //break; //TEMP test for different queues
             }
     CTH_WARN(queueIndices.size() + 1 != queueCount, "queues missing")
         for(const auto& missingQueue : missingQueues) details->add("missing queue: {}", static_cast<uint32_t>(missingQueue));
 
 
+    //auto i = queueIndices[0] + 1; // to test if it works with different queue indices
     auto i = 0u;
     for(; i < queueFamilies.size() && !supportsPresentQueue(surface, i); ++i);
     CTH_STABLE_WARN(i == queueFamilies.size(), "no present queue found");

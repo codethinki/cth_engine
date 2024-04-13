@@ -36,13 +36,6 @@ public:
     };
 
 protected:
-    /**
-     * \brief creates a default image barrier with no access, no transitions and no queue ownership
-     * \param first_mip_level 
-     * \param levels levels == 0 => all remaining levels
-     */
-    [[nodiscard]] VkImageMemoryBarrier barrier(uint32_t first_mip_level, uint32_t levels);
-
     VkExtent2D _extent;
     Config _config;
     VkImage vkImage = VK_NULL_HANDLE;
