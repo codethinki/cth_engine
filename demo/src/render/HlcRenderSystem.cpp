@@ -86,7 +86,7 @@ void RenderSystem::createDescriptorPool() {
     descriptorPool = make_unique<DescriptorPool>(device, DescriptorPool::Builder{{{descriptorSetLayout.get(), 1}}});
 }
 void RenderSystem::loadDescriptorData() {
-    const cth::img::stb_image image{std::format("{}first_texture3.png", TEXTURE_DIR), 4};
+    const cth::img::stb_image image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
     texture = make_unique<Texture>(device, VkExtent2D{image.width, image.height}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB}, image.raw());
 }

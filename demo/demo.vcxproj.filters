@@ -12,8 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\img\texture\first_texture.png" />
-    <Image Include="res\img\texture\first_texture2.png" />
-    <Image Include="res\img\texture\first_texture3.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\bin\shader\shader.frag.spv" />
