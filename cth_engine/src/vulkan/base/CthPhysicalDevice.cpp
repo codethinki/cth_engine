@@ -86,16 +86,29 @@ vector<string> PhysicalDevice::supports(span<const string> required_extensions) 
 
 vector<uint32_t> PhysicalDevice::queueFamilyIndices(const span<const VkQueueFlagBits> requested_queues, const Surface* surface) {
     const size_t queueCount = requested_queues.size() + (surface != nullptr ? 1 : 0);
-    vector<vector<uint32_t>> queueIndices(queueCount);
+    vector<VkQueueFlagBits> missingQueues{requested_queues.begin(), requested_queues.end()};
+    vector<uint32_t> queueIndices{};
+    queueIndices.reserve(queueCount);
 
-    for(auto [index, queueFamily] : queueFamilies | views::enumerate) {
-        for(auto i = 0u; i < queueIndices.size() - 1; i++)
-            if(queueFamily.queueFlags & requested_queues[i]) queueIndices[i].push_back(static_cast<uint32_t>(index));
-        if(surface != nullptr && supportsPresentQueue(surface, static_cast<uint32_t>(index)))
-            queueIndices.back().push_back(static_cast<uint32_t>(index));
-    }
+    for(auto i = 0u; i < queueFamilies.size() && !missingQueues.empty(); ++i)
+        for(auto j = 0u; j < missingQueues.size() && !missingQueues.empty(); ++j)
+            if(queueFamilies[i].queueFlags & missingQueues[j]) {
+                queueIndices.push_back(i);
+                missingQueues.erase(missingQueues.begin() + j--);
+                //break; //TEMP test for different queues
+            }
+    CTH_WARN(queueIndices.size() + 1 != queueCount, "queues missing")
+        for(const auto& missingQueue : missingQueues) details->add("missing queue: {}", static_cast<uint32_t>(missingQueue));
 
-    return cth::algorithm::uniqueSelect(queueIndices);
+
+    auto i = 0u;
+    for(; i < queueFamilies.size() && !supportsPresentQueue(surface, i); ++i);
+    CTH_STABLE_WARN(i == queueFamilies.size(), "no present queue found");
+            else queueIndices.push_back(i);
+
+
+
+    return queueIndices.size() == queueCount ? queueIndices : vector<uint32_t>{};
 }
 bool PhysicalDevice::supportsPresentQueue(const Surface* surface, const uint32_t family_index) const {
     VkBool32 support;

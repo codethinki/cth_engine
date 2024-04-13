@@ -84,9 +84,10 @@ public:
     [[nodiscard]] VkDevice get() const { return vkDevice; }
     [[nodiscard]] VkQueue graphicsQueue() const { return vkGraphicsQueue; }
     [[nodiscard]] VkQueue presentQueue() const { return vkPresentQueue; }
-    [[nodiscard]] pair<uint32_t, uint32_t> queueIndices() const {
-        return pair{_queueIndices[GRAPHICS_QUEUE_INDEX], _queueIndices[PRESENT_QUEUE_INDEX]};
-    }
+    [[nodiscard]] uint32_t graphicsQueueIndex() const { return _queueIndices[GRAPHICS_QUEUE_INDEX]; }
+    [[nodiscard]] uint32_t presentQueueIndex() const { return _queueIndices[PRESENT_QUEUE_INDEX]; }
+
+
     [[nodiscard]] const PhysicalDevice* physical() const { return physicalDevice; }
 
     Device(const Device&) = delete;

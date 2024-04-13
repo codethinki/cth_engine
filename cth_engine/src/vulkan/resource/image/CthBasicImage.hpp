@@ -4,6 +4,10 @@
 #include <vulkan/vulkan.h>
 
 namespace cth {
+class ImageBarrier;
+}
+
+namespace cth {
 using namespace std;
 
 class ImageView;
@@ -18,6 +22,7 @@ public:
     BasicImage(VkExtent2D extent, const Config& config, VkImage image);
     virtual ~BasicImage() = default;
 
+
     struct Config {
         VkImageAspectFlagBits aspectMask;
         VkFormat format;
@@ -29,11 +34,22 @@ public:
 
         [[nodiscard]] VkImageCreateInfo createInfo() const;
     };
+
 protected:
+    /**
+     * \brief creates a default image barrier with no access, no transitions and no queue ownership
+     * \param first_mip_level 
+     * \param levels levels == 0 => all remaining levels
+     */
+    [[nodiscard]] VkImageMemoryBarrier barrier(uint32_t first_mip_level, uint32_t levels);
+
     VkExtent2D _extent;
     Config _config;
     VkImage vkImage = VK_NULL_HANDLE;
     vector<VkImageLayout> imageLayouts{};
+
+    friend ImageBarrier;
+
 public:
     [[nodiscard]] VkImage get() const { return vkImage; }
     [[nodiscard]] VkFormat format() const { return _config.format; }
@@ -45,4 +61,3 @@ public:
     [[nodiscard]] BasicImage::Config config() const { return _config; }
 };
 } // namespace cth
-

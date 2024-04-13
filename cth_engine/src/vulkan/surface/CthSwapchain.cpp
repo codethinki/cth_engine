@@ -11,6 +11,8 @@
 #include <array>
 #include <limits>
 
+#include "vulkan/pipeline/CthPipelineBarrier.hpp"
+
 
 
 namespace cth {
@@ -57,17 +59,28 @@ VkResult Swapchain::acquireNextImage(uint32_t* image_index) const {
 
     return result;
 }
-VkResult Swapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_t image_index) {
+VkResult Swapchain::submitCommandBuffer(VkCommandBuffer cmd_buffer, const uint32_t image_index) {
     if(imagesInFlight[image_index] != VK_NULL_HANDLE) vkWaitForFences(device->get(), 1, &imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
 
     imagesInFlight[image_index] = inFlightFences[currentFrame];
 
     vkResetFences(device->get(), 1, &inFlightFences[currentFrame]);
 
+    if(device->presentQueueIndex() != device->graphicsQueueIndex()){
+        ImageBarrier barrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            {{&swapchainImages[image_index], ImageBarrier::Info::QueueTransition(0, device->graphicsQueueIndex(), 0, device->presentQueueIndex())}}
+        };
+        barrier.execute(cmd_buffer);
+    }
 
-    const VkResult submitResult = submit(buffer);
+
+    const VkResult submitResult = submit(cmd_buffer);
     CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to submit draw call")
         throw cth::except::vk_result_exception{submitResult, details->exception()};
+
+    //TEMP restructure this and find something better
+
+
     //TEMP this is bad structure because it returns a result but can still fail
 
     const auto presentResult = present(image_index);
@@ -77,7 +90,7 @@ VkResult Swapchain::submitCommandBuffer(VkCommandBuffer buffer, const uint32_t i
 }
 
 VkSampleCountFlagBits Swapchain::evalMsaaSampleCount() const {
-    const uint32_t maxSamples = device->physical()->maxSampleCount(); //TEMP
+    const uint32_t maxSamples = device->physical()->maxSampleCount() / 2; //TEMP
 
     uint32_t samples = 1;
     while(samples < maxSamples && samples < MAX_MSAA_SAMPLES) samples *= 2;
@@ -122,7 +135,7 @@ VkExtent2D Swapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilit
     return actualExtent;
 }
 uint32_t Swapchain::evalMinImageCount(const uint32_t min, const uint32_t max) const {
-    uint32_t imageCount = min + 1;
+    uint32_t imageCount = min + 1; //TODO check if this is really wrong if the imageCount is 4
     if(max > 0 && imageCount > max) imageCount = max;
     return imageCount;
 }
@@ -150,18 +163,11 @@ void Swapchain::createSwapchain(const Surface* surface) {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    const auto [graphicsFamilyIndex, presentFamilyIndex] = device->queueIndices();
-    const array<uint32_t, 2> queueFamilyIndices{graphicsFamilyIndex, presentFamilyIndex};
 
-    if(graphicsFamilyIndex != presentFamilyIndex) {
-        createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
-    } else {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.queueFamilyIndexCount = 0; // Optional
-        createInfo.pQueueFamilyIndices = nullptr; // Optional
-    }
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.queueFamilyIndexCount = 0; // Optional
+    createInfo.pQueueFamilyIndices = nullptr; // Optional
+
 
     createInfo.preTransform = capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -252,7 +258,6 @@ void Swapchain::createDepthResources() {
         depthImageViews.emplace_back(device, &depthImages.back(), ImageView::Config::Default());
     }
 }
-
 
 
 

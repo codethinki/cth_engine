@@ -1,6 +1,7 @@
 #include "CthDevice.hpp"
 
 #include <numeric>
+#include <unordered_set>
 
 #include "CthInstance.hpp"
 
@@ -37,10 +38,11 @@ Device::~Device() {
 void Device::createLogicalDevice(const Surface* surface) {
     _queueIndices = physicalDevice->queueFamilyIndices(vector{VK_QUEUE_GRAPHICS_BIT}, surface);
 
+    unordered_set<uint32_t> uniqueQueues = {std::begin(_queueIndices), std::end(_queueIndices)};
     vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     float queuePriority = 1.0f;
-    ranges::for_each(_queueIndices, [&queueCreateInfos, queuePriority](const uint32_t queue_family) {
+    ranges::for_each(uniqueQueues, [&queueCreateInfos, queuePriority](const uint32_t queue_family) {
         VkDeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queue_family;

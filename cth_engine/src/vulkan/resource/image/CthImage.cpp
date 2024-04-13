@@ -2,6 +2,7 @@
 
 
 #include "vulkan/base/CthDevice.hpp"
+#include "vulkan/pipeline/CthPipelineBarrier.hpp"
 #include "vulkan/resource/buffer/CthDefaultBuffer.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
@@ -107,40 +108,19 @@ void Image::transitionLayout(const VkImageLayout new_layout, const uint32_t firs
         [oldLayout](VkImageLayout layout){ return oldLayout != layout; }), "all transitioned layouts must be the same")
         throw details->exception();
 
+    auto [srcAccess, dstAccess, srcStage, dstStage] = transitionConfig(oldLayout, new_layout);
+
+    ImageBarrier barrier{srcStage, dstStage, {{this, ImageBarrier::Info::LayoutTransition(srcAccess, dstAccess, new_layout, first_mip_level, mip_levels)}}};
+
+
     VkCommandBuffer commandBuffer = device->beginSingleTimeCommands();
 
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.image = vkImage;
-    barrier.oldLayout = oldLayout;
-    barrier.newLayout = new_layout;
-
-    //const auto mask = aspect_mask == VK_IMAGE_ASPECT_NONE ? _config.aspectMask : aspect_mask;
-    barrier.subresourceRange.aspectMask = _config.aspectMask;
-
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange.baseMipLevel = first_mip_level;
-
-    barrier.subresourceRange.levelCount = levels;
-    //currently only 2d images
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-
-    auto [srcAccess, dstAccess, srcStage, dstStage] = transitionConfig(oldLayout, new_layout);
-    barrier.srcAccessMask = srcAccess;
-    barrier.dstAccessMask = dstAccess;
-
-    vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    barrier.execute(commandBuffer);
 
     device->endSingleTimeCommands(commandBuffer);
-
-    ranges::fill_n(imageLayouts.begin() + first_mip_level, levels, new_layout);
 }
 uint32_t Image::evalMipLevelCount(const VkExtent2D extent) {
     return static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height))) + 1);
 }
 
 } // namespace cth
-
-

@@ -47,8 +47,8 @@ void RenderSystem::createShaders() {
     const string fragmentBinary = format("{}shader.frag.spv", SHADER_BINARY_DIR);
 
 #ifdef _FINAL
-    vertShader = make_unique<Shader>(device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary);
-    fragShader = make_unique<Shader>(device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary);
+    vertexShader = make_unique<Shader>(device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
+    fragmentShader = make_unique<Shader>(device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
 #else
     vertexShader = make_unique<Shader>(device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
         format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);

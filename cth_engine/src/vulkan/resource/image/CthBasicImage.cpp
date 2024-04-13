@@ -1,6 +1,7 @@
 #include "CthBasicImage.hpp"
 
 #include <iterator>
+#include <cth/cth_log.hpp>
 
 
 namespace cth {

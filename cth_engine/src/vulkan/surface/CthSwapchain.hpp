@@ -37,7 +37,7 @@ public:
     /**
      * \throws cth::except::vk_result_exception result of vkQueueSubmit()
      */
-    VkResult submitCommandBuffer(VkCommandBuffer buffer, uint32_t image_index);
+    VkResult submitCommandBuffer(VkCommandBuffer cmd_buffer, uint32_t image_index);
 
 private:
     //setMsaaSampleCount
@@ -84,7 +84,6 @@ private:
 
     [[nodiscard]] VkResult submit(VkCommandBuffer command_buffer) const;
     [[nodiscard]] VkResult present(uint32_t image_index) const;
-
 
 
     Device* device;

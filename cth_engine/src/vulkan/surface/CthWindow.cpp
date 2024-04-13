@@ -24,6 +24,8 @@ Window::Window(const string_view name, const uint32_t width, const uint32_t heig
     createSurface(instance);
 }
 Window::~Window() {
+    _surface = nullptr;
+
     glfwDestroyWindow(glfwWindow);
     cth::log::msg("destroyed window");
 }
