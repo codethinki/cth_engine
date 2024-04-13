@@ -10,4 +10,13 @@
     <ClCompile Include="src\HlcApp.cpp" />
     <ClCompile Include="src\demo_main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\img\texture\first_texture.png" />
+    <Image Include="res\img\texture\first_texture2.png" />
+    <Image Include="res\img\texture\first_texture3.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\bin\shader\shader.frag.spv" />
+    <None Include="res\bin\shader\shader.vert.spv" />
+  </ItemGroup>
 </Project>
