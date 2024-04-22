@@ -1,5 +1,9 @@
 #pragma once
+#include "interface/CthEngineSettings.hpp"
 #include "vulkan/render/pass/cth_render_pass_utils.hpp"
+#include "vulkan/resource/image/CthBasicImage.hpp"
+#include "vulkan/resource/image/CthImageView.hpp"
+
 
 #include <vulkan/vulkan.h>
 
@@ -7,27 +11,22 @@
 #include <memory>
 #include <vector>
 
-#include "vulkan/resource/image/CthBasicImage.hpp"
-#include "vulkan/resource/image/CthImageView.hpp"
-
-
-
 namespace cth {
 using namespace std;
 
 class Device;
 class Surface;
-
+class DeletionQueue;
 class ImageView;
 class Image;
+class CmdBuffer;
+class PrimaryCmdBuffer;
+
 
 class Swapchain {
 public:
-    static constexpr VkSampleCountFlagBits MAX_MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
-    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
-
-    Swapchain(Device* device, VkExtent2D window_extent, const Surface* surface);
-    Swapchain(Device* device, VkExtent2D window_extent, const Surface* surface, shared_ptr<Swapchain> previous);
+    Swapchain(Device* device, DeletionQueue* deletion_queue, VkExtent2D window_extent, const Surface* surface);
+    Swapchain(Device* device, DeletionQueue* deletion_queue, VkExtent2D window_extent, const Surface* surface, shared_ptr<Swapchain> previous);
     ~Swapchain();
 
 
@@ -37,12 +36,13 @@ public:
     /**
      * \throws cth::except::vk_result_exception result of vkQueueSubmit()
      */
-    VkResult submitCommandBuffer(VkCommandBuffer cmd_buffer, uint32_t image_index);
+    VkResult submitCommandBuffer(DeletionQueue* deletion_queue, const PrimaryCmdBuffer* cmd_buffer, uint32_t image_index);
 
-    [[nodiscard]] void changeSwapchainImageQueue(VkCommandBuffer cmd_buffer, uint32_t new_queue_index, uint32_t image_index);
+    void changeSwapchainImageQueue(uint32_t release_queue, const CmdBuffer* release_cmd_buffer, uint32_t acquire_queue,
+        const CmdBuffer* acquire_cmd_buffer, uint32_t image_index);
 
 private:
-    [[nodiscard]] VkResult submit(VkCommandBuffer command_buffer) const;
+    [[nodiscard]] VkResult submit(vector<const PrimaryCmdBuffer*> cmd_buffers) const;
     [[nodiscard]] VkResult present(uint32_t image_index) const;
 
     //setMsaaSampleCount
@@ -59,10 +59,10 @@ private:
     [[nodiscard]] BasicImage::Config createImageConfig() const;
     [[nodiscard]] BasicImage::Config createColorImageConfig() const;
     void createSwapchainImages();
-    void createMsaaResources();
+    void createMsaaResources(DeletionQueue* deletion_queue); //TEMP remove deletion queue argument
     [[nodiscard]] BasicImage::Config createDepthImageConfig() const;
     [[nodiscard]] VkFormat findDepthFormat() const;
-    void createDepthResources();
+    void createDepthResources(DeletionQueue* deletion_queue);
 
 
 
@@ -85,9 +85,9 @@ private:
      */
     void createSyncObjects();
 
-    void init(const Surface* surface);
 
-  
+
+    void init(const Surface* surface, DeletionQueue* deletion_queue);
 
 
     Device* device;
@@ -99,13 +99,13 @@ private:
     VkRenderPass _renderPass = VK_NULL_HANDLE;
 
     VkFormat _imageFormat;
-    vector<BasicImage> swapchainImages;
+    vector<unique_ptr<BasicImage>> swapchainImages;
     vector<ImageView> swapchainImageViews;
-    vector<Image> msaaImages;
+    vector<unique_ptr<Image>> msaaImages;
     vector<ImageView> msaaImageViews;
 
     VkFormat _depthFormat;
-    vector<Image> depthImages;
+    vector<unique_ptr<Image>> depthImages;
     vector<ImageView> depthImageViews;
 
 
@@ -134,7 +134,7 @@ public:
     [[nodiscard]] size_t imageCount() const { return swapchainImages.size(); }
     [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
     [[nodiscard]] VkExtent2D extent() const { return _extent; }
-    [[nodiscard]] const BasicImage* image(const size_t index) const { return &swapchainImages[index]; }
+    [[nodiscard]] const BasicImage* image(const size_t index) const { return swapchainImages[index].get(); }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; }
 
 

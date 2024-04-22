@@ -1,2 +1,2 @@
 #pragma once
-#include "interface/model/CthVertex.hpp"
+#include "interface/render/model/CthVertex.hpp"

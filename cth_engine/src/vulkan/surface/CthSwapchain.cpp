@@ -5,24 +5,27 @@
 #include "vulkan/resource/image/CthImage.hpp"
 #include "vulkan/surface/CthSurface.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/pipeline/CthPipelineBarrier.hpp"
+#include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/resource/CthDeletionQueue.hpp"
 
 #include <cth/cth_log.hpp>
 
 #include <array>
 #include <limits>
 
-#include "vulkan/pipeline/CthPipelineBarrier.hpp"
+
 
 
 
 namespace cth {
 
-Swapchain::Swapchain(Device* device, const VkExtent2D window_extent, const Surface* surface) : device(device), windowExtent(window_extent) {
-    init(surface);
+Swapchain::Swapchain(Device* device, DeletionQueue* deletion_queue, const VkExtent2D window_extent, const Surface* surface) : device(device), windowExtent(window_extent) {
+    init(surface, deletion_queue);
 }
-Swapchain::Swapchain(Device* device, const VkExtent2D window_extent, const Surface* surface, shared_ptr<Swapchain> previous) : device{device},
+Swapchain::Swapchain(Device* device, DeletionQueue* deletion_queue, const VkExtent2D window_extent, const Surface* surface, shared_ptr<Swapchain> previous) : device{device},
     windowExtent(window_extent), oldSwapchain{std::move(previous)} {
-    init(surface);
+    init(surface, deletion_queue);
     oldSwapchain = nullptr;
 }
 Swapchain::~Swapchain() {
@@ -59,39 +62,48 @@ VkResult Swapchain::acquireNextImage(uint32_t* image_index) const {
 
     return result;
 }
-VkResult Swapchain::submitCommandBuffer(VkCommandBuffer cmd_buffer, const uint32_t image_index) {
+//TEMP remove the deletion queue from here and this entire function into the renderer
+VkResult Swapchain::submitCommandBuffer(DeletionQueue* deletion_queue, const PrimaryCmdBuffer* cmd_buffer, const uint32_t image_index) { 
 
 
-    if(imagesInFlight[image_index] != VK_NULL_HANDLE) vkWaitForFences(device->get(), 1, &imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
+    if(imagesInFlight[image_index] != VK_NULL_HANDLE){
+        vkWaitForFences(device->get(), 1, &imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
+        deletion_queue->clear(currentFrame); //TEMP remove this from here
+    }
+    deletion_queue->next(currentFrame);//TEMP remove this from here
 
     imagesInFlight[image_index] = inFlightFences[currentFrame];
 
     vkResetFences(device->get(), 1, &inFlightFences[currentFrame]);
 
 
-    const VkResult submitResult = submit(cmd_buffer);
+    const VkResult submitResult = submit(vector{cmd_buffer});
     CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to submit draw call")
         throw cth::except::vk_result_exception{submitResult, details->exception()};
-
-    //TEMP restructure this and find something better
-
-    //TEMP this is bad structure because it returns a result but can still fail
 
     const auto presentResult = present(image_index);
 
     ++currentFrame %= MAX_FRAMES_IN_FLIGHT;
     return presentResult;
 }
-void Swapchain::changeSwapchainImageQueue(VkCommandBuffer cmd_buffer, uint32_t new_queue_index, uint32_t image_index) {
+void Swapchain::changeSwapchainImageQueue(const uint32_t release_queue, const CmdBuffer* release_cmd_buffer, const uint32_t acquire_queue, const CmdBuffer* acquire_cmd_buffer, const uint32_t image_index) {
+
+    ImageBarrier releaseBarrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        {{swapchainImages[image_index].get(), ImageBarrier::Info::QueueTransition(0, release_queue, 0, acquire_queue)}}
+    };
+    releaseBarrier.execute(release_cmd_buffer);
 
     ImageBarrier barrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        {{&swapchainImages[image_index], ImageBarrier::Info::QueueTransition(0, device->graphicsQueueIndex(), 0, device->presentQueueIndex())}}
+        {{swapchainImages[image_index].get(), ImageBarrier::Info::QueueTransition(0, release_queue, 0, acquire_queue)}}
     };
-    barrier.execute(cmd_buffer);
+    barrier.execute(acquire_cmd_buffer);
 }
 
 
-VkResult Swapchain::submit(VkCommandBuffer command_buffer) const {
+VkResult Swapchain::submit(vector<const PrimaryCmdBuffer*> cmd_buffers) const {
+    vector<VkCommandBuffer> cmdBuffers(cmd_buffers.size());
+    ranges::transform(cmd_buffers, cmdBuffers.begin(), [](const PrimaryCmdBuffer* cmd_buffer) { return cmd_buffer->get(); });
+
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -100,8 +112,8 @@ VkResult Swapchain::submit(VkCommandBuffer command_buffer) const {
 
     constexpr array<VkPipelineStageFlags, 1> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.pWaitDstStageMask = waitStages.data();
-    submitInfo.commandBufferCount = 1u;
-    submitInfo.pCommandBuffers = &command_buffer;
+    submitInfo.commandBufferCount = static_cast<uint32_t>(cmdBuffers.size());
+    submitInfo.pCommandBuffers = cmdBuffers.data();
 
     submitInfo.signalSemaphoreCount = 1u;
     submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
@@ -230,7 +242,6 @@ BasicImage::Config Swapchain::createImageConfig() const {
 
 
     config.mipLevels = 1;
-    config.memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     config.tiling = VK_IMAGE_TILING_OPTIMAL;
 
     return config;
@@ -260,27 +271,27 @@ void Swapchain::createSwapchainImages() {
     const auto imageConfig = createColorImageConfig();
 
     swapchainImages.reserve(imageCount);
-    for(auto image : images) swapchainImages.emplace_back(_extent, imageConfig, image);
+    for(auto image : images) swapchainImages.emplace_back(make_unique<BasicImage>(device, _extent, imageConfig, image, BasicImage::State::Default()));
     swapchainImageViews.reserve(imageCount);
-    for(auto i = 0u; i < imageCount; i++) swapchainImageViews.emplace_back(device, &swapchainImages[i], ImageView::Config::Default());
+    for(auto i = 0u; i < imageCount; i++) swapchainImageViews.emplace_back(device, swapchainImages[i].get(), ImageView::Config::Default());
 }
-void Swapchain::createMsaaResources() {
+void Swapchain::createMsaaResources(DeletionQueue* deletion_queue) {
     const auto imageConfig = createColorImageConfig();
 
     msaaImages.reserve(imageCount());
     msaaImageViews.reserve(imageCount());
 
     for(uint32_t i = 0; i < imageCount(); i++) {
-        msaaImages.emplace_back(device, _extent, imageConfig);
-        msaaImageViews.emplace_back(device, &msaaImages.back(), ImageView::Config::Default());
+        msaaImages.emplace_back(make_unique<Image>(device, deletion_queue, _extent, imageConfig, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+        msaaImageViews.emplace_back(device, msaaImages.back().get(), ImageView::Config::Default());
     }
 }
 VkFormat Swapchain::findDepthFormat() const {
-    return device->findSupportedFormat(
-        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL,
+    return device->physical()->findSupportedFormat(
+        vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
-void Swapchain::createDepthResources() {
+void Swapchain::createDepthResources(DeletionQueue* deletion_queue) {
     _depthFormat = findDepthFormat();
 
     const auto imageConfig = createDepthImageConfig();
@@ -289,8 +300,8 @@ void Swapchain::createDepthResources() {
     depthImageViews.reserve(imageCount());
 
     for(uint32_t i = 0; i < imageCount(); i++) {
-        depthImages.emplace_back(device, _extent, imageConfig);
-        depthImageViews.emplace_back(device, &depthImages.back(), ImageView::Config::Default());
+        depthImages.emplace_back(make_unique<Image>(device, deletion_queue, _extent, imageConfig, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+        depthImageViews.emplace_back(device, depthImages.back().get(), ImageView::Config::Default());
     }
 }
 
@@ -440,14 +451,14 @@ void Swapchain::createSyncObjects() {
 }
 
 
-void Swapchain::init(const Surface* surface) {
+void Swapchain::init(const Surface* surface, DeletionQueue* deletion_queue) {
     _msaaSamples = evalMsaaSampleCount();
 
     createSwapchain(surface);
 
     createSwapchainImages();
-    createMsaaResources();
-    createDepthResources();
+    createMsaaResources(deletion_queue);
+    createDepthResources(deletion_queue);
 
     createRenderPass();
 

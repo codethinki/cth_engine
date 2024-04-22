@@ -8,6 +8,7 @@
 #include "vulkan/resource/descriptor/CthDescriptorPool.hpp"
 #include "vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
 
+#include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/resource/descriptor/CthDescriptorSet.hpp"
 #include "vulkan/resource/image/texture/CthTexture.hpp"
 
@@ -16,13 +17,18 @@
 #include <span>
 #include <glm/glm.hpp>
 
+#include "interface/render/CthRenderer.hpp"
+
+
 namespace cth {
 struct UniformBuffer {
     glm::mat4 projectionView;
     explicit UniformBuffer(const glm::mat4& projection_view) : projectionView{projection_view} {}
 };
-
-RenderSystem::RenderSystem(Device* device, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : device{device} {
+//TEMP renderer should not be here
+RenderSystem::RenderSystem(Device* device, Renderer* renderer, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : device{device},
+    renderer(renderer) {
+    auto initCmdBuffer = renderer->beginInitCmdBuffer();
     createShaders();
 
     createDescriptorSetLayouts();
@@ -30,14 +36,15 @@ RenderSystem::RenderSystem(Device* device, VkRenderPass render_pass, const VkSam
     createPipelineLayout();
 
     createDescriptorPool();
-    loadDescriptorData();
+    loadDescriptorData(initCmdBuffer, renderer->deletionQueue());
 
     createPipeline(render_pass, msaa_samples);
 
     createDescriptorSets();
 
-    createDefaultTriangle();
+    createDefaultTriangle(initCmdBuffer);
 
+    renderer->endInitBuffer();
 }
 RenderSystem::~RenderSystem() {}
 
@@ -82,13 +89,12 @@ void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSample
     pipeline = std::make_unique<Pipeline>(device, pipelineLayout.get(), config);
 }
 void RenderSystem::createDescriptorPool() {
-
     descriptorPool = make_unique<DescriptorPool>(device, DescriptorPool::Builder{{{descriptorSetLayout.get(), 1}}});
 }
-void RenderSystem::loadDescriptorData() {
+void RenderSystem::loadDescriptorData(const CmdBuffer* init_cmd_buffer, DeletionQueue* deletion_queue) {
     const cth::img::stb_image image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
-    texture = make_unique<Texture>(device, VkExtent2D{image.width, image.height}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB}, image.raw());
+    texture = make_unique<Texture>(device, deletion_queue, VkExtent2D{image.width, image.height}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB}, init_cmd_buffer, image.raw());
 }
 
 
@@ -113,13 +119,16 @@ array<Vertex, 3> defaultTriangle{
 
 
 
-
-void RenderSystem::createDefaultTriangle() {
-    defaultTriangleBuffer = make_unique<Buffer<Vertex>>(device, 3,
+void RenderSystem::createDefaultTriangle(const CmdBuffer* cmd_buffer) {
+    defaultTriangleBuffer = make_unique<Buffer<Vertex>>(device, renderer->deletionQueue(), 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    defaultTriangleBuffer->stage(span<Vertex>{defaultTriangle.data(), 3});
+    Buffer<Vertex> stagingBuffer{device, renderer->deletionQueue(), 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
+    stagingBuffer.map();
+    stagingBuffer.write(defaultTriangle);
+
+    defaultTriangleBuffer->stage(cmd_buffer, &stagingBuffer);
 }
 
 void RenderSystem::render(FrameInfo& frame_info) const {
@@ -128,11 +137,12 @@ void RenderSystem::render(FrameInfo& frame_info) const {
     const vector<size_t> offsets(vertexBuffers.size());
     const vector<VkDescriptorSet> descriptorSets{descriptorSet->get()};
 
-    vkCmdBindDescriptorSets(frame_info.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->get(), 0, 1, descriptorSets.data(), 0, nullptr);
-    vkCmdBindVertexBuffers(frame_info.commandBuffer, 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data());
+    vkCmdBindDescriptorSets(frame_info.commandBuffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout->get(), 0, 1, descriptorSets.data(), 0,
+        nullptr);
+    vkCmdBindVertexBuffers(frame_info.commandBuffer->get(), 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data());
 
     //TEMP replace this with model drawing
-    vkCmdDraw(frame_info.commandBuffer, static_cast<uint32_t>(defaultTriangleBuffer->size()), 1, 0, 0);
+    vkCmdDraw(frame_info.commandBuffer->get(), static_cast<uint32_t>(defaultTriangleBuffer->size()), 1, 0, 0);
 
 
     //const UniformBuffer uniformBuffer{frame_info.camera.getProjection() * frame_info.camera.getView()};
@@ -181,7 +191,7 @@ void RenderSystem::render(FrameInfo& frame_info) const {
 /*
 
 void RenderSystem::initDescriptedBuffers(vector<VkDescriptorBufferInfo>& buffer_infos) {
-    for(int i = 0; i < Swapchain::MAX_FRAMES_IN_FLIGHT; i++) {
+    for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         descriptedBuffers.push_back(make_unique<Buffer>(hlcDevice,
             sizeof(UniformBuffer),
             1,

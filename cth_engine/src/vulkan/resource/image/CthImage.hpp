@@ -6,49 +6,46 @@
 #include "CthBasicImage.hpp"
 
 namespace cth {
-using namespace std;
-
+class Memory;
 class Device;
-class DefaultBuffer;
+class BasicBuffer;
 class Sampler;
 class ImageView;
 class Image;
+class DeletionQueue;
+class CmdBuffer;
 
 
+/**
+ * \brief image wrapper with implicit ownership
+ */
 class Image : public BasicImage {
     struct TransitionConfig;
 
 public:
-    explicit Image(Device* device, VkExtent2D extent, const Config& config);
-    ~Image() override;
-
-
-    void write(const DefaultBuffer* buffer, size_t offset = 0, uint32_t mip_level = 0) const;
+    //TEMP find a way to encapsulate the memory properties
+    /**
+     * \brief creates an image with memory
+     */
+    explicit Image(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, VkMemoryPropertyFlags memory_properties);
 
     /**
-     * \brief transitions the image layout via a pipeline barrier
-     * \param mip_levels (0 => all remaining)
+     * \brief creates an image
+     * \param memory can be allocated, takes ownership
      */
-    void transitionLayout(VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = 0);
+    explicit Image(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, unique_ptr<BasicMemory> memory);
+    ~Image() override;
 
     [[nodiscard]] static uint32_t evalMipLevelCount(VkExtent2D extent);
 
+    /**
+     * \brief adds image to the deletion queue
+     * \brief frees the memory
+     */
+    void destroy() override;
+
 private:
-    void create();
-    void allocate();
-    void bind() const;
-
-    using transition_config = struct {
-        VkAccessFlags srcAccess, dstAccess;
-        VkPipelineStageFlags srcStage, vkPipelineStage;
-    };
-    static transition_config transitionConfig(VkImageLayout current_layout, VkImageLayout new_layout);
-
-
-
-    VkDeviceMemory vkImageMemory = VK_NULL_HANDLE;
-protected:
-    Device* device;
+    DeletionQueue* deletionQueue;
 };
 
 } // namespace cth

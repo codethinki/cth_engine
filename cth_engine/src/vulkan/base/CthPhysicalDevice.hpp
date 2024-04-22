@@ -19,11 +19,7 @@ public:
     explicit PhysicalDevice(VkPhysicalDevice device);
 
 
-    /**
-     * \param surface if surface != nullptr a present queue will be required automatically 
-     */
-    [[nodiscard]] bool suitable(const VkPhysicalDeviceFeatures& features, span<const string> extensions, span<const VkQueueFlagBits> queue_families,
-        const Surface* surface = nullptr);
+    [[nodiscard]] bool suitable(const VkPhysicalDeviceFeatures& features, span<const string> extensions, const Surface* surface, span<const VkQueueFlagBits> queue_families);
 
     [[nodiscard]] static vector<VkPhysicalDevice> enumerateDevices(const Instance* instance);
     [[nodiscard]] static unique_ptr<PhysicalDevice> autoPick(const VkPhysicalDeviceFeatures& features, span<const string> extensions,
@@ -45,11 +41,11 @@ public:
 
     /**
      * \brief finds a combination of queue families that support the requested queue types
+     * \param surface surface != nullptr => present queue index at result[0]
      * \param requested_queues requested queue types
-     * \param surface optional present queue
-     * \return indices of the requested queue types in the same order as they were requested. The present queue is always last.
+     * \return order of queue types preserved (present queue index at result[0])
      */
-    [[nodiscard]] vector<uint32_t> queueFamilyIndices(span<const VkQueueFlagBits> requested_queues, const Surface* surface = nullptr);
+    [[nodiscard]] vector<uint32_t> queueFamilyIndices(const Surface* surface, span<const VkQueueFlagBits> requested_queues);
     /**
      * \throws cth::except::vk_result_exception data: VkResult from vkGetPhysicalDeviceSurfaceSupportKHR()
      */

@@ -19,7 +19,7 @@
     <ClInclude Include="src\vulkan\base\CthInstance.hpp" />
     <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBuffer.hpp" />
-    <ClInclude Include="src\vulkan\resource\buffer\CthDefaultBuffer.hpp" />
+    <ClInclude Include="src\vulkan\resource\buffer\CthBasicBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptor.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptorPool.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptorSet.hpp" />
@@ -27,11 +27,11 @@
     <ClInclude Include="src\vulkan\pipeline\shader\CthShader.hpp" />
     <ClInclude Include="src\vulkan\pipeline\shader\HlcPushConstant.hpp" />
     <ClInclude Include="src\vulkan\pipeline\CthPipeline.hpp" />
-    <ClInclude Include="src\interface\model\HlcModel.hpp" />
-    <ClInclude Include="src\interface\model\HlcModelManager.hpp" />
-    <ClInclude Include="src\interface\model\CthVertex.hpp" />
+    <ClInclude Include="src\interface\render\model\HlcModel.hpp" />
+    <ClInclude Include="src\interface\render\model\HlcModelManager.hpp" />
+    <ClInclude Include="src\interface\render\model\CthVertex.hpp" />
     <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
-    <ClInclude Include="src\vulkan\render\CthRenderer.hpp" />
+    <ClInclude Include="src\interface\render\CthRenderer.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
@@ -52,6 +52,9 @@
     <ClInclude Include="src\vulkan\pipeline\CthPipelineBarrier.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdPool.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdBuffer.hpp" />
+    <ClInclude Include="src\vulkan\resource\CthDeletionQueue.hpp" />
+    <ClInclude Include="src\vulkan\resource\CthMemory.hpp" />
+    <ClInclude Include="src\interface\CthEngineSettings.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -66,15 +69,15 @@
     <ClCompile Include="src\vulkan\base\CthDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
     <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
-    <ClCompile Include="src\vulkan\resource\buffer\CthDefaultBuffer.cpp" />
+    <ClCompile Include="src\vulkan\resource\buffer\CthBasicBuffer.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorPool.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorSet.cpp" />
     <ClCompile Include="src\vulkan\pipeline\layout\CthDescriptorSetLayout.cpp" />
     <ClCompile Include="src\vulkan\pipeline\shader\CthShader.cpp" />
     <ClCompile Include="src\vulkan\pipeline\CthPipeline.cpp" />
-    <ClCompile Include="src\interface\model\HlcModel.cpp" />
-    <ClCompile Include="src\interface\model\HlcModelManager.cpp" />
-    <ClCompile Include="src\vulkan\render\CthRenderer.cpp" />
+    <ClCompile Include="src\interface\render\model\HlcModel.cpp" />
+    <ClCompile Include="src\interface\render\model\HlcModelManager.cpp" />
+    <ClCompile Include="src\interface\render\CthRenderer.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
     <ClCompile Include="engine_main.cpp" />
@@ -89,5 +92,7 @@
     <ClCompile Include="src\vulkan\pipeline\CthPipelineBarrier.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdPool.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdBuffer.cpp" />
+    <ClCompile Include="src\vulkan\resource\CthMemory.cpp" />
+    <ClCompile Include="src\vulkan\resource\CthDeletionQueue.cpp" />
   </ItemGroup>
 </Project>

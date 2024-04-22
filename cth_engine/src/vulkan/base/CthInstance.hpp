@@ -20,7 +20,8 @@ public:
         "VK_LAYER_KHRONOS_validation"
     };
     static constexpr array<const char*, 1> VALIDATION_LAYER_EXTENSIONS{
-        VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+
     };
 
     [[nodiscard]] VkInstance get() const { return vkInstance; }

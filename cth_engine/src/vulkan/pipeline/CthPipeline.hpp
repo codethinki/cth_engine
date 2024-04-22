@@ -14,6 +14,7 @@ class PipelineLayout;
 
 struct ShaderSpecialization;
 class Shader;
+class CmdBuffer;
 
 
 class Pipeline {
@@ -31,7 +32,7 @@ public:
 
     ~Pipeline();
 
-    void bind(VkCommandBuffer command_buffer) const;
+    void bind(const CmdBuffer* cmd_buffer) const;
 
 private:
     /**

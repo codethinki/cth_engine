@@ -26,8 +26,11 @@ public:
 private:
     void reserveObjectMemory();
 
+    void initRenderSystem();
+
     void initCamera();
     void initInputController() const;
+
 
 
     void allocateObjectModels();
@@ -48,7 +51,7 @@ private:
     Camera camera{};
     unique_ptr<Renderer> hlcRenderer = make_unique<Renderer>(device.get(), &camera, window.get());
 
-    RenderSystem renderSystem{device.get(), hlcRenderer->swapchainRenderPass(), hlcRenderer->msaaSampleCount()};
+    unique_ptr<RenderSystem> renderSystem;
 
 
     size_t frameIndex = 0;

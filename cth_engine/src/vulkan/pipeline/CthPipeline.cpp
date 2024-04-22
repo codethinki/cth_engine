@@ -8,7 +8,8 @@
 
 #include <cth/cth_log.hpp>
 
-#include "interface/model/CthVertex.hpp"
+#include "interface/render/model/CthVertex.hpp"
+#include "vulkan/render/cmd/CthCmdBuffer.hpp"
 
 
 
@@ -26,7 +27,7 @@ Pipeline::~Pipeline() {
     log::msg("destroyed graphics-pipeline ");
 }
 
-void Pipeline::bind(VkCommandBuffer command_buffer) const { vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkGraphicsPipeline); }
+void Pipeline::bind(const CmdBuffer* cmd_buffer) const { vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, vkGraphicsPipeline); }
 
 void Pipeline::create(const GraphicsConfig& config_info, const PipelineLayout* pipeline_layout, const Pipeline* parent) {
     CTH_ERR(pipeline_layout != nullptr && parent != nullptr, "something went wrong, cannot inherit and specify layout")

@@ -1,7 +1,9 @@
 #include "CthPipelineBarrier.hpp"
 
-#include "vulkan/resource/buffer/CthDefaultBuffer.hpp"
+#include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/resource/buffer/CthBasicBuffer.hpp"
 #include "vulkan/resource/image/CthBasicImage.hpp"
+#include "vulkan/resource/image/CthImage.hpp"
 
 //ImageBarrier
 
@@ -44,8 +46,8 @@ void ImageBarrier::remove(BasicImage* image) {
     for(auto i = 0; i <= index; ++i) if(layoutChanges[i] == index) layoutChanges.erase(layoutChanges.begin() + i);
     images.erase(it);
 }
-void ImageBarrier::execute(VkCommandBuffer cmd_buffer) {
-    vkCmdPipelineBarrier(cmd_buffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr,
+void ImageBarrier::execute(const CmdBuffer* cmd_buffer) {
+    vkCmdPipelineBarrier(cmd_buffer->get(), srcStage, dstStage, 0, 0, nullptr, 0, nullptr,
         static_cast<uint32_t>(imageBarriers.size()), imageBarriers.data());
     applyChanges();
 }
@@ -54,7 +56,7 @@ void ImageBarrier::applyChanges() const {
         auto& barrier = imageBarriers[index];
         auto& res = barrier.subresourceRange;
 
-        fill_n(images[index]->imageLayouts.begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
+        fill_n(images[index]->_state.levelLayouts.begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
     }
 }
 
@@ -67,13 +69,13 @@ void ImageBarrier::init(const unordered_map<BasicImage*, ImageBarrier::Info>& im
 
 namespace cth {
 
-BufferBarrier::BufferBarrier(const PipelineStages stages, const unordered_map<const DefaultBuffer*, Info>& buffers) : PipelineStages(stages) {
+BufferBarrier::BufferBarrier(const PipelineStages stages, const unordered_map<const BasicBuffer*, Info>& buffers) : PipelineStages(stages) {
     init(buffers);
 }
 BufferBarrier::BufferBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage,
-    const unordered_map<const DefaultBuffer*, Info>& buffers) : PipelineStages{src_stage, dst_stage} { init(buffers); }
+    const unordered_map<const BasicBuffer*, Info>& buffers) : PipelineStages{src_stage, dst_stage} { init(buffers); }
 
-void BufferBarrier::add(const DefaultBuffer* buffer, const Info& info) {
+void BufferBarrier::add(const BasicBuffer* buffer, const Info& info) {
     bufferBarriers.emplace_back(
         VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
         nullptr,
@@ -87,7 +89,7 @@ void BufferBarrier::add(const DefaultBuffer* buffer, const Info& info) {
         );
     buffers.push_back(buffer);
 }
-void BufferBarrier::remove(const DefaultBuffer* buffer) {
+void BufferBarrier::remove(const BasicBuffer* buffer) {
     const auto index = ranges::find(buffers, buffer);
     CTH_ERR(index == std::end(buffers), "buffer not present in barrier")
         throw details->exception();
@@ -98,8 +100,8 @@ void BufferBarrier::remove(const DefaultBuffer* buffer) {
 void BufferBarrier::execute(VkCommandBuffer cmd_buffer) {
     vkCmdPipelineBarrier(cmd_buffer, srcStage, dstStage, 0, 0, nullptr, bufferBarriers.size(), bufferBarriers.data(), 0, nullptr);
 }
-BufferBarrier::BufferBarrier(const unordered_map<const DefaultBuffer*, Info>& buffers) { init(buffers); }
-void BufferBarrier::init(const unordered_map<const DefaultBuffer*, Info>& buffers) { for(auto [buffer, info] : buffers) add(buffer, info); }
+BufferBarrier::BufferBarrier(const unordered_map<const BasicBuffer*, Info>& buffers) { init(buffers); }
+void BufferBarrier::init(const unordered_map<const BasicBuffer*, Info>& buffers) { for(auto [buffer, info] : buffers) add(buffer, info); }
 
 
 
@@ -109,13 +111,13 @@ void BufferBarrier::init(const unordered_map<const DefaultBuffer*, Info>& buffer
 
 namespace cth {
 
-PipelineBarrier::PipelineBarrier(const PipelineStages stages, const unordered_map<const DefaultBuffer*, BufferBarrier::Info>& buffers,
+PipelineBarrier::PipelineBarrier(const PipelineStages stages, const unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
     const unordered_map<BasicImage*, ImageBarrier::Info>& images) : BufferBarrier(buffers), ImageBarrier(images) {
     BufferBarrier::srcStage = stages.srcStage;
     BufferBarrier::dstStage = stages.dstStage;
 }
-PipelineBarrier::PipelineBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-    const unordered_map<const DefaultBuffer*, BufferBarrier::Info>& buffers,
+PipelineBarrier::PipelineBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage,
+    const unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
     const unordered_map<BasicImage*, ImageBarrier::Info>& images) : BufferBarrier(buffers), ImageBarrier(images) {
     BufferBarrier::srcStage = src_stage;
     BufferBarrier::dstStage = dst_stage;
@@ -126,6 +128,10 @@ void PipelineBarrier::execute(VkCommandBuffer cmd_buffer) {
         static_cast<uint32_t>(imageBarriers.size()), imageBarriers.data());
 
     ImageBarrier::applyChanges();
+}
+void PipelineBarrier::initStages(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage) {
+    ImageBarrier::srcStage = src_stage;
+    ImageBarrier::dstStage = dst_stage;
 }
 
 } // namespace cth

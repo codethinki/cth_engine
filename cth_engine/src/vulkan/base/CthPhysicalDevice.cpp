@@ -14,11 +14,11 @@ namespace cth {
 
 PhysicalDevice::PhysicalDevice(VkPhysicalDevice device) : vkDevice(device) { setConstants(); }
 bool PhysicalDevice::suitable(const VkPhysicalDeviceFeatures& features, const span<const string> extensions,
-    const span<const VkQueueFlagBits> queue_families, const Surface* surface) {
+    const Surface* surface, const span<const VkQueueFlagBits> queue_families) {
 
     const auto missingFeatures = supports(features);
     const auto missingExtensions = supports(extensions);
-    const auto queueIndices = queueFamilyIndices(queue_families, surface);
+    const auto queueIndices = queueFamilyIndices(surface, queue_families);
     const bool valid = missingFeatures.empty() && missingExtensions.empty() && !queueIndices.empty();
 
     CTH_WARN(!valid, "physical device ({}) is missing features", _properties.deviceName) {
@@ -49,7 +49,7 @@ unique_ptr<PhysicalDevice> PhysicalDevice::autoPick(const VkPhysicalDeviceFeatur
     ranges::transform(devices, back_inserter(physicalDevices), [](VkPhysicalDevice device) { return make_unique<PhysicalDevice>(device); });
 
     for(auto& physicalDevice : physicalDevices)
-        if(physicalDevice->suitable(features, extensions, queue_families, surface)) {
+        if(physicalDevice->suitable(features, extensions, surface, queue_families)) {
             cth::log::msg<except::INFO>("chosen physical device: {}", physicalDevice->_properties.deviceName);
             return std::move(physicalDevice);
         }
@@ -104,11 +104,20 @@ VkFormat PhysicalDevice::findSupportedFormat(const span<const VkFormat> candidat
     CTH_STABLE_ERR(true, "format unsupported") throw cth::except::data_exception{features, details->exception()};
 }
 
-vector<uint32_t> PhysicalDevice::queueFamilyIndices(const span<const VkQueueFlagBits> requested_queues, const Surface* surface) {
+vector<uint32_t> PhysicalDevice::queueFamilyIndices(const Surface* surface, const span<const VkQueueFlagBits> requested_queues) {
     const size_t queueCount = requested_queues.size() + (surface != nullptr ? 1 : 0);
+
     vector<VkQueueFlagBits> missingQueues{requested_queues.begin(), requested_queues.end()};
     vector<uint32_t> queueIndices{};
     queueIndices.reserve(queueCount);
+
+    if(surface != nullptr) {
+        auto i = 0u;
+        for(; i < queueFamilies.size() && !supportsPresentQueue(surface, i); ++i);
+
+        CTH_STABLE_WARN(i == queueFamilies.size(), "no present queue found");
+        else queueIndices.push_back(i);
+    }
 
     for(auto i = 0u; i < queueFamilies.size() && !missingQueues.empty(); ++i)
         for(auto j = 0u; j < missingQueues.size() && !missingQueues.empty(); ++j)
@@ -116,16 +125,9 @@ vector<uint32_t> PhysicalDevice::queueFamilyIndices(const span<const VkQueueFlag
                 queueIndices.push_back(i);
                 missingQueues.erase(missingQueues.begin() + j--);
             }
-    CTH_WARN(queueIndices.size() + 1 != queueCount, "queues missing")
+
+    CTH_WARN(queueIndices.size() != queueCount, "queues missing")
         for(const auto& missingQueue : missingQueues) details->add("missing queue: {}", static_cast<uint32_t>(missingQueue));
-
-
-    //auto i = queueIndices[0] + 1; // to test if it works with different queue indices
-    auto i = 0u;
-    for(; i < queueFamilies.size() && !supportsPresentQueue(surface, i); ++i);
-    CTH_STABLE_WARN(i == queueFamilies.size(), "no present queue found");
-            else queueIndices.push_back(i);
-
 
 
     return queueIndices.size() == queueCount ? queueIndices : vector<uint32_t>{};
@@ -204,8 +206,7 @@ void PhysicalDevice::setExtensions() {
 void PhysicalDevice::setProperties() {
     vkGetPhysicalDeviceProperties(vkDevice, &_properties);
 
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(vkDevice, &memProperties);
+    vkGetPhysicalDeviceMemoryProperties(vkDevice, &_memProperties);
 
     uint32_t count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &count, nullptr);

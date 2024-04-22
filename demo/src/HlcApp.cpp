@@ -41,7 +41,7 @@ void App::run() {
         FrameInfo info = {hlcRenderer->frameIndex(), 0.f, commandBuffer};
 
         hlcRenderer->beginSwapchainRenderPass(info.commandBuffer);
-        renderSystem.render(info);
+        renderSystem->render(info);
         hlcRenderer->endSwapchainRenderPass(info.commandBuffer);
         hlcRenderer->endFrame();
 
@@ -56,6 +56,9 @@ void App::reserveObjectMemory() {
     /*standardObjects.reserve(MAX_STANDARD_OBJECTS);
     dynamicObjects.reserve(MAX_DYNAMIC_OBJECTS);
     staticObjects.reserve(MAX_STATIC_OBJECTS);*/
+}
+void App::initRenderSystem() {
+    renderSystem = make_unique<RenderSystem>(device.get(), hlcRenderer.get(), hlcRenderer->swapchainRenderPass(), hlcRenderer->msaaSampleCount());
 }
 
 void App::initCamera() {
@@ -131,16 +134,14 @@ vector<string> App::getRequiredInstanceExtensions() {
 
 App::App() {
     reserveObjectMemory();
-
+    initRenderSystem();
     initCamera();
     initInputController();
 
     allocateObjectModels();
     setRenderData();
 };
-App::~App() {
-}
-
+App::~App() {}
 
 
 

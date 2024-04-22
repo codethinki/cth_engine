@@ -1,19 +1,23 @@
 #pragma once
-#include "CthDefaultBuffer.hpp"
+#include "CthBasicBuffer.hpp"
 
 
 
 namespace cth {
-using namespace std;
+class DeletionQueue;
+}
+
+namespace cth {
 class Device;
 
 
+//TEMP left off here. recreate the hierarchy of the image class with BaseImage and Image in the buffer class.
 template<typename T>
-class Buffer final : public DefaultBuffer {
+class Buffer final : public BasicBuffer {
 public:
-    Buffer(Device* device, size_t element_count, VkBufferUsageFlags usage_flags,
+    Buffer(Device* device, DeletionQueue* deletion_queue, size_t element_count, VkBufferUsageFlags usage_flags,
         VkMemoryPropertyFlags memory_property_flags);
-    ~Buffer() override = default;
+    ~Buffer() override;
 
     /**
      *\brief maps part of the buffer memory
@@ -30,14 +34,14 @@ public:
 
     /**
      * \brief stages a device local buffer with a temporary host visible buffer
-     * \param buffer_offset in elements
+     * \param dst_offset in elements
      */
-    void stage(span<const T> data, size_t buffer_offset = 0) const;
+    void stage(const CmdBuffer* cmd_buffer, const Buffer<T>* staging_buffer, size_t dst_offset = 0) const;
 
     /**
      * \brief writes to a mapped memory range
      */
-    void write(span<const T> data, span<T> mapped_memory, size_t mapped_offset = 0) const;
+    static void write(span<const T> data, span<T> mapped_memory);
     /**
     * \brief writes to the mapped range of the whole buffer
     * \note CAUTION whole buffer must be mapped first
@@ -46,42 +50,49 @@ public:
 
     /**
     * \brief copies buffer data on the gpu
+    * \param cmd_buffer
     * \param copy_size in elements (VK_WHOLE_SIZE => whole buffer)
     * \param src_offset in elements
     * \param dst_offset in elements
     */
-    void copy(Buffer<T>* src, size_t copy_size = VK_WHOLE_SIZE, size_t src_offset = 0, size_t dst_offset = 0) const;
+    void copy(const CmdBuffer* cmd_buffer, const Buffer<T>* src, size_t copy_size = VK_WHOLE_SIZE, size_t src_offset = 0, size_t dst_offset = 0) const;
 
     /**
     * \brief updates non-coherent host visible memory
     * \param size in elements, VK_WHOLE_SIZE -> whole buffer
     * \param offset in elements
      */
-    [[nodiscard]] VkResult flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const override;
-    /**
-    * \param size in bytes, VK_WHOLE_SIZE -> whole buffer
-    * \param offset in bytes
-    */
-    [[nodiscard]] VkDescriptorBufferInfo descriptorInfo(size_t size, size_t offset) const override;
+    [[nodiscard]] VkResult flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
+
     /**
      * \brief 
      * \param size in elements
      * \param offset in elements
      * \return result of vkInvalidateMappedMemoryRanges()
      */
-    [[nodiscard]] VkResult invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const override;
+    [[nodiscard]] VkResult invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
+
+    /**
+    * \param size in elements, VK_WHOLE_SIZE -> whole buffer
+    * \param offset in elements
+    */
+    [[nodiscard]] VkDescriptorBufferInfo descriptorInfo(size_t size, size_t offset) const override;
 
 private:
-    size_t _elements;
+    void destroy() override;
 
+    size_t _elements;
+    DeletionQueue* deletionQueue;
 public:
     [[nodiscard]] uint32_t elements() const { return _elements; }
-
 
     Buffer(const Buffer& other) = delete;
     Buffer& operator=(const Buffer& other) = delete;
     Buffer(Buffer&& other) = delete;
     Buffer& operator=(Buffer&& other) = delete;
+private:
+    void alloc() const;
+    void create();
 };
 }
 

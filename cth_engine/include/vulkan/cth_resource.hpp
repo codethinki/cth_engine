@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan/resource/buffer/CthBuffer.hpp"
-#include "vulkan/resource/buffer/CthDefaultBuffer.hpp"
+#include "vulkan/resource/buffer/CthBasicBuffer.hpp"
 
 #include "vulkan/resource/image/CthBasicImage.hpp"
 #include "vulkan/resource/image/CthImage.hpp"

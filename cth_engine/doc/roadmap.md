@@ -60,9 +60,12 @@
 
 
 ## 3. todo
+	- think about move semantics for every vulkan object (maybe enable them)
 	- render pass abstraction
-	- command buffer abstraction
-	- command pool abstraction
+	- Queue abstraction
+	- Move functions that are not about presenting from the swapchain to the renderer
+	- One Time submit command buffer abstraction
+
 
 	- framebuffer abstraction?
 

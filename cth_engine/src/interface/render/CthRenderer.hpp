@@ -8,10 +8,16 @@
 #include <vector>
 
 
+namespace cth {}
+
 namespace cth {
 class Device;
 class Window;
 class Camera;
+class DeletionQueue;
+class CmdPool;
+class PrimaryCmdBuffer;
+
 
 using namespace std;
 class Renderer {
@@ -23,42 +29,49 @@ public:
      * \throws cth::except::vk_result_exception result of  Swapchain::acquireNextImage()
      * \throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
      */
-    VkCommandBuffer beginFrame();
+    const PrimaryCmdBuffer* beginFrame();
     /**
      * \throws cth::except::vk_result_exception result of Swapchain::submitCommandBuffers()
      * \throws cth::except::vk_result_exception result of vkEndCommandBuffer()
      */
     void endFrame();
 
-    void beginSwapchainRenderPass(VkCommandBuffer command_buffer) const;
-    void endSwapchainRenderPass(VkCommandBuffer command_buffer) const;
+    void beginSwapchainRenderPass(const PrimaryCmdBuffer* command_buffer) const;
+    void endSwapchainRenderPass(const PrimaryCmdBuffer* command_buffer) const;
+
+    //TEMP move this somewhere else
+    [[nodiscard]] const PrimaryCmdBuffer* beginInitCmdBuffer();
+    void endInitBuffer();
 
 private:
     /**
      * \brief waits until not longer minimized
      * \return new window extent
      */
-    VkExtent2D minimizedState() const;
+    [[nodiscard]] VkExtent2D minimizedState() const;
 
     /**
-     * \throws cth::except::vk_result_exception result of vkAllocateCommandBuffers()
-     */
-    void createCommandBuffers();
-    void freeCommandBuffers();
-
-
-    /**
-     * \throws cth::except::default_exception reason: depth or image format changed
-     */
+    * \throws cth::except::default_exception reason: depth or image format changed
+    */
     void recreateSwapchain();
 
+    void init();
+    void createDeletionQueue();
+    void createSwapchain();
+    void createCmdPools();
+    void createPrimaryCmdBuffers();
 
     Device* device;
     Camera* camera;
     Window* window;
 
     unique_ptr<Swapchain> swapchain;
-    vector<VkCommandBuffer> commandBuffers;
+    unique_ptr<DeletionQueue> _deletionQueue;
+
+    static constexpr size_t PRESENT_QUEUE_I = 0;
+    vector<unique_ptr<CmdPool>> cmdPools;
+    vector<vector<unique_ptr<PrimaryCmdBuffer>>> cmdBuffers;
+
 
     uint32_t currentImageIndex = 0;
     uint_fast8_t currentFrameIndex = 0;
@@ -68,9 +81,10 @@ public:
     [[nodiscard]] VkRenderPass swapchainRenderPass() const { return swapchain->renderPass(); }
     [[nodiscard]] float screenRatio() const { return swapchain->extentAspectRatio(); }
     [[nodiscard]] bool frameInProgress() const { return frameStarted; }
-    [[nodiscard]] VkCommandBuffer commandBuffer() const;
     [[nodiscard]] uint32_t frameIndex() const;
     [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return swapchain->msaaSamples(); }
+    [[nodiscard]] const PrimaryCmdBuffer* commandBuffer() const;
+    [[nodiscard]] DeletionQueue* deletionQueue() const;
 
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
