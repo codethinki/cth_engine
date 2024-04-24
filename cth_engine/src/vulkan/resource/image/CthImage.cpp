@@ -26,35 +26,46 @@ Image::Image(Device* device, DeletionQueue* deletion_queue, const VkExtent2D ext
     BasicMemory* memory = new Memory(device, deletionQueue, memory_properties);
     DeletionQueue::debug_check(deletion_queue);
 
-    create();
-    allocate(memory);
-    bind();
+    BasicImage::create();
+    BasicImage::alloc(memory);
+    BasicImage::bind();
 }
-Image::Image(Device* device, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, unique_ptr<BasicMemory> memory) :
-    BasicImage(device, extent, config), deletionQueue(deletion_queue) {
-    DeletionQueue::debug_check(deletion_queue);
-
-    create();
-    if(!memory->allocated()) allocate(memory.get());
-    bind(memory.release());
-}
-
-
-
 Image::~Image() {
-    Image::destroy();
+    if(get() != VK_NULL_HANDLE) Image::destroy();
+}
+
+void Image::create() {
+    if(get() != VK_NULL_HANDLE) destroy();
+    BasicImage::create();
 }
 
 
 
-uint32_t Image::evalMipLevelCount(const VkExtent2D extent) {
-    return static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height))) + 1);
-}
-void Image::destroy() {
-    BasicImage::destroy(deletionQueue);
-    memory()->free();
+void Image::destroy(DeletionQueue* deletion_queue) {
+    CTH_WARN(get() == VK_NULL_HANDLE, "image not valid");
+
+    if(!deletion_queue) {
+        destroyMemory();
+        BasicImage::destroy(deletionQueue);
+    } else {
+        destroyMemory(deletion_queue);
+        BasicImage::destroy(deletion_queue);
+        deletionQueue = deletion_queue;
+    }
 
     BasicImage::reset();
+}
+void Image::setMemory(BasicMemory* new_memory) {
+    CTH_ERR(new_memory == _state.memory, "new_memory must not be current memory") throw details->exception();
+    destroyMemory();
+    BasicImage::setMemory(new_memory);
+}
+void Image::destroyMemory(DeletionQueue* deletion_queue) {
+    if(_state.memory == nullptr) return;
+    if(deletion_queue) _state.memory->free(deletion_queue);
+    else _state.memory->free();
+    delete _state.memory;
+    _state.memory = nullptr;
 }
 
 

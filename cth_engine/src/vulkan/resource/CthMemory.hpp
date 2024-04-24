@@ -29,8 +29,7 @@ public:
     [[nodiscard]] VkResult invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
     void unmap() const;
 
-    virtual void free();
-    virtual void free(DeletionQueue* deletion_queue);
+    virtual void free(DeletionQueue* deletion_queue = nullptr);
 
     static void free(const Device* device, VkDeviceMemory memory);
 
@@ -72,7 +71,8 @@ public:
     Memory(Device* device, DeletionQueue* deletion_queue, const VkMemoryPropertyFlags properties, const size_t size, VkDeviceMemory memory) :
         BasicMemory(device, properties, size, memory), deletionQueue(deletion_queue) {}
     ~Memory() override;
-    void free() override;
+
+    void free(DeletionQueue* deletion_queue = nullptr) override;
 
 private:
     DeletionQueue* deletionQueue;

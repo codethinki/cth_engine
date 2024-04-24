@@ -2,12 +2,12 @@
 
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
-#include "vulkan/resource/image/CthImage.hpp"
-#include "vulkan/surface/CthSurface.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
 #include "vulkan/pipeline/CthPipelineBarrier.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/image/CthImage.hpp"
+#include "vulkan/surface/CthSurface.hpp"
+#include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>
 

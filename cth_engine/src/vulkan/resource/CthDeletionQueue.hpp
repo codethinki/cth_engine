@@ -21,14 +21,15 @@ public:
     explicit DeletionQueue(Device* device);
     ~DeletionQueue();
 
-    void enqueue(deletable_handle_t handle);
+    void push(deletable_handle_t handle);
     void clear(uint32_t current_frame);
     void next(const uint32_t next_frame) { frame = next_frame; }
 
 private:
+    static constexpr size_t QUEUES = MAX_FRAMES_IN_FLIGHT;
     uint32_t frame = 0;
     Device* device;
-    array<vector<deletable_handle_t>, MAX_FRAMES_IN_FLIGHT + 1> _queue;
+    array<vector<deletable_handle_t>, QUEUES> _queue;
 
 public:
     [[nodiscard]] uint32_t currentFrame() const { return frame; }

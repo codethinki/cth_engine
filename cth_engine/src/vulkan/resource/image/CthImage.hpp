@@ -17,7 +17,7 @@ class CmdBuffer;
 
 
 /**
- * \brief image wrapper with implicit ownership
+ * \brief image wrapper with ownership of image & memory
  */
 class Image : public BasicImage {
     struct TransitionConfig;
@@ -25,26 +25,32 @@ class Image : public BasicImage {
 public:
     //TEMP find a way to encapsulate the memory properties
     /**
-     * \brief creates an image with memory
+     * \brief creates an image and allocates memory
+     * \note implicitly calls create, allocate and bind
      */
     explicit Image(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, VkMemoryPropertyFlags memory_properties);
 
-    /**
-     * \brief creates an image
-     * \param memory can be allocated, takes ownership
-     */
-    explicit Image(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, unique_ptr<BasicMemory> memory);
     ~Image() override;
 
-    [[nodiscard]] static uint32_t evalMipLevelCount(VkExtent2D extent);
+    /**
+     * \brief creates the image
+     * \note previous image will be destroyed
+     */
+    void create() override;
+
 
     /**
-     * \brief adds image to the deletion queue
-     * \brief frees the memory
-     */
-    void destroy() override;
+    * \brief submits image & memory to cached deletion queues and resets the object
+    * \param deletion_queue != nullptr => submits to new deletion queue
+    * \note new deletion queue will be cached
+    */
+    void destroy(DeletionQueue* deletion_queue = nullptr) override;
+
+    void setMemory(BasicMemory* new_memory) override;
 
 private:
+    void destroyMemory(DeletionQueue* deletion_queue = nullptr);
+
     DeletionQueue* deletionQueue;
 };
 

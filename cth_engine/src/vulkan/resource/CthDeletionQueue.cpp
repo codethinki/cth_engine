@@ -11,11 +11,14 @@ namespace cth {
 
 DeletionQueue::DeletionQueue(Device* device) : device(device) {}
 DeletionQueue::~DeletionQueue() {
-    for(uint32_t i = 0; i < _queue.size(); ++i)
-        clear(i);
+    for(uint32_t i = 0; i < QUEUES; ++i) 
+        clear((frame + i) % QUEUES);
 }
 
-void DeletionQueue::enqueue(const deletable_handle_t handle) { _queue[frame].push_back(handle); }
+void DeletionQueue::push(const deletable_handle_t handle) {
+    CTH_WARN(std::visit(var::visitor{ [](auto handle){ return handle == VK_NULL_HANDLE; } }, handle), "handle invalid");
+    _queue[frame].push_back(handle);
+}
 void DeletionQueue::clear(const uint32_t current_frame) {
 
     auto& handles = _queue[current_frame];

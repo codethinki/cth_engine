@@ -6,6 +6,8 @@
 #include <span>
 #include <vector>
 
+#include "CthBasicImage.hpp"
+
 
 namespace cth {
 class Device;
@@ -31,49 +33,51 @@ public:
     struct State;
 
     BasicImage(Device* device, VkExtent2D extent, const Config& config);
-    BasicImage(Device* device, VkExtent2D extent, const Config& config, VkImage image, State state);
+    BasicImage(Device* device, VkExtent2D extent, const Config& config, VkImage vk_image, const State& state);
     virtual ~BasicImage() = default;
 
     /**
      * \brief creates the image
-     * \note image must not be created
+     * \note image must not be a valid handle
      */
-    void create();
+    virtual void create();
+
     /**
-     * \brief allocates memory for the image 
-     * \param new_memory must not be allocated
-     * \note old memory will not be freed
+     * \brief allocates image memory 
+     * \param new_memory must not be allocated or nullptr
+    * \note implicitly calls setMemory(new_memory)
      */
-    void allocate(BasicMemory* new_memory);
+    void alloc(BasicMemory* new_memory);
     /**
-     * \brief allocates memory for the image
+     * \brief allocates image memory
      * \note memory must not be allocated
      */
-    void allocate() const;
+    void alloc() const;
+
     /**
-     * \brief binds to memory and replaces the old one
+     * \brief binds buffer to new_memory
      * \param new_memory must be allocated
-     * \note old memory will not be freed
+    * \note implicitly calls setMemory(new_memory)
      */
     void bind(BasicMemory* new_memory);
     /**
-     * binds to the current memory
+     * binds image to memory
      * \note memory must be allocated
      */
     void bind();
 
     /**
-     * \brief destroys the image and resets the object
-     * \note memory will not be reset
-     */
-    virtual void destroy();
+    * \brief destroys the image and resets the object
+    * \param deletion_queue != nullptr => submit to deletion_queue
+    * \note memory will not be reset
+    */
+    virtual void destroy(DeletionQueue* deletion_queue = nullptr);
 
     /**
-     * \brief submits the image to the deletion queue and resets the object
-     * \param deletion_queue must not be nullptr
-     * \note memory will not be reset
-     */
-    virtual void destroy(DeletionQueue* deletion_queue);
+    * \param new_memory must not be allocated, nullptr or current memory
+    * \note does not free current memory
+    */
+    virtual void setMemory(BasicMemory* new_memory);
 
     /**
      * \brief copies the buffer to the image
@@ -96,6 +100,9 @@ public:
 
 
     static void destroy(const Device* device, VkImage image);
+
+    [[nodiscard]] static uint32_t evalMipLevelCount(VkExtent2D extent);
+
 
     struct Config {
         VkImageAspectFlagBits aspectMask;
@@ -124,7 +131,10 @@ protected:
     virtual void reset();
 
     Device* device;
-    State _state;
+    VkExtent2D _extent;
+    Config _config;
+
+    State _state = State::Default();
 
 private:
     using transition_config = struct {
@@ -136,10 +146,7 @@ private:
 
     void init();
 
-    VkExtent2D _extent;
-    Config _config;
     VkImage vkImage = VK_NULL_HANDLE;
-
 
     friend ImageBarrier;
 

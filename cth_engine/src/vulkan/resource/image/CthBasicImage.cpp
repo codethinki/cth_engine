@@ -17,8 +17,9 @@ namespace cth {
 BasicImage::BasicImage(Device* device, const VkExtent2D extent, const Config& config) : device(device),
     _extent(extent), _config(config) { init(); }
 
-BasicImage::BasicImage(Device* device, const VkExtent2D extent, const Config& config, VkImage image, State state) : device(device),
-    _state(std::move(state)), _extent(extent), _config(config), vkImage(image) { init(); }
+BasicImage::BasicImage(Device* device, const VkExtent2D extent, const Config& config, VkImage vk_image, const State& state) : device(device),
+    _extent(extent), _config(config), vkImage(vk_image), _state(state) { init(); }
+
 void BasicImage::create() {
     auto createInfo = _config.createInfo();
 
@@ -30,13 +31,12 @@ void BasicImage::create() {
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create image")
         throw except::vk_result_exception{createResult, details->exception()};
 }
-void BasicImage::allocate(BasicMemory* new_memory) {
-    debug_not_bound_check(this);
 
-    _state.memory = new_memory;
-    allocate();
+void BasicImage::alloc(BasicMemory* new_memory) {
+    setMemory(new_memory);
+    alloc();
 }
-void BasicImage::allocate() const {
+void BasicImage::alloc() const {
     debug_not_bound_check(this);
     debug_check(this);
 
@@ -45,10 +45,9 @@ void BasicImage::allocate() const {
 
     _state.memory->alloc(memRequirements);
 }
-void BasicImage::bind(BasicMemory* new_memory) {
-    debug_not_bound_check(this);
 
-    _state.memory = new_memory;
+void BasicImage::bind(BasicMemory* new_memory) {
+    setMemory(new_memory);
     bind();
 }
 void BasicImage::bind() {
@@ -64,15 +63,16 @@ void BasicImage::bind() {
     _state.bound = true;
 }
 
-void BasicImage::destroy() {
-    destroy(device, vkImage);
+void BasicImage::destroy(DeletionQueue* deletion_queue) {
+    if(!deletion_queue) destroy(device, vkImage);
+    else deletion_queue->push(vkImage);
     reset();
 }
-void BasicImage::destroy(DeletionQueue* deletion_queue) {
-    CTH_ERR(deletion_queue == nullptr, "queue must not be nullptr") throw details->exception();
-
-    deletion_queue->enqueue(vkImage);
-    reset();
+void BasicImage::setMemory(BasicMemory* new_memory) {
+    CTH_ERR(new_memory == _state.memory, "new_memory must not be current memory") throw details->exception();
+    CTH_ERR(new_memory == nullptr, "new_memory must not be nullptr") throw details->exception();
+    debug_not_bound_check(this);
+    _state.memory = new_memory;
 }
 
 
@@ -113,8 +113,7 @@ void BasicImage::transitionLayout(const CmdBuffer* cmd_buffer, const VkImageLayo
     barrier.execute(cmd_buffer);
 }
 void BasicImage::transitionLayout(ImageBarrier* barrier, const VkAccessFlags src_access, const VkAccessFlags dst_access,
-    const VkImageLayout new_layout,
-    const uint32_t first_mip_level, const uint32_t mip_levels) {
+    const VkImageLayout new_layout, const uint32_t first_mip_level, const uint32_t mip_levels) {
     debug_check(this);
 
     const auto levels = mip_levels == 0 ? _config.mipLevels - first_mip_level : mip_levels;
@@ -127,9 +126,20 @@ void BasicImage::transitionLayout(ImageBarrier* barrier, const VkAccessFlags src
     barrier->add(this, ImageBarrier::Info::LayoutTransition(src_access, dst_access, new_layout, first_mip_level, levels));
 }
 
+
+void BasicImage::destroy(const Device* device, VkImage image) {
+    CTH_WARN(image == VK_NULL_HANDLE, "vk_image invalid");
+    Device::debug_check(device);
+
+    vkDestroyImage(device->get(), image, nullptr);
+}
+
+uint32_t BasicImage::evalMipLevelCount(const VkExtent2D extent) {
+    return static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height))) + 1);
+}
+
 void BasicImage::reset() {
     _state.reset(_config);
-    _state.bound = false;
     vkImage = VK_NULL_HANDLE;
 }
 
@@ -157,10 +167,7 @@ void BasicImage::init() {
     _state.init(_config);
 }
 
-void BasicImage::destroy(const Device* device, VkImage image) {
-    CTH_ERR(device == nullptr, "device must not be nullptr") throw details->exception();
-    vkDestroyImage(device->get(), image, nullptr);
-}
+
 
 #ifdef _DEBUG
 void BasicImage::debug_check(const BasicImage* image) {
@@ -202,9 +209,7 @@ void BasicImage::State::reset(const Config& config) {
 
     bound = false;
 }
-void BasicImage::State::init(const Config& config) {
-    while(levelLayouts.size() != config.mipLevels) levelLayouts.push_back(config.initialLayout);
-}
+void BasicImage::State::init(const Config& config) { while(levelLayouts.size() != config.mipLevels) levelLayouts.push_back(config.initialLayout); }
 
 
 } // namespace cth

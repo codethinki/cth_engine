@@ -47,9 +47,9 @@ private:
     unique_ptr<PhysicalDevice> physicalDevice = PhysicalDevice::autoPick(window->surface(), instance.get());
     unique_ptr<Device> device = make_unique<Device>(physicalDevice.get(), window->surface(), instance.get());
 
+    unique_ptr<Renderer> hlcRenderer = make_unique<Renderer>(device.get(), &camera, window.get());
     InputController inputController{};
     Camera camera{};
-    unique_ptr<Renderer> hlcRenderer = make_unique<Renderer>(device.get(), &camera, window.get());
 
     unique_ptr<RenderSystem> renderSystem;
 

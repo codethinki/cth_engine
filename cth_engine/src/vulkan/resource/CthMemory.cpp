@@ -54,17 +54,14 @@ VkResult BasicMemory::invalidate(const size_t size, const size_t offset) const {
 }
 void BasicMemory::unmap() const { vkUnmapMemory(device->get(), vkMemory); }
 
-void BasicMemory::free() {
-    free(device, vkMemory);
-    reset();
-}
 void BasicMemory::free(DeletionQueue* deletion_queue) {
-    deletion_queue->enqueue(vkMemory);
+    CTH_WARN(vkMemory == VK_NULL_HANDLE, "memory not valid");
+    if(!deletion_queue) free(device, vkMemory);
+    else deletion_queue->push(vkMemory);
     reset();
 }
 void BasicMemory::free(const Device* device, VkDeviceMemory memory) {
     CTH_WARN(memory == VK_NULL_HANDLE, "memory not allocated");
-    if(memory == VK_NULL_HANDLE) return;
     vkFreeMemory(device->get(), memory, nullptr);
 }
 void BasicMemory::reset() {
@@ -85,10 +82,14 @@ void BasicMemory::debug_check(const BasicMemory* memory) {
 
 namespace cth {
 Memory::~Memory() {
-    Memory::free();
+    if(get() != VK_NULL_HANDLE) Memory::free();
 }
-void Memory::free() {
-    deletionQueue->enqueue(get());
+void Memory::free(DeletionQueue* deletion_queue) {
+    if(!deletion_queue) deletionQueue->push(get());
+    else {
+        deletion_queue->push(get());
+        deletionQueue = deletion_queue;
+    }
     reset();
 }
 }

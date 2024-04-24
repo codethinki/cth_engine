@@ -20,6 +20,25 @@ public:
     ~Buffer() override;
 
     /**
+    * \brief creates the buffer
+    * \note previous buffer will be destroyed
+    */
+    void create() override;
+
+    /**
+    * \brief submits buffer & memory to cached deletion queues and resets the object
+    * \param deletion_queue != nullptr => submits to new deletion queue
+    * \note new deletion queue will be cached
+    */
+    void destroy(DeletionQueue* deletion_queue = nullptr) override;
+
+    /**
+    * \param new_memory must not be allocated or nullptr
+    * \note destroys current memory
+    */
+    void setMemory(BasicMemory* new_memory) override;
+
+    /**
      *\brief maps part of the buffer memory
     * \param size in elements
     * \param offset in elements
@@ -78,8 +97,9 @@ public:
     */
     [[nodiscard]] VkDescriptorBufferInfo descriptorInfo(size_t size, size_t offset) const override;
 
+
 private:
-    void destroy() override;
+    void destroyMemory(DeletionQueue* deletion_queue = nullptr);
 
     size_t _elements;
     DeletionQueue* deletionQueue;
@@ -90,10 +110,8 @@ public:
     Buffer& operator=(const Buffer& other) = delete;
     Buffer(Buffer&& other) = delete;
     Buffer& operator=(Buffer&& other) = delete;
-private:
-    void alloc() const;
-    void create();
 };
-}
+
+} // namespace cth
 
 #include "CthBuffer.inl"
