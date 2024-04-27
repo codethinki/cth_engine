@@ -6,6 +6,8 @@
 #include <vector>
 #include <cth/cth_log.hpp>
 
+#include "vulkan/utility/CthConstants.hpp"
+
 namespace cth {
 class Device;
 class DescriptorSet;
@@ -92,7 +94,7 @@ public:
         void addLayout(DescriptorSetLayout* layout, uint32_t alloc_count);
         void addLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
 
-        void removeLayout(DescriptorSetLayout* layout, size_t amount = VK_WHOLE_SIZE);
+        void removeLayout(DescriptorSetLayout* layout, size_t amount = Constants::WHOLE_SIZE);
         void removeLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
 
     private:

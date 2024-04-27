@@ -1,13 +1,15 @@
 #include "CthTexture.hpp"
 
+#include "vulkan/pipeline/CthPipelineBarrier.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/resource/buffer/CthBuffer.hpp"
 
-
 namespace cth {
+
+
 //TEMP left off here make this compile again and solve the bugs
 //TEMP implement this again
-Texture::Texture(Device* device, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer* cmd_buffer,
+Texture::Texture(Device* device, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
     const span<const char> staging_data) :
     Image(device, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
 
@@ -16,15 +18,14 @@ Texture::Texture(Device* device, DeletionQueue* deletion_queue, const VkExtent2D
     buffer.map();
     buffer.write(staging_data);
 
-    init(cmd_buffer, &buffer);
+    init(cmd_buffer, buffer);
 }
-Texture::Texture(Device* device, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer* cmd_buffer,
-    const BasicBuffer* buffer, const size_t buffer_offset) : Image(device, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
-    init(cmd_buffer, buffer, buffer_offset);
-}
+Texture::Texture(Device* device, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
+    const BasicBuffer& buffer, const size_t buffer_offset) : Image(device, deletion_queue, extent, imageConfig(extent, config),
+    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) { init(cmd_buffer, buffer, buffer_offset); }
 
 
-void Texture::init(const CmdBuffer* cmd_buffer, const BasicBuffer* buffer, const size_t offset) {
+void Texture::init(const CmdBuffer& cmd_buffer, const BasicBuffer& buffer, const size_t offset) {
     CTH_ERR(_state.levelLayouts[0] == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, "already initialized")
         throw details->exception();
 
@@ -49,7 +50,7 @@ BasicImage::Config Texture::imageConfig(const VkExtent2D extent, const Config& c
     };
 }
 
-void Texture::blitMipLevels(const CmdBuffer* cmd_buffer, const int32_t first, int32_t levels) {
+void Texture::blitMipLevels(const CmdBuffer& cmd_buffer, const int32_t first, int32_t levels) {
     if(levels == 0) levels = mipLevels() - first;
 
     CTH_ERR(_state.levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal")
@@ -58,29 +59,18 @@ void Texture::blitMipLevels(const CmdBuffer* cmd_buffer, const int32_t first, in
         return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }), "image layouts not transfer dst optimal")
         throw details->exception();
 
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.image = get();
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange.aspectMask = aspectMask();
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    ImageBarrier toSrcBarrier{VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
+    ImageBarrier shaderBarrier{VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT};
 
     auto width = static_cast<int32_t>(extent().width);
     auto height = static_cast<int32_t>(extent().height);
 
     for(int32_t i = first; i < first + levels; i++) {
         if(i != first) {
-            barrier.subresourceRange.baseMipLevel = i - 1;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            transitionLayout(toSrcBarrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, i - 1, 1);
 
-            vkCmdPipelineBarrier(cmd_buffer->get(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                0, nullptr, 0, nullptr, 1, &barrier);
+            toSrcBarrier.execute(cmd_buffer);
+            toSrcBarrier.remove(this);
         }
 
         VkImageBlit blit{};
@@ -97,7 +87,7 @@ void Texture::blitMipLevels(const CmdBuffer* cmd_buffer, const int32_t first, in
         blit.dstSubresource.baseArrayLayer = 0;
         blit.dstSubresource.layerCount = 1;
 
-        vkCmdBlitImage(cmd_buffer->get(), get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
+        vkCmdBlitImage(cmd_buffer.get(), get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
             VK_FILTER_LINEAR);
 
         if(width > 1) width >>= 1;
@@ -105,25 +95,13 @@ void Texture::blitMipLevels(const CmdBuffer* cmd_buffer, const int32_t first, in
 
         if(i == first) continue;
 
-        barrier.subresourceRange.baseMipLevel = i - 1;
-        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        vkCmdPipelineBarrier(cmd_buffer->get(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-            &barrier);
+        transitionLayout(shaderBarrier, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, i - 1, 1);
+        shaderBarrier.execute(cmd_buffer);
+        shaderBarrier.remove(this);
     }
-    barrier.subresourceRange.baseMipLevel = first + levels - 1;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-    vkCmdPipelineBarrier(cmd_buffer->get(), VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-    ranges::fill_n(_state.levelLayouts.begin() + first, levels, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    transitionLayout(shaderBarrier, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, first + levels - 1, 1);
+    shaderBarrier.execute(cmd_buffer);
+    shaderBarrier.remove(this);
 }
 
 }

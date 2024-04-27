@@ -55,6 +55,8 @@
     <ClInclude Include="src\vulkan\resource\CthDeletionQueue.hpp" />
     <ClInclude Include="src\vulkan\resource\CthMemory.hpp" />
     <ClInclude Include="src\interface\CthEngineSettings.hpp" />
+    <ClInclude Include="src\vulkan\base\CthQueue.hpp" />
+    <ClInclude Include="src\vulkan\utility\CthConstants.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -94,5 +96,6 @@
     <ClCompile Include="src\vulkan\render\cmd\CthCmdBuffer.cpp" />
     <ClCompile Include="src\vulkan\resource\CthMemory.cpp" />
     <ClCompile Include="src\vulkan\resource\CthDeletionQueue.cpp" />
+    <ClCompile Include="src\vulkan\base\CthQueue.cpp" />
   </ItemGroup>
 </Project>

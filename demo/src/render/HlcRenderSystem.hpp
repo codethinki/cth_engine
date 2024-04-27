@@ -47,12 +47,12 @@ private:
 
     void createDescriptorPool();
 
-    void loadDescriptorData(const CmdBuffer* init_cmd_buffer, DeletionQueue* deletion_queue);
+    void loadDescriptorData(const CmdBuffer& init_cmd_buffer, DeletionQueue* deletion_queue);
 
     void createDescriptorSets();
 
     //TEMP replace this with actual model loading
-    void createDefaultTriangle(const CmdBuffer* cmd_buffer);
+    void createDefaultTriangle(const CmdBuffer& cmd_buffer);
 
     Device* device;
     Renderer* renderer;

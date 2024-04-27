@@ -36,13 +36,13 @@ RenderSystem::RenderSystem(Device* device, Renderer* renderer, VkRenderPass rend
     createPipelineLayout();
 
     createDescriptorPool();
-    loadDescriptorData(initCmdBuffer, renderer->deletionQueue());
+    loadDescriptorData(*initCmdBuffer, renderer->deletionQueue());
 
     createPipeline(render_pass, msaa_samples);
 
     createDescriptorSets();
 
-    createDefaultTriangle(initCmdBuffer);
+    createDefaultTriangle(*initCmdBuffer);
 
     renderer->endInitBuffer();
 }
@@ -91,7 +91,7 @@ void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSample
 void RenderSystem::createDescriptorPool() {
     descriptorPool = make_unique<DescriptorPool>(device, DescriptorPool::Builder{{{descriptorSetLayout.get(), 1}}});
 }
-void RenderSystem::loadDescriptorData(const CmdBuffer* init_cmd_buffer, DeletionQueue* deletion_queue) {
+void RenderSystem::loadDescriptorData(const CmdBuffer& init_cmd_buffer, DeletionQueue* deletion_queue) {
     const cth::img::stb_image image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
     texture = make_unique<Texture>(device, deletion_queue, VkExtent2D{image.width, image.height}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB}, init_cmd_buffer, image.raw());
@@ -119,7 +119,7 @@ array<Vertex, 3> defaultTriangle{
 
 
 
-void RenderSystem::createDefaultTriangle(const CmdBuffer* cmd_buffer) {
+void RenderSystem::createDefaultTriangle(const CmdBuffer& cmd_buffer) {
     defaultTriangleBuffer = make_unique<Buffer<Vertex>>(device, renderer->deletionQueue(), 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -128,7 +128,7 @@ void RenderSystem::createDefaultTriangle(const CmdBuffer* cmd_buffer) {
     stagingBuffer.map();
     stagingBuffer.write(defaultTriangle);
 
-    defaultTriangleBuffer->stage(cmd_buffer, &stagingBuffer);
+    defaultTriangleBuffer->stage(cmd_buffer, stagingBuffer);
 }
 
 void RenderSystem::render(FrameInfo& frame_info) const {

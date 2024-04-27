@@ -18,7 +18,7 @@ BasicImage::BasicImage(Device* device, const VkExtent2D extent, const Config& co
     _extent(extent), _config(config) { init(); }
 
 BasicImage::BasicImage(Device* device, const VkExtent2D extent, const Config& config, VkImage vk_image, const State& state) : device(device),
-    _extent(extent), _config(config), vkImage(vk_image), _state(state) { init(); }
+    _extent(extent), _config(config), _state(state), vkImage(vk_image) { init(); }
 
 void BasicImage::create() {
     auto createInfo = _config.createInfo();
@@ -76,10 +76,9 @@ void BasicImage::setMemory(BasicMemory* new_memory) {
 }
 
 
-void BasicImage::copy(const CmdBuffer* cmd_buffer, const BasicBuffer* src_buffer, const size_t src_offset, const uint32_t mip_level) const {
+void BasicImage::copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src_buffer, const size_t src_offset, const uint32_t mip_level) const {
     debug_check(this);
 
-    CTH_ERR(src_buffer == nullptr, "buffer must not be nullptr") throw details->exception();
     CTH_WARN(_state.levelLayouts[mip_level] != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         "PERFORMANCE: image layout is not transfer dst optional");
 
@@ -97,10 +96,10 @@ void BasicImage::copy(const CmdBuffer* cmd_buffer, const BasicBuffer* src_buffer
     region.imageSubresource.layerCount = 1;
     region.imageOffset = {0, 0, 0};
     region.imageExtent = {_extent.width, _extent.height, 1};
-    vkCmdCopyBufferToImage(cmd_buffer->get(), src_buffer->get(), vkImage, _state.levelLayouts[mip_level], 1, &region);
+    vkCmdCopyBufferToImage(cmd_buffer.get(), src_buffer.get(), vkImage, _state.levelLayouts[mip_level], 1, &region);
 }
 
-void BasicImage::transitionLayout(const CmdBuffer* cmd_buffer, const VkImageLayout new_layout, const uint32_t first_mip_level,
+void BasicImage::transitionLayout(const CmdBuffer& cmd_buffer, const VkImageLayout new_layout, const uint32_t first_mip_level,
     const uint32_t mip_levels) {
 
 
@@ -108,22 +107,21 @@ void BasicImage::transitionLayout(const CmdBuffer* cmd_buffer, const VkImageLayo
 
     ImageBarrier barrier{srcStage, dstStage};
 
-    transitionLayout(&barrier, srcAccess, dstAccess, new_layout, first_mip_level, mip_levels);
+    transitionLayout(barrier, new_layout, srcAccess, dstAccess, first_mip_level, mip_levels);
 
     barrier.execute(cmd_buffer);
 }
-void BasicImage::transitionLayout(ImageBarrier* barrier, const VkAccessFlags src_access, const VkAccessFlags dst_access,
-    const VkImageLayout new_layout, const uint32_t first_mip_level, const uint32_t mip_levels) {
+void BasicImage::transitionLayout(ImageBarrier& barrier, const VkImageLayout new_layout, const VkAccessFlags src_access,
+    const VkAccessFlags dst_access, const uint32_t first_mip_level, const uint32_t mip_levels) {
     debug_check(this);
 
-    const auto levels = mip_levels == 0 ? _config.mipLevels - first_mip_level : mip_levels;
-
     const auto oldLayout = _state.levelLayouts[first_mip_level];
-    CTH_ERR(any_of(_state.levelLayouts.begin() + first_mip_level, _state.levelLayouts.begin() + first_mip_level + levels,
+    CTH_ERR(any_of(_state.levelLayouts.begin() + first_mip_level,
+        mip_levels == Constants::ALL ? _state.levelLayouts.end() : _state.levelLayouts.begin() + first_mip_level + mip_levels,
         [oldLayout](VkImageLayout layout) { return oldLayout != layout; }), "all transitioned layouts must be the same")
         throw details->exception();
 
-    barrier->add(this, ImageBarrier::Info::LayoutTransition(src_access, dst_access, new_layout, first_mip_level, levels));
+    barrier.add(this, ImageBarrier::Info::LayoutTransition(new_layout, src_access, dst_access, first_mip_level, mip_levels));
 }
 
 

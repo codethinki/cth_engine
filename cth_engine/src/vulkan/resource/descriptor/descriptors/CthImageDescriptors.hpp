@@ -31,7 +31,7 @@ public:
     inline static constexpr VkDescriptorType TYPE = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
     explicit StorageImageDescriptor(const ImageView* image_view) : ImageDescriptor(TYPE,
-        VkDescriptorImageInfo{VK_NULL_HANDLE, image_view->get(), image_view->image()->layout()}) {}
+        VkDescriptorImageInfo{VK_NULL_HANDLE, image_view->get(), image_view->image()->layout(0)}) {}
 };
 
 class TextureDescriptor : public ImageDescriptor {
@@ -39,7 +39,7 @@ public:
     inline static constexpr VkDescriptorType TYPE = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
     explicit TextureDescriptor(const ImageView* image_view, const Sampler* sampler) : ImageDescriptor(TYPE,
-        VkDescriptorImageInfo{sampler->get(), image_view->get(), image_view->image()->layout()}) {}
+        VkDescriptorImageInfo{sampler->get(), image_view->get(), image_view->image()->layout(0)}) {}
 };
 
 

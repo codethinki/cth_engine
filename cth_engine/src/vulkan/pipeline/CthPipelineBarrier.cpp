@@ -3,8 +3,8 @@
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/resource/buffer/CthBasicBuffer.hpp"
 #include "vulkan/resource/image/CthBasicImage.hpp"
-#include "vulkan/resource/image/CthImage.hpp"
 
+#include <ranges>
 //ImageBarrier
 
 namespace cth {
@@ -16,51 +16,84 @@ ImageBarrier::ImageBarrier(const VkPipelineStageFlags src_stage, const VkPipelin
     const unordered_map<BasicImage*, ImageBarrier::Info>& images) : PipelineStages{src_stage, dst_stage} { init(images); }
 
 void ImageBarrier::add(BasicImage* image, const Info& info) {
-    imageBarriers.emplace_back(
-        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-        nullptr,
-        info.src.accessMask,
-        info.dst.accessMask,
-        image->layout(),
-        info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED ? image->layout() : info.newLayout,
-        info.src.queueFamilyIndex,
-        info.dst.queueFamilyIndex,
-        image->get(),
-        VkImageSubresourceRange{
-            static_cast<VkImageAspectFlags>(info.aspectMask == VK_IMAGE_ASPECT_NONE ? image->aspectMask() : info.aspectMask),
-            info.firstMipLevel,
-            info.levels == 0 ? image->mipLevels() - info.firstMipLevel : info.levels,
-            0, 1
-        }
-        );
-    images.push_back(image);
-    if(info.newLayout != VK_IMAGE_LAYOUT_UNDEFINED) layoutChanges.push_back(imageBarriers.size() - 1);
-}
-void ImageBarrier::remove(BasicImage* image) {
-    const auto it = ranges::find(images, image);
-    CTH_ERR(it == std::end(images), "image not present in barrier")
-        throw details->exception();
-    auto index = std::distance(images.begin(), it);
+    CTH_ERR(contains(image), "image already added, consider grouping") throw details->exception();
 
-    imageBarriers.erase(imageBarriers.begin() + index);
-    for(auto i = 0; i <= index; ++i) if(layoutChanges[i] == index) layoutChanges.erase(layoutChanges.begin() + i);
-    images.erase(it);
+
+    imageBarriers.emplace_back(info.createBarrier(*image));
+
+    const bool change = info.newLayout != Constants::IMAGE_LAYOUT_IGNORED;
+
+    if(!change) return;
+
+    layoutChanges.emplace_back(imageBarriers.size() - 1, image);
+
 }
-void ImageBarrier::execute(const CmdBuffer* cmd_buffer) {
-    vkCmdPipelineBarrier(cmd_buffer->get(), srcStage, dstStage, 0, 0, nullptr, 0, nullptr,
+void ImageBarrier::replace(BasicImage* image, const Info& info) {
+    auto&& rng = imageBarriers | views::transform([](const auto& barrier) { return barrier.image; });
+    const auto barrierIndex = static_cast<size_t>(distance(ranges::find(rng, image->get()), std::end(rng)));
+
+
+    if(barrierIndex == imageBarriers.size()) {
+        add(image, info);
+        return;
+    }
+
+    imageBarriers[barrierIndex] = info.createBarrier(*image);
+
+
+    auto images = layoutChanges | views::values;
+    auto index = static_cast<uint32_t>(std::distance(std::begin(images), ranges::find(images, image)));
+
+    if(index < layoutChanges.size()) {
+        if(info.newLayout == Constants::IMAGE_LAYOUT_IGNORED)
+            removeChange(barrierIndex);
+    }
+}
+
+
+
+void ImageBarrier::remove(const BasicImage* image) {
+    auto index = barrierIndex(image);
+
+    CTH_ERR(index == imageBarriers.size(), "image not present in barrier") throw details->exception();
+
+    imageBarriers.erase(ranges::begin(imageBarriers) + index);
+
+    removeChange(index);
+}
+void ImageBarrier::execute(const CmdBuffer& cmd_buffer) {
+    vkCmdPipelineBarrier(cmd_buffer.get(), srcStage, dstStage, 0, 0, nullptr, 0, nullptr,
         static_cast<uint32_t>(imageBarriers.size()), imageBarriers.data());
     applyChanges();
 }
+bool ImageBarrier::contains(const BasicImage* image) const {
+    auto&& rng = imageBarriers | views::transform([](const auto& barrier) { return barrier.image; });
+    return ranges::contains(rng, image->get());
+}
+
 void ImageBarrier::applyChanges() const {
-    for(auto index : layoutChanges) {
+    for(auto& [index, image] : layoutChanges) {
         auto& barrier = imageBarriers[index];
         auto& res = barrier.subresourceRange;
 
-        fill_n(images[index]->_state.levelLayouts.begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
+        fill_n(image->_state.levelLayouts.begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
     }
 }
 
 ImageBarrier::ImageBarrier(const unordered_map<BasicImage*, ImageBarrier::Info>& images) { init(images); }
+size_t ImageBarrier::barrierIndex(const BasicImage* image) const {
+    auto&& rng = imageBarriers | views::transform([](const auto& barrier) { return barrier.image; });
+    return static_cast<size_t>(distance(ranges::begin(rng), ranges::find(rng, image->get())));
+}
+void ImageBarrier::removeChange(const size_t barrier_index) {
+    auto&& rng = layoutChanges | views::keys;
+    auto it = ranges::find(rng, barrier_index);
+    if(it == ranges::end(rng)) return;
+
+    auto changeIndex = static_cast<size_t>(std::distance(ranges::begin(rng), it));
+    layoutChanges.erase(ranges::begin(layoutChanges) + changeIndex);
+    for(size_t i = changeIndex; i < layoutChanges.size(); ++i) layoutChanges[i].first--;
+}
 void ImageBarrier::init(const unordered_map<BasicImage*, ImageBarrier::Info>& images) { for(auto [image, info] : images) add(image, info); }
 
 } // namespace cth
@@ -76,6 +109,8 @@ BufferBarrier::BufferBarrier(const VkPipelineStageFlags src_stage, const VkPipel
     const unordered_map<const BasicBuffer*, Info>& buffers) : PipelineStages{src_stage, dst_stage} { init(buffers); }
 
 void BufferBarrier::add(const BasicBuffer* buffer, const Info& info) {
+    CTH_ERR(std::ranges::contains(buffers, buffer), "image already added, consider grouping") throw details->exception();
+
     bufferBarriers.emplace_back(
         VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
         nullptr,
@@ -97,8 +132,9 @@ void BufferBarrier::remove(const BasicBuffer* buffer) {
     bufferBarriers.erase(bufferBarriers.begin() + std::distance(buffers.begin(), index));
     buffers.erase(index);
 }
-void BufferBarrier::execute(VkCommandBuffer cmd_buffer) {
-    vkCmdPipelineBarrier(cmd_buffer, srcStage, dstStage, 0, 0, nullptr, bufferBarriers.size(), bufferBarriers.data(), 0, nullptr);
+void BufferBarrier::execute(const CmdBuffer& cmd_buffer) {
+    vkCmdPipelineBarrier(cmd_buffer.get(), srcStage, dstStage, 0, 0, nullptr, static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(), 0,
+        nullptr);
 }
 BufferBarrier::BufferBarrier(const unordered_map<const BasicBuffer*, Info>& buffers) { init(buffers); }
 void BufferBarrier::init(const unordered_map<const BasicBuffer*, Info>& buffers) { for(auto [buffer, info] : buffers) add(buffer, info); }
@@ -122,8 +158,8 @@ PipelineBarrier::PipelineBarrier(const VkPipelineStageFlags src_stage, const VkP
     BufferBarrier::srcStage = src_stage;
     BufferBarrier::dstStage = dst_stage;
 }
-void PipelineBarrier::execute(VkCommandBuffer cmd_buffer) {
-    vkCmdPipelineBarrier(cmd_buffer, BufferBarrier::srcStage, BufferBarrier::dstStage, 0, 0, nullptr,
+void PipelineBarrier::execute(const CmdBuffer& cmd_buffer) {
+    vkCmdPipelineBarrier(cmd_buffer.get(), BufferBarrier::srcStage, BufferBarrier::dstStage, 0, 0, nullptr,
         static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
         static_cast<uint32_t>(imageBarriers.size()), imageBarriers.data());
 
@@ -132,6 +168,31 @@ void PipelineBarrier::execute(VkCommandBuffer cmd_buffer) {
 void PipelineBarrier::initStages(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage) {
     ImageBarrier::srcStage = src_stage;
     ImageBarrier::dstStage = dst_stage;
+}
+
+} // namespace cth
+
+
+//ImageBarrierInfo
+
+namespace cth {
+VkImageMemoryBarrier ImageBarrier::Info::createBarrier(const BasicImage& image) const {
+    return VkImageMemoryBarrier{
+        VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        nullptr,
+        src.accessMask,
+        dst.accessMask,
+        image.layout(firstMipLevel),
+        newLayout == Constants::IMAGE_LAYOUT_IGNORED ? image.layout(firstMipLevel) : newLayout,
+        src.queueFamilyIndex,
+        dst.queueFamilyIndex,
+        image.get(),
+        VkImageSubresourceRange{
+            static_cast<VkImageAspectFlags>(aspectMask == Constants::ASPECT_MASK_IGNORED ? image.aspectMask() : aspectMask),
+            firstMipLevel,
+            levels == Constants::ALL ? image.mipLevels() - firstMipLevel : levels,
+            0, 1
+        }};
 }
 
 } // namespace cth

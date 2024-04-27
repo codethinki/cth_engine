@@ -16,7 +16,7 @@ public:
      * \param staging_data copied to texture via a staging buffer
      * \note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
-    Texture(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, const CmdBuffer* cmd_buffer,
+    Texture(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
         span<const char> staging_data);
 
     /**
@@ -24,12 +24,15 @@ public:
      * \param staging_buffer staging buffer with image data
      * \note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
-    Texture(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, const CmdBuffer* cmd_buffer,
-        const BasicBuffer* staging_buffer, size_t buffer_offset = 0);
+    Texture(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
+        const BasicBuffer& staging_buffer, size_t buffer_offset = 0);
 
     ~Texture() override = default;
 
-    void init(const CmdBuffer* cmd_buffer, const BasicBuffer* buffer, size_t offset = 0);
+
+    //void blit(const CmdBuffer* cmd_buffer);
+
+    void init(const CmdBuffer& cmd_buffer, const BasicBuffer& buffer, size_t offset = 0);
 
 private:
     /**
@@ -38,7 +41,7 @@ private:
      * \param first first - 1 => src level
      * \note src must be transfer src optimal
      */
-    void blitMipLevels(const CmdBuffer* cmd_buffer, int32_t first = 1, int32_t levels = 0);
+    void blitMipLevels(const CmdBuffer& cmd_buffer, int32_t first = 1, int32_t levels = 0);
 
     [[nodiscard]] static Image::Config imageConfig(VkExtent2D extent, const Config& config);
 };

@@ -6,8 +6,7 @@
 #include <span>
 #include <vector>
 
-#include "CthBasicImage.hpp"
-
+#include "vulkan/utility/CthConstants.hpp"
 
 namespace cth {
 class Device;
@@ -84,19 +83,19 @@ public:
      * \param mip_level copy dst
      * \note image must be bound & allocated
      */
-    void copy(const CmdBuffer* cmd_buffer, const BasicBuffer* src_buffer, size_t src_offset = 0, uint32_t mip_level = 0) const;
+    void copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src_buffer, size_t src_offset = 0, uint32_t mip_level = 0) const;
 
     /**
      * \brief transitions the image layout via a pipeline barrier
-     * \param mip_levels (0 => all remaining)
+     * \param mip_levels (Constants::ALL => all remaining)
      */
-    void transitionLayout(const CmdBuffer* cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = 0);
+    void transitionLayout(const CmdBuffer& cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = Constants::ALL);
     /**
     * \brief adds the transition to the pipeline barrier
-    * \param mip_levels (0 => all remaining)
+    * \param mip_levels (Constants::ALL => all remaining)
     */
-    void transitionLayout(ImageBarrier* barrier, VkAccessFlags src_access, VkAccessFlags dst_access, VkImageLayout new_layout,
-        uint32_t first_mip_level = 0, uint32_t mip_levels = 0);
+    void transitionLayout(ImageBarrier& barrier, VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access,
+        uint32_t first_mip_level = 0, uint32_t mip_levels = Constants::ALL);
 
 
     static void destroy(const Device* device, VkImage image);
@@ -156,7 +155,7 @@ public:
     [[nodiscard]] VkFormat format() const { return _config.format; }
     [[nodiscard]] VkExtent2D extent() const { return _extent; }
     [[nodiscard]] uint32_t mipLevels() const { return _config.mipLevels; }
-    [[nodiscard]] VkImageLayout layout(const uint32_t mip_level = 0) const { return _state.levelLayouts[mip_level]; }
+    [[nodiscard]] VkImageLayout layout(const uint32_t mip_level) const { return _state.levelLayouts[mip_level]; }
     [[nodiscard]] span<const VkImageLayout> layouts() const { return _state.levelLayouts; }
     [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return _config.aspectMask; }
     [[nodiscard]] bool bound() const { return _state.bound; }

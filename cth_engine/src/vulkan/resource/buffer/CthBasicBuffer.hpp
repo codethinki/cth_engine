@@ -5,6 +5,8 @@
 
 #include <span>
 
+#include "vulkan/utility/CthConstants.hpp"
+
 
 
 namespace cth {
@@ -95,7 +97,7 @@ public:
      * \brief stages a device local buffer with a temporary host visible buffer
      * \param dst_offset in bytes
      */
-    void stage(const CmdBuffer* cmd_buffer, const BasicBuffer* staging_buffer, size_t dst_offset = 0) const;
+    void stage(const CmdBuffer& cmd_buffer, const BasicBuffer& staging_buffer, size_t dst_offset = 0) const;
 
     /**
      * \brief writes to the mapped range of the whole buffer
@@ -108,20 +110,20 @@ public:
     /**
     * \brief copies buffer data on the gpu
     * \param cmd_buffer
-    * \param copy_size in bytes (VK_WHOLE_SIZE => whole buffer)
+    * \param copy_size in bytes (Constants::WHOLE_SIZE => whole buffer)
     * \param src_offset in bytes
     * \param dst_offset in bytes
      */
-    void copy(const CmdBuffer* cmd_buffer, const BasicBuffer* src, size_t copy_size = VK_WHOLE_SIZE, size_t src_offset = 0,
+    void copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src, size_t copy_size = Constants::WHOLE_SIZE, size_t src_offset = 0,
         size_t dst_offset = 0) const;
 
 
     /**
      * \brief updates non-coherent host visible memory
-     * \param size in bytes, VK_WHOLE_SIZE -> whole buffer
+     * \param size in bytes, Constants::WHOLE_SIZE -> whole buffer
      * \param offset in bytes
      */
-    [[nodiscard]] VkResult flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] VkResult flush(size_t size = Constants::WHOLE_SIZE, size_t offset = 0) const;
 
     /**
     * \brief
@@ -129,11 +131,11 @@ public:
     * \param offset in elements
     * \return result of vkInvalidateMappedMemoryRanges()
     */
-    [[nodiscard]] VkResult invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] VkResult invalidate(size_t size = Constants::WHOLE_SIZE, size_t offset = 0) const;
 
 
     /**
-    * \param size in bytes, VK_WHOLE_SIZE -> whole buffer
+    * \param size in bytes, Constants::WHOLE_SIZE -> whole buffer
     * \param offset in bytes
     */
     [[nodiscard]] virtual VkDescriptorBufferInfo descriptorInfo(size_t size, size_t offset) const;
@@ -167,24 +169,24 @@ protected:
     void reset();
 
     Device* device;
-    size_t _size;
-    VkBufferUsageFlags _usage;
+    size_t size_;
+    VkBufferUsageFlags usage_;
 
 
-    State _state = State::Default();
+    State state_ = State::Default();
 private:
     void init() const;
 
     VkBuffer vkBuffer = VK_NULL_HANDLE;
 public:
     [[nodiscard]] auto get() const { return vkBuffer; }
-    [[nodiscard]] auto* memory() const { return _state.memory; }
-    [[nodiscard]] auto bound() const { return _state.bound; }
-    [[nodiscard]] auto mapped() const { return _state.mapped; }
-    [[nodiscard]] auto usageFlags() const { return _usage; }
-    [[nodiscard]] auto size() const { return _size; }
+    [[nodiscard]] auto* memory() const { return state_.memory; }
+    [[nodiscard]] auto bound() const { return state_.bound; }
+    [[nodiscard]] auto mapped() const { return state_.mapped; }
+    [[nodiscard]] auto usageFlags() const { return usage_; }
+    [[nodiscard]] auto size() const { return size_; }
 
-    [[nodiscard]] auto state() const { return _state; }
+    [[nodiscard]] auto state() const { return state_; }
 
     BasicBuffer(const BasicBuffer& other) = delete;
     BasicBuffer& operator=(const BasicBuffer& other) = delete;

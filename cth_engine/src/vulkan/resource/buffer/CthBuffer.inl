@@ -11,7 +11,7 @@ namespace cth {
 template<typename T>
 Buffer<T>::Buffer(Device* device, DeletionQueue* deletion_queue, const size_t element_count, const VkBufferUsageFlags usage_flags,
     const VkMemoryPropertyFlags memory_property_flags) : BasicBuffer(device, element_count * sizeof(T), usage_flags),
-    _elements(element_count), deletionQueue(deletion_queue) {
+    elements_(element_count), deletionQueue(deletion_queue) {
     BasicMemory* memory = new Memory{device, deletion_queue, memory_property_flags};
 
     BasicBuffer::create();
@@ -43,7 +43,7 @@ void Buffer<T>::destroy(DeletionQueue* deletion_queue) {
 
 template<typename T>
 void Buffer<T>::setMemory(BasicMemory* new_memory) {
-    CTH_ERR(new_memory == _state.memory, "new_memory must not be current memory") throw details->exception();
+    CTH_ERR(new_memory == state_.memory, "new_memory must not be current memory") throw details->exception();
     destroyMemory();
     BasicBuffer::setMemory(new_memory);
 }
@@ -56,11 +56,11 @@ span<T> Buffer<T>::map(const size_t size, const size_t offset) {
 template<typename T>
 span<T> Buffer<T>::map() {
     const auto charSpan = BasicBuffer::map();
-    return span<T>{reinterpret_cast<T*>(charSpan.data()), _elements};
+    return span<T>{reinterpret_cast<T*>(charSpan.data()), elements_};
 }
 
 template<typename T>
-void Buffer<T>::stage(const CmdBuffer* cmd_buffer, const Buffer<T>* staging_buffer, const size_t dst_offset) const {
+void Buffer<T>::stage(const CmdBuffer& cmd_buffer, const Buffer<T>& staging_buffer, const size_t dst_offset) const {
     BasicBuffer::stage(cmd_buffer, staging_buffer, dst_offset * sizeof(T));
 }
 
@@ -77,9 +77,9 @@ void Buffer<T>::write(span<const T> data, const size_t mapped_offset) const {
 }
 
 template<typename T>
-void Buffer<T>::copy(const CmdBuffer* cmd_buffer, const Buffer<T>* src, const size_t copy_size, const size_t src_offset,
+void Buffer<T>::copy(const CmdBuffer& cmd_buffer, const Buffer<T>& src, const size_t copy_size, const size_t src_offset,
     const size_t dst_offset) const {
-    copy_size = copy_size == VK_WHOLE_SIZE ? VK_WHOLE_SIZE : copy_size * sizeof(T);
+    copy_size = copy_size == Constants::WHOLE_SIZE ? Constants::WHOLE_SIZE : copy_size * sizeof(T);
     BasicBuffer::copy(cmd_buffer, src, copy_size, src_offset * sizeof(T), dst_offset * sizeof(T));
 }
 
@@ -92,19 +92,19 @@ VkResult Buffer<T>::invalidate(const size_t size, const size_t offset) const { r
 
 template<typename T>
 VkDescriptorBufferInfo Buffer<T>::descriptorInfo(const size_t size, const size_t offset) const {
-    if(size == VK_WHOLE_SIZE) return BasicBuffer::descriptorInfo(VK_WHOLE_SIZE, 0);
+    if(size == Constants::WHOLE_SIZE) return BasicBuffer::descriptorInfo(Constants::WHOLE_SIZE, 0);
     return BasicBuffer::descriptorInfo(size * sizeof(T), offset * sizeof(T));
 }
 
 template<typename T>
 void Buffer<T>::destroyMemory(DeletionQueue* deletion_queue) {
-    if(!_state.memory) return;
+    if(!state_.memory) return;
 
-    if(deletion_queue) _state.memory->free(deletion_queue);
-    else _state.memory->free();
+    if(deletion_queue) state_.memory->free(deletion_queue);
+    else state_.memory->free();
 
-    delete _state.memory;
-    _state.memory = nullptr;
+    delete state_.memory;
+    state_.memory = nullptr;
 }
 
 

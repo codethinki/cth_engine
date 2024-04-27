@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "vulkan/utility/CthConstants.hpp"
 
 namespace cth {
 using namespace std;
@@ -17,13 +18,14 @@ class CmdBuffer;
 class PipelineBarrier;
 
 struct PipelineStages {
-    VkPipelineStageFlags srcStage = VK_PIPELINE_STAGE_NONE;
-    VkPipelineStageFlags dstStage = VK_PIPELINE_STAGE_NONE;
+
+    VkPipelineStageFlags srcStage = Constants::PIPELINE_STAGE_IGNORED;
+    VkPipelineStageFlags dstStage = Constants::PIPELINE_STAGE_IGNORED;
 };
 
 struct PipelineAccess {
-    VkAccessFlags accessMask = VK_ACCESS_NONE;
-    uint32_t queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    VkAccessFlags accessMask = Constants::DEFAULT_ACCESS;
+    uint32_t queueFamilyIndex = Constants::QUEUE_FAMILY_IGNORED;
 };
 } // namespace cth
 
@@ -41,22 +43,26 @@ public:
     virtual ~ImageBarrier() = default;
 
     void add(BasicImage* image, const Info& info);
-    void remove(BasicImage* image);
+    void replace(BasicImage* image, const Info& info);
+    void remove(const BasicImage* image);
 
-    virtual void execute(const CmdBuffer* cmd_buffer);
+    virtual void execute(const CmdBuffer& cmd_buffer);
+
+    bool contains(const BasicImage* image) const;
 
 protected:
     void applyChanges() const;
     ImageBarrier() = default;
     explicit ImageBarrier(const unordered_map<BasicImage*, Info>& images);
 
-
 private:
+    size_t barrierIndex(const BasicImage* image) const;
+
+    void removeChange(size_t barrier_index);
     void init(const unordered_map<BasicImage*, ImageBarrier::Info>& images);
-    vector<BasicImage*> images{};
     vector<VkImageMemoryBarrier> imageBarriers{};
 
-    vector<size_t> layoutChanges{};
+    vector<std::pair<size_t, BasicImage*>> layoutChanges{};
 
     friend PipelineBarrier;
 };
@@ -80,7 +86,7 @@ public:
     void add(const BasicBuffer* buffer, const Info& info);
     void remove(const BasicBuffer* buffer);
 
-    virtual void execute(VkCommandBuffer cmd_buffer);
+    virtual void execute(const CmdBuffer& cmd_buffer);
 
 protected:
     explicit BufferBarrier(const unordered_map<const BasicBuffer*, Info>& buffers);
@@ -118,7 +124,7 @@ public:
         const unordered_map<BasicImage*, ImageBarrier::Info>& images);
 
 
-    void execute(VkCommandBuffer cmd_buffer) override;
+    void execute(const CmdBuffer& cmd_buffer) override;
 
 private:
     void initStages(const PipelineStages stages) { initStages(stages.srcStage, stages.dstStage); }
@@ -130,33 +136,45 @@ private:
 
 namespace cth {
 struct ImageBarrier::Info {
-    VkImageAspectFlagBits aspectMask = VK_IMAGE_ASPECT_NONE;
-    uint32_t firstMipLevel = 0;
-    uint32_t levels = 0; //0 => all remaining
-    VkImageLayout newLayout = VK_IMAGE_LAYOUT_UNDEFINED; //VK_IMAGE_LAYOUT_UNDEFINED => old layout
 
-    PipelineAccess src{};
-    PipelineAccess dst{};
+
+    VkImageAspectFlagBits aspectMask = Constants::ASPECT_MASK_IGNORED; //Constants::ASPECT_MASK_IGNORED => image default aspect
+    uint32_t firstMipLevel = 0;
+    uint32_t levels = Constants::ALL; //Constants::ALL => all remaining
+    VkImageLayout newLayout = Constants::IMAGE_LAYOUT_IGNORED; //Constants::IMAGE_LAYOUT_IGNORED => old layout
+
+    PipelineAccess src;
+    PipelineAccess dst;
+
 
     static Info Default() { return Info{}; }
 
-    static Info QueueTransition(const PipelineAccess& src, const PipelineAccess& dst) {
-        return Info{VK_IMAGE_ASPECT_NONE, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED, src, dst};
-    }
+    static Info QueueTransition(const PipelineAccess& src, const PipelineAccess& dst) { return Info{.src = src, .dst = dst}; }
     static Info QueueTransition(const VkAccessFlags src_access, const uint32_t src_queue_index, const VkAccessFlags dst_access,
         const uint32_t dst_queue_index) {
-        return Info{VK_IMAGE_ASPECT_NONE, 0, 0, VK_IMAGE_LAYOUT_UNDEFINED, {src_access, src_queue_index}, {dst_access, dst_queue_index}};
+        return Info{
+            .src = {src_access, src_queue_index},
+            .dst = {dst_access, dst_queue_index}
+        };
     }
-    static Info LayoutTransition(const VkAccessFlags src_access, const VkAccessFlags dst_access, const VkImageLayout new_layout,
+    /**
+     * \param levels (Constants::ALL => all remaining)
+     */
+    static Info LayoutTransition(const VkImageLayout new_layout, const VkAccessFlags src_access, const VkAccessFlags dst_access,
         const uint32_t first_mip_level = 0, const uint32_t levels = 0) {
-        Info info{};
-        info.src.accessMask = src_access;
-        info.dst.accessMask = dst_access;
-        info.newLayout = new_layout;
-        info.firstMipLevel = first_mip_level;
-        info.levels = levels;
-        return info;
+        return Info{
+            .firstMipLevel = first_mip_level,
+            .levels = levels,
+            .newLayout = new_layout,
+            .src = PipelineAccess{src_access},
+            .dst = PipelineAccess{dst_access},
+        };
     }
+
+private:
+    [[nodiscard]] VkImageMemoryBarrier createBarrier(const BasicImage& image) const;
+
+    friend ImageBarrier;
 };
 
 struct BufferBarrier::Info {

@@ -49,6 +49,7 @@
     <ClInclude Include="src\vulkan\base\CthDevice.hpp" />
     <ClInclude Include="src\vulkan\base\CthInstance.hpp" />
     <ClInclude Include="src\vulkan\base\CthPhysicalDevice.hpp" />
+    <ClInclude Include="src\vulkan\base\CthQueue.hpp" />
     <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\pipeline\CthPipelineBarrier.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdBuffer.hpp" />
@@ -63,6 +64,7 @@
     <ClInclude Include="src\vulkan\resource\descriptor\descriptors\CthBufferDescriptors.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\descriptors\CthImageDescriptors.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthBasicImage.hpp" />
+    <ClInclude Include="src\vulkan\utility\CthConstants.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthImageView.hpp" />
     <ClInclude Include="src\vulkan\pipeline\CthPipeline.hpp" />
     <ClInclude Include="src\vulkan\pipeline\layout\CthDescriptorSetLayout.hpp" />
@@ -97,6 +99,7 @@
     <ClCompile Include="src\vulkan\base\CthDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
     <ClCompile Include="src\vulkan\base\CthPhysicalDevice.cpp" />
+    <ClCompile Include="src\vulkan\base\CthQueue.cpp" />
     <ClCompile Include="src\vulkan\resource\CthDeletionQueue.cpp" />
     <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\pipeline\CthPipelineBarrier.cpp" />

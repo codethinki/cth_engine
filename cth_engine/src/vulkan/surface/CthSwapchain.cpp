@@ -91,12 +91,12 @@ void Swapchain::changeSwapchainImageQueue(const uint32_t release_queue, const Cm
     ImageBarrier releaseBarrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
         {{swapchainImages[image_index].get(), ImageBarrier::Info::QueueTransition(0, release_queue, 0, acquire_queue)}}
     };
-    releaseBarrier.execute(release_cmd_buffer);
+    releaseBarrier.execute(*release_cmd_buffer);
 
     ImageBarrier barrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
         {{swapchainImages[image_index].get(), ImageBarrier::Info::QueueTransition(0, release_queue, 0, acquire_queue)}}
     };
-    barrier.execute(acquire_cmd_buffer);
+    barrier.execute(*acquire_cmd_buffer);
 }
 
 

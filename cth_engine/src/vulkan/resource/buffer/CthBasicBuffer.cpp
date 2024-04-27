@@ -6,22 +6,23 @@
 #include "../CthMemory.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
+#include "vulkan/utility/CthConstants.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
 namespace cth {
 
 BasicBuffer::BasicBuffer(Device* device, const size_t buffer_size, const VkBufferUsageFlags usage_flags) :
-    device(device), _size(buffer_size), _usage(usage_flags) { init(); }
+    device(device), size_(buffer_size), usage_(usage_flags) { init(); }
 BasicBuffer::BasicBuffer(Device* device, const size_t buffer_size, const VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, const State& state) :
     device(device),
-    _size(buffer_size), _usage(usage_flags), vkBuffer(vk_buffer), _state(state) { init(); }
+    size_(buffer_size), usage_(usage_flags), vkBuffer(vk_buffer), state_(state) { init(); }
 
 void BasicBuffer::create() {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = _size;
-    bufferInfo.usage = _usage;
+    bufferInfo.size = size_;
+    bufferInfo.usage = usage_;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     const VkResult createResult = vkCreateBuffer(device->get(), &bufferInfo, nullptr, &vkBuffer);
@@ -40,7 +41,7 @@ void BasicBuffer::alloc() const {
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(device->get(), vkBuffer, &memRequirements);
 
-    _state.memory->alloc(memRequirements);
+    state_.memory->alloc(memRequirements);
 }
 
 void BasicBuffer::bind(BasicMemory* new_memory) {
@@ -51,7 +52,7 @@ void BasicBuffer::bind() const {
     debug_check(this);
     debug_check_not_bound(this);
 
-    const VkResult bindResult = vkBindBufferMemory(device->get(), vkBuffer, _state.memory->get(), 0);
+    const VkResult bindResult = vkBindBufferMemory(device->get(), vkBuffer, state_.memory->get(), 0);
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind buffer memory")
         throw cth::except::vk_result_exception{bindResult, details->exception()};
@@ -67,62 +68,62 @@ void BasicBuffer::destroy(DeletionQueue* deletion_queue) {
 }
 
 void BasicBuffer::setMemory(BasicMemory* new_memory) {
-    CTH_ERR(new_memory == _state.memory, "new_memory must not be current memory") throw details->exception();
+    CTH_ERR(new_memory == state_.memory, "new_memory must not be current memory") throw details->exception();
     CTH_ERR(new_memory == nullptr, "new_memory must not be nullptr") throw details->exception();
     debug_check_not_bound(this);
-    _state.memory = new_memory;
+    state_.memory = new_memory;
 }
 
 
 span<char> BasicBuffer::map(const size_t size, const size_t offset) {
-    CTH_ERR(size + offset > _size && size != VK_WHOLE_SIZE, "memory out of bounds") throw details->exception();
+    CTH_ERR(size + offset > size_ && size != Constants::WHOLE_SIZE, "memory out of bounds") throw details->exception();
 
 
-    if(!_state.mapped.empty() && _state.mapped.size() > offset + size) return span<char>{_state.mapped.data() + offset, size};
+    if(!state_.mapped.empty() && state_.mapped.size() > offset + size) return span<char>{state_.mapped.data() + offset, size};
 
-    auto mem = span<char>{_state.memory->map(size, offset).data(), size};
+    auto mem = span<char>{state_.memory->map(size, offset).data(), size};
 
-    if(offset == 0 && mem.size() > mapped().size()) _state.mapped = mem;
+    if(offset == 0 && mem.size() > mapped().size()) state_.mapped = mem;
 
     return span<char>{mem.data(), size};
 }
 span<char> BasicBuffer::map() {
-    _state.mapped = _state.memory->map(_size, 0);
+    state_.mapped = state_.memory->map(size_, 0);
 
-    return _state.mapped;
+    return state_.mapped;
 }
 
 void BasicBuffer::unmap() {
-    _state.mapped = {};
-    _state.memory->unmap();
+    state_.mapped = {};
+    state_.memory->unmap();
 }
 
 
-void BasicBuffer::stage(const CmdBuffer* cmd_buffer, const BasicBuffer* staging_buffer, const size_t dst_offset) const {
-    debug_check(staging_buffer);
-    this->copy(cmd_buffer, staging_buffer, staging_buffer->_size, 0, dst_offset);
+void BasicBuffer::stage(const CmdBuffer& cmd_buffer, const BasicBuffer& staging_buffer, const size_t dst_offset) const {
+    debug_check(&staging_buffer);
+    this->copy(cmd_buffer, staging_buffer, staging_buffer.size_, 0, dst_offset);
 }
 
 void BasicBuffer::write(const span<const char> data, const size_t buffer_offset) const {
-    CTH_ERR(_state.mapped.size() < data.size() + buffer_offset, "mapped region out of bounds") throw details->exception();
-    memcpy(_state.mapped.data() + buffer_offset, data.data(), data.size());
+    CTH_ERR(state_.mapped.size() < data.size() + buffer_offset, "mapped region out of bounds") throw details->exception();
+    memcpy(state_.mapped.data() + buffer_offset, data.data(), data.size());
 }
 
-void BasicBuffer::copy(const CmdBuffer* cmd_buffer, const BasicBuffer* src, const size_t copy_size, size_t src_offset, size_t dst_offset) const {
-    CTH_ERR(!(src->_usage & VK_BUFFER_USAGE_TRANSFER_SRC_BIT), "src buffer usage must be marked as transfer source") throw details->exception();
-    CTH_ERR(!(_usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT), "dst buffer usage must be marked as transfer destination") throw details->exception();
+void BasicBuffer::copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src, const size_t copy_size, size_t src_offset, size_t dst_offset) const {
+    CTH_ERR(!(src.usage_ & VK_BUFFER_USAGE_TRANSFER_SRC_BIT), "src buffer usage must be marked as transfer source") throw details->exception();
+    CTH_ERR(!(usage_ & VK_BUFFER_USAGE_TRANSFER_DST_BIT), "dst buffer usage must be marked as transfer destination") throw details->exception();
 
 
-    const size_t copySize = copy_size == VK_WHOLE_SIZE ? min(src->_size - src_offset, _size - dst_offset) : copy_size;
+    const size_t copySize = copy_size == Constants::WHOLE_SIZE ? min(src.size_ - src_offset, size_ - dst_offset) : copy_size;
 
-    CTH_ERR(src_offset + copySize > src->_size || dst_offset + copySize > _size, "copy region out of bounds") {
-        if(src_offset + copySize > src->_size) {
+    CTH_ERR(src_offset + copySize > src.size_ || dst_offset + copySize > size_, "copy region out of bounds") {
+        if(src_offset + copySize > src.size_) {
             details->add("src buffer out of bounds");
-            details->add("{0} + {1} > {2} (off + copy_size > src.size)", src_offset, copySize, src->_size);
+            details->add("{0} + {1} > {2} (off + copy_size > src.size)", src_offset, copySize, src.size_);
         }
-        if(dst_offset + copySize > _size) {
+        if(dst_offset + copySize > size_) {
             details->add("dst buffer out of bounds");
-            details->add("{0} + {1} > {2} (off + copy_size > dst.size)", dst_offset, copySize, _size);
+            details->add("{0} + {1} > {2} (off + copy_size > dst.size)", dst_offset, copySize, size_);
         }
         throw details->exception();
     }
@@ -130,17 +131,17 @@ void BasicBuffer::copy(const CmdBuffer* cmd_buffer, const BasicBuffer* src, cons
     VkBufferCopy copyRegion;
     copyRegion.srcOffset = src_offset;
     copyRegion.dstOffset = dst_offset;
-    copyRegion.size = _size;
-    vkCmdCopyBuffer(cmd_buffer->get(), src->get(), vkBuffer, 1, &copyRegion);
+    copyRegion.size = size_;
+    vkCmdCopyBuffer(cmd_buffer.get(), src.get(), vkBuffer, 1, &copyRegion);
 }
 
-VkResult BasicBuffer::flush(const size_t size, const size_t offset) const { return _state.memory->flush(size, offset); }
+VkResult BasicBuffer::flush(const size_t size, const size_t offset) const { return state_.memory->flush(size, offset); }
 
-VkResult BasicBuffer::invalidate(const size_t size, const size_t offset) const { return _state.memory->invalidate(size, offset); }
+VkResult BasicBuffer::invalidate(const size_t size, const size_t offset) const { return state_.memory->invalidate(size, offset); }
 
 
 VkDescriptorBufferInfo BasicBuffer::descriptorInfo(const size_t size, const size_t offset) const {
-    return VkDescriptorBufferInfo{vkBuffer, offset, size == VK_WHOLE_SIZE ? _size : size};
+    return VkDescriptorBufferInfo{vkBuffer, offset, size == Constants::WHOLE_SIZE ? size_ : size};
 }
 
 
@@ -162,7 +163,7 @@ size_t BasicBuffer::calcAlignedSize(const size_t actual_size) {
 
 void BasicBuffer::reset() {
     vkBuffer = VK_NULL_HANDLE;
-    _state.reset();
+    state_.reset();
 }
 
 
@@ -174,7 +175,7 @@ void BasicBuffer::debug_check(const BasicBuffer* buffer) {
     CTH_ERR(buffer->vkBuffer == VK_NULL_HANDLE, "buffer must be a valid handle") throw details->exception();
 }
 void BasicBuffer::debug_check_not_bound(const BasicBuffer* buffer) {
-    CTH_ERR(buffer->_state.bound, "buffer must not be bound") throw details->exception();
+    CTH_ERR(buffer->state_.bound, "buffer must not be bound") throw details->exception();
 }
 #endif
 
