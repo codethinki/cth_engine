@@ -61,28 +61,28 @@ private:
     void createCmdPools();
     void createPrimaryCmdBuffers();
 
-    Device* device;
-    Camera* camera;
-    Window* window;
+    Device* _device;
+    Camera* _camera;
+    Window* _window;
 
-    unique_ptr<Swapchain> swapchain;
+    unique_ptr<Swapchain> _swapchain;
     unique_ptr<DeletionQueue> _deletionQueue;
 
     static constexpr size_t PRESENT_QUEUE_I = 0;
-    vector<unique_ptr<CmdPool>> cmdPools;
-    vector<vector<unique_ptr<PrimaryCmdBuffer>>> cmdBuffers;
+    vector<unique_ptr<CmdPool>> _cmdPools;
+    vector<vector<unique_ptr<PrimaryCmdBuffer>>> _cmdBuffers;
 
 
-    uint32_t currentImageIndex = 0;
-    uint_fast8_t currentFrameIndex = 0;
-    bool frameStarted = false;
+    uint32_t _currentImageIndex = 0;
+    uint_fast8_t _currentFrameIndex = 0;
+    bool _frameStarted = false;
 
 public:
-    [[nodiscard]] VkRenderPass swapchainRenderPass() const { return swapchain->renderPass(); }
-    [[nodiscard]] float screenRatio() const { return swapchain->extentAspectRatio(); }
-    [[nodiscard]] bool frameInProgress() const { return frameStarted; }
+    [[nodiscard]] VkRenderPass swapchainRenderPass() const { return _swapchain->renderPass(); }
+    [[nodiscard]] float screenRatio() const { return _swapchain->extentAspectRatio(); }
+    [[nodiscard]] bool frameInProgress() const { return _frameStarted; }
     [[nodiscard]] uint32_t frameIndex() const;
-    [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return swapchain->msaaSamples(); }
+    [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return _swapchain->msaaSamples(); }
     [[nodiscard]] const PrimaryCmdBuffer* commandBuffer() const;
     [[nodiscard]] DeletionQueue* deletionQueue() const;
 

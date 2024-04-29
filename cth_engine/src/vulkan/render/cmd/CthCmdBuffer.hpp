@@ -1,6 +1,5 @@
 #pragma once
 #include <type_traits>
-#include <cth/cth_type_traits.hpp>
 #include <vulkan/vulkan.h>
 
 

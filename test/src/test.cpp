@@ -2,6 +2,6 @@
 
 
 
-TEST(main_group, main_test) {
+TEST(mainGroup, mainTest) {
     GTEST_ASSERT_TRUE(true);
 }

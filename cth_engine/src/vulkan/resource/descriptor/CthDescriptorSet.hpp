@@ -43,14 +43,14 @@ private:
     vector<VkDescriptorImageInfo> imageInfos{};
 
     VkDescriptorSet vkSet = VK_NULL_HANDLE;
-    bool _written = false;
+    bool written_ = false;
 
     DescriptorPool* pool = nullptr;
     friend DescriptorPool;
 
 public:
     [[nodiscard]] VkDescriptorSet get() const { return vkSet; }
-    [[nodiscard]] bool written() const { return _written; }
+    [[nodiscard]] bool written() const { return written_; }
 
     struct Builder {
         explicit Builder(DescriptorSetLayout* layout);

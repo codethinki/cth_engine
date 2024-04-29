@@ -24,13 +24,13 @@ void BasicMemory::alloc(const VkMemoryRequirements& requirements) {
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate buffer memory")
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 
-    _size = requirements.size;
+    size_ = requirements.size;
 }
 span<char> BasicMemory::map(const size_t map_size, const size_t offset) const {
     CTH_ERR(vkMemory == VK_NULL_HANDLE, "memory not allocated");
 
     void* mappedPtr = nullptr;
-    const VkResult mapResult = vkMapMemory(device->get(), vkMemory, offset, _size, 0, &mappedPtr);
+    const VkResult mapResult = vkMapMemory(device->get(), vkMemory, offset, size_, 0, &mappedPtr);
     CTH_STABLE_ERR(mapResult != VK_SUCCESS, "memory mapping failed")
         throw except::vk_result_exception{mapResult, details->exception()};
 
@@ -66,7 +66,7 @@ void BasicMemory::free(const Device* device, VkDeviceMemory memory) {
 }
 void BasicMemory::reset() {
     vkMemory = VK_NULL_HANDLE;
-    _size = 0;
+    size_ = 0;
 }
 
 

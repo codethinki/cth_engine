@@ -1,8 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-#include <vector>
-
 #include "CthBasicImage.hpp"
 
 namespace cth {
@@ -31,6 +29,8 @@ public:
     explicit Image(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, VkMemoryPropertyFlags memory_properties);
 
     ~Image() override;
+
+    void wrap(VkImage vk_image, const State& state) override;
 
     /**
      * \brief creates the image

@@ -1,7 +1,5 @@
 #pragma once
-#include <array>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include <vulkan/vulkan.h>
@@ -20,9 +18,6 @@ public:
     explicit Device(PhysicalDevice* physical_device, const Surface* surface, Instance* instance);
     ~Device();
 
-
-    [[nodiscard]] VkCommandBuffer beginSingleTimeCommands() const;
-    void endSingleTimeCommands(VkCommandBuffer command_buffer) const;
 
 private:
     void setQueueIndices(const Surface* surface);
@@ -43,8 +38,8 @@ private:
     VkQueue vkPresentQueue = VK_NULL_HANDLE;
 
     //TODO replace this with a better system 
-    vector<uint32_t> _queueIndices; //present, graphics
-    vector<uint32_t> _uniqueQueueIndices{};
+    vector<uint32_t> queueIndices_; //present, graphics
+    vector<uint32_t> uniqueQueueIndices_{};
     static constexpr uint32_t PRESENT_QUEUE_I = 0;
     static constexpr uint32_t GRAPHICS_QUEUE_I = 1;
 
@@ -53,10 +48,10 @@ public:
     [[nodiscard]] VkDevice get() const { return vkDevice; }
     [[nodiscard]] VkQueue graphicsQueue() const { return vkGraphicsQueue; }
     [[nodiscard]] VkQueue presentQueue() const { return vkPresentQueue; }
-    [[nodiscard]] uint32_t graphicsQueueIndex() const { return _queueIndices[GRAPHICS_QUEUE_I]; }
-    [[nodiscard]] uint32_t presentQueueIndex() const { return _queueIndices[PRESENT_QUEUE_I]; }
-    [[nodiscard]] const auto& queueIndices() const { return _queueIndices; }
-    [[nodiscard]] const auto& uniqueQueueIndices() const { return _uniqueQueueIndices; }
+    [[nodiscard]] uint32_t graphicsQueueIndex() const { return queueIndices_[GRAPHICS_QUEUE_I]; }
+    [[nodiscard]] uint32_t presentQueueIndex() const { return queueIndices_[PRESENT_QUEUE_I]; }
+    [[nodiscard]] const auto& queueIndices() const { return queueIndices_; }
+    [[nodiscard]] const auto& uniqueQueueIndices() const { return uniqueQueueIndices_; }
 
     [[nodiscard]] const PhysicalDevice* physical() const { return physicalDevice; }
 

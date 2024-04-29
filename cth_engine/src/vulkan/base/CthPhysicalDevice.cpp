@@ -8,12 +8,11 @@
 
 #include <ranges>
 #include <set>
-#include <cth/cth_algorithm.hpp>
 
 namespace cth {
 
-PhysicalDevice::PhysicalDevice(VkPhysicalDevice device) : vkDevice(device) { setConstants(); }
-bool PhysicalDevice::suitable(const VkPhysicalDeviceFeatures& features, const span<const string> extensions,
+PhysicalDevice::PhysicalDevice(VkPhysicalDevice device) : _vkDevice(device) { setConstants(); }
+bool PhysicalDevice::suitable(const VkPhysicalDeviceFeatures& features, const span<const string_view> extensions,
     const Surface* surface, const span<const VkQueueFlagBits> queue_families) {
 
     const auto missingFeatures = supports(features);
@@ -39,7 +38,7 @@ vector<VkPhysicalDevice> PhysicalDevice::enumerateDevices(const Instance* instan
 }
 
 
-unique_ptr<PhysicalDevice> PhysicalDevice::autoPick(const VkPhysicalDeviceFeatures& features, const span<const string> extensions,
+unique_ptr<PhysicalDevice> PhysicalDevice::autoPick(const VkPhysicalDeviceFeatures& features, const span<const string_view> extensions,
     const span<const VkQueueFlagBits> queue_families, const Surface* surface, const span<const VkPhysicalDevice> devices) {
     CTH_ERR(surface == nullptr, "surface must be a valid ptr")
         throw details->exception();
@@ -72,7 +71,7 @@ vector<uint32_t> PhysicalDevice::supports(const VkPhysicalDeviceFeatures& requir
 
     return missingFeatures;
 }
-vector<string> PhysicalDevice::supports(span<const string> required_extensions) {
+vector<string> PhysicalDevice::supports(span<const string_view> required_extensions) {
     vector<string> missingExtensions{};
     ranges::for_each(required_extensions, [&missingExtensions, this](string_view required_extension_name) {
         const bool missing = ranges::none_of(_extensions, [required_extension_name](const string_view extension) {
@@ -96,7 +95,7 @@ VkFormat PhysicalDevice::findSupportedFormat(const span<const VkFormat> candidat
     const VkFormatFeatureFlags features) const {
     for(const VkFormat format : candidates) {
         VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(vkDevice, format, &props);
+        vkGetPhysicalDeviceFormatProperties(_vkDevice, format, &props);
 
         if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) return format;
         if(tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) return format;
@@ -113,15 +112,15 @@ vector<uint32_t> PhysicalDevice::queueFamilyIndices(const Surface* surface, cons
 
     if(surface != nullptr) {
         auto i = 0u;
-        for(; i < queueFamilies.size() && !supportsPresentQueue(surface, i); ++i);
+        for(; i < _queueFamilies.size() && !supportsPresentQueue(surface, i); ++i);
 
-        CTH_STABLE_WARN(i == queueFamilies.size(), "no present queue found");
+        CTH_STABLE_WARN(i == _queueFamilies.size(), "no present queue found");
         else queueIndices.push_back(i);
     }
 
-    for(auto i = 0u; i < queueFamilies.size() && !missingQueues.empty(); ++i)
+    for(auto i = 0u; i < _queueFamilies.size() && !missingQueues.empty(); ++i)
         for(auto j = 0u; j < missingQueues.size() && !missingQueues.empty(); ++j)
-            if(queueFamilies[i].queueFlags & missingQueues[j]) {
+            if(_queueFamilies[i].queueFlags & missingQueues[j]) {
                 queueIndices.push_back(i);
                 missingQueues.erase(missingQueues.begin() + j--);
             }
@@ -134,7 +133,7 @@ vector<uint32_t> PhysicalDevice::queueFamilyIndices(const Surface* surface, cons
 }
 bool PhysicalDevice::supportsPresentQueue(const Surface* surface, const uint32_t family_index) const {
     VkBool32 support;
-    const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(vkDevice, family_index, surface->get(), &support);
+    const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(_vkDevice, family_index, surface->get(), &support);
     CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface support query failed")
         throw except::vk_result_exception{result, details->exception()};
     return support;
@@ -143,7 +142,7 @@ bool PhysicalDevice::supportsPresentQueue(const Surface* surface, const uint32_t
 
 vector<VkPresentModeKHR> PhysicalDevice::supportedPresentModes(const Surface* surface) const {
     uint32_t size;
-    const VkResult result1 = vkGetPhysicalDeviceSurfacePresentModesKHR(vkDevice, surface->get(), &size, nullptr);
+    const VkResult result1 = vkGetPhysicalDeviceSurfacePresentModesKHR(_vkDevice, surface->get(), &size, nullptr);
 
     CTH_STABLE_ERR(result1 != VK_SUCCESS, "device-surface present modes query failed")
         throw cth::except::vk_result_exception{result1, details->exception()};
@@ -151,7 +150,7 @@ vector<VkPresentModeKHR> PhysicalDevice::supportedPresentModes(const Surface* su
     if(!size) return {};
 
     vector<VkPresentModeKHR> modes(size);
-    const VkResult result2 = vkGetPhysicalDeviceSurfacePresentModesKHR(vkDevice, surface->get(), &size, modes.data());
+    const VkResult result2 = vkGetPhysicalDeviceSurfacePresentModesKHR(_vkDevice, surface->get(), &size, modes.data());
 
     CTH_STABLE_ERR(result2 != VK_SUCCESS, "device-surface present modes query failed")
         throw cth::except::vk_result_exception{result2, details->exception()};
@@ -160,14 +159,14 @@ vector<VkPresentModeKHR> PhysicalDevice::supportedPresentModes(const Surface* su
 }
 vector<VkSurfaceFormatKHR> PhysicalDevice::supportedFormats(const Surface* surface) const {
     uint32_t size;
-    const VkResult result1 = vkGetPhysicalDeviceSurfaceFormatsKHR(vkDevice, surface->get(), &size, nullptr);
+    const VkResult result1 = vkGetPhysicalDeviceSurfaceFormatsKHR(_vkDevice, surface->get(), &size, nullptr);
 
     CTH_STABLE_ERR(result1 != VK_SUCCESS, "device-surface formats query failed")
         throw except::vk_result_exception{result1, details->exception()};
 
     if(!size) return {};
     vector<VkSurfaceFormatKHR> formats(size);
-    const VkResult result2 = vkGetPhysicalDeviceSurfaceFormatsKHR(vkDevice, surface->get(), &size, formats.data());
+    const VkResult result2 = vkGetPhysicalDeviceSurfaceFormatsKHR(_vkDevice, surface->get(), &size, formats.data());
     CTH_STABLE_ERR(result2 != VK_SUCCESS, "device-surface formats query failed")
         throw except::vk_result_exception{result2, details->exception()};
 
@@ -175,7 +174,7 @@ vector<VkSurfaceFormatKHR> PhysicalDevice::supportedFormats(const Surface* surfa
 }
 VkSurfaceCapabilitiesKHR PhysicalDevice::capabilities(const Surface* surface) const {
     VkSurfaceCapabilitiesKHR capabilities;
-    const auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkDevice, surface->get(), &capabilities);
+    const auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_vkDevice, surface->get(), &capabilities);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface capabilities query failed")
         throw except::vk_result_exception{result, details->exception()};
@@ -184,7 +183,7 @@ VkSurfaceCapabilitiesKHR PhysicalDevice::capabilities(const Surface* surface) co
 }
 VkBool32 PhysicalDevice::supportsFamily(const Surface* physical_device, const uint32_t family_index) const {
     VkBool32 support;
-    const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(vkDevice, family_index, physical_device->get(), &support);
+    const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(_vkDevice, family_index, physical_device->get(), &support);
     CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface support query failed")
         throw except::vk_result_exception{result, details->exception()};
     return support;
@@ -193,25 +192,25 @@ VkBool32 PhysicalDevice::supportsFamily(const Surface* physical_device, const ui
 
 
 
-void PhysicalDevice::setFeatures() { vkGetPhysicalDeviceFeatures(vkDevice, &_features); }
+void PhysicalDevice::setFeatures() { vkGetPhysicalDeviceFeatures(_vkDevice, &_features); }
 void PhysicalDevice::setExtensions() {
     uint32_t extensionCount = 0;
-    vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extensionCount, nullptr);
+    vkEnumerateDeviceExtensionProperties(_vkDevice, nullptr, &extensionCount, nullptr);
     vector<VkExtensionProperties> availableExtensions(extensionCount);
-    vkEnumerateDeviceExtensionProperties(vkDevice, nullptr, &extensionCount, availableExtensions.data());
+    vkEnumerateDeviceExtensionProperties(_vkDevice, nullptr, &extensionCount, availableExtensions.data());
 
     ranges::transform(availableExtensions, back_inserter(_extensions),
         [](const VkExtensionProperties& extension) { return extension.extensionName; });
 }
 void PhysicalDevice::setProperties() {
-    vkGetPhysicalDeviceProperties(vkDevice, &_properties);
+    vkGetPhysicalDeviceProperties(_vkDevice, &_properties);
 
-    vkGetPhysicalDeviceMemoryProperties(vkDevice, &_memProperties);
+    vkGetPhysicalDeviceMemoryProperties(_vkDevice, &_memProperties);
 
     uint32_t count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &count, nullptr);
-    queueFamilies.resize(count);
-    vkGetPhysicalDeviceQueueFamilyProperties(vkDevice, &count, queueFamilies.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(_vkDevice, &count, nullptr);
+    _queueFamilies.resize(count);
+    vkGetPhysicalDeviceQueueFamilyProperties(_vkDevice, &count, _queueFamilies.data());
 }
 void PhysicalDevice::setMaxSampleCount() {
     const VkSampleCountFlags counts = _properties.limits.framebufferColorSampleCounts &

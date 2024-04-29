@@ -90,51 +90,52 @@ private:
     void init(const Surface* surface, DeletionQueue* deletion_queue);
 
 
-    Device* device;
+    Device* _device;
     VkExtent2D _extent;
-    VkExtent2D windowExtent;
+    VkExtent2D _windowExtent;
 
 
-    vector<VkFramebuffer> swapchainFramebuffers;
+    vector<VkFramebuffer> _swapchainFramebuffers;
     VkRenderPass _renderPass = VK_NULL_HANDLE;
 
     VkFormat _imageFormat;
-    vector<unique_ptr<BasicImage>> swapchainImages;
-    vector<ImageView> swapchainImageViews;
-    vector<unique_ptr<Image>> msaaImages;
-    vector<ImageView> msaaImageViews;
+    vector<unique_ptr<BasicImage>> _swapchainImages;
+    vector<ImageView> _swapchainImageViews;
+    vector<unique_ptr<Image>> _msaaImages;
+    vector<ImageView> _msaaImageViews;
 
     VkFormat _depthFormat;
-    vector<unique_ptr<Image>> depthImages;
-    vector<ImageView> depthImageViews;
+    vector<unique_ptr<Image>> _depthImages;
+    vector<ImageView> _depthImageViews;
 
 
 
-    VkSwapchainKHR vkSwapchain;
-    shared_ptr<Swapchain> oldSwapchain; //TODO why is this a shared_ptr?
+    VkSwapchainKHR _vkSwapchain;
+    shared_ptr<Swapchain> _oldSwapchain; //TODO why is this a shared_ptr?
 
-    vector<VkSemaphore> imageAvailableSemaphores;
-    vector<VkSemaphore> renderFinishedSemaphores;
-    vector<VkFence> inFlightFences;
-    vector<VkFence> imagesInFlight;
+    vector<VkSemaphore> _imageAvailableSemaphores;
+    vector<VkSemaphore> _renderFinishedSemaphores;
+    vector<VkFence> _inFlightFences;
+    vector<VkFence> _imagesInFlight;
 
-    size_t currentFrame = 0;
+    size_t _currentFrame = 0;
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
 public:
+    [[nodiscard]] auto get() const { return _vkSwapchain; }
     [[nodiscard]] float extentAspectRatio() const { return static_cast<float>(_extent.width) / static_cast<float>(_extent.height); }
     [[nodiscard]] bool compareSwapFormats(const Swapchain& other) const {
         return other._depthFormat != _depthFormat || other._imageFormat != _imageFormat;
     }
 
-    [[nodiscard]] VkFramebuffer framebuffer(const uint32_t index) const { return swapchainFramebuffers[index]; }
+    [[nodiscard]] VkFramebuffer framebuffer(const uint32_t index) const { return _swapchainFramebuffers[index]; }
     [[nodiscard]] VkRenderPass renderPass() const { return _renderPass; }
-    [[nodiscard]] const ImageView* imageView(const size_t index) const { return &swapchainImageViews[index]; }
-    [[nodiscard]] size_t imageCount() const { return swapchainImages.size(); }
+    [[nodiscard]] const ImageView* imageView(const size_t index) const { return &_swapchainImageViews[index]; }
+    [[nodiscard]] size_t imageCount() const { return _swapchainImages.size(); }
     [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
     [[nodiscard]] VkExtent2D extent() const { return _extent; }
-    [[nodiscard]] const BasicImage* image(const size_t index) const { return swapchainImages[index].get(); }
+    [[nodiscard]] const BasicImage* image(const size_t index) const { return _swapchainImages[index].get(); }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; }
 
 

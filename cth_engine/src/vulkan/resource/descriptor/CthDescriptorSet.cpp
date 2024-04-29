@@ -24,7 +24,7 @@ void DescriptorSet::alloc(VkDescriptorSet set, DescriptorPool* pool) {
 }
 void DescriptorSet::deallocate() {
     vkSet = VK_NULL_HANDLE;
-    _written = false;
+    written_ = false;
     pool = nullptr;
 }
 
@@ -33,7 +33,7 @@ vector<VkWriteDescriptorSet> DescriptorSet::writes() {
     CTH_ERR(vkSet == VK_NULL_HANDLE, "no descriptor set provided, call alloc() first")
         throw details->exception();
 
-    _written = true;
+    written_ = true;
 
     vector<VkWriteDescriptorSet> writes{};
     VkWriteDescriptorSet write{};

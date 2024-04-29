@@ -7,6 +7,8 @@
 #include <variant>
 #include <vector>
 
+#include "vulkan/utility/CthConstants.hpp"
+
 namespace cth {
 class Device;
 
@@ -26,10 +28,10 @@ public:
     void next(const uint32_t next_frame) { frame = next_frame; }
 
 private:
-    static constexpr size_t QUEUES = MAX_FRAMES_IN_FLIGHT;
+    static constexpr size_t QUEUES = Constants::MAX_FRAMES_IN_FLIGHT;
     uint32_t frame = 0;
     Device* device;
-    array<vector<deletable_handle_t>, QUEUES> _queue;
+    array<vector<deletable_handle_t>, QUEUES> queue_;
 
 public:
     [[nodiscard]] uint32_t currentFrame() const { return frame; }

@@ -14,5 +14,8 @@ struct Constants {
 
     static constexpr auto ASPECT_MASK_IGNORED = VK_IMAGE_ASPECT_FLAG_BITS_MAX_ENUM;
     static constexpr auto IMAGE_LAYOUT_IGNORED = VK_IMAGE_LAYOUT_MAX_ENUM;
+
+    static constexpr VkSampleCountFlagBits MAX_MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
+    static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 };
 }

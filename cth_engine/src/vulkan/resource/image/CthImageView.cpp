@@ -9,7 +9,7 @@
 
 
 namespace cth {
-ImageView::ImageView(Device* device, BasicImage* image, const Config& config) : device(device), _image(image) {
+ImageView::ImageView(Device* device, BasicImage* image, const Config& config) : device(device), image_(image) {
     CTH_ERR(image == nullptr, "image ptr not valid") throw details->exception();
 
     create(config);
@@ -20,16 +20,16 @@ ImageView::~ImageView() { vkDestroyImageView(device->get(), vkImageView, nullptr
 void ImageView::create(const Config& config) {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = _image->get();
+    viewInfo.image = image_->get();
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = _image->format();
+    viewInfo.format = image_->format();
 
     viewInfo.subresourceRange = config.range();
 
-    const auto levels = config.levelCount == 0 ? _image->mipLevels() - config.baseMipLevel : config.levelCount;
+    const auto levels = config.levelCount == 0 ? image_->mipLevels() - config.baseMipLevel : config.levelCount;
     viewInfo.subresourceRange.levelCount = levels;
 
-    const auto mask = _image->aspectMask(); //config.range.aspectMask == VK_IMAGE_ASPECT_NONE ? _image->aspectMask() : config.range.aspectMask;
+    const auto mask = image_->aspectMask(); //config.range.aspectMask == VK_IMAGE_ASPECT_NONE ? _image->aspectMask() : config.range.aspectMask;
     viewInfo.subresourceRange.aspectMask = mask;
 
     const auto layers = 1; //config.range.layerCount == 0 ? config.range.baseArrayLayer - _image->arrayLayers() : config.range.layerCount;

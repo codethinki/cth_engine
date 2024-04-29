@@ -1,5 +1,7 @@
 #include "CthEngine.hpp"
 
+#include <cth/cth_log.hpp>
+
 #include "vulkan/surface/CthWindow.hpp"
 
 namespace cth {
@@ -9,7 +11,7 @@ void Engine::terminate() {
     Window::terminate();
 
     log::msg<except::INFO>("engine terminated");
-    initialized = false;
+    _initialized = false;
 }
 
 void Engine::init() {
@@ -18,7 +20,7 @@ void Engine::init() {
     Window::init();
 
     log::msg<except::INFO>("initialized engine");
-    initialized = true;
+    _initialized = true;
 }
 
 

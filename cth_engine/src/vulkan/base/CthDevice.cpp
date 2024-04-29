@@ -5,7 +5,6 @@
 
 #include "CthInstance.hpp"
 
-#include "vulkan/pipeline/shader/CthShader.hpp"
 #include "vulkan/surface/CthWindow.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
@@ -33,17 +32,17 @@ Device::~Device() {
 }
 
 void Device::setQueueIndices(const Surface* surface) {
-    _queueIndices = physicalDevice->queueFamilyIndices(surface, vector{VK_QUEUE_GRAPHICS_BIT});
-    unordered_set<uint32_t> uniqueIndices{std::begin(_queueIndices), std::end(_queueIndices)};
-    _uniqueQueueIndices.resize(uniqueIndices.size());
-    ranges::copy(uniqueIndices, std::begin(_uniqueQueueIndices));
+    queueIndices_ = physicalDevice->queueFamilyIndices(surface, vector{VK_QUEUE_GRAPHICS_BIT});
+    unordered_set<uint32_t> uniqueIndices{std::begin(queueIndices_), std::end(queueIndices_)};
+    uniqueQueueIndices_.resize(uniqueIndices.size());
+    ranges::copy(uniqueIndices, std::begin(uniqueQueueIndices_));
 }
 
 void Device::createLogicalDevice() {
     vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     float queuePriority = 1.0f;
-    ranges::for_each(_uniqueQueueIndices, [&queueCreateInfos, queuePriority](const uint32_t queue_family) {
+    ranges::for_each(uniqueQueueIndices_, [&queueCreateInfos, queuePriority](const uint32_t queue_family) {
         VkDeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queue_family;
@@ -60,7 +59,7 @@ void Device::createLogicalDevice() {
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
     vector<const char*> deviceExtensions(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS.size());
-    ranges::transform(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS, deviceExtensions.begin(), [](const string& ext) { return ext.c_str(); });
+    ranges::transform(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS, deviceExtensions.begin(), [](const string_view ext) { return ext.data(); });
 
     createInfo.pEnabledFeatures = &PhysicalDevice::REQUIRED_DEVICE_FEATURES;
     createInfo.enabledExtensionCount = static_cast<uint32_t>(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS.size());
@@ -79,8 +78,8 @@ void Device::createLogicalDevice() {
         throw cth::except::vk_result_exception{createResult, details->exception()};
 }
 void Device::setQueues() {
-    vkGetDeviceQueue(vkDevice, _queueIndices[GRAPHICS_QUEUE_I], 0, &vkGraphicsQueue);
-    vkGetDeviceQueue(vkDevice, _queueIndices[PRESENT_QUEUE_I], 0, &vkPresentQueue);
+    vkGetDeviceQueue(vkDevice, queueIndices_[GRAPHICS_QUEUE_I], 0, &vkGraphicsQueue);
+    vkGetDeviceQueue(vkDevice, queueIndices_[PRESENT_QUEUE_I], 0, &vkPresentQueue);
 }
 
 #ifdef _DEBUG

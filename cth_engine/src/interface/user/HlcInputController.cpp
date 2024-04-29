@@ -1,14 +1,12 @@
 #include "HlcInputController.hpp"
 
-#include <cstring>
 #include <iostream>
-#include <numeric>
 #include "../object/HlcStandardObject.hpp"
 
 
 namespace cth {
 void InputController::moveByKeys(const float dt, const unique_ptr<StandardObject>& object) const {
-    const float yaw = object->transform.rotation.y;
+    const float yaw = object->_transform.rotation.y;
     const glm::vec3 forwardDir{sin(yaw), 0.f, cos(yaw)};
     const glm::vec3 rightDir{forwardDir.z, 0.f, -forwardDir.x};
     constexpr glm::vec3 upDir{0.f, -1.f, 0.f};
@@ -20,12 +18,12 @@ void InputController::moveByKeys(const float dt, const unique_ptr<StandardObject
     if(getKeyState(MOVE_LEFT)) moveDir -= rightDir;
     if(getKeyState(MOVE_UP)) moveDir += upDir;
     if(getKeyState(MOVE_DOWN)) moveDir -= upDir;
-    if(dot(moveDir, moveDir) > numeric_limits<float>::epsilon()) object->transform.translation += moveSpeed * dt * normalize(moveDir);
+    if(dot(moveDir, moveDir) > numeric_limits<float>::epsilon()) object->_transform.translation += moveSpeed * dt * normalize(moveDir);
 }
 void InputController::rotateByMouse(const float dt, const unique_ptr<StandardObject>& object) const {
-    object->transform.rotation += glm::vec3(-mouseDtY, mouseDtX, 0) * dt * 0.2f;
-    object->transform.rotation.x = glm::clamp(object->transform.rotation.x, -1.5f, 1.5f);
-    object->transform.rotation.y = glm::mod(object->transform.rotation.y, glm::two_pi<float>());
+    object->_transform.rotation += glm::vec3(-mouseDtY, mouseDtX, 0) * dt * 0.2f;
+    object->_transform.rotation.x = glm::clamp(object->_transform.rotation.x, -1.5f, 1.5f);
+    object->_transform.rotation.y = glm::mod(object->_transform.rotation.y, glm::two_pi<float>());
 }
 
 static constexpr int MOUSE_SMOOTH = 4;

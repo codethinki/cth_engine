@@ -26,7 +26,7 @@ Texture::Texture(Device* device, DeletionQueue* deletion_queue, const VkExtent2D
 
 
 void Texture::init(const CmdBuffer& cmd_buffer, const BasicBuffer& buffer, const size_t offset) {
-    CTH_ERR(_state.levelLayouts[0] == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, "already initialized")
+    CTH_ERR(state_.levelLayouts[0] == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, "already initialized")
         throw details->exception();
 
     Image::transitionLayout(cmd_buffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -53,9 +53,9 @@ BasicImage::Config Texture::imageConfig(const VkExtent2D extent, const Config& c
 void Texture::blitMipLevels(const CmdBuffer& cmd_buffer, const int32_t first, int32_t levels) {
     if(levels == 0) levels = mipLevels() - first;
 
-    CTH_ERR(_state.levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal")
+    CTH_ERR(state_.levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal")
         throw details->exception();
-    CTH_ERR(any_of(_state.levelLayouts.begin() + first, _state.levelLayouts.begin() + first + levels, [](const VkImageLayout layout){\
+    CTH_ERR(any_of(state_.levelLayouts.begin() + first, state_.levelLayouts.begin() + first + levels, [](const VkImageLayout layout){\
         return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }), "image layouts not transfer dst optimal")
         throw details->exception();
 

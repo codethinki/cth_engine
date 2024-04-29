@@ -15,6 +15,7 @@
 
 namespace cth {
 using namespace std;
+
 Pipeline::Pipeline(Device* device, const PipelineLayout* pipeline_layout, const GraphicsConfig& config_info) : device{device} {
     create(config_info, pipeline_layout, nullptr);
 }

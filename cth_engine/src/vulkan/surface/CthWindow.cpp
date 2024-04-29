@@ -24,7 +24,7 @@ Window::Window(const string_view name, const uint32_t width, const uint32_t heig
     createSurface(instance);
 }
 Window::~Window() {
-    _surface = nullptr;
+    surface_ = nullptr;
 
     glfwDestroyWindow(glfwWindow);
     cth::log::msg("destroyed window");
@@ -52,7 +52,7 @@ void Window::createSurface(Instance* instance) {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create GLFW window surface")
         throw cth::except::vk_result_exception{result, details->exception()};
 
-    _surface = make_unique<Surface>(vkSurface, instance);
+    surface_ = make_unique<Surface>(vkSurface, instance);
 
     cth::log::msg("created surface");
 
@@ -82,8 +82,6 @@ void Window::framebufferResizeCallback(const int new_width, const int new_height
     framebufferResized = true;
     width = new_width;
     height = new_height;
-
-    cth::log::msg("framebuffer resized to {0}x{1}", new_width, new_height);
 }
 
 

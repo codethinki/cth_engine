@@ -17,11 +17,11 @@ DeletionQueue::~DeletionQueue() {
 
 void DeletionQueue::push(const deletable_handle_t handle) {
     CTH_WARN(std::visit(var::visitor{ [](auto handle){ return handle == VK_NULL_HANDLE; } }, handle), "handle invalid");
-    _queue[frame].push_back(handle);
+    queue_[frame].push_back(handle);
 }
 void DeletionQueue::clear(const uint32_t current_frame) {
 
-    auto& handles = _queue[current_frame];
+    auto& handles = queue_[current_frame];
     for(auto handle : handles) {
         std::visit(cth::var::overload{
             [this](VkDeviceMemory memory) { BasicMemory::free(device, memory); },

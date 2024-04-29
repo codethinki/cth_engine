@@ -1,5 +1,4 @@
 #pragma once
-#include <cth/cth_log.hpp>
 
 namespace cth {
 
@@ -9,7 +8,10 @@ public:
     static void terminate();
 
 private:
-    inline static bool initialized = false;
+    inline static bool _initialized = false;
+
+public:
+    [[nodiscard]] static bool initialized() { return _initialized; }
 };
 
 } // namespace cth

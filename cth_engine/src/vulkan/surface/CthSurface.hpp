@@ -4,8 +4,6 @@
 #include <cth/cth_log.hpp>
 
 
-#include <vector>
-
 namespace cth {
 using namespace std;
 

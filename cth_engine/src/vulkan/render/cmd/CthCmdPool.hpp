@@ -1,7 +1,6 @@
 #pragma once
 
 
-#include <queue>
 #include <vulkan/vulkan.h>
 
 #include <vector>
@@ -62,18 +61,18 @@ public:
         friend CmdPool;
     };
 
-    [[nodiscard]] auto queueFamilyIndex() const { return _config.queueFamilyIndex; }
+    [[nodiscard]] auto queueFamilyIndex() const { return config_.queueFamilyIndex; }
     [[nodiscard]] auto primaryAvailable() const { return primaryBuffers.size(); }
     [[nodiscard]] auto secondaryAvailable() const { return secondaryBuffers.size(); }
-    [[nodiscard]] auto primaryCapacity() const { return _config.maxPrimaryBuffers; }
-    [[nodiscard]] auto secondaryCapacity() const { return _config.maxSecondaryBuffers; }
+    [[nodiscard]] auto primaryCapacity() const { return config_.maxPrimaryBuffers; }
+    [[nodiscard]] auto secondaryCapacity() const { return config_.maxSecondaryBuffers; }
 
     CmdPool(const CmdPool& other) = delete;
     CmdPool(CmdPool&& other) = delete;
     CmdPool& operator=(const CmdPool& other) = delete;
     CmdPool& operator=(CmdPool&& other) = delete;
 private:
-    Config _config;
+    Config config_;
 
 };
 }

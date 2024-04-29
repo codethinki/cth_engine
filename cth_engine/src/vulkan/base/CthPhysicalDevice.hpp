@@ -19,10 +19,10 @@ public:
     explicit PhysicalDevice(VkPhysicalDevice device);
 
 
-    [[nodiscard]] bool suitable(const VkPhysicalDeviceFeatures& features, span<const string> extensions, const Surface* surface, span<const VkQueueFlagBits> queue_families);
+    [[nodiscard]] bool suitable(const VkPhysicalDeviceFeatures& features, span<const string_view> extensions, const Surface* surface, span<const VkQueueFlagBits> queue_families);
 
     [[nodiscard]] static vector<VkPhysicalDevice> enumerateDevices(const Instance* instance);
-    [[nodiscard]] static unique_ptr<PhysicalDevice> autoPick(const VkPhysicalDeviceFeatures& features, span<const string> extensions,
+    [[nodiscard]] static unique_ptr<PhysicalDevice> autoPick(const VkPhysicalDeviceFeatures& features, const span<const string_view> extensions,
         span<const VkQueueFlagBits> queue_families, const Surface* surface, span<const VkPhysicalDevice> devices);
     [[nodiscard]] static unique_ptr<PhysicalDevice> autoPick(const Surface* surface, const Instance* instance);
     /**
@@ -34,7 +34,7 @@ public:
     /**
      * \return missing extensions 
      */
-    [[nodiscard]] vector<string> supports(span<const string> required_extensions);
+    [[nodiscard]] vector<string> supports(span<const string_view> required_extensions);
 
     [[nodiscard]] uint32_t findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags mem_properties) const;
     [[nodiscard]] VkFormat findSupportedFormat(span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
@@ -64,16 +64,16 @@ private:
     void setMaxSampleCount();
     void setConstants();
 
-    VkPhysicalDevice vkDevice;
-    VkPhysicalDeviceFeatures _features;
+    VkPhysicalDevice _vkDevice;
+    VkPhysicalDeviceFeatures _features{};
     vector<string> _extensions{};
-    VkPhysicalDeviceProperties _properties;
-    VkPhysicalDeviceMemoryProperties _memProperties;
-    vector<VkQueueFamilyProperties> queueFamilies{};
+    VkPhysicalDeviceProperties _properties{};
+    VkPhysicalDeviceMemoryProperties _memProperties{};
+    vector<VkQueueFamilyProperties> _queueFamilies{};
     VkSampleCountFlagBits _maxSampleCount;
 
 public:
-    [[nodiscard]] VkPhysicalDevice get() const { return vkDevice; }
+    [[nodiscard]] VkPhysicalDevice get() const { return _vkDevice; }
     [[nodiscard]] const auto& features() const { return _features; }
     [[nodiscard]] span<const string> extensions() const { return _extensions; }
     [[nodiscard]] const auto& properties() const { return _properties; }
@@ -82,8 +82,8 @@ public:
     [[nodiscard]] const VkPhysicalDeviceLimits& limits() const { return _properties.limits; }
 
 
-    inline static const array<string, 2> REQUIRED_DEVICE_EXTENSIONS = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME};
-    inline static constexpr VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES = []() {
+    static constexpr array<string_view, 2> REQUIRED_DEVICE_EXTENSIONS = {string_view(VK_KHR_SWAPCHAIN_EXTENSION_NAME), string_view(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)};
+    static constexpr VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES = []() {
         VkPhysicalDeviceFeatures features{};
         features.samplerAnisotropy = true;
         return features;

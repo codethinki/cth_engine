@@ -31,6 +31,9 @@ public:
 
     virtual ~BasicBuffer() = default;
 
+
+    virtual void wrap(VkBuffer vk_buffer, const State& state);
+
     /**
     * \brief creates the image
     * \note buffer must not be a valid handle

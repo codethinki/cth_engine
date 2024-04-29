@@ -33,6 +33,12 @@ Image::Image(Device* device, DeletionQueue* deletion_queue, const VkExtent2D ext
 Image::~Image() {
     if(get() != VK_NULL_HANDLE) Image::destroy();
 }
+void Image::wrap(VkImage vk_image, const State& state) {
+    if(get() != VK_NULL_HANDLE) destroy();
+    destroyMemory();
+
+    BasicImage::wrap(vk_image, state);
+}
 
 void Image::create() {
     if(get() != VK_NULL_HANDLE) destroy();
@@ -56,16 +62,16 @@ void Image::destroy(DeletionQueue* deletion_queue) {
     BasicImage::reset();
 }
 void Image::setMemory(BasicMemory* new_memory) {
-    CTH_ERR(new_memory == _state.memory, "new_memory must not be current memory") throw details->exception();
+    CTH_ERR(new_memory == state_.memory, "new_memory must not be current memory") throw details->exception();
     destroyMemory();
     BasicImage::setMemory(new_memory);
 }
 void Image::destroyMemory(DeletionQueue* deletion_queue) {
-    if(_state.memory == nullptr) return;
-    if(deletion_queue) _state.memory->free(deletion_queue);
-    else _state.memory->free();
-    delete _state.memory;
-    _state.memory = nullptr;
+    if(state_.memory == nullptr) return;
+    if(deletion_queue) state_.memory->free(deletion_queue);
+    else state_.memory->free();
+    delete state_.memory;
+    state_.memory = nullptr;
 }
 
 

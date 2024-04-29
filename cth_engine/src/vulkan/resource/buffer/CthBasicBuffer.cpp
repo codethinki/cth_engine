@@ -5,7 +5,6 @@
 
 #include "../CthMemory.hpp"
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/base/CthPhysicalDevice.hpp"
 #include "vulkan/utility/CthConstants.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
@@ -16,7 +15,14 @@ BasicBuffer::BasicBuffer(Device* device, const size_t buffer_size, const VkBuffe
     device(device), size_(buffer_size), usage_(usage_flags) { init(); }
 BasicBuffer::BasicBuffer(Device* device, const size_t buffer_size, const VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, const State& state) :
     device(device),
-    size_(buffer_size), usage_(usage_flags), vkBuffer(vk_buffer), state_(state) { init(); }
+    size_(buffer_size), usage_(usage_flags), state_(state), vkBuffer(vk_buffer) { init(); }
+
+void BasicBuffer::wrap(VkBuffer vk_buffer, const State& state) {
+    vkBuffer = vk_buffer;
+    state_ = state;
+
+    init();
+}
 
 void BasicBuffer::create() {
     VkBufferCreateInfo bufferInfo{};

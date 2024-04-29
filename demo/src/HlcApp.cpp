@@ -3,7 +3,6 @@
 #include "render/HlcFrameInfo.hpp"
 
 #include <chrono>
-#include <Windows.h>
 
 
 namespace cth {

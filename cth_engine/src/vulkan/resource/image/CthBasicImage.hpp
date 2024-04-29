@@ -32,8 +32,10 @@ public:
     struct State;
 
     BasicImage(Device* device, VkExtent2D extent, const Config& config);
-    BasicImage(Device* device, VkExtent2D extent, const Config& config, VkImage vk_image, const State& state);
+    BasicImage(Device* device, VkExtent2D extent, const Config& config, VkImage vk_image, State state);
     virtual ~BasicImage() = default;
+
+    virtual void wrap(VkImage vk_image, const State& state);
 
     /**
      * \brief creates the image
@@ -130,10 +132,10 @@ protected:
     virtual void reset();
 
     Device* device;
-    VkExtent2D _extent;
-    Config _config;
+    VkExtent2D extent_;
+    Config config_;
 
-    State _state = State::Default();
+    State state_ = State::Default();
 
 private:
     using transition_config = struct {
@@ -151,17 +153,17 @@ private:
 
 public:
     [[nodiscard]] VkImage get() const { return vkImage; }
-    [[nodiscard]] BasicMemory* memory() const { return _state.memory; }
-    [[nodiscard]] VkFormat format() const { return _config.format; }
-    [[nodiscard]] VkExtent2D extent() const { return _extent; }
-    [[nodiscard]] uint32_t mipLevels() const { return _config.mipLevels; }
-    [[nodiscard]] VkImageLayout layout(const uint32_t mip_level) const { return _state.levelLayouts[mip_level]; }
-    [[nodiscard]] span<const VkImageLayout> layouts() const { return _state.levelLayouts; }
-    [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return _config.aspectMask; }
-    [[nodiscard]] bool bound() const { return _state.bound; }
+    [[nodiscard]] BasicMemory* memory() const { return state_.memory; }
+    [[nodiscard]] VkFormat format() const { return config_.format; }
+    [[nodiscard]] VkExtent2D extent() const { return extent_; }
+    [[nodiscard]] uint32_t mipLevels() const { return config_.mipLevels; }
+    [[nodiscard]] VkImageLayout layout(const uint32_t mip_level) const { return state_.levelLayouts[mip_level]; }
+    [[nodiscard]] span<const VkImageLayout> layouts() const { return state_.levelLayouts; }
+    [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return config_.aspectMask; }
+    [[nodiscard]] bool bound() const { return state_.bound; }
     [[nodiscard]] bool created() const { return vkImage != VK_NULL_HANDLE; }
-    [[nodiscard]] Config config() const { return _config; }
-    [[nodiscard]] State state() const { return _state; }
+    [[nodiscard]] Config config() const { return config_; }
+    [[nodiscard]] State state() const { return state_; }
 
     BasicImage(const BasicImage& other) = delete;
     BasicImage(BasicImage&& other) = delete;

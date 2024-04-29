@@ -3,7 +3,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 
+
 namespace cth {
+class InputController;
 
 
 
@@ -21,22 +23,25 @@ struct Transform {
 
 class StandardObject {
 public:
-    StandardObject() { id = currentId++; };
-    explicit StandardObject(const Transform& transform) : transform{transform} { id = currentId++; };
+    StandardObject() { _id = currentId++; };
+    explicit StandardObject(const Transform& transform) : _transform{transform} { _id = currentId++; };
     virtual ~StandardObject() = 0;
 
-    [[nodiscard]] uint32_t getId() const { return id; }
+    [[nodiscard]] uint32_t getId() const { return _id; }
 
     StandardObject(const StandardObject&) = default;
     StandardObject& operator=(const StandardObject&) = default;
     StandardObject(StandardObject&&) = default;
     StandardObject& operator=(StandardObject&&) = default; // copy/move operations
 
-    Transform transform{};
 
 protected:
-    uint32_t id;
+    Transform _transform{};
+    uint32_t _id;
     inline static uint32_t currentId{};
+
+private:
+    friend InputController;
 };
 
 inline StandardObject::~StandardObject() {}

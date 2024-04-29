@@ -1,6 +1,6 @@
 #include "HlcRenderSystem.hpp"
 
-//TEMP replace this with #include <cth_engine/cth_engine.hpp> 
+//TEMP replace this with #include <cth_engine/cth_engine.hpp>
 #include "vulkan/pipeline/CthPipeline.hpp"
 #include "vulkan/pipeline/layout/CthDescriptorSetLayout.hpp"
 #include "vulkan/pipeline/layout/CthPipelineLayout.hpp"
@@ -94,7 +94,7 @@ void RenderSystem::createDescriptorPool() {
 void RenderSystem::loadDescriptorData(const CmdBuffer& init_cmd_buffer, DeletionQueue* deletion_queue) {
     const cth::img::stb_image image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
-    texture = make_unique<Texture>(device, deletion_queue, VkExtent2D{image.width, image.height}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB}, init_cmd_buffer, image.raw());
+    texture = make_unique<Texture>(device, deletion_queue, VkExtent2D{image.width(), image.height()}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB}, init_cmd_buffer, image.raw());
 }
 
 

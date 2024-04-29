@@ -39,7 +39,7 @@ private:
     int width, height;
 
     GLFWwindow* glfwWindow = nullptr;
-    unique_ptr<Surface> _surface;
+    unique_ptr<Surface> surface_;
 
     static Window* window_ptr(GLFWwindow* glfw_window);
 
@@ -59,7 +59,7 @@ public:
     [[nodiscard]] bool focused() const { return focus; }
     [[nodiscard]] GLFWwindow* get() const { return glfwWindow; }
 
-    [[nodiscard]] Surface* surface() const { return _surface.get(); }
+    [[nodiscard]] Surface* surface() const { return surface_.get(); }
 
     static vector<string> getGLFWInstanceExtensions();
     static void init();

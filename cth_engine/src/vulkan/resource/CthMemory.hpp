@@ -18,7 +18,7 @@ class BasicMemory {
 public:
     BasicMemory(Device* device, const VkMemoryPropertyFlags properties) : device(device), vkProperties(properties) {}
     BasicMemory(Device* device, const VkMemoryPropertyFlags properties, const size_t size, VkDeviceMemory memory) : device(device),
-        vkProperties(properties), _size(size), vkMemory(memory) { debug_check(this); }
+        vkProperties(properties), size_(size), vkMemory(memory) { debug_check(this); }
     virtual ~BasicMemory() = default;
 
     virtual void alloc(const VkMemoryRequirements& requirements);
@@ -39,13 +39,13 @@ protected:
 private:
     Device* device;
     VkMemoryPropertyFlags vkProperties;
-    size_t _size = 0;
+    size_t size_ = 0;
     VkDeviceMemory vkMemory = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] bool allocated() const { return vkMemory != VK_NULL_HANDLE; }
     [[nodiscard]] VkDeviceMemory get() const { return vkMemory; }
-    [[nodiscard]] size_t size() const { return _size; }
+    [[nodiscard]] size_t size() const { return size_; }
     [[nodiscard]] VkMemoryPropertyFlags properties() const { return vkProperties; }
 
     BasicMemory(const BasicMemory& other) = delete;

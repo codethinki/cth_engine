@@ -57,7 +57,7 @@ private:
     using binding_t = VkDescriptorSetLayoutBinding;
 #endif
 
-    vector<binding_t> _bindings{};
+    vector<binding_t> bindings_{};
     [[nodiscard]] vector<VkDescriptorSetLayoutBinding> bindings() const;
 
     friend DescriptorSetLayout;

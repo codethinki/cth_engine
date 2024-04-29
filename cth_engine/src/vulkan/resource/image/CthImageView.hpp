@@ -20,12 +20,12 @@ private:
     void create(const Config& config);
 
     Device* device;
-    BasicImage* _image;
+    BasicImage* image_;
     VkImageView vkImageView = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkImageView get() const { return vkImageView; }
-    [[nodiscard]] BasicImage* image() const { return _image; }
+    [[nodiscard]] BasicImage* image() const { return image_; }
 };
 } // namespace cth
 

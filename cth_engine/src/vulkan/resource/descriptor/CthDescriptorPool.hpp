@@ -80,7 +80,7 @@ private:
 
     VkDescriptorPool vkPool = VK_NULL_HANDLE;
 
-    bool _reset = true;
+    bool reset_ = true;
 
     friend DescriptorSet;
 
