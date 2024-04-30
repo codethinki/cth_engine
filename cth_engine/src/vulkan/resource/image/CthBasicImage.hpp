@@ -117,7 +117,7 @@ public:
     };
     struct State {
         vector<VkImageLayout> levelLayouts{}; // levelLayouts.size() < mipLevels => remaining levels are config.initialLayout
-        BasicMemory* memory = nullptr; //TEMP maybe remove memory from here idk
+        BasicMemory* memory = nullptr;
         bool bound = memory != nullptr;
         static State Default() { return State{}; }
 

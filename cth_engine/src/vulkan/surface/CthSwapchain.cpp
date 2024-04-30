@@ -2,8 +2,8 @@
 
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
-#include "vulkan/pipeline/CthPipelineBarrier.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/render/control/CthPipelineBarrier.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/resource/image/CthImage.hpp"
 #include "vulkan/surface/CthSurface.hpp"
@@ -136,7 +136,7 @@ VkResult Swapchain::present(const uint32_t image_index) const {
 }
 
 VkSampleCountFlagBits Swapchain::evalMsaaSampleCount() const {
-    const uint32_t maxSamples = _device->physical()->maxSampleCount() / 2; //TEMP
+    const uint32_t maxSamples = _device->physical()->maxSampleCount() / 2; //TODO add proper max_sample_count selection
 
     uint32_t samples = 1;
     while(samples < maxSamples && samples < Constants::MAX_MSAA_SAMPLES) samples *= 2;
@@ -270,7 +270,8 @@ void Swapchain::createSwapchainImages() {
     const auto imageConfig = createColorImageConfig();
 
     _swapchainImages.reserve(imageCount);
-    for(auto image : images) _swapchainImages.emplace_back(make_unique<BasicImage>(_device, _extent, imageConfig, image, BasicImage::State::Default()));
+    for(auto image : images) _swapchainImages.emplace_back(
+        make_unique<BasicImage>(_device, _extent, imageConfig, image, BasicImage::State::Default()));
     _swapchainImageViews.reserve(imageCount);
     for(auto i = 0u; i < imageCount; i++) _swapchainImageViews.emplace_back(_device, _swapchainImages[i].get(), ImageView::Config::Default());
 }
@@ -437,8 +438,8 @@ void Swapchain::createSyncObjects() {
         const VkResult createSignalSemaphoreResult = vkCreateSemaphore(_device->get(), &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]);
         const VkResult createFenceResult = vkCreateFence(_device->get(), &fenceInfo, nullptr, &_inFlightFences[i]);
 
-        CTH_STABLE_ERR(!(createWaitSemaphoreResult == createSignalSemaphoreResult ==
-            createFenceResult == VK_SUCCESS), "Vk: failed to create synchronization objects") {
+        CTH_STABLE_ERR(!(createWaitSemaphoreResult == createSignalSemaphoreResult == createFenceResult == VK_SUCCESS),
+            "failed to create synchronization objects") {
             if(createWaitSemaphoreResult != VK_SUCCESS) details->add("wait semaphore creation failed");
             if(createSignalSemaphoreResult != VK_SUCCESS) details->add("signal semaphore creation failed");
             if(createFenceResult != VK_SUCCESS) details->add("fence creation failed");

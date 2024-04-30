@@ -11,17 +11,17 @@ using namespace std;
 
 void App::run() {
 
-    frameIndex = 0;
+    _frameIndex = 0;
     auto frameStart = chrono::high_resolution_clock::now();
 
-    while(!window->shouldClose()) {
-        const auto commandBuffer = hlcRenderer->beginFrame();
+    while(!_window->shouldClose()) {
+        const auto commandBuffer = _hlcRenderer->beginFrame();
         if(commandBuffer == nullptr) continue;
 
         const auto frameTime = chrono::duration<float, chrono::seconds::period>(chrono::high_resolution_clock::now() - frameStart).count();
         frameStart = chrono::high_resolution_clock::now();
 
-        updateFpsDisplay(frameIndex, frameTime);
+        updateFpsDisplay(_frameIndex, frameTime);
 
         //inputs
         glfwPollEvents();
@@ -37,16 +37,16 @@ void App::run() {
 
         /* renderSystem.updateDynamicChunks();*/
 
-        FrameInfo info = {hlcRenderer->frameIndex(), 0.f, commandBuffer};
+        FrameInfo info = {_hlcRenderer->frameIndex(), 0.f, commandBuffer};
 
-        hlcRenderer->beginSwapchainRenderPass(info.commandBuffer);
-        renderSystem->render(info);
-        hlcRenderer->endSwapchainRenderPass(info.commandBuffer);
-        hlcRenderer->endFrame();
+        _hlcRenderer->beginSwapchainRenderPass(info.commandBuffer);
+        _renderSystem->render(info);
+        _hlcRenderer->endSwapchainRenderPass(info.commandBuffer);
+        _hlcRenderer->endFrame();
 
-        frameIndex++;
+        _frameIndex++;
     }
-    vkDeviceWaitIdle(device->get());
+    vkDeviceWaitIdle(_device->get());
 
     //OldModel::clearModels();
 }
@@ -57,7 +57,7 @@ void App::reserveObjectMemory() {
     staticObjects.reserve(MAX_STATIC_OBJECTS);*/
 }
 void App::initRenderSystem() {
-    renderSystem = make_unique<RenderSystem>(device.get(), hlcRenderer.get(), hlcRenderer->swapchainRenderPass(), hlcRenderer->msaaSampleCount());
+    _renderSystem = make_unique<RenderSystem>(_device.get(), _hlcRenderer.get(), _hlcRenderer->swapchainRenderPass(), _hlcRenderer->msaaSampleCount());
 }
 
 void App::initCamera() {
@@ -124,7 +124,7 @@ void App::updateFpsDisplay(const size_t frame_index, const float frame_time) con
     frameTimeSum = 0;
     oldFrameIndex = frame_index;
 
-    glfwSetWindowTitle(window->window(), x.c_str());
+    glfwSetWindowTitle(_window->window(), x.c_str());
 }
 vector<string> App::getRequiredInstanceExtensions() {
     auto extensions = Window::getGLFWInstanceExtensions();

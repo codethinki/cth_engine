@@ -11,7 +11,6 @@ namespace cth {
 class Device;
 
 
-//TEMP left off here. recreate the hierarchy of the image class with BaseImage and Image in the buffer class.
 template<typename T>
 class Buffer final : public BasicBuffer {
 public:

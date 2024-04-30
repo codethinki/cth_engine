@@ -28,32 +28,32 @@ private:
     void setQueues();
 
 
-    Instance* instance;
-    PhysicalDevice* physicalDevice;
+    Instance* _instance;
+    PhysicalDevice* _physicalDevice;
 
-    VkCommandPool commandPool = VK_NULL_HANDLE;
+    VkCommandPool _commandPool = VK_NULL_HANDLE;
 
-    VkDevice vkDevice = VK_NULL_HANDLE;
-    VkQueue vkGraphicsQueue = VK_NULL_HANDLE;
-    VkQueue vkPresentQueue = VK_NULL_HANDLE;
+    VkDevice _vkDevice = VK_NULL_HANDLE;
+    VkQueue _vkGraphicsQueue = VK_NULL_HANDLE;
+    VkQueue _vkPresentQueue = VK_NULL_HANDLE;
 
     //TODO replace this with a better system 
-    vector<uint32_t> queueIndices_; //present, graphics
-    vector<uint32_t> uniqueQueueIndices_{};
+    vector<uint32_t> _queueIndices; //present, graphics
+    vector<uint32_t> _uniqueQueueIndices{};
     static constexpr uint32_t PRESENT_QUEUE_I = 0;
     static constexpr uint32_t GRAPHICS_QUEUE_I = 1;
 
 public:
-    [[nodiscard]] VkCommandPool getCommandPool() const { return commandPool; }
-    [[nodiscard]] VkDevice get() const { return vkDevice; }
-    [[nodiscard]] VkQueue graphicsQueue() const { return vkGraphicsQueue; }
-    [[nodiscard]] VkQueue presentQueue() const { return vkPresentQueue; }
-    [[nodiscard]] uint32_t graphicsQueueIndex() const { return queueIndices_[GRAPHICS_QUEUE_I]; }
-    [[nodiscard]] uint32_t presentQueueIndex() const { return queueIndices_[PRESENT_QUEUE_I]; }
-    [[nodiscard]] const auto& queueIndices() const { return queueIndices_; }
-    [[nodiscard]] const auto& uniqueQueueIndices() const { return uniqueQueueIndices_; }
+    [[nodiscard]] VkCommandPool getCommandPool() const { return _commandPool; }
+    [[nodiscard]] VkDevice get() const { return _vkDevice; }
+    [[nodiscard]] VkQueue graphicsQueue() const { return _vkGraphicsQueue; }
+    [[nodiscard]] VkQueue presentQueue() const { return _vkPresentQueue; }
+    [[nodiscard]] uint32_t graphicsQueueIndex() const { return _queueIndices[GRAPHICS_QUEUE_I]; }
+    [[nodiscard]] uint32_t presentQueueIndex() const { return _queueIndices[PRESENT_QUEUE_I]; }
+    [[nodiscard]] const auto& queueIndices() const { return _queueIndices; }
+    [[nodiscard]] const auto& uniqueQueueIndices() const { return _uniqueQueueIndices; }
 
-    [[nodiscard]] const PhysicalDevice* physical() const { return physicalDevice; }
+    [[nodiscard]] const PhysicalDevice* physical() const { return _physicalDevice; }
 
     Device(const Device&) = delete;
     Device& operator=(const Device&) = delete;

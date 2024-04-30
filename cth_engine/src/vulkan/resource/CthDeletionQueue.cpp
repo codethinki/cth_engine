@@ -1,6 +1,6 @@
 #include "CthDeletionQueue.hpp"
 
-#include "CthMemory.hpp"
+#include "memory/CthMemory.hpp"
 
 #include<cth/cth_variant.hpp>
 

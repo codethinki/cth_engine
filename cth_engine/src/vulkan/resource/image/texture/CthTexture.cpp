@@ -1,14 +1,12 @@
 #include "CthTexture.hpp"
 
-#include "vulkan/pipeline/CthPipelineBarrier.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/render/control/CthPipelineBarrier.hpp"
 #include "vulkan/resource/buffer/CthBuffer.hpp"
 
 namespace cth {
 
 
-//TEMP left off here make this compile again and solve the bugs
-//TEMP implement this again
 Texture::Texture(Device* device, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
     const span<const char> staging_data) :
     Image(device, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {

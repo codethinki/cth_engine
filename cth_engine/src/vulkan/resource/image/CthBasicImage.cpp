@@ -1,11 +1,11 @@
 #include "CthBasicImage.hpp"
 
-#include <vulkan/resource/CthDeletionQueue.hpp>
-#include <vulkan/resource/buffer/CthBasicBuffer.hpp>
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/pipeline/CthPipelineBarrier.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/resource/CthMemory.hpp"
+#include "vulkan/render/control/CthPipelineBarrier.hpp"
+#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/buffer/CthBasicBuffer.hpp"
+#include "vulkan/resource/memory/CthMemory.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>

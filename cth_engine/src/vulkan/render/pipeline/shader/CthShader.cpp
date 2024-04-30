@@ -92,7 +92,6 @@ void Shader::compile(const string_view glsl_path, const string_view compiler_pat
 
     const string command = std::format(R"("{0}" {1} -c "{2}" -o "{3}">NUL 2>"{4}")",
         compiler_path, flags, glsl_path, spvPath, logFile);
-    //TEMP command not working fix this
     const int result = cth::win::cmd::hidden(command);
 
     vector<string> debugInfo = cth::win::file::loadTxt(logFile);

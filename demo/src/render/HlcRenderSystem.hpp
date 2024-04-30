@@ -54,24 +54,24 @@ private:
     //TEMP replace this with actual model loading
     void createDefaultTriangle(const CmdBuffer& cmd_buffer);
 
-    Device* device;
-    Renderer* renderer;
-    unique_ptr<PipelineLayout> pipelineLayout;
-    unique_ptr<Pipeline> pipeline;
+    Device* _device;
+    Renderer* _renderer;
+    unique_ptr<PipelineLayout> _pipelineLayout;
+    unique_ptr<Pipeline> _pipeline;
 
-    unique_ptr<Shader> vertexShader, fragmentShader;
+    unique_ptr<Shader> _vertexShader, _fragmentShader;
 
     //TEMP replaced with actual model data once ready
-    unique_ptr<Buffer<Vertex>> defaultTriangleBuffer{};
+    unique_ptr<Buffer<Vertex>> _defaultTriangleBuffer{};
 
-    unique_ptr<DescriptorSetLayout> descriptorSetLayout;
-    unique_ptr<DescriptorPool> descriptorPool;
-    unique_ptr<DescriptorSet> descriptorSet;
-    unique_ptr<TextureDescriptor> textureDescriptor;
+    unique_ptr<DescriptorSetLayout> _descriptorSetLayout;
+    unique_ptr<DescriptorPool> _descriptorPool;
+    unique_ptr<DescriptorSet> _descriptorSet;
+    unique_ptr<TextureDescriptor> _textureDescriptor;
 
-    unique_ptr<Texture> texture;
-    unique_ptr<ImageView> textureView;
-    unique_ptr<Sampler> textureSampler;
+    unique_ptr<Texture> _texture;
+    unique_ptr<ImageView> _textureView;
+    unique_ptr<Sampler> _textureSampler;
 
 public:
     RenderSystem(const RenderSystem&) = delete;

@@ -1,9 +1,8 @@
 #pragma once
 #include "../CthDeletionQueue.hpp"
 #include "vulkan/base/CthDevice.hpp"
+#include "vulkan/resource/memory/CthMemory.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
-
-#include "vulkan/resource/CthMemory.hpp"
 
 
 namespace cth {

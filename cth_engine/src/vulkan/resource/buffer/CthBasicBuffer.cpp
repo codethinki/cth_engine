@@ -1,10 +1,9 @@
 #include "CthBasicBuffer.hpp"
 
-#include "../CthDeletionQueue.hpp"
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
-
-#include "../CthMemory.hpp"
 #include "vulkan/base/CthDevice.hpp"
+#include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/memory/CthMemory.hpp"
 #include "vulkan/utility/CthConstants.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 

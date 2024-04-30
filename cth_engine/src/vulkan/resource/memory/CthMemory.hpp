@@ -16,15 +16,15 @@ using std::span;
 
 class BasicMemory {
 public:
-    BasicMemory(Device* device, const VkMemoryPropertyFlags properties) : device(device), vkProperties(properties) {}
-    BasicMemory(Device* device, const VkMemoryPropertyFlags properties, const size_t size, VkDeviceMemory memory) : device(device),
-        vkProperties(properties), size_(size), vkMemory(memory) { debug_check(this); }
+    BasicMemory(Device* device, const VkMemoryPropertyFlags properties) : _device(device), _vkProperties(properties) {}
+    BasicMemory(Device* device, const VkMemoryPropertyFlags properties, const size_t size, VkDeviceMemory memory) : _device(device),
+        _vkProperties(properties), _size(size), _vkMemory(memory) { debug_check(this); }
     virtual ~BasicMemory() = default;
 
     virtual void alloc(const VkMemoryRequirements& requirements);
 
     [[nodiscard]] span<char> map(size_t map_size = VK_WHOLE_SIZE, size_t offset = 0) const;
-    VkResult flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] VkResult flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
 
     [[nodiscard]] VkResult invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
     void unmap() const;
@@ -37,16 +37,16 @@ protected:
     void reset();
 
 private:
-    Device* device;
-    VkMemoryPropertyFlags vkProperties;
-    size_t size_ = 0;
-    VkDeviceMemory vkMemory = VK_NULL_HANDLE;
+    Device* _device;
+    VkMemoryPropertyFlags _vkProperties;
+    size_t _size = 0;
+    VkDeviceMemory _vkMemory = VK_NULL_HANDLE;
 
 public:
-    [[nodiscard]] bool allocated() const { return vkMemory != VK_NULL_HANDLE; }
-    [[nodiscard]] VkDeviceMemory get() const { return vkMemory; }
-    [[nodiscard]] size_t size() const { return size_; }
-    [[nodiscard]] VkMemoryPropertyFlags properties() const { return vkProperties; }
+    [[nodiscard]] bool allocated() const { return _vkMemory != VK_NULL_HANDLE; }
+    [[nodiscard]] VkDeviceMemory get() const { return _vkMemory; }
+    [[nodiscard]] size_t size() const { return _size; }
+    [[nodiscard]] VkMemoryPropertyFlags properties() const { return _vkProperties; }
 
     BasicMemory(const BasicMemory& other) = delete;
     BasicMemory(BasicMemory&& other) = delete;
@@ -67,15 +67,17 @@ namespace cth {
 class Memory : public BasicMemory {
 public:
     Memory(Device* device, DeletionQueue* deletion_queue, const VkMemoryPropertyFlags properties) : BasicMemory(device, properties),
-        deletionQueue(deletion_queue) {}
+        _deletionQueue(deletion_queue) {}
     Memory(Device* device, DeletionQueue* deletion_queue, const VkMemoryPropertyFlags properties, const size_t size, VkDeviceMemory memory) :
-        BasicMemory(device, properties, size, memory), deletionQueue(deletion_queue) {}
+        BasicMemory(device, properties, size, memory), _deletionQueue(deletion_queue) {}
     ~Memory() override;
+
+    void alloc(const VkMemoryRequirements& requirements) override;
 
     void free(DeletionQueue* deletion_queue = nullptr) override;
 
 private:
-    DeletionQueue* deletionQueue;
+    DeletionQueue* _deletionQueue;
 
 };
 }

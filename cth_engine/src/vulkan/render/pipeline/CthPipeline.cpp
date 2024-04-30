@@ -1,15 +1,13 @@
 #include "CthPipeline.hpp"
 
+#include "interface/render/model/CthVertex.hpp"
 #include "layout/CthPipelineLayout.hpp"
-
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/pipeline/shader/CthShader.hpp"
-#include "vulkan//utility/CthVkUtils.hpp"
+#include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/render/pipeline/shader/CthShader.hpp"
+#include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>
-
-#include "interface/render/model/CthVertex.hpp"
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
 
 
 

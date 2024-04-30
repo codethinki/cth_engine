@@ -1,14 +1,14 @@
 #pragma once
 #include "render/HlcRenderSystem.hpp"
 
+//TEMP remove this once the camera and input controller are refactored
+#include "interface/user/HlcCamera.hpp"
+#include "interface/user/HlcInputController.hpp"
+
 #include <cth_engine/cth_engine.hpp>
 
+
 #include <vector>
-
-//TEMP
-#include "interface/user/HlcInputController.hpp"
-#include "interface/user/HlcCamera.hpp"
-
 
 
 namespace cth {
@@ -42,21 +42,21 @@ private:
     void updateFpsDisplay(size_t frame_index, float frame_time) const;
 
 
-    unique_ptr<Instance> instance = make_unique<Instance>("app", getRequiredInstanceExtensions());
-    unique_ptr<Window> window = make_unique<Window>(WINDOW_NAME, WIDTH, HEIGHT, instance.get());
-    unique_ptr<PhysicalDevice> physicalDevice = PhysicalDevice::autoPick(window->surface(), instance.get());
-    unique_ptr<Device> device = make_unique<Device>(physicalDevice.get(), window->surface(), instance.get());
+    unique_ptr<Instance> _instance = make_unique<Instance>("app", getRequiredInstanceExtensions());
+    unique_ptr<Window> _window = make_unique<Window>(WINDOW_NAME, WIDTH, HEIGHT, _instance.get());
+    unique_ptr<PhysicalDevice> _physicalDevice = PhysicalDevice::autoPick(_window->surface(), _instance.get());
+    unique_ptr<Device> _device = make_unique<Device>(_physicalDevice.get(), _window->surface(), _instance.get());
 
-    unique_ptr<Renderer> hlcRenderer = make_unique<Renderer>(device.get(), &camera, window.get());
-    InputController inputController{};
-    Camera camera{};
+    unique_ptr<Renderer> _hlcRenderer = make_unique<Renderer>(_device.get(), &_camera, _window.get());
+    InputController _inputController{};
+    Camera _camera{};
 
-    unique_ptr<RenderSystem> renderSystem;
+    unique_ptr<RenderSystem> _renderSystem;
 
 
-    size_t frameIndex = 0;
+    size_t _frameIndex = 0;
 
-    inline static constexpr string_view WINDOW_NAME = "tetris_ai";
+    static constexpr string_view WINDOW_NAME = "demo";
 
     [[nodiscard]] static vector<string> getRequiredInstanceExtensions();
 
