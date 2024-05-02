@@ -10,7 +10,7 @@ namespace cth {
 template<typename T>
 Buffer<T>::Buffer(Device* device, DeletionQueue* deletion_queue, const size_t element_count, const VkBufferUsageFlags usage_flags,
     const VkMemoryPropertyFlags memory_property_flags) : BasicBuffer(device, element_count * sizeof(T), usage_flags),
-    elements_(element_count), deletionQueue(deletion_queue) {
+    _elements(element_count), _deletionQueue(deletion_queue) {
     BasicMemory* memory = new Memory{device, deletion_queue, memory_property_flags};
 
     BasicBuffer::create();
@@ -18,7 +18,18 @@ Buffer<T>::Buffer(Device* device, DeletionQueue* deletion_queue, const size_t el
     BasicBuffer::bind();
 }
 template<typename T>
-Buffer<T>::~Buffer() { Buffer<T>::destroy(); }
+Buffer<T>::~Buffer() {
+    Buffer<T>::destroy();
+    if(_state.memory) destroyMemory();
+}
+template<typename T>
+void Buffer<T>::wrap(VkBuffer vk_buffer, const State& state) {
+    if(get() != VK_NULL_HANDLE) destroy();
+    if(state.memory) destroyMemory();
+
+
+    BasicBuffer::wrap(vk_buffer, state);
+}
 
 template<typename T>
 void Buffer<T>::create() {
@@ -28,23 +39,9 @@ void Buffer<T>::create() {
 
 template<typename T>
 void Buffer<T>::destroy(DeletionQueue* deletion_queue) {
-    if(!deletion_queue) {
-        destroyMemory();
-        BasicBuffer::destroy(deletionQueue);
-    } else {
-        destroyMemory(deletion_queue);
-        BasicBuffer::destroy(deletion_queue);
-        deletionQueue = deletion_queue;
-    }
-
-    BasicBuffer::reset();
-}
-
-template<typename T>
-void Buffer<T>::setMemory(BasicMemory* new_memory) {
-    CTH_ERR(new_memory == state_.memory, "new_memory must not be current memory") throw details->exception();
-    destroyMemory();
-    BasicBuffer::setMemory(new_memory);
+    if(deletion_queue)_deletionQueue = deletion_queue;
+    if(_state.memory->allocated()) _state.memory->free(deletion_queue);
+    BasicBuffer::destroy(_deletionQueue);
 }
 
 template<typename T>
@@ -55,7 +52,7 @@ span<T> Buffer<T>::map(const size_t size, const size_t offset) {
 template<typename T>
 span<T> Buffer<T>::map() {
     const auto charSpan = BasicBuffer::map();
-    return span<T>{reinterpret_cast<T*>(charSpan.data()), elements_};
+    return span<T>{reinterpret_cast<T*>(charSpan.data()), _elements};
 }
 
 template<typename T>
@@ -96,16 +93,10 @@ VkDescriptorBufferInfo Buffer<T>::descriptorInfo(const size_t size, const size_t
 }
 
 template<typename T>
-void Buffer<T>::destroyMemory(DeletionQueue* deletion_queue) {
-    if(!state_.memory) return;
-
-    if(deletion_queue) state_.memory->free(deletion_queue);
-    else state_.memory->free();
-
-    delete state_.memory;
-    state_.memory = nullptr;
+void Buffer<T>::setMemory(BasicMemory* new_memory) {
+    CTH_ERR(new_memory != nullptr && new_memory == _state.memory.get(), "new_memory must not be current memory") throw details->exception();
+    if(_state.memory) destroyMemory();
+    BasicBuffer::setMemory(new_memory);
 }
-
-
 
 } // namespace cth

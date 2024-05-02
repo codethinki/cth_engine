@@ -52,6 +52,11 @@ public:
 
     [[nodiscard]] auto familyIndex() const { return _config.familyIndex; }
     [[nodiscard]] auto familyProperties() const { return _config.familyProperties; }
+
+    Queue(const Queue& other) = default;
+    Queue(Queue&& other) = default;
+    Queue& operator=(const Queue& other) = default;
+    Queue& operator=(Queue&& other) = default;
 };
 
 

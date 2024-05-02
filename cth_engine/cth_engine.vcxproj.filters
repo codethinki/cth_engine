@@ -52,11 +52,13 @@
     <ClInclude Include="src\vulkan\render\cmd\CthCmdPool.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\CthDeletionQueue.hpp" />
-    <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
+    <ClInclude Include="src\vulkan\resource\memory\CthBasicMemory.hpp" />
     <ClInclude Include="src\interface\CthEngineSettings.hpp" />
     <ClInclude Include="src\vulkan\base\CthQueue.hpp" />
     <ClInclude Include="src\vulkan\utility\CthConstants.hpp" />
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
+    <ClInclude Include="src\vulkan\render\control\CthSemaphore.hpp" />
+    <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -94,8 +96,10 @@
     <ClCompile Include="src\vulkan\render\control\CthPipelineBarrier.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdPool.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdBuffer.cpp" />
-    <ClCompile Include="src\vulkan\resource\memory\CthMemory.cpp" />
+    <ClCompile Include="src\vulkan\resource\memory\CthBasicMemory.cpp" />
     <ClCompile Include="src\vulkan\resource\CthDeletionQueue.cpp" />
     <ClCompile Include="src\vulkan\base\CthQueue.cpp" />
+    <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
+    <ClCompile Include="src\vulkan\resource\memory\CthMemory.cpp" />
   </ItemGroup>
 </Project>

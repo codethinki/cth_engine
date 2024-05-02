@@ -54,16 +54,18 @@
     <ClInclude Include="src\vulkan\render\control\CthPipelineBarrier.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdBuffer.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdPool.hpp" />
+    <ClInclude Include="src\vulkan\render\control\CthSemaphore.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBasicBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\CthDeletionQueue.hpp" />
-    <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
+    <ClInclude Include="src\vulkan\resource\memory\CthBasicMemory.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptor.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptorPool.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptorSet.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\descriptors\CthBufferDescriptors.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\descriptors\CthImageDescriptors.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthBasicImage.hpp" />
+    <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
     <ClInclude Include="src\vulkan\utility\CthConstants.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthImageView.hpp" />
     <ClInclude Include="src\vulkan\render\pipeline\CthPipeline.hpp" />
@@ -100,13 +102,14 @@
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
     <ClCompile Include="src\vulkan\base\CthPhysicalDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthQueue.cpp" />
+    <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
     <ClCompile Include="src\vulkan\resource\CthDeletionQueue.cpp" />
     <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthPipelineBarrier.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdPool.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdBuffer.cpp" />
     <ClCompile Include="src\vulkan\resource\buffer\CthBasicBuffer.cpp" />
-    <ClCompile Include="src\vulkan\resource\memory\CthMemory.cpp" />
+    <ClCompile Include="src\vulkan\resource\memory\CthBasicMemory.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorPool.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorSet.cpp" />
     <ClCompile Include="src\vulkan\resource\image\CthBasicImage.cpp" />
@@ -121,6 +124,7 @@
     <ClCompile Include="src\vulkan\resource\image\texture\CthSampler.cpp" />
     <ClCompile Include="src\vulkan\resource\image\texture\CthTexture.cpp" />
     <ClCompile Include="src\interface\render\CthRenderer.cpp" />
+    <ClCompile Include="src\vulkan\resource\memory\CthMemory.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
   </ItemGroup>

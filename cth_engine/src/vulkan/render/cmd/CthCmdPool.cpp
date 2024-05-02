@@ -12,7 +12,7 @@
 namespace cth {
 
 CmdPool::CmdPool(Device* device, const Config& config) : device(device), config_(config) {
-    Device::debug_check(device);
+    DEBUG_CHECK_DEVICE(device);
 
     create();
     alloc();

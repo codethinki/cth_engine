@@ -14,7 +14,7 @@
 #include "vulkan/resource/image/texture/CthTexture.hpp"
 
 //memory
-#include "vulkan/resource/memory/CthMemory.hpp"
+#include "vulkan/resource/memory/CthBasicMemory.hpp"
 
 //descriptor
 #include "vulkan/resource/descriptor/CthDescriptor.hpp"

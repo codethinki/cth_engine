@@ -43,6 +43,7 @@ public:
     * \brief submits image & memory to cached deletion queues and resets the object
     * \param deletion_queue != nullptr => submits to new deletion queue
     * \note new deletion queue will be cached
+    * \note frees but doesn't delete memory
     */
     void destroy(DeletionQueue* deletion_queue = nullptr) override;
 
@@ -51,7 +52,13 @@ public:
 private:
     void destroyMemory(DeletionQueue* deletion_queue = nullptr);
 
-    DeletionQueue* deletionQueue;
+    DeletionQueue* _deletionQueue;
+
+public:
+    Image(const Image& other) = delete;
+    Image(Image&& other) = default;
+    Image& operator=(const Image& other) = delete;
+    Image& operator=(Image&& other) = default;
 };
 
 } // namespace cth

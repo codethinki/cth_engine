@@ -6,6 +6,7 @@
 #include <span>
 #include <vector>
 
+#include "../buffer/CthBasicBuffer.hpp"
 #include "vulkan/utility/CthConstants.hpp"
 
 namespace cth {
@@ -75,10 +76,12 @@ public:
     virtual void destroy(DeletionQueue* deletion_queue = nullptr);
 
     /**
-    * \param new_memory must not be allocated, nullptr or current memory
-    * \note does not free current memory
-    */
-    virtual void setMemory(BasicMemory* new_memory);
+     * \brief resets the image and its state
+     * \note does not destroy buffer or memory
+     */
+    virtual void reset();
+
+    [[nodiscard]] BasicMemory* releaseMemory();
 
     /**
      * \brief copies the buffer to the image
@@ -100,7 +103,7 @@ public:
         uint32_t first_mip_level = 0, uint32_t mip_levels = Constants::ALL);
 
 
-    static void destroy(const Device* device, VkImage image);
+    static void destroy(const Device* device, VkImage vk_image);
 
     [[nodiscard]] static uint32_t evalMipLevelCount(VkExtent2D extent);
 
@@ -117,7 +120,7 @@ public:
     };
     struct State {
         vector<VkImageLayout> levelLayouts{}; // levelLayouts.size() < mipLevels => remaining levels are config.initialLayout
-        BasicMemory* memory = nullptr;
+        memory::basic_ptr<BasicMemory> memory = nullptr;
         bool bound = memory != nullptr;
         static State Default() { return State{}; }
 
@@ -129,13 +132,18 @@ public:
     };
 
 protected:
-    virtual void reset();
+    /**
+    * \param new_memory must not be allocated, nullptr or current memory
+    * \note does not free current memory
+    */
+    virtual void setMemory(BasicMemory* new_memory);
 
-    Device* device;
-    VkExtent2D extent_;
-    Config config_;
 
-    State state_ = State::Default();
+    Device* _device;
+    VkExtent2D _extent;
+    Config _config;
+
+    State _state = State::Default();
 
 private:
     using transition_config = struct {
@@ -147,34 +155,42 @@ private:
 
     void init();
 
-    VkImage vkImage = VK_NULL_HANDLE;
+    memory::basic_ptr<VkImage_T> _handle = VK_NULL_HANDLE;
 
     friend ImageBarrier;
 
 public:
-    [[nodiscard]] VkImage get() const { return vkImage; }
-    [[nodiscard]] BasicMemory* memory() const { return state_.memory; }
-    [[nodiscard]] VkFormat format() const { return config_.format; }
-    [[nodiscard]] VkExtent2D extent() const { return extent_; }
-    [[nodiscard]] uint32_t mipLevels() const { return config_.mipLevels; }
-    [[nodiscard]] VkImageLayout layout(const uint32_t mip_level) const { return state_.levelLayouts[mip_level]; }
-    [[nodiscard]] span<const VkImageLayout> layouts() const { return state_.levelLayouts; }
-    [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return config_.aspectMask; }
-    [[nodiscard]] bool bound() const { return state_.bound; }
-    [[nodiscard]] bool created() const { return vkImage != VK_NULL_HANDLE; }
-    [[nodiscard]] Config config() const { return config_; }
-    [[nodiscard]] State state() const { return state_; }
+    [[nodiscard]] VkImage get() const { return _handle.get(); }
+    [[nodiscard]] BasicMemory* memory() const { return _state.memory.get(); }
+    [[nodiscard]] VkFormat format() const { return _config.format; }
+    [[nodiscard]] VkExtent2D extent() const { return _extent; }
+    [[nodiscard]] uint32_t mipLevels() const { return _config.mipLevels; }
+    [[nodiscard]] VkImageLayout layout(const uint32_t mip_level) const { return _state.levelLayouts[mip_level]; }
+    [[nodiscard]] span<const VkImageLayout> layouts() const { return _state.levelLayouts; }
+    [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return _config.aspectMask; }
+    [[nodiscard]] bool bound() const { return _state.bound; }
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] Config config() const { return _config; }
+    [[nodiscard]] State state() const { return _state; }
 
-    BasicImage(const BasicImage& other) = delete;
-    BasicImage(BasicImage&& other) = delete;
-    BasicImage& operator=(const BasicImage& other) = delete;
-    BasicImage& operator=(BasicImage&& other) = delete;
+    BasicImage(const BasicImage& other) = default;
+    BasicImage(BasicImage&& other) = default;
+    BasicImage& operator=(const BasicImage& other) = default;
+    BasicImage& operator=(BasicImage&& other) = default;
 #ifdef _DEBUG
     static void debug_check(const BasicImage* image);
+    static void debug_check_leak(const BasicImage* image);
+    static void debug_check_memory_leak(const BasicImage* image);
     static void debug_not_bound_check(const BasicImage* image);
+
+
+#define DEBUG_CHECK_IMAGE(image_ptr) BasicImage::debug_check(image_ptr)
+#define DEBUG_CHECK_IMAGE_LEAK(image_ptr) BasicImage::debug_check_leak(image_ptr);
+#define DEBUG_CHECK_IMAGE_MEMORY_LEAK(image_ptr) BasicImage::debug_check_memory_leak(image_ptr);
+#define DEBUG_CHECK_IMAGE_NOT_BOUND(image_ptr) BasicImage::debug_not_bound_check(image_ptr)
 #else
-    static void debug_check(const BasicImage* image) {}
-    static void debug_not_bound_check(const BasicImage* image) {}
+#define DEBUG_CHECK_IMAGE(image_ptr) ((void)0)
+#define DEBUG_CHECK_IMAGE_NOT_BOUND(image_ptr)  ((void)0)
 #endif
 };
 

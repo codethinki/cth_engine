@@ -57,13 +57,14 @@ public:
 
     Device(const Device&) = delete;
     Device& operator=(const Device&) = delete;
-    Device(Device&&) = delete;
-    Device& operator=(Device&&) = delete;
+    Device(Device&&) = default;
+    Device& operator=(Device&&) = default;
 
 #ifdef _DEBUG
+#define DEBUG_CHECK_DEVICE(device_ptr) Device::debug_check(device_ptr)
     static void debug_check(const Device* device);
 #else
-    static void debug_check(const Device* device) {}
+#define DEBUG_CHECK_DEVICE(device_ptr) ((void)0)
 #endif
 };
 } // namespace cth

@@ -76,7 +76,7 @@ void ImageBarrier::applyChanges() const {
         auto& barrier = imageBarriers[index];
         auto& res = barrier.subresourceRange;
 
-        fill_n(image->state_.levelLayouts.begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
+        fill_n(image->_state.levelLayouts.begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
     }
 }
 

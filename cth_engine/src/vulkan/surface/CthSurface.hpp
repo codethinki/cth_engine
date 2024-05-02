@@ -13,19 +13,19 @@ class Window;
 
 class Surface {
 public:
-    explicit Surface(VkSurfaceKHR vk_surface, Instance* instance) : vkSurface(vk_surface), instance(instance) {}
+    explicit Surface(VkSurfaceKHR vk_surface, Instance* instance) : _vkSurface(vk_surface), _instance(instance) {}
     ~Surface() {
-        vkDestroySurfaceKHR(instance->get(), vkSurface, nullptr);
+        vkDestroySurfaceKHR(_instance->get(), _vkSurface, nullptr);
         log::msg("destroyed surface");
     }
 
 private:
-    VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
+    VkSurfaceKHR _vkSurface = VK_NULL_HANDLE;
 
-    Instance* instance;
+    Instance* _instance;
 
 public:
-    [[nodiscard]] VkSurfaceKHR get() const { return vkSurface; }
+    [[nodiscard]] VkSurfaceKHR get() const { return _vkSurface; }
 
     Surface(const Surface& other) = delete;
     Surface(Surface&& other) = delete;

@@ -18,6 +18,8 @@ public:
         VkMemoryPropertyFlags memory_property_flags);
     ~Buffer() override;
 
+    void wrap(VkBuffer vk_buffer, const State& state) override;
+
     /**
     * \brief creates the buffer
     * \note previous buffer will be destroyed
@@ -30,12 +32,6 @@ public:
     * \note new deletion queue will be cached
     */
     void destroy(DeletionQueue* deletion_queue = nullptr) override;
-
-    /**
-    * \param new_memory must not be allocated or nullptr
-    * \note destroys current memory
-    */
-    void setMemory(BasicMemory* new_memory) override;
 
     /**
      *\brief maps part of the buffer memory
@@ -73,7 +69,8 @@ public:
     * \param src_offset in elements
     * \param dst_offset in elements
     */
-    void copy(const CmdBuffer& cmd_buffer, const Buffer<T>& src, size_t copy_size = Constants::WHOLE_SIZE, size_t src_offset = 0, size_t dst_offset = 0) const;
+    void copy(const CmdBuffer& cmd_buffer, const Buffer<T>& src, size_t copy_size = Constants::WHOLE_SIZE, size_t src_offset = 0,
+        size_t dst_offset = 0) const;
 
     /**
     * \brief updates non-coherent host visible memory
@@ -96,19 +93,23 @@ public:
     */
     [[nodiscard]] VkDescriptorBufferInfo descriptorInfo(size_t size, size_t offset) const override;
 
-
 private:
-    void destroyMemory(DeletionQueue* deletion_queue = nullptr);
+    /**
+    * \param new_memory must not be allocated or nullptr
+    * \note destroys current memory
+    */
+    void setMemory(BasicMemory* new_memory) override;
 
-    size_t elements_;
-    DeletionQueue* deletionQueue;
+    size_t _elements;
+    DeletionQueue* _deletionQueue;
+
 public:
-    [[nodiscard]] uint32_t elements() const { return elements_; }
+    [[nodiscard]] uint32_t elements() const { return _elements; }
 
     Buffer(const Buffer& other) = delete;
+    Buffer(Buffer&& other) = default;
     Buffer& operator=(const Buffer& other) = delete;
-    Buffer(Buffer&& other) = delete;
-    Buffer& operator=(Buffer&& other) = delete;
+    Buffer& operator=(Buffer&& other) = default;
 };
 
 } // namespace cth
