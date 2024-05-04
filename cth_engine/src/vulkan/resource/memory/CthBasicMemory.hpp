@@ -1,18 +1,17 @@
 #pragma once
+#include "vulkan/utility/CthConstants.hpp"
 
+#include <cth/cth_memory.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 
 #include <span>
 
-#include "../buffer/CthBasicBuffer.hpp"
 
-namespace cth {
-class DeletionQueue;
-}
 
 namespace cth {
 class Device;
+class DeletionQueue;
 
 using std::span;
 
@@ -71,7 +70,7 @@ private:
     Device* _device;
     VkMemoryPropertyFlags _vkProperties;
     size_t _size = 0;
-    memory::basic_ptr<VkDeviceMemory_T> _handle = VK_NULL_HANDLE;
+    mem::basic_ptr<VkDeviceMemory_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] bool allocated() const { return _handle != VK_NULL_HANDLE; }
@@ -83,7 +82,7 @@ public:
     BasicMemory(BasicMemory&& other) = default;
     BasicMemory& operator=(const BasicMemory& other) = default;
     BasicMemory& operator=(BasicMemory&& other) = default;
-#ifdef _DEBUG
+#ifdef CONSTANT_DEBUG_MODE
 
     static void debug_check(const BasicMemory* memory);
     static void debug_check_leak(const BasicMemory* memory);

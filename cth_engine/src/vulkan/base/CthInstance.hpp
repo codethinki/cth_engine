@@ -1,85 +1,121 @@
 #pragma once
-#ifndef _FINAL
-#include "../debug/CthDebugMessenger.hpp"
-#endif
+
+#include "vulkan/utility/CthConstants.hpp"
+
+#include "vulkan/debug/CthDebugMessenger.hpp"
+
+#include <cth/cth_memory.hpp>
+#include <vulkan/vulkan.h>
 
 #include <array>
-#include <memory>
+#include <optional>
 #include <string_view>
 #include <vector>
-#include <vulkan/vulkan_core.h>
+
 
 
 namespace cth {
-using namespace std;
+class BasicDebugMessenger;
+
+class DeletionQueue;
 
 
-class Instance {
+class BasicInstance {
 public:
-    static constexpr array<const char*, 1> VALIDATION_LAYERS = {
-        "VK_LAYER_KHRONOS_validation"
-    };
-    static constexpr array<const char*, 1> VALIDATION_LAYER_EXTENSIONS{
-        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+    BasicInstance(std::string app_name, const std::vector<std::string>& required_extensions);
+    virtual ~BasicInstance() = default;
 
-    };
-
-    [[nodiscard]] VkInstance get() const { return vkInstance; }
-
-    [[nodiscard]] VkApplicationInfo appInfo() const;
-
-
-    [[nodiscard]] vector<string> availableExtensions() const { return availableExt; }
-    [[nodiscard]] vector<string> requiredExtensions() const { return availableExt; }
-    [[nodiscard]] vector<string> availableValidationLayers() const { return availableLayers; }
-
-private:
     /**
-     * \throws cth::except::vk_result_exception result of vkCreateInstance()
+     * wraps an existing VkInstance
      */
-    void create();
+    virtual void wrap(VkInstance vk_instance);
+
     /**
-     * \throws cth::except::default_exception reason: required extension not supported
-     */
+    * \throws cth::except::vk_result_exception result of vkCreateInstance()
+    * \note debug_messenger will not be stored
+    */
+    virtual void create(const std::optional<BasicDebugMessenger::Config>& messenger_config = std::nullopt);
+
+    void destroy(DeletionQueue* deletion_queue = nullptr);
+
+    /**
+ * \throws cth::except::default_exception reason: required extension not supported
+ */
     void checkInstanceExtensionSupport();
     /**
      * \throws cth::except::default_exception reason: required layers not supported
      */
     void checkValidationLayerSupport();
-    [[nodiscard]] static vector<string> getAvailableValidationLayers();
+    [[nodiscard]] static std::vector<std::string> getAvailableValidationLayers();
 
-    string name;
+    [[nodiscard]] static std::vector<std::string> getAvailableInstanceExtensions();
+    [[nodiscard]] VkApplicationInfo appInfo() const;
 
-    vector<string> requiredExt;
-    vector<string> availableExt;
-    vector<string> availableLayers{};
+    static void destroy(VkInstance vk_instance);
 
-    VkInstance vkInstance = VK_NULL_HANDLE;
-    unique_ptr<DebugMessenger> debugMessenger = nullptr;
+protected:
+    std::string _name;
 
+    std::vector<std::string> _requiredExt;
+    std::vector<std::string> _availableExt;
+    std::vector<std::string> _availableLayers{};
 
+private:
+    mem::basic_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
 
-    [[nodiscard]] static vector<string> getAvailableInstanceExtensions();
 public:
-    static constexpr bool ENABLE_VALIDATION_LAYERS = []() {
-#ifdef NDEBUG
-        return false;
+    [[nodiscard]] VkInstance get() const { return _handle.get(); }
+    [[nodiscard]] std::vector<std::string> availableExtensions() const { return _availableExt; }
+    [[nodiscard]] std::vector<std::string> requiredExtensions() const { return _availableExt; }
+    [[nodiscard]] std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
+
+    static constexpr std::array<const char*, 1> VALIDATION_LAYERS = {
+        "VK_LAYER_KHRONOS_validation"
+    };
+    static constexpr std::array<const char*, 1> VALIDATION_LAYER_EXTENSIONS{
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+
+    };
+
+#ifdef CONSTANT_DEBUG_MODE
+    static void debug_check(const BasicInstance* instance);
+    static void debug_check_leak(const BasicInstance* instance);
+
+
+#define DEBUG_CHECK_INSTANCE(instance_ptr) BasicInstance::debug_check(instance_ptr)
+#define DEBUG_CHECK_INSTANCE_LEAK(instance_ptr) BasicInstance::debug_check_leak(instance_ptr)
 #else
-        return true;
+#define DEBUG_CHECK_INSTANCE(instance_ptr) ((void)0)
+#define DEBUG_CHECK_INSTANCE_LEAK(instance_ptr) ((void)0)
 #endif
-    }();
+};
+}
+
+namespace cth {
+
+class Instance : public BasicInstance {
+public:
     /**
     * \throws cth::except::vk_result_exception result vkCreateInstance()
     * \throws cth::except::default_exception reason: missing required instance extensions
     * \throws cth::except::default_exception reason: missing required validation layers
     */
-    explicit Instance(string app_name, const vector<string>& required_extensions);
-    ~Instance();
+    explicit Instance(std::string app_name, const std::vector<std::string>& required_extensions);
+    ~Instance() override;
 
-    // Not copyable or movable
+    void wrap(VkInstance vk_instance) override;
+
+    void create(const std::optional<BasicDebugMessenger::Config>& messenger_config) override;
+
+private:
+#ifdef CONSTANT_DEBUG_MODE
+    std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
+#endif
+
+public:
     Instance(const Instance&) = delete;
     Instance& operator=(const Instance&) = delete;
-    Instance(Instance&&) = delete;
-    Instance& operator=(Instance&&) = delete;
+    Instance(Instance&&) = default;
+    Instance& operator=(Instance&&) = default;
 };
 }

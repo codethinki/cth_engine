@@ -119,7 +119,7 @@ public:
     * \param src_offset in bytes
     * \param dst_offset in bytes
      */
-    void copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src, size_t copy_size = Constants::WHOLE_SIZE, size_t src_offset = 0,
+    void copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src, size_t copy_size = Constant::WHOLE_SIZE, size_t src_offset = 0,
         size_t dst_offset = 0) const;
 
 
@@ -128,7 +128,7 @@ public:
      * \param size in bytes, Constants::WHOLE_SIZE -> whole buffer
      * \param offset in bytes
      */
-    [[nodiscard]] VkResult flush(size_t size = Constants::WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] VkResult flush(size_t size = Constant::WHOLE_SIZE, size_t offset = 0) const;
 
     /**
     * \brief
@@ -136,7 +136,7 @@ public:
     * \param offset in elements
     * \return result of vkInvalidateMappedMemoryRanges()
     */
-    [[nodiscard]] VkResult invalidate(size_t size = Constants::WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] VkResult invalidate(size_t size = Constant::WHOLE_SIZE, size_t offset = 0) const;
 
 
     /**
@@ -159,7 +159,7 @@ public:
     static size_t calcAlignedSize(size_t actual_size);
 
     struct State {
-        memory::basic_ptr<BasicMemory> memory = nullptr;
+        mem::basic_ptr<BasicMemory> memory = nullptr;
         bool bound = memory != nullptr;
         span<char> mapped{}; //must not specify an offset into the buffer
 
@@ -194,7 +194,7 @@ protected:
 private:
     void init() const;
 
-    memory::basic_ptr<VkBuffer_T> _handle = VK_NULL_HANDLE;
+    mem::basic_ptr<VkBuffer_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] auto get() const { return _handle.get(); }
@@ -211,7 +211,7 @@ public:
     BasicBuffer& operator=(const BasicBuffer& other) = default;
     BasicBuffer& operator=(BasicBuffer&& other) = default;
 
-#ifdef _DEBUG
+#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(const BasicBuffer* buffer);
     static void debug_check_leak(const BasicBuffer* buffer);
     static void debug_check_memory_leak(const BasicBuffer* buffer);

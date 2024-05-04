@@ -70,7 +70,7 @@ void BasicImage::bind(BasicMemory* new_memory) {
 void BasicImage::bind() {
     DEBUG_CHECK_IMAGE_NOT_BOUND(this);
     DEBUG_CHECK_IMAGE(this);
-    BasicMemory::debug_check(_state.memory.get());
+    DEBUG_CHECK_MEMORY(_state.memory.get());
 
     const auto bindResult = vkBindImageMemory(_device->get(), _handle.get(), _state.memory->get(), 0);
 
@@ -132,7 +132,7 @@ void BasicImage::transitionLayout(ImageBarrier& barrier, const VkImageLayout new
 
     const auto oldLayout = _state.levelLayouts[first_mip_level];
     CTH_ERR(any_of(_state.levelLayouts.begin() + first_mip_level,
-        mip_levels == Constants::ALL ? _state.levelLayouts.end() : _state.levelLayouts.begin() + first_mip_level + mip_levels,
+        mip_levels == Constant::ALL ? _state.levelLayouts.end() : _state.levelLayouts.begin() + first_mip_level + mip_levels,
         [oldLayout](VkImageLayout layout) { return oldLayout != layout; }), "all transitioned layouts must be the same")
         throw details->exception();
 
@@ -197,7 +197,7 @@ void BasicImage::init() {
 
 
 
-#ifdef _DEBUG
+#ifdef CONSTANT_DEBUG_MODE
 void BasicImage::debug_check(const BasicImage* image) {
     CTH_ERR(image == nullptr, "image must not be nullptr") throw details->exception();
     CTH_ERR(image->_handle == VK_NULL_HANDLE, "image must be a valid handle") throw details->exception();

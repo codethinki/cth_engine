@@ -94,13 +94,13 @@ public:
      * \brief transitions the image layout via a pipeline barrier
      * \param mip_levels (Constants::ALL => all remaining)
      */
-    void transitionLayout(const CmdBuffer& cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = Constants::ALL);
+    void transitionLayout(const CmdBuffer& cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = Constant::ALL);
     /**
     * \brief adds the transition to the pipeline barrier
     * \param mip_levels (Constants::ALL => all remaining)
     */
     void transitionLayout(ImageBarrier& barrier, VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access,
-        uint32_t first_mip_level = 0, uint32_t mip_levels = Constants::ALL);
+        uint32_t first_mip_level = 0, uint32_t mip_levels = Constant::ALL);
 
 
     static void destroy(const Device* device, VkImage vk_image);
@@ -120,7 +120,7 @@ public:
     };
     struct State {
         vector<VkImageLayout> levelLayouts{}; // levelLayouts.size() < mipLevels => remaining levels are config.initialLayout
-        memory::basic_ptr<BasicMemory> memory = nullptr;
+        mem::basic_ptr<BasicMemory> memory = nullptr;
         bool bound = memory != nullptr;
         static State Default() { return State{}; }
 
@@ -155,7 +155,7 @@ private:
 
     void init();
 
-    memory::basic_ptr<VkImage_T> _handle = VK_NULL_HANDLE;
+    mem::basic_ptr<VkImage_T> _handle = VK_NULL_HANDLE;
 
     friend ImageBarrier;
 
@@ -177,7 +177,7 @@ public:
     BasicImage(BasicImage&& other) = default;
     BasicImage& operator=(const BasicImage& other) = default;
     BasicImage& operator=(BasicImage&& other) = default;
-#ifdef _DEBUG
+#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(const BasicImage* image);
     static void debug_check_leak(const BasicImage* image);
     static void debug_check_memory_leak(const BasicImage* image);

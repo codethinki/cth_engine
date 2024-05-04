@@ -1,4 +1,4 @@
-#include "CthDebugMessenger.hpp"
+#include "CthBasicDebugMessenger.hpp"
 
 #include "vulkan/base/CthInstance.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
@@ -8,15 +8,14 @@
 
 
 namespace cth {
-BasicDebugMessenger::BasicDebugMessenger(BasicInstance* instance, const Config& config) : _instance{instance} {
-    DEBUG_CHECK_INSTANCE(instance);
-    create(config);
-}
 
-void BasicDebugMessenger::create(const Config& config) {
+void BasicDebugMessenger::create(BasicInstance* instance) {
+    _instance = instance;
+
+    DEBUG_CHECK_INSTANCE(instance);
     DEBUG_CHECK_MESSENGER_LEAK(this);
 
-    const VkDebugUtilsMessengerCreateInfoEXT info = config.createInfo();
+    const VkDebugUtilsMessengerCreateInfoEXT info = _config.createInfo();
 
     const auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(_instance->get(), "vkCreateDebugUtilsMessengerEXT"));
@@ -45,7 +44,12 @@ void BasicDebugMessenger::destroy(const BasicInstance* instance, VkDebugUtilsMes
     CTH_WARN(vk_messenger == VK_NULL_HANDLE, "messenger invalid");
     DEBUG_CHECK_INSTANCE(instance);
 
-    vkDestroyDebugUtilsMessengerEXT(instance->get(), vk_messenger, nullptr);
+    const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+        vkGetInstanceProcAddr(instance->get(), "vkDestroyDebugUtilsMessengerEXT"));
+
+    CTH_STABLE_ERR(func == nullptr, "vkGetInstanceProcAddr returned nullptr") throw details->exception();
+
+    func(instance->get(), vk_messenger, nullptr);
 }
 #ifdef CONSTANT_DEBUG_MODE
 void BasicDebugMessenger::debug_check(const BasicDebugMessenger* debug_messenger) {
@@ -86,7 +90,6 @@ namespace cth::dev {
 VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     const VkDebugUtilsMessageTypeFlagsEXT message_type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void* user_data) {
-
     except::Severity severity = except::CRITICAL;
 
     if(message_severity <= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) severity = except::LOG;

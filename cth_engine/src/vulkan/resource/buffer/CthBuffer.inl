@@ -75,7 +75,7 @@ void Buffer<T>::write(span<const T> data, const size_t mapped_offset) const {
 template<typename T>
 void Buffer<T>::copy(const CmdBuffer& cmd_buffer, const Buffer<T>& src, const size_t copy_size, const size_t src_offset,
     const size_t dst_offset) const {
-    copy_size = copy_size == Constants::WHOLE_SIZE ? Constants::WHOLE_SIZE : copy_size * sizeof(T);
+    copy_size = copy_size == Constant::WHOLE_SIZE ? Constant::WHOLE_SIZE : copy_size * sizeof(T);
     BasicBuffer::copy(cmd_buffer, src, copy_size, src_offset * sizeof(T), dst_offset * sizeof(T));
 }
 
@@ -88,7 +88,7 @@ VkResult Buffer<T>::invalidate(const size_t size, const size_t offset) const { r
 
 template<typename T>
 VkDescriptorBufferInfo Buffer<T>::descriptorInfo(const size_t size, const size_t offset) const {
-    if(size == Constants::WHOLE_SIZE) return BasicBuffer::descriptorInfo(Constants::WHOLE_SIZE, 0);
+    if(size == Constant::WHOLE_SIZE) return BasicBuffer::descriptorInfo(Constant::WHOLE_SIZE, 0);
     return BasicBuffer::descriptorInfo(size * sizeof(T), offset * sizeof(T));
 }
 

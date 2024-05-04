@@ -1,7 +1,7 @@
 #pragma once
 #include <cth/cth_exception.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 
 
 #include <algorithm>
@@ -70,7 +70,7 @@ namespace cth::utils {
     };
 
     std::array<bool, 55> ret{};
-    ranges::transform(arr, ret.begin(), [](const VkBool32& b) { return b == VK_TRUE; });
+    std::ranges::transform(arr, ret.begin(), [](const VkBool32& b) { return b == VK_TRUE; });
 
     return ret;
 };
@@ -136,7 +136,7 @@ namespace cth::utils {
 }
 
 
-inline string to_string(const VkResult result) {
+inline std::string to_string(const VkResult result) {
     switch(result) {
         case VK_SUCCESS: return "VK_SUCCESS";
         case VK_NOT_READY: return "VK_NOT_READY";
@@ -212,9 +212,9 @@ inline std::string to_string(const VkDescriptorType type) {
     }
 }
 
-[[nodiscard]] inline vector<const char*> toCharVec(const vector<string>& str_vec) {
-    vector<const char*> charVec(str_vec.size());
-    ranges::transform(str_vec, charVec.begin(), [](const string& str) { return str.c_str(); });
+[[nodiscard]] inline std::vector<const char*> toCharVec(const std::vector<std::string>& str_vec) {
+    std::vector<const char*> charVec(str_vec.size());
+    std::ranges::transform(str_vec, charVec.begin(), [](const std::string& str) { return str.c_str(); });
 
     return charVec;
 }
@@ -226,12 +226,12 @@ inline std::string to_string(const VkDescriptorType type) {
 namespace cth::except {
 class vk_result_exception : public cth::except::default_exception {
 public:
-    vk_result_exception(const VkResult result, cth::except::default_exception ex) : default_exception(ex), vkResult(result) {
-        ex.add("error code {0} ({1})", cth::to_string(vkResult), static_cast<int>(vkResult));
+    vk_result_exception(const VkResult result, cth::except::default_exception ex) : default_exception(ex), _vkResult(result) {
+        ex.add("error code {0} ({1})", utils::to_string(_vkResult), static_cast<int>(_vkResult));
     }
-    [[nodiscard]] VkResult result() const noexcept { return vkResult; }
+    [[nodiscard]] VkResult result() const noexcept { return _vkResult; }
 
 private:
-    VkResult vkResult;
+    VkResult _vkResult;
 };
 }

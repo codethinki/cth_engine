@@ -69,7 +69,7 @@ public:
     * \param src_offset in elements
     * \param dst_offset in elements
     */
-    void copy(const CmdBuffer& cmd_buffer, const Buffer<T>& src, size_t copy_size = Constants::WHOLE_SIZE, size_t src_offset = 0,
+    void copy(const CmdBuffer& cmd_buffer, const Buffer<T>& src, size_t copy_size = Constant::WHOLE_SIZE, size_t src_offset = 0,
         size_t dst_offset = 0) const;
 
     /**
@@ -77,7 +77,7 @@ public:
     * \param size in elements, Constants::WHOLE_SIZE -> whole buffer
     * \param offset in elements
      */
-    [[nodiscard]] VkResult flush(size_t size = Constants::WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] VkResult flush(size_t size = Constant::WHOLE_SIZE, size_t offset = 0) const;
 
     /**
      * \brief 
@@ -85,7 +85,7 @@ public:
      * \param offset in elements
      * \return result of vkInvalidateMappedMemoryRanges()
      */
-    [[nodiscard]] VkResult invalidate(size_t size = Constants::WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] VkResult invalidate(size_t size = Constant::WHOLE_SIZE, size_t offset = 0) const;
 
     /**
     * \param size in elements, Constants::WHOLE_SIZE -> whole buffer

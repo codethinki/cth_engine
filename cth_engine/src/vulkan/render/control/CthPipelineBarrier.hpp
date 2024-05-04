@@ -19,13 +19,13 @@ class PipelineBarrier;
 
 struct PipelineStages {
 
-    VkPipelineStageFlags srcStage = Constants::PIPELINE_STAGE_IGNORED;
-    VkPipelineStageFlags dstStage = Constants::PIPELINE_STAGE_IGNORED;
+    VkPipelineStageFlags srcStage = Constant::PIPELINE_STAGE_IGNORED;
+    VkPipelineStageFlags dstStage = Constant::PIPELINE_STAGE_IGNORED;
 };
 
 struct PipelineAccess {
-    VkAccessFlags accessMask = Constants::DEFAULT_ACCESS;
-    uint32_t queueFamilyIndex = Constants::QUEUE_FAMILY_IGNORED;
+    VkAccessFlags accessMask = Constant::DEFAULT_ACCESS;
+    uint32_t queueFamilyIndex = Constant::QUEUE_FAMILY_IGNORED;
 };
 } // namespace cth
 
@@ -138,10 +138,10 @@ namespace cth {
 struct ImageBarrier::Info {
 
 
-    VkImageAspectFlagBits aspectMask = Constants::ASPECT_MASK_IGNORED; //Constants::ASPECT_MASK_IGNORED => image default aspect
+    VkImageAspectFlagBits aspectMask = Constant::ASPECT_MASK_IGNORED; //Constants::ASPECT_MASK_IGNORED => image default aspect
     uint32_t firstMipLevel = 0;
-    uint32_t levels = Constants::ALL; //Constants::ALL => all remaining
-    VkImageLayout newLayout = Constants::IMAGE_LAYOUT_IGNORED; //Constants::IMAGE_LAYOUT_IGNORED => old layout
+    uint32_t levels = Constant::ALL; //Constants::ALL => all remaining
+    VkImageLayout newLayout = Constant::IMAGE_LAYOUT_IGNORED; //Constants::IMAGE_LAYOUT_IGNORED => old layout
 
     PipelineAccess src;
     PipelineAccess dst;

@@ -1,5 +1,5 @@
 #pragma once
-#include "interface/CthEngineSettings.hpp"
+#include "vulkan/utility/CthConstants.hpp"
 
 #include <vulkan/vulkan.h>
 
@@ -7,20 +7,25 @@
 #include <variant>
 #include <vector>
 
-#include "vulkan/utility/CthConstants.hpp"
 
 namespace cth {
-class Device;
+class Context;
 
-using std::vector;
-using std::variant;
-using std::array;
 
 class DeletionQueue {
 public:
-    using deletable_handle_t = variant<VkDeviceMemory, VkBuffer, VkImage, VkSemaphore>;
+    using deletable_handle_t = std::variant<
+        //resource
+        VkDeviceMemory, VkBuffer, VkImage,
+        //control
+        VkSemaphore,
+        //debug
+        VkDebugUtilsMessengerEXT,
+        //base
+        VkInstance
+    >;
 
-    explicit DeletionQueue(Device* device);
+    explicit DeletionQueue(Context* context);
     ~DeletionQueue();
 
     void push(deletable_handle_t handle);
@@ -28,18 +33,22 @@ public:
     void next(const uint32_t next_frame) { _frame = next_frame; }
 
 private:
-    static constexpr size_t QUEUES = Constants::MAX_FRAMES_IN_FLIGHT;
+    static constexpr size_t QUEUES = Constant::MAX_FRAMES_IN_FLIGHT;
     uint32_t _frame = 0;
-    Device* _device;
-    array<vector<deletable_handle_t>, QUEUES> _queue;
+    Context* _context;
+    std::array<std::vector<deletable_handle_t>, QUEUES> _queue;
 
 public:
     [[nodiscard]] uint32_t currentFrame() const { return _frame; }
 
-#ifdef _DEBUG
-#define  DEBUG_CHECK_DELETION_QUEUE(deletion_queue_ptr) DeletionQueue::debug_check(deletion_queue_ptr)
+    DeletionQueue(const DeletionQueue& other) = delete;
+    DeletionQueue(DeletionQueue&& other) = default;
+    DeletionQueue& operator=(const DeletionQueue& other) = delete;
+    DeletionQueue& operator=(DeletionQueue&& other) = default;
 
+#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(const DeletionQueue* queue);
+#define DEBUG_CHECK_DELETION_QUEUE(deletion_queue_ptr) DeletionQueue::debug_check(deletion_queue_ptr)
 #else
 #define DEBUG_CHECK_DELETION_QUEUE(deletion_queue_ptr) ((void)0)
 #endif

@@ -40,7 +40,6 @@
     <ClInclude Include="include\vulkan\cth_resource.hpp" />
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
     <ClInclude Include="src\CthEngine.hpp" />
-    <ClInclude Include="src\interface\CthEngineSettings.hpp" />
     <ClInclude Include="src\interface\object\HlcRenderObject.hpp" />
     <ClInclude Include="src\interface\object\HlcStandardObject.hpp" />
     <ClInclude Include="src\interface\user\HlcCamera.hpp" />
@@ -50,6 +49,7 @@
     <ClInclude Include="src\vulkan\base\CthInstance.hpp" />
     <ClInclude Include="src\vulkan\base\CthPhysicalDevice.hpp" />
     <ClInclude Include="src\vulkan\base\CthQueue.hpp" />
+    <ClInclude Include="src\vulkan\debug\CthBasicDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthPipelineBarrier.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdBuffer.hpp" />
@@ -84,6 +84,7 @@
     <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
+    <ClInclude Include="src\vulkan\base\CthContext.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -102,9 +103,10 @@
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
     <ClCompile Include="src\vulkan\base\CthPhysicalDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthQueue.cpp" />
+    <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
     <ClCompile Include="src\vulkan\resource\CthDeletionQueue.cpp" />
-    <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
+    <ClCompile Include="src\vulkan\debug\CthBasicDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthPipelineBarrier.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdPool.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdBuffer.cpp" />

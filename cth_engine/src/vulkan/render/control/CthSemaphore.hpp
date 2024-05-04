@@ -22,7 +22,7 @@ protected:
     Device* _device;
 
 private:
-    memory::basic_ptr<VkSemaphore_T> _handle{};
+    mem::basic_ptr<VkSemaphore_T> _handle{};
 
 public:
     [[nodiscard]] VkSemaphore get() const { return _handle.get(); }
@@ -38,7 +38,7 @@ public:
 
 #define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) BasicSemaphore::debug_check(semaphore_ptr)
 #define DEBUG_CHECK_SEMAPHORE_REPLACE(semaphore_ptr) BasicSemaphore::debug_check_replace(semaphore_ptr)
-#elif
+#else
 #define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) ((void)0)
 #define DEBUG_CHECK_SEMAPHORE_REPLACE(semaphore_ptr)  ((void)0)
 #endif

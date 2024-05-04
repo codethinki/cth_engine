@@ -1,8 +1,11 @@
 #pragma once
-#include <memory>
-#include <vector>
+#include "vulkan/utility/CthConstants.hpp"
+
+#include <cth/cth_memory.hpp>
 
 #include <vulkan/vulkan.h>
+
+#include <vector>
 
 
 namespace cth {
@@ -31,9 +34,8 @@ private:
     Instance* _instance;
     PhysicalDevice* _physicalDevice;
 
-    VkCommandPool _commandPool = VK_NULL_HANDLE;
 
-    VkDevice _vkDevice = VK_NULL_HANDLE;
+    mem::basic_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
     VkQueue _vkGraphicsQueue = VK_NULL_HANDLE;
     VkQueue _vkPresentQueue = VK_NULL_HANDLE;
 
@@ -44,8 +46,7 @@ private:
     static constexpr uint32_t GRAPHICS_QUEUE_I = 1;
 
 public:
-    [[nodiscard]] VkCommandPool getCommandPool() const { return _commandPool; }
-    [[nodiscard]] VkDevice get() const { return _vkDevice; }
+    [[nodiscard]] VkDevice get() const { return _handle.get(); }
     [[nodiscard]] VkQueue graphicsQueue() const { return _vkGraphicsQueue; }
     [[nodiscard]] VkQueue presentQueue() const { return _vkPresentQueue; }
     [[nodiscard]] uint32_t graphicsQueueIndex() const { return _queueIndices[GRAPHICS_QUEUE_I]; }
@@ -60,9 +61,9 @@ public:
     Device(Device&&) = default;
     Device& operator=(Device&&) = default;
 
-#ifdef _DEBUG
-#define DEBUG_CHECK_DEVICE(device_ptr) Device::debug_check(device_ptr)
+#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(const Device* device);
+#define DEBUG_CHECK_DEVICE(device_ptr) Device::debug_check(device_ptr)
 #else
 #define DEBUG_CHECK_DEVICE(device_ptr) ((void)0)
 #endif

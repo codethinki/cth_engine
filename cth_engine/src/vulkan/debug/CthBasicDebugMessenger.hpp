@@ -7,7 +7,11 @@
 
 #include <functional>
 
-
+namespace cth::dev {
+VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+    void* user_data);
+}
 
 namespace cth {
 class BasicInstance;
@@ -24,32 +28,51 @@ public:
     /**
     * \note implicitly calls create(...);
     */
-    explicit BasicDebugMessenger(BasicInstance* instance, const Config& config);
-    ~BasicDebugMessenger() = default;
+    explicit BasicDebugMessenger(Config config) : _config{std::move(config)} {}
+    virtual ~BasicDebugMessenger() = default;
 
     /**
      * \throws cth::except::default_exception reason: messenger already active
      * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      * \throws cth::except::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
      */
-    void create(const Config& config);
+    virtual void create(BasicInstance* instance);
 
     /**
      * \throws cth::except::default_exception reason: messenger not active
      * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      */
-    void destroy(DeletionQueue* deletion_queue = nullptr);
+    virtual void destroy(DeletionQueue* deletion_queue = nullptr);
 
 
     static void destroy(const BasicInstance* instance, VkDebugUtilsMessengerEXT vk_messenger);
 
-private:
+    struct Config {
+        std::function<callback_t> callback = dev::defaultDebugCallback;
+        VkDebugUtilsMessageSeverityFlagsEXT messageSeverities = Constant::DEBUG_MESSAGE_SEVERITY;
+        VkDebugUtilsMessageTypeFlagsEXT messageTypes = Constant::DEBUG_MESSAGE_TYPE;
+
+
+        static Config Default(const std::function<callback_t>& callback = nullptr) {
+            return Config{
+                .callback = callback == nullptr ? dev::defaultDebugCallback : callback,
+            };
+        }
+
+
+        [[nodiscard]] VkDebugUtilsMessengerCreateInfoEXT createInfo() const;
+    };
+
+protected:
     BasicInstance* _instance = nullptr;
+    Config _config;
+
+private:
     mem::basic_ptr<VkDebugUtilsMessengerEXT_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
-
+    [[nodiscard]] Config config() const { return _config; }
 
     BasicDebugMessenger(const BasicDebugMessenger&) = default;
     BasicDebugMessenger& operator=(const BasicDebugMessenger&) = default;
@@ -62,38 +85,11 @@ public:
 
 #define DEBUG_CHECK_MESSENGER(messenger_ptr) BasicDebugMessenger::debug_check(messenger_ptr)
 #define DEBUG_CHECK_MESSENGER_LEAK(messenger_ptr) BasicDebugMessenger::debug_check_leak(messenger_ptr)
-#elif
+#else
 #define DEBUG_CHECK_MESSENGER(messenger_ptr) ((void)0)
 #define DEBUG_CHECK_MESSENGER_LEAK(messenger_ptr) ((void)0)
 #endif
 
 
-};
-} // namespace cth
-
-namespace cth::dev {
-VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-    VkDebugUtilsMessageTypeFlagsEXT message_type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
-    void* user_data);
-}
-
-//Config
-
-namespace cth {
-struct BasicDebugMessenger::Config {
-    std::function<callback_t> callback = dev::defaultDebugCallback;
-    VkDebugUtilsMessageSeverityFlagsEXT messageSeverities = Constant::DEBUG_MESSAGE_SEVERITY;
-    VkDebugUtilsMessageTypeFlagsEXT messageTypes = Constant::DEBUG_MESSAGE_TYPE;
-
-
-    static Config Default(const std::function<callback_t>& callback = nullptr) {
-        return Config{
-            .callback = callback == nullptr ? dev::defaultDebugCallback : callback,
-        };
-    }
-
-private:
-    [[nodiscard]] VkDebugUtilsMessengerCreateInfoEXT createInfo() const;
-    friend BasicDebugMessenger;
 };
 } // namespace cth

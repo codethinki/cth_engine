@@ -8,21 +8,22 @@
 #include <vector>
 
 
-namespace cth {}
 
 namespace cth {
+class Context;
+class DeletionQueue;
 class Device;
 class Window;
-class Camera;
-class DeletionQueue;
 class CmdPool;
 class PrimaryCmdBuffer;
+
+class Camera;
 
 
 using namespace std;
 class Renderer {
 public:
-    explicit Renderer(Device* device, Camera* camera, Window* window);
+    explicit Renderer(Device* device, DeletionQueue* deletion_queue, Camera* camera, Window* window);
     ~Renderer();
 
     /**
@@ -56,7 +57,6 @@ private:
     void recreateSwapchain();
 
     void init();
-    void createDeletionQueue();
     void createSwapchain();
     void createCmdPools();
     void createPrimaryCmdBuffers();
@@ -64,9 +64,9 @@ private:
     Device* _device;
     Camera* _camera;
     Window* _window;
+    DeletionQueue* _deletionQueue;
 
     unique_ptr<Swapchain> _swapchain;
-    unique_ptr<DeletionQueue> _deletionQueue;
 
     static constexpr size_t PRESENT_QUEUE_I = 0;
     vector<unique_ptr<CmdPool>> _cmdPools;

@@ -44,7 +44,7 @@ Swapchain::~Swapchain() {
 
     vkDestroyRenderPass(_device->get(), _renderPass, nullptr);
 
-    for(size_t i = 0; i < Constants::MAX_FRAMES_IN_FLIGHT; i++) {
+    for(size_t i = 0; i < Constant::MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroySemaphore(_device->get(), _renderFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(_device->get(), _imageAvailableSemaphores[i], nullptr);
         vkDestroyFence(_device->get(), _inFlightFences[i], nullptr);
@@ -81,7 +81,7 @@ VkResult Swapchain::submitCommandBuffer(DeletionQueue* deletion_queue, const Pri
 
     const auto presentResult = present(image_index);
 
-    ++_currentFrame %= Constants::MAX_FRAMES_IN_FLIGHT;
+    ++_currentFrame %= Constant::MAX_FRAMES_IN_FLIGHT;
     return presentResult;
 }
 void Swapchain::changeSwapchainImageQueue(const uint32_t release_queue, const CmdBuffer* release_cmd_buffer, const uint32_t acquire_queue,
@@ -139,7 +139,7 @@ VkSampleCountFlagBits Swapchain::evalMsaaSampleCount() const {
     const uint32_t maxSamples = _device->physical()->maxSampleCount() / 2; //TODO add proper max_sample_count selection
 
     uint32_t samples = 1;
-    while(samples < maxSamples && samples < Constants::MAX_MSAA_SAMPLES) samples *= 2;
+    while(samples < maxSamples && samples < Constant::MAX_MSAA_SAMPLES) samples *= 2;
 
     return static_cast<VkSampleCountFlagBits>(samples);
 }
@@ -421,9 +421,9 @@ void Swapchain::createFramebuffers() {
 }
 
 void Swapchain::createSyncObjects() {
-    _imageAvailableSemaphores.resize(Constants::MAX_FRAMES_IN_FLIGHT);
-    _renderFinishedSemaphores.resize(Constants::MAX_FRAMES_IN_FLIGHT);
-    _inFlightFences.resize(Constants::MAX_FRAMES_IN_FLIGHT);
+    _imageAvailableSemaphores.resize(Constant::MAX_FRAMES_IN_FLIGHT);
+    _renderFinishedSemaphores.resize(Constant::MAX_FRAMES_IN_FLIGHT);
+    _inFlightFences.resize(Constant::MAX_FRAMES_IN_FLIGHT);
     _imagesInFlight.resize(imageCount(), VK_NULL_HANDLE);
 
     VkSemaphoreCreateInfo semaphoreInfo = {};
@@ -433,7 +433,7 @@ void Swapchain::createSyncObjects() {
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for(size_t i = 0; i < Constants::MAX_FRAMES_IN_FLIGHT; i++) {
+    for(size_t i = 0; i < Constant::MAX_FRAMES_IN_FLIGHT; i++) {
         const VkResult createWaitSemaphoreResult = vkCreateSemaphore(_device->get(), &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]);
         const VkResult createSignalSemaphoreResult = vkCreateSemaphore(_device->get(), &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]);
         const VkResult createFenceResult = vkCreateFence(_device->get(), &fenceInfo, nullptr, &_inFlightFences[i]);

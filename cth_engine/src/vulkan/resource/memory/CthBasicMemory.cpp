@@ -99,7 +99,7 @@ void BasicMemory::free(const Device* device, VkDeviceMemory memory) {
 void BasicMemory::init() const { DEBUG_CHECK_DEVICE(_device); }
 
 
-#ifdef _DEBUG
+#ifdef CONSTANT_DEBUG_MODE
 void BasicMemory::debug_check(const BasicMemory* memory) {
     CTH_ERR(memory == nullptr, "memory must not be nullptr") throw details->exception();
     CTH_ERR(memory->_handle == VK_NULL_HANDLE, "memory must be a valid handle") throw details->exception();

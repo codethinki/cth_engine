@@ -16,7 +16,7 @@
 
 
 namespace cth {
-Renderer::Renderer(Device* device, Camera* camera, Window* window) : _device{device}, _camera{camera}, _window(window), _currentImageIndex{0} { init(); }
+Renderer::Renderer(Device* device, DeletionQueue* deletion_queue, Camera* camera, Window* window) : _device{device}, _deletionQueue(deletion_queue), _camera{camera}, _window(window), _currentImageIndex{0} { init(); }
 Renderer::~Renderer() {
 
     _cmdBuffers.clear();
@@ -62,7 +62,7 @@ void Renderer::endFrame() {
     CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
         throw cth::except::vk_result_exception{recordResult, details->exception()};
 
-    const VkResult submitResult = _swapchain->submitCommandBuffer(_deletionQueue.get(), cmdBuffer, _currentImageIndex);
+    const VkResult submitResult = _swapchain->submitCommandBuffer(_deletionQueue, cmdBuffer, _currentImageIndex);
 
 
     if(submitResult == VK_ERROR_OUT_OF_DATE_KHR || submitResult == VK_SUBOPTIMAL_KHR || _window->windowResized()) {
@@ -74,7 +74,7 @@ void Renderer::endFrame() {
             throw cth::except::vk_result_exception{submitResult, details->exception()};
 
     _frameStarted = false;
-    ++_currentFrameIndex %= Constants::MAX_FRAMES_IN_FLIGHT;
+    ++_currentFrameIndex %= Constant::MAX_FRAMES_IN_FLIGHT;
 }
 
 void Renderer::beginSwapchainRenderPass(const PrimaryCmdBuffer* command_buffer) const {
@@ -158,12 +158,12 @@ void Renderer::recreateSwapchain() {
     vkDeviceWaitIdle(_device->get());
 
     if(_swapchain == nullptr) {
-        _swapchain = make_unique<Swapchain>(_device, _deletionQueue.get(), windowExtent, _window->surface());
+        _swapchain = make_unique<Swapchain>(_device, _deletionQueue, windowExtent, _window->surface());
         return;
     }
 
     shared_ptr oldSwapchain = std::move(_swapchain);
-    _swapchain = make_unique<Swapchain>(_device, _deletionQueue.get(), windowExtent, _window->surface(), oldSwapchain);
+    _swapchain = make_unique<Swapchain>(_device, _deletionQueue, windowExtent, _window->surface(), oldSwapchain);
 
     //TODO i dont understand why the formats cant change?
     const bool change = oldSwapchain->compareSwapFormats(*_swapchain);
@@ -173,28 +173,27 @@ void Renderer::recreateSwapchain() {
 }
 
 void Renderer::init() {
-    createDeletionQueue();
     createSwapchain();
     createCmdPools();
     createPrimaryCmdBuffers();
 }
 void Renderer::createSwapchain() {
     vkDeviceWaitIdle(_device->get());
-    _swapchain = make_unique<Swapchain>(_device, _deletionQueue.get(), _window->extent(), _window->surface());
+    _swapchain = make_unique<Swapchain>(_device, _deletionQueue, _window->extent(), _window->surface());
 }
 void Renderer::createCmdPools() {
     for(auto index : _device->uniqueQueueIndices())
-        _cmdPools.emplace_back(make_unique<CmdPool>(_device, CmdPool::Config::Default(index, Constants::MAX_FRAMES_IN_FLIGHT + 1, 0)));
+        _cmdPools.emplace_back(make_unique<CmdPool>(_device, CmdPool::Config::Default(index, Constant::MAX_FRAMES_IN_FLIGHT + 1, 0)));
 }
 void Renderer::createPrimaryCmdBuffers() {
     _cmdBuffers.resize(_cmdPools.size());
     for(auto [cmdPool, buffers] : views::zip(_cmdPools, _cmdBuffers)) {
-        buffers.reserve(Constants::MAX_FRAMES_IN_FLIGHT + 1);
-        for(size_t i = 0; i < Constants::MAX_FRAMES_IN_FLIGHT; ++i)
+        buffers.reserve(Constant::MAX_FRAMES_IN_FLIGHT + 1);
+        for(size_t i = 0; i < Constant::MAX_FRAMES_IN_FLIGHT; ++i)
             buffers.emplace_back(make_unique<PrimaryCmdBuffer>(cmdPool.get()));
     }
 }
-void Renderer::createDeletionQueue() { _deletionQueue = make_unique<DeletionQueue>(_device); }
+
 
 uint32_t Renderer::frameIndex() const {
     CTH_ERR(!_frameStarted, "no frame active") throw details->exception();
@@ -205,7 +204,7 @@ const PrimaryCmdBuffer* Renderer::commandBuffer() const {
     CTH_ERR(!_frameStarted, "no frame active") throw details->exception();
     return _cmdBuffers.back()[_currentFrameIndex].get();
 }
-DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue.get(); }
+DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 
 
 

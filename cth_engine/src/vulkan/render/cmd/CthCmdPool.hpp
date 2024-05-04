@@ -48,7 +48,7 @@ public:
     struct CmdPool::Config {
         size_t maxPrimaryBuffers = 0;
         size_t maxSecondaryBuffers = 0;
-        uint32_t queueFamilyIndex = Constants::QUEUE_FAMILY_IGNORED;
+        uint32_t queueFamilyIndex = Constant::QUEUE_FAMILY_IGNORED;
         VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
         static Config Default(const uint32_t queue_family_index, const uint32_t max_primary_buffers, const uint32_t max_secondary_buffers) {

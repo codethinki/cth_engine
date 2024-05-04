@@ -1,5 +1,4 @@
 #pragma once
-#include "interface/CthEngineSettings.hpp"
 #include "vulkan/render/pass/cth_render_pass_utils.hpp"
 #include "vulkan/resource/image/CthBasicImage.hpp"
 #include "vulkan/resource/image/CthImageView.hpp"

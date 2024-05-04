@@ -24,9 +24,7 @@ Device::Device(PhysicalDevice* physical_device, const Surface* surface, Instance
     setQueues();
 }
 Device::~Device() {
-    vkDestroyCommandPool(_vkDevice, _commandPool, nullptr);
-
-    vkDestroyDevice(_vkDevice, nullptr);
+    vkDestroyDevice(_handle.get(), nullptr);
 
     cth::log::msg<except::LOG>("destroyed device");
 }
@@ -67,22 +65,25 @@ void Device::createLogicalDevice() {
 
     // might not really be necessary anymore because device specific validation layers
     // have been deprecated
-    if constexpr(Instance::ENABLE_VALIDATION_LAYERS) {
+    if constexpr(Constant::ENABLE_VALIDATION_LAYERS) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(Instance::VALIDATION_LAYERS.size());
         createInfo.ppEnabledLayerNames = Instance::VALIDATION_LAYERS.data();
     } else createInfo.enabledLayerCount = 0;
 
+    VkDevice ptr = VK_NULL_HANDLE;
 
-    const VkResult createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &_vkDevice);
+    const VkResult createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create logical device")
         throw cth::except::vk_result_exception{createResult, details->exception()};
+
+    _handle = ptr;
 }
 void Device::setQueues() {
-    vkGetDeviceQueue(_vkDevice, _queueIndices[GRAPHICS_QUEUE_I], 0, &_vkGraphicsQueue);
-    vkGetDeviceQueue(_vkDevice, _queueIndices[PRESENT_QUEUE_I], 0, &_vkPresentQueue);
+    vkGetDeviceQueue(_handle.get(), _queueIndices[GRAPHICS_QUEUE_I], 0, &_vkGraphicsQueue);
+    vkGetDeviceQueue(_handle.get(), _queueIndices[PRESENT_QUEUE_I], 0, &_vkPresentQueue);
 }
 
-#ifdef _DEBUG
+#ifdef CONSTANT_DEBUG_MODE
 void Device::debug_check(const Device* device) {
     CTH_ERR(device == nullptr, "device must not be nullptr") throw details->exception();
     CTH_ERR(device->get() == VK_NULL_HANDLE, "device must be created") throw details->exception();
