@@ -14,7 +14,7 @@
 namespace cth {
 class BasicMemory;
 class CmdBuffer;
-class Device;
+class BasicCore;
 class DeletionQueue;
 class Memory;
 
@@ -28,8 +28,8 @@ public:
     /**
      * \param buffer_size in bytes
      */
-    BasicBuffer(Device* device, size_t buffer_size, VkBufferUsageFlags usage_flags);
-    BasicBuffer(Device* device, size_t buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, const State& state);
+    BasicBuffer(const BasicCore* core, size_t buffer_size, VkBufferUsageFlags usage_flags);
+    BasicBuffer(const BasicCore* core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, State state);
 
     virtual ~BasicBuffer() = default;
 
@@ -150,7 +150,7 @@ public:
     */
     static void write(span<const char> data, span<char> mapped_memory);
 
-    static void destroy(const Device* device, VkBuffer vk_buffer);
+    static void destroy(VkDevice vk_device, VkBuffer vk_buffer);
 
     /**
     * \brief aligns the buffer size to 16 bc I don't understand buffer alignment
@@ -184,7 +184,7 @@ protected:
     */
     virtual void setMemory(BasicMemory* new_memory);
 
-    Device* _device;
+    const BasicCore* _core;
     size_t _size;
     VkBufferUsageFlags _usage;
 

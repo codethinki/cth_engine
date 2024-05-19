@@ -2,31 +2,32 @@
 
 #include "interface/render/model/CthVertex.hpp"
 #include "layout/CthPipelineLayout.hpp"
-#include "vulkan/base/CthDevice.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/pipeline/shader/CthShader.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>
 
+#include "vulkan/base/CthCore.hpp"
+
 
 
 namespace cth {
 using namespace std;
 
-Pipeline::Pipeline(Device* device, const PipelineLayout* pipeline_layout, const GraphicsConfig& config_info) : device{device} {
+Pipeline::Pipeline(const BasicCore* core, const PipelineLayout* pipeline_layout, const GraphicsConfig& config_info) : _device{core} {
     create(config_info, pipeline_layout, nullptr);
 }
-Pipeline::Pipeline(Device* device, const Pipeline* parent, const GraphicsConfig& config_info) : device(device) {
+Pipeline::Pipeline(const BasicCore* core, const Pipeline* parent, const GraphicsConfig& config_info) : _device(core) {
     create(config_info, nullptr, parent);
 }
 
 Pipeline::~Pipeline() {
-    vkDestroyPipeline(device->get(), vkGraphicsPipeline, nullptr);
+    vkDestroyPipeline(_device->vkDevice(), _vkGraphicsPipeline, nullptr);
     log::msg("destroyed graphics-pipeline ");
 }
 
-void Pipeline::bind(const CmdBuffer* cmd_buffer) const { vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, vkGraphicsPipeline); }
+void Pipeline::bind(const CmdBuffer* cmd_buffer) const { vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline); }
 
 void Pipeline::create(const GraphicsConfig& config_info, const PipelineLayout* pipeline_layout, const Pipeline* parent) {
     CTH_ERR(pipeline_layout != nullptr && parent != nullptr, "something went wrong, cannot inherit and specify layout")
@@ -42,11 +43,11 @@ void Pipeline::create(const GraphicsConfig& config_info, const PipelineLayout* p
     auto pipelineInfo = config_info.createInfo();
 
     if(pipeline_layout != nullptr) pipelineInfo.layout = pipeline_layout->get();
-    else pipelineInfo.basePipelineHandle = parent->vkGraphicsPipeline;
+    else pipelineInfo.basePipelineHandle = parent->_vkGraphicsPipeline;
 
 
-    const VkResult createResult = vkCreateGraphicsPipelines(device->get(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
-        &vkGraphicsPipeline);
+    const VkResult createResult = vkCreateGraphicsPipelines(_device->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+        &_vkGraphicsPipeline);
 
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create graphics pipeline")
@@ -65,8 +66,8 @@ VkGraphicsPipelineCreateInfo Pipeline::GraphicsConfig::createInfo() const {
     VkGraphicsPipelineCreateInfo pipelineInfo{};
 
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount = static_cast<uint32_t>(vkShaderStages.size());
-    if(!vkShaderStages.empty()) pipelineInfo.pStages = vkShaderStages.data();
+    pipelineInfo.stageCount = static_cast<uint32_t>(_vkShaderStages.size());
+    if(!_vkShaderStages.empty()) pipelineInfo.pStages = _vkShaderStages.data();
     else pipelineInfo.pStages = nullptr;
     pipelineInfo.pVertexInputState = vertexInputInfo.get();
     pipelineInfo.pInputAssemblyState = inputAssemblyInfo.get();
@@ -96,14 +97,14 @@ void Pipeline::GraphicsConfig::addShaderStage(const Shader* shader, const Shader
     stageInfo.module = shader->module();
     if(specialization_info != nullptr) stageInfo.pSpecializationInfo = specialization_info->get();
 
-    vkShaderStages.push_back(stageInfo);
+    _vkShaderStages.push_back(stageInfo);
 }
 void Pipeline::GraphicsConfig::removeShaderStage(const Shader* shader) { removeShaderStage(shader->stage()); }
 void Pipeline::GraphicsConfig::removeShaderStage(VkShaderStageFlagBits shader_stage) {
-    const auto it = ranges::find_if(vkShaderStages,
+    const auto it = ranges::find_if(_vkShaderStages,
         [shader_stage](const VkPipelineShaderStageCreateInfo& info) { return info.stage == shader_stage; });
 
-    if(it != vkShaderStages.end()) vkShaderStages.erase(it);
+    if(it != _vkShaderStages.end()) _vkShaderStages.erase(it);
     else
         CTH_ERR(true, "non present shader stage removed") {
             details->add("stage: {}", static_cast<uint32_t>(shader_stage));

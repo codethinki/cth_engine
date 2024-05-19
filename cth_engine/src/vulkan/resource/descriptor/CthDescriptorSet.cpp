@@ -15,34 +15,34 @@
 //DescriptorSet
 
 namespace cth {
-DescriptorSet::DescriptorSet(const Builder& builder) : layout(builder.layout), descriptors(builder.descriptors) { copyInfos(); }
-DescriptorSet::~DescriptorSet() { if(pool != nullptr) pool->descriptorSetDestroyed(this); }
+DescriptorSet::DescriptorSet(const Builder& builder) : _layout(builder._layout), _descriptors(builder._descriptors) { copyInfos(); }
+DescriptorSet::~DescriptorSet() { if(_pool != nullptr) _pool->returnSet(this); }
 
 void DescriptorSet::alloc(VkDescriptorSet set, DescriptorPool* pool) {
-    vkSet = set;
-    this->pool = pool;
+    _vkSet = set;
+    this->_pool = pool;
 }
 void DescriptorSet::deallocate() {
-    vkSet = VK_NULL_HANDLE;
-    written_ = false;
-    pool = nullptr;
+    _vkSet = VK_NULL_HANDLE;
+    _written = false;
+    _pool = nullptr;
 }
 
 
 vector<VkWriteDescriptorSet> DescriptorSet::writes() {
-    CTH_ERR(vkSet == VK_NULL_HANDLE, "no descriptor set provided, call alloc() first")
+    CTH_ERR(_vkSet == VK_NULL_HANDLE, "no descriptor set provided, call alloc() first")
         throw details->exception();
 
-    written_ = true;
+    _written = true;
 
     vector<VkWriteDescriptorSet> writes{};
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = vkSet;
+    write.dstSet = _vkSet.get();
 
-    for(auto [binding, binding_descriptors] : descriptors | views::enumerate) {
+    for(auto [binding, binding_descriptors] : _descriptors | views::enumerate) {
         write.dstBinding = static_cast<uint32_t>(binding);
-        write.descriptorType = layout->bindingType(static_cast<uint32_t>(binding));
+        write.descriptorType = _layout->bindingType(static_cast<uint32_t>(binding));
         const auto type = infoType(write.descriptorType);
 
 
@@ -57,8 +57,8 @@ vector<VkWriteDescriptorSet> DescriptorSet::writes() {
 
             //if no descriptor -> cannot write to it -> new write bc no "skip" placeholder exists for empty array index in binding.
             //ptr to bufferInfo = size - infoCount bc binding has only one type
-            if(type == InfoType::BUFFER) write.pBufferInfo = &bufferInfos[bufferInfos.size() - write.descriptorCount];
-            else write.pImageInfo = &imageInfos[imageInfos.size() - write.descriptorCount];
+            if(type == InfoType::BUFFER) write.pBufferInfo = &_bufferInfos[_bufferInfos.size() - write.descriptorCount];
+            else write.pImageInfo = &_imageInfos[_imageInfos.size() - write.descriptorCount];
 
             //if write is usable -> push_back
             if(write.descriptorCount > 0) writes.push_back(write);
@@ -69,8 +69,8 @@ vector<VkWriteDescriptorSet> DescriptorSet::writes() {
 
         if(write.descriptorCount == 0) continue;
 
-        if(type == InfoType::BUFFER) write.pBufferInfo = &bufferInfos[bufferInfos.size() - write.descriptorCount];
-        else write.pImageInfo = &imageInfos[imageInfos.size() - write.descriptorCount];
+        if(type == InfoType::BUFFER) write.pBufferInfo = &_bufferInfos[_bufferInfos.size() - write.descriptorCount];
+        else write.pImageInfo = &_imageInfos[_imageInfos.size() - write.descriptorCount];
 
         writes.push_back(write);
     }
@@ -79,8 +79,8 @@ vector<VkWriteDescriptorSet> DescriptorSet::writes() {
 }
 
 void DescriptorSet::copyInfos() {
-    for(auto [binding, binding_descriptors] : descriptors | views::enumerate) {
-        const auto vkType = layout->bindingType(static_cast<uint32_t>(binding));
+    for(auto [binding, binding_descriptors] : _descriptors | views::enumerate) {
+        const auto vkType = _layout->bindingType(static_cast<uint32_t>(binding));
         const auto type = infoType(vkType);
 
         CTH_WARN(binding_descriptors.empty(), "empty binding discovered")
@@ -102,8 +102,8 @@ void DescriptorSet::copyInfos() {
 
             if(empty) continue;
 
-            if(type == InfoType::BUFFER) bufferInfos.push_back(descriptor->bufferInfo());
-            else imageInfos.push_back(descriptor->imageInfo());
+            if(type == InfoType::BUFFER) _bufferInfos.push_back(descriptor->bufferInfo());
+            else _imageInfos.push_back(descriptor->imageInfo());
         }
     }
 }
@@ -138,8 +138,8 @@ DescriptorSet::InfoType DescriptorSet::infoType(const VkDescriptorType descripto
 //Builder
 
 namespace cth {
-DescriptorSet::Builder::Builder(DescriptorSetLayout* layout) : layout(layout) { init(layout); }
-DescriptorSet::Builder::Builder(DescriptorSetLayout* layout, const span<Descriptor* const> descriptors, const uint32_t binding_offset) : layout(layout) {
+DescriptorSet::Builder::Builder(const DescriptorSetLayout* layout) : _layout(layout) { init(layout); }
+DescriptorSet::Builder::Builder(const DescriptorSetLayout* layout, const span<Descriptor* const> descriptors, const uint32_t binding_offset) : _layout(layout) {
     init(layout);
 
     for(uint32_t i = 0; i < static_cast<uint32_t>(descriptors.size()); i++)
@@ -150,14 +150,14 @@ DescriptorSet::Builder::Builder(DescriptorSetLayout* layout, const span<Descript
 
 DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descriptor, uint32_t binding, const uint32_t arr_index) {
 
-    CTH_ERR(descriptor != nullptr && (descriptor->type() != layout->bindingType(binding)), "descriptor and layout type at binding dont match") {
+    CTH_ERR(descriptor != nullptr && (descriptor->type() != _layout->bindingType(binding)), "descriptor and layout type at binding dont match") {
         details->add("binding: {}", binding);
         details->add("descriptor type: {}", utils::to_string(descriptor->type()));
-        details->add("layout type at binding: {}", utils::to_string(layout->bindingType(binding)));
+        details->add("layout type at binding: {}", utils::to_string(_layout->bindingType(binding)));
 
-        throw cth::except::data_exception{layout->bindingType(binding), details->exception()};
+        throw cth::except::data_exception{_layout->bindingType(binding), details->exception()};
     }
-    CTH_WARN(descriptors[binding][arr_index] != nullptr, "overwriting already added descriptor") {
+    CTH_WARN(_descriptors[binding][arr_index] != nullptr, "overwriting already added descriptor") {
         details->add("binding: {}", binding);
         details->add("array index: {}", arr_index);
     }
@@ -167,12 +167,12 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descri
     }
 
 
-    descriptors[binding][arr_index] = descriptor;
+    _descriptors[binding][arr_index] = descriptor;
     return *this;
 }
 DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(const span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first) {
-    CTH_ERR(descriptors.size() + arr_first > descriptors.size(), "out of range for layout size at binding") {
-        details->add("binding: {0}, layout size: {1}", binding, descriptors[binding].size());
+    CTH_ERR(_descriptors.size() + arr_first > _descriptors.size(), "out of range for layout size at binding") {
+        details->add("binding: {0}, layout size: {1}", binding, _descriptors[binding].size());
         details->add("binding descriptors: {0}, arr_first: {1}", binding_descriptors.size(), arr_first);
         throw details->exception();
     }
@@ -182,28 +182,28 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(const span<Descri
         details->add("array first: {}", arr_first);
     }
 
-    ranges::copy(binding_descriptors, descriptors[binding].begin() + arr_first);
+    ranges::copy(binding_descriptors, _descriptors[binding].begin() + arr_first);
 
     return *this;
 }
 DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptor(const uint32_t binding, const uint32_t arr_index) {
-    descriptors[binding][arr_index] = nullptr;
+    _descriptors[binding][arr_index] = nullptr;
     return *this;
 }
 DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(const uint32_t binding, const uint32_t arr_first, const uint32_t count) {
-    CTH_ERR(arr_first + count > descriptors[binding].size(), "out of ranger for layout size at binding") {
-        details->add("binding: {0}, layout size: {1}", binding, descriptors[binding].size());
+    CTH_ERR(arr_first + count > _descriptors[binding].size(), "out of ranger for layout size at binding") {
+        details->add("binding: {0}, layout size: {1}", binding, _descriptors[binding].size());
         details->add("arr_first: {0}, count: {1}", arr_first, count);
         throw details->exception();
     }
-    ranges::fill_n(descriptors[binding].begin() + arr_first, count, nullptr);
+    ranges::fill_n(_descriptors[binding].begin() + arr_first, count, nullptr);
     return *this;
 }
-void DescriptorSet::Builder::init(const DescriptorSetLayout* set_layout) {
-    const auto& bindings = set_layout->bindingsVec();
-    descriptors.resize(bindings.size());
+void DescriptorSet::Builder::init(const DescriptorSetLayout* layout) {
+    const auto& bindings = layout->bindingsVec();
+    _descriptors.resize(bindings.size());
 
-    ranges::for_each(bindings, [this](const VkDescriptorSetLayoutBinding& binding) { descriptors[binding.binding].resize(binding.descriptorCount); });
+    ranges::for_each(bindings, [this](const VkDescriptorSetLayoutBinding& binding) { _descriptors[binding.binding].resize(binding.descriptorCount); });
 }
 
 }

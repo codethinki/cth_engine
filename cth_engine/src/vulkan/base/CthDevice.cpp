@@ -1,27 +1,33 @@
 #include "CthDevice.hpp"
 
-#include <numeric>
-#include <unordered_set>
 
+#include "CthCore.hpp"
 #include "CthInstance.hpp"
-
-#include "vulkan/surface/CthWindow.hpp"
+#include "CthPhysicalDevice.hpp"
+#include "vulkan/surface/CthOSWindow.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>
 
-#include "CthPhysicalDevice.hpp"
 
+#include <numeric>
+#include <unordered_set>
 
+#include "CthQueue.hpp"
 
 namespace cth {
+using std::vector;
+using std::string_view;
+using std::span;
+
+Device::Device(const Instance* instance, const PhysicalDevice* physical_device, const std::span<Queue> queues) :
+    _instance(instance),
+    _physicalDevice(physical_device) {
 
 
-
-Device::Device(PhysicalDevice* physical_device, const Surface* surface, Instance* instance) : _instance(instance), _physicalDevice(physical_device) {
-    setQueueIndices(surface);
+    auto queueFamilyIndices = setUniqueFamilyIndices(queues);
     createLogicalDevice();
-    setQueues();
+    wrapQueues(queueFamilyIndices, queues);
 }
 Device::~Device() {
     vkDestroyDevice(_handle.get(), nullptr);
@@ -29,18 +35,19 @@ Device::~Device() {
     cth::log::msg<except::LOG>("destroyed device");
 }
 
-void Device::setQueueIndices(const Surface* surface) {
-    _queueIndices = _physicalDevice->queueFamilyIndices(surface, vector{VK_QUEUE_GRAPHICS_BIT});
-    unordered_set<uint32_t> uniqueIndices{std::begin(_queueIndices), std::end(_queueIndices)};
-    _uniqueQueueIndices.resize(uniqueIndices.size());
-    ranges::copy(uniqueIndices, std::begin(_uniqueQueueIndices));
+vector<uint32_t> Device::setUniqueFamilyIndices(const span<const Queue> queues) {
+    const auto& queueFamilyIndices = _physicalDevice->queueFamilyIndices(queues);
+
+    _familyIndices = queueFamilyIndices | std::ranges::to<std::unordered_set<uint32_t>>() | std::ranges::to<vector<uint32_t>>();
+
+    return queueFamilyIndices;
 }
 
 void Device::createLogicalDevice() {
     vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     float queuePriority = 1.0f;
-    ranges::for_each(_uniqueQueueIndices, [&queueCreateInfos, queuePriority](const uint32_t queue_family) {
+    std::ranges::for_each(_familyIndices, [&queueCreateInfos, queuePriority](const uint32_t queue_family) {
         VkDeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queue_family;
@@ -57,18 +64,11 @@ void Device::createLogicalDevice() {
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
     vector<const char*> deviceExtensions(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS.size());
-    ranges::transform(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS, deviceExtensions.begin(), [](const string_view ext) { return ext.data(); });
+    std::ranges::transform(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS, deviceExtensions.begin(), [](const string_view ext) { return ext.data(); });
 
     createInfo.pEnabledFeatures = &PhysicalDevice::REQUIRED_DEVICE_FEATURES;
     createInfo.enabledExtensionCount = static_cast<uint32_t>(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-    // might not really be necessary anymore because device specific validation layers
-    // have been deprecated
-    if constexpr(Constant::ENABLE_VALIDATION_LAYERS) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(Instance::VALIDATION_LAYERS.size());
-        createInfo.ppEnabledLayerNames = Instance::VALIDATION_LAYERS.data();
-    } else createInfo.enabledLayerCount = 0;
 
     VkDevice ptr = VK_NULL_HANDLE;
 
@@ -78,15 +78,32 @@ void Device::createLogicalDevice() {
 
     _handle = ptr;
 }
-void Device::setQueues() {
-    vkGetDeviceQueue(_handle.get(), _queueIndices[GRAPHICS_QUEUE_I], 0, &_vkGraphicsQueue);
-    vkGetDeviceQueue(_handle.get(), _queueIndices[PRESENT_QUEUE_I], 0, &_vkPresentQueue);
+void Device::wrapQueues(span<const uint32_t> family_indices, span<Queue> queues) const {
+    auto queueCounts = family_indices | std::views::transform([](const uint32_t index) { return std::pair{index, 0}; }) | std::ranges::to<
+        std::unordered_map<uint32_t, uint32_t>>();
+
+    for(auto [index, queue] : std::views::zip(family_indices, queues)) {
+        VkQueue ptr = VK_NULL_HANDLE;
+        vkGetDeviceQueue(_handle.get(), index, queueCounts[index], &ptr);
+
+        queue.wrap(index, queueCounts[index], ptr);
+    }
+
 }
+void Device::waitIdle() const {
+    const auto result = vkDeviceWaitIdle(_handle.get());
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait on device") throw except::vk_result_exception{result, details->exception()};
+}
+
 
 #ifdef CONSTANT_DEBUG_MODE
 void Device::debug_check(const Device* device) {
     CTH_ERR(device == nullptr, "device must not be nullptr") throw details->exception();
-    CTH_ERR(device->get() == VK_NULL_HANDLE, "device must be created") throw details->exception();
+    debug_check_handle(device->get());
+}
+void Device::debug_check_handle(const VkDevice vk_device) {
+    CTH_ERR(vk_device == VK_NULL_HANDLE, "vk_device not be invalid (VK_NULL_HANDLE)") throw details->exception();
 }
 #endif
 

@@ -33,7 +33,7 @@ inline constexpr string_view TEXTURE_DIR = R"(res\img\texture\)";
 
 class RenderSystem {
 public:
-    RenderSystem(Device* device, Renderer* renderer, VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
+    RenderSystem(const BasicCore* core, Renderer* renderer, VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
     ~RenderSystem();
 
     void render(FrameInfo& frame_info) const;
@@ -54,7 +54,7 @@ private:
     //TEMP replace this with actual model loading
     void createDefaultTriangle(const CmdBuffer& cmd_buffer);
 
-    Device* _device;
+    const BasicCore* _core;
     Renderer* _renderer;
     unique_ptr<PipelineLayout> _pipelineLayout;
     unique_ptr<Pipeline> _pipeline;

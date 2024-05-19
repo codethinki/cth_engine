@@ -5,31 +5,40 @@
 
 
 namespace cth {
-using namespace std;
+class PhysicalDevice;
 
 class Instance;
-class Window;
+class OSWindow;
 
 
 class Surface {
 public:
-    explicit Surface(VkSurfaceKHR vk_surface, Instance* instance) : _vkSurface(vk_surface), _instance(instance) {}
-    ~Surface() {
-        vkDestroySurfaceKHR(_instance->get(), _vkSurface, nullptr);
-        log::msg("destroyed surface");
-    }
+    explicit Surface(VkSurfaceKHR vk_surface, const BasicInstance* instance) : _handle(vk_surface), _instance(instance) {}
+    ~Surface();
+
+    [[nodiscard]] bool supportsFamily(const PhysicalDevice& physical_device, uint32_t family_index) const;
+    [[nodiscard]] std::vector<VkPresentModeKHR> presentModes(const PhysicalDevice& physical_device) const;
+    [[nodiscard]] std::vector<VkSurfaceFormatKHR> formats(const PhysicalDevice& physical_device) const;
+    [[nodiscard]] VkSurfaceCapabilitiesKHR capabilities(const PhysicalDevice& physical_device) const;
 
 private:
-    VkSurfaceKHR _vkSurface = VK_NULL_HANDLE;
+    mem::basic_ptr<VkSurfaceKHR_T> _handle = VK_NULL_HANDLE;
 
-    Instance* _instance;
+    const BasicInstance* _instance;
 
 public:
-    [[nodiscard]] VkSurfaceKHR get() const { return _vkSurface; }
+    [[nodiscard]] VkSurfaceKHR get() const { return _handle.get(); }
 
-    Surface(const Surface& other) = delete;
-    Surface(Surface&& other) = delete;
-    Surface& operator=(const Surface& other) = delete;
-    Surface& operator=(Surface&& other) = delete;
+    Surface(const Surface& other) = default;
+    Surface(Surface&& other) noexcept = delete;
+    Surface& operator=(const Surface& other) = default;
+    Surface& operator=(Surface&& other) noexcept = delete;
+
+#ifdef CONSTANT_DEBUG_MODE
+    static void debug_check(const Surface* surface);
+#define DEBUG_CHECK_SURFACE(surface_ptr) Surface::debug_check(surface_ptr)
+    #else
+#define DEBUG_CHECK_SURFACE(surface_ptr) ((void)0)
+#endif
 };
 }

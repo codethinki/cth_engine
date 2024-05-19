@@ -10,6 +10,7 @@
 
 
 namespace cth {
+class BasicCore;
 class Device;
 class DeletionQueue;
 
@@ -21,14 +22,14 @@ using std::span;
 class BasicMemory {
 public:
     /**
-     * \param device must not be nullptr
+     * \param core must not be nullptr
      */
-    BasicMemory(Device* device, VkMemoryPropertyFlags vk_properties);
+    BasicMemory(const BasicCore* core, VkMemoryPropertyFlags vk_properties);
     /**
-     * \param device must not be nullptr
+     * \param core must not be nullptr
      * \note implicitly calls wrap(...);
      */
-    BasicMemory(Device* device, VkMemoryPropertyFlags properties, size_t byte_size, VkDeviceMemory vk_memory);
+    BasicMemory(const BasicCore* core, VkMemoryPropertyFlags properties, size_t byte_size, VkDeviceMemory vk_memory);
     virtual ~BasicMemory() = default;
 
     /**
@@ -61,13 +62,13 @@ public:
      */
     virtual void reset();
 
-    static void free(const Device* device, VkDeviceMemory memory);
+    static void free(const VkDevice vk_device, VkDeviceMemory memory);
 
 protected:
     void init() const;
 
 private:
-    Device* _device;
+    const BasicCore* _core;
     VkMemoryPropertyFlags _vkProperties;
     size_t _size = 0;
     mem::basic_ptr<VkDeviceMemory_T> _handle = VK_NULL_HANDLE;

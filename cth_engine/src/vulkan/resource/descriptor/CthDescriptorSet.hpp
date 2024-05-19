@@ -4,6 +4,8 @@
 
 #include <vector>
 
+#include "../buffer/CthBasicBuffer.hpp"
+
 namespace cth {
 using namespace std;
 
@@ -21,44 +23,45 @@ class DescriptorSet {
     };
 
 public:
-   struct Builder;
-   explicit DescriptorSet(const Builder& builder);
-   virtual ~DescriptorSet();
+    struct Builder;
+    explicit DescriptorSet(const Builder& builder);
+    virtual ~DescriptorSet();
 
 private:
     void alloc(VkDescriptorSet set, DescriptorPool* pool);
     void deallocate();
     [[nodiscard]] virtual vector<VkWriteDescriptorSet> writes();
 
-    void clearDescriptors() { descriptors.clear(); }
+    void clearDescriptors() { _descriptors.clear(); }
 
     void copyInfos();
 
-    [[nodiscard]] static InfoType infoType(VkDescriptorType type);
+    [[nodiscard]] static InfoType infoType(VkDescriptorType descriptor_type);
 
 
-    DescriptorSetLayout* layout;
-    vector<vector<Descriptor*>> descriptors{};
-    vector<VkDescriptorBufferInfo> bufferInfos{};
-    vector<VkDescriptorImageInfo> imageInfos{};
+    const DescriptorSetLayout* _layout;
+    vector<vector<Descriptor*>> _descriptors{};
+    vector<VkDescriptorBufferInfo> _bufferInfos{};
+    vector<VkDescriptorImageInfo> _imageInfos{};
 
-    VkDescriptorSet vkSet = VK_NULL_HANDLE;
-    bool written_ = false;
+    mem::basic_ptr<VkDescriptorSet_T> _vkSet = VK_NULL_HANDLE;
+    bool _written = false;
 
-    DescriptorPool* pool = nullptr;
+    DescriptorPool* _pool = nullptr;
+
     friend DescriptorPool;
 
 public:
-    [[nodiscard]] VkDescriptorSet get() const { return vkSet; }
-    [[nodiscard]] bool written() const { return written_; }
+    [[nodiscard]] VkDescriptorSet get() const { return _vkSet.get(); }
+    [[nodiscard]] bool written() const { return _written; }
 
     struct Builder {
-        explicit Builder(DescriptorSetLayout* layout);
+        explicit Builder(const DescriptorSetLayout* layout);
 
         /**
          *\note in this constructor only one resource per binding can be specified
          */
-        explicit Builder(DescriptorSetLayout* layout, span<Descriptor* const> descriptors, uint32_t binding_offset = 0);
+        explicit Builder(const DescriptorSetLayout* layout, span<Descriptor* const> descriptors, uint32_t binding_offset = 0);
 
         Builder& addDescriptor(Descriptor* descriptor, uint32_t binding, uint32_t arr_index = 0);
         Builder& addDescriptors(span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first);
@@ -67,10 +70,10 @@ public:
         Builder& removeDescriptors(uint32_t binding, uint32_t arr_first, uint32_t count);
 
     private:
-        void init(const DescriptorSetLayout* set_layout);
+        void init(const DescriptorSetLayout* layout);
 
-        DescriptorSetLayout* layout;
-        vector<vector<Descriptor*>> descriptors{};
+        const DescriptorSetLayout* _layout;
+        vector<vector<Descriptor*>> _descriptors{};
 
         friend DescriptorSet;
     };

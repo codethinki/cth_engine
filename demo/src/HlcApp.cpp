@@ -15,7 +15,7 @@ void App::run() {
     auto frameStart = chrono::high_resolution_clock::now();
 
     while(!_window->shouldClose()) {
-        const auto commandBuffer = _hlcRenderer->beginFrame();
+        const auto commandBuffer = _renderer->beginFrame();
         if(commandBuffer == nullptr) continue;
 
         const auto frameTime = chrono::duration<float, chrono::seconds::period>(chrono::high_resolution_clock::now() - frameStart).count();
@@ -37,16 +37,16 @@ void App::run() {
 
         /* renderSystem.updateDynamicChunks();*/
 
-        FrameInfo info = {_hlcRenderer->frameIndex(), 0.f, commandBuffer};
+        FrameInfo info = {_renderer->frameIndex(), 0.f, commandBuffer};
 
-        _hlcRenderer->beginSwapchainRenderPass(info.commandBuffer);
+        _renderer->beginSwapchainRenderPass(info.commandBuffer);
         _renderSystem->render(info);
-        _hlcRenderer->endSwapchainRenderPass(info.commandBuffer);
-        _hlcRenderer->endFrame();
+        _renderer->endSwapchainRenderPass(info.commandBuffer);
+        _renderer->endFrame();
 
         _frameIndex++;
     }
-    vkDeviceWaitIdle(_device->get());
+    _core->device()->waitIdle();
 
     //OldModel::clearModels();
 }
@@ -57,7 +57,7 @@ void App::reserveObjectMemory() {
     staticObjects.reserve(MAX_STATIC_OBJECTS);*/
 }
 void App::initRenderSystem() {
-    _renderSystem = make_unique<RenderSystem>(_device.get(), _hlcRenderer.get(), _hlcRenderer->swapchainRenderPass(), _hlcRenderer->msaaSampleCount());
+    _renderSystem = make_unique<RenderSystem>(_core.get(), _renderer.get(), _renderer->swapchainRenderPass(), _renderer->msaaSampleCount());
 }
 
 void App::initCamera() {
@@ -127,7 +127,7 @@ void App::updateFpsDisplay(const size_t frame_index, const float frame_time) con
     glfwSetWindowTitle(_window->window(), x.c_str());
 }
 vector<string> App::getRequiredInstanceExtensions() {
-    auto extensions = Window::getGLFWInstanceExtensions();
+    auto extensions = OSWindow::getGLFWInstanceExtensions();
     return extensions;
 }
 

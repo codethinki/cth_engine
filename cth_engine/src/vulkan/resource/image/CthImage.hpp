@@ -26,7 +26,7 @@ public:
      * \brief creates an image and allocates memory
      * \note implicitly calls create, allocate and bind
      */
-    explicit Image(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, VkMemoryPropertyFlags memory_properties);
+    explicit Image(const BasicCore* core, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, VkMemoryPropertyFlags memory_properties);
 
     ~Image() override;
 

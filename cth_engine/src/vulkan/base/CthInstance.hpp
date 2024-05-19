@@ -9,6 +9,7 @@
 
 #include <array>
 #include <optional>
+#include <span>
 #include <string_view>
 #include <vector>
 
@@ -22,7 +23,7 @@ class DeletionQueue;
 
 class BasicInstance {
 public:
-    BasicInstance(std::string app_name, const std::vector<std::string>& required_extensions);
+    BasicInstance(std::string_view app_name, std::span<const std::string> required_extensions);
     virtual ~BasicInstance() = default;
 
     /**
@@ -36,7 +37,7 @@ public:
     */
     virtual void create(const std::optional<BasicDebugMessenger::Config>& messenger_config = std::nullopt);
 
-    void destroy(DeletionQueue* deletion_queue = nullptr);
+    void destroy();
 
     /**
  * \throws cth::except::default_exception reason: required extension not supported
@@ -76,13 +77,18 @@ public:
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 
     };
-
+    BasicInstance(const BasicInstance& other) = default;
+    BasicInstance& operator=(const BasicInstance& other) = default;
+    BasicInstance(BasicInstance&& other) noexcept = default;
+    BasicInstance& operator=(BasicInstance&& other) noexcept = default;
 #ifdef CONSTANT_DEBUG_MODE
     static void debug_check(const BasicInstance* instance);
+    static void debug_check_handle(VkInstance vk_instance);
     static void debug_check_leak(const BasicInstance* instance);
 
 
 #define DEBUG_CHECK_INSTANCE(instance_ptr) BasicInstance::debug_check(instance_ptr)
+#define DEBUG_CHECK_INSTANCE_HANDLE(instance_ptr) BasicInstance::debug_check_handle(instance_ptr)
 #define DEBUG_CHECK_INSTANCE_LEAK(instance_ptr) BasicInstance::debug_check_leak(instance_ptr)
 #else
 #define DEBUG_CHECK_INSTANCE(instance_ptr) ((void)0)
@@ -100,7 +106,7 @@ public:
     * \throws cth::except::default_exception reason: missing required instance extensions
     * \throws cth::except::default_exception reason: missing required validation layers
     */
-    explicit Instance(std::string app_name, const std::vector<std::string>& required_extensions);
+    explicit Instance(std::string_view app_name, const std::span<const std::string> required_extensions);
     ~Instance() override;
 
     void wrap(VkInstance vk_instance) override;
@@ -113,9 +119,9 @@ private:
 #endif
 
 public:
-    Instance(const Instance&) = delete;
-    Instance& operator=(const Instance&) = delete;
-    Instance(Instance&&) = default;
-    Instance& operator=(Instance&&) = default;
+    Instance(const Instance& other) = delete;
+    Instance(Instance&& other) noexcept = default;
+    Instance& operator=(const Instance& other) = delete;
+    Instance& operator=(Instance&& other) noexcept = default;
 };
 }

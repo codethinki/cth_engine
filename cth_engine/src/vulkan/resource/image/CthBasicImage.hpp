@@ -32,8 +32,8 @@ public:
     struct Config;
     struct State;
 
-    BasicImage(Device* device, VkExtent2D extent, const Config& config);
-    BasicImage(Device* device, VkExtent2D extent, const Config& config, VkImage vk_image, State state);
+    BasicImage(const BasicCore* core, VkExtent2D extent, const Config& config);
+    BasicImage(const BasicCore* core, VkExtent2D extent, const Config& config, VkImage vk_image, State state);
     virtual ~BasicImage() = default;
 
     virtual void wrap(VkImage vk_image, const State& state);
@@ -103,7 +103,7 @@ public:
         uint32_t first_mip_level = 0, uint32_t mip_levels = Constant::ALL);
 
 
-    static void destroy(const Device* device, VkImage vk_image);
+    static void destroy(VkDevice vk_device, VkImage vk_image);
 
     [[nodiscard]] static uint32_t evalMipLevelCount(VkExtent2D extent);
 
@@ -139,7 +139,7 @@ protected:
     virtual void setMemory(BasicMemory* new_memory);
 
 
-    Device* _device;
+    const BasicCore* _core;
     VkExtent2D _extent;
     Config _config;
 

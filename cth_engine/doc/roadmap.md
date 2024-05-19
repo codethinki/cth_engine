@@ -1,65 +1,16 @@
 # roadmap
 
 ## 1. modernize everything
-### in progress:
-	
-### completed (partially):
-	interface:
-		model:
-		- CthVertex.hpp/cpp
 
-	vulkan:
-		base:
-		- CthDevice.hpp/cpp
-		- CthInstance.hpp/cpp
-		
-		debug:
-		- CthDebugMessenger.hpp/cpp
-		
-		pipeline:
-		- CthPipeline.hpp/cpp
-			layout:
-			- CthPipelineLayout.hpp/cpp
-			- CthDescriptorSetLayout.hpp/cpp
-			shader:
-			- CthShader.hpp/cpp
-		
-		render:
-		- CthRenderer.hpp/cpp 
-		
-		resource:
-			buffer:
-			- CthBuffer.hpp/inl
-			- CthDefaultBuffer.hpp/cpp
-			descriptor:
-			- CthDescriptedResource.hpp/cpp
-			- CthDescriptor.hpp/cpp
-			- CthDescriptorSet.hpp/cpp
-			- CthDescriptorPool.hpp/cpp
-				descriptors:
-				- CthBufferDescriptors.hpp
-				- CthImageDescriptors.hpp
-			image:
-			- CthBasicImage.hpp/cpp
-			- CthImage.hpp/cpp
-			- CthImageView.hpp/cpp
-				texture
-				- CthTexture.hpp/cpp
-				- CthSampler.hpp/cpp
-
-		surface:
-		- CthSwapchain.hpp/cpp
-		- CthWindow.hpp/cpp
-		- CthSurface.hpp/cpp
-
-
-
-
-
-		
 
 
 ## 3. todo
+	- basic variant of pipeline
+	- basic variant of shader
+	- use mem::const_ptr everywhere especially with the device passing around
+	- create basic physical device and basic logical device
+	- use VkDevice handle in the static void destroy of every class_
+	- it should be surface->window not window->surface
 	- think about move semantics for every vulkan object (maybe enable them)
 	- render pass abstraction
 	- Queue abstraction

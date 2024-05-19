@@ -4,9 +4,11 @@
 #include <vulkan/vulkan.h>
 
 #include <vector>
+#include <cth/cth_memory.hpp>
 
+//TEMP add basic variant without raii
 namespace cth {
-class Device;
+class BasicCore;
 
 using namespace std;
 //TODO create a ShaderStageCollection class for managing shaders and the descriptor layout
@@ -18,22 +20,22 @@ public:
     * \brief creates a DescriptorSetLayout with the copied builder data
     * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorSetLayout()
     */
-    explicit DescriptorSetLayout(Device* device, const Builder& builder);
+    explicit DescriptorSetLayout(const BasicCore* core, const Builder& builder);
     ~DescriptorSetLayout();
 
 private:
     void create();
 
-    Device* device;
-    VkDescriptorSetLayout vkLayout = VK_NULL_HANDLE;
-    vector<VkDescriptorSetLayoutBinding> vkBindings{};
+    const BasicCore* _core;
+    mem::basic_ptr<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
+    vector<VkDescriptorSetLayoutBinding> _vkBindings{};
 
 public:
-    [[nodiscard]] VkDescriptorSetLayout get() const { return vkLayout; }
-    [[nodiscard]] uint32_t bindings() const { return static_cast<uint32_t>(vkBindings.size()); }
-    [[nodiscard]] vector<VkDescriptorSetLayoutBinding> bindingsVec() const { return vkBindings; }
-    [[nodiscard]] VkDescriptorSetLayoutBinding binding(const uint32_t binding) const { return vkBindings[binding]; }
-    [[nodiscard]] VkDescriptorType bindingType(const uint32_t binding) const { return vkBindings[binding].descriptorType; }
+    [[nodiscard]] VkDescriptorSetLayout get() const { return _handle.get(); }
+    [[nodiscard]] uint32_t bindings() const { return static_cast<uint32_t>(_vkBindings.size()); }
+    [[nodiscard]] vector<VkDescriptorSetLayoutBinding> bindingsVec() const { return _vkBindings; }
+    [[nodiscard]] VkDescriptorSetLayoutBinding binding(const uint32_t binding) const { return _vkBindings[binding]; }
+    [[nodiscard]] VkDescriptorType bindingType(const uint32_t binding) const { return _vkBindings[binding].descriptorType; }
 
     DescriptorSetLayout(const DescriptorSetLayout& other) = delete;
     DescriptorSetLayout(DescriptorSetLayout&& other) = delete;
@@ -57,7 +59,7 @@ private:
     using binding_t = VkDescriptorSetLayoutBinding;
 #endif
 
-    vector<binding_t> bindings_{};
+    vector<binding_t> _bindings{};
     [[nodiscard]] vector<VkDescriptorSetLayoutBinding> bindings() const;
 
     friend DescriptorSetLayout;

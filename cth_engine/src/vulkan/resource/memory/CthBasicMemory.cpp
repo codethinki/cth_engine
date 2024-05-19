@@ -1,20 +1,24 @@
 #include "CthBasicMemory.hpp"
 
+#include "vulkan/base/CthCore.hpp"
+
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
+
 #include <cth/cth_log.hpp>
+
 
 
 
 namespace cth {
 
 
-BasicMemory::BasicMemory(Device* device, const VkMemoryPropertyFlags vk_properties) : _device(device), _vkProperties(vk_properties) { init(); }
-BasicMemory::BasicMemory(Device* device, const VkMemoryPropertyFlags properties, const size_t byte_size, VkDeviceMemory vk_memory) : _device(device),
+BasicMemory::BasicMemory(const BasicCore* core, const VkMemoryPropertyFlags vk_properties) : _core(core), _vkProperties(vk_properties) { init(); }
+BasicMemory::BasicMemory(const BasicCore* core, const VkMemoryPropertyFlags properties, const size_t byte_size, VkDeviceMemory vk_memory) : _core(core),
     _vkProperties(properties), _size(byte_size), _handle(vk_memory) {
     init();
     BasicMemory::wrap(vk_memory, byte_size);
@@ -33,11 +37,11 @@ void BasicMemory::alloc(const VkMemoryRequirements& vk_requirements) {
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = vk_requirements.size;
-    allocInfo.memoryTypeIndex = _device->physical()->findMemoryType(vk_requirements.memoryTypeBits, _vkProperties);
+    allocInfo.memoryTypeIndex = _core->physicalDevice()->findMemoryType(vk_requirements.memoryTypeBits, _vkProperties);
 
     VkDeviceMemory ptr = VK_NULL_HANDLE;
 
-    const VkResult allocResult = vkAllocateMemory(_device->get(), &allocInfo, nullptr, &ptr);
+    const VkResult allocResult = vkAllocateMemory(_core->device()->get(), &allocInfo, nullptr, &ptr);
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate buffer memory")
         throw cth::except::vk_result_exception{allocResult, details->exception()};
 
@@ -49,7 +53,7 @@ span<char> BasicMemory::map(const size_t map_size, const size_t offset) const {
     CTH_ERR(_handle == VK_NULL_HANDLE, "memory not allocated");
 
     void* mappedPtr = nullptr;
-    const VkResult mapResult = vkMapMemory(_device->get(), _handle.get(), offset, _size, 0, &mappedPtr);
+    const VkResult mapResult = vkMapMemory(_core->vkDevice(), _handle.get(), offset, _size, 0, &mappedPtr);
     CTH_STABLE_ERR(mapResult != VK_SUCCESS, "memory mapping failed")
         throw except::vk_result_exception{mapResult, details->exception()};
 
@@ -61,7 +65,7 @@ VkResult BasicMemory::flush(const size_t size, const size_t offset) const {
     mappedRange.memory = _handle.get();
     mappedRange.offset = offset;
     mappedRange.size = size;
-    return vkFlushMappedMemoryRanges(_device->get(), 1, &mappedRange);
+    return vkFlushMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
 }
 VkResult BasicMemory::invalidate(const size_t size, const size_t offset) const {
     VkMappedMemoryRange mappedRange = {};
@@ -69,14 +73,14 @@ VkResult BasicMemory::invalidate(const size_t size, const size_t offset) const {
     mappedRange.memory = _handle.get();
     mappedRange.offset = offset;
     mappedRange.size = size;
-    return vkInvalidateMappedMemoryRanges(_device->get(), 1, &mappedRange);
+    return vkInvalidateMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
 }
-void BasicMemory::unmap() const { vkUnmapMemory(_device->get(), _handle.get()); }
+void BasicMemory::unmap() const { vkUnmapMemory(_core->vkDevice(), _handle.get()); }
 
 void BasicMemory::free(DeletionQueue* deletion_queue) {
     CTH_WARN(_handle == VK_NULL_HANDLE, "memory not valid");
     if(deletion_queue) deletion_queue->push(_handle.get());
-    else BasicMemory::free(_device, _handle.get());
+    else BasicMemory::free(_core->vkDevice(), _handle.get());
 
     _handle = VK_NULL_HANDLE;
     BasicMemory::reset();
@@ -89,14 +93,14 @@ void BasicMemory::reset() {
     _size = 0;
 }
 
-void BasicMemory::free(const Device* device, VkDeviceMemory memory) {
-    DEBUG_CHECK_DEVICE(device);
+void BasicMemory::free(VkDevice vk_device, VkDeviceMemory memory) {
+    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
     CTH_WARN(memory == VK_NULL_HANDLE, "memory not allocated");
-    vkFreeMemory(device->get(), memory, nullptr);
+    vkFreeMemory(vk_device, memory, nullptr);
 }
 
 
-void BasicMemory::init() const { DEBUG_CHECK_DEVICE(_device); }
+void BasicMemory::init() const { DEBUG_CHECK_CORE(_core); }
 
 
 #ifdef CONSTANT_DEBUG_MODE

@@ -19,8 +19,8 @@ public:
 
 
 
-    inline static constexpr uint32_t WIDTH = 1000;
-    inline static constexpr uint32_t HEIGHT = 1000;
+    static constexpr uint32_t WIDTH = 1000;
+    static constexpr uint32_t HEIGHT = 1000;
 
 private:
     void reserveObjectMemory();
@@ -34,23 +34,26 @@ private:
 
     void allocateObjectModels();
 
-   /* static void calculateRenderGroups(array<size_t, 4>& group_sizes, vector<uint32_t>& group_indices,
-        const vector<unique_ptr<RenderObject>>& objects);*/
+    /* static void calculateRenderGroups(array<size_t, 4>& group_sizes, vector<uint32_t>& group_indices,
+         const vector<unique_ptr<RenderObject>>& objects);*/
     void setRenderData();
 
     void updateFpsDisplay(size_t frame_index, float frame_time) const;
 
 
-    std::unique_ptr<Instance> _instance = make_unique<Instance>("app", getRequiredInstanceExtensions());
-    std::unique_ptr<Window> _window = make_unique<Window>(WINDOW_NAME, WIDTH, HEIGHT, _instance.get());
-    std::unique_ptr<PhysicalDevice> _physicalDevice = PhysicalDevice::autoPick(_window->surface(), _instance.get());
-    std::unique_ptr<Device> _device = make_unique<Device>(_physicalDevice.get(), _window->surface(), _instance.get());
-    Context _context{_device.get(), _physicalDevice.get(), _instance.get()};
 
-    std::unique_ptr<DeletionQueue> _deletionQueue = make_unique<DeletionQueue>(&_context);
+    vector<Queue> _queues{Queue{QUEUE_FAMILY_PROPERTY_GRAPHICS | QUEUE_FAMILY_PROPERTY_PRESENT | QUEUE_FAMILY_PROPERTY_TRANSFER}};
+
+    vector<string> _asdf = getRequiredInstanceExtensions();
+
+    std::unique_ptr<Core> _core = make_unique<Core>(BasicCore::Config::Default("demo", "engine", _queues, _asdf));
+
+    std::unique_ptr<OSWindow> _window = make_unique<OSWindow>(WINDOW_NAME, WIDTH, HEIGHT, _core->instance());
+
+    std::unique_ptr<DeletionQueue> _deletionQueue = make_unique<DeletionQueue>(_core.get());
 
 
-    std::unique_ptr<Renderer> _hlcRenderer = make_unique<Renderer>(_device.get(), _deletionQueue.get(), &_camera, _window.get());
+    std::unique_ptr<Renderer> _renderer = make_unique<Renderer>(_core.get(), _deletionQueue.get(), &_camera, _window.get());
     InputController _inputController{};
     Camera _camera{};
 

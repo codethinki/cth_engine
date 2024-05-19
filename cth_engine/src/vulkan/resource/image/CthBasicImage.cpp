@@ -1,5 +1,6 @@
 #include "CthBasicImage.hpp"
 
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/control/CthPipelineBarrier.hpp"
@@ -14,10 +15,10 @@
 
 namespace cth {
 
-BasicImage::BasicImage(Device* device, const VkExtent2D extent, const Config& config) : _device(device),
+BasicImage::BasicImage(const BasicCore* core, const VkExtent2D extent, const Config& config) : _core(core),
     _extent(extent), _config(config) { init(); }
 
-BasicImage::BasicImage(Device* device, const VkExtent2D extent, const Config& config, VkImage vk_image, State state) : _device(device),
+BasicImage::BasicImage(const BasicCore* core, const VkExtent2D extent, const Config& config, VkImage vk_image, State state) : _core(core),
     _extent(extent), _config(config), _state(std::move(state)), _handle(vk_image) { init(); }
 
 void BasicImage::wrap(VkImage vk_image, const State& state) {
@@ -40,7 +41,7 @@ void BasicImage::create() {
 
     VkImage ptr = VK_NULL_HANDLE;
 
-    const auto createResult = vkCreateImage(_device->get(), &createInfo, nullptr, &ptr);
+    const auto createResult = vkCreateImage(_core->vkDevice(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create image")
         throw except::vk_result_exception{createResult, details->exception()};
 
@@ -58,7 +59,7 @@ void BasicImage::alloc() const {
     DEBUG_CHECK_IMAGE(this);
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(_device->get(), _handle.get(), &memRequirements);
+    vkGetImageMemoryRequirements(_core->vkDevice(), _handle.get(), &memRequirements);
 
     _state.memory->alloc(memRequirements);
 }
@@ -72,7 +73,7 @@ void BasicImage::bind() {
     DEBUG_CHECK_IMAGE(this);
     DEBUG_CHECK_MEMORY(_state.memory.get());
 
-    const auto bindResult = vkBindImageMemory(_device->get(), _handle.get(), _state.memory->get(), 0);
+    const auto bindResult = vkBindImageMemory(_core->vkDevice(), _handle.get(), _state.memory->get(), 0);
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind image memory")
         throw except::vk_result_exception{bindResult, details->exception()};
@@ -81,8 +82,10 @@ void BasicImage::bind() {
 }
 
 void BasicImage::destroy(DeletionQueue* deletion_queue) {
-    if(deletion_queue) deletion_queue->push(_handle.get());
-    else destroy(_device, _handle.get());
+    if(deletion_queue) {
+        DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
+        deletion_queue->push(_handle.get());
+    } else destroy(_core->vkDevice(), _handle.get());
 
     _handle = VK_NULL_HANDLE;
 
@@ -140,11 +143,11 @@ void BasicImage::transitionLayout(ImageBarrier& barrier, const VkImageLayout new
 }
 
 
-void BasicImage::destroy(const Device* device, VkImage vk_image) {
+void BasicImage::destroy(VkDevice vk_device, VkImage vk_image) {
     CTH_WARN(vk_image == VK_NULL_HANDLE, "vk_image invalid");
-    DEBUG_CHECK_DEVICE(device);
+    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
 
-    vkDestroyImage(device->get(), vk_image, nullptr);
+    vkDestroyImage(vk_device, vk_image, nullptr);
 }
 
 uint32_t BasicImage::evalMipLevelCount(const VkExtent2D extent) {
@@ -191,7 +194,7 @@ BasicImage::transition_config BasicImage::transitionConfig(const VkImageLayout c
 
 
 void BasicImage::init() {
-    DEBUG_CHECK_DEVICE(_device);
+    DEBUG_CHECK_CORE(_core);
     _state.init(_config);
 }
 

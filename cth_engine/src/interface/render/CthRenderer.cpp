@@ -1,46 +1,46 @@
 #include "CthRenderer.hpp"
 
 #include "interface/user/HlcCamera.hpp"
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/surface/CthWindow.hpp"
+#include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/render/cmd/CthCmdPool.hpp"
+#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/surface/CthOSWindow.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>
 
 #include <array>
 
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/render/cmd/CthCmdPool.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/render/control/CthSemaphore.hpp"
 
 
 
 namespace cth {
-Renderer::Renderer(Device* device, DeletionQueue* deletion_queue, Camera* camera, Window* window) : _device{device}, _deletionQueue(deletion_queue), _camera{camera}, _window(window), _currentImageIndex{0} { init(); }
+
+
+Renderer::Renderer(const BasicCore* core, DeletionQueue* deletion_queue, const Queue* queue, Camera* camera, OSWindow* window) : _core{core},
+    _deletionQueue(deletion_queue), _queue(queue), _camera{camera}, _window(window) { init(); }
 Renderer::~Renderer() {
 
     _cmdBuffers.clear();
     _cmdPools.clear();
     _swapchain = nullptr;
 }
+size_t Renderer::beginFrame() {}
 
-const PrimaryCmdBuffer* Renderer::beginFrame() {
-    CTH_ERR(_frameStarted, "more than one frame started")
-        throw details->exception();
+void Renderer::skipTransfer() const {
+    CTH_ERR(_transferStarted, "transfer already active") throw details->exception();
+    signal(STATE_RENDER_READY);
+}
 
-    const VkResult nextImageResult = _swapchain->acquireNextImage(&_currentImageIndex);
 
-    if(nextImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
-        recreateSwapchain();
-        return nullptr;
-    }
+const PrimaryCmdBuffer* Renderer::beginRender() {
 
-    CTH_STABLE_ERR(nextImageResult != VK_SUCCESS && nextImageResult != VK_SUBOPTIMAL_KHR, "failed to acquire swapchain image")
-        throw cth::except::vk_result_exception{nextImageResult, details->exception()};
-
-    _frameStarted = true;
 
     auto buffer = commandBuffer();
+
 
     const VkResult beginResult = buffer->begin();
     CTH_STABLE_ERR(beginResult != VK_SUCCESS, "failed to begin command buffer")
@@ -48,37 +48,69 @@ const PrimaryCmdBuffer* Renderer::beginFrame() {
 
     return buffer;
 }
-void Renderer::endFrame() {
-    CTH_ERR(!_frameStarted, "no frame active") throw details->exception();
-
-    const auto cmdBuffer = commandBuffer();
-    //TODO finish this up
-    /*   if(device->presentQueueIndex() != device->graphicsQueueIndex())
-           swapchain->changeSwapchainImageQueue(cmdBuffer, device->presentQueueIndex(), currentImageIndex);*/
 
 
-    const VkResult recordResult = cmdBuffer->end();
-
-    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
-        throw cth::except::vk_result_exception{recordResult, details->exception()};
-
-    const VkResult submitResult = _swapchain->submitCommandBuffer(_deletionQueue, cmdBuffer, _currentImageIndex);
+void Renderer::endRender() {}
 
 
-    if(submitResult == VK_ERROR_OUT_OF_DATE_KHR || submitResult == VK_SUBOPTIMAL_KHR || _window->windowResized()) {
-        recreateSwapchain();
-        _camera->correctViewRatio(screenRatio());
-        _window->resetWindowResized();
-    } else
-        CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to present swapchain image")
-            throw cth::except::vk_result_exception{submitResult, details->exception()};
 
-    _frameStarted = false;
-    ++_currentFrameIndex %= Constant::MAX_FRAMES_IN_FLIGHT;
-}
+//const PrimaryCmdBuffer* Renderer::beginFramea() {
+//    CTH_ERR(_frameStarted, "more than one frame started")
+//        throw details->exception();
+//
+//    const VkResult nextImageResult = _swapchain->acquireNextImage(&_currentImageIndex);
+//
+//    if(nextImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
+//        recreateSwapchain();
+//        return nullptr;
+//    }
+//
+//    CTH_STABLE_ERR(nextImageResult != VK_SUCCESS && nextImageResult != VK_SUBOPTIMAL_KHR, "failed to acquire swapchain image")
+//        throw cth::except::vk_result_exception{nextImageResult, details->exception()};
+//
+//    _frameStarted = true;
+//
+//    auto buffer = commandBuffer();
+//
+//    const VkResult beginResult = buffer->begin();
+//    CTH_STABLE_ERR(beginResult != VK_SUCCESS, "failed to begin command buffer")
+//        throw cth::except::vk_result_exception{beginResult, details->exception()};
+//
+//    return buffer;
+//}
+//void Renderer::endFramea() {
+//    CTH_ERR(!_frameStarted, "no frame active") throw details->exception();
+//
+//    const auto cmdBuffer = commandBuffer();
+//    //TODO finish this up
+//    /*   if(device->presentQueueIndex() != device->graphicsQueueIndex())
+//           swapchain->changeSwapchainImageQueue(cmdBuffer, device->presentQueueIndex(), currentImageIndex);*/
+//
+//
+//    const VkResult recordResult = cmdBuffer->end();
+//
+//    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
+//        throw cth::except::vk_result_exception{recordResult, details->exception()};
+//
+//    const VkResult submitResult = _swapchain->submitCommandBuffer(_deletionQueue, cmdBuffer, _currentImageIndex);
+//
+//
+//    if(submitResult == VK_ERROR_OUT_OF_DATE_KHR || submitResult == VK_SUBOPTIMAL_KHR || _window->windowResized()) {
+//        recreateSwapchain();
+//        _camera->correctViewRatio(screenRatio());
+//        _window->resetWindowResized();
+//    } else
+//        CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to present swapchain image")
+//            throw cth::except::vk_result_exception{submitResult, details->exception()};
+//
+//    _frameStarted = false;
+//    ++_currentFrameIndex %= Constant::MAX_FRAMES_IN_FLIGHT;
+//}
+
+
 
 void Renderer::beginSwapchainRenderPass(const PrimaryCmdBuffer* command_buffer) const {
-    CTH_ERR(!_frameStarted, "no frame started") throw details->exception();
+    CTH_ERR(!_transferStarted, "no frame started") throw details->exception();
     CTH_ERR(command_buffer != commandBuffer(), "renderPass already started")
         throw details->exception();
 
@@ -110,7 +142,7 @@ void Renderer::beginSwapchainRenderPass(const PrimaryCmdBuffer* command_buffer) 
 
 }
 void Renderer::endSwapchainRenderPass(const PrimaryCmdBuffer* command_buffer) const {
-    CTH_ERR(!_frameStarted, "no frame active") throw details->exception();
+    CTH_ERR(!_transferStarted, "no frame active") throw details->exception();
     CTH_ERR(command_buffer != commandBuffer(), "only one command buffer allowed")
         throw details->exception();
 
@@ -132,8 +164,8 @@ void Renderer::endInitBuffer() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = buffers.data();
 
-    vkQueueSubmit(_device->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(_device->graphicsQueue());
+    vkQueueSubmit(_core->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(_core->graphicsQueue());
 
     _deletionQueue->clear(_currentFrameIndex);
 
@@ -155,15 +187,15 @@ VkExtent2D Renderer::minimizedState() const {
 void Renderer::recreateSwapchain() {
     VkExtent2D windowExtent = minimizedState();
 
-    vkDeviceWaitIdle(_device->get());
+    vkDeviceWaitIdle(_core->vkDevice());
 
     if(_swapchain == nullptr) {
-        _swapchain = make_unique<Swapchain>(_device, _deletionQueue, windowExtent, _window->surface());
+        _swapchain = make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), windowExtent);
         return;
     }
 
     shared_ptr oldSwapchain = std::move(_swapchain);
-    _swapchain = make_unique<Swapchain>(_device, _deletionQueue, windowExtent, _window->surface(), oldSwapchain);
+    _swapchain = make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), windowExtent, oldSwapchain);
 
     //TODO i dont understand why the formats cant change?
     const bool change = oldSwapchain->compareSwapFormats(*_swapchain);
@@ -172,18 +204,20 @@ void Renderer::recreateSwapchain() {
         throw details->exception();
 }
 
+
+
 void Renderer::init() {
     createSwapchain();
     createCmdPools();
     createPrimaryCmdBuffers();
 }
 void Renderer::createSwapchain() {
-    vkDeviceWaitIdle(_device->get());
-    _swapchain = make_unique<Swapchain>(_device, _deletionQueue, _window->extent(), _window->surface());
+    vkDeviceWaitIdle(_core->vkDevice());
+    _swapchain = make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), _window->extent());
 }
 void Renderer::createCmdPools() {
-    for(auto index : _device->uniqueQueueIndices())
-        _cmdPools.emplace_back(make_unique<CmdPool>(_device, CmdPool::Config::Default(index, Constant::MAX_FRAMES_IN_FLIGHT + 1, 0)));
+    for(auto index : _core->device()->familyIndices())
+        _cmdPools.emplace_back(make_unique<CmdPool>(_core, CmdPool::Config::Default(index, Constant::MAX_FRAMES_IN_FLIGHT + 1, 0)));
 }
 void Renderer::createPrimaryCmdBuffers() {
     _cmdBuffers.resize(_cmdPools.size());
@@ -193,18 +227,25 @@ void Renderer::createPrimaryCmdBuffers() {
             buffers.emplace_back(make_unique<PrimaryCmdBuffer>(cmdPool.get()));
     }
 }
+void Renderer::createSyncObjects() {
+    _syncTimeline.reserve(Constant::MAX_FRAMES_IN_FLIGHT);
+    for(size_t i = 0; i < Constant::MAX_FRAMES_IN_FLIGHT; ++i)
+        _syncTimeline.emplace_back(_core, _deletionQueue);
+}
+
 
 
 uint32_t Renderer::frameIndex() const {
-    CTH_ERR(!_frameStarted, "no frame active") throw details->exception();
+    CTH_ERR(!_transferStarted, "no frame active") throw details->exception();
     return _currentFrameIndex;
 }
 const PrimaryCmdBuffer* Renderer::commandBuffer() const {
     //must be here bc of compile error without #include "cmd/CthCmdBuffer.hpp"
-    CTH_ERR(!_frameStarted, "no frame active") throw details->exception();
+    CTH_ERR(!_transferStarted, "no frame active") throw details->exception();
     return _cmdBuffers.back()[_currentFrameIndex].get();
 }
 DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
+
 
 
 

@@ -4,16 +4,11 @@
 namespace cth {
 class DebugMessenger : public BasicDebugMessenger {
 public:
-    DebugMessenger(DeletionQueue* deletion_queue, BasicInstance* instance, const Config& config) : BasicDebugMessenger{config},
-        _deletionQueue(deletion_queue) { BasicDebugMessenger::create(instance); }
+    DebugMessenger(const BasicInstance* instance, const Config& config) : BasicDebugMessenger{config} { BasicDebugMessenger::create(instance); }
     ~DebugMessenger() override;
 
-    void create(BasicInstance* instance) override;
+    void create(const BasicInstance* instance) override;
 
-    void destroy(DeletionQueue* deletion_queue = nullptr) override;
-
-private:
-    DeletionQueue* _deletionQueue;
 
 public:
     DebugMessenger(const DebugMessenger& other) = delete;

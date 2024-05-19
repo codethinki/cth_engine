@@ -1,5 +1,6 @@
 #include "CthBasicBuffer.hpp"
 
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
@@ -10,11 +11,10 @@
 
 namespace cth {
 
-BasicBuffer::BasicBuffer(Device* device, const size_t buffer_size, const VkBufferUsageFlags usage_flags) :
-    _device(device), _size(buffer_size), _usage(usage_flags) { init(); }
-BasicBuffer::BasicBuffer(Device* device, const size_t buffer_size, const VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, const State& state) :
-    _device(device),
-    _size(buffer_size), _usage(usage_flags), _state(state), _handle(vk_buffer) { init(); }
+BasicBuffer::BasicBuffer(const BasicCore* core, const size_t buffer_size, const VkBufferUsageFlags usage_flags) :
+    _core(core), _size(buffer_size), _usage(usage_flags) { init(); }
+BasicBuffer::BasicBuffer(const BasicCore* core, const size_t buffer_size, const VkBufferUsageFlags usage_flags, VkBuffer vk_buffer,
+    State state) : _core(core), _size(buffer_size), _usage(usage_flags), _state(std::move(state)), _handle(vk_buffer) { init(); }
 
 void BasicBuffer::wrap(VkBuffer vk_buffer, const State& state) {
     DEBUG_CHECK_BUFFER_LEAK(this);
@@ -37,7 +37,7 @@ void BasicBuffer::create() {
 
     VkBuffer ptr = VK_NULL_HANDLE;
 
-    const VkResult createResult = vkCreateBuffer(_device->get(), &bufferInfo, nullptr, &ptr);
+    const VkResult createResult = vkCreateBuffer(_core->vkDevice(), &bufferInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create buffer")
         throw cth::except::vk_result_exception{createResult, details->exception()};
 
@@ -53,7 +53,7 @@ void BasicBuffer::alloc() const {
     DEBUG_CHECK_BUFFER_NOT_BOUND(this);
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(_device->get(), _handle.get(), &memRequirements);
+    vkGetBufferMemoryRequirements(_core->vkDevice(), _handle.get(), &memRequirements);
 
     _state.memory->alloc(memRequirements);
 }
@@ -66,7 +66,7 @@ void BasicBuffer::bind() const {
     DEBUG_CHECK_BUFFER(this);
     DEBUG_CHECK_BUFFER_NOT_BOUND(this);
 
-    const VkResult bindResult = vkBindBufferMemory(_device->get(), _handle.get(), _state.memory->get(), 0);
+    const VkResult bindResult = vkBindBufferMemory(_core->vkDevice(), _handle.get(), _state.memory->get(), 0);
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind buffer memory")
         throw cth::except::vk_result_exception{bindResult, details->exception()};
@@ -75,8 +75,10 @@ void BasicBuffer::bind() const {
 
 
 void BasicBuffer::destroy(DeletionQueue* deletion_queue) {
-    if(deletion_queue) deletion_queue->push(_handle.get());
-    else destroy(_device, _handle.get());
+    if(deletion_queue) {
+        DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
+        deletion_queue->push(_handle.get());
+    } else destroy(_core->vkDevice(), _handle.get());
 
     _handle = VK_NULL_HANDLE;
 
@@ -124,7 +126,7 @@ void BasicBuffer::copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src, cons
     CTH_ERR(!(_usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT), "dst buffer usage must be marked as transfer destination") throw details->exception();
 
 
-    const size_t copySize = copy_size == Constant::WHOLE_SIZE ? min(src._size - src_offset, _size - dst_offset) : copy_size;
+    const size_t copySize = (copy_size == Constant::WHOLE_SIZE ? std::min(src._size - src_offset, _size - dst_offset) : copy_size);
 
     CTH_ERR(src_offset + copySize > src._size || dst_offset + copySize > _size, "copy region out of bounds") {
         if(src_offset + copySize > src._size) {
@@ -160,11 +162,11 @@ void BasicBuffer::write(const span<const char> data, const span<char> mapped_mem
     memcpy(mapped_memory.data(), data.data(), data.size());
 }
 
-void BasicBuffer::destroy(const Device* device, VkBuffer vk_buffer) {
+void BasicBuffer::destroy(VkDevice vk_device, VkBuffer vk_buffer) {
     CTH_WARN(vk_buffer == VK_NULL_HANDLE, "vk_buffer invalid");
-    DEBUG_CHECK_DEVICE(device);
+    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
 
-    vkDestroyBuffer(device->get(), vk_buffer, nullptr);
+    vkDestroyBuffer(vk_device, vk_buffer, nullptr);
 }
 
 size_t BasicBuffer::calcAlignedSize(const size_t actual_size) {
@@ -205,7 +207,7 @@ void BasicBuffer::setMemory(BasicMemory* new_memory) {
 }
 
 
-void BasicBuffer::init() const { DEBUG_CHECK_DEVICE(_device); }
+void BasicBuffer::init() const { DEBUG_CHECK_CORE(_core); }
 
 //public
 BasicMemory* BasicBuffer::memory() const { return _state.memory.get(); }

@@ -5,7 +5,12 @@
 #include <unordered_map>
 #include <vector>
 
+#include "vulkan/base/CthQueue.hpp"
 #include "vulkan/utility/CthConstants.hpp"
+
+namespace cth {
+class Queue;
+}
 
 namespace cth {
 using namespace std;
@@ -48,7 +53,7 @@ public:
 
     virtual void execute(const CmdBuffer& cmd_buffer);
 
-    bool contains(const BasicImage* image) const;
+    [[nodiscard]] bool contains(const BasicImage* image) const;
 
 protected:
     void applyChanges() const;
@@ -56,15 +61,21 @@ protected:
     explicit ImageBarrier(const unordered_map<BasicImage*, Info>& images);
 
 private:
-    size_t barrierIndex(const BasicImage* image) const;
+    [[nodiscard]] ptrdiff_t find(const BasicImage* image) const;
 
     void removeChange(size_t barrier_index);
     void init(const unordered_map<BasicImage*, ImageBarrier::Info>& images);
-    vector<VkImageMemoryBarrier> imageBarriers{};
+    vector<VkImageMemoryBarrier> _imageBarriers{};
 
-    vector<std::pair<size_t, BasicImage*>> layoutChanges{};
+    vector<std::pair<size_t, BasicImage*>> _layoutChanges{};
 
     friend PipelineBarrier;
+
+public:
+    ImageBarrier(const ImageBarrier& other) = delete;
+    ImageBarrier& operator=(const ImageBarrier& other) = delete;
+    ImageBarrier(ImageBarrier&& other) noexcept = default;
+    ImageBarrier& operator=(ImageBarrier&& other) noexcept = default;
 };
 
 } // namespace cth
@@ -94,10 +105,16 @@ protected:
 
 private:
     void init(const unordered_map<const BasicBuffer*, Info>& buffers);
-    vector<const BasicBuffer*> buffers{};
-    vector<VkBufferMemoryBarrier> bufferBarriers{};
+    vector<const BasicBuffer*> _buffers{};
+    vector<VkBufferMemoryBarrier> _bufferBarriers{};
 
     friend PipelineBarrier;
+
+public:
+    BufferBarrier(const BufferBarrier& other) = delete;
+    BufferBarrier& operator=(const BufferBarrier& other) = delete;
+    BufferBarrier(BufferBarrier&& other) noexcept = default;
+    BufferBarrier& operator=(BufferBarrier&& other) noexcept = default;
 };
 } // namespace cth
 
@@ -108,12 +125,12 @@ namespace cth {
 class PipelineBarrier : public BufferBarrier, public ImageBarrier {
 public:
     explicit PipelineBarrier(const PipelineStages stages) : BufferBarrier(stages), ImageBarrier(stages) {
-        ImageBarrier::srcStage = stages.srcStage;
-        ImageBarrier::dstStage = stages.dstStage;
+        srcStage = stages.srcStage;
+        dstStage = stages.dstStage;
     }
     explicit PipelineBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage) {
-        ImageBarrier::srcStage = src_stage;
-        ImageBarrier::dstStage = dst_stage;
+        srcStage = src_stage;
+        dstStage = dst_stage;
     }
 
 
@@ -150,11 +167,18 @@ struct ImageBarrier::Info {
     static Info Default() { return Info{}; }
 
     static Info QueueTransition(const PipelineAccess& src, const PipelineAccess& dst) { return Info{.src = src, .dst = dst}; }
-    static Info QueueTransition(const VkAccessFlags src_access, const uint32_t src_queue_index, const VkAccessFlags dst_access,
-        const uint32_t dst_queue_index) {
+    static Info QueueTransition(const VkAccessFlags src_access, const uint32_t src_queue_family_index, const VkAccessFlags dst_access,
+        const uint32_t dst_queue_family_index) {
         return Info{
-            .src = {src_access, src_queue_index},
-            .dst = {dst_access, dst_queue_index}
+            .src = {src_access, src_queue_family_index},
+            .dst = {dst_access, dst_queue_family_index}
+        };
+    }
+    static Info QueueTransition(const VkAccessFlags src_access, const Queue& src_queue, const VkAccessFlags dst_access,
+        const Queue& dst_queue) {
+        return Info{
+            .src = {src_access, src_queue.familyIndex()},
+            .dst = {dst_access, dst_queue.familyIndex()}
         };
     }
     /**

@@ -1,11 +1,11 @@
 #pragma once
-#include <algorithm>
+#include <cth/cth_memory.hpp>
 #include <vulkan/vulkan.h>
 
+#include <algorithm>
 
 namespace cth {
-using namespace std;
-class SwapchainImage;
+class BasicCore;
 class BasicImage;
 class Device;
 
@@ -13,19 +13,19 @@ class ImageView {
 public:
     struct Config;
 
-    ImageView(Device* device, BasicImage* image, const Config& config);
+    ImageView(const BasicCore* device, BasicImage* image, const Config& config);
     ~ImageView();
 
 private:
     void create(const Config& config);
 
-    Device* device;
-    BasicImage* image_;
-    VkImageView vkImageView = VK_NULL_HANDLE;
+    const BasicCore* _core;
+    BasicImage* _image;
+    VkImageView _handle = VK_NULL_HANDLE;
 
 public:
-    [[nodiscard]] VkImageView get() const { return vkImageView; }
-    [[nodiscard]] BasicImage* image() const { return image_; }
+    [[nodiscard]] VkImageView get() const { return _handle; }
+    [[nodiscard]] BasicImage* image() const { return _image; }
 };
 } // namespace cth
 
@@ -54,7 +54,7 @@ struct ImageView::Config {
     }
 };
 
-inline cth::ImageView::Config cth::ImageView::Config::Default() {
+inline ImageView::Config ImageView::Config::Default() {
     Config config;
     config.baseMipLevel = 0;
     config.levelCount = 1;

@@ -1,25 +1,30 @@
 #pragma once
+#include <chrono>
+#include <span>
 #include <vulkan/vulkan.h>
 
 #include <cth/cth_memory.hpp>
 
 namespace cth {
+class BasicCore;
 class Device;
 class DeletionQueue;
 
 class BasicSemaphore {
 public:
-    explicit BasicSemaphore(Device* device);
+    explicit BasicSemaphore(const BasicCore* core);
     virtual ~BasicSemaphore() = default;
 
     virtual void create();
     virtual void destroy(DeletionQueue* deletion_queue = nullptr);
 
 
-    static void destroy(const Device* device, VkSemaphore vk_semaphore);
+    static void destroy(VkDevice vk_device, VkSemaphore vk_semaphore);
 
 protected:
-    Device* _device;
+    virtual VkSemaphoreCreateInfo createInfo();
+
+    const BasicCore* _core;
 
 private:
     mem::basic_ptr<VkSemaphore_T> _handle{};
@@ -34,13 +39,13 @@ public:
 
 #ifdef _DEBUG
     static void debug_check(const BasicSemaphore* semaphore);
-    static void debug_check_replace(const BasicSemaphore* semaphore);
+    static void debug_check_leak(const BasicSemaphore* semaphore);
 
 #define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) BasicSemaphore::debug_check(semaphore_ptr)
-#define DEBUG_CHECK_SEMAPHORE_REPLACE(semaphore_ptr) BasicSemaphore::debug_check_replace(semaphore_ptr)
+#define DEBUG_CHECK_SEMAPHORE_LEAK(semaphore_ptr) BasicSemaphore::debug_check_replace(semaphore_ptr)
 #else
 #define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) ((void)0)
-#define DEBUG_CHECK_SEMAPHORE_REPLACE(semaphore_ptr)  ((void)0)
+#define DEBUG_CHECK_SEMAPHORE_LEAK(semaphore_ptr)  ((void)0)
 #endif
 
 };
@@ -53,7 +58,7 @@ namespace cth {
 
 class Semaphore : public BasicSemaphore {
 public:
-    explicit Semaphore(Device* device, DeletionQueue* deletion_queue);
+    explicit Semaphore(const BasicCore* core, DeletionQueue* deletion_queue);
     ~Semaphore() override;
 
     void create() override;
@@ -61,12 +66,16 @@ public:
 
 private:
     DeletionQueue* _deletionQueue;
+
 public:
     Semaphore(const Semaphore& other) = delete;
-    Semaphore(Semaphore&& other) = default;
     Semaphore& operator=(const Semaphore& other) = delete;
-    Semaphore& operator=(Semaphore&& other) = default;
+    Semaphore(Semaphore&& other) noexcept = default;
+    Semaphore& operator=(Semaphore&& other) noexcept = default;
 
 };
 
 }
+
+
+

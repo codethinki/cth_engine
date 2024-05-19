@@ -31,8 +31,8 @@
     <ClInclude Include="src\interface\render\model\CthVertex.hpp" />
     <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
     <ClInclude Include="src\interface\render\CthRenderer.hpp" />
-    <ClInclude Include="src\vulkan\surface\CthSwapchain.hpp" />
-    <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthBasicSwapchain.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
     <ClInclude Include="src\vulkan\render\pipeline\layout\CthPipelineLayout.hpp" />
     <ClInclude Include="src\CthEngine.hpp" />
@@ -58,14 +58,20 @@
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthSemaphore.hpp" />
     <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
-    <ClInclude Include="src\vulkan\base\CthContext.hpp" />
+    <ClInclude Include="src\vulkan\base\CthCore.hpp" />
     <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
+    <ClInclude Include="src\vulkan\render\control\CthFence.hpp" />
+    <ClInclude Include="src\vulkan\base\CthQueueFamily.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthSwapchain.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
+    <ClInclude Include="src\vulkan\render\control\CthTimelineSemaphore.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
     <None Include="doc\scene.md" />
     <None Include="doc\tinygltf.md" />
     <None Include="src\vulkan\resource\buffer\CthBuffer.inl" />
+    <None Include="src\interface\render\CthRenderer.inl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\interface\object\HlcStandardObject.cpp" />
@@ -83,8 +89,8 @@
     <ClCompile Include="src\interface\render\model\HlcModel.cpp" />
     <ClCompile Include="src\interface\render\model\HlcModelManager.cpp" />
     <ClCompile Include="src\interface\render\CthRenderer.cpp" />
-    <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
-    <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
+    <ClCompile Include="src\vulkan\surface\CthBasicSwapchain.cpp" />
+    <ClCompile Include="src\vulkan\surface\CthOSWindow.cpp" />
     <ClCompile Include="engine_main.cpp" />
     <ClCompile Include="src\vulkan\render\pipeline\layout\CthPipelineLayout.cpp" />
     <ClCompile Include="src\CthEngine.cpp" />
@@ -103,5 +109,11 @@
     <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
     <ClCompile Include="src\vulkan\resource\memory\CthMemory.cpp" />
     <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
+    <ClCompile Include="src\vulkan\render\control\CthFence.cpp" />
+    <ClCompile Include="src\vulkan\base\CthCore.cpp" />
+    <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />
+    <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
+    <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
+    <ClCompile Include="src\vulkan\render\control\CthTimelineSemaphore.cpp" />
   </ItemGroup>
 </Project>

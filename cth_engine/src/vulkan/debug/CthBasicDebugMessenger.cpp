@@ -9,7 +9,7 @@
 
 namespace cth {
 
-void BasicDebugMessenger::create(BasicInstance* instance) {
+void BasicDebugMessenger::create(const BasicInstance* instance) {
     _instance = instance;
 
     DEBUG_CHECK_INSTANCE(instance);
@@ -31,25 +31,24 @@ void BasicDebugMessenger::create(BasicInstance* instance) {
 
     _handle = ptr;
 }
-void BasicDebugMessenger::destroy(DeletionQueue* deletion_queue) {
+void BasicDebugMessenger::destroy() {
 
-    if(deletion_queue) deletion_queue->push(_handle.get());
-    else destroy(_instance, _handle.get());
+    destroy(_instance->get(), _handle.get());
 
     _handle = VK_NULL_HANDLE;
     _instance = nullptr;
 }
 
-void BasicDebugMessenger::destroy(const BasicInstance* instance, VkDebugUtilsMessengerEXT vk_messenger) {
+void BasicDebugMessenger::destroy(VkInstance instance, VkDebugUtilsMessengerEXT vk_messenger) {
     CTH_WARN(vk_messenger == VK_NULL_HANDLE, "messenger invalid");
-    DEBUG_CHECK_INSTANCE(instance);
+    DEBUG_CHECK_INSTANCE_HANDLE(instance);
 
     const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(instance->get(), "vkDestroyDebugUtilsMessengerEXT"));
+        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
 
     CTH_STABLE_ERR(func == nullptr, "vkGetInstanceProcAddr returned nullptr") throw details->exception();
 
-    func(instance->get(), vk_messenger, nullptr);
+    func(instance, vk_messenger, nullptr);
 }
 #ifdef CONSTANT_DEBUG_MODE
 void BasicDebugMessenger::debug_check(const BasicDebugMessenger* debug_messenger) {

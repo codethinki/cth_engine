@@ -5,8 +5,6 @@
 
 namespace cth {
 
-using std::span;
-
 class Texture : public Image {
 public:
     struct Config;
@@ -16,7 +14,7 @@ public:
      * \param staging_data copied to texture via a staging buffer
      * \note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
-    Texture(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
+    Texture(const BasicCore* core, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
         span<const char> staging_data);
 
     /**
@@ -24,7 +22,7 @@ public:
      * \param staging_buffer staging buffer with image data
      * \note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
-    Texture(Device* device, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
+    Texture(const BasicCore* core, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
         const BasicBuffer& staging_buffer, size_t buffer_offset = 0);
 
     ~Texture() override = default;

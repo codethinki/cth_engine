@@ -3,11 +3,13 @@
 #include <span>
 #include <unordered_map>
 #include <vector>
+#include <cth/cth_memory.hpp>
 #include <vulkan/vulkan.h>
 
+
+
 namespace cth {
-using namespace std;
-class Device;
+class BasicCore;
 class DescriptorSetLayout;
 
 class PipelineLayout {
@@ -17,15 +19,15 @@ public:
     * \throws cth::except::vk_result_exception data: VkResult of vkCreatePipelineLayout()
     * \throws cth::except::exception reason: device limits exceeded, too many locations specified
     */
-    PipelineLayout(Device* device, const Builder& builder);
+    PipelineLayout(const BasicCore* core, const Builder& builder);
     ~PipelineLayout();
 
 private:
     void create();
 
-    Device* _device;
+    const BasicCore* _core;
     VkPipelineLayout _vkLayout = VK_NULL_HANDLE;
-    vector<DescriptorSetLayout*> _setLayouts{};
+    std::vector<DescriptorSetLayout*> _setLayouts{};
 
 public:
     [[nodiscard]] VkPipelineLayout get() const { return _vkLayout; }
@@ -45,9 +47,9 @@ public:
 namespace cth {
 struct PipelineLayout::Builder {
     Builder() = default;
-    explicit Builder(span<DescriptorSetLayout*> layouts);
+    explicit Builder(std::span<DescriptorSetLayout*> layouts);
 
-    Builder& addSetLayouts(span<DescriptorSetLayout* const> layouts, uint32_t location_offset = 0);
+    Builder& addSetLayouts(std::span<DescriptorSetLayout* const> layouts, uint32_t location_offset = 0);
     Builder& addSetLayout(DescriptorSetLayout* layout, uint32_t location);
     Builder& removeSetLayout(uint32_t location);
 
@@ -55,9 +57,9 @@ private:
     /**
      * \throws cth::except::exception reason: device limits exceeded, too many locations specified
      */
-    [[nodiscard]] vector<DescriptorSetLayout*> build(uint32_t max_bound_descriptor_sets) const;
+    [[nodiscard]] std::vector<DescriptorSetLayout*> build(uint32_t max_bound_descriptor_sets) const;
 
-    vector<pair<uint32_t, DescriptorSetLayout*>> _setLayouts{};
+    std::vector<std::pair<uint32_t, DescriptorSetLayout*>> _setLayouts{};
 
     friend PipelineLayout;
 };

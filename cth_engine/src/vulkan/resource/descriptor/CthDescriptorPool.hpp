@@ -1,15 +1,20 @@
 #pragma once
+
+#include "vulkan/utility/CthConstants.hpp"
+
+#include <cth/cth_log.hpp>
+#include <cth/cth_memory.hpp>
+
 #include <vulkan/vulkan.h>
 
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <cth/cth_log.hpp>
 
-#include "vulkan/utility/CthConstants.hpp"
+
 
 namespace cth {
-class Device;
+class BasicCore;
 class DescriptorSet;
 class DescriptorSetLayout;
 
@@ -27,7 +32,7 @@ public:
     * \param builder [layout, count] pairs -> limit for allocated sets per layout
     * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
     */
-    DescriptorPool(Device* device, const Builder& builder);
+    DescriptorPool(const BasicCore* device, const Builder& builder);
     ~DescriptorPool();
     /**
      * \note descriptor sets are not required to stay valid
@@ -69,36 +74,36 @@ private:
      */
     void allocSets();
 
-    void descriptorSetDestroyed(DescriptorSet* set);
+    void returnSet(DescriptorSet* set);
 
-    Device* device;
+    const BasicCore* _core;
 
-    unordered_map<DescriptorSetLayout*, SetLayoutEntry> allocatedSets{};
-    vector<VkDescriptorSet> vkSets{};
+    unordered_map<const DescriptorSetLayout*, SetLayoutEntry> _allocatedSets{};
+    vector<VkDescriptorSet> _vkSets{};
 
-    unordered_set<DescriptorSet*> descriptorSets{};
+    unordered_set<DescriptorSet*> _descriptorSets{};
 
-    VkDescriptorPool vkPool = VK_NULL_HANDLE;
+    mem::basic_ptr<VkDescriptorPool_T> _handle = VK_NULL_HANDLE;
 
-    bool reset_ = true;
+    bool _reset = true;
 
     friend DescriptorSet;
 
 public:
-    [[nodiscard]] VkDescriptorPool get() const { return vkPool; }
+    [[nodiscard]] VkDescriptorPool get() const { return _handle.get(); }
 
     struct Builder {
         Builder() = default;
-        explicit Builder(const unordered_map<DescriptorSetLayout*, uint32_t>& max_descriptor_sets) { addLayouts(max_descriptor_sets); }
+        explicit Builder(const unordered_map<const DescriptorSetLayout*, uint32_t>& max_descriptor_sets) { addLayouts(max_descriptor_sets); }
 
-        void addLayout(DescriptorSetLayout* layout, uint32_t alloc_count);
-        void addLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
+        void addLayout(const DescriptorSetLayout* layout, uint32_t alloc_count);
+        void addLayouts(const unordered_map<const DescriptorSetLayout*, uint32_t>& set_allocations);
 
-        void removeLayout(DescriptorSetLayout* layout, size_t amount = Constant::WHOLE_SIZE);
-        void removeLayouts(const unordered_map<DescriptorSetLayout*, uint32_t>& set_allocations);
+        void removeLayout(const DescriptorSetLayout* layout, size_t amount = Constant::WHOLE_SIZE);
+        void removeLayouts(const unordered_map<const DescriptorSetLayout*, uint32_t>& set_allocations);
 
     private:
-        unordered_map<DescriptorSetLayout*, size_t> maxDescriptorSets;
+        unordered_map<const DescriptorSetLayout*, size_t> _maxDescriptorSets;
 
         friend DescriptorPool;
     };

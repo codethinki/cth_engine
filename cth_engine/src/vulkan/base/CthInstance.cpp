@@ -17,10 +17,11 @@ namespace cth {
 using std::string;
 using std::string_view;
 using std::vector;
+using std::span;
 
 
-BasicInstance::BasicInstance(std::string app_name, const std::vector<std::string>& required_extensions) : _name(std::move(app_name)),
-    _requiredExt{required_extensions}, _availableExt(getAvailableInstanceExtensions()) { checkInstanceExtensionSupport(); }
+BasicInstance::BasicInstance(const string_view app_name, const span<const string> required_extensions) : _name(app_name),
+    _requiredExt{required_extensions.begin(), required_extensions.end()}, _availableExt(getAvailableInstanceExtensions()) { checkInstanceExtensionSupport(); }
 
 void BasicInstance::wrap(VkInstance vk_instance) {
     DEBUG_CHECK_INSTANCE_LEAK(this);
@@ -62,9 +63,10 @@ void BasicInstance::create(const std::optional<BasicDebugMessenger::Config>& mes
 
     _handle = ptr;
 }
-void BasicInstance::destroy(DeletionQueue* deletion_queue) {
-    if(deletion_queue) deletion_queue->push(_handle.get());
-    else vkDestroyInstance(_handle.get(), nullptr);
+void BasicInstance::destroy() {
+    destroy(_handle.get());
+
+    _handle = VK_NULL_HANDLE;
 }
 
 
@@ -141,7 +143,10 @@ void BasicInstance::destroy(VkInstance vk_instance) {
 #ifdef CONSTANT_DEBUG_MODE
 void BasicInstance::debug_check(const BasicInstance* instance) {
     CTH_ERR(instance == nullptr, "instance must not be nullptr") throw details->exception();
-    CTH_ERR(instance->_handle == VK_NULL_HANDLE, "instance must be a valid handle") throw details->exception();
+    debug_check_handle(instance->get());
+}
+void BasicInstance::debug_check_handle(VkInstance vk_instance) {
+    CTH_ERR(vk_instance == VK_NULL_HANDLE, "vk_instance invalid (VK_NULL_HANDLE)") throw details->exception();
 }
 void BasicInstance::debug_check_leak(const BasicInstance* instance) {
     CTH_WARN(instance->_handle != VK_NULL_HANDLE, "instance replaced (potential memory leak)");
@@ -155,7 +160,7 @@ void BasicInstance::debug_check_leak(const BasicInstance* instance) {
 namespace cth {
 using namespace std;
 
-Instance::Instance(string app_name, const vector<string>& required_extensions) : BasicInstance(std::move(app_name), required_extensions) {
+Instance::Instance(const string_view app_name, const span<const string> required_extensions) : BasicInstance(app_name, required_extensions) {
     if constexpr(Constant::ENABLE_VALIDATION_LAYERS) {
         _availableLayers = getAvailableValidationLayers();
         checkValidationLayerSupport();
@@ -195,7 +200,7 @@ void Instance::create(const std::optional<BasicDebugMessenger::Config>& messenge
 
     config = BasicDebugMessenger::Config::Default();
     BasicInstance::create(config);
-    _debugMessenger = make_unique<DebugMessenger>(nullptr, this, config);
+    _debugMessenger = make_unique<DebugMessenger>(this, config);
 #endif
 }
 

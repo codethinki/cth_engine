@@ -3,27 +3,27 @@
 #include <array>
 #include <vulkan/vulkan.h>
 
-namespace cth {
-using namespace std;
+#include "vulkan/resource/buffer/CthBasicBuffer.hpp"
 
-class Device;
+namespace cth {
+class BasicCore;
 
 class Sampler {
 
 public:
     struct Config;
 
-    explicit Sampler(Device* device, const Config& config);
+    explicit Sampler(const BasicCore* core, const Config& config);
     ~Sampler();
 
 private:
     void create(const Config& config);
 
-    Device* device;
-    VkSampler vkSampler = VK_NULL_HANDLE;
+    const BasicCore* _core;
+    mem::basic_ptr<VkSampler_T> _handle = VK_NULL_HANDLE;
 
 public:
-    [[nodiscard]] VkSampler get() const { return vkSampler; }
+    [[nodiscard]] VkSampler get() const { return _handle.get(); }
 
     Sampler(const Sampler& other) = delete;
     Sampler(Sampler&& other) = delete;
@@ -38,14 +38,14 @@ namespace cth {
 
 struct Sampler::Config {
     Config() = default;
-    explicit Config(const VkSamplerCreateInfo& create_info);
+    //explicit Config(const VkSamplerCreateInfo& create_info);
 
-    array<VkFilter, 2> filters{VK_FILTER_LINEAR, VK_FILTER_LINEAR}; //minFilter, magFilter
-    array<VkSamplerAddressMode, 3> addressModes{VK_SAMPLER_ADDRESS_MODE_REPEAT}; //u, v, w
+    std::array<VkFilter, 2> filters{VK_FILTER_LINEAR, VK_FILTER_LINEAR}; //minFilter, magFilter
+    std::array<VkSamplerAddressMode, 3> addressModes{VK_SAMPLER_ADDRESS_MODE_REPEAT}; //u, v, w
 
     VkSamplerMipmapMode mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     float lodBias = 0.0f;
-    array<float, 2> lod{0.0f, VK_LOD_CLAMP_NONE}; //minLod, maxLod [VK_LOD_CLAMP_NONE => no clamp]
+    std::array<float, 2> lod{0.0f, VK_LOD_CLAMP_NONE}; //minLod, maxLod [VK_LOD_CLAMP_NONE => no clamp]
 
 
     float maxAnisotropy = 16; //0 => no anisotropy
@@ -61,7 +61,7 @@ struct Sampler::Config {
     friend Sampler;
 };
 
-inline cth::Sampler::Config cth::Sampler::Config::Default() {
+inline Sampler::Config Sampler::Config::Default() {
     Config defaultConfig;
     defaultConfig.filters = {VK_FILTER_LINEAR, VK_FILTER_LINEAR};
     defaultConfig.addressModes = {VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};

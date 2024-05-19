@@ -36,16 +36,16 @@ public:
      * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      * \throws cth::except::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
      */
-    virtual void create(BasicInstance* instance);
+    virtual void create(const BasicInstance* instance);
 
     /**
      * \throws cth::except::default_exception reason: messenger not active
      * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      */
-    virtual void destroy(DeletionQueue* deletion_queue = nullptr);
+    virtual void destroy();
 
 
-    static void destroy(const BasicInstance* instance, VkDebugUtilsMessengerEXT vk_messenger);
+    static void destroy(VkInstance instance, VkDebugUtilsMessengerEXT vk_messenger);
 
     struct Config {
         std::function<callback_t> callback = dev::defaultDebugCallback;
@@ -64,7 +64,7 @@ public:
     };
 
 protected:
-    BasicInstance* _instance = nullptr;
+    const BasicInstance* _instance = nullptr;
     Config _config;
 
 private:

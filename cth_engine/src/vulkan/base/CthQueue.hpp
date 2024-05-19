@@ -1,64 +1,85 @@
 #pragma once
+#include "CthQueueFamily.hpp"
+#include "vulkan/utility/CthConstants.hpp"
+
 #include <cstdint>
 #include <span>
+#include <unordered_map>
+#include <vector>
+#include <cth/cth_memory.hpp>
 
 #include <vulkan/vulkan.h>
 
-#include "CthDevice.hpp"
+
 
 namespace cth {
-class Swapchain;
+class TimelineSemaphore;
+class BasicSemaphore;
+class BasicFence;
+class BasicCore;
+class BasicSwapchain;
 class PrimaryCmdBuffer;
-}
 
-namespace cth {
+
 
 class Queue {
-
 public:
     struct Config;
+    struct WaitStage;
     struct SubmitInfo;
+    struct TimelineSubmitInfo;
     struct PresentInfo;
 
-    explicit Queue(Config config);
+
+    explicit Queue(const QueueFamilyProperties family_properties) : _familyProperties(family_properties) {}
     ~Queue() = default;
 
     /**
      * \brief wraps the vulkan queue
      * \note normally called by the device, not the user
      */
-    void wrap(Device* device, uint32_t queue_index, VkQueue vk_queue);
+    void wrap(uint32_t family_index, uint32_t queue_index, VkQueue vk_queue);
 
     [[nodiscard]] VkResult submit(const SubmitInfo& submit_info) const;
-
-    VkResult present(const uint32_t image_index, const PresentInfo& present_info) const;
-
-    struct Config {
-        uint32_t familyIndex;
-        VkQueueFlags familyProperties;
-    };
+    [[nodiscard]] VkResult present(uint32_t image_index, const PresentInfo& present_info) const;
 
 private:
-    Config _config;
+    QueueFamilyProperties _familyProperties;
 
-    Device* _device = nullptr;
+    uint32_t _familyIndex = 0;
     uint32_t _queueIndex = 0;
-    VkQueue _vkQueue = VK_NULL_HANDLE;
+    VkQueue _handle = VK_NULL_HANDLE;
 
 public:
-    [[nodiscard]] auto valid() const { return _device != nullptr && _vkQueue != VK_NULL_HANDLE; }
-    [[nodiscard]] auto get() const { return _vkQueue; }
+    [[nodiscard]] auto valid() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] auto get() const { return _handle; }
     [[nodiscard]] auto index() const { return _queueIndex; }
 
-    [[nodiscard]] auto familyIndex() const { return _config.familyIndex; }
-    [[nodiscard]] auto familyProperties() const { return _config.familyProperties; }
+    [[nodiscard]] auto familyIndex() const { return _familyIndex; }
+    [[nodiscard]] auto familyProperties() const { return _familyProperties; }
 
     Queue(const Queue& other) = default;
     Queue(Queue&& other) = default;
     Queue& operator=(const Queue& other) = default;
     Queue& operator=(Queue&& other) = default;
+
+#ifdef CONSTANT_DEBUG_MODE
+    static void debug_check(const Queue* queue);
+    static void debug_check_present_queue(const Queue* queue);
+#define DEBUG_CHECK_QUEUE(queue_ptr) Queue::debug_check(queue_ptr)
+#define DEBUG_CHECK_PRESENT_QUEUE(queue_ptr) Queue::debug_check_present_queue(queue_ptr)
+
+#else
+
+#define DEBUG_CHECK_QUEUE(queue_ptr) ((void)0)
+#define DEBUG_CHECK_PRESENT_QUEUE(queue_ptr) ((void)0)
+#endif
 };
 
+struct Queue::WaitStage {
+    VkPipelineStageFlags stage;
+    const BasicSemaphore* semaphore;
+};
 
 /**
  * \brief encapsulates the submit info for reuse
@@ -66,21 +87,32 @@ public:
  * \note added structures may be moved
  */
 struct Queue::SubmitInfo {
-    SubmitInfo(std::span<const PrimaryCmdBuffer*> cmd_buffers, std::span<const VkPipelineStageFlags> wait_stages);
-    ~SubmitInfo() = delete; //TEMP add the semaphores to the constructor
+    SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffers, std::span<const WaitStage> wait_stages,
+        std::span<BasicSemaphore* const> signal_semaphores, const BasicFence* fence);
 
-
-
+    [[nodiscard]] const VkSubmitInfo* next();
+    //TEMP complete this
 private:
     [[nodiscard]] VkSubmitInfo createInfo() const;
+    [[nodiscard]] VkTimelineSemaphoreSubmitInfo createTimelineInfo() const;
+    [[nodiscard]] void initSignal(std::span<BasicSemaphore* const> signal_semaphores);
 
-    VkSubmitInfo _submitInfo;
+    VkSubmitInfo _submitInfo{};
+    VkTimelineSemaphoreSubmitInfo _timelineInfo{};
+
+
 
     std::vector<VkCommandBuffer> _cmdBuffers;
     std::vector<VkSemaphore> _waitSemaphores;
     std::vector<VkSemaphore> _signalSemaphores;
     std::vector<VkPipelineStageFlags> _waitStages;
-    VkFence _fence = VK_NULL_HANDLE;
+
+    std::vector<const TimelineSemaphore*> _waitTimelineSemaphores;
+    std::vector<TimelineSemaphore*> _signalTimelineSemaphores;
+    std::vector<size_t> _waitValues{};
+    std::vector<size_t> _signalValues{};
+
+    const BasicFence* _fence = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] const auto* get() const { return &_submitInfo; }
@@ -88,10 +120,10 @@ public:
 };
 
 struct Queue::PresentInfo {
-    PresentInfo(const Swapchain& swapchain); 
-    ~PresentInfo() = delete; //TEMP add wait semaphores
+    explicit PresentInfo(const BasicSwapchain& swapchain, std::span<const BasicSemaphore*> wait_semaphores);
 
     [[nodiscard]] VkPresentInfoKHR createInfo(const uint32_t* image_index, VkResult* result) const;
+
 private:
     VkSwapchainKHR _swapchain;
     std::vector<VkSemaphore> _waitSemaphores;

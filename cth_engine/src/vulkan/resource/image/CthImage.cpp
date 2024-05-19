@@ -15,9 +15,9 @@ namespace cth {
 using namespace std;
 
 
-Image::Image(Device* device, DeletionQueue* deletion_queue, const VkExtent2D extent, const BasicImage::Config& config,
-    const VkMemoryPropertyFlags memory_properties) : BasicImage(device, extent, config), _deletionQueue(deletion_queue) {
-    BasicMemory* memory = new Memory(device, _deletionQueue, memory_properties);
+Image::Image(const BasicCore* core, DeletionQueue* deletion_queue, const VkExtent2D extent, const BasicImage::Config& config,
+    const VkMemoryPropertyFlags memory_properties) : BasicImage(core, extent, config), _deletionQueue(deletion_queue) {
+    BasicMemory* memory = new Memory(core, _deletionQueue, memory_properties);
     DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
 
     BasicImage::create();

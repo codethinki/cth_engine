@@ -17,14 +17,14 @@ public:
 
 
 
-    [[nodiscard]] const glm::mat4& getProjection() const { return projectionMatrix; }
-    [[nodiscard]] const glm::mat4& getView() const { return viewMatrix; }
+    [[nodiscard]] const glm::mat4& getProjection() const { return _projectionMatrix; }
+    [[nodiscard]] const glm::mat4& getView() const { return _viewMatrix; }
 
 private:
-    glm::mat4 projectionMatrix{1.f};
-    glm::mat4 viewMatrix{1.f};
+    glm::mat4 _projectionMatrix{1.f};
+    glm::mat4 _viewMatrix{1.f};
 
-    glm::vec3 currentProjection{};
+    glm::vec3 _currentProjection{};
 
 };
 }

@@ -7,6 +7,7 @@
 
 #include <cth/cth_log.hpp>
 
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
 
 
@@ -14,6 +15,13 @@
 //PipelineLayout
 
 namespace cth {
+PipelineLayout::PipelineLayout(const BasicCore* core, const Builder& builder) : _core(core),
+    _setLayouts(builder.build(core->physicalDevice()->limits().maxBoundDescriptorSets)) { create(); }
+PipelineLayout::~PipelineLayout() {
+    vkDestroyPipelineLayout(_core->vkDevice(), _vkLayout, nullptr);
+    log::msg("destroyed pipeline-layout");
+}
+
 void PipelineLayout::create() {
     vector<VkDescriptorSetLayout> vkLayouts(_setLayouts.size());
     ranges::transform(_setLayouts, vkLayouts.begin(), [](const DescriptorSetLayout* layout) { return layout->get(); });
@@ -23,7 +31,7 @@ void PipelineLayout::create() {
     pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(vkLayouts.size());
     pipelineLayoutInfo.pSetLayouts = vkLayouts.data();
 
-    const VkResult result = vkCreatePipelineLayout(_device->get(), &pipelineLayoutInfo, nullptr, &_vkLayout);
+    const VkResult result = vkCreatePipelineLayout(_core->vkDevice(), &pipelineLayoutInfo, nullptr, &_vkLayout);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline-layout")
         throw except::vk_result_exception(result, details->exception());
@@ -32,12 +40,7 @@ void PipelineLayout::create() {
 }
 
 
-PipelineLayout::PipelineLayout(Device* device, const Builder& builder) : _device(device),
-    _setLayouts(builder.build(device->physical()->limits().maxBoundDescriptorSets)) { create(); }
-PipelineLayout::~PipelineLayout() {
-    vkDestroyPipelineLayout(_device->get(), _vkLayout, nullptr);
-    log::msg("destroyed pipeline-layout");
-}
+
 }
 
 

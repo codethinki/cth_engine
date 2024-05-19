@@ -7,16 +7,17 @@
 #include "vulkan/resource/descriptor/CthDescriptorPool.hpp"
 #include "vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
 
+#include "interface/render/CthRenderer.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/resource/descriptor/CthDescriptorSet.hpp"
 #include "vulkan/resource/image/texture/CthTexture.hpp"
 
+
 #include <cth/cth_image.hpp>
 
+#include<memory>
 #include <span>
 #include <glm/glm.hpp>
-
-#include "interface/render/CthRenderer.hpp"
 
 
 namespace cth {
@@ -25,7 +26,8 @@ struct UniformBuffer {
     explicit UniformBuffer(const glm::mat4& projection_view) : projectionView{projection_view} {}
 };
 //TEMP renderer should not be here
-RenderSystem::RenderSystem(Device* device, Renderer* renderer, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : _device{device},
+RenderSystem::RenderSystem(const BasicCore* core, Renderer* renderer, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : _core
+    {core},
     _renderer(renderer) {
     auto initCmdBuffer = renderer->beginInitCmdBuffer();
     createShaders();
@@ -52,13 +54,13 @@ void RenderSystem::createShaders() {
     const string vertexBinary = format("{}shader.vert.spv", SHADER_BINARY_DIR);
     const string fragmentBinary = format("{}shader.frag.spv", SHADER_BINARY_DIR);
 
-#ifdef _FINAL
-    vertexShader = make_unique<Shader>(device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
-    fragmentShader = make_unique<Shader>(device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
+#ifndef CONSTANT_DEBUG_MODE
+    vertexShader = make_unique<Shader>(_device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
+    fragmentShader = make_unique<Shader>(_device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
 #else
-    _vertexShader = make_unique<Shader>(_device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
+    _vertexShader = std::make_unique<Shader>(_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
         format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
-    _fragmentShader = make_unique<Shader>(_device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
+    _fragmentShader = std::make_unique<Shader>(_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
         format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
 #endif
 }
@@ -67,7 +69,7 @@ void RenderSystem::createDescriptorSetLayouts() {
     builder.addBinding(0, TextureDescriptor::TYPE, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 
 
-    _descriptorSetLayout = make_unique<DescriptorSetLayout>(_device, builder);
+    _descriptorSetLayout = std::make_unique<DescriptorSetLayout>(_core, builder);
 }
 
 
@@ -75,7 +77,7 @@ void RenderSystem::createPipelineLayout() {
     PipelineLayout::Builder builder{};
     builder.addSetLayout(_descriptorSetLayout.get(), 0);
 
-    _pipelineLayout = make_unique<PipelineLayout>(_device, builder);
+    _pipelineLayout = std::make_unique<PipelineLayout>(_core, builder);
 }
 void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
     Pipeline::GraphicsConfig config = Pipeline::GraphicsConfig::createDefault();
@@ -85,26 +87,29 @@ void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSample
     config.addShaderStage(_vertexShader.get());
     config.addShaderStage(_fragmentShader.get());
 
-    _pipeline = std::make_unique<Pipeline>(_device, _pipelineLayout.get(), config);
+
+    _pipeline = std::make_unique<Pipeline>(_core, _pipelineLayout.get(), config);
 }
 void RenderSystem::createDescriptorPool() {
-    _descriptorPool = make_unique<DescriptorPool>(_device, DescriptorPool::Builder{{{_descriptorSetLayout.get(), 1}}});
+    _descriptorPool = std::make_unique<DescriptorPool>(_core, DescriptorPool::Builder{{{_descriptorSetLayout.get(), 1}}});
 }
 void RenderSystem::loadDescriptorData(const CmdBuffer& init_cmd_buffer, DeletionQueue* deletion_queue) {
     const cth::img::stb_image image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
-    _texture = make_unique<Texture>(_device, deletion_queue, VkExtent2D{image.width(), image.height()}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB}, init_cmd_buffer, image.raw());
+    _texture = std::make_unique<Texture>(_core, deletion_queue, VkExtent2D{image.width(), image.height()}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
+        init_cmd_buffer, image.raw());
 }
 
 
 void RenderSystem::createDescriptorSets() {
-    _textureSampler = make_unique<Sampler>(_device, Sampler::Config::Default());
+    _textureSampler = std::make_unique<Sampler>(_core, Sampler::Config::Default());
 
 
-    _textureView = make_unique<ImageView>(_device, _texture.get(), ImageView::Config::Default());
-    _textureDescriptor = make_unique<TextureDescriptor>(_textureView.get(), _textureSampler.get());
+    _textureView = std::make_unique<ImageView>(_core, _texture.get(), ImageView::Config::Default());
+    _textureDescriptor = std::make_unique<TextureDescriptor>(_textureView.get(), _textureSampler.get());
 
-    _descriptorSet = make_unique<DescriptorSet>(DescriptorSet::Builder{_descriptorSetLayout.get(), vector<Descriptor*>{_textureDescriptor.get()}});
+    _descriptorSet = std::make_unique<DescriptorSet>(
+        DescriptorSet::Builder{_descriptorSetLayout.get(), vector<Descriptor*>{_textureDescriptor.get()}});
 
     _descriptorPool->writeSets(vector{_descriptorSet.get()});
 }
@@ -117,11 +122,12 @@ array<Vertex, 3> defaultTriangle{
 
 
 void RenderSystem::createDefaultTriangle(const CmdBuffer& cmd_buffer) {
-    _defaultTriangleBuffer = make_unique<Buffer<Vertex>>(_device, _renderer->deletionQueue(), 3,
+    _defaultTriangleBuffer = std::make_unique<Buffer<Vertex>>(_core, _renderer->deletionQueue(), 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    Buffer<Vertex> stagingBuffer{_device, _renderer->deletionQueue(), 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
+    Buffer<Vertex> stagingBuffer{_core, _renderer->deletionQueue(), 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
     stagingBuffer.map();
     stagingBuffer.write(defaultTriangle);
 

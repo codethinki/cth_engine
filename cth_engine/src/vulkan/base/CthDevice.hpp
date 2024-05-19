@@ -5,56 +5,51 @@
 
 #include <vulkan/vulkan.h>
 
+
+#include <span>
 #include <vector>
 
 
+
 namespace cth {
-using namespace std;
+class BasicCore;
 class Surface;
 class Instance;
 class PhysicalDevice;
-
+class Queue;
 
 
 class Device {
 public:
-    explicit Device(PhysicalDevice* physical_device, const Surface* surface, Instance* instance);
+    explicit Device(const Instance* instance, const PhysicalDevice* physical_device, std::span<Queue> queues);
     ~Device();
 
-
+    void waitIdle() const;
 private:
-    void setQueueIndices(const Surface* surface);
+    /**
+     * \brief sets the unique family indices
+     * \return the queue family indices
+     */
+    [[nodiscard]] std::vector<uint32_t> setUniqueFamilyIndices(std::span<const Queue> queues);
     /**
     * \throws cth::except::vk_result_exception result of vkCreateDevice()
     */
     void createLogicalDevice();
-    void setQueues();
+    void wrapQueues(std::span<const uint32_t> family_indices, std::span<Queue> queues) const;
 
 
-    Instance* _instance;
-    PhysicalDevice* _physicalDevice;
-
+    const Instance* _instance;
+    const PhysicalDevice* _physicalDevice;
 
     mem::basic_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
-    VkQueue _vkGraphicsQueue = VK_NULL_HANDLE;
-    VkQueue _vkPresentQueue = VK_NULL_HANDLE;
 
-    //TODO replace this with a better system 
-    vector<uint32_t> _queueIndices; //present, graphics
-    vector<uint32_t> _uniqueQueueIndices{};
-    static constexpr uint32_t PRESENT_QUEUE_I = 0;
-    static constexpr uint32_t GRAPHICS_QUEUE_I = 1;
+    //TODO replace this with a better system
+    std::vector<uint32_t> _familyIndices; //present, graphics
+
 
 public:
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
-    [[nodiscard]] VkQueue graphicsQueue() const { return _vkGraphicsQueue; }
-    [[nodiscard]] VkQueue presentQueue() const { return _vkPresentQueue; }
-    [[nodiscard]] uint32_t graphicsQueueIndex() const { return _queueIndices[GRAPHICS_QUEUE_I]; }
-    [[nodiscard]] uint32_t presentQueueIndex() const { return _queueIndices[PRESENT_QUEUE_I]; }
-    [[nodiscard]] const auto& queueIndices() const { return _queueIndices; }
-    [[nodiscard]] const auto& uniqueQueueIndices() const { return _uniqueQueueIndices; }
-
-    [[nodiscard]] const PhysicalDevice* physical() const { return _physicalDevice; }
+    [[nodiscard]] auto familyIndices() const { return _familyIndices; }
 
     Device(const Device&) = delete;
     Device& operator=(const Device&) = delete;
@@ -63,9 +58,12 @@ public:
 
 #ifdef CONSTANT_DEBUG_MODE
     static void debug_check(const Device* device);
+    static void debug_check_handle(VkDevice vk_device);
 #define DEBUG_CHECK_DEVICE(device_ptr) Device::debug_check(device_ptr)
+#define DEBUG_CHECK_DEVICE_HANDLE(vk_device) Device::debug_check_handle(vk_device)
 #else
 #define DEBUG_CHECK_DEVICE(device_ptr) ((void)0)
+#define DEBUG_CHECK_DEVICE_HANDLE(vk_device) ((void)0)
 #endif
 };
 } // namespace cth

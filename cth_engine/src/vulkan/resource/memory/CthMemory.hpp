@@ -4,8 +4,8 @@
 namespace cth {
 class Memory : public BasicMemory {
 public:
-    Memory(Device* device, DeletionQueue* deletion_queue, VkMemoryPropertyFlags properties);
-    Memory(Device* device, DeletionQueue* deletion_queue, VkMemoryPropertyFlags properties, size_t size, VkDeviceMemory memory);
+    Memory(const BasicCore* core, DeletionQueue* deletion_queue, VkMemoryPropertyFlags properties);
+    Memory(const BasicCore* core, DeletionQueue* deletion_queue, VkMemoryPropertyFlags properties, size_t size, VkDeviceMemory memory);
     ~Memory() override;
 
     void alloc(const VkMemoryRequirements& requirements) override;

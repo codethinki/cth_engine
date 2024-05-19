@@ -1,104 +1,132 @@
 #include "CthCmdPool.hpp"
 
+#include "CthCmdBuffer.hpp"
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
+#include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
-
 
 #include <cth/cth_log.hpp>
 
-#include "CthCmdBuffer.hpp"
+#include "vulkan/base/CthQueue.hpp"
+
 
 
 namespace cth {
 
-CmdPool::CmdPool(Device* device, const Config& config) : device(device), config_(config) {
-    DEBUG_CHECK_DEVICE(device);
+CmdPool::CmdPool(const BasicCore* device, const Config& config) : _core(device), _config(config) {
+    DEBUG_CHECK_CORE(device);
 
     create();
     alloc();
     cth::log::msg("created command pool");
 }
-CmdPool::~CmdPool() {
-    CTH_ERR(primaryBuffers.size() != config_.maxPrimaryBuffers, "all primary cmd buffers must be destroyed prior to the pool")
-        throw details->exception();
-    CTH_ERR(secondaryBuffers.size() != config_.maxSecondaryBuffers, "all secondary cmd buffers must be destroyed prior to the pool")
-        throw details->exception();
-    if(config_.maxPrimaryBuffers > 0) vkFreeCommandBuffers(device->get(), vkPool, static_cast<uint32_t>(primaryBuffers.size()), primaryBuffers.data());
-    if(config_.maxSecondaryBuffers > 0) vkFreeCommandBuffers(device->get(), vkPool, static_cast<uint32_t>(secondaryBuffers.size()), secondaryBuffers.data());
+CmdPool::~CmdPool() { destroy(); }
 
-    vkDestroyCommandPool(device->get(), vkPool, nullptr);
-}
-void CmdPool::newCmdBuffer(PrimaryCmdBuffer* buffer) {
-    CTH_ERR(buffer->pool != this, "cmd buffer must be empty and created with this pool")
+void CmdPool::destroy(DeletionQueue* deletion_queue) {
+    DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
+    CTH_ERR(_primaryBuffers.size() != _config.maxPrimaryBuffers, "all primary cmd buffers must be destroyed prior to the pool")
         throw details->exception();
-    CTH_ERR(primaryBuffers.empty(), "no primary buffers left, this should not happen") throw details->exception();
-    buffer->vkBuffer = primaryBuffers.back();
-    primaryBuffers.pop_back();
+    CTH_ERR(_secondaryBuffers.size() != _config.maxSecondaryBuffers, "all secondary cmd buffers must be destroyed prior to the pool")
+        throw details->exception();
+
+    if(deletion_queue) {
+        for(auto& primary : _primaryBuffers) deletion_queue->push(primary, _handle.get());
+        for(auto& secondary : _secondaryBuffers) deletion_queue->push(secondary, _handle.get());
+        deletion_queue->push(_handle.get());
+
+        return;
+    }
+    if(_config.maxPrimaryBuffers > 0) CmdBuffer::free(_core->vkDevice(), _handle.get(), _primaryBuffers);
+    if(_config.maxSecondaryBuffers > 0) CmdBuffer::free(_core->vkDevice(), _handle.get(), _secondaryBuffers);
+
+    destroy(_core->vkDevice(), _handle.get());
+
+    _handle = VK_NULL_HANDLE;
+}
+
+void CmdPool::newCmdBuffer(PrimaryCmdBuffer* buffer) {
+    CTH_ERR(buffer->_pool.get() != this, "cmd buffer must be empty and created with this pool")
+        throw details->exception();
+    CTH_ERR(_primaryBuffers.empty(), "no primary buffers left, this should not happen") throw details->exception();
+    buffer->_handle = _primaryBuffers.back();
+    _primaryBuffers.pop_back();
 
 }
 void CmdPool::newCmdBuffer(SecondaryCmdBuffer* buffer) {
-    CTH_ERR(buffer->pool != this, "cmd buffer must be empty and created with this pool")
+    CTH_ERR(buffer->_pool.get() != this, "cmd buffer must be empty and created with this pool")
         throw details->exception();
-    CTH_ERR(secondaryBuffers.empty(), "no secondary buffers left, this should not happen") throw details->exception();
+    CTH_ERR(_secondaryBuffers.empty(), "no secondary buffers left, this should not happen") throw details->exception();
 
-    buffer->vkBuffer = secondaryBuffers.back();
-    secondaryBuffers.pop_back();
+    buffer->_handle = _secondaryBuffers.back();
+    _secondaryBuffers.pop_back();
 }
 void CmdPool::returnCmdBuffer(PrimaryCmdBuffer* buffer) {
-    CTH_ERR(buffer->pool != this, "cmd buffer must be created with this pool") throw details->exception();
-    CTH_ERR(primaryBuffers.size() >= config_.maxPrimaryBuffers, "cannot return more than maxPrimaryBuffers") throw details->exception();
+    CTH_ERR(buffer->_pool.get() != this, "cmd buffer must be created with this pool") throw details->exception();
+    CTH_ERR(_primaryBuffers.size() >= _config.maxPrimaryBuffers, "cannot return more than maxPrimaryBuffers") throw details->exception();
     vkResetCommandBuffer(buffer->get(), VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
-    primaryBuffers.push_back(buffer->vkBuffer);
-    buffer->vkBuffer = VK_NULL_HANDLE;
+    _primaryBuffers.push_back(buffer->get());
+    buffer->_handle = VK_NULL_HANDLE;
 }
 void CmdPool::returnCmdBuffer(SecondaryCmdBuffer* buffer) {
-    CTH_ERR(buffer->pool != this, "cmd buffer must be created with this pool") throw details->exception();
-    CTH_ERR(secondaryBuffers.size() >= config_.maxSecondaryBuffers, "cannot return more than maxSecondaryBuffers") throw details->exception();
+    CTH_ERR(buffer->_pool.get() != this, "cmd buffer must be created with this pool") throw details->exception();
+    CTH_ERR(_secondaryBuffers.size() >= _config.maxSecondaryBuffers, "cannot return more than maxSecondaryBuffers") throw details->exception();
 
     vkResetCommandBuffer(buffer->get(), VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
-    secondaryBuffers.push_back(buffer->vkBuffer);
-    buffer->vkBuffer = VK_NULL_HANDLE;
+    _secondaryBuffers.push_back(buffer->get());
+    buffer->_handle = VK_NULL_HANDLE;
+}
+void CmdPool::destroy(VkDevice vk_device, VkCommandPool vk_pool) {
+    CTH_WARN(vk_pool == VK_NULL_HANDLE, "pool should not be invalid (VK_NULL_HANDLE)");
+    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
+
+    vkDestroyCommandPool(vk_device, vk_pool, nullptr);
 }
 
 
 
 void CmdPool::create() {
-    const auto info = config_.createInfo();
-    const auto result = vkCreateCommandPool(device->get(), &info, nullptr, &vkPool);
+    const auto info = _config.createInfo();
+
+    VkCommandPool ptr = VK_NULL_HANDLE;
+    const auto result = vkCreateCommandPool(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create command pool")
         throw cth::except::vk_result_exception{result, details->exception()};
+
+    _handle = ptr;
 }
 void CmdPool::alloc() {
-    primaryBuffers.resize(config_.maxPrimaryBuffers);
-    secondaryBuffers.resize(config_.maxSecondaryBuffers);
+    _primaryBuffers.resize(_config.maxPrimaryBuffers);
+    _secondaryBuffers.resize(_config.maxSecondaryBuffers);
 
 
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = vkPool;
+    allocInfo.commandPool = _handle.get();
 
-    if(config_.maxPrimaryBuffers > 0) {
+    if(_config.maxPrimaryBuffers > 0) {
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = static_cast<uint32_t>(primaryBuffers.size());
+        allocInfo.commandBufferCount = static_cast<uint32_t>(_primaryBuffers.size());
 
-        auto allocResult = vkAllocateCommandBuffers(device->get(), &allocInfo, primaryBuffers.data());
+        auto allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _primaryBuffers.data());
 
-        CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} primary command buffers", config_.maxPrimaryBuffers)
+        CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} primary command buffers", _config.maxPrimaryBuffers)
             throw cth::except::vk_result_exception{allocResult, details->exception()};
     }
-    if(config_.maxSecondaryBuffers > 0) {
+    if(_config.maxSecondaryBuffers > 0) {
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-        allocInfo.commandBufferCount = static_cast<uint32_t>(secondaryBuffers.size());
+        allocInfo.commandBufferCount = static_cast<uint32_t>(_secondaryBuffers.size());
 
-        auto allocResult = vkAllocateCommandBuffers(device->get(), &allocInfo, secondaryBuffers.data());
+        auto allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _secondaryBuffers.data());
 
-        CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} secondary command buffers", config_.maxSecondaryBuffers)
+        CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} secondary command buffers", _config.maxSecondaryBuffers)
             throw cth::except::vk_result_exception{allocResult, details->exception()};
     }
 }
+
 
 
 }
@@ -106,6 +134,11 @@ void CmdPool::alloc() {
 //Config
 
 namespace cth {
+CmdPool::Config CmdPool::Config::Default(const Queue& queue, const uint32_t max_primary_buffers, const uint32_t max_secondary_buffers) {
+    return Config{max_primary_buffers, max_secondary_buffers, queue.familyIndex()};
+}
+
+
 VkCommandPoolCreateInfo CmdPool::Config::createInfo() const {
     return VkCommandPoolCreateInfo{
         VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,

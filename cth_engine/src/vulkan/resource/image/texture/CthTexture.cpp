@@ -7,20 +7,19 @@
 namespace cth {
 
 
-Texture::Texture(Device* device, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
-    const span<const char> staging_data) :
-    Image(device, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+Texture::Texture(const BasicCore* core, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
+    const span<const char> staging_data) : Image(core, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
 
-    Buffer<char> buffer{device, deletion_queue, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    Buffer<char> buffer{core, deletion_queue, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
     buffer.map();
     buffer.write(staging_data);
 
     init(cmd_buffer, buffer);
 }
-Texture::Texture(Device* device, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
-    const BasicBuffer& buffer, const size_t buffer_offset) : Image(device, deletion_queue, extent, imageConfig(extent, config),
-    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) { init(cmd_buffer, buffer, buffer_offset); }
+Texture::Texture(const BasicCore* core, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
+    const BasicBuffer& staging_buffer, const size_t buffer_offset) : Image(core, deletion_queue, extent, imageConfig(extent, config),
+    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) { init(cmd_buffer, staging_buffer, buffer_offset); }
 
 
 void Texture::init(const CmdBuffer& cmd_buffer, const BasicBuffer& buffer, const size_t offset) {

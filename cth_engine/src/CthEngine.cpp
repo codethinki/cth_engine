@@ -2,13 +2,13 @@
 
 #include <cth/cth_log.hpp>
 
-#include "vulkan/surface/CthWindow.hpp"
+#include "vulkan/surface/CthOSWindow.hpp"
 
 namespace cth {
 void Engine::terminate() {
     cth::log::msg<except::INFO>("terminating engine...");
 
-    Window::terminate();
+    OSWindow::terminate();
 
     log::msg<except::INFO>("engine terminated");
     _initialized = false;
@@ -17,7 +17,7 @@ void Engine::terminate() {
 void Engine::init() {
     cth::log::msg<except::INFO>("engine initializing...");
 
-    Window::init();
+    OSWindow::init();
 
     log::msg<except::INFO>("initialized engine");
     _initialized = true;

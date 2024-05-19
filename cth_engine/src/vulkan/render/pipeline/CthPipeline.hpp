@@ -3,13 +3,13 @@
 #include <vulkan/vulkan.h>
 
 #include <vector>
+#include <cth/cth_memory.hpp>
 
 //TODO add support for more types of pipelines
 
 namespace cth {
-using namespace std;
+class BasicCore;
 
-class Device;
 class PipelineLayout;
 
 struct ShaderSpecialization;
@@ -24,11 +24,11 @@ public:
     /**
     *\throws from private void create(...)
     */
-    Pipeline(Device* device, const PipelineLayout* pipeline_layout, const GraphicsConfig& config_info);
+    Pipeline(const BasicCore* core, const PipelineLayout* pipeline_layout, const GraphicsConfig& config_info);
     /**
     *\throws from private void create(...)
     */
-    Pipeline(Device* device, const Pipeline* parent, const GraphicsConfig& config_info);
+    Pipeline(const BasicCore* core, const Pipeline* parent, const GraphicsConfig& config_info);
 
     ~Pipeline();
 
@@ -41,8 +41,8 @@ private:
     */
     void create(const GraphicsConfig& config_info, const PipelineLayout* pipeline_layout = nullptr, const Pipeline* parent = nullptr);
 
-    Device* device;
-    VkPipeline vkGraphicsPipeline{};
+    const BasicCore* _device;
+    VkPipeline _vkGraphicsPipeline{};
 
 public:
     Pipeline(const Pipeline& other) = delete;
@@ -61,21 +61,21 @@ struct Pipeline::GraphicsConfig {
     void addShaderStage(const Shader* shader, const ShaderSpecialization* specialization_info = nullptr,
         VkPipelineShaderStageCreateFlags flags = 0);
     void removeShaderStage(const Shader* shader);
-    void removeShaderStage(VkShaderStageFlagBits stage);
+    void removeShaderStage(VkShaderStageFlagBits shader_stage);
 
     [[nodiscard]] VkGraphicsPipelineCreateInfo createInfo() const;
 
-    unique_ptr<VkPipelineVertexInputStateCreateInfo> vertexInputInfo{};
-    unique_ptr<VkPipelineInputAssemblyStateCreateInfo> inputAssemblyInfo{};
-    unique_ptr<VkPipelineRasterizationStateCreateInfo> rasterizationInfo{};
-    unique_ptr<VkPipelineMultisampleStateCreateInfo> multisampleInfo{};
-    unique_ptr<VkPipelineColorBlendAttachmentState> colorBlendAttachment{};
-    unique_ptr<VkPipelineColorBlendStateCreateInfo> colorBlendInfo{};
-    unique_ptr<VkPipelineDepthStencilStateCreateInfo> depthStencilInfo{};
-    unique_ptr<VkPipelineViewportStateCreateInfo> viewportInfo{};
+    std::unique_ptr<VkPipelineVertexInputStateCreateInfo> vertexInputInfo{};
+    std::unique_ptr<VkPipelineInputAssemblyStateCreateInfo> inputAssemblyInfo{};
+    std::unique_ptr<VkPipelineRasterizationStateCreateInfo> rasterizationInfo{};
+    std::unique_ptr<VkPipelineMultisampleStateCreateInfo> multisampleInfo{};
+    std::unique_ptr<VkPipelineColorBlendAttachmentState> colorBlendAttachment{};
+    std::unique_ptr<VkPipelineColorBlendStateCreateInfo> colorBlendInfo{};
+    std::unique_ptr<VkPipelineDepthStencilStateCreateInfo> depthStencilInfo{};
+    std::unique_ptr<VkPipelineViewportStateCreateInfo> viewportInfo{};
 
-    vector<VkDynamicState> dynamicStates{};
-    unique_ptr<VkPipelineDynamicStateCreateInfo> dynamicStateInfo{};
+    std::vector<VkDynamicState> dynamicStates{};
+    std::unique_ptr<VkPipelineDynamicStateCreateInfo> dynamicStateInfo{};
 
     VkRenderPass renderPass = VK_NULL_HANDLE;
     uint32_t subpassCount = 0;
@@ -84,10 +84,10 @@ struct Pipeline::GraphicsConfig {
     static GraphicsConfig createDefault();
 
 private:
-    vector<VkPipelineShaderStageCreateInfo> vkShaderStages{};
+    std::vector<VkPipelineShaderStageCreateInfo> _vkShaderStages{};
 
 public:
-    [[nodiscard]] vector<VkPipelineShaderStageCreateInfo> shaderStages() const { return vkShaderStages; }
+    [[nodiscard]] std::vector<VkPipelineShaderStageCreateInfo> shaderStages() const { return _vkShaderStages; }
 
     friend Pipeline;
 };

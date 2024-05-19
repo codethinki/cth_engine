@@ -1,5 +1,6 @@
 #pragma once
 #include "../CthDeletionQueue.hpp"
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/resource/memory/CthMemory.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
@@ -8,10 +9,10 @@
 namespace cth {
 
 template<typename T>
-Buffer<T>::Buffer(Device* device, DeletionQueue* deletion_queue, const size_t element_count, const VkBufferUsageFlags usage_flags,
-    const VkMemoryPropertyFlags memory_property_flags) : BasicBuffer(device, element_count * sizeof(T), usage_flags),
+Buffer<T>::Buffer(const BasicCore* core, DeletionQueue* deletion_queue, const size_t element_count, const VkBufferUsageFlags usage_flags,
+    const VkMemoryPropertyFlags memory_property_flags) : BasicBuffer(core, element_count * sizeof(T), usage_flags),
     _elements(element_count), _deletionQueue(deletion_queue) {
-    BasicMemory* memory = new Memory{device, deletion_queue, memory_property_flags};
+    BasicMemory* memory = new Memory{core, deletion_queue, memory_property_flags};
 
     BasicBuffer::create();
     BasicBuffer::alloc(memory);
