@@ -10,6 +10,8 @@
 #include <memory>
 #include <vector>
 
+#include "vulkan/render/control/CthWaitStage.hpp"
+
 
 namespace cth {
 class Queue;
@@ -24,6 +26,8 @@ class Camera;
 
 class Renderer {
 public:
+    struct Builder;
+
     explicit Renderer(const BasicCore* core, DeletionQueue* deletion_queue, const Queue* queue, Camera* camera, OSWindow* window);
     ~Renderer();
     ///**
@@ -47,6 +51,7 @@ public:
         PHASE_RENDER,
         PHASE_MAX_ENUM
     };
+    size_t beginFrame();
 
     template<Phase P>
     [[nodiscard]] PrimaryCmdBuffer* begin();
@@ -57,17 +62,8 @@ public:
     template<Phase P>
     void skip();
 
-    size_t beginFrame();
-
-    const PrimaryCmdBuffer* beginTransfer();
-    void endTransfer(const PrimaryCmdBuffer* transfer_cmd_buffer);
-
-    void skipTransfer() const;
-
-    const PrimaryCmdBuffer* beginRender();
-    void endRender();
-
     void endFrame();
+
 
 
     void beginSwapchainRenderPass(const PrimaryCmdBuffer* command_buffer) const;
@@ -78,11 +74,10 @@ public:
     void endInitBuffer();
 
 private:
-    enum State {
-        STATE_TRANSFER_READY,
-        STATE_RENDER_READY,
-        STATE_FINISHED,
-    };
+    static constexpr Phase PHASE_FIRST = PHASE_TRANSFER;
+    static constexpr Phase PHASE_LAST = PHASE_RENDER;
+    template<Phase P> void nextState();
+
     /**
      * \brief waits until not longer minimized
      * \return new window extent
@@ -97,7 +92,6 @@ private:
     template<Phase P> void submit();
 
     void init();
-    void createSwapchain();
     void createCmdPools();
     void createPrimaryCmdBuffers();
     void createSyncObjects();
@@ -106,13 +100,13 @@ private:
     DeletionQueue* _deletionQueue;
 
     std::array<const Queue*, PHASE_MAX_ENUM> _queues;
-    std::array<const PrimaryCmdBuffer*, PHASE_MAX_ENUM * Constant::MAX_FRAMES_IN_FLIGHT> _cmdBuffers;
-    std::array<CmdPool, PHASE_MAX_ENUM> _cmdPools;
+    std::array<unique_ptr<PrimaryCmdBuffer>, PHASE_MAX_ENUM * Constant::MAX_FRAMES_IN_FLIGHT> _cmdBuffers;
+    std::array<unique_ptr<CmdPool>, PHASE_MAX_ENUM> _cmdPools;
 
     std::array<size_t, Constant::MAX_FRAMES_IN_FLIGHT> _stateCounters{};
     std::array<TimelineSemaphore, Constant::MAX_FRAMES_IN_FLIGHT> _semaphores;
 
-    State _state = STATE_TRANSFER_READY;
+    Phase _state = PHASE_TRANSFER;
 
     Camera* _camera;
     OSWindow* _window;
@@ -161,6 +155,27 @@ public:
 };
 
 
+}
+
+//Builder
+
+namespace cth {
+
+
+struct Renderer::Builder {
+static constexpr size_t COPIES = Constant::MAX_FRAMES_IN_FLIGHT;   
+
+    Builder(const BasicCore* core, DeletionQueue* deletion_queue);
+    template<Phase P>
+    Builder& addSignalSet(std::span<BasicSemaphore*, COPIES> signal_semaphores);
+    template<Phase P>
+    Builder& addWaitSet(std::span<PipelineWaitStage, COPIES> wait_stages);
+
+    template<Phase P>
+    Builder& removeSignalSet(std::span<BasicSemaphore*, COPIES> signal_semaphores);
+    template<Phase P>
+    Builder& removeWaitSet(std::span<VkPipelineStageFlags> stages);
+};
 }
 
 #include "CthRenderer.inl"

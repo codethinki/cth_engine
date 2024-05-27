@@ -30,15 +30,16 @@ void Renderer::end() {
     //const VkResult submitResult = _swapchain->submitCommandBuffer(_deletionQueue, cmdBuffer, _currentImageIndex);
 
 }
+template<Renderer::Phase P> void Renderer::skip() {
+    DEBUG_CHECK_RENDERER_PHASE(this, P);
+    nextState<P>();
+}
 
 template<Renderer::Phase P>
 void Renderer::submit() {
     DEBUG_CHECK_RENDERER_PHASE(this, P);
 
-    const Queue::SubmitInfo info{}
-
-    queue<P>()->submit()
-
+    queue<P>()->submit();
 }
 
 
@@ -52,6 +53,15 @@ const PrimaryCmdBuffer* Renderer::cmdBuffer() const {
     static_assert(P == PHASE_MAX_ENUM, "Phase P must not be PHASE_MAX_ENUM");
     return _cmdBuffers[_currentFrameIndex * PHASE_MAX_ENUM + P];
 }
+
+template<Renderer::Phase P> void Renderer::nextState() {
+    DEBUG_CHECK_RENDERER_PHASE(this, P);
+
+    if constexpr (P == PHASE_LAST) _state = PHASE_FIRST; 
+    else _state = static_cast<Phase>(static_cast<size_t>(_state) + 1);
+    
+}
+
 
 
 #ifdef CONSTANT_DEBUG_MODE

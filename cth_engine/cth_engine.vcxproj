@@ -58,6 +58,7 @@
     <ClInclude Include="src\vulkan\render\cmd\CthCmdPool.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthSemaphore.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthTimelineSemaphore.hpp" />
+    <ClInclude Include="src\vulkan\render\control\CthWaitStage.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBasicBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\CthDeletionQueue.hpp" />

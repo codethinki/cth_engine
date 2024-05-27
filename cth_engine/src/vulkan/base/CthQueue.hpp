@@ -1,14 +1,17 @@
 #pragma once
 #include "CthQueueFamily.hpp"
+#include "vulkan/render/control/CthFence.hpp"
+#include "vulkan/render/control/CthWaitStage.hpp"
 #include "vulkan/utility/CthConstants.hpp"
 
 #include <cstdint>
 #include <span>
-#include <unordered_map>
 #include <vector>
 #include <cth/cth_memory.hpp>
 
 #include <vulkan/vulkan.h>
+
+
 
 
 
@@ -25,7 +28,6 @@ class PrimaryCmdBuffer;
 class Queue {
 public:
     struct Config;
-    struct WaitStage;
     struct SubmitInfo;
     struct TimelineSubmitInfo;
     struct PresentInfo;
@@ -76,18 +78,13 @@ public:
 #endif
 };
 
-struct Queue::WaitStage {
-    VkPipelineStageFlags stage;
-    const BasicSemaphore* semaphore;
-};
-
 /**
  * \brief encapsulates the submit info for reuse
  * \note must be destroyed before any of the vulkan structures it references
  * \note added structures may be moved
  */
 struct Queue::SubmitInfo {
-    SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffers, std::span<const WaitStage> wait_stages,
+    SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffers, std::span<const PipelineWaitStage> wait_stages,
         std::span<BasicSemaphore* const> signal_semaphores, const BasicFence* fence);
 
     [[nodiscard]] const VkSubmitInfo* next();
@@ -95,7 +92,8 @@ struct Queue::SubmitInfo {
 private:
     [[nodiscard]] VkSubmitInfo createInfo() const;
     [[nodiscard]] VkTimelineSemaphoreSubmitInfo createTimelineInfo() const;
-    [[nodiscard]] void initSignal(std::span<BasicSemaphore* const> signal_semaphores);
+    void initSignal(std::span<BasicSemaphore* const> signal_semaphores);
+    void initWait(std::span<const PipelineWaitStage> wait_stages);
 
     VkSubmitInfo _submitInfo{};
     VkTimelineSemaphoreSubmitInfo _timelineInfo{};
@@ -105,7 +103,7 @@ private:
     std::vector<VkCommandBuffer> _cmdBuffers;
     std::vector<VkSemaphore> _waitSemaphores;
     std::vector<VkSemaphore> _signalSemaphores;
-    std::vector<VkPipelineStageFlags> _waitStages;
+    std::vector<VkPipelineStageFlags> _pipelineWaitStages;
 
     std::vector<const TimelineSemaphore*> _waitTimelineSemaphores;
     std::vector<TimelineSemaphore*> _signalTimelineSemaphores;
@@ -116,7 +114,7 @@ private:
 
 public:
     [[nodiscard]] const auto* get() const { return &_submitInfo; }
-    [[nodiscard]] auto fence() const { return _fence; }
+    [[nodiscard]] VkFence fence() const { return _fence->get(); }
 };
 
 struct Queue::PresentInfo {

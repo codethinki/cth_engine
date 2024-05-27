@@ -38,7 +38,10 @@ VkResult Queue::present(const uint32_t image_index, const PresentInfo& present_i
 
 #ifdef CONSTANT_DEBUG_MODE
 void Queue::debug_check(const Queue* queue) { CTH_ERR(queue == nullptr, "queue invalid (nullptr)"); }
-void Queue::debug_check_present_queue(const Queue* queue) {}
+void Queue::debug_check_present_queue(const Queue* queue) {
+    CTH_ERR(queue == nullptr, "queue invalid (nullptr)") throw details->exception();
+    CTH_ERR(!(queue->familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT), "queue is not a present queue") throw details->exception();
+}
 
 #endif
 
@@ -51,8 +54,8 @@ namespace cth {
 using std::span;
 
 
-Queue::SubmitInfo::SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffers, std::span<const WaitStage> wait_stages,
-    std::span<BasicSemaphore* const> signal_semaphores, const BasicFence* fence) : _fence(fence) {
+Queue::SubmitInfo::SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffers, const std::span<const PipelineWaitStage> wait_stages,
+    const std::span<BasicSemaphore* const> signal_semaphores, const BasicFence* fence) : _fence(fence) {
     _cmdBuffers.resize(cmd_buffers.size());
 
     std::ranges::transform(cmd_buffers, _cmdBuffers.begin(), [](const PrimaryCmdBuffer* cmd_buffer) {
@@ -60,33 +63,18 @@ Queue::SubmitInfo::SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffe
         return cmd_buffer->get();
     });
 
-
-    _waitStages.resize(wait_stages.size());
-    std::ranges::transform(wait_stages, std::ranges::begin(std::views::zip(_waitSemaphores, _waitStages)), [](const WaitStage& stage) {
-        DEBUG_CHECK_SEMAPHORE(stage.semaphore);
-        return std::pair{stage.semaphore->get(), stage.stage};
-    });
-
-    _signalSemaphores.resize(signal_semaphores.size());
-    std::ranges::transform(signal_semaphores, _signalSemaphores.begin(), [](const BasicSemaphore* semaphore) {
-        DEBUG_CHECK_SEMAPHORE(semaphore);
-        return semaphore->get();
-    });
+    initSignal(signal_semaphores);
+    initWait(wait_stages);
 
 
     _timelineInfo = createTimelineInfo();
     _submitInfo = createInfo();
 }
 const VkSubmitInfo* Queue::SubmitInfo::next() {
-
-
-    std::vector<size_t> waitValues(_waitSemaphores.size());
     std::ranges::transform(_waitTimelineSemaphores, _waitValues.begin(), [](const TimelineSemaphore* semaphore) { return semaphore->value(); });
-
-    std::vector<size_t> signalValues(_signalSemaphores.size());
     std::ranges::transform(_signalTimelineSemaphores, _signalValues.begin(), [](TimelineSemaphore* semaphore) { return semaphore->next(); });
 
-
+    return &_submitInfo;
 }
 
 VkSubmitInfo Queue::SubmitInfo::createInfo() const {
@@ -115,14 +103,46 @@ VkTimelineSemaphoreSubmitInfo Queue::SubmitInfo::createTimelineInfo() const {
     };
     return timelineInfo;
 }
-void Queue::SubmitInfo::initSignal(std::span<BasicSemaphore* const> signal_semaphores) {
+void Queue::SubmitInfo::initSignal(const std::span<BasicSemaphore* const> signal_semaphores) {
     _signalValues.resize(signal_semaphores.size());
+    _signalSemaphores.reserve(signal_semaphores.size());
 
-    _signalTimelineSemaphores = signal_semaphores |
-        std::views::filter([](BasicSemaphore* semaphore) { return dynamic_cast<TimelineSemaphore*>(semaphore); }) |
-        std::ranges::to<std::vector<TimelineSemaphore*>>();
+    vector<VkSemaphore> semaphores{};
+    semaphores.reserve(signal_semaphores.size());
 
+    for(auto& signalSemaphore : signal_semaphores) {
+        DEBUG_CHECK_SEMAPHORE(signalSemaphore);
+        auto semaphore = dynamic_cast<TimelineSemaphore*>(signalSemaphore);
+        if(!semaphore) semaphores.push_back(signalSemaphore->get());
+        else {
+            _signalTimelineSemaphores.push_back(semaphore);
+            _signalSemaphores.push_back(semaphore->get());
+        }
+    }
 
+    _signalSemaphores.insert(_signalSemaphores.end(), semaphores.begin(), semaphores.end());
+}
+void Queue::SubmitInfo::initWait(const std::span<const PipelineWaitStage> wait_stages) {
+    _waitValues.resize(wait_stages.size());
+    _waitSemaphores.reserve(wait_stages.size());
+
+    vector<WaitStage> stages{};
+    stages.reserve(wait_stages.size());
+
+    for(auto& waitStage : wait_stages) {
+        DEBUG_CHECK_SEMAPHORE(waitStage.semaphore);
+        auto semaphore = dynamic_cast<const TimelineSemaphore*>(waitStage.semaphore);
+        if(!semaphore) stages.push_back(waitStage);
+        else {
+            _waitTimelineSemaphores.push_back(semaphore);
+            _waitSemaphores.push_back(semaphore->get());
+            _waitStages.push_back(waitStage.stage);
+        }
+    }
+
+    std::ranges::transform(stages, std::ranges::begin(std::views::zip(_waitSemaphores, _waitStages)), [](const WaitStage& stage) {
+        return std::pair{stage.semaphore->get(), stage.stage};
+    });
 }
 
 
@@ -132,9 +152,7 @@ void Queue::SubmitInfo::initSignal(std::span<BasicSemaphore* const> signal_semap
 //PresentInfo
 
 namespace cth {
-Queue::PresentInfo::PresentInfo(const BasicSwapchain& swapchain, std::span<const BasicSemaphore*> wait_semaphores) {
-    _swapchain = swapchain.get();
-
+Queue::PresentInfo::PresentInfo(const BasicSwapchain& swapchain, std::span<const BasicSemaphore*> wait_semaphores) : _swapchain(swapchain.get()) {
     _waitSemaphores.resize(wait_semaphores.size());
     std::ranges::transform(wait_semaphores, _waitSemaphores.begin(), [](const BasicSemaphore* semaphore) { return semaphore->get(); });
 

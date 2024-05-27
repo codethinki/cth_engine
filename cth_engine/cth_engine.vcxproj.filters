@@ -65,6 +65,7 @@
     <ClInclude Include="src\vulkan\surface\CthSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthTimelineSemaphore.hpp" />
+    <ClInclude Include="src\vulkan\render\control\CthWaitStage.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
