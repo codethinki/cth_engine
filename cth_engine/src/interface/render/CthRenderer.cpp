@@ -20,19 +20,12 @@
 namespace cth {
 
 
-Renderer::Renderer(const BasicCore* core, DeletionQueue* deletion_queue, const Queue* queue, Camera* camera, OSWindow* window) : _core{core},
-    _deletionQueue(deletion_queue), _queue(queue), _camera{camera}, _window(window) { init(); }
+Renderer::Renderer(Camera* camera, OSWindow* window, const Config& builder) : _core{builder._core},
+    _deletionQueue(builder._deletionQueue), _queues(builder._queues), _camera{camera}, _window(window) { init(); }
 Renderer::~Renderer() {
 
-    _cmdBuffers.clear();
-    _cmdPools.clear();
-    _swapchain = nullptr;
-}
-size_t Renderer::beginFrame() {}
-
-void Renderer::skipTransfer() const {
-    CTH_ERR(_transferStarted, "transfer already active") throw details->exception();
-    signal(STATE_RENDER_READY);
+    std::ranges::fill(_cmdBuffers, nullptr);
+    std::ranges::fill(_cmdPools, nullptr);
 }
 
 
@@ -53,7 +46,7 @@ const PrimaryCmdBuffer* Renderer::beginRender() {
 void Renderer::endRender() {}
 
 
-VkExtent2D Renderer::minimizedState() const {
+VkExtent2D Renderer::minimized() const {
     VkExtent2D extent = _window->extent();
     while(extent.width == 0 || extent.height == 0) {
         extent = _window->extent();
@@ -64,7 +57,7 @@ VkExtent2D Renderer::minimizedState() const {
 
 
 void Renderer::recreateSwapchain() {
-    VkExtent2D windowExtent = minimizedState();
+    VkExtent2D windowExtent = minimized();
 
     vkDeviceWaitIdle(_core->vkDevice());
 
@@ -245,9 +238,19 @@ DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 
 
 
-
-
-
-
-
 } // namespace cth
+
+//Builder
+
+namespace cth {
+Renderer::Config::Config(const BasicCore* core, DeletionQueue* deletion_queue) : _core{core}, _deletionQueue{deletion_queue} {}
+
+
+
+auto Renderer::Config::createSubmitInfo(std::span<const PrimaryCmdBuffer* const, SET_SIZE * PHASE_MAX_ENUM> cmd_buffers)
+    -> std::array<Queue::SubmitInfo, SET_SIZE * PHASE_MAX_ENUM> {
+
+    
+}
+
+}

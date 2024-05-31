@@ -83,7 +83,7 @@ VkSubmitInfo Queue::SubmitInfo::createInfo() const {
         .pNext = &_timelineInfo,
         .waitSemaphoreCount = static_cast<uint32_t>(_waitSemaphores.size()),
         .pWaitSemaphores = _waitSemaphores.data(),
-        .pWaitDstStageMask = _waitStages.data(),
+        .pWaitDstStageMask = _pipelineWaitStages.data(),
 
         .commandBufferCount = static_cast<uint32_t>(_cmdBuffers.size()),
         .pCommandBuffers = _cmdBuffers.data(),
@@ -126,7 +126,7 @@ void Queue::SubmitInfo::initWait(const std::span<const PipelineWaitStage> wait_s
     _waitValues.resize(wait_stages.size());
     _waitSemaphores.reserve(wait_stages.size());
 
-    vector<WaitStage> stages{};
+    vector<PipelineWaitStage> stages{};
     stages.reserve(wait_stages.size());
 
     for(auto& waitStage : wait_stages) {
@@ -136,11 +136,11 @@ void Queue::SubmitInfo::initWait(const std::span<const PipelineWaitStage> wait_s
         else {
             _waitTimelineSemaphores.push_back(semaphore);
             _waitSemaphores.push_back(semaphore->get());
-            _waitStages.push_back(waitStage.stage);
+            _pipelineWaitStages.push_back(waitStage.stage);
         }
     }
 
-    std::ranges::transform(stages, std::ranges::begin(std::views::zip(_waitSemaphores, _waitStages)), [](const WaitStage& stage) {
+    std::ranges::transform(stages, std::ranges::begin(std::views::zip(_waitSemaphores, _pipelineWaitStages)), [](const PipelineWaitStage& stage) {
         return std::pair{stage.semaphore->get(), stage.stage};
     });
 }
