@@ -18,6 +18,7 @@ namespace cth {
 class BasicSemaphore;
 class TimelineSemaphore;
 
+using std::vector;
 
 void Queue::wrap(const uint32_t family_index, const uint32_t queue_index, VkQueue vk_queue) {
     _familyIndex = family_index;

@@ -1,6 +1,8 @@
 #pragma once
 #include "CthSemaphore.hpp"
 
+#include<span>
+
 namespace cth {
 class TimelineSemaphore : public Semaphore {
 public:

@@ -72,7 +72,7 @@ void App::initInputController() const {
     //InputController::resetMouseDt(hlcWindow.window());
 }
 
-void App::allocateObjectModels() {
+void App::allocateObjectModels(int x) {
     //TEMP update this
 
     //memoryManager.allocate(staticObjects);
@@ -137,7 +137,7 @@ App::App() {
     initCamera();
     initInputController();
 
-    allocateObjectModels();
+    allocateObjectModels(TODO);
     setRenderData();
 };
 App::~App() {}

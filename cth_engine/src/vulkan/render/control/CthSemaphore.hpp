@@ -1,6 +1,4 @@
 #pragma once
-#include <chrono>
-#include <span>
 #include <vulkan/vulkan.h>
 
 #include <cth/cth_memory.hpp>

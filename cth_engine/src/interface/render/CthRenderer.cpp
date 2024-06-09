@@ -2,26 +2,23 @@
 
 #include "interface/user/HlcCamera.hpp"
 #include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthDevice.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/cmd/CthCmdPool.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/surface/CthOSWindow.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>
 
 #include <array>
 
-#include "vulkan/render/control/CthSemaphore.hpp"
-
+//TEMP cleanup this file
 
 
 namespace cth {
 
 
-Renderer::Renderer(Camera* camera, OSWindow* window, const Config& builder) : _core{builder._core},
-    _deletionQueue(builder._deletionQueue), _queues(builder._queues), _camera{camera}, _window(window) { init(); }
+Renderer::Renderer(Camera* camera, OSWindow* window, const Config& config) : _core{config._core},
+    _deletionQueue(config._deletionQueue), _queues(config.queues()), _camera{camera}, _window(window) { init(config); }
 Renderer::~Renderer() {
 
     std::ranges::fill(_cmdBuffers, nullptr);
@@ -29,21 +26,18 @@ Renderer::~Renderer() {
 }
 
 
-const PrimaryCmdBuffer* Renderer::beginRender() {
-
-
-    auto buffer = commandBuffer();
-
-
-    const VkResult beginResult = buffer->begin();
-    CTH_STABLE_ERR(beginResult != VK_SUCCESS, "failed to begin command buffer")
-        throw cth::except::vk_result_exception{beginResult, details->exception()};
-
-    return buffer;
-}
-
-
-void Renderer::endRender() {}
+//const PrimaryCmdBuffer* Renderer::beginRender() {
+//
+//
+//    auto buffer = commandBuffer();
+//
+//
+//    const VkResult beginResult = buffer->begin();
+//    CTH_STABLE_ERR(beginResult != VK_SUCCESS, "failed to begin command buffer")
+//        throw cth::except::vk_result_exception{beginResult, details->exception()};
+//
+//    return buffer;
+//}
 
 
 VkExtent2D Renderer::minimized() const {
@@ -56,31 +50,34 @@ VkExtent2D Renderer::minimized() const {
 }
 
 
-void Renderer::recreateSwapchain() {
-    VkExtent2D windowExtent = minimized();
+//void Renderer::recreateSwapchain() {
+//    VkExtent2D windowExtent = minimized();
+//
+//    vkDeviceWaitIdle(_core->vkDevice());
+//
+//    if(_swapchain == nullptr) {
+//        _swapchain = std::make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), windowExtent);
+//        return;
+//    }
+//
+//    std::shared_ptr oldSwapchain = std::move(_swapchain);
+//    _swapchain = std::make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), windowExtent, oldSwapchain);
+//
+//    //TODO i dont understand why the formats cant change?
+//    const bool change = oldSwapchain->compareSwapFormats(*_swapchain);
+//
+//    CTH_STABLE_ERR(change, "depth or image format changed")
+//        throw details->exception();
+//}
 
-    vkDeviceWaitIdle(_core->vkDevice());
-
-    if(_swapchain == nullptr) {
-        _swapchain = make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), windowExtent);
-        return;
-    }
-
-    shared_ptr oldSwapchain = std::move(_swapchain);
-    _swapchain = make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), windowExtent, oldSwapchain);
-
-    //TODO i dont understand why the formats cant change?
-    const bool change = oldSwapchain->compareSwapFormats(*_swapchain);
-
-    CTH_STABLE_ERR(change, "depth or image format changed")
-        throw details->exception();
-}
 
 
-
-void Renderer::init() {
+void Renderer::init(const Config& config) {
     createCmdPools();
     createPrimaryCmdBuffers();
+    createSyncObjects();
+
+    createSubmitInfos(config);
 }
 //void Renderer::createSwapchain() {
 //    vkDeviceWaitIdle(_core->vkDevice());
@@ -88,33 +85,36 @@ void Renderer::init() {
 //}
 void Renderer::createCmdPools() {
     for(size_t i = PHASE_FIRST; i < PHASE_LAST; ++i)
-        _cmdPools[i] = make_unique<CmdPool>(_core, CmdPool::Config::Default(_queues[i]->familyIndex(), Constant::MAX_FRAMES_IN_FLIGHT + 1, 0));
+        _cmdPools[i] = std::make_unique<CmdPool>(_core, CmdPool::Config::Default(_queues[i]->familyIndex(), Constant::FRAMES_IN_FLIGHT + 1, 0));
 }
 void Renderer::createPrimaryCmdBuffers() {
     for(size_t i = PHASE_FIRST; i < PHASE_LAST; ++i)
-        for(size_t j = 0; j < Constant::MAX_FRAMES_IN_FLIGHT; ++j)
-            _cmdBuffers[i * PHASE_MAX_ENUM + j] = make_unique<PrimaryCmdBuffer>(_cmdPools[i].get());
+        for(size_t j = 0; j < Constant::FRAMES_IN_FLIGHT; ++j)
+            _cmdBuffers[i * PHASES_SIZE + j] = std::make_unique<PrimaryCmdBuffer>(_cmdPools[i].get());
 }
 void Renderer::createSyncObjects() {
-    //TEMP left off here. create a hook function or something else that lets the user sync after the renderer. maybe only signal not wait
-    //TEMP also recreate this function and then proceed with the swapchain
+    std::ranges::transform(_semaphores, _semaphores.begin(),
+        [this](auto&) { return std::make_unique<TimelineSemaphore>(_core, _deletionQueue); }
+        );
+}
+void Renderer::createSubmitInfos(Config config) {
 
-    _syncTimeline.reserve(Constant::MAX_FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < Constant::MAX_FRAMES_IN_FLIGHT; ++i)
-        _syncTimeline.emplace_back(_core, _deletionQueue);
+    config.addWaitSets<PHASE_TRANSFER>()
+
+    auto cmdBuffers = _cmdBuffers
+        | std::views::transform([](const unique_ptr<PrimaryCmdBuffer>& buffer) { return buffer.get(); })
+        | std::ranges::to<std::array<const PrimaryCmdBuffer*, PHASES_SIZE * Constant::FRAMES_IN_FLIGHT>>();
+
+    _submitInfos = config.createSubmitInfos(cmdBuffers);
 }
 
 
 
 uint32_t Renderer::frameIndex() const {
-    CTH_ERR(!_transferStarted, "no frame active") throw details->exception();
-    return _currentFrameIndex;
+    CTH_ERR(!_frameActive, "no frame active") throw details->exception();
+    return _frameIndex;
 }
-const PrimaryCmdBuffer* Renderer::commandBuffer() const {
-    //must be here bc of compile error without #include "cmd/CthCmdBuffer.hpp"
-    CTH_ERR(!_transferStarted, "no frame active") throw details->exception();
-    return _cmdBuffers.back()[_currentFrameIndex].get();
-}
+
 DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 
 
@@ -243,14 +243,35 @@ DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 //Builder
 
 namespace cth {
-Renderer::Config::Config(const BasicCore* core, DeletionQueue* deletion_queue) : _core{core}, _deletionQueue{deletion_queue} {}
+Renderer::Config::Config(const BasicCore* core, DeletionQueue* deletion_queue) : _core{core}, _deletionQueue{deletion_queue} {
+    DEBUG_CHECK_CORE(core);
+    DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
+}
 
 
 
-auto Renderer::Config::createSubmitInfo(std::span<const PrimaryCmdBuffer* const, SET_SIZE * PHASE_MAX_ENUM> cmd_buffers)
-    -> std::array<Queue::SubmitInfo, SET_SIZE * PHASE_MAX_ENUM> {
+auto Renderer::Config::createSubmitInfos(const std::span<const PrimaryCmdBuffer* const> cmd_buffers) const
+    -> std::array<Queue::SubmitInfo, SET_SIZE * PHASES_SIZE> {
+    DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(cmd_buffers);
 
-    
+    auto phaseBuffers = cmd_buffers | std::views::chunk(SET_SIZE);
+
+    std::array phaseSubmitInfos = {
+        createPhaseSubmitInfos<PHASE_TRANSFER>(phaseBuffers[PHASE_TRANSFER]),
+        createPhaseSubmitInfos<PHASE_RENDER>(phaseBuffers[PHASE_RENDER]),
+    };
+
+    auto views = phaseSubmitInfos | std::views::join;
+    std::array<Queue::SubmitInfo, SET_SIZE * PHASES_SIZE> submitInfos{};
+    std::ranges::copy(views, submitInfos.begin());
+    return submitInfos;
+}
+
+std::array<const Queue*, Renderer::PHASES_SIZE> Renderer::Config::queues() const {
+    for(auto& queue : _queues)
+        DEBUG_CHECK_QUEUE(queue);
+
+    return _queues;
 }
 
 }

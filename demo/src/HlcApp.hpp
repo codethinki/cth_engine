@@ -32,7 +32,7 @@ private:
 
 
 
-    void allocateObjectModels();
+    void allocateObjectModels(int x);
 
     /* static void calculateRenderGroups(array<size_t, 4>& group_sizes, vector<uint32_t>& group_indices,
          const vector<unique_ptr<RenderObject>>& objects);*/

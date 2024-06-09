@@ -88,7 +88,7 @@
     <ClInclude Include="src\interface\render\CthRenderer.hpp" />
     <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
-    <ClInclude Include="src\vulkan\resource\image\CthBasicSwapchain.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthBasicSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
@@ -113,6 +113,7 @@
     <ClCompile Include="src\vulkan\base\CthQueue.cpp" />
     <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthFence.cpp" />
+    <ClCompile Include="src\vulkan\render\control\CthPipelineWaitStage.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthTimelineSemaphore.cpp" />
     <ClCompile Include="src\vulkan\resource\CthDeletionQueue.cpp" />

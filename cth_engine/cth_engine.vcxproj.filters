@@ -31,7 +31,7 @@
     <ClInclude Include="src\interface\render\model\CthVertex.hpp" />
     <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
     <ClInclude Include="src\interface\render\CthRenderer.hpp" />
-    <ClInclude Include="src\vulkan\resource\image\CthBasicSwapchain.hpp" />
+    <ClInclude Include="src\vulkan\surface\CthBasicSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
     <ClInclude Include="src\vulkan\render\pipeline\layout\CthPipelineLayout.hpp" />
@@ -116,5 +116,6 @@
     <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthTimelineSemaphore.cpp" />
+    <ClCompile Include="src\vulkan\render\control\CthPipelineWaitStage.cpp" />
   </ItemGroup>
 </Project>

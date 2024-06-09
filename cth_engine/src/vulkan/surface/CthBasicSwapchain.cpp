@@ -164,7 +164,7 @@ VkResult BasicSwapchain::submitCommandBuffer(DeletionQueue* deletion_queue, cons
 
     const auto presentResult = present(image_index);
 
-    ++_currentFrame %= Constant::MAX_FRAMES_IN_FLIGHT;
+    ++_currentFrame %= Constant::FRAMES_IN_FLIGHT;
     return presentResult;
 }
 void BasicSwapchain::changeSwapchainImageQueue(const uint32_t release_queue, const CmdBuffer& release_cmd_buffer, const uint32_t acquire_queue,
@@ -469,9 +469,9 @@ void BasicSwapchain::createFramebuffers() {
 }
 
 void BasicSwapchain::createSyncObjects() {
-    _imageAvailableSemaphores.resize(Constant::MAX_FRAMES_IN_FLIGHT);
-    _renderFinishedSemaphores.resize(Constant::MAX_FRAMES_IN_FLIGHT);
-    _inFlightFences.resize(Constant::MAX_FRAMES_IN_FLIGHT);
+    _imageAvailableSemaphores.resize(Constant::FRAMES_IN_FLIGHT);
+    _renderFinishedSemaphores.resize(Constant::FRAMES_IN_FLIGHT);
+    _inFlightFences.resize(Constant::FRAMES_IN_FLIGHT);
     _imagesInFlight.resize(imageCount(), VK_NULL_HANDLE);
 
     VkSemaphoreCreateInfo semaphoreInfo = {};
@@ -481,7 +481,7 @@ void BasicSwapchain::createSyncObjects() {
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for(size_t i = 0; i < Constant::MAX_FRAMES_IN_FLIGHT; i++) {
+    for(size_t i = 0; i < Constant::FRAMES_IN_FLIGHT; i++) {
         const VkResult createWaitSemaphoreResult = vkCreateSemaphore(_core->vkDevice(), &semaphoreInfo, nullptr, &_imageAvailableSemaphores[i]);
         const VkResult createSignalSemaphoreResult = vkCreateSemaphore(_core->vkDevice(), &semaphoreInfo, nullptr, &_renderFinishedSemaphores[i]);
         const VkResult createFenceResult = vkCreateFence(_core->vkDevice(), &fenceInfo, nullptr, &_inFlightFences[i]);
