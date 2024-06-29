@@ -21,3 +21,20 @@
 	- framebuffer abstraction?
 
 ## 4. implement dear imgui support
+
+
+
+
+//continue in basic swapchain.cpp
+
+
+//sync pattern:
+
+- present submit to present queue with renderFinished semaphore for n - 1
+- wait on n - 1 acquire fence
+- start acquire with semaphore and fence for n
+- start render stuff for n and record the command buffers
+- submit to graphics queue with the acquire semaphore for n as top of pipe wait stage and register another renderFinished for n
+- present submit to present queue with the render finished for n
+- wait on the acquire fence for n
+...

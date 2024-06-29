@@ -22,8 +22,6 @@ void BasicBuffer::wrap(VkBuffer vk_buffer, const State& state) {
 
     _handle = vk_buffer;
     _state = state;
-
-    init();
 }
 
 void BasicBuffer::create() {
@@ -75,10 +73,10 @@ void BasicBuffer::bind() const {
 
 
 void BasicBuffer::destroy(DeletionQueue* deletion_queue) {
-    if(deletion_queue) {
-        DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
-        deletion_queue->push(_handle.get());
-    } else destroy(_core->vkDevice(), _handle.get());
+    DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
+
+    if(deletion_queue) deletion_queue->push(_handle.get());
+    else destroy(_core->vkDevice(), _handle.get());
 
     _handle = VK_NULL_HANDLE;
 

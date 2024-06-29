@@ -26,20 +26,29 @@ public:
 
     /**
      * \brief queries the status of the fence
-     * \return VkResult of vkGetFenceStatus(...)
+     * \return VkResult of vkGetFenceStatus(...) [VK_SUCCESS, VK_NOT_READY]
+     * \throws cth::except::vk_result_exception result of vkGetFenceStatus(...)
      */
     [[nodiscard]] VkResult status() const;
     /**
      * \brief resets the fence
-     * \return VkResult of vkResetFences(...)
+     * \throws cth::except::vk_result_exception result of vkResetFences(...)
      */
-    [[nodiscard]] VkResult reset() const;
+    void reset() const;
+
     /**
-     * \brief blocks cpu until fence is signaled
+     * \brief blocks cpu until fence is signaled or the timeout is reached
      * \param timeout in nanoseconds
-     * \return VkResult of vkWaitForFences(...)
+     * \return VkResult of vkWaitForFences(...) [VK_SUCCESS, VK_TIMEOUT]
+     * \throws cth::except::vk_result_exception result of vkWaitForFences(...)
      */
-    [[nodiscard]] VkResult wait(uint64_t timeout) const;
+    VkResult wait(uint64_t timeout) const; //NOLINT(modernize-use-nodiscard)
+
+    /**
+    * \brief blocks cpu until fence is signaled
+    * \throws cth::except::vk_result_exception result of vkWaitForFences(...)
+    */
+    void wait() const;
 
     static void destroy(VkDevice vk_device, VkFence vk_fence);
 

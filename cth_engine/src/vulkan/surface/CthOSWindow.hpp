@@ -12,7 +12,7 @@
 namespace cth {
 class BasicInstance;
 class Surface;
-
+ //TODO implement DEBUG_CHECK_OS_WINDOW
 
 class OSWindow {
 public:

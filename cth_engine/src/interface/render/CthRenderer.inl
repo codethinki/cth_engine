@@ -7,11 +7,15 @@
 #include <cth/cth_log.hpp>
 
 #include <ranges>
+#include <vector>
 
 namespace cth {
 template<Renderer::Phase P>
 PrimaryCmdBuffer* Renderer::begin() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
+
+    if constexpr (P == PHASES_FIRST) wait();
+
     auto buffer = cmdBuffer<P>();
     const VkResult beginResult = buffer->begin();
     CTH_STABLE_ERR(beginResult != VK_SUCCESS, "failed to begin command buffer")
@@ -22,7 +26,6 @@ PrimaryCmdBuffer* Renderer::begin() {
 template<Renderer::Phase P>
 void Renderer::end() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
-    //CTH_ERR(!_transferStarted, "no frame active") throw details->exception();
 
     const PrimaryCmdBuffer* buffer = cmdBuffer<P>();
 
@@ -32,8 +35,6 @@ void Renderer::end() {
 
 
     submit<P>();
-    //const VkResult submitResult = _swapchain->submitCommandBuffer(_deletionQueue, cmdBuffer, _currentImageIndex);
-
 }
 template<Renderer::Phase P> void Renderer::skip() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
@@ -44,7 +45,7 @@ template<Renderer::Phase P>
 void Renderer::submit() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-    queue<P>()->submit();
+    queue<P>()->submit(_submitInfos[P * Constant::FRAMES_IN_FLIGHT + _frameIndex]);
     nextState<P>();
 }
 
@@ -61,7 +62,7 @@ const PrimaryCmdBuffer* Renderer::cmdBuffer() const {
 template<Renderer::Phase P> void Renderer::nextState() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-    if constexpr(P == PHASE_LAST) _state = PHASE_FIRST;
+    if constexpr(P == PHASES_LAST) _state = PHASES_FIRST;
     else _state = static_cast<Phase>(static_cast<size_t>(_state) + 1);
 
 }
@@ -77,9 +78,9 @@ template<Renderer::Phase P> void Renderer::debug_check_current_phase(const Rende
 
 
 template<Renderer::Phase P>
-void Renderer::debug_check_phase() {
+constexpr void Renderer::debug_check_phase() {
     static_assert(P != PHASES_SIZE, "Phase P must not be PHASE_MAX_ENUM");
-    static_assert(PHASE_FIRST == PHASE_TRANSFER && PHASE_LAST == PHASE_RENDER && PHASE_TRANSFER == 0 && PHASE_RENDER == 1,
+    static_assert(PHASES_FIRST == PHASE_TRANSFER && PHASES_LAST == PHASE_GRAPHICS && PHASE_TRANSFER == 0 && PHASE_GRAPHICS == 1,
         "enum values changed please adjust checks");
 }
 
@@ -163,25 +164,30 @@ auto Renderer::Config::addSets(const std::span<BasicSemaphore* const> signal_sem
 
 template<Renderer::Phase P>
 auto Renderer::Config::createPhaseSubmitInfos(
-    const std::span<const PrimaryCmdBuffer* const> phase_buffers) const -> std::array<Queue::SubmitInfo, SET_SIZE> {
+    const std::span<const PrimaryCmdBuffer* const> phase_buffers) const -> std::vector<Queue::SubmitInfo> {
 
     DEBUG_CHECK_RENDERER_PHASE(P);
 
-    std::array<Queue::SubmitInfo, SET_SIZE> submitInfos{};
-
+    std::vector<Queue::SubmitInfo> submitInfos{};
+    submitInfos.reserve(SET_SIZE);
+    
     for(size_t i = 0; i < SET_SIZE; i++) {
+
         auto extract = [i]<class Rng>(const Rng& rng) {
             using T = type::range2d_value_t<Rng>;
-            return rng | std::views::drop(i) | std::views::stride(SET_SIZE) | std::ranges::to<std::vector<T>>();
+            const auto view = rng | std::views::drop(i) | std::views::stride(SET_SIZE);
+            std::vector<T> vec(view.begin(), view.end());
+            return vec;
         };
 
-        auto semaphores = extract(_signalSets[i]);
-        auto waitStages = extract(_waitSets[i]);
+        std::vector<BasicSemaphore*> semaphores = extract(_signalSets[i]);
+        std::vector<PipelineWaitStage> waitStages = extract(_waitSets[i]);
 
 
         submitInfos[i] = Queue::SubmitInfo{phase_buffers, waitStages, semaphores, nullptr};
     }
-
+    static_assert(false, "implement: remove the bugs and then setup the sync process and also implement the non basic swapchain"); //IMPLEMENT remove the bugs and then setup the sync process and also implement the non basic swapchain
+    
     return submitInfos;
 }
 
@@ -189,18 +195,21 @@ auto Renderer::Config::createPhaseSubmitInfos(
 
 template<Renderer::Phase P, class T>
 auto Renderer::Config::add(std::span<T const> sets, collection_t<T>& to) -> void {
-    DEBUG_CHECK_RENDERER_PHASE(P)
+    DEBUG_CHECK_RENDERER_PHASE(P);
     DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(sets);
 
 
     auto& phase = to[P];
-    for(auto& set : sets | std::views::chunk(SET_SIZE))
-        phase.emplace_back(std::ranges::begin(set), std::ranges::end(set));
+    for(const auto& set : sets | std::views::chunk(SET_SIZE)) {
+        phase.emplace_back();
+
+        std::ranges::copy(set, phase.back().begin());
+    }
 }
 
 template<Renderer::Phase P, class T>
 auto Renderer::Config::remove(std::span<T const> sets, collection_t<T>& from) -> void {
-    DEBUG_CHECK_RENDERER_PHASE(P)
+    DEBUG_CHECK_RENDERER_PHASE(P);
     DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(sets);
 
     auto& phase = from[P];

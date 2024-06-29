@@ -40,7 +40,7 @@ public:
     static void debug_check_leak(const BasicSemaphore* semaphore);
 
 #define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) BasicSemaphore::debug_check(semaphore_ptr)
-#define DEBUG_CHECK_SEMAPHORE_LEAK(semaphore_ptr) BasicSemaphore::debug_check_replace(semaphore_ptr)
+#define DEBUG_CHECK_SEMAPHORE_LEAK(semaphore_ptr) BasicSemaphore::debug_check_leak(semaphore_ptr)
 #else
 #define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) ((void)0)
 #define DEBUG_CHECK_SEMAPHORE_LEAK(semaphore_ptr)  ((void)0)

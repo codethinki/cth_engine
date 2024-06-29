@@ -19,7 +19,6 @@ namespace cth {
 class Queue;
 class Instance;
 class Surface;
-class PresentQueue;
 
 class PhysicalDevice {
 public:

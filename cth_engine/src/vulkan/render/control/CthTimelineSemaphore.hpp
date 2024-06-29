@@ -15,7 +15,7 @@ public:
 
     [[nodiscard]] size_t gpuValue() const;
     void signal();
-    [[nodiscard]] VkResult wait(uint64_t nanoseconds) const;
+    [[nodiscard]] VkResult wait(uint64_t nanoseconds = UINT64_MAX) const;
 
 protected:
     [[nodiscard]] VkSemaphoreSignalInfo signalInfo(const size_t& value) const;

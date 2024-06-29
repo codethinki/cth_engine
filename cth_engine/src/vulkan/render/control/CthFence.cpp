@@ -13,9 +13,7 @@
 
 namespace cth {
 
-BasicFence::BasicFence(const BasicCore* core) : _core(core) {
-    DEBUG_CHECK_CORE(core);
-}
+BasicFence::BasicFence(const BasicCore* core) : _core(core) { DEBUG_CHECK_CORE(core); }
 
 void BasicFence::wrap(VkFence vk_fence) {
     CTH_ERR(vk_fence == VK_NULL_HANDLE, "fence handle invalid") throw details->exception();
@@ -50,18 +48,34 @@ VkResult BasicFence::status() const {
 
     return vkGetFenceStatus(_core->vkDevice(), _handle.get());
 }
-VkResult BasicFence::reset() const {
+void BasicFence::reset() const {
     DEBUG_CHECK_FENCE(this);
     const std::array<VkFence, 1> fences = {_handle.get()};
-    return vkResetFences(_core->vkDevice(), fences.size(), fences.data());
+    const auto result = vkResetFences(_core->vkDevice(), fences.size(), fences.data());
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset fence")
+        throw cth::except::vk_result_exception{result, details->exception()};
 }
 
 
 VkResult BasicFence::wait(const uint64_t timeout) const {
+    CTH_INFORM(timeout == UINT64_MAX, "consider using wait() instead");
+
     DEBUG_CHECK_FENCE(this);
+
     const std::array<VkFence, 1> fences = {_handle.get()};
-    return vkWaitForFences(_core->vkDevice(), fences.size(), fences.data(), VK_TRUE, timeout);
+    const VkResult result = vkWaitForFences(_core->vkDevice(), fences.size(), fences.data(), VK_TRUE, timeout);
+
+    CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
+        throw cth::except::vk_result_exception{result, details->exception()};
+
+    return result;
 }
+void BasicFence::wait() const {
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    wait(UINT64_MAX);
+}
+
 
 void BasicFence::destroy(VkDevice vk_device, VkFence vk_fence) {
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);
@@ -94,9 +108,7 @@ Fence::Fence(const BasicCore* core, DeletionQueue* deletion_queue) : BasicFence(
     DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
     BasicFence::create();
 }
-Fence::~Fence() {
-    if(get() != VK_NULL_HANDLE) Fence::destroy();
-}
+Fence::~Fence() { if(get() != VK_NULL_HANDLE) Fence::destroy(); }
 
 void Fence::wrap(VkFence vk_fence) {
     if(get() != VK_NULL_HANDLE) destroy(_deletionQueue);

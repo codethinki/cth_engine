@@ -2,16 +2,17 @@
 
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/render/control/CthFence.hpp"
 #include "vulkan/render/control/CthSemaphore.hpp"
-#include "vulkan/surface/CthBasicSwapchain.hpp"
+#include "vulkan/render/control/CthTimelineSemaphore.hpp"
+#include "vulkan/surface/swapchain/CthBasicSwapchain.hpp"
+#include "vulkan/utility/CthVkUtils.hpp"
 
 #include <algorithm>
 #include <utility>
 #include<vector>
 #include <cth/cth_log.hpp>
 
-#include "vulkan/render/control/CthFence.hpp"
-#include "vulkan/render/control/CthTimelineSemaphore.hpp"
 
 
 namespace cth {
@@ -25,15 +26,22 @@ void Queue::wrap(const uint32_t family_index, const uint32_t queue_index, VkQueu
     _queueIndex = queue_index;
     _handle = vk_queue;
 }
-VkResult Queue::submit(const SubmitInfo& submit_info) const { return vkQueueSubmit(_handle, 1, submit_info.get(), submit_info.fence()); }
+void Queue::submit(const SubmitInfo& submit_info) const {
+    const auto result = vkQueueSubmit(_handle, 1, submit_info.get(), submit_info.fence());
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue") 
+        throw cth::except::vk_result_exception{result, details->exception()};
+}
 
 
 VkResult Queue::present(const uint32_t image_index, const PresentInfo& present_info) const {
-    VkResult result = VK_SUCCESS;
+    auto info = present_info.createInfo(image_index);
 
-    auto info = present_info.createInfo(&image_index, &result);
+    const auto result = vkQueuePresentKHR(get(), &info);
 
-    return vkQueuePresentKHR(get(), &info);
+    CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR, "failed to present")
+        throw cth::except::vk_result_exception{result, details->exception()};
+
+    return result;
 }
 
 
@@ -97,10 +105,10 @@ VkTimelineSemaphoreSubmitInfo Queue::SubmitInfo::createTimelineInfo() const {
     const VkTimelineSemaphoreSubmitInfo timelineInfo{
         .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
         .pNext = nullptr,
-        .signalSemaphoreValueCount = static_cast<uint32_t>(_signalValues.size()),
-        .pSignalSemaphoreValues = _signalValues.data(),
         .waitSemaphoreValueCount = static_cast<uint32_t>(_waitValues.size()),
         .pWaitSemaphoreValues = _waitValues.data(),
+        .signalSemaphoreValueCount = static_cast<uint32_t>(_signalValues.size()),
+        .pSignalSemaphoreValues = _signalValues.data(),
     };
     return timelineInfo;
 }
@@ -153,18 +161,18 @@ void Queue::SubmitInfo::initWait(const std::span<const PipelineWaitStage> wait_s
 //PresentInfo
 
 namespace cth {
-Queue::PresentInfo::PresentInfo(const BasicSwapchain& swapchain, std::span<const BasicSemaphore*> wait_semaphores) : _swapchain(swapchain.get()) {
+Queue::PresentInfo::PresentInfo(const BasicSwapchain* swapchain, std::span<const BasicSemaphore*> wait_semaphores) : _swapchain(swapchain->get()) {
     _waitSemaphores.resize(wait_semaphores.size());
     std::ranges::transform(wait_semaphores, _waitSemaphores.begin(), [](const BasicSemaphore* semaphore) { return semaphore->get(); });
 
 }
-VkPresentInfoKHR Queue::PresentInfo::createInfo(const uint32_t* image_index, VkResult* result) const {
+VkPresentInfoKHR Queue::PresentInfo::createInfo(const uint32_t& image_index) const {
     return VkPresentInfoKHR{
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .swapchainCount = 1u,
         .pSwapchains = &_swapchain,
-        .pImageIndices = image_index,
-        .pResults = result,
+        .pImageIndices = &image_index,
+        .pResults = nullptr,
     };
 }
 

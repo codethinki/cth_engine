@@ -33,7 +33,6 @@ VkResult TimelineSemaphore::wait(const uint64_t nanoseconds) const {
 
 
 
-
 VkSemaphoreSignalInfo TimelineSemaphore::signalInfo(const size_t& value) const {
     const VkSemaphoreSignalInfo signalInfo{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
@@ -67,10 +66,10 @@ VkTimelineSemaphoreSubmitInfo TimelineSemaphore::submitInfo(const size_t& wait_v
     const VkTimelineSemaphoreSubmitInfo timelineInfo{
         .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
         .pNext = nullptr,
-        .signalSemaphoreValueCount = 1,
-        .pSignalSemaphoreValues = &signal_value,
         .waitSemaphoreValueCount = 1,
         .pWaitSemaphoreValues = &wait_value,
+        .signalSemaphoreValueCount = 1,
+        .pSignalSemaphoreValues = &signal_value,
     };
     return timelineInfo;
 }
@@ -88,20 +87,20 @@ VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(const size_t& value, const VkSem
 
 
 VkSemaphoreCreateInfo TimelineSemaphore::createInfo() {
-    constexpr VkSemaphoreTypeCreateInfo timelineSemaphoreCreateInfo{
+    static constexpr VkSemaphoreTypeCreateInfo TIMELINE_SEMAPHORE_CREATE_INFO{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
         .pNext = nullptr,
         .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
         .initialValue = 0
     };
 
-    constexpr VkSemaphoreCreateInfo info{
+    static constexpr VkSemaphoreCreateInfo INFO{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-        .pNext = &timelineSemaphoreCreateInfo,
+        .pNext = &TIMELINE_SEMAPHORE_CREATE_INFO,
         .flags = 0,
     };
 
-    return info;
+    return INFO;
 }
 
 }

@@ -59,6 +59,7 @@
     <ClInclude Include="src\vulkan\render\control\CthSemaphore.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthTimelineSemaphore.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthWaitStage.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\CthRenderPass.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBasicBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\CthDeletionQueue.hpp" />
@@ -70,8 +71,10 @@
     <ClInclude Include="src\vulkan\resource\descriptor\descriptors\CthImageDescriptors.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthBasicImage.hpp" />
     <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
-    <ClInclude Include="src\vulkan\surface\CthSwapchain.hpp" />
-    <ClInclude Include="src\vulkan\surface\CthWindow.hpp" />
+    <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsCore.hpp" />
+    <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.hpp" />
+    <ClInclude Include="src\vulkan\surface\swapchain\CthSwapchain.hpp" />
+    <ClInclude Include="src\vulkan\surface\graphics_core\CthBasicGraphicsCore.hpp" />
     <ClInclude Include="src\vulkan\utility\CthConstants.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthImageView.hpp" />
     <ClInclude Include="src\vulkan\render\pipeline\CthPipeline.hpp" />
@@ -88,7 +91,7 @@
     <ClInclude Include="src\interface\render\CthRenderer.hpp" />
     <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
-    <ClInclude Include="src\vulkan\surface\CthBasicSwapchain.hpp" />
+    <ClInclude Include="src\vulkan\surface\swapchain\CthBasicSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
@@ -116,6 +119,7 @@
     <ClCompile Include="src\vulkan\render\control\CthPipelineWaitStage.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthTimelineSemaphore.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\CthRenderPass.cpp" />
     <ClCompile Include="src\vulkan\resource\CthDeletionQueue.cpp" />
     <ClCompile Include="src\vulkan\debug\CthBasicDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthPipelineBarrier.cpp" />
@@ -139,10 +143,11 @@
     <ClCompile Include="src\interface\render\CthRenderer.cpp" />
     <ClCompile Include="src\vulkan\resource\memory\CthMemory.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />
-    <ClCompile Include="src\vulkan\surface\CthBasicSwapchain.cpp" />
-    <ClCompile Include="src\vulkan\surface\CthSwapchain.cpp" />
+    <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsCore.cpp" />
+    <ClCompile Include="src\vulkan\surface\swapchain\CthBasicSwapchain.cpp" />
+    <ClCompile Include="src\vulkan\surface\swapchain\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthOSWindow.cpp" />
-    <ClCompile Include="src\vulkan\surface\CthWindow.cpp" />
+    <ClCompile Include="src\vulkan\surface\graphics_core\CthBasicGraphicsCore.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

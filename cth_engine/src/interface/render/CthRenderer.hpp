@@ -28,65 +28,56 @@ class Camera;
 class Renderer {
 public:
     struct Config;
+    enum Phase : size_t {
+        PHASE_TRANSFER,
+        PHASE_GRAPHICS,
+
+        PHASES_FIRST = PHASE_TRANSFER,
+        PHASES_LAST = PHASE_GRAPHICS,
+        PHASES_SIZE
+    };
 
     explicit Renderer(Camera* camera, OSWindow* window, const Config& config);
     ~Renderer();
-    ///**
-    // * \throws cth::except::vk_result_exception result of  Swapchain::acquireNextImage()
-    // * \throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
-    // */
-    //const PrimaryCmdBuffer* beginFrame();
-    ///**
-    // * \throws cth::except::vk_result_exception result of Swapchain::submitCommandBuffers()
-    // * \throws cth::except::vk_result_exception result of vkEndCommandBuffer()
-    // */
-    //void endFrame();
 
     /**
-     * \brief requests a new frame
-     * \return index of the new frame
-     * \note this operation might block
+     * \brief begins the recording for the phase
+     * \tparam P Phase
+     * \return cmd_buffer to submit to
+     * \throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
      */
-    enum Phase : size_t {
-        PHASE_TRANSFER,
-        PHASE_RENDER,
-        PHASES_SIZE
-    };
-    void waitNextFrame() const;
-
-    size_t beginFrame();
-
     template<Phase P>
     [[nodiscard]] PrimaryCmdBuffer* begin();
 
+    /**
+     * \brief ends the recording for the phase
+     * \tparam P Phase
+     * \throws cth::except::vk_result_exception result of vkEndCommandBuffer()
+     */
     template<Phase P>
     void end();
 
+    /**
+     * \brief used to explicitly skip a phase
+     * \tparam P Phase
+     */
     template<Phase P>
     void skip();
-
-    void endFrame();
-
-
-
-    void beginSwapchainRenderPass(const PrimaryCmdBuffer* command_buffer) const;
-    void endSwapchainRenderPass(const PrimaryCmdBuffer* command_buffer) const;
 
     //TEMP move this somewhere else
     [[nodiscard]] const PrimaryCmdBuffer* beginInitCmdBuffer();
     void endInitBuffer();
 
 private:
-    static constexpr Phase PHASE_FIRST = PHASE_TRANSFER;
-    static constexpr Phase PHASE_LAST = PHASE_RENDER;
-
+    void wait() const;
     template<Phase P> void nextState();
 
-    /**
-     * \brief waits until not longer minimized
-     * \return new window extent
-     */
-    [[nodiscard]] VkExtent2D minimized() const;
+    //TEMP move this minimized to the swapchain
+    ///**
+    // * \brief waits until no longer minimized
+    // * \return new window extent
+    // */
+    //[[nodiscard]] VkExtent2D minimized() const;
 
     ///**
     //* \throws cth::except::default_exception reason: depth or image format changed
@@ -107,7 +98,7 @@ private:
     std::array<const Queue*, PHASES_SIZE> _queues;
     std::array<std::unique_ptr<PrimaryCmdBuffer>, PHASES_SIZE * Constant::FRAMES_IN_FLIGHT> _cmdBuffers;
     std::array<std::unique_ptr<CmdPool>, PHASES_SIZE> _cmdPools;
-    std::array<Queue::SubmitInfo, PHASES_SIZE * Constant::FRAMES_IN_FLIGHT> _submitInfos{};
+    std::vector<Queue::SubmitInfo> _submitInfos;
 
     std::array<size_t, Constant::FRAMES_IN_FLIGHT> _stateCounters{};
     std::array<std::unique_ptr<TimelineSemaphore>, Constant::FRAMES_IN_FLIGHT> _semaphores{};
@@ -128,6 +119,8 @@ private:
 
     //[[nodiscard]] size_t to_signal(const State state) const { return _frameStateCounter + state; }
     //void signal(const State state) const { semaphore().signal(to_signal(state)); }
+    [[nodiscard]] std::array<PipelineWaitStage, Constant::FRAMES_IN_FLIGHT> createWaitSet() const;
+    [[nodiscard]] std::array<BasicSemaphore*, Constant::FRAMES_IN_FLIGHT> createSignalSet() const;
 
 #ifdef CONSTANT_DEBUG_MODE
     template<Phase P>
@@ -237,18 +230,18 @@ private:
      * \brief 
      * \tparam P phase
      * \param phase_buffers cmd_buffers
-     * \return 
+     * \return vector(SET_SIZE)
      */
     template<Phase P>
-    [[nodiscard]] std::array<Queue::SubmitInfo, SET_SIZE> createPhaseSubmitInfos(
+    [[nodiscard]] std::vector<Queue::SubmitInfo> createPhaseSubmitInfos(
         std::span<const PrimaryCmdBuffer* const> phase_buffers) const;
 
     /**
      * \brief creates the SubmitInfos for the Phases and FrameSets
      * \param cmd_buffers span[phase][frame]
-     * \return array[phase][frame] -> SubmitInfo
+     * \return vector[phase][frame] -> SubmitInfo
      */
-    [[nodiscard]] std::array<Queue::SubmitInfo, SET_SIZE * PHASES_SIZE> createSubmitInfos(
+    [[nodiscard]] std::vector<Queue::SubmitInfo> createSubmitInfos(
         std::span<const PrimaryCmdBuffer* const> cmd_buffers) const;
 
 
@@ -294,3 +287,17 @@ public:
 }
 
 #include "CthRenderer.inl"
+
+
+
+//TEMP old code
+    ///**
+    // * \throws cth::except::vk_result_exception result of  Swapchain::acquireNextImage()
+    // * \throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
+    // */
+    //const PrimaryCmdBuffer* beginFrame();
+    ///**
+    // * \throws cth::except::vk_result_exception result of Swapchain::submitCommandBuffers()
+    // * \throws cth::except::vk_result_exception result of vkEndCommandBuffer()
+    // */
+    //void endFrame();

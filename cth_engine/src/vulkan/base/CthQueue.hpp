@@ -42,7 +42,13 @@ public:
      */
     void wrap(uint32_t family_index, uint32_t queue_index, VkQueue vk_queue);
 
-    [[nodiscard]] VkResult submit(const SubmitInfo& submit_info) const;
+    void submit(const SubmitInfo& submit_info) const;
+    /**
+     * \brief presents the image via vkQueuePresentKHR(...)
+     * \param image_index swapchain image index
+     * \return result of vkQueuePresentKHR(...) [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+     * \throws cth::except::vk_result_exception result of vkQueuePresentKHR(...)
+     */
     [[nodiscard]] VkResult present(uint32_t image_index, const PresentInfo& present_info) const;
 
 private:
@@ -82,11 +88,16 @@ public:
  * \brief encapsulates the submit info for reuse
  * \note must be destroyed before any of the vulkan structures it references
  * \note added structures may be moved
+ * \note //TODO will not work if you have the same semaphore for multiple stages bc not implemented
+ *
  */
 struct Queue::SubmitInfo {
     SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffers, std::span<const PipelineWaitStage> wait_stages,
         std::span<BasicSemaphore* const> signal_semaphores, const BasicFence* fence);
 
+    /**
+     * \brief advances the timeline semaphores and returns this
+     */
     [[nodiscard]] const VkSubmitInfo* next();
     //TEMP complete this
 private:
@@ -118,12 +129,15 @@ public:
 };
 
 struct Queue::PresentInfo {
-    explicit PresentInfo(const BasicSwapchain& swapchain, std::span<const BasicSemaphore*> wait_semaphores);
+    /**
+     * \param swapchain must not be recreated
+     */
+    explicit PresentInfo(const BasicSwapchain* swapchain, std::span<const BasicSemaphore*> wait_semaphores);
 
-    [[nodiscard]] VkPresentInfoKHR createInfo(const uint32_t* image_index, VkResult* result) const;
+    [[nodiscard]] VkPresentInfoKHR createInfo(const uint32_t& image_index) const;
 
 private:
-    VkSwapchainKHR _swapchain;
+    const VkSwapchainKHR _swapchain;
     std::vector<VkSemaphore> _waitSemaphores;
 };
 
