@@ -20,10 +20,10 @@ using std::span;
 using std::unique_ptr;
 
 
-PhysicalDevice::PhysicalDevice(VkPhysicalDevice device, const Instance* instance) : _vkDevice(device), _instance(instance) {
-    setConstants();
+PhysicalDevice::PhysicalDevice(VkPhysicalDevice device, const Instance* instance, const Surface& surface) : _vkDevice(device), _instance(instance) {
+    setConstants(surface);
 }
-bool PhysicalDevice::suitable(const VkPhysicalDeviceFeatures& features, const std::span<const std::string_view> extensions, std::span<const Queue> queues) {
+bool PhysicalDevice::suitable(const VkPhysicalDeviceFeatures& features, const std::span<const std::string_view> extensions, const std::span<const Queue> queues) {
 
     const auto missingFeatures = supports(features);
     const auto missingExtensions = supports(extensions);
@@ -50,10 +50,12 @@ vector<VkPhysicalDevice> PhysicalDevice::enumerateDevices(const Instance& instan
 
 unique_ptr<PhysicalDevice> PhysicalDevice::autoPick(const Instance* instance, const VkPhysicalDeviceFeatures& features, const span<const std::string_view> extensions,
     span<const VkPhysicalDevice> devices, const std::span<const Queue> queues) {
+    const auto surface = Surface::Temp(instance);
+
 
     vector<unique_ptr<PhysicalDevice>> physicalDevices{};
     physicalDevices.reserve(devices.size());
-    std::ranges::transform(devices, back_inserter(physicalDevices), [instance](VkPhysicalDevice device) { return std::make_unique<PhysicalDevice>(device, instance); });
+    std::ranges::transform(devices, back_inserter(physicalDevices), [instance, surface](VkPhysicalDevice device) { return std::make_unique<PhysicalDevice>(device, instance, surface); });
 
     for(auto& physicalDevice : physicalDevices)
         if(physicalDevice->suitable(features, extensions, queues)) {
@@ -147,7 +149,7 @@ void PhysicalDevice::setProperties() {
 
     vkGetPhysicalDeviceMemoryProperties(_vkDevice.get(), &_memProperties);
 }
-void PhysicalDevice::setQueueFamilyProperties() {
+void PhysicalDevice::setQueueFamilyProperties(const Surface& surface) {
     vector<VkQueueFamilyProperties> familyProperties{};
     uint32_t count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(_vkDevice.get(), &count, nullptr);
@@ -157,20 +159,9 @@ void PhysicalDevice::setQueueFamilyProperties() {
 
     vector<bool> presentSupport(familyProperties.size());
 
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-
-    VkHeadlessSurfaceCreateInfoEXT createInfo{
-        .sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT,
-        .pNext = nullptr,
-        .flags = 0
-    };
-    vkCreateHeadlessSurfaceEXT(_instance->get(), &createInfo, nullptr, &surface);
-
-    Surface temp{surface, _instance};
-
     for(uint32_t i = 0; i < familyProperties.size(); i++) {
         VkBool32 support = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(_vkDevice.get(), i, temp.get(), &support);
+        vkGetPhysicalDeviceSurfaceSupportKHR(_vkDevice.get(), i, surface.get(), &support);
         presentSupport[i] = support;
     }
 
@@ -192,10 +183,11 @@ void PhysicalDevice::setMaxSampleCount() {
 
     else _maxSampleCount = VK_SAMPLE_COUNT_1_BIT;
 }
-void PhysicalDevice::setConstants() {
+void PhysicalDevice::  setConstants(const Surface& surface) {
     setFeatures();
     setExtensions();
     setProperties();
+    setQueueFamilyProperties(surface);
     setMaxSampleCount();
 }
 

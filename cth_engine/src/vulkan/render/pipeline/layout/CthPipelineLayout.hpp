@@ -3,7 +3,7 @@
 #include <span>
 #include <unordered_map>
 #include <vector>
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 #include <vulkan/vulkan.h>
 
 
@@ -16,8 +16,8 @@ class PipelineLayout {
 public:
     struct Builder;
     /**
-    * \throws cth::except::vk_result_exception data: VkResult of vkCreatePipelineLayout()
-    * \throws cth::except::exception reason: device limits exceeded, too many locations specified
+    * @throws cth::except::vk_result_exception data: VkResult of vkCreatePipelineLayout()
+    * @throws cth::except::exception reason: device limits exceeded, too many locations specified
     */
     PipelineLayout(const BasicCore* core, const Builder& builder);
     ~PipelineLayout();
@@ -55,7 +55,7 @@ struct PipelineLayout::Builder {
 
 private:
     /**
-     * \throws cth::except::exception reason: device limits exceeded, too many locations specified
+     * @throws cth::except::exception reason: device limits exceeded, too many locations specified
      */
     [[nodiscard]] std::vector<DescriptorSetLayout*> build(uint32_t max_bound_descriptor_sets) const;
 

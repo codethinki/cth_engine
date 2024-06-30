@@ -10,11 +10,16 @@
 
 #include <vector>
 
+#include "vulkan/surface/graphics_core/CthGraphicsCore.hpp"
+
 
 namespace cth {
 
 class App {
 public:
+    App();
+    ~App() = default;
+
     void run();
 
 
@@ -23,22 +28,12 @@ public:
     static constexpr uint32_t HEIGHT = 1000;
 
 private:
-    void reserveObjectMemory();
-
-    void initRenderSystem();
-
-    void initCamera();
-    void initInputController() const;
+    void initFrame();
+    void renderFrame();
+    void graphicsPhase() const;
 
 
-
-    void allocateObjectModels(int x);
-
-    /* static void calculateRenderGroups(array<size_t, 4>& group_sizes, vector<uint32_t>& group_indices,
-         const vector<unique_ptr<RenderObject>>& objects);*/
-    void setRenderData();
-
-    void updateFpsDisplay(size_t frame_index, float frame_time) const;
+    void initRenderSystem(PrimaryCmdBuffer& cmd_buffer);
 
 
 
@@ -48,12 +43,20 @@ private:
 
     std::unique_ptr<Core> _core = make_unique<Core>(BasicCore::Config::Default("demo", "engine", _queues, _asdf));
 
-    std::unique_ptr<OSWindow> _window = make_unique<OSWindow>(WINDOW_NAME, WIDTH, HEIGHT, _core->instance());
+
 
     std::unique_ptr<DeletionQueue> _deletionQueue = make_unique<DeletionQueue>(_core.get());
+    std::unique_ptr<GraphicsSyncConfig> _syncConfig = make_unique<GraphicsSyncConfig>(_core.get(), _deletionQueue.get());
+
+    std::unique_ptr<GraphicsCore> _graphicsCore = make_unique<GraphicsCore>(_core.get(), _deletionQueue.get(), WINDOW_NAME, VkExtent2D{WIDTH, HEIGHT},
+        &_queues[0], *_syncConfig.get());
+
+    std::unique_ptr<OSWindow> _window = make_unique<OSWindow>(WINDOW_NAME, WIDTH, HEIGHT, _core->instance());
 
 
-    std::unique_ptr<Renderer> _renderer = make_unique<Renderer>(_core.get(), _deletionQueue.get(), &_camera, _window.get());
+
+    std::unique_ptr<Renderer> _renderer = make_unique<Renderer>(_core.get(), _deletionQueue.get(),
+        Renderer::Config::Render(_core.get(), _deletionQueue.get(), &_queues[0], _syncConfig.get()));
     InputController _inputController{};
     Camera _camera{};
 
@@ -67,13 +70,10 @@ private:
     [[nodiscard]] static std::vector<std::string> getRequiredInstanceExtensions();
 
 public:
-    App();
-    ~App();
-
     App(const App& other) = delete;
-    App(App&& other) = delete;
+    App(App&& other) noexcept = delete;
     App& operator=(const App& other) = delete;
-    App& operator=(App&& other) = delete; //copy/move stuff
+    App& operator=(App&& other) noexcept = delete;
 };
 
 }

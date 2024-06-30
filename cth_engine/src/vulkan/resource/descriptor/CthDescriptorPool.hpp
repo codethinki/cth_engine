@@ -3,7 +3,7 @@
 #include "vulkan/utility/CthConstants.hpp"
 
 #include <cth/cth_log.hpp>
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -21,30 +21,30 @@ class DescriptorSetLayout;
 using namespace std;
 
 /**
- * \brief wrapper class for the VkDescriptorPool
- * \note the pool allocates the max_descriptor_sets instantly
- * \note all DescriptorSetLayout's ever used with the pool must be known at its creation
+ * @brief wrapper class for the VkDescriptorPool
+ * @note the pool allocates the max_descriptor_sets instantly
+ * @note all DescriptorSetLayout's ever used with the pool must be known at its creation
  */
 class DescriptorPool {
 public:
     struct Builder;
     /**
-    * \param builder [layout, count] pairs -> limit for allocated sets per layout
-    * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
+    * @param builder [layout, count] pairs -> limit for allocated sets per layout
+    * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
     */
     DescriptorPool(const BasicCore* device, const Builder& builder);
     ~DescriptorPool();
     /**
-     * \note descriptor sets are not required to stay valid
-     * \note the pool does not take ownership of the sets
+     * @note descriptor sets are not required to stay valid
+     * @note the pool does not take ownership of the sets
      */
     void writeSets(const vector<DescriptorSet*>& sets);
 
 
 
     /**
-     * \brief resets the pool -> resets all descriptor sets
-     * \throws cth::except::vk_result_exception data: VkResult of vkResetDescriptorPool()
+     * @brief resets the pool -> resets all descriptor sets
+     * @throws cth::except::vk_result_exception data: VkResult of vkResetDescriptorPool()
      */
     void reset();
 
@@ -65,12 +65,12 @@ private:
 
     void initSetEntries(const Builder& builder);
     /**
-     * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
+     * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
      */
     void create();
 
     /**
-     * \throws cth::except::vk_result_exception data: VkResult of vkAllocateDescriptorSets()
+     * @throws cth::except::vk_result_exception data: VkResult of vkAllocateDescriptorSets()
      */
     void allocSets();
 
@@ -83,7 +83,7 @@ private:
 
     unordered_set<DescriptorSet*> _descriptorSets{};
 
-    mem::basic_ptr<VkDescriptorPool_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkDescriptorPool_T> _handle = VK_NULL_HANDLE;
 
     bool _reset = true;
 

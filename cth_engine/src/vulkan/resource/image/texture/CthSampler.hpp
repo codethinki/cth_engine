@@ -20,7 +20,7 @@ private:
     void create(const Config& config);
 
     const BasicCore* _core;
-    mem::basic_ptr<VkSampler_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkSampler_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkSampler get() const { return _handle.get(); }

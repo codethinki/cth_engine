@@ -11,14 +11,12 @@
 
 #include <array>
 
-//TEMP cleanup this file
-//TEMP next: do the Swapchain
+#include "vulkan/surface/graphics_core/CthGraphicsSyncConfig.hpp"
 
 namespace cth {
 using std::vector;
 
-Renderer::Renderer(Camera* camera, OSWindow* window, const Config& config) : _core{config._core},
-    _deletionQueue(config._deletionQueue), _queues(config.queues()), _camera{camera}, _window(window) { init(config); }
+Renderer::Renderer(const BasicCore* core, DeletionQueue* deletion_queue, const Config& config) : _core(core), _deletionQueue(deletion_queue) { init(config); }
 Renderer::~Renderer() {
 
     std::ranges::fill(_cmdBuffers, nullptr);
@@ -105,16 +103,24 @@ DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 //Builder
 
 namespace cth {
-Renderer::Config::Config(const BasicCore* core, DeletionQueue* deletion_queue) : _core{core}, _deletionQueue{deletion_queue} {
-    DEBUG_CHECK_CORE(core);
-    DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
+Renderer::Config Renderer::Config::Render(const BasicCore* core, DeletionQueue* deletion_queue, const Queue* graphics_queue,
+    BasicGraphicsSyncConfig* sync_config) {
+    Config config{};
+    config.addQueue<PHASE_TRANSFER>(graphics_queue)
+          .addQueue<PHASE_GRAPHICS>(graphics_queue)
+          .addWaitSets<PHASE_GRAPHICS>(sync_config->imageAvailableSemaphores, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)
+          .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores);
+    return config;
 }
+//Renderer::Config::Config(const BasicCore* core, DeletionQueue* deletion_queue) : _core{core}, _deletionQueue{deletion_queue} {
+//    DEBUG_CHECK_CORE(core);
+//    DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
+//}
 
 
 
 auto Renderer::Config::createSubmitInfos(const std::span<const PrimaryCmdBuffer* const> cmd_buffers) const
     -> std::vector<Queue::SubmitInfo> {
-    //TEMP 90% sure this wont work
     DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(cmd_buffers);
 
     auto phaseBuffers = cmd_buffers | std::views::chunk(SET_SIZE);
@@ -124,11 +130,12 @@ auto Renderer::Config::createSubmitInfos(const std::span<const PrimaryCmdBuffer*
         createPhaseSubmitInfos<PHASE_TRANSFER>(phaseBuffers[PHASE_TRANSFER]),
         createPhaseSubmitInfos<PHASE_GRAPHICS>(phaseBuffers[PHASE_GRAPHICS]),
     };
+    static_assert(PHASES_SIZE == 2, "missing phases to add");
     CTH_ERR(phaseSubmitInfos.size() != PHASES_SIZE, "missing phase") throw details->exception();
 
     auto views = phaseSubmitInfos | std::views::join;
 
-    return std::vector(views.begin(), views.end());
+    return std::vector(std::ranges::begin(views), std::ranges::end(views));
 }
 
 std::array<const Queue*, Renderer::PHASES_SIZE> Renderer::Config::queues() const {

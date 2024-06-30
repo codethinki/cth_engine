@@ -20,25 +20,25 @@
 //public:
 //	
 //	/**
-//	 * \brief calls loadModel for unloaded models with obj.getReqModels value
-//	 * \param objects object receives ptrs to requested models
+//	 * @brief calls loadModel for unloaded models with obj.getReqModels value
+//	 * @param objects object receives ptrs to requested models
 //	 */
 //	void loadModels(const vector<unique_ptr<RenderObject>>& objects);
 //	/**
-//	 * \brief calls loadModel for unloaded models
-//	 * \return vec of model ptrs
+//	 * @brief calls loadModel for unloaded models
+//	 * @return vec of model ptrs
 //	 */
 //	vector<Model*> loadModels(const vector<string>& model_names);
 //
 //	/**
-//	 * \brief loads model data from models obj file
-//	 * \param model_name unique name of model
+//	 * @brief loads model data from models obj file
+//	 * @param model_name unique name of model
 //	 */
 //	void loadModel(const string& model_name);
 //
 //	/**
-//	 * \brief registers models from list as available
-//	 * \param model_list_path path to model list
+//	 * @brief registers models from list as available
+//	 * @param model_list_path path to model list
 //	 */
 //	void loadModelList(const string& model_list_path);
 //

@@ -2,7 +2,7 @@
 #include "CthQueue.hpp"
 #include "vulkan/utility/CthConstants.hpp"
 
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 #include <vulkan/vulkan.h>
 
 #include <span>
@@ -20,21 +20,21 @@ public:
 
     BasicCore() = default;
 
-    virtual void wrap(mem::basic_ptr<BasicInstance> instance, mem::basic_ptr<PhysicalDevice> physical_device, mem::basic_ptr<Device> device);
+    virtual void wrap(ptr::mover<BasicInstance> instance, ptr::mover<PhysicalDevice> physical_device, ptr::mover<Device> device);
 
     virtual void create(const Config& config);
     void destroy();
 
     /**
-     * \brief sets all components to nullptr
-     * \note does not delete
+     * @brief sets all components to nullptr
+     * @note does not delete
      */
     virtual void reset();
 
 private:
-    mem::basic_ptr<Device> _device = nullptr;
-    mem::basic_ptr<PhysicalDevice> _physicalDevice = nullptr;
-    mem::basic_ptr<BasicInstance> _instance = nullptr;
+    ptr::mover<Device> _device = nullptr;
+    ptr::mover<PhysicalDevice> _physicalDevice = nullptr;
+    ptr::mover<BasicInstance> _instance = nullptr;
 
 public:
     [[nodiscard]] const Device* device() const;
@@ -73,17 +73,17 @@ public:
     virtual ~Core();
 
     /**
-     * \brief wraps and takes ownership
+     * @brief wraps and takes ownership
      */
-    void wrap(mem::basic_ptr<BasicInstance> instance, mem::basic_ptr<PhysicalDevice> physical_device, mem::basic_ptr<Device> device) override;
+    void wrap(ptr::mover<BasicInstance> instance, ptr::mover<PhysicalDevice> physical_device, ptr::mover<Device> device) override;
     /**
-     * \brief creates the components
-     * \note not necessary when using wrap
+     * @brief creates the components
+     * @note not necessary when using wrap
      */
     void create(const Config& config) override;
 
     /**
-     * \brief deletes all components
+     * @brief deletes all components
      */
     void reset() override;
 

@@ -69,6 +69,7 @@
     <ClInclude Include="src\vulkan\render\pass\CthRenderPass.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsCore.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_debug.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -122,5 +123,6 @@
     <ClCompile Include="src\vulkan\render\control\CthPipelineWaitStage.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthRenderPass.cpp" />
     <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsCore.cpp" />
+    <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.cpp" />
   </ItemGroup>
 </Project>

@@ -7,47 +7,69 @@
 #include "vulkan/utility/CthVkUtils.hpp"
 
 namespace cth {
-BasicGraphicsCore::BasicGraphicsCore(const BasicCore* core, OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain) : _core(core), _osWindow(os_window), _surface(surface),
-    _swapchain(swapchain) {
-    DEBUG_CHECK_CORE(core);
-    DEBUG_CHECK_SWAPCHAIN(swapchain);
+BasicGraphicsCore::BasicGraphicsCore(const BasicCore* core, OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain) : _core(core) {
+    BasicGraphicsCore::wrap(os_window, surface, swapchain);
+}
+#ifdef CONSTANT_DEBUG_MODE
+BasicGraphicsCore::~BasicGraphicsCore() {
+    DEBUG_CHECK_GRAPHICS_CORE_LEAK(this);
+}
+#endif
+
+void BasicGraphicsCore::wrap(OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain) {
+    DEBUG_CHECK_OS_WINDOW(os_window);
     DEBUG_CHECK_SURFACE(surface);
+    DEBUG_CHECK_SWAPCHAIN(swapchain);
 
-
+    _osWindow = os_window;
+    _surface = surface;
+    _swapchain = swapchain;
 }
 
-void BasicGraphicsCore::create(const string_view window_name, const uint32_t width, const uint32_t height, const Queue* present_queue, const GraphicsSyncConfig& sync_config) {
+
+void BasicGraphicsCore::create(const string_view window_name, const VkExtent2D extent, const Queue* present_queue,
+    const BasicGraphicsSyncConfig& sync_config, DeletionQueue* deletion_queue) {
     DEBUG_CHECK_GRAPHICS_CORE_LEAK(this);
-    
-    _osWindow = new OSWindow(window_name, width, height, _core->instance());
-    _surface = new Surface(_osWindow->surface()->get(), _core->instance());
+    _osWindow = new OSWindow(window_name, extent.width, extent.height, _core->instance());
+    _surface = new Surface(_core->instance(), _osWindow->surface()->get());
     _swapchain = new BasicSwapchain(_core, present_queue, sync_config);
+    _swapchain->create(_surface.get(), _osWindow->extent());
 }
 void BasicGraphicsCore::destroy(DeletionQueue* deletion_queue) {
     _swapchain->destroy(deletion_queue);
-    delete _swapchain;
+    const auto ptrs = release();
 
-    delete _surface;
 
-    delete _osWindow;
-
-    reset();
+    delete ptrs.swapchain;
+    delete ptrs.surface;
+    delete ptrs.osWindow;
 }
-void BasicGraphicsCore::reset() {
-    DEBUG_CHECK_GRAPHICS_CORE_LEAK(this);
+auto BasicGraphicsCore::release() -> handles {
+
+    const auto temp = handles{_osWindow.get(), _surface.get(), _swapchain.get()};
+
 
     _swapchain = nullptr;
     _surface = nullptr;
     _osWindow = nullptr;
+
+    return temp;
 }
+void BasicGraphicsCore::minimized() const {
+    VkExtent2D extent = _osWindow->extent();
+    while(extent.width == 0 || extent.height == 0) {
+        extent = _osWindow->extent();
+        _osWindow->waitEvents();
+    }
+    _swapchain->resize(extent);
+
+}
+
 
 
 void BasicGraphicsCore::acquireFrame() const {
     const auto result = _swapchain->acquireNextImage();
     if(result == VK_SUCCESS) return;
-
-    static_assert(false, "implement: this class in a non basic variant"); //IMPLEMENT this class in a non basic variant
-    
 
     _swapchain->resize(_osWindow->extent());
     const auto result2 = _swapchain->acquireNextImage();

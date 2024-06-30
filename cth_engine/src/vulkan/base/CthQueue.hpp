@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <span>
 #include <vector>
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -37,17 +37,41 @@ public:
     ~Queue() = default;
 
     /**
-     * \brief wraps the vulkan queue
-     * \note normally called by the device, not the user
+     * @brief wraps the vulkan queue
+     * @note normally called by the device, not the user
      */
     void wrap(uint32_t family_index, uint32_t queue_index, VkQueue vk_queue);
 
-    void submit(const SubmitInfo& submit_info) const;
     /**
-     * \brief presents the image via vkQueuePresentKHR(...)
-     * \param image_index swapchain image index
-     * \return result of vkQueuePresentKHR(...) [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
-     * \throws cth::except::vk_result_exception result of vkQueuePresentKHR(...)
+     * @brief advances and submits the submit_info
+     * @param[in, out] submit_info @attention calls @ref submit_info.next()
+     */
+    void submit(SubmitInfo& submit_info) const;
+
+    /**
+     * @brief submits the submit_info
+     * @note does not advance the @ref submit_info
+     */
+    void const_submit(const SubmitInfo& submit_info) const;
+
+    /**
+     * @brief skip submits without the command_buffer
+     * @param[in, out] submit_info @attention calls @ref submit_info.next()
+     * @throws cth::except::vk_result_exception result of vkQueueSubmit()
+     */
+    void skip(SubmitInfo& submit_info) const;
+
+    /**
+     * @brief skip submits to the queue
+     * @note does not advance the @ref submit_info
+     */
+    void const_skip(const SubmitInfo& submit_info) const;
+
+    /**
+     * @brief presents the image via vkQueuePresentKHR()
+     * @param image_index swapchain image index
+     * @return result of vkQueuePresentKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+     * @throws cth::except::vk_result_exception result of vkQueuePresentKHR()
      */
     [[nodiscard]] VkResult present(uint32_t image_index, const PresentInfo& present_info) const;
 
@@ -85,10 +109,10 @@ public:
 };
 
 /**
- * \brief encapsulates the submit info for reuse
- * \note must be destroyed before any of the vulkan structures it references
- * \note added structures may be moved
- * \note //TODO will not work if you have the same semaphore for multiple stages bc not implemented
+ * @brief encapsulates the submit info for reuse
+ * @note must be destroyed before any of the vulkan structures it references
+ * @note added structures may be moved
+ * @note //TODO will not work if you have the same semaphore for multiple stages bc not implemented
  *
  */
 struct Queue::SubmitInfo {
@@ -96,9 +120,9 @@ struct Queue::SubmitInfo {
         std::span<BasicSemaphore* const> signal_semaphores, const BasicFence* fence);
 
     /**
-     * \brief advances the timeline semaphores and returns this
+     * @brief advances the timeline semaphores and returns this
      */
-    [[nodiscard]] const VkSubmitInfo* next();
+    [[nodiscard]] SubmitInfo next();
     //TEMP complete this
 private:
     [[nodiscard]] VkSubmitInfo createInfo() const;
@@ -124,13 +148,13 @@ private:
     const BasicFence* _fence = VK_NULL_HANDLE;
 
 public:
-    [[nodiscard]] const auto* get() const { return &_submitInfo; }
+    [[nodiscard]] const VkSubmitInfo* get() const { return &_submitInfo; }
     [[nodiscard]] VkFence fence() const { return _fence->get(); }
 };
 
 struct Queue::PresentInfo {
     /**
-     * \param swapchain must not be recreated
+     * @param swapchain must not be recreated
      */
     explicit PresentInfo(const BasicSwapchain* swapchain, std::span<const BasicSemaphore*> wait_semaphores);
 

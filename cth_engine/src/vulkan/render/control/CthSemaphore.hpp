@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 
 namespace cth {
 class BasicCore;
@@ -25,7 +25,7 @@ protected:
     const BasicCore* _core;
 
 private:
-    mem::basic_ptr<VkSemaphore_T> _handle{};
+    ptr::mover<VkSemaphore_T> _handle{};
 
 public:
     [[nodiscard]] VkSemaphore get() const { return _handle.get(); }

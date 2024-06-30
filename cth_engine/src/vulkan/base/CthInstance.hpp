@@ -4,7 +4,7 @@
 
 #include "vulkan/debug/CthDebugMessenger.hpp"
 
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 #include <vulkan/vulkan.h>
 
 #include <array>
@@ -32,19 +32,19 @@ public:
     virtual void wrap(VkInstance vk_instance);
 
     /**
-    * \throws cth::except::vk_result_exception result of vkCreateInstance()
-    * \note debug_messenger will not be stored
+    * @throws cth::except::vk_result_exception result of vkCreateInstance()
+    * @note debug_messenger will not be stored
     */
     virtual void create(const std::optional<BasicDebugMessenger::Config>& messenger_config = std::nullopt);
 
     void destroy();
 
     /**
- * \throws cth::except::default_exception reason: required extension not supported
+ * @throws cth::except::default_exception reason: required extension not supported
  */
     void checkInstanceExtensionSupport();
     /**
-     * \throws cth::except::default_exception reason: required layers not supported
+     * @throws cth::except::default_exception reason: required layers not supported
      */
     void checkValidationLayerSupport();
     [[nodiscard]] static std::vector<std::string> getAvailableValidationLayers();
@@ -57,12 +57,12 @@ public:
 protected:
     std::string _name;
 
-    std::vector<std::string> _requiredExt;
+    std::vector<std::string> _requiredExt{};
     std::vector<std::string> _availableExt;
     std::vector<std::string> _availableLayers{};
 
 private:
-    mem::basic_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkInstance_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkInstance get() const { return _handle.get(); }
@@ -75,8 +75,10 @@ public:
     };
     static constexpr std::array<const char*, 1> VALIDATION_LAYER_EXTENSIONS{
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-
     };
+
+    static constexpr std::array<std::string_view, 0> REQUIRED_INSTANCE_EXTENSIONS{};
+
     BasicInstance(const BasicInstance& other) = default;
     BasicInstance& operator=(const BasicInstance& other) = default;
     BasicInstance(BasicInstance&& other) noexcept = default;
@@ -102,9 +104,9 @@ namespace cth {
 class Instance : public BasicInstance {
 public:
     /**
-    * \throws cth::except::vk_result_exception result vkCreateInstance()
-    * \throws cth::except::default_exception reason: missing required instance extensions
-    * \throws cth::except::default_exception reason: missing required validation layers
+    * @throws cth::except::vk_result_exception result vkCreateInstance()
+    * @throws cth::except::default_exception reason: missing required instance extensions
+    * @throws cth::except::default_exception reason: missing required validation layers
     */
     explicit Instance(std::string_view app_name, const std::span<const std::string> required_extensions);
     ~Instance() override;

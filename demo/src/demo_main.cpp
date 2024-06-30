@@ -43,7 +43,7 @@ INT WINAPI WinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, char* lp_cmd
          cth::out::error.println(e.what());
          std::terminate();
      }
-     catch(...) {
+     catch() {
          cth::out::error.println("Unknown exception");
          std::terminate();
      }*/

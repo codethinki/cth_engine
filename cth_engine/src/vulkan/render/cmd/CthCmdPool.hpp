@@ -25,11 +25,11 @@ public:
     ~CmdPool();
 
     /**
-    * \throws cth::except::vk_result_exception VkResult of vkCreateCommandPool()
+    * @throws cth::except::vk_result_exception VkResult of vkCreateCommandPool()
     */
     void create();
     /**
-     * \throws cth::except::vk_result_exception VkResult of vkAllocateCommandBuffers() (for primary or secondary buffers)
+     * @throws cth::except::vk_result_exception VkResult of vkAllocateCommandBuffers() (for primary or secondary buffers)
      */
     void alloc();
 
@@ -50,7 +50,7 @@ private:
     void newCmdBuffer(SecondaryCmdBuffer* buffer);
 
     const BasicCore* _core;
-    mem::basic_ptr<VkCommandPool_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkCommandPool_T> _handle = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> _primaryBuffers;
     std::vector<VkCommandBuffer> _secondaryBuffers;
 

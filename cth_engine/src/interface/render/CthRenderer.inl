@@ -14,7 +14,7 @@ template<Renderer::Phase P>
 PrimaryCmdBuffer* Renderer::begin() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-    if constexpr (P == PHASES_FIRST) wait();
+    if constexpr(P == PHASES_FIRST) wait();
 
     auto buffer = cmdBuffer<P>();
     const VkResult beginResult = buffer->begin();
@@ -38,6 +38,9 @@ void Renderer::end() {
 }
 template<Renderer::Phase P> void Renderer::skip() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
+
+
+
     nextState<P>();
 }
 
@@ -45,7 +48,7 @@ template<Renderer::Phase P>
 void Renderer::submit() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-    queue<P>()->submit(_submitInfos[P * Constant::FRAMES_IN_FLIGHT + _frameIndex]);
+    queue<P>()->submit(submitInfo<P>());
     nextState<P>();
 }
 
@@ -54,7 +57,7 @@ void Renderer::submit() {
 template<Renderer::Phase P>
 const Queue* Renderer::queue() const { return _queues[P]; }
 template<Renderer::Phase P>
-const PrimaryCmdBuffer* Renderer::cmdBuffer() const {
+PrimaryCmdBuffer* Renderer::cmdBuffer() const {
     DEBUG_CHECK_RENDERER_CURRENT_PHASE(this, P);
     return _cmdBuffers[_frameIndex * PHASES_SIZE + P].get();
 }
@@ -100,28 +103,39 @@ void Renderer::debug_check_phase_change(const Renderer* renderer) {
 namespace cth {
 template<Renderer::Phase P>
 auto Renderer::Config::addSignalSets(const std::span<BasicSemaphore* const> signal_semaphore_sets) -> Config& {
-    add<P>(signal_semaphore_sets, _signalSets);
+    add<P>(signal_semaphore_sets, _phaseSignalSets);
 
     return *this;
 }
 template<Renderer::Phase P>
-auto Renderer::Config::addWaitSets(const std::span<const PipelineWaitStage> wait_stage_sets) -> Config& {
-    add<P>(wait_stage_sets, _waitSets);
+auto Renderer::Config::addWaitSets(std::span<BasicSemaphore*> wait_semaphores, VkPipelineStageFlags wait_stage) -> Config& {
+    std::vector<PipelineWaitStage> waitStages{};
+    waitStages.reserve(wait_semaphores.size());
 
+    std::ranges::transform(wait_semaphores, std::back_inserter(waitStages),
+        [wait_stage](const auto semaphore) { return PipelineWaitStage{wait_stage, semaphore}; });
+
+    addWaitSets<P>(waitStages);
 
     return *this;
+}
 
+template<Renderer::Phase P>
+auto Renderer::Config::addWaitSets(const std::span<const PipelineWaitStage> wait_stage_sets) -> Config& {
+    add<P>(wait_stage_sets, _phaseWaitSets);
+
+    return *this;
 }
 
 template<Renderer::Phase P>
 auto Renderer::Config::removeSignalSets(const std::span<BasicSemaphore* const> signal_semaphore_sets) -> Config& {
 
-    remove<P>(signal_semaphore_sets, _signalSets);
+    remove<P>(signal_semaphore_sets, _phaseSignalSets);
     return *this;
 }
 template<Renderer::Phase P>
 Renderer::Config& Renderer::Config::removeWaitSets(std::span<const VkPipelineStageFlags> wait_stage_sets) {
-    remove<P>(wait_stage_sets, _waitSets);
+    remove<P>(wait_stage_sets, _phaseWaitSets);
     return *this;
 }
 
@@ -168,30 +182,29 @@ auto Renderer::Config::createPhaseSubmitInfos(
 
     DEBUG_CHECK_RENDERER_PHASE(P);
 
+    const auto& signalSets = _phaseSignalSets[P];
+    const auto& waitSets = _phaseWaitSets[P];
+
+
     std::vector<Queue::SubmitInfo> submitInfos{};
     submitInfos.reserve(SET_SIZE);
-    
-    for(size_t i = 0; i < SET_SIZE; i++) {
+
+    for(auto [index, info] : submitInfos | std::views::enumerate) {
+        const auto i = static_cast<size_t>(index);
 
         auto extract = [i]<class Rng>(const Rng& rng) {
             using T = type::range2d_value_t<Rng>;
-            const auto view = rng | std::views::drop(i) | std::views::stride(SET_SIZE);
-            std::vector<T> vec(view.begin(), view.end());
-            return vec;
+            return rng | std::views::transform([i](const auto& set) { return set[i]; })
+                | std::ranges::to<std::vector<T>>();
         };
 
-        std::vector<BasicSemaphore*> semaphores = extract(_signalSets[i]);
-        std::vector<PipelineWaitStage> waitStages = extract(_waitSets[i]);
-
+        auto semaphores = extract(signalSets);
+        auto waitStages = extract(waitSets);
 
         submitInfos[i] = Queue::SubmitInfo{phase_buffers, waitStages, semaphores, nullptr};
     }
-    static_assert(false, "implement: remove the bugs and then setup the sync process and also implement the non basic swapchain"); //IMPLEMENT remove the bugs and then setup the sync process and also implement the non basic swapchain
-    
     return submitInfos;
 }
-
-
 
 template<Renderer::Phase P, class T>
 auto Renderer::Config::add(std::span<T const> sets, collection_t<T>& to) -> void {
@@ -222,11 +235,11 @@ auto Renderer::Config::remove(std::span<T const> sets, collection_t<T>& from) ->
 }
 
 #ifdef CONSTANT_DEBUG_MODE
-template<class Rng> void Renderer::Config::debug_check_sets_size(const Rng& rng) {
+template<class Rng>
+void Renderer::Config::debug_check_sets_size(const Rng& rng) {
     CTH_ERR((std::ranges::size(rng) % SET_SIZE) != 0, "size must be a multiple of SET_SIZE") throw details->exception();
 }
 #endif
-
 
 
 }

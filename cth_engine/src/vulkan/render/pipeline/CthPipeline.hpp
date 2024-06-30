@@ -3,7 +3,7 @@
 #include <vulkan/vulkan.h>
 
 #include <vector>
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 
 //TODO add support for more types of pipelines
 
@@ -22,11 +22,11 @@ public:
     struct GraphicsConfig;
 
     /**
-    *\throws from private void create(...)
+    *@throws from private void create()
     */
     Pipeline(const BasicCore* core, const PipelineLayout* pipeline_layout, const GraphicsConfig& config_info);
     /**
-    *\throws from private void create(...)
+    *@throws from private void create()
     */
     Pipeline(const BasicCore* core, const Pipeline* parent, const GraphicsConfig& config_info);
 
@@ -36,8 +36,8 @@ public:
 
 private:
     /**
-     *\throws cth::except::default_exception reason: missing render pass
-     *\throws cth::except::vk_result_exception result of vkCreateGraphicsPipelines()
+     *@throws cth::except::default_exception reason: missing render pass
+     *@throws cth::except::vk_result_exception result of vkCreateGraphicsPipelines()
     */
     void create(const GraphicsConfig& config_info, const PipelineLayout* pipeline_layout = nullptr, const Pipeline* parent = nullptr);
 

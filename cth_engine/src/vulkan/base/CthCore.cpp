@@ -7,8 +7,8 @@
 #include "CthPhysicalDevice.hpp"
 
 namespace cth {
-void BasicCore::wrap(const mem::basic_ptr<BasicInstance> instance, const mem::basic_ptr<PhysicalDevice> physical_device,
-    const mem::basic_ptr<Device> device) {
+void BasicCore::wrap(const ptr::mover<BasicInstance> instance, const ptr::mover<PhysicalDevice> physical_device,
+    const ptr::mover<Device> device) {
     DEBUG_CHECK_INSTANCE(instance.get());
     DEBUG_CHECK_PHYSICAL_DEVICE(physical_device.get());
     DEBUG_CHECK_DEVICE(device.get());
@@ -72,7 +72,7 @@ Core::~Core() {
     Core::destroy();
 } 
 
-void Core::wrap(const mem::basic_ptr<BasicInstance> instance, const mem::basic_ptr<PhysicalDevice> physical_device, const mem::basic_ptr<Device> device) {
+void Core::wrap(const ptr::mover<BasicInstance> instance, const ptr::mover<PhysicalDevice> physical_device, const ptr::mover<Device> device) {
     if(BasicCore::device() || BasicCore::physicalDevice() || BasicCore::instance()) Core::destroy();
     BasicCore::wrap(instance, physical_device, device);
 }

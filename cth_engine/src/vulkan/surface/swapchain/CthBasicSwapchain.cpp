@@ -21,10 +21,9 @@
 
 namespace cth {
 
-BasicSwapchain::BasicSwapchain(const BasicCore* core, const Queue* present_queue, GraphicsSyncConfig sync_config) :
+BasicSwapchain::BasicSwapchain(const BasicCore* core, const Queue* present_queue, BasicGraphicsSyncConfig sync_config) :
     _core(core), _presentQueue(present_queue), _syncConfig(std::move(sync_config)) {
     DEBUG_CHECK_CORE(core);
-    init();
 }
 BasicSwapchain::~BasicSwapchain() {
     DEBUG_CHECK_SWAPCHAIN_LEAK(this);

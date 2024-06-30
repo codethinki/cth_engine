@@ -21,7 +21,15 @@ using std::span;
 
 
 BasicInstance::BasicInstance(const string_view app_name, const span<const string> required_extensions) : _name(app_name),
-    _requiredExt{required_extensions.begin(), required_extensions.end()}, _availableExt(getAvailableInstanceExtensions()) { checkInstanceExtensionSupport(); }
+    _availableExt(getAvailableInstanceExtensions()) {
+    _requiredExt.reserve(required_extensions.size() + REQUIRED_INSTANCE_EXTENSIONS.size());
+    _requiredExt.insert(_requiredExt.end(), required_extensions.begin(), required_extensions.end());
+    _requiredExt.insert(_requiredExt.end(), REQUIRED_INSTANCE_EXTENSIONS.begin(), REQUIRED_INSTANCE_EXTENSIONS.end());
+
+    checkInstanceExtensionSupport();
+}
+
+
 
 void BasicInstance::wrap(VkInstance vk_instance) {
     DEBUG_CHECK_INSTANCE_LEAK(this);
@@ -32,13 +40,16 @@ void BasicInstance::wrap(VkInstance vk_instance) {
 void BasicInstance::create(const std::optional<BasicDebugMessenger::Config>& messenger_config) {
     DEBUG_CHECK_INSTANCE_LEAK(this);
 
+    vector<const char*> requiredExtVec(_requiredExt.size());
+    std::ranges::copy(_requiredExt | std::views::transform([](const auto& str) { return str.data(); }), requiredExtVec.begin());
+
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
     const auto appInfo = this->appInfo();
     createInfo.pApplicationInfo = &appInfo;
 
-    const auto requiredExtVec = utils::toCharVec(_requiredExt);
+
     createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtVec.size());
     createInfo.ppEnabledExtensionNames = requiredExtVec.data();
     createInfo.enabledLayerCount = 0;
@@ -73,9 +84,9 @@ void BasicInstance::destroy() {
 void BasicInstance::checkInstanceExtensionSupport() {
     vector<string> missingExtensions{};
 
-    std::ranges::for_each(_requiredExt, [&](const string_view extension) {
+    for(auto& extension : _requiredExt)
         if(!std::ranges::contains(_availableExt, extension)) missingExtensions.emplace_back(extension);
-    });
+
     CTH_STABLE_ERR(!missingExtensions.empty(), "instance extensions missing") {
         std::ranges::for_each(missingExtensions, [&details](const string_view extension) { details->add(extension); });
 

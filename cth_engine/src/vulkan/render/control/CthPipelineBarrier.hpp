@@ -182,7 +182,7 @@ struct ImageBarrier::Info {
         };
     }
     /**
-     * \param levels (Constants::ALL => all remaining)
+     * @param levels (Constants::ALL => all remaining)
      */
     static Info LayoutTransition(const VkImageLayout new_layout, const VkAccessFlags src_access, const VkAccessFlags dst_access,
         const uint32_t first_mip_level = 0, const uint32_t levels = 0) {

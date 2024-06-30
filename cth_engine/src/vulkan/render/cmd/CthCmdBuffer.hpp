@@ -1,11 +1,11 @@
 #pragma once
 #include "vulkan/utility/CthConstants.hpp"
 
-#include <span>
-#include <cth/cth_memory.hpp>
-
-#include <type_traits>
+#include<cth/cth_pointer.hpp>
 #include <vulkan/vulkan.h>
+
+#include <span>
+#include <type_traits>
 
 
 namespace cth {
@@ -20,7 +20,7 @@ class CmdPool;
 
 class CmdBuffer {
 public:
-    explicit CmdBuffer(mem::basic_ptr<CmdPool> pool, VkCommandBufferUsageFlags usage = 0);
+    explicit CmdBuffer(CmdPool* pool, VkCommandBufferUsageFlags usage = 0);
     virtual ~CmdBuffer() = 0;
 
     [[nodiscard]] VkResult reset() const;
@@ -33,9 +33,9 @@ public:
     static void free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buffer);
 
 protected:
-    mem::basic_ptr<CmdPool> _pool;
+    ptr::mover<CmdPool> _pool;
 
-    mem::basic_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
 
     VkCommandBufferUsageFlags _bufferUsage;
 
@@ -52,7 +52,7 @@ public:
 
 
 #ifdef CONSTANT_DEBUG_MODE
-    static constexpr void debug_check(const CmdBuffer* cmd_buffer);
+    static void debug_check(const CmdBuffer* cmd_buffer);
 
 #define DEBUG_CHECK_CMD_BUFFER(cmd_buffer_ptr) CmdBuffer::debug_check(cmd_buffer_ptr)
 #else

@@ -5,7 +5,7 @@
 
 
 namespace cth {
-cth::CmdBuffer::CmdBuffer(const mem::basic_ptr<CmdPool> pool, const VkCommandBufferUsageFlags usage) : _pool(pool), _bufferUsage(usage) {}
+CmdBuffer::CmdBuffer(CmdPool* pool, const VkCommandBufferUsageFlags usage) : _pool(pool), _bufferUsage(usage) {}
 
 VkResult CmdBuffer::reset() const { return vkResetCommandBuffer(_handle.get(), 0); }
 VkResult CmdBuffer::reset(const VkCommandBufferResetFlags flags) const { return vkResetCommandBuffer(_handle.get(), flags); }
@@ -32,7 +32,7 @@ void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buf
 }
 
 #ifdef CONSTANT_DEBUG_MODE
-constexpr void cth::CmdBuffer::debug_check(const CmdBuffer* cmd_buffer) {
+void CmdBuffer::debug_check(const CmdBuffer* cmd_buffer) {
     CTH_ERR(cmd_buffer == nullptr, "cmd_buffer is invalid (nullptr)") throw details->exception();
     CTH_ERR(cmd_buffer->_handle == VK_NULL_HANDLE, "cmd_buffer handle is invalid (VK_NULL_HANDLE)") throw details->exception();
 }

@@ -44,7 +44,7 @@ private:
     vector<VkDescriptorBufferInfo> _bufferInfos{};
     vector<VkDescriptorImageInfo> _imageInfos{};
 
-    mem::basic_ptr<VkDescriptorSet_T> _vkSet = VK_NULL_HANDLE;
+    ptr::mover<VkDescriptorSet_T> _vkSet = VK_NULL_HANDLE;
     bool _written = false;
 
     DescriptorPool* _pool = nullptr;
@@ -59,7 +59,7 @@ public:
         explicit Builder(const DescriptorSetLayout* layout);
 
         /**
-         *\note in this constructor only one resource per binding can be specified
+         *@note in this constructor only one resource per binding can be specified
          */
         explicit Builder(const DescriptorSetLayout* layout, span<Descriptor* const> descriptors, uint32_t binding_offset = 0);
 

@@ -29,14 +29,14 @@ class PrimaryCmdBuffer;
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(const BasicCore* core, const Queue* present_queue, GraphicsSyncConfig sync_config);
+    BasicSwapchain(const BasicCore* core, const Queue* present_queue, BasicGraphicsSyncConfig sync_config);
     virtual ~BasicSwapchain();
 
     //virtual void wrap(const Surface* surface, VkExtent2D window_extent);
     virtual void create(const Surface* surface, VkExtent2D window_extent, const BasicSwapchain* old_swapchain = nullptr);
     /**
-     * \brief destroys the swapchain
-     * \note implicitly calls destroyResources()
+     * @brief destroys the swapchain
+     * @note implicitly calls destroyResources()
      */
     virtual void destroy(DeletionQueue* deletion_queue = nullptr);
 
@@ -47,8 +47,8 @@ public:
 
 
     /**
-     * \note might block
-     * \return result of vkAcquireNextImageKHR(...) [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+     * @note might block
+     * @return result of vkAcquireNextImageKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
      *
      */
     [[nodiscard]] VkResult acquireNextImage();
@@ -72,10 +72,6 @@ private:
     //setMsaaSampleCount
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
 
-    //init
-    void createSyncObjects();
-
-    void init();
 
     //createSwapchain
     [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const vector<VkSurfaceFormatKHR>& available_formats);
@@ -106,11 +102,11 @@ private:
     [[nodiscard]] SubpassDescription createSubpassDescription() const;
     [[nodiscard]] VkSubpassDependency createSubpassDependency() const;
     /**
-     * \throws cth::except::vk_result_exception result of vkCreateRenderPass()
+     * @throws cth::except::vk_result_exception result of vkCreateRenderPass()
      */
     void createRenderPass();
     /**
-     * \throws cth::except::vk_result_exception result of vkCreateFramebuffer()
+     * @throws cth::except::vk_result_exception result of vkCreateFramebuffer()
      */
     void createFramebuffers();
 
@@ -126,7 +122,7 @@ private:
     void destroySwapchainImages(DeletionQueue* deletion_queue);
     void destroyImages(DeletionQueue* deletion_queue);
     /**
-    * \brief destroys everything that is not the swapchain
+    * @brief destroys everything that is not the swapchain
     */
     virtual void destroyResources(DeletionQueue* deletion_queue = nullptr);
 
@@ -140,7 +136,7 @@ private:
     const Queue* _presentQueue;
     const Surface* _surface;
 
-    cth::mem::basic_ptr<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
+    cth::ptr::mover<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
     shared_ptr<BasicSwapchain> _oldSwapchain; //TODO why is this a shared_ptr?
 
 
@@ -164,7 +160,7 @@ private:
     vector<Image> _depthImages;
     vector<ImageView> _depthImageViews;
 
-    GraphicsSyncConfig _syncConfig;
+    BasicGraphicsSyncConfig _syncConfig;
 
     std::vector<Fence> _imageAvailableFences;
 
@@ -192,7 +188,7 @@ public:
     [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
     [[nodiscard]] const BasicImage* image(const size_t index) const { return &_swapchainImages[index]; }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; } //TODO move this to framebuffer or render pass
-
+    [[nodiscard]] VkRenderPass renderPass() const { return _renderPass; }
 
 
 
@@ -231,7 +227,7 @@ public:
 //
 //
 ///**
-// * \return result of vkQueueSubmit() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
-// * \note implicitly calls presentQueue->present()
+// * @return result of vkQueueSubmit() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+// * @note implicitly calls presentQueue->present()
 // */
 //VkResult submitCommandBuffer(DeletionQueue* deletion_queue, const PrimaryCmdBuffer* cmd_buffer, uint32_t image_index);

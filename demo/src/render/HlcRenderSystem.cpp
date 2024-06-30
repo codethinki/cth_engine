@@ -1,15 +1,14 @@
 #include "HlcRenderSystem.hpp"
 
+#include "interface/render/CthRenderer.hpp"
+#include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/pipeline/CthPipeline.hpp"
 #include "vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
 #include "vulkan/render/pipeline/layout/CthPipelineLayout.hpp"
 #include "vulkan/render/pipeline/shader/CthShader.hpp"
 #include "vulkan/resource/descriptor/CthDescriptorPool.hpp"
-#include "vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
-
-#include "interface/render/CthRenderer.hpp"
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/resource/descriptor/CthDescriptorSet.hpp"
+#include "vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
 #include "vulkan/resource/image/texture/CthTexture.hpp"
 
 
@@ -26,10 +25,8 @@ struct UniformBuffer {
     explicit UniformBuffer(const glm::mat4& projection_view) : projectionView{projection_view} {}
 };
 //TEMP renderer should not be here
-RenderSystem::RenderSystem(const BasicCore* core, Renderer* renderer, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : _core
-    {core},
-    _renderer(renderer) {
-    auto initCmdBuffer = renderer->beginInitCmdBuffer();
+RenderSystem::RenderSystem(const BasicCore* core, DeletionQueue* deletion_queue, const PrimaryCmdBuffer&  init_cmd_buffer, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : _core
+    {core} {
     createShaders();
 
     createDescriptorSetLayouts();
@@ -37,17 +34,15 @@ RenderSystem::RenderSystem(const BasicCore* core, Renderer* renderer, VkRenderPa
     createPipelineLayout();
 
     createDescriptorPool();
-    loadDescriptorData(*initCmdBuffer, renderer->deletionQueue());
+    loadDescriptorData(init_cmd_buffer, deletion_queue);
 
     createPipeline(render_pass, msaa_samples);
 
     createDescriptorSets();
 
-    createDefaultTriangle(*initCmdBuffer);
+    createDefaultTriangle(init_cmd_buffer, deletion_queue);
 
-    renderer->endInitBuffer();
 }
-RenderSystem::~RenderSystem() {}
 
 void RenderSystem::createShaders() {
 
@@ -121,12 +116,12 @@ array<Vertex, 3> defaultTriangle{
 
 
 
-void RenderSystem::createDefaultTriangle(const CmdBuffer& cmd_buffer) {
-    _defaultTriangleBuffer = std::make_unique<Buffer<Vertex>>(_core, _renderer->deletionQueue(), 3,
+void RenderSystem::createDefaultTriangle(const CmdBuffer& cmd_buffer, DeletionQueue* deletion_queue) {
+    _defaultTriangleBuffer = std::make_unique<Buffer<Vertex>>(_core, deletion_queue, 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    Buffer<Vertex> stagingBuffer{_core, _renderer->deletionQueue(), 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    Buffer<Vertex> stagingBuffer{_core, deletion_queue,  3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
     stagingBuffer.map();
     stagingBuffer.write(defaultTriangle);

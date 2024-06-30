@@ -95,6 +95,7 @@
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_debug.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -144,6 +145,7 @@
     <ClCompile Include="src\vulkan\resource\memory\CthMemory.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />
     <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsCore.cpp" />
+    <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.cpp" />
     <ClCompile Include="src\vulkan\surface\swapchain\CthBasicSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\swapchain\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthOSWindow.cpp" />

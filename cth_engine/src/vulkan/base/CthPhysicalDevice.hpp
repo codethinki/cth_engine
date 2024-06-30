@@ -3,7 +3,7 @@
 #include "vulkan/utility/CthConstants.hpp"
 
 
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -22,35 +22,35 @@ class Surface;
 
 class PhysicalDevice {
 public:
-    explicit PhysicalDevice(VkPhysicalDevice device, const Instance* instance);
+    explicit PhysicalDevice(VkPhysicalDevice device, const Instance* instance, const Surface& surface);
 
 
     /**
-     * \brief evaluates if the device has minimal support
+     * @brief evaluates if the device has minimal support
      */
     [[nodiscard]] bool suitable(const VkPhysicalDeviceFeatures& features, std::span<const std::string_view> extensions,
         std::span<const Queue> queues);
 
     /**
-     * \brief enumerates all available physical devices
+     * @brief enumerates all available physical devices
      */
     [[nodiscard]] static std::vector<VkPhysicalDevice> enumerateDevices(const Instance& instance);
     [[nodiscard]] static std::unique_ptr<PhysicalDevice> autoPick(const Instance* instance, const VkPhysicalDeviceFeatures& features,
         std::span<const std::string_view> extensions, std::span<VkPhysicalDevice_T* const> devices, std::span<const Queue> queues);
 
     /**
-     * \brief auto picks a physical device that has at least minimal support
-     * \return a unique ptr with the created device
+     * @brief auto picks a physical device that has at least minimal support
+     * @return a unique ptr with the created device
      */
     [[nodiscard]] static std::unique_ptr<PhysicalDevice> autoPick(const Instance& instance, const std::span<const Queue> queues);
 
     /**
-     * \return indices of missing features from utils::deviceFeaturesToArray
+     * @return indices of missing features from utils::deviceFeaturesToArray
      */
     [[nodiscard]] std::vector<uint32_t> supports(const VkPhysicalDeviceFeatures& required_features) const;
 
     /**
-     * \return missing extensions 
+     * @return missing extensions 
      */
     [[nodiscard]] std::vector<std::string> supports(std::span<const std::string_view> required_extensions);
 
@@ -58,10 +58,10 @@ public:
     [[nodiscard]] VkFormat findSupportedFormat(std::span<const VkFormat> candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 
     /**
-     * \brief finds a combination of queue families that support the requested queue types
-     * \param queues requested queue types
-     * \return order of queue types preserved
-     * \return empty if no combination is possible
+     * @brief finds a combination of queue families that support the requested queue types
+     * @param queues requested queue types
+     * @return order of queue types preserved
+     * @return empty if no combination is possible
      */
     [[nodiscard]] std::vector<uint32_t> queueFamilyIndices(std::span<const Queue> queues) const;
 
@@ -73,12 +73,12 @@ private:
     void setFeatures();
     void setExtensions();
     void setProperties();
-    void setQueueFamilyProperties();
+    void setQueueFamilyProperties(const Surface& surface);
     void setMaxSampleCount();
-    void setConstants();
+    void setConstants(const Surface& surface);
 
 
-    mem::basic_ptr<VkPhysicalDevice_T> _vkDevice;
+    ptr::mover<VkPhysicalDevice_T> _vkDevice;
     const Instance* _instance;
 
     VkPhysicalDeviceFeatures _features{};
@@ -98,8 +98,10 @@ public:
     [[nodiscard]] const VkPhysicalDeviceLimits& limits() const { return _properties.limits; }
 
 
-    static constexpr std::array<std::string_view, 2> REQUIRED_DEVICE_EXTENSIONS = {std::string_view(VK_KHR_SWAPCHAIN_EXTENSION_NAME),
-        std::string_view(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)};
+    static constexpr std::array<std::string_view, 2> REQUIRED_DEVICE_EXTENSIONS = {
+        std::string_view(VK_KHR_SWAPCHAIN_EXTENSION_NAME),
+        std::string_view(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME),
+    };
     static constexpr VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES = []() {
         VkPhysicalDeviceFeatures features{};
         features.samplerAnisotropy = true;

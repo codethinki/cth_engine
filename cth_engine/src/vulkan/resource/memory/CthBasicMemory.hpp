@@ -1,7 +1,7 @@
 #pragma once
 #include "vulkan/utility/CthConstants.hpp"
 
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -17,29 +17,29 @@ class DeletionQueue;
 using std::span;
 
 /**
- * \brief VkDeviceMemory wrapper without ownership
+ * @brief VkDeviceMemory wrapper without ownership
  */
 class BasicMemory {
 public:
     /**
-     * \param core must not be nullptr
+     * @param core must not be nullptr
      */
     BasicMemory(const BasicCore* core, VkMemoryPropertyFlags vk_properties);
     /**
-     * \param core must not be nullptr
-     * \note implicitly calls wrap(...);
+     * @param core must not be nullptr
+     * @note implicitly calls wrap();
      */
     BasicMemory(const BasicCore* core, VkMemoryPropertyFlags properties, size_t byte_size, VkDeviceMemory vk_memory);
     virtual ~BasicMemory() = default;
 
     /**
-     * \brief wraps existing memory
+     * @brief wraps existing memory
      */
     virtual void wrap(VkDeviceMemory vk_memory, size_t byte_size);
 
     /**
-     * \brief allocates memory according to the requirements
-     * \note does not free previous memory
+     * @brief allocates memory according to the requirements
+     * @note does not free previous memory
      */
     virtual void alloc(const VkMemoryRequirements& vk_requirements);
 
@@ -50,15 +50,15 @@ public:
     void unmap() const;
 
     /**
-     * \brief frees the memory and resets the object
-     * \param deletion_queue deletion_queue != nullptr => submit to deletion queue
+     * @brief frees the memory and resets the object
+     * @param deletion_queue deletion_queue != nullptr => submit to deletion queue
      */
     virtual void free(DeletionQueue* deletion_queue = nullptr);
 
 
     /**
-     * \brief resets the memory
-     * \note does not free memory
+     * @brief resets the memory
+     * @note does not free memory
      */
     virtual void reset();
 
@@ -71,7 +71,7 @@ private:
     const BasicCore* _core;
     VkMemoryPropertyFlags _vkProperties;
     size_t _size = 0;
-    mem::basic_ptr<VkDeviceMemory_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkDeviceMemory_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] bool allocated() const { return _handle != VK_NULL_HANDLE; }

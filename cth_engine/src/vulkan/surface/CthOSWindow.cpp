@@ -1,17 +1,18 @@
 #include "CthOSWindow.hpp"
 
+#include "CthSurface.hpp"
 #include "interface/user/HlcInputController.hpp"
 #include "vulkan/base/CthInstance.hpp"
-#include "vulkan/surface/CthSurface.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 #include <cth/cth_log.hpp>
 #include <cth/cth_numeric.hpp>
 
-#include <iostream>
+#include <Windows.h>
+#include <vulkan/vulkan_win32.h>
+
 #include <stdexcept>
 
-#include "CthSurface.hpp"
 
 
 namespace cth {
@@ -52,7 +53,7 @@ void OSWindow::createSurface(const BasicInstance* instance) {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create GLFW window surface")
         throw cth::except::vk_result_exception{result, details->exception()};
 
-    _surface = make_unique<Surface>(vkSurface, instance);
+    _surface = make_unique<Surface>(instance, vkSurface);
 
     cth::log::msg("created surface");
 
@@ -123,6 +124,52 @@ void OSWindow::terminate() {
     glfwTerminate();
     log::msg("terminated window");
 }
+VkSurfaceKHR OSWindow::tempSurface(const BasicInstance* instance) {
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+    // Create a hidden window for the surface
+    constexpr wstring_view name = L"TempHiddenWindow";
+    const WNDCLASSEX wc{
+        .cbSize = sizeof(wc),
+        .lpfnWndProc = DefWindowProc,
+        .hInstance = GetModuleHandle(nullptr),
+        .lpszClassName = name.data(),
+    };
+    RegisterClassEx(&wc);
+
+    HWND hwnd = CreateWindowEx(0, name.data(), L"TempHiddenSurface", 0, 0, 0, 0, 0, nullptr, nullptr, GetModuleHandle(nullptr), nullptr);
+
+    CTH_STABLE_ERR(hwnd == nullptr, "failed to create temp window")
+        throw details->exception();
+
+
+    // Create the Vulkan surface
+    VkWin32SurfaceCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    createInfo.hinstance = GetModuleHandle(nullptr);
+    createInfo.hwnd = hwnd;
+
+    VkResult result = vkCreateWin32SurfaceKHR(instance->get(), &createInfo, nullptr, &surface);
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create temp surface") {
+        DestroyWindow(hwnd);
+        throw except::vk_result_exception{result, details->exception()};
+    }
+
+    return surface;
+}
+
+#ifdef CONSTANT_DEBUG_MODE
+void OSWindow::debug_check_not_null(const OSWindow* os_window) {
+    CTH_ERR(os_window == nullptr, "os_window must not be nullptr")
+        throw details->exception();
+}
+void OSWindow::debug_check(const OSWindow* os_window) {
+    DEBUG_CHECK_OS_WINDOW_NOT_NULL(os_window);
+
+    CTH_ERR(os_window->_glfwWindow == nullptr, "os_window must be initialized")
+        throw details->exception();
+}
+#endif
 
 
 

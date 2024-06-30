@@ -5,8 +5,10 @@
 #include <xstring>
 
 #include "CthGraphicsSyncConfig.hpp"
+#include "../swapchain/CthBasicSwapchain.hpp"
 #include "vulkan/base/CthQueue.hpp"
 #include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_debug.hpp"
 
 
 
@@ -20,33 +22,46 @@ class PrimaryCmdBuffer;
 
 class BasicGraphicsCore {
 public:
+    struct handles {
+        OSWindow* osWindow = nullptr;
+        Surface* surface = nullptr;
+        BasicSwapchain* swapchain = nullptr;
+    };
+
+
     BasicGraphicsCore(const BasicCore* core, OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain);
-    BasicGraphicsCore() = default;
-    virtual ~BasicGraphicsCore() = default;
+    explicit BasicGraphicsCore(const BasicCore* core) : _core(core) {}
+    virtual ~BasicGraphicsCore() CTH_DEBUG_IMPL;
+
+
+    virtual void wrap(OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain);
 
     /**
-     * \brief constructs osWindow, surface and swapchain
-     * \note does not destroy/delete
+     * @brief constructs osWindow, surface and swapchain
+     * @note does not destroy/delete
      */
-    virtual void create(std::string_view window_name, uint32_t width, uint32_t height, const Queue* present_queue,
-        const GraphicsSyncConfig& sync_config);
+    virtual void create(std::string_view window_name, VkExtent2D extent, const Queue* present_queue,
+        const BasicGraphicsSyncConfig& sync_config, DeletionQueue* deletion_queue = nullptr);
 
 
     /**
-     * \brief destroys & deletes osWindow, surface and swapchain
-     * \param deletion_queue optional
-     * \note implicitly calls reset();
+     * @brief destroys & deletes osWindow, surface and swapchain
+     * @param deletion_queue optional
+     * @note release() gets implicitly called
      */
     virtual void destroy(DeletionQueue* deletion_queue = nullptr);
 
     /**
-     * \brief sets osWindow, surface and swapchain to nullptr
-     * \note does not destroy/delete
+     * @brief sets osWindow, surface and swapchain to nullptr
+     * @note does not destroy/delete
      */
-    void reset();
+    [[nodiscard]] handles release();
 
-
-
+    /**
+     * brief waits until no longer minimized
+     * @return new window extent
+    */
+    void minimized() const;
 
     void acquireFrame() const;
 
@@ -58,14 +73,16 @@ public:
 private:
     const BasicCore* _core;
 
-    OSWindow* _osWindow;
-    Surface* _surface;
-    BasicSwapchain* _swapchain;
+    ptr::mover<OSWindow> _osWindow = nullptr;
+    ptr::mover<Surface> _surface = nullptr;
+    ptr::mover<BasicSwapchain> _swapchain = nullptr; //TODO change to Swapchain ptr once implemented
 
 public:
-    [[nodiscard]] const OSWindow* osWindow() const { return _osWindow; }
-    [[nodiscard]] const Surface* surface() const { return _surface; }
-    [[nodiscard]] const BasicSwapchain* swapchain() const { return _swapchain; }
+    [[nodiscard]] const OSWindow* osWindow() const { return _osWindow.get(); }
+    [[nodiscard]] const Surface* surface() const { return _surface.get(); }
+    [[nodiscard]] const BasicSwapchain* swapchain() const { return _swapchain.get(); }
+    [[nodiscard]] VkRenderPass swapchainRenderPass() const { return _swapchain->renderPass(); }
+    [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _swapchain->msaaSamples(); }
 
 
 #ifdef CONSTANT_DEBUG_MODE

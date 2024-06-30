@@ -13,7 +13,7 @@ class OSWindow;
 
 class Surface {
 public:
-    explicit Surface(VkSurfaceKHR vk_surface, const BasicInstance* instance) : _handle(vk_surface), _instance(instance) {}
+    explicit Surface(const BasicInstance* instance, VkSurfaceKHR vk_surface) : _handle(vk_surface), _instance(instance) {}
     ~Surface();
 
     [[nodiscard]] bool supportsFamily(const PhysicalDevice& physical_device, uint32_t family_index) const;
@@ -21,8 +21,11 @@ public:
     [[nodiscard]] std::vector<VkSurfaceFormatKHR> formats(const PhysicalDevice& physical_device) const;
     [[nodiscard]] VkSurfaceCapabilitiesKHR capabilities(const PhysicalDevice& physical_device) const;
 
+
+    static Surface Temp(const BasicInstance* instance);
+
 private:
-    mem::basic_ptr<VkSurfaceKHR_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkSurfaceKHR_T> _handle = VK_NULL_HANDLE;
 
     const BasicInstance* _instance;
 

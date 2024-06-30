@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.h>
 
 #include <vector>
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 
 //TEMP add basic variant without raii
 namespace cth {
@@ -17,8 +17,8 @@ class DescriptorSetLayout {
 public:
     struct Builder;
     /**
-    * \brief creates a DescriptorSetLayout with the copied builder data
-    * \throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorSetLayout()
+    * @brief creates a DescriptorSetLayout with the copied builder data
+    * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorSetLayout()
     */
     explicit DescriptorSetLayout(const BasicCore* core, const Builder& builder);
     ~DescriptorSetLayout();
@@ -27,7 +27,7 @@ private:
     void create();
 
     const BasicCore* _core;
-    mem::basic_ptr<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
     vector<VkDescriptorSetLayoutBinding> _vkBindings{};
 
 public:

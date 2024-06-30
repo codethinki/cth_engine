@@ -14,11 +14,11 @@ struct FrameInfo;
 class Model {
 public:
     /**
-     * \param manager ptr to ModelManager
-     * \param name model name (unique)
-     * \param id managers model id
-     * \param filepath path to model.obj
-     * \param mtl_base_dir path to material dir, empty -> same dir
+     * @param manager ptr to ModelManager
+     * @param name model name (unique)
+     * @param id managers model id
+     * @param filepath path to model.obj
+     * @param mtl_base_dir path to material dir, empty -> same dir
      */
     explicit Model(ModelManager* manager, const string& name, uint32_t id, const string& filepath, const string& mtl_base_dir = "");
 

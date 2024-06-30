@@ -5,14 +5,13 @@
 //TEMP replace this with #include <cth_engine/cth_engine.hpp>
 #include <interface/render/model/CthVertex.hpp>
 #include "vulkan/resource/buffer/CthBuffer.hpp"
+#include "vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
 
 #include <memory>
 
 
 namespace cth {
 using namespace std;
-class Renderer;
-class Device;
 class Shader;
 class PipelineLayout;
 class Pipeline;
@@ -33,8 +32,8 @@ inline constexpr string_view TEXTURE_DIR = R"(res\img\texture\)";
 
 class RenderSystem {
 public:
-    RenderSystem(const BasicCore* core, Renderer* renderer, VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
-    ~RenderSystem();
+    RenderSystem(const BasicCore* core, DeletionQueue* deletion_queue, const PrimaryCmdBuffer& init_cmd_buffer, VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
+    ~RenderSystem() = default;
 
     void render(FrameInfo& frame_info) const;
 
@@ -52,10 +51,9 @@ private:
     void createDescriptorSets();
 
     //TEMP replace this with actual model loading
-    void createDefaultTriangle(const CmdBuffer& cmd_buffer);
+    void createDefaultTriangle(const CmdBuffer& cmd_buffer, DeletionQueue* deletion_queue);
 
     const BasicCore* _core;
-    Renderer* _renderer;
     unique_ptr<PipelineLayout> _pipelineLayout;
     unique_ptr<Pipeline> _pipeline;
 
@@ -74,7 +72,9 @@ private:
     unique_ptr<Sampler> _textureSampler;
 
 public:
-    RenderSystem(const RenderSystem&) = delete;
-    RenderSystem& operator=(const RenderSystem&) = delete;
+    RenderSystem(const RenderSystem& other) = delete;
+    RenderSystem(RenderSystem&& other) noexcept = default;
+    RenderSystem& operator=(const RenderSystem& other) = delete;
+    RenderSystem& operator=(RenderSystem&& other) noexcept = default;
 };
 } // namespace cth

@@ -26,15 +26,29 @@ void Queue::wrap(const uint32_t family_index, const uint32_t queue_index, VkQueu
     _queueIndex = queue_index;
     _handle = vk_queue;
 }
-void Queue::submit(const SubmitInfo& submit_info) const {
+void Queue::submit(SubmitInfo& submit_info) const {
+    const_submit(submit_info.next());
+}
+void Queue::const_submit(const SubmitInfo& submit_info) const {
     const auto result = vkQueueSubmit(_handle, 1, submit_info.get(), submit_info.fence());
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue") 
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
         throw cth::except::vk_result_exception{result, details->exception()};
+}
+void Queue::skip(SubmitInfo& submit_info) const {
+    const_skip(submit_info.next());
+}
+void Queue::const_skip(const SubmitInfo& submit_info) const {
+    auto submitInfo = *submit_info.get();
+    submitInfo.commandBufferCount = 0;
+    const auto result = vkQueueSubmit(_handle, 1, &submitInfo, submit_info.fence());
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip submit to queue")
+        throw except::vk_result_exception{result, details->exception()};
 }
 
 
 VkResult Queue::present(const uint32_t image_index, const PresentInfo& present_info) const {
-    auto info = present_info.createInfo(image_index);
+    const auto& info = present_info.createInfo(image_index);
 
     const auto result = vkQueuePresentKHR(get(), &info);
 
@@ -79,11 +93,12 @@ Queue::SubmitInfo::SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffe
     _timelineInfo = createTimelineInfo();
     _submitInfo = createInfo();
 }
-const VkSubmitInfo* Queue::SubmitInfo::next() {
+Queue::SubmitInfo Queue::SubmitInfo::next() {
     std::ranges::transform(_waitTimelineSemaphores, _waitValues.begin(), [](const TimelineSemaphore* semaphore) { return semaphore->value(); });
     std::ranges::transform(_signalTimelineSemaphores, _signalValues.begin(), [](TimelineSemaphore* semaphore) { return semaphore->next(); });
 
-    return &_submitInfo;
+    _submitInfo = createInfo();
+    return *this;
 }
 
 VkSubmitInfo Queue::SubmitInfo::createInfo() const {

@@ -1,7 +1,7 @@
 #pragma once
 #include "vulkan/utility/CthConstants.hpp"
 
-#include <cth/cth_memory.hpp>
+#include<cth/cth_pointer.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -26,21 +26,21 @@ public:
 
 
     /**
-    * \note implicitly calls create(...);
+    * @note implicitly calls create();
     */
     explicit BasicDebugMessenger(Config config) : _config{std::move(config)} {}
     virtual ~BasicDebugMessenger() = default;
 
     /**
-     * \throws cth::except::default_exception reason: messenger already active
-     * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
-     * \throws cth::except::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
+     * @throws cth::except::default_exception reason: messenger already active
+     * @throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
+     * @throws cth::except::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
      */
     virtual void create(const BasicInstance* instance);
 
     /**
-     * \throws cth::except::default_exception reason: messenger not active
-     * \throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
+     * @throws cth::except::default_exception reason: messenger not active
+     * @throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      */
     virtual void destroy();
 
@@ -68,7 +68,7 @@ protected:
     Config _config;
 
 private:
-    mem::basic_ptr<VkDebugUtilsMessengerEXT_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkDebugUtilsMessengerEXT_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return _handle.get(); }

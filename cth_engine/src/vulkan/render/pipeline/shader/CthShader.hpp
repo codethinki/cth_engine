@@ -27,11 +27,11 @@ public:
 class Shader {
 public:
     /**
-     *\throws cth::except::vk_result_exception result of vkCreateShaderModule()
+     *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
      */
     explicit Shader(const BasicCore* core, VkShaderStageFlagBits stage, string_view spv_path);
     /**
-     *\throws cth::except::vk_result_exception result of vkCreateShaderModule()
+     *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
      */
     explicit Shader(const BasicCore* core, VkShaderStageFlagBits stage, span<const char> spv);
 
@@ -50,12 +50,12 @@ private:
     VkShaderStageFlagBits _vkStage;
     string _spvPath;
 
-    mem::basic_ptr<VkShaderModule_T> _handle = VK_NULL_HANDLE;
+    ptr::mover<VkShaderModule_T> _handle = VK_NULL_HANDLE;
 
 public:
 #ifndef _FINAL
     /**
-    *\throws cth::except::vk_result_exception result of vkCreateShaderModule()
+    *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
     */
     explicit Shader(const BasicCore* core, VkShaderStageFlagBits stages, string_view spv_path, string_view glsl_path, string_view compiler_path);
 #endif
