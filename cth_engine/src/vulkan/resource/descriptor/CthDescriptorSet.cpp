@@ -3,11 +3,6 @@
 #include "CthDescriptor.hpp"
 #include "CthDescriptorPool.hpp"
 #include "vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
-
-
-#include <algorithm>
-#include <cth/cth_log.hpp>
-
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
@@ -29,18 +24,18 @@ void DescriptorSet::deallocate() {
 }
 
 
-vector<VkWriteDescriptorSet> DescriptorSet::writes() {
+std::vector<VkWriteDescriptorSet> DescriptorSet::writes() {
     CTH_ERR(_vkSet == VK_NULL_HANDLE, "no descriptor set provided, call alloc() first")
         throw details->exception();
 
     _written = true;
 
-    vector<VkWriteDescriptorSet> writes{};
+    std::vector<VkWriteDescriptorSet> writes{};
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.dstSet = _vkSet.get();
 
-    for(auto [binding, binding_descriptors] : _descriptors | views::enumerate) {
+    for(auto [binding, binding_descriptors] : _descriptors | std::views::enumerate) {
         write.dstBinding = static_cast<uint32_t>(binding);
         write.descriptorType = _layout->bindingType(static_cast<uint32_t>(binding));
         const auto type = infoType(write.descriptorType);
@@ -49,7 +44,7 @@ vector<VkWriteDescriptorSet> DescriptorSet::writes() {
         write.dstArrayElement = 0;
         write.descriptorCount = 0;
 
-        for(auto [index, descriptor] : binding_descriptors | views::enumerate) {
+        for(auto [index, descriptor] : binding_descriptors | std::views::enumerate) {
             if(descriptor != nullptr) {
                 write.descriptorCount++;
                 continue;
@@ -79,7 +74,7 @@ vector<VkWriteDescriptorSet> DescriptorSet::writes() {
 }
 
 void DescriptorSet::copyInfos() {
-    for(auto [binding, binding_descriptors] : _descriptors | views::enumerate) {
+    for(auto [binding, binding_descriptors] : _descriptors | std::views::enumerate) {
         const auto vkType = _layout->bindingType(static_cast<uint32_t>(binding));
         const auto type = infoType(vkType);
 
@@ -92,7 +87,7 @@ void DescriptorSet::copyInfos() {
         }
 
 
-        for(auto [index, descriptor] : binding_descriptors | views::enumerate) {
+        for(auto [index, descriptor] : binding_descriptors | std::views::enumerate) {
             const bool empty = descriptor == nullptr;
 
             CTH_WARN(empty, "empty descriptor added") {
@@ -139,7 +134,7 @@ DescriptorSet::InfoType DescriptorSet::infoType(const VkDescriptorType descripto
 
 namespace cth {
 DescriptorSet::Builder::Builder(const DescriptorSetLayout* layout) : _layout(layout) { init(layout); }
-DescriptorSet::Builder::Builder(const DescriptorSetLayout* layout, const span<Descriptor* const> descriptors, const uint32_t binding_offset) : _layout(layout) {
+DescriptorSet::Builder::Builder(const DescriptorSetLayout* layout, const std::span<Descriptor* const> descriptors, const uint32_t binding_offset) : _layout(layout) {
     init(layout);
 
     for(uint32_t i = 0; i < static_cast<uint32_t>(descriptors.size()); i++)
@@ -170,19 +165,19 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descri
     _descriptors[binding][arr_index] = descriptor;
     return *this;
 }
-DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(const span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first) {
+DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(const std::span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first) {
     CTH_ERR(_descriptors.size() + arr_first > _descriptors.size(), "out of range for layout size at binding") {
         details->add("binding: {0}, layout size: {1}", binding, _descriptors[binding].size());
         details->add("binding descriptors: {0}, arr_first: {1}", binding_descriptors.size(), arr_first);
         throw details->exception();
     }
-    CTH_INFORM(ranges::any_of(binding_descriptors, [](Descriptor* descriptor) { return !descriptor; }),
+    CTH_INFORM(std::ranges::any_of(binding_descriptors, [](Descriptor* descriptor) { return !descriptor; }),
         "adding empty descriptors, consider using removeDescriptors() instead") {
         details->add("binding: {}", binding);
         details->add("array first: {}", arr_first);
     }
 
-    ranges::copy(binding_descriptors, _descriptors[binding].begin() + arr_first);
+    std::ranges::copy(binding_descriptors, _descriptors[binding].begin() + arr_first);
 
     return *this;
 }
@@ -196,14 +191,14 @@ DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(const uint32_t
         details->add("arr_first: {0}, count: {1}", arr_first, count);
         throw details->exception();
     }
-    ranges::fill_n(_descriptors[binding].begin() + arr_first, count, nullptr);
+    std::ranges::fill_n(_descriptors[binding].begin() + arr_first, count, nullptr);
     return *this;
 }
 void DescriptorSet::Builder::init(const DescriptorSetLayout* layout) {
     const auto& bindings = layout->bindingsVec();
     _descriptors.resize(bindings.size());
 
-    ranges::for_each(bindings, [this](const VkDescriptorSetLayoutBinding& binding) { _descriptors[binding.binding].resize(binding.descriptorCount); });
+    std::ranges::for_each(bindings, [this](const VkDescriptorSetLayoutBinding& binding) { _descriptors[binding.binding].resize(binding.descriptorCount); });
 }
 
 }

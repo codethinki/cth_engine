@@ -1,14 +1,12 @@
 #include "CthCore.hpp"
 
-#include <cth/cth_log.hpp>
-
 #include "CthDevice.hpp"
 #include "CthInstance.hpp"
 #include "CthPhysicalDevice.hpp"
 
 namespace cth {
-void BasicCore::wrap(const ptr::mover<BasicInstance> instance, const ptr::mover<PhysicalDevice> physical_device,
-    const ptr::mover<Device> device) {
+void BasicCore::wrap(const move_ptr<BasicInstance> instance, const move_ptr<PhysicalDevice> physical_device,
+    const move_ptr<Device> device) {
     DEBUG_CHECK_INSTANCE(instance.get());
     DEBUG_CHECK_PHYSICAL_DEVICE(physical_device.get());
     DEBUG_CHECK_DEVICE(device.get());
@@ -57,9 +55,9 @@ void BasicCore::debug_check(const BasicCore* core) {
 }
 void BasicCore::debug_check_leak(const BasicCore* core) {
     if(core) {
-        CTH_WARN(core->device(), "device replaced (potential memory leak)");
-        CTH_WARN(core->physicalDevice(), "physical device replaced (potential memory leak)");
-        CTH_WARN(core->instance(), "instance replaced (potential memory leak)");
+        CTH_WARN(core->device(), "device replaced (potential memory leak)") {}
+        CTH_WARN(core->physicalDevice(), "physical device replaced (potential memory leak)") {}
+        CTH_WARN(core->instance(), "instance replaced (potential memory leak)") {}
     }
 }
 #endif
@@ -72,7 +70,7 @@ Core::~Core() {
     Core::destroy();
 } 
 
-void Core::wrap(const ptr::mover<BasicInstance> instance, const ptr::mover<PhysicalDevice> physical_device, const ptr::mover<Device> device) {
+void Core::wrap(const move_ptr<BasicInstance> instance, const move_ptr<PhysicalDevice> physical_device, const move_ptr<Device> device) {
     if(BasicCore::device() || BasicCore::physicalDevice() || BasicCore::instance()) Core::destroy();
     BasicCore::wrap(instance, physical_device, device);
 }

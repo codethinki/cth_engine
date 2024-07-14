@@ -1,13 +1,13 @@
 #pragma once
 #include "vulkan/utility/CthConstants.hpp"
 
+#include <cth/cth_type_trait.hpp>
 #include <vulkan/vulkan.h>
 
 #include <array>
-#include <queue>
 #include <variant>
 #include <vector>
-#include <cth/cth_type_traits.hpp>
+
 
 namespace cth {
 class BasicCore;

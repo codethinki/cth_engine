@@ -13,9 +13,6 @@
 
 
 namespace cth {
-using namespace std;
-
-
 
 struct Vertex {
     glm::vec3 position{};
@@ -35,10 +32,10 @@ struct Vertex {
 
     //IMPLEMENT the per instance data field
 };
-inline constexpr array<VkVertexInputBindingDescription, 1> VERTEX_BINDING_DESCRIPTIONS{{
+inline constexpr std::array<VkVertexInputBindingDescription, 1> VERTEX_BINDING_DESCRIPTIONS{{
     {0, static_cast<uint32_t>(sizeof(Vertex)), VK_VERTEX_INPUT_RATE_VERTEX}
 }};
-inline constexpr array<VkVertexInputAttributeDescription, 3> VERTEX_ATTRIBUTE_DESCRIPTIONS{{
+inline constexpr std::array<VkVertexInputAttributeDescription, 3> VERTEX_ATTRIBUTE_DESCRIPTIONS{{
     {0, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<uint32_t>(offsetof(Vertex, position))},
     {1, 0, VK_FORMAT_R32G32B32_SFLOAT, static_cast<uint32_t>(offsetof(Vertex, normal))},
     {2, 0, VK_FORMAT_R32G32_SFLOAT, static_cast<uint32_t>(offsetof(Vertex, uv))},
@@ -50,7 +47,7 @@ using index_t = uint32_t;
 using instance_t = int; //TEMP change this to something
 
 template<typename T>
-inline constexpr bool is_render_type_v = _Is_any_of_v<T, vertex_t, index_t, instance_t>;
+inline constexpr bool is_render_type_v = std::_Is_any_of_v<T, vertex_t, index_t, instance_t>;
 
 template<typename T>
 concept render_type = is_render_type_v<T>;

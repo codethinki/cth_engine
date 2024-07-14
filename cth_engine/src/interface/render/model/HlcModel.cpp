@@ -1,10 +1,5 @@
 #include "HlcModel.hpp"
 
-#include "HlcModelManager.hpp"
-
-
-#include <stdexcept>
-//#include <tiny_obj_loader.h>
 
 
 //namespace cth {

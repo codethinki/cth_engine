@@ -1,16 +1,10 @@
 #include "CthBasicMemory.hpp"
 
 #include "vulkan/base/CthCore.hpp"
-
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
-
-
-
-#include <cth/cth_log.hpp>
-
 
 
 
@@ -49,15 +43,15 @@ void BasicMemory::alloc(const VkMemoryRequirements& vk_requirements) {
 
     _size = vk_requirements.size;
 }
-span<char> BasicMemory::map(const size_t map_size, const size_t offset) const {
-    CTH_ERR(_handle == VK_NULL_HANDLE, "memory not allocated");
+std::span<char> BasicMemory::map(const size_t map_size, const size_t offset) const {
+    CTH_ERR(_handle == VK_NULL_HANDLE, "memory not allocated") throw details->exception();
 
     void* mappedPtr = nullptr;
     const VkResult mapResult = vkMapMemory(_core->vkDevice(), _handle.get(), offset, _size, 0, &mappedPtr);
     CTH_STABLE_ERR(mapResult != VK_SUCCESS, "memory mapping failed")
         throw except::vk_result_exception{mapResult, details->exception()};
 
-    return span<char>{static_cast<char*>(mappedPtr), map_size};
+    return std::span<char>{static_cast<char*>(mappedPtr), map_size};
 }
 VkResult BasicMemory::flush(const size_t size, const size_t offset) const {
     VkMappedMemoryRange mappedRange = {};
@@ -78,7 +72,7 @@ VkResult BasicMemory::invalidate(const size_t size, const size_t offset) const {
 void BasicMemory::unmap() const { vkUnmapMemory(_core->vkDevice(), _handle.get()); }
 
 void BasicMemory::free(DeletionQueue* deletion_queue) {
-    CTH_WARN(_handle == VK_NULL_HANDLE, "memory not valid");
+    CTH_WARN(_handle == VK_NULL_HANDLE, "memory not valid") {}
     if(deletion_queue) deletion_queue->push(_handle.get());
     else BasicMemory::free(_core->vkDevice(), _handle.get());
 
@@ -95,7 +89,7 @@ void BasicMemory::reset() {
 
 void BasicMemory::free(VkDevice vk_device, VkDeviceMemory memory) {
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);
-    CTH_WARN(memory == VK_NULL_HANDLE, "memory not allocated");
+    CTH_WARN(memory == VK_NULL_HANDLE, "memory not allocated") {}
     vkFreeMemory(vk_device, memory, nullptr);
 }
 
@@ -109,7 +103,7 @@ void BasicMemory::debug_check(const BasicMemory* memory) {
     CTH_ERR(memory->_handle == VK_NULL_HANDLE, "memory must be a valid handle") throw details->exception();
 }
 void BasicMemory::debug_check_leak(const BasicMemory* memory) {
-    CTH_WARN(memory->_handle != VK_NULL_HANDLE, "memory handle replaced (potential memory leak)");
+    CTH_WARN(memory->_handle != VK_NULL_HANDLE, "memory handle replaced (potential memory leak)") {}
 }
 #endif
 } // namespace cth

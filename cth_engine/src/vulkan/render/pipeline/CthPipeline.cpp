@@ -2,13 +2,10 @@
 
 #include "interface/render/model/CthVertex.hpp"
 #include "layout/CthPipelineLayout.hpp"
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/pipeline/shader/CthShader.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
-
-#include <cth/cth_log.hpp>
-
-#include "vulkan/base/CthCore.hpp"
 
 
 

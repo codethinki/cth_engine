@@ -1,11 +1,10 @@
 #pragma once
 
-#include <cth/cth_log.hpp>
+#include <cth/io/cth_log.hpp>
 
 #include <vulkan/vulkan.h>
 
 namespace cth {
-using namespace std;
 
 class Device;
 class Pipeline;

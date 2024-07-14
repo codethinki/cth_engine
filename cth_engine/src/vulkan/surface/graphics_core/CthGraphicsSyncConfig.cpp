@@ -1,7 +1,5 @@
 #include "CthGraphicsSyncConfig.hpp"
 
-#include <cth/cth_log.hpp>
-
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/render/control/CthSemaphore.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
@@ -60,14 +58,14 @@ void GraphicsSyncConfig::create(const BasicCore* core, DeletionQueue* deletion_q
         imageAvailableSemaphores.emplace_back(new Semaphore(_core, _deletionQueue));
 }
 void GraphicsSyncConfig::destroy(DeletionQueue* deletion_queue) {
-    auto config = release();
+    const auto config = release();
 
-    for(auto& semaphore : config.renderFinishedSemaphores){
+    for(const auto& semaphore : config.renderFinishedSemaphores){
         semaphore->destroy(deletion_queue);
         delete semaphore;
     }
 
-    for(auto& semaphore : config.imageAvailableSemaphores){
+    for(const auto& semaphore : config.imageAvailableSemaphores){
         semaphore->destroy(deletion_queue);
         delete semaphore;
     }

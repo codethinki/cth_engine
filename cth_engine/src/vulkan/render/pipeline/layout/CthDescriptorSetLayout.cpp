@@ -1,12 +1,8 @@
 #include "CthDescriptorSetLayout.hpp"
 
-#include "vulkan/base/CthDevice.hpp"
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/resource/descriptor/CthDescriptor.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
-
-#include <optional>
-
-#include "vulkan/base/CthCore.hpp"
 
 
 namespace cth {
@@ -42,10 +38,10 @@ namespace cth {
 
 DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(const uint32_t binding, const VkDescriptorType type,
     const VkShaderStageFlags flags, const uint32_t count) {
-    CTH_WARN(count == 0, "empty binding created (count = 0)");
+    CTH_WARN(count == 0, "empty binding created (count = 0)") {}
     if(binding >= _bindings.size()) _bindings.resize(binding + 1);
 
-    CTH_WARN(_bindings[binding].has_value(), "overwriting binding, consider using removeBinding first");
+    CTH_WARN(_bindings[binding].has_value(), "overwriting binding, consider using removeBinding first") {}
 
     VkDescriptorSetLayoutBinding layoutBinding;
     layoutBinding.binding = binding;
@@ -62,14 +58,14 @@ DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(const 
     _bindings[binding] = VkDescriptorSetLayoutBinding{};
     return *this;
 }
-vector<VkDescriptorSetLayoutBinding> DescriptorSetLayout::Builder::bindings() const {
+std::vector<VkDescriptorSetLayoutBinding> DescriptorSetLayout::Builder::bindings() const {
 #ifdef _DEBUG
     //TODO check this, may be possible
-    CTH_ERR(ranges::any_of(_bindings, [](const binding_t& binding){ return binding == nullopt;}), "bindings cannot be empty")
+    CTH_ERR(std::ranges::any_of(_bindings, [](const binding_t& binding){ return binding == std::nullopt;}), "bindings cannot be empty")
         throw details->exception();
 
-    vector<VkDescriptorSetLayoutBinding> vec(_bindings.size());
-    ranges::transform(_bindings, vec.begin(), [](const binding_t& binding) { return binding.value(); });
+    std::vector<VkDescriptorSetLayoutBinding> vec(_bindings.size());
+    std::ranges::transform(_bindings, vec.begin(), [](const binding_t& binding) { return binding.value(); });
     return vec;
 #else
     return _bindings;

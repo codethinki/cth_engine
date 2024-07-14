@@ -10,7 +10,6 @@
 #include <array>
 #include <optional>
 #include <span>
-#include <string_view>
 #include <vector>
 
 
@@ -62,7 +61,7 @@ protected:
     std::vector<std::string> _availableLayers{};
 
 private:
-    ptr::mover<VkInstance_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkInstance get() const { return _handle.get(); }
@@ -77,7 +76,9 @@ public:
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
     };
 
-    static constexpr std::array<std::string_view, 0> REQUIRED_INSTANCE_EXTENSIONS{};
+    static constexpr std::array<std::string_view, 1> REQUIRED_INSTANCE_EXTENSIONS{
+            VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+    };
 
     BasicInstance(const BasicInstance& other) = default;
     BasicInstance& operator=(const BasicInstance& other) = default;

@@ -58,7 +58,7 @@ protected:
 private:
     static VkFenceCreateInfo createInfo(VkFenceCreateFlags flags);
 
-    ptr::mover<VkFence_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkFence_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkFence get() const { return _handle.get(); }
@@ -83,7 +83,7 @@ public:
 namespace cth {
 class Fence : public BasicFence {
 public:
-    explicit Fence(const BasicCore* core, DeletionQueue* deletion_queue);
+    explicit Fence(const BasicCore* core, DeletionQueue* deletion_queue, VkFenceCreateFlags flags = 0);
     ~Fence() override;
 
     void wrap(VkFence vk_fence) override;

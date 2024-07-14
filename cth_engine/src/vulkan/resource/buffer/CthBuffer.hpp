@@ -40,11 +40,11 @@ public:
     * @return mapped memory range
     * @note use map without arguments for whole buffer mapping
     */
-    [[nodiscard]] span<T> map(size_t size, size_t offset);
+    [[nodiscard]] std::span<T> map(size_t size, size_t offset);
     /**
     * @return mapped memory of whole buffer
     */
-    span<T> map();
+    std::span<T> map();
 
     /**
      * @brief stages a device local buffer with a temporary host visible buffer
@@ -55,12 +55,12 @@ public:
     /**
      * @brief writes to a mapped memory range
      */
-    static void write(span<const T> data, span<T> mapped_memory);
+    static void write(std::span<const T> data, std::span<T> mapped_memory);
     /**
     * @brief writes to the mapped range of the whole buffer
     * @note CAUTION whole buffer must be mapped first
     */
-    void write(span<const T> data, size_t mapped_offset = 0) const;
+    void write(std::span<const T> data, size_t mapped_offset = 0) const;
 
     /**
     * @brief copies buffer data on the gpu

@@ -1,13 +1,15 @@
 #pragma once
 //TEMP rename this to CthBasicImage.hpp
+#include "../buffer/CthBasicBuffer.hpp"
+#include "vulkan/utility/CthConstants.hpp"
+
 #include <vulkan/vulkan.h>
 
 #include <memory>
 #include <span>
 #include <vector>
 
-#include "../buffer/CthBasicBuffer.hpp"
-#include "vulkan/utility/CthConstants.hpp"
+
 
 namespace cth {
 class Device;
@@ -17,12 +19,6 @@ class CmdBuffer;
 class BasicMemory;
 class ImageBarrier;
 class DeletionQueue;
-
-
-using std::vector;
-using std::unique_ptr;
-using std::span;
-
 
 /**
  * @brief wrapper for VkImage with no ownership
@@ -119,8 +115,8 @@ public:
         [[nodiscard]] VkImageCreateInfo createInfo() const;
     };
     struct State {
-        vector<VkImageLayout> levelLayouts{}; // levelLayouts.size() < mipLevels => remaining levels are config.initialLayout
-        ptr::mover<BasicMemory> memory = nullptr;
+        std::vector<VkImageLayout> levelLayouts{}; // levelLayouts.size() < mipLevels => remaining levels are config.initialLayout
+        move_ptr<BasicMemory> memory = nullptr;
         bool bound = memory != nullptr;
         static State Default() { return State{}; }
 
@@ -155,7 +151,7 @@ private:
 
     void init();
 
-    ptr::mover<VkImage_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkImage_T> _handle = VK_NULL_HANDLE;
 
     friend ImageBarrier;
 
@@ -166,7 +162,7 @@ public:
     [[nodiscard]] VkExtent2D extent() const { return _extent; }
     [[nodiscard]] uint32_t mipLevels() const { return _config.mipLevels; }
     [[nodiscard]] VkImageLayout layout(const uint32_t mip_level) const { return _state.levelLayouts[mip_level]; }
-    [[nodiscard]] span<const VkImageLayout> layouts() const { return _state.levelLayouts; }
+    [[nodiscard]] std::span<const VkImageLayout> layouts() const { return _state.levelLayouts; }
     [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return _config.aspectMask; }
     [[nodiscard]] bool bound() const { return _state.bound; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }

@@ -3,12 +3,9 @@
 #include "CthCmdBuffer.hpp"
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
+#include "vulkan/base/CthQueue.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
-
-#include <cth/cth_log.hpp>
-
-#include "vulkan/base/CthQueue.hpp"
 
 
 
@@ -79,7 +76,7 @@ void CmdPool::returnCmdBuffer(SecondaryCmdBuffer* buffer) {
     buffer->_handle = VK_NULL_HANDLE;
 }
 void CmdPool::destroy(VkDevice vk_device, VkCommandPool vk_pool) {
-    CTH_WARN(vk_pool == VK_NULL_HANDLE, "pool should not be invalid (VK_NULL_HANDLE)");
+    CTH_WARN(vk_pool == VK_NULL_HANDLE, "pool should not be invalid (VK_NULL_HANDLE)") {}
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);
 
     vkDestroyCommandPool(vk_device, vk_pool, nullptr);
@@ -111,7 +108,7 @@ void CmdPool::alloc() {
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(_primaryBuffers.size());
 
-        auto allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _primaryBuffers.data());
+        const auto allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _primaryBuffers.data());
 
         CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} primary command buffers", _config.maxPrimaryBuffers)
             throw cth::except::vk_result_exception{allocResult, details->exception()};
@@ -120,7 +117,7 @@ void CmdPool::alloc() {
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(_secondaryBuffers.size());
 
-        auto allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _secondaryBuffers.data());
+        const auto allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _secondaryBuffers.data());
 
         CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} secondary command buffers", _config.maxSecondaryBuffers)
             throw cth::except::vk_result_exception{allocResult, details->exception()};

@@ -9,8 +9,6 @@
 #include "vulkan/resource/memory/CthBasicMemory.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
-#include <cth/cth_log.hpp>
-
 
 
 namespace cth {
@@ -32,7 +30,7 @@ void BasicImage::wrap(VkImage vk_image, const State& state) {
 }
 
 void BasicImage::create() {
-    CTH_INFORM(_handle != VK_NULL_HANDLE, "image replaced");
+    CTH_INFORM(_handle != VK_NULL_HANDLE, "image replaced") {}
 
     auto createInfo = _config.createInfo();
 
@@ -49,7 +47,7 @@ void BasicImage::create() {
 }
 
 void BasicImage::alloc(BasicMemory* new_memory) {
-    CTH_INFORM(_state.memory != nullptr, "memory replaced");
+    CTH_INFORM(_state.memory != nullptr, "memory replaced") {}
 
     setMemory(new_memory);
     alloc();
@@ -98,7 +96,7 @@ void BasicImage::copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src_buffer
     DEBUG_CHECK_IMAGE(this);
 
     CTH_WARN(_state.levelLayouts[mip_level] != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        "PERFORMANCE: image layout is not transfer dst optional");
+        "PERFORMANCE: image layout is not transfer dst optional") {}
 
 
     VkBufferImageCopy region;
@@ -144,7 +142,7 @@ void BasicImage::transitionLayout(ImageBarrier& barrier, const VkImageLayout new
 
 
 void BasicImage::destroy(VkDevice vk_device, VkImage vk_image) {
-    CTH_WARN(vk_image == VK_NULL_HANDLE, "vk_image invalid");
+    CTH_WARN(vk_image == VK_NULL_HANDLE, "vk_image invalid") {}
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);
 
     vkDestroyImage(vk_device, vk_image, nullptr);
@@ -206,10 +204,10 @@ void BasicImage::debug_check(const BasicImage* image) {
     CTH_ERR(image->_handle == VK_NULL_HANDLE, "image must be a valid handle") throw details->exception();
 }
 void BasicImage::debug_check_leak(const BasicImage* image) {
-    CTH_WARN(image->_handle != VK_NULL_HANDLE, "image handle replaced (potential memory leak)");
+    CTH_WARN(image->_handle != VK_NULL_HANDLE, "image handle replaced (potential memory leak)") {}
 }
 void BasicImage::debug_check_memory_leak(const BasicImage* image) {
-    CTH_WARN(image->_state.memory != nullptr, "memory ptr replaced (potential memory leak)");
+    CTH_WARN(image->_state.memory != nullptr, "memory ptr replaced (potential memory leak)") {}
 }
 void BasicImage::debug_not_bound_check(const BasicImage* image) {
     CTH_ERR(image->_state.bound, "image must not be bound") throw details->exception();

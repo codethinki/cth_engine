@@ -68,7 +68,7 @@ protected:
     Config _config;
 
 private:
-    ptr::mover<VkDebugUtilsMessengerEXT_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkDebugUtilsMessengerEXT_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return _handle.get(); }

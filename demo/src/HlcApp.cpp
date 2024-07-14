@@ -2,12 +2,12 @@
 
 #include "render/HlcFrameInfo.hpp"
 
-#include <chrono>
-
 
 namespace cth {
 
-App::App() { }
+App::App() {
+    initFrame();
+}
 
 void App::run() {
 
@@ -60,17 +60,15 @@ void App::graphicsPhase() const {
 
 
 void App::initRenderSystem(PrimaryCmdBuffer& cmd_buffer) {
-    _renderSystem = make_unique<RenderSystem>(_core.get(), _deletionQueue.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(), _graphicsCore->msaaSamples());
+    _renderSystem = std::make_unique<RenderSystem>(_core.get(), _deletionQueue.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(), _graphicsCore->msaaSamples());
 }
 
 
 
-vector<string> App::getRequiredInstanceExtensions() {
+std::vector<std::string> App::getRequiredInstanceExtensions() {
     auto extensions = OSWindow::getGLFWInstanceExtensions();
     return extensions;
 }
-
-
 
 }
 

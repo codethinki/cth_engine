@@ -4,7 +4,6 @@
 #include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
-#include <cth/cth_log.hpp>
 
 
 namespace cth {
@@ -40,7 +39,7 @@ void BasicDebugMessenger::destroy() {
 }
 
 void BasicDebugMessenger::destroy(VkInstance instance, VkDebugUtilsMessengerEXT vk_messenger) {
-    CTH_WARN(vk_messenger == VK_NULL_HANDLE, "messenger invalid");
+    CTH_WARN(vk_messenger == VK_NULL_HANDLE, "messenger invalid") {}
     DEBUG_CHECK_INSTANCE_HANDLE(instance);
 
     const auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
@@ -56,7 +55,7 @@ void BasicDebugMessenger::debug_check(const BasicDebugMessenger* debug_messenger
     CTH_ERR(debug_messenger->get() == VK_NULL_HANDLE, "debug_messenger invalid") throw details->exception();
 }
 void BasicDebugMessenger::debug_check_leak(const BasicDebugMessenger* debug_messenger) {
-    CTH_WARN(debug_messenger->_handle != VK_NULL_HANDLE, "debug_messenger replaced (potential memory leak)");
+    CTH_WARN(debug_messenger->_handle != VK_NULL_HANDLE, "debug_messenger replaced (potential memory leak)") {}
 }
 #endif
 } // namespace cth

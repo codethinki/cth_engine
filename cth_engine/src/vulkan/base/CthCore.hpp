@@ -6,7 +6,6 @@
 #include <vulkan/vulkan.h>
 
 #include <span>
-#include <string_view>
 
 namespace cth {
 class BasicInstance;
@@ -20,7 +19,7 @@ public:
 
     BasicCore() = default;
 
-    virtual void wrap(ptr::mover<BasicInstance> instance, ptr::mover<PhysicalDevice> physical_device, ptr::mover<Device> device);
+    virtual void wrap(move_ptr<BasicInstance> instance, move_ptr<PhysicalDevice> physical_device, move_ptr<Device> device);
 
     virtual void create(const Config& config);
     void destroy();
@@ -32,9 +31,9 @@ public:
     virtual void reset();
 
 private:
-    ptr::mover<Device> _device = nullptr;
-    ptr::mover<PhysicalDevice> _physicalDevice = nullptr;
-    ptr::mover<BasicInstance> _instance = nullptr;
+    move_ptr<Device> _device = nullptr;
+    move_ptr<PhysicalDevice> _physicalDevice = nullptr;
+    move_ptr<BasicInstance> _instance = nullptr;
 
 public:
     [[nodiscard]] const Device* device() const;
@@ -75,7 +74,7 @@ public:
     /**
      * @brief wraps and takes ownership
      */
-    void wrap(ptr::mover<BasicInstance> instance, ptr::mover<PhysicalDevice> physical_device, ptr::mover<Device> device) override;
+    void wrap(move_ptr<BasicInstance> instance, move_ptr<PhysicalDevice> physical_device, move_ptr<Device> device) override;
     /**
      * @brief creates the components
      * @note not necessary when using wrap

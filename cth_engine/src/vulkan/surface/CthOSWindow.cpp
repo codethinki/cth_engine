@@ -5,18 +5,12 @@
 #include "vulkan/base/CthInstance.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
-#include <cth/cth_log.hpp>
-#include <cth/cth_numeric.hpp>
 
-#include <Windows.h>
 #include <vulkan/vulkan_win32.h>
-
-#include <stdexcept>
-
 
 
 namespace cth {
-OSWindow::OSWindow(const string_view name, const uint32_t width, const uint32_t height, const BasicInstance* instance) : _windowName{name},
+OSWindow::OSWindow(const std::string_view name, const uint32_t width, const uint32_t height, const BasicInstance* instance) : _windowName{name},
     _width(static_cast<int>(width)), _height(static_cast<int>(height)) {
     initWindow();
 
@@ -53,7 +47,7 @@ void OSWindow::createSurface(const BasicInstance* instance) {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create GLFW window surface")
         throw cth::except::vk_result_exception{result, details->exception()};
 
-    _surface = make_unique<Surface>(instance, vkSurface);
+    _surface = std::make_unique<Surface>(instance, vkSurface);
 
     cth::log::msg("created surface");
 
@@ -101,13 +95,13 @@ void OSWindow::setGLFWWindowHints() {
     glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
 }
 OSWindow* OSWindow::window_ptr(GLFWwindow* glfw_window) { return static_cast<OSWindow*>(glfwGetWindowUserPointer(glfw_window)); }
-vector<string> OSWindow::getGLFWInstanceExtensions() {
+std::vector<std::string> OSWindow::getGLFWInstanceExtensions() {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    span<const char*> extensionsSpan{glfwExtensions, glfwExtensionCount};
-    vector<string> extensions{extensionsSpan.size()};
-    ranges::transform(extensionsSpan, extensions.begin(), [](const string_view c) { return string(c); });
+    std::span<const char*> extensionsSpan{glfwExtensions, glfwExtensionCount};
+    std::vector<std::string> extensions{extensionsSpan.size()};
+    std::ranges::transform(extensionsSpan, extensions.begin(), [](const std::string_view c) { return std::string(c); });
 
     return extensions;
 }
@@ -128,7 +122,7 @@ VkSurfaceKHR OSWindow::tempSurface(const BasicInstance* instance) {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     // Create a hidden window for the surface
-    constexpr wstring_view name = L"TempHiddenWindow";
+    constexpr std::wstring_view name = L"TempHiddenWindow";
     const WNDCLASSEX wc{
         .cbSize = sizeof(wc),
         .lpfnWndProc = DefWindowProc,
@@ -149,11 +143,13 @@ VkSurfaceKHR OSWindow::tempSurface(const BasicInstance* instance) {
     createInfo.hinstance = GetModuleHandle(nullptr);
     createInfo.hwnd = hwnd;
 
-    VkResult result = vkCreateWin32SurfaceKHR(instance->get(), &createInfo, nullptr, &surface);
+    const auto result = vkCreateWin32SurfaceKHR(instance->get(), &createInfo, nullptr, &surface);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create temp surface") {
         DestroyWindow(hwnd);
         throw except::vk_result_exception{result, details->exception()};
     }
+
+    log::msg("created temp surface");
 
     return surface;
 }

@@ -6,7 +6,6 @@
 
 
 namespace cth {
-using namespace std;
 
 class StandardObject;
 
@@ -27,9 +26,9 @@ public:
         KEY_MAPPINGS_SIZE
     };
 
-    void moveByKeys(float dt, const unique_ptr<StandardObject>& object) const;
+    void moveByKeys(float dt, const std::unique_ptr<StandardObject>& object) const;
 
-    void rotateByMouse(float dt, const unique_ptr<StandardObject>& object) const;
+    void rotateByMouse(float dt, const std::unique_ptr<StandardObject>& object) const;
 
     explicit InputController() = default;
     ~InputController() = default;
@@ -41,7 +40,7 @@ public:
     static bool getKeyState(const Key_Mappings key) { return keyStates[KEY_MAPPINGS[key]]; }
 
     static constexpr auto KEY_MAPPINGS = [] {
-        array<int, KEY_MAPPINGS_SIZE> arr{};
+        std::array<int, KEY_MAPPINGS_SIZE> arr{};
 
         arr[MOVE_FORWARD] = GLFW_KEY_W;
         arr[MOVE_BACKWARD] = GLFW_KEY_S;
@@ -64,6 +63,6 @@ public:
     inline static double mouseDtX = 0;
     inline static double mouseDtY = 0;
 
-    inline static array<bool, 349> keyStates{};
+    inline static std::array<bool, 349> keyStates{};
 };
 }

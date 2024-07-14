@@ -1,8 +1,5 @@
 #pragma once
-#include<cth/cth_pointer.hpp>
 #include <vulkan/vulkan.h>
-
-#include <algorithm>
 
 namespace cth {
 class BasicCore;
@@ -13,19 +10,24 @@ class ImageView {
 public:
     struct Config;
 
-    ImageView(const BasicCore* device, BasicImage* image, const Config& config);
+    ImageView(const BasicCore* device, const BasicImage* image, const Config& config);
     ~ImageView();
 
 private:
     void create(const Config& config);
 
     const BasicCore* _core;
-    BasicImage* _image;
-    VkImageView _handle = VK_NULL_HANDLE;
+    const BasicImage* _image;
+    move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
 
 public:
-    [[nodiscard]] VkImageView get() const { return _handle; }
-    [[nodiscard]] BasicImage* image() const { return _image; }
+    [[nodiscard]] VkImageView get() const { return _handle.get(); }
+    [[nodiscard]] const BasicImage* image() const { return _image; }
+
+    ImageView(const ImageView& other) = delete;
+    ImageView(ImageView&& other) noexcept = default;
+    ImageView& operator=(const ImageView& other) = delete;
+    ImageView& operator=(ImageView&& other) noexcept = default;
 };
 } // namespace cth
 
@@ -34,7 +36,6 @@ public:
 namespace cth {
 struct ImageView::Config {
     explicit Config() = default;
-    Config(const VkImageSubresourceRange& range) : baseMipLevel(range.baseMipLevel), levelCount(range.levelCount) {}
 
     //VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_NONE;
     uint32_t baseMipLevel = 0;

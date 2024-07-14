@@ -1,30 +1,23 @@
 #include "CthShader.hpp"
 
-#include "vulkan/base/CthDevice.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
-
-
-#include <filesystem>
-#include <format>
-#include <fstream>
-
 #include "vulkan/base/CthCore.hpp"
+#include "vulkan/utility/CthVkUtils.hpp"
 
 //Specialization
 
 namespace cth {
-ShaderSpecialization::ShaderSpecialization(span<VkSpecializationMapEntry> entries, span<char> data) : _vkInfo{static_cast<uint32_t>(entries.size()),
+ShaderSpecialization::ShaderSpecialization(std::span<VkSpecializationMapEntry> entries, std::span<char> data) : _vkInfo{static_cast<uint32_t>(entries.size()),
     entries.data(), data.size(), reinterpret_cast<void*>(data.data())} {}
 }
 
 //Shader
 
 namespace cth {
-Shader::Shader(const BasicCore* core, const VkShaderStageFlagBits stage, const string_view spv_path) : _core(core), _vkStage(stage), _spvPath(spv_path) {
+Shader::Shader(const BasicCore* core, const VkShaderStageFlagBits stage, const std::string_view spv_path) : _core(core), _vkStage(stage), _spvPath(spv_path) {
     auto spv = loadSpv();
     create(spv);
 }
-Shader::Shader(const BasicCore* core, const VkShaderStageFlagBits stage, const span<const char> spv) : _core(core), _vkStage(stage) {
+Shader::Shader(const BasicCore* core, const VkShaderStageFlagBits stage, const std::span<const char> spv) : _core(core), _vkStage(stage) {
     create(spv);
 }
 Shader::~Shader() {
@@ -32,24 +25,24 @@ Shader::~Shader() {
     log::msg("destroyed shader-module ({0})", filename(_spvPath));
 }
 
-vector<char> Shader::loadSpv() {
-    CTH_STABLE_ERR(!filesystem::exists(_spvPath), "file does not exist") {
+std::vector<char> Shader::loadSpv() {
+    CTH_STABLE_ERR(!std::filesystem::exists(_spvPath), "file does not exist") {
         details->add("file: {0}", _spvPath);
         throw details->exception();
     }
 
 
-    std::ifstream file{_spvPath, ios::binary};
+    std::ifstream file{_spvPath, std::ios::binary};
     CTH_STABLE_ERR(!file.is_open(), "failed to open file") {
         details->add("file: {0}", _spvPath);
         throw details->exception();
     }
 
 
-    const size_t fileSize = filesystem::file_size(_spvPath);
+    const size_t fileSize = std::filesystem::file_size(_spvPath);
 
-    vector<char> bytecode(fileSize);
-    file.read(bytecode.data(), static_cast<streamsize>(fileSize));
+    std::vector<char> bytecode(fileSize);
+    file.read(bytecode.data(), static_cast<std::streamsize>(fileSize));
     file.close();
 
     CTH_STABLE_ERR(bytecode.empty(), "failed to load bytecode") {
@@ -62,7 +55,7 @@ vector<char> Shader::loadSpv() {
     return bytecode;
 }
 
-void Shader::create(const span<const char> spv) {
+void Shader::create(const std::span<const char> spv) {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = spv.size(); //size in bytes https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkShaderModuleCreateInfo.html
@@ -84,23 +77,23 @@ void Shader::create(const span<const char> spv) {
 
 
 #ifndef _FINAL
-void Shader::compile(const string_view glsl_path, const string_view compiler_path, const string_view flags) const {
-    CTH_ERR(!filesystem::exists(compiler_path), "invalid compiler path") {
+void Shader::compile(const std::string_view glsl_path, const std::string_view compiler_path, const std::string_view flags) const {
+    CTH_ERR(!std::filesystem::exists(compiler_path), "invalid compiler path") {
         details->add("path: {0}", compiler_path);
         throw details->exception();
     }
-    CTH_ERR(!filesystem::exists(glsl_path), "invalid glsl path") {
+    CTH_ERR(!std::filesystem::exists(glsl_path), "invalid glsl path") {
         details->add("path: {0}", glsl_path);
         throw details->exception();
     }
 
-    constexpr string_view logFile = "shader_compile_log.txt";
+    constexpr std::string_view logFile = "shader_compile_log.txt";
 
-    const string command = std::format(R"("{0}" {1} -c "{2}" -o "{3}">NUL 2>"{4}")",
+    const std::string command = std::format(R"("{0}" {1} -c "{2}" -o "{3}">NUL 2>"{4}")",
         compiler_path, flags, glsl_path, _spvPath, logFile);
     const int result = cth::win::cmd::hidden(command);
 
-    vector<string> debugInfo = cth::win::file::loadTxt(logFile);
+    std::vector<std::string> debugInfo = cth::io::loadTxt(logFile);
 
     if(debugInfo.empty()) {
         CTH_STABLE_ERR(result != 0, "compile command failed") {
@@ -110,7 +103,7 @@ void Shader::compile(const string_view glsl_path, const string_view compiler_pat
         }
         log::msg("compiled shader ({0})", filename(glsl_path));
 
-        if(filesystem::exists(logFile)) filesystem::remove(logFile);
+        if(std::filesystem::exists(logFile)) std::filesystem::remove(logFile);
         return;
     }
 
@@ -127,8 +120,8 @@ void Shader::compile(const string_view glsl_path, const string_view compiler_pat
 }
 
 
-Shader::Shader(const BasicCore* core, const VkShaderStageFlagBits stages, const string_view spv_path, const string_view glsl_path,
-    const string_view compiler_path) : _core(core), _vkStage(stages),
+Shader::Shader(const BasicCore* core, const VkShaderStageFlagBits stages, const std::string_view spv_path, const std::string_view glsl_path,
+    const std::string_view compiler_path) : _core(core), _vkStage(stages),
     _spvPath{spv_path} {
 #ifndef _DEBUG
     CTH_STABLE_WARN(true, "compiling shaders on startup, only use this on debug");

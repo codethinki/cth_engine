@@ -1,8 +1,6 @@
 #pragma once
 #include "vulkan/resource/buffer/CthBasicBuffer.hpp"
 
-#include <cth/cth_windows.hpp>
-
 #include <vulkan/vulkan.h>
 
 #include <string>
@@ -11,11 +9,10 @@
 
 
 namespace cth {
-using namespace std;
 class Device;
 
 struct ShaderSpecialization {
-    ShaderSpecialization(span<VkSpecializationMapEntry> entries, span<char> data);
+    ShaderSpecialization(std::span<VkSpecializationMapEntry> entries, std::span<char> data);
 
 private:
     VkSpecializationInfo _vkInfo;
@@ -29,35 +26,35 @@ public:
     /**
      *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
      */
-    explicit Shader(const BasicCore* core, VkShaderStageFlagBits stage, string_view spv_path);
+    explicit Shader(const BasicCore* core, VkShaderStageFlagBits stage, std::string_view spv_path);
     /**
      *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
      */
-    explicit Shader(const BasicCore* core, VkShaderStageFlagBits stage, span<const char> spv);
+    explicit Shader(const BasicCore* core, VkShaderStageFlagBits stage, std::span<const char> spv);
 
     ~Shader();
 
 private:
-    vector<char> loadSpv();
-    void create(span<const char> spv);
+    std::vector<char> loadSpv();
+    void create(std::span<const char> spv);
 
-    static string filename(const string_view path) { return filesystem::path{path.data()}.filename().string(); }
+    static std::string filename(const std::string_view path) { return std::filesystem::path{path.data()}.filename().string(); }
 #ifndef _FINAL
-    void compile(string_view glsl_path, string_view compiler_path, string_view = "-O") const;
+    void compile(std::string_view glsl_path, std::string_view compiler_path, std::string_view = "-O") const;
 #endif
 
     const BasicCore* _core;
     VkShaderStageFlagBits _vkStage;
-    string _spvPath;
+    std::string _spvPath;
 
-    ptr::mover<VkShaderModule_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkShaderModule_T> _handle = VK_NULL_HANDLE;
 
 public:
 #ifndef _FINAL
     /**
     *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
     */
-    explicit Shader(const BasicCore* core, VkShaderStageFlagBits stages, string_view spv_path, string_view glsl_path, string_view compiler_path);
+    explicit Shader(const BasicCore* core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path, std::string_view compiler_path);
 #endif
 
     [[nodiscard]] VkShaderModule module() const { return _handle.get(); }

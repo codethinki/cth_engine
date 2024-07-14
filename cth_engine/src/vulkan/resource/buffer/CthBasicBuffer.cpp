@@ -10,6 +10,9 @@
 
 
 namespace cth {
+using std::span;
+
+
 
 BasicBuffer::BasicBuffer(const BasicCore* core, const size_t buffer_size, const VkBufferUsageFlags usage_flags) :
     _core(core), _size(buffer_size), _usage(usage_flags) { init(); }
@@ -85,7 +88,7 @@ void BasicBuffer::destroy(DeletionQueue* deletion_queue) {
 
 
 
-span<char> BasicBuffer::map(const size_t size, const size_t offset) {
+std::span<char> BasicBuffer::map(const size_t size, const size_t offset) {
     CTH_ERR(size + offset > _size && size != Constant::WHOLE_SIZE, "memory out of bounds") throw details->exception();
 
 
@@ -97,7 +100,7 @@ span<char> BasicBuffer::map(const size_t size, const size_t offset) {
 
     return span<char>{mem.data(), size};
 }
-span<char> BasicBuffer::map() {
+std::span<char> BasicBuffer::map() {
     _state.mapped = _state.memory->map(_size, 0);
 
     return _state.mapped;
@@ -161,7 +164,7 @@ void BasicBuffer::write(const span<const char> data, const span<char> mapped_mem
 }
 
 void BasicBuffer::destroy(VkDevice vk_device, VkBuffer vk_buffer) {
-    CTH_WARN(vk_buffer == VK_NULL_HANDLE, "vk_buffer invalid");
+    CTH_WARN(vk_buffer == VK_NULL_HANDLE, "vk_buffer invalid") {}
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);
 
     vkDestroyBuffer(vk_device, vk_buffer, nullptr);
@@ -218,10 +221,10 @@ void BasicBuffer::debug_check(const BasicBuffer* buffer) {
     CTH_ERR(buffer->_handle == VK_NULL_HANDLE, "buffer must be a valid handle") throw details->exception();
 }
 void BasicBuffer::debug_check_leak(const BasicBuffer* buffer) {
-    CTH_WARN(buffer->_handle != VK_NULL_HANDLE, "buffer handle replaced (potential memory leak)");
+    CTH_WARN(buffer->_handle != VK_NULL_HANDLE, "buffer handle replaced (potential memory leak)") {}
 }
 void BasicBuffer::debug_check_memory_leak(const BasicBuffer* buffer) {
-    CTH_WARN(buffer->_state.memory != nullptr, "memory ptr replaced (potential memory leak)");
+    CTH_WARN(buffer->_state.memory != nullptr, "memory ptr replaced (potential memory leak)") {}
 }
 
 void BasicBuffer::debug_check_not_bound(const BasicBuffer* buffer) {

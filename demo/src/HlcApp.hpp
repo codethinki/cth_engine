@@ -37,16 +37,16 @@ private:
 
 
 
-    vector<Queue> _queues{Queue{QUEUE_FAMILY_PROPERTY_GRAPHICS | QUEUE_FAMILY_PROPERTY_PRESENT | QUEUE_FAMILY_PROPERTY_TRANSFER}};
+    std::vector<Queue> _queues{Queue{QUEUE_FAMILY_PROPERTY_GRAPHICS | QUEUE_FAMILY_PROPERTY_PRESENT | QUEUE_FAMILY_PROPERTY_TRANSFER}};
 
-    vector<string> _asdf = getRequiredInstanceExtensions();
+    std::vector<std::string> _asdf = getRequiredInstanceExtensions();
 
-    std::unique_ptr<Core> _core = make_unique<Core>(BasicCore::Config::Default("demo", "engine", _queues, _asdf));
+    std::unique_ptr<Core> _core = std::make_unique<Core>(BasicCore::Config::Default("demo", "engine", _queues, _asdf));
 
 
 
-    std::unique_ptr<DeletionQueue> _deletionQueue = make_unique<DeletionQueue>(_core.get());
-    std::unique_ptr<GraphicsSyncConfig> _syncConfig = make_unique<GraphicsSyncConfig>(_core.get(), _deletionQueue.get());
+    std::unique_ptr<DeletionQueue> _deletionQueue = std::make_unique<DeletionQueue>(_core.get());
+    std::unique_ptr<GraphicsSyncConfig> _syncConfig = std::make_unique<GraphicsSyncConfig>(_core.get(), _deletionQueue.get());
 
     std::unique_ptr<GraphicsCore> _graphicsCore = make_unique<GraphicsCore>(_core.get(), _deletionQueue.get(), WINDOW_NAME, VkExtent2D{WIDTH, HEIGHT},
         &_queues[0], *_syncConfig.get());
@@ -55,8 +55,8 @@ private:
 
 
 
-    std::unique_ptr<Renderer> _renderer = make_unique<Renderer>(_core.get(), _deletionQueue.get(),
-        Renderer::Config::Render(_core.get(), _deletionQueue.get(), &_queues[0], _syncConfig.get()));
+    std::unique_ptr<Renderer> _renderer = std::make_unique<Renderer>(_core.get(), _deletionQueue.get(),
+        Renderer::Config::Render(&_queues[0], _syncConfig.get()));
     InputController _inputController{};
     Camera _camera{};
 

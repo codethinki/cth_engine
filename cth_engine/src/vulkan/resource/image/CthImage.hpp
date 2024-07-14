@@ -1,7 +1,8 @@
 #pragma once
+#include "CthBasicImage.hpp"
+
 #include <vulkan/vulkan.h>
 
-#include "CthBasicImage.hpp"
 
 namespace cth {
 class Memory;

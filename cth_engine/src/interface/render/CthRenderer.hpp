@@ -93,7 +93,6 @@ private:
     std::array<std::unique_ptr<TimelineSemaphore>, Constant::FRAMES_IN_FLIGHT> _semaphores{};
 
     Phase _state = PHASE_TRANSFER;
-    bool _frameActive = false;
 
     uint32_t _frameIndex = 0;
 
@@ -120,7 +119,7 @@ private:
 #endif
 
 public:
-    [[nodiscard]] uint32_t frameIndex() const;
+    [[nodiscard]] uint32_t frameIndex() const { return _frameIndex; }
     [[nodiscard]] DeletionQueue* deletionQueue() const;
 
     Renderer(const Renderer&) = delete;
@@ -157,7 +156,7 @@ namespace cth {
 struct Renderer::Config {
     static constexpr size_t SET_SIZE = Constant::FRAMES_IN_FLIGHT;
 
-    static Config Render(const BasicCore* core, DeletionQueue* deletion_queue, const Queue* graphics_queue, BasicGraphicsSyncConfig* sync_config);
+    static Config Render(const Queue* graphics_queue, BasicGraphicsSyncConfig* sync_config);
 
     Config() = default;
     //Config(const BasicCore* core, DeletionQueue* deletion_queue);

@@ -1,8 +1,5 @@
 #include "HlcCamera.hpp"
 
-#include <cassert>
-#include <limits>
-
 
 namespace cth {
 void Camera::setOrthographicProjection(const float left, const float right, const float top, const float bottom, const float near, const float far) {
@@ -16,7 +13,7 @@ void Camera::setOrthographicProjection(const float left, const float right, cons
 }
 
 void Camera::setPerspectiveProjection(const float fov, const float view_ratio, const float near_clip, const float far_clip) {
-    assert(glm::abs(view_ratio - std::numeric_limits<float>::epsilon()) > 0.0f);
+    CTH_ASSERT(glm::abs(view_ratio - std::numeric_limits<float>::epsilon()) > 0.0f, "must be > 0") {}
 
     _currentProjection = glm::vec3{fov, near_clip, far_clip};
 

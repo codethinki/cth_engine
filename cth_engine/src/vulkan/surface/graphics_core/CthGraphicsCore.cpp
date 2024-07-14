@@ -4,7 +4,7 @@
 
 namespace cth {
 GraphicsCore::GraphicsCore(const BasicCore* core, DeletionQueue* deletion_queue) : BasicGraphicsCore(core), _deletionQueue(deletion_queue) {
-    DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED();
+    DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
 }
 GraphicsCore::GraphicsCore(const BasicCore* core, DeletionQueue* deletion_queue, const std::string_view window_name, const VkExtent2D extent,
     const Queue* present_queue, const BasicGraphicsSyncConfig& sync_config) : GraphicsCore(core, deletion_queue) {

@@ -39,12 +39,16 @@
     <ClInclude Include="include\vulkan\cth_debug.hpp" />
     <ClInclude Include="include\vulkan\cth_resource.hpp" />
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
+    <ClInclude Include="precompile\util\definition.hpp" />
+    <ClInclude Include="precompile\util\macro.hpp" />
+    <ClInclude Include="precompile\pch.hpp" />
     <ClInclude Include="src\CthEngine.hpp" />
     <ClInclude Include="src\interface\object\HlcRenderObject.hpp" />
     <ClInclude Include="src\interface\object\HlcStandardObject.hpp" />
     <ClInclude Include="src\interface\user\HlcCamera.hpp" />
     <ClInclude Include="src\interface\user\HlcInputController.hpp" />
     <ClInclude Include="src\interface\user\HlcUser.hpp" />
+    <ClInclude Include="precompile\group\std_pch.hpp" />
     <ClInclude Include="src\vulkan\base\CthDevice.hpp" />
     <ClInclude Include="src\vulkan\base\CthInstance.hpp" />
     <ClInclude Include="src\vulkan\base\CthPhysicalDevice.hpp" />
@@ -110,6 +114,26 @@
     <ClCompile Include="src\interface\object\HlcStandardObject.cpp" />
     <ClCompile Include="src\interface\user\HlcCamera.cpp" />
     <ClCompile Include="src\interface\user\HlcInputController.cpp" />
+    <ClCompile Include="precompile\util\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='sanitize|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='sanitize|Win32'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</MultiProcessorCompilation>
+      <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</MultiProcessorCompilation>
+      <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='sanitize|Win32'">false</MultiProcessorCompilation>
+      <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</MultiProcessorCompilation>
+      <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</MultiProcessorCompilation>
+      <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">false</MultiProcessorCompilation>
+    </ClCompile>
     <ClCompile Include="src\vulkan\base\CthCore.cpp" />
     <ClCompile Include="src\vulkan\base\CthDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
@@ -233,7 +257,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(SolutionDir)pch\;$(ExternalIncludePath)</ExternalIncludePath>
     <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir)src\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
@@ -241,7 +265,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(SolutionDir)pch\;$(ExternalIncludePath)</ExternalIncludePath>
     <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir)src\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
@@ -249,7 +273,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(SolutionDir)pch\;$(ExternalIncludePath)</ExternalIncludePath>
     <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir)src\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
@@ -257,7 +281,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(SolutionDir)pch\;$(ExternalIncludePath)</ExternalIncludePath>
     <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir)src\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
@@ -265,7 +289,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='sanitize|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(SolutionDir)pch\;$(ExternalIncludePath)</ExternalIncludePath>
     <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir)src\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
@@ -273,7 +297,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(SolutionDir)pch\;$(ExternalIncludePath)</ExternalIncludePath>
     <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir)src\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
@@ -285,8 +309,11 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -301,8 +328,11 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -319,8 +349,11 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -337,9 +370,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BrowseInformation>true</BrowseInformation>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -357,8 +393,11 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -375,8 +414,11 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

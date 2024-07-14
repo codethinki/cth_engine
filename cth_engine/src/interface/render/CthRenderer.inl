@@ -4,7 +4,7 @@
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
-#include <cth/cth_log.hpp>
+#include <cth/io/cth_log.hpp>
 
 #include <ranges>
 #include <vector>

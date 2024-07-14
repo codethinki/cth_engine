@@ -1,7 +1,5 @@
 #include "CthEngine.hpp"
 
-#include <cth/cth_log.hpp>
-
 #include "vulkan/surface/CthOSWindow.hpp"
 
 namespace cth {

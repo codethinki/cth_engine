@@ -8,9 +8,6 @@
 #include "../debug/CthBasicDebugMessenger.hpp"
 #endif
 
-#include <cth/cth_log.hpp>
-
-#include <vector>
 
 namespace cth {
 
@@ -144,7 +141,7 @@ VkApplicationInfo BasicInstance::appInfo() const {
     return appInfo;
 }
 void BasicInstance::destroy(VkInstance vk_instance) {
-    CTH_WARN(vk_instance == nullptr, "vk_instance invalid");
+    CTH_WARN(vk_instance == nullptr, "vk_instance invalid") {}
 
     vkDestroyInstance(vk_instance, nullptr);
 
@@ -160,7 +157,7 @@ void BasicInstance::debug_check_handle(VkInstance vk_instance) {
     CTH_ERR(vk_instance == VK_NULL_HANDLE, "vk_instance invalid (VK_NULL_HANDLE)") throw details->exception();
 }
 void BasicInstance::debug_check_leak(const BasicInstance* instance) {
-    CTH_WARN(instance->_handle != VK_NULL_HANDLE, "instance replaced (potential memory leak)");
+    CTH_WARN(instance->_handle != VK_NULL_HANDLE, "instance replaced (potential memory leak)") {}
 }
 #endif
 

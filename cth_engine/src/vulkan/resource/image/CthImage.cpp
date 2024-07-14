@@ -5,12 +5,6 @@
 #include "vulkan/resource/memory/CthMemory.hpp"
 
 
-#include <cth/cth_log.hpp>
-
-#include <stb_image.h>
-
-
-
 namespace cth {
 using namespace std;
 
@@ -18,7 +12,7 @@ using namespace std;
 Image::Image(const BasicCore* core, DeletionQueue* deletion_queue, const VkExtent2D extent, const BasicImage::Config& config,
     const VkMemoryPropertyFlags memory_properties) : BasicImage(core, extent, config), _deletionQueue(deletion_queue) {
     BasicMemory* memory = new Memory(core, _deletionQueue, memory_properties);
-    DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
+    DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
 
     BasicImage::create();
     BasicImage::alloc(memory);

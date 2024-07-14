@@ -50,7 +50,7 @@ private:
     void newCmdBuffer(SecondaryCmdBuffer* buffer);
 
     const BasicCore* _core;
-    ptr::mover<VkCommandPool_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkCommandPool_T> _handle = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> _primaryBuffers;
     std::vector<VkCommandBuffer> _secondaryBuffers;
 

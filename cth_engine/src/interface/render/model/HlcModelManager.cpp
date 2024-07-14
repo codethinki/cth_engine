@@ -4,8 +4,6 @@
 //
 //#include "../objects/HlcRenderObject.hpp"
 //
-//#include <fstream>
-//#include <sstream>
 //
 //
 //namespace cth {

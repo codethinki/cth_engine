@@ -6,8 +6,10 @@
 namespace cth {
 class TimelineSemaphore : public Semaphore {
 public:
-    explicit TimelineSemaphore(const BasicCore* core, DeletionQueue* deletion_queue) : Semaphore(core, deletion_queue) {}
+    explicit TimelineSemaphore(const BasicCore* core, DeletionQueue* deletion_queue, bool create = true);
     ~TimelineSemaphore() override = default;
+
+
 
 
     [[nodiscard]] size_t value() const { return _value; }
@@ -25,6 +27,8 @@ protected:
     [[nodiscard]] static VkSemaphoreWaitInfo waitInfo(const size_t& value, const VkSemaphore& p_semaphore);
 
     [[nodiscard]] static VkSemaphoreWaitInfo waitInfo(std::span<const size_t> wait_values, std::span<const VkSemaphore> wait_semaphores);
+
+
 
     VkSemaphoreCreateInfo createInfo() override;
 

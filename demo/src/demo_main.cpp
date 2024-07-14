@@ -1,12 +1,8 @@
 #include "HlcApp.hpp"
 
-#include <cth/cth_log.hpp>
-
-
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <fstream>
 
 
 using namespace std;
@@ -14,7 +10,7 @@ using namespace cth;
 #ifndef _FINAL
 
 int main() {
-    cth::log::msg<except::INFO>("exec dir: {}", cth::filesystem::current_path().string());
+    cth::log::msg<except::INFO>("exec dir: {}", std::filesystem::current_path().string());
 #else
 #include <Windows.h>
 INT WINAPI WinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, char* lp_cmd_line, int n_cmd_show) {

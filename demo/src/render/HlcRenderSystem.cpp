@@ -11,12 +11,7 @@
 #include "vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
 #include "vulkan/resource/image/texture/CthTexture.hpp"
 
-
 #include <cth/cth_image.hpp>
-
-#include<memory>
-#include <span>
-#include <glm/glm.hpp>
 
 
 namespace cth {
@@ -46,17 +41,17 @@ RenderSystem::RenderSystem(const BasicCore* core, DeletionQueue* deletion_queue,
 
 void RenderSystem::createShaders() {
 
-    const string vertexBinary = format("{}shader.vert.spv", SHADER_BINARY_DIR);
-    const string fragmentBinary = format("{}shader.frag.spv", SHADER_BINARY_DIR);
+    const std::string vertexBinary = std::format("{}shader.vert.spv", SHADER_BINARY_DIR);
+    const std::string fragmentBinary = std::format("{}shader.frag.spv", SHADER_BINARY_DIR);
 
 #ifndef CONSTANT_DEBUG_MODE
     vertexShader = make_unique<Shader>(_device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
     fragmentShader = make_unique<Shader>(_device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
 #else
     _vertexShader = std::make_unique<Shader>(_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
-        format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
+        std::format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
     _fragmentShader = std::make_unique<Shader>(_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
-        format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
+        std::format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
 #endif
 }
 void RenderSystem::createDescriptorSetLayouts() {
@@ -74,7 +69,7 @@ void RenderSystem::createPipelineLayout() {
 
     _pipelineLayout = std::make_unique<PipelineLayout>(_core, builder);
 }
-void RenderSystem::createPipeline(const VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
+void RenderSystem::createPipeline(VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
     Pipeline::GraphicsConfig config = Pipeline::GraphicsConfig::createDefault();
 
     config.renderPass = render_pass;
@@ -104,11 +99,11 @@ void RenderSystem::createDescriptorSets() {
     _textureDescriptor = std::make_unique<TextureDescriptor>(_textureView.get(), _textureSampler.get());
 
     _descriptorSet = std::make_unique<DescriptorSet>(
-        DescriptorSet::Builder{_descriptorSetLayout.get(), vector<Descriptor*>{_textureDescriptor.get()}});
+        DescriptorSet::Builder{_descriptorSetLayout.get(), std::vector<Descriptor*>{_textureDescriptor.get()}});
 
-    _descriptorPool->writeSets(vector{_descriptorSet.get()});
+    _descriptorPool->writeSets(std::vector{_descriptorSet.get()});
 }
-array<Vertex, 3> defaultTriangle{
+std::array<Vertex, 3> defaultTriangle{
     Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {1, 0}},
     Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {0.5, 1}},
     Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {0, 0}},
@@ -131,9 +126,9 @@ void RenderSystem::createDefaultTriangle(const CmdBuffer& cmd_buffer, DeletionQu
 
 void RenderSystem::render(FrameInfo& frame_info) const {
     _pipeline->bind(frame_info.commandBuffer);
-    const vector<VkBuffer> vertexBuffers{_defaultTriangleBuffer->get()};
-    const vector<size_t> offsets(vertexBuffers.size());
-    const vector<VkDescriptorSet> descriptorSets{_descriptorSet->get()};
+    const std::vector<VkBuffer> vertexBuffers{_defaultTriangleBuffer->get()};
+    const std::vector<size_t> offsets(vertexBuffers.size());
+    const std::vector<VkDescriptorSet> descriptorSets{_descriptorSet->get()};
 
     vkCmdBindDescriptorSets(frame_info.commandBuffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout->get(), 0, 1, descriptorSets.data(), 0,
         nullptr);

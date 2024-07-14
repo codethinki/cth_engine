@@ -15,7 +15,7 @@ public:
      * @note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
     Texture(const BasicCore* core, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
-        span<const char> staging_data);
+        std::span<const char> staging_data);
 
     /**
      * @brief automatically generates a texture with mipmaps

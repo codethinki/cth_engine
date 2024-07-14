@@ -1,10 +1,10 @@
 #pragma once
+#include "../graphics_core/CthGraphicsSyncConfig.hpp"
 #include "vulkan/base/CthQueue.hpp"
 #include "vulkan/render/control/CthFence.hpp"
 #include "vulkan/render/pass/cth_render_pass_utils.hpp"
 #include "vulkan/resource/image/CthBasicImage.hpp"
 #include "vulkan/resource/image/CthImageView.hpp"
-
 
 #include <vulkan/vulkan.h>
 
@@ -12,7 +12,6 @@
 #include <memory>
 #include <vector>
 
-#include "../graphics_core/CthGraphicsSyncConfig.hpp"
 
 
 namespace cth {
@@ -67,15 +66,20 @@ public:
     static void destroy(VkDevice device, VkSwapchainKHR swapchain);
 
 private:
-    VkResult acquireNewImage(const size_t frame);
+    static constexpr uint32_t NO_IMAGE_INDEX = std::numeric_limits<uint32_t>::max();
+
+    VkResult acquireNewImage(size_t frame);
 
     //setMsaaSampleCount
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
 
 
+    //createSyncObjects
+    void createSyncObjects();
+
     //createSwapchain
-    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const vector<VkSurfaceFormatKHR>& available_formats);
-    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(const vector<VkPresentModeKHR>& available_present_modes);
+    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& available_formats);
+    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& available_present_modes);
     [[nodiscard]] static VkExtent2D chooseSwapExtent(VkExtent2D window_extent, const VkSurfaceCapabilitiesKHR& capabilities);
     [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
     [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(const Surface* surface, VkSurfaceFormatKHR surface_format,
@@ -134,47 +138,46 @@ private:
 
     const BasicCore* _core;
     const Queue* _presentQueue;
-    const Surface* _surface;
+    const Surface* _surface = nullptr;
 
-    cth::ptr::mover<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
-    shared_ptr<BasicSwapchain> _oldSwapchain; //TODO why is this a shared_ptr?
-
-
-    VkExtent2D _extent;
-    float _aspectRatio;
-    VkExtent2D _windowExtent;
+    cth::move_ptr<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
+    std::shared_ptr<BasicSwapchain> _oldSwapchain; //TODO why is this a shared_ptr?
 
 
-    vector<VkFramebuffer> _swapchainFramebuffers;
+    VkExtent2D _extent{};
+    float _aspectRatio = 0;
+    VkExtent2D _windowExtent{};
+
+
+    std::vector<VkFramebuffer> _swapchainFramebuffers;
     [[nodiscard]] VkFramebuffer framebuffer() const { return _swapchainFramebuffers[imageIndex()]; }
 
     VkRenderPass _renderPass = VK_NULL_HANDLE;
 
-    VkFormat _imageFormat;
-    vector<BasicImage> _swapchainImages;
-    vector<ImageView> _swapchainImageViews;
-    vector<Image> _msaaImages;
-    vector<ImageView> _msaaImageViews;
+    VkFormat _imageFormat{};
+    std::vector<BasicImage> _swapchainImages;
+    std::vector<ImageView> _swapchainImageViews;
+    std::vector<Image> _msaaImages;
+    std::vector<ImageView> _msaaImageViews;
 
-    VkFormat _depthFormat;
-    vector<Image> _depthImages;
-    vector<ImageView> _depthImageViews;
+    VkFormat _depthFormat{};
+    std::vector<Image> _depthImages;
+    std::vector<ImageView> _depthImageViews;
 
     BasicGraphicsSyncConfig _syncConfig;
 
     std::vector<Fence> _imageAvailableFences;
 
-    vector<Queue::PresentInfo> _presentInfos;
+    std::vector<Queue::PresentInfo> _presentInfos;
 
     size_t _currentFrame = 0;
     static size_t nextFrame(const size_t current) { return (current + 1) % Constant::FRAMES_IN_FLIGHT; }
 
-    vector<uint32_t> _imageIndices;
+    std::array<uint32_t, Constant::FRAMES_IN_FLIGHT> _imageIndices{NO_IMAGE_INDEX};
     [[nodiscard]] uint32_t imageIndex() const { return _imageIndices[_currentFrame]; }
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    static constexpr uint32_t NO_IMAGE_INDEX = UINT32_MAX;
 
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }

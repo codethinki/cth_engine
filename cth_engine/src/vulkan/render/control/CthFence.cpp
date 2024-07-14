@@ -1,13 +1,9 @@
 #include "CthFence.hpp"
 
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
-
-
-#include <cth/cth_log.hpp>
-
-#include "vulkan/base/CthCore.hpp"
 
 
 
@@ -25,7 +21,7 @@ void BasicFence::wrap(VkFence vk_fence) {
 void BasicFence::create(const VkFenceCreateFlags flags) {
     DEBUG_CHECK_FENCE_LEAK(this);
 
-    auto info = createInfo(flags);
+    const auto info = createInfo(flags);
 
     VkFence ptr = VK_NULL_HANDLE;
     const auto result = vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
@@ -51,7 +47,7 @@ VkResult BasicFence::status() const {
 void BasicFence::reset() const {
     DEBUG_CHECK_FENCE(this);
     const std::array<VkFence, 1> fences = {_handle.get()};
-    const auto result = vkResetFences(_core->vkDevice(), fences.size(), fences.data());
+    const auto result = vkResetFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset fence")
         throw cth::except::vk_result_exception{result, details->exception()};
@@ -59,12 +55,12 @@ void BasicFence::reset() const {
 
 
 VkResult BasicFence::wait(const uint64_t timeout) const {
-    CTH_INFORM(timeout == UINT64_MAX, "consider using wait() instead");
+    CTH_INFORM(timeout == UINT64_MAX, "consider using wait() instead") {}
 
     DEBUG_CHECK_FENCE(this);
 
     const std::array<VkFence, 1> fences = {_handle.get()};
-    const VkResult result = vkWaitForFences(_core->vkDevice(), fences.size(), fences.data(), VK_TRUE, timeout);
+    const VkResult result = vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, timeout);
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
         throw cth::except::vk_result_exception{result, details->exception()};
@@ -97,16 +93,16 @@ void BasicFence::debug_check(const BasicFence* fence) {
     CTH_ERR(fence == nullptr, "fence must not be nullptr") throw details->exception();
     CTH_ERR(fence->_handle == VK_NULL_HANDLE, "fence handle invalid") throw details->exception();
 }
-void BasicFence::debug_check_leak(const BasicFence* fence) { CTH_WARN(fence->_handle != VK_NULL_HANDLE, "fence replaced (potential memory leak)"); }
+void BasicFence::debug_check_leak(const BasicFence* fence) { CTH_WARN(fence->_handle != VK_NULL_HANDLE, "fence replaced (potential memory leak)") {} }
 
 }
 
 //Fence
 
 namespace cth {
-Fence::Fence(const BasicCore* core, DeletionQueue* deletion_queue) : BasicFence(core), _deletionQueue(deletion_queue) {
+Fence::Fence(const BasicCore* core, DeletionQueue* deletion_queue, const VkFenceCreateFlags flags) : BasicFence(core), _deletionQueue(deletion_queue) {
     DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
-    BasicFence::create();
+    BasicFence::create(flags);
 }
 Fence::~Fence() { if(get() != VK_NULL_HANDLE) Fence::destroy(); }
 

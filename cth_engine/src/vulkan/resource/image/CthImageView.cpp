@@ -1,24 +1,20 @@
 #include "CthImageView.hpp"
 
-
 #include "CthImage.hpp"
 #include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthDevice.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
-
-#include <cth/cth_log.hpp>
 
 
 
 namespace cth {
-ImageView::ImageView(const BasicCore* device, BasicImage* image, const Config& config) : _core(device), _image(image) {
+ImageView::ImageView(const BasicCore* device, const BasicImage* image, const Config& config) : _core(device), _image(image) {
     CTH_ERR(image == nullptr, "image ptr not valid") throw details->exception();
 
     create(config);
 }
 
 ImageView::~ImageView() {
-    vkDestroyImageView(_core->vkDevice(), _handle, nullptr);
+    if(_handle != nullptr) vkDestroyImageView(_core->vkDevice(), _handle.get(), nullptr);
 }
 
 void ImageView::create(const Config& config) {
@@ -39,9 +35,13 @@ void ImageView::create(const Config& config) {
     const auto layers = 1; //config.range.layerCount == 0 ? config.range.baseArrayLayer - _image->arrayLayers() : config.range.layerCount;
     viewInfo.subresourceRange.layerCount = layers;
 
-    const auto createResult = vkCreateImageView(_core->vkDevice(), &viewInfo, nullptr, &_handle);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create image-view")
-        throw except::vk_result_exception{createResult, details->exception()};
+    VkImageView handle = VK_NULL_HANDLE;
+    const auto result = vkCreateImageView(_core->vkDevice(), &viewInfo, nullptr, &handle);
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create image-view")
+        throw except::vk_result_exception{result, details->exception()};
+
+    _handle = handle;
 
 }
 } // namespace cth

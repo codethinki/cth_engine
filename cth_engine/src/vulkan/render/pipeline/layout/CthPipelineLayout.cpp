@@ -1,14 +1,9 @@
 #include "CthPipelineLayout.hpp"
 
 #include "CthDescriptorSetLayout.hpp"
-#include "vulkan/base/CthDevice.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
-
-
-#include <cth/cth_log.hpp>
-
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
+#include "vulkan/utility/CthVkUtils.hpp"
 
 
 
@@ -23,8 +18,8 @@ PipelineLayout::~PipelineLayout() {
 }
 
 void PipelineLayout::create() {
-    vector<VkDescriptorSetLayout> vkLayouts(_setLayouts.size());
-    ranges::transform(_setLayouts, vkLayouts.begin(), [](const DescriptorSetLayout* layout) { return layout->get(); });
+    std::vector<VkDescriptorSetLayout> vkLayouts(_setLayouts.size());
+    std::ranges::transform(_setLayouts, vkLayouts.begin(), [](const DescriptorSetLayout* layout) { return layout->get(); });
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -47,8 +42,8 @@ void PipelineLayout::create() {
 //Builder
 
 namespace cth {
-PipelineLayout::Builder& PipelineLayout::Builder::addSetLayouts(const span<DescriptorSetLayout* const> layouts, uint32_t location_offset) {
-    CTH_WARN(layouts.empty(), "layouts vector empty");
+PipelineLayout::Builder& PipelineLayout::Builder::addSetLayouts(const std::span<DescriptorSetLayout* const> layouts, uint32_t location_offset) {
+    CTH_WARN(layouts.empty(), "layouts vector empty") {}
 
 
     for(const auto layout : layouts) addSetLayout(layout, location_offset++);
@@ -56,10 +51,10 @@ PipelineLayout::Builder& PipelineLayout::Builder::addSetLayouts(const span<Descr
     return *this;
 }
 PipelineLayout::Builder& PipelineLayout::Builder::addSetLayout(DescriptorSetLayout* layout, const uint32_t location) {
-    CTH_WARN(layout == nullptr, "empty layout provided");
+    CTH_WARN(layout == nullptr, "empty layout provided") {}
 
-    const auto keys = _setLayouts | views::keys;
-    const bool result = ranges::any_of(keys, [location](const uint32_t key) { return key == location; });
+    const auto keys = _setLayouts | std::views::keys;
+    const bool result = std::ranges::any_of(keys, [location](const uint32_t key) { return key == location; });
     CTH_ERR(result, "location already used") {
         details->add("location: {}", location);
         throw details->exception();
@@ -78,10 +73,10 @@ PipelineLayout::Builder& PipelineLayout::Builder::removeSetLayout(const uint32_t
     return *this;
 }
 
-PipelineLayout::Builder::Builder(const span<DescriptorSetLayout*> layouts) { addSetLayouts(layouts); }
+PipelineLayout::Builder::Builder(const std::span<DescriptorSetLayout*> layouts) { addSetLayouts(layouts); }
 
-vector<DescriptorSetLayout*> PipelineLayout::Builder::build(const uint32_t max_bound_descriptor_sets) const {
-    vector<DescriptorSetLayout*> result(_setLayouts.size());
+std::vector<DescriptorSetLayout*> PipelineLayout::Builder::build(const uint32_t max_bound_descriptor_sets) const {
+    std::vector<DescriptorSetLayout*> result(_setLayouts.size());
 
     CTH_STABLE_ERR(_setLayouts.size() > max_bound_descriptor_sets, "device limits exceeded, too many locations") {
         details->add("specified: {0}, max: {1}", result.size(), max_bound_descriptor_sets);

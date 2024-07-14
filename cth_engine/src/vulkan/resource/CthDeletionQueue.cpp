@@ -4,7 +4,6 @@
 #include "image/CthBasicImage.hpp"
 #include "memory/CthBasicMemory.hpp"
 #include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthInstance.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/cmd/CthCmdPool.hpp"
 #include "vulkan/render/control/CthFence.hpp"
@@ -30,15 +29,15 @@ DeletionQueue::~DeletionQueue() {
 }
 void DeletionQueue::push(deletable_handle_t handle) {
     CTH_WARN(std::visit(var::visitor{[](auto handle) { return handle == VK_NULL_HANDLE; }}, handle),
-        "handle should not be VK_NULL_HANDLE or nullptr");
+        "handle should not be VK_NULL_HANDLE or nullptr") {}
 
     _queue[_frame].emplace_back(handle);
 }
 void DeletionQueue::push(dependent_handle_t handle, deletable_handle_t dependency) {
     const bool validHandle = std::visit(var::visitor{[](auto temp_handle) { return temp_handle != VK_NULL_HANDLE; }}, handle);
     const bool validDependency = std::visit(var::visitor{[](auto temp_dependency) { return temp_dependency == VK_NULL_HANDLE; }}, dependency);
-    CTH_WARN(!validHandle, "handle should not be VK_NULL_HANDLE or nullptr");
-    CTH_WARN(!validDependency, "dependency should not be VK_NULL_HANDLE or nullptr");
+    CTH_WARN(!validHandle, "handle should not be VK_NULL_HANDLE or nullptr") {}
+    CTH_WARN(!validDependency, "dependency should not be VK_NULL_HANDLE or nullptr") {}
 
     CTH_ERR(validHandle ^ validDependency, "handle and dependency must both be valid or invalid") throw details->exception();
 

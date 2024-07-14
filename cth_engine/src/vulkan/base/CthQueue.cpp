@@ -1,17 +1,11 @@
 #include "CthQueue.hpp"
 
-#include "vulkan/base/CthDevice.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/control/CthFence.hpp"
 #include "vulkan/render/control/CthSemaphore.hpp"
 #include "vulkan/render/control/CthTimelineSemaphore.hpp"
 #include "vulkan/surface/swapchain/CthBasicSwapchain.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
-
-#include <algorithm>
-#include <utility>
-#include<vector>
-#include <cth/cth_log.hpp>
 
 
 
@@ -26,17 +20,13 @@ void Queue::wrap(const uint32_t family_index, const uint32_t queue_index, VkQueu
     _queueIndex = queue_index;
     _handle = vk_queue;
 }
-void Queue::submit(SubmitInfo& submit_info) const {
-    const_submit(submit_info.next());
-}
+void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
 void Queue::const_submit(const SubmitInfo& submit_info) const {
     const auto result = vkQueueSubmit(_handle, 1, submit_info.get(), submit_info.fence());
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
         throw cth::except::vk_result_exception{result, details->exception()};
 }
-void Queue::skip(SubmitInfo& submit_info) const {
-    const_skip(submit_info.next());
-}
+void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next()); }
 void Queue::const_skip(const SubmitInfo& submit_info) const {
     auto submitInfo = *submit_info.get();
     submitInfo.commandBufferCount = 0;
@@ -60,7 +50,9 @@ VkResult Queue::present(const uint32_t image_index, const PresentInfo& present_i
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void Queue::debug_check(const Queue* queue) { CTH_ERR(queue == nullptr, "queue invalid (nullptr)"); }
+void Queue::debug_check(const Queue* queue) {
+    CTH_ERR(queue == nullptr, "queue invalid (nullptr)") throw details->exception();
+}
 void Queue::debug_check_present_queue(const Queue* queue) {
     CTH_ERR(queue == nullptr, "queue invalid (nullptr)") throw details->exception();
     CTH_ERR(!(queue->familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT), "queue is not a present queue") throw details->exception();

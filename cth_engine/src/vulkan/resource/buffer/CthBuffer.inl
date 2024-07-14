@@ -46,14 +46,14 @@ void Buffer<T>::destroy(DeletionQueue* deletion_queue) {
 }
 
 template<typename T>
-span<T> Buffer<T>::map(const size_t size, const size_t offset) {
+std::span<T> Buffer<T>::map(const size_t size, const size_t offset) {
     const auto charSpan = BasicBuffer::map(size * sizeof(T), offset * sizeof(T));
-    return span<T>{reinterpret_cast<T*>(charSpan.data()), size};
+    return std::span<T>{reinterpret_cast<T*>(charSpan.data()), size};
 }
 template<typename T>
-span<T> Buffer<T>::map() {
+std::span<T> Buffer<T>::map() {
     const auto charSpan = BasicBuffer::map();
-    return span<T>{reinterpret_cast<T*>(charSpan.data()), _elements};
+    return std::span<T>{reinterpret_cast<T*>(charSpan.data()), _elements};
 }
 
 template<typename T>
@@ -62,14 +62,14 @@ void Buffer<T>::stage(const CmdBuffer& cmd_buffer, const Buffer<T>& staging_buff
 }
 
 template<typename T>
-void Buffer<T>::write(span<const T> data, span<T> mapped_memory) {
-    const auto charData = span<const char>{reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T)};
-    const auto charMapped = span<char>{reinterpret_cast<char*>(mapped_memory.data()), mapped_memory.size() * sizeof(T)};
+void Buffer<T>::write(std::span<const T> data, std::span<T> mapped_memory) {
+    const auto charData = std::span<const char>{reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T)};
+    const auto charMapped = std::span<char>{reinterpret_cast<char*>(mapped_memory.data()), mapped_memory.size() * sizeof(T)};
     BasicBuffer::write(charData, charMapped);
 }
 template<typename T>
-void Buffer<T>::write(span<const T> data, const size_t mapped_offset) const {
-    const auto charData = span<const char>{reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T)};
+void Buffer<T>::write(std::span<const T> data, const size_t mapped_offset) const {
+    const auto charData = std::span<const char>{reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T)};
     BasicBuffer::write(charData, mapped_offset * sizeof(T));
 }
 

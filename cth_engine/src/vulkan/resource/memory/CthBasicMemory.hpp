@@ -5,8 +5,6 @@
 
 #include <vulkan/vulkan.h>
 
-#include <span>
-
 
 
 namespace cth {
@@ -14,7 +12,6 @@ class BasicCore;
 class Device;
 class DeletionQueue;
 
-using std::span;
 
 /**
  * @brief VkDeviceMemory wrapper without ownership
@@ -43,7 +40,7 @@ public:
      */
     virtual void alloc(const VkMemoryRequirements& vk_requirements);
 
-    [[nodiscard]] span<char> map(size_t map_size = VK_WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] std::span<char> map(size_t map_size = VK_WHOLE_SIZE, size_t offset = 0) const;
     [[nodiscard]] VkResult flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
 
     [[nodiscard]] VkResult invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
@@ -62,7 +59,7 @@ public:
      */
     virtual void reset();
 
-    static void free(const VkDevice vk_device, VkDeviceMemory memory);
+    static void free(VkDevice vk_device, VkDeviceMemory memory);
 
 protected:
     void init() const;
@@ -71,7 +68,7 @@ private:
     const BasicCore* _core;
     VkMemoryPropertyFlags _vkProperties;
     size_t _size = 0;
-    ptr::mover<VkDeviceMemory_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkDeviceMemory_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] bool allocated() const { return _handle != VK_NULL_HANDLE; }

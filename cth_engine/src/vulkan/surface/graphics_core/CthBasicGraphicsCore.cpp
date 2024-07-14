@@ -27,7 +27,7 @@ void BasicGraphicsCore::wrap(OSWindow* os_window, Surface* surface, BasicSwapcha
 }
 
 
-void BasicGraphicsCore::create(const string_view window_name, const VkExtent2D extent, const Queue* present_queue,
+void BasicGraphicsCore::create(const std::string_view window_name, const VkExtent2D extent, const Queue* present_queue,
     const BasicGraphicsSyncConfig& sync_config, DeletionQueue* deletion_queue) {
     DEBUG_CHECK_GRAPHICS_CORE_LEAK(this);
     _osWindow = new OSWindow(window_name, extent.width, extent.height, _core->instance());
@@ -96,9 +96,9 @@ void BasicGraphicsCore::debug_check_not_null(const BasicGraphicsCore* graphics_c
 void BasicGraphicsCore::debug_check_leak(const BasicGraphicsCore* graphics_core) {
     DEBUG_CHECK_GRAPHICS_CORE_NOT_NULL(graphics_core);
 
-    CTH_WARN(graphics_core->_osWindow != nullptr, "osWindow not nullptr (potential memory leak)");
-    CTH_WARN(graphics_core->_surface != nullptr, "_surface not nullptr (potential memory leak)");
-    CTH_WARN(graphics_core->_swapchain != nullptr, "swapchain not nullptr (potential memory leak)");
+    CTH_WARN(graphics_core->_osWindow != nullptr, "osWindow not nullptr (potential memory leak)") {}
+    CTH_WARN(graphics_core->_surface != nullptr, "_surface not nullptr (potential memory leak)") {}
+    CTH_WARN(graphics_core->_swapchain != nullptr, "swapchain not nullptr (potential memory leak)") {}
 }
 #endif
 

@@ -6,13 +6,6 @@
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
-#include <cth/cth_log.hpp>
-
-#include <ranges>
-#include <set>
-#include <cth/cth_algorithm.hpp>
-
-
 namespace cth {
 using std::vector;
 using std::string_view;
@@ -23,17 +16,19 @@ using std::unique_ptr;
 PhysicalDevice::PhysicalDevice(VkPhysicalDevice device, const Instance* instance, const Surface& surface) : _vkDevice(device), _instance(instance) {
     setConstants(surface);
 }
-bool PhysicalDevice::suitable(const VkPhysicalDeviceFeatures& features, const std::span<const std::string_view> extensions, const std::span<const Queue> queues) {
+bool PhysicalDevice::suitable(const VkPhysicalDeviceFeatures& features, const std::span<const std::string_view> extensions,
+    const std::span<const Queue> queues) {
 
     const auto missingFeatures = supports(features);
     const auto missingExtensions = supports(extensions);
     const auto queueIndices = queueFamilyIndices(queues);
     const bool valid = missingFeatures.empty() && missingExtensions.empty() && !queueIndices.empty();
 
-    CTH_WARN(!valid, "physical device ({}) is missing features", _properties.deviceName) {
+    CTH_ERR(!valid, "physical device ({}) is missing features", _properties.deviceName) {
         for(const auto& missingFeature : missingFeatures) details->add("missing feature: {}", missingFeature);
         for(const auto& missingExtension : missingExtensions) details->add("missing extension: {}", missingExtension);
         if(queueIndices.empty()) details->add("missing queue families");
+        throw details->exception();
     }
 
 
@@ -48,14 +43,17 @@ vector<VkPhysicalDevice> PhysicalDevice::enumerateDevices(const Instance& instan
 }
 
 
-unique_ptr<PhysicalDevice> PhysicalDevice::autoPick(const Instance* instance, const VkPhysicalDeviceFeatures& features, const span<const std::string_view> extensions,
+unique_ptr<PhysicalDevice> PhysicalDevice::autoPick(const Instance* instance, const VkPhysicalDeviceFeatures& features,
+    const span<const std::string_view> extensions,
     span<const VkPhysicalDevice> devices, const std::span<const Queue> queues) {
     const auto surface = Surface::Temp(instance);
 
 
     vector<unique_ptr<PhysicalDevice>> physicalDevices{};
     physicalDevices.reserve(devices.size());
-    std::ranges::transform(devices, back_inserter(physicalDevices), [instance, surface](VkPhysicalDevice device) { return std::make_unique<PhysicalDevice>(device, instance, surface); });
+    std::ranges::transform(devices, back_inserter(physicalDevices), [instance, &surface](VkPhysicalDevice device) {
+        return std::make_unique<PhysicalDevice>(device, instance, surface);
+    });
 
     for(auto& physicalDevice : physicalDevices)
         if(physicalDevice->suitable(features, extensions, queues)) {
@@ -114,23 +112,23 @@ VkFormat PhysicalDevice::findSupportedFormat(const span<const VkFormat> candidat
 }
 
 vector<uint32_t> PhysicalDevice::queueFamilyIndices(span<const Queue> queues) const {
-
     vector<vector<uint32_t>> queueIndices(queues.size());
 
-    for(auto [queue, indices] : std::views::zip(queues, queueIndices))
-        for(uint32_t family = 0; family < _queueFamilies.size(); ++family) {
-            bool support = _queueFamilies[family].properties & queue.familyProperties();
-
-            if(support) indices.push_back(family);
+    for(auto [queue, indices] : std::views::zip(queues, queueIndices)) {
+        const auto requiredProperties = queue.familyProperties();
+        for(uint32_t index = 0; index < _queueFamilies.size(); ++index) {
+            const bool support = (_queueFamilies[index].properties & requiredProperties) == requiredProperties;
+            if(support) indices.push_back(index);
         }
+    }
 
-    auto familyQueueCounts = _queueFamilies | std::views::transform([](const QueueFamily& family) { return family.vkProperties.queueCount; }) | std::ranges::to<vector<size_t>>();
+    const auto familiesMaxQueues = _queueFamilies | std::views::transform([](const QueueFamily& family) { return family.vkProperties.queueCount; }) |
+        std::ranges::to<vector<size_t>>();
 
-    return algorithm::assign(queueIndices, familyQueueCounts);
+    const auto result = algorithm::assign(queueIndices, familiesMaxQueues); //TEMP left off here the assign doesnt work
+    return result;
 }
-bool PhysicalDevice::supportsQueueSet(const span<const Queue> queues) const {
-    return !queueFamilyIndices(queues).empty();
-}
+bool PhysicalDevice::supportsQueueSet(const span<const Queue> queues) const { return !queueFamilyIndices(queues).empty(); }
 
 
 
@@ -183,7 +181,7 @@ void PhysicalDevice::setMaxSampleCount() {
 
     else _maxSampleCount = VK_SAMPLE_COUNT_1_BIT;
 }
-void PhysicalDevice::  setConstants(const Surface& surface) {
+void PhysicalDevice::setConstants(const Surface& surface) {
     setFeatures();
     setExtensions();
     setProperties();
@@ -193,11 +191,12 @@ void PhysicalDevice::  setConstants(const Surface& surface) {
 
 #ifdef CONSTANT_DEBUG_MODE
 void PhysicalDevice::debug_check(const PhysicalDevice* device) {
-    CTH_ERR(device == nullptr, "physical device invalid (nullptr)");
+    CTH_ERR(device == nullptr, "physical device invalid (nullptr)") throw details->exception();
     debug_check_handle(device->get());
 }
 void PhysicalDevice::debug_check_handle(VkPhysicalDevice vk_device) {
-    CTH_ERR(vk_device == VK_NULL_HANDLE, "physical device handle invalid (VK_NULL_HANDLE)");
+    CTH_ERR(vk_device == VK_NULL_HANDLE, "physical device handle invalid (VK_NULL_HANDLE)")
+        throw details->exception();
 }
 #endif
 

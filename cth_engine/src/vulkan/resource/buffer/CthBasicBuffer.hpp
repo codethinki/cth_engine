@@ -1,13 +1,13 @@
 #pragma once
-#include <cth/cth_log.hpp>
+#include "../memory/CthBasicMemory.hpp"
+#include "vulkan/utility/CthConstants.hpp"
+
+#include<cth/cth_pointer.hpp>
+#include <cth/io/cth_log.hpp>
 
 #include <vulkan/vulkan.h>
 
 #include <span>
-#include<cth/cth_pointer.hpp>
-
-#include "../memory/CthBasicMemory.hpp"
-#include "vulkan/utility/CthConstants.hpp"
 
 
 
@@ -17,9 +17,6 @@ class CmdBuffer;
 class BasicCore;
 class DeletionQueue;
 class Memory;
-
-using std::span;
-using std::unique_ptr;
 
 class BasicBuffer {
 public:
@@ -87,11 +84,11 @@ public:
     * @return mapped memory range
     * @note use map without arguments for whole buffer mapping
     */
-    [[nodiscard]] span<char> map(size_t size, size_t offset);
+    [[nodiscard]] std::span<char> map(size_t size, size_t offset);
     /**
     * @return whole buffer mapped memory range
     */
-    span<char> map();
+    std::span<char> map();
 
     /**
      *@brief unmaps all mapped memory ranges
@@ -109,7 +106,7 @@ public:
      * @note whole buffer must be mapped first
      * @note not virtual
      */
-    void write(span<const char> data, size_t buffer_offset = 0) const;
+    void write(std::span<const char> data, size_t buffer_offset = 0) const;
 
 
     /**
@@ -147,7 +144,7 @@ public:
     /**
     * @brief writes to a mapped memory range
     */
-    static void write(span<const char> data, span<char> mapped_memory);
+    static void write(std::span<const char> data, std::span<char> mapped_memory);
 
     static void destroy(VkDevice vk_device, VkBuffer vk_buffer);
 
@@ -158,9 +155,9 @@ public:
     static size_t calcAlignedSize(size_t actual_size);
 
     struct State {
-        ptr::mover<BasicMemory> memory = nullptr;
+        move_ptr<BasicMemory> memory = nullptr;
         bool bound = memory != nullptr;
-        span<char> mapped{}; //must not specify an offset into the buffer
+        std::span<char> mapped{}; //must not specify an offset into the buffer
 
         static State Default() { return State{}; }
 
@@ -193,7 +190,7 @@ protected:
 private:
     void init() const;
 
-    ptr::mover<VkBuffer_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkBuffer_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] auto get() const { return _handle.get(); }

@@ -8,7 +8,7 @@ namespace cth {
 
 
 Texture::Texture(const BasicCore* core, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
-    const span<const char> staging_data) : Image(core, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+    const std::span<const char> staging_data) : Image(core, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
 
     Buffer<char> buffer{core, deletion_queue, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};

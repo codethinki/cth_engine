@@ -1,0 +1,27 @@
+#pragma once
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <chrono>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <iterator>
+#include <limits>
+#include<memory>
+#include <optional>
+#include <print>
+#include <queue>
+#include <ranges>
+#include <set>
+#include <span>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <variant>
+#include <vector>

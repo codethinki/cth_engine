@@ -41,7 +41,7 @@ private:
     const Instance* _instance;
     const PhysicalDevice* _physicalDevice;
 
-    ptr::mover<VkDevice_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
 
     //TODO replace this with a better system
     std::vector<uint32_t> _familyIndices; //present, graphicsPhase

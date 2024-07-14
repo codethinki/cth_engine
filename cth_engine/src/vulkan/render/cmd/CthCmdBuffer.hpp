@@ -33,9 +33,9 @@ public:
     static void free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buffer);
 
 protected:
-    ptr::mover<CmdPool> _pool;
+    move_ptr<CmdPool> _pool;
 
-    ptr::mover<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
 
     VkCommandBufferUsageFlags _bufferUsage;
 

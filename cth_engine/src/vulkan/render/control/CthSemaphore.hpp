@@ -21,11 +21,12 @@ public:
 
 protected:
     virtual VkSemaphoreCreateInfo createInfo();
+    virtual void createHandle(const VkSemaphoreCreateInfo& info);
 
     const BasicCore* _core;
 
 private:
-    ptr::mover<VkSemaphore_T> _handle{};
+    move_ptr<VkSemaphore_T> _handle{};
 
 public:
     [[nodiscard]] VkSemaphore get() const { return _handle.get(); }
@@ -56,7 +57,7 @@ namespace cth {
 
 class Semaphore : public BasicSemaphore {
 public:
-    explicit Semaphore(const BasicCore* core, DeletionQueue* deletion_queue);
+    explicit Semaphore(const BasicCore* core, DeletionQueue* deletion_queue, bool create = true);
     ~Semaphore() override;
 
     void create() override;

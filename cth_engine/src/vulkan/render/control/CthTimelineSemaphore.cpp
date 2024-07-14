@@ -3,13 +3,15 @@
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
-#include <cth/cth_log.hpp>
-
 
 namespace cth {
+TimelineSemaphore::TimelineSemaphore(const BasicCore* core, DeletionQueue* deletion_queue, const bool create) : Semaphore(core, deletion_queue, false) {
+    if(create) BasicSemaphore::createHandle(TimelineSemaphore::createInfo());
+}
+
 size_t TimelineSemaphore::gpuValue() const {
     size_t value = 0;
-    auto result = vkGetSemaphoreCounterValue(_core->vkDevice(), get(), &value);
+    const auto result = vkGetSemaphoreCounterValue(_core->vkDevice(), get(), &value);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to get semaphore counter value")
         throw except::vk_result_exception{result, details->exception()};
 
@@ -18,15 +20,17 @@ size_t TimelineSemaphore::gpuValue() const {
 void TimelineSemaphore::signal() {
     const auto info = signalInfo(++_value);
 
-    auto result = vkSignalSemaphore(_core->vkDevice(), &info);
+    const auto result = vkSignalSemaphore(_core->vkDevice(), &info);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to signal semaphore")
         throw except::vk_result_exception{result, details->exception()};
 }
 VkResult TimelineSemaphore::wait(const uint64_t nanoseconds) const {
+    DEBUG_CHECK_SEMAPHORE(this);
     const auto handle = get();
+
     const auto info = waitInfo(_value, handle);
 
-    auto result = vkWaitSemaphores(_core->vkDevice(), &info, nanoseconds);
+    const auto result = vkWaitSemaphores(_core->vkDevice(), &info, nanoseconds);
 
     return result;
 }

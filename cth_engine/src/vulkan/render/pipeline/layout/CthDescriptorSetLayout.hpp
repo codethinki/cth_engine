@@ -10,7 +10,6 @@
 namespace cth {
 class BasicCore;
 
-using namespace std;
 //TODO create a ShaderStageCollection class for managing shaders and the descriptor layout
 
 class DescriptorSetLayout {
@@ -27,13 +26,13 @@ private:
     void create();
 
     const BasicCore* _core;
-    ptr::mover<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
-    vector<VkDescriptorSetLayoutBinding> _vkBindings{};
+    move_ptr<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
+    std::vector<VkDescriptorSetLayoutBinding> _vkBindings{};
 
 public:
     [[nodiscard]] VkDescriptorSetLayout get() const { return _handle.get(); }
     [[nodiscard]] uint32_t bindings() const { return static_cast<uint32_t>(_vkBindings.size()); }
-    [[nodiscard]] vector<VkDescriptorSetLayoutBinding> bindingsVec() const { return _vkBindings; }
+    [[nodiscard]] std::vector<VkDescriptorSetLayoutBinding> bindingsVec() const { return _vkBindings; }
     [[nodiscard]] VkDescriptorSetLayoutBinding binding(const uint32_t binding) const { return _vkBindings[binding]; }
     [[nodiscard]] VkDescriptorType bindingType(const uint32_t binding) const { return _vkBindings[binding].descriptorType; }
 
@@ -54,13 +53,13 @@ struct DescriptorSetLayout::Builder {
 
 private:
 #ifdef _DEBUG
-    using binding_t = optional<VkDescriptorSetLayoutBinding>;
+    using binding_t = std::optional<VkDescriptorSetLayoutBinding>;
 #else
     using binding_t = VkDescriptorSetLayoutBinding;
 #endif
 
-    vector<binding_t> _bindings{};
-    [[nodiscard]] vector<VkDescriptorSetLayoutBinding> bindings() const;
+    std::vector<binding_t> _bindings{};
+    [[nodiscard]] std::vector<VkDescriptorSetLayoutBinding> bindings() const;
 
     friend DescriptorSetLayout;
 };

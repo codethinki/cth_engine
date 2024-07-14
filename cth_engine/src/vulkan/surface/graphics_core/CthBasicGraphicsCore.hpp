@@ -73,9 +73,9 @@ public:
 private:
     const BasicCore* _core;
 
-    ptr::mover<OSWindow> _osWindow = nullptr;
-    ptr::mover<Surface> _surface = nullptr;
-    ptr::mover<BasicSwapchain> _swapchain = nullptr; //TODO change to Swapchain ptr once implemented
+    move_ptr<OSWindow> _osWindow = nullptr;
+    move_ptr<Surface> _surface = nullptr;
+    move_ptr<BasicSwapchain> _swapchain = nullptr; //TODO change to Swapchain ptr once implemented
 
 public:
     [[nodiscard]] const OSWindow* osWindow() const { return _osWindow.get(); }

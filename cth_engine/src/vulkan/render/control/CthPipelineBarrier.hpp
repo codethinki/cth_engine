@@ -13,8 +13,6 @@ class Queue;
 }
 
 namespace cth {
-using namespace std;
-
 class BasicImage;
 class BasicBuffer;
 
@@ -42,9 +40,9 @@ public:
     struct Info;
     explicit ImageBarrier(const PipelineStages stages) : PipelineStages(stages) {}
     explicit ImageBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage) : PipelineStages{src_stage, dst_stage} {}
-    explicit ImageBarrier(PipelineStages stages, const unordered_map<BasicImage*, ImageBarrier::Info>& images);
+    explicit ImageBarrier(PipelineStages stages, const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
     explicit ImageBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-        const unordered_map<BasicImage*, ImageBarrier::Info>& images);
+        const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
     virtual ~ImageBarrier() = default;
 
     void add(BasicImage* image, const Info& info);
@@ -58,16 +56,16 @@ public:
 protected:
     void applyChanges() const;
     ImageBarrier() = default;
-    explicit ImageBarrier(const unordered_map<BasicImage*, Info>& images);
+    explicit ImageBarrier(const std::unordered_map<BasicImage*, Info>& images);
 
 private:
     [[nodiscard]] ptrdiff_t find(const BasicImage* image) const;
 
     void removeChange(size_t barrier_index);
-    void init(const unordered_map<BasicImage*, ImageBarrier::Info>& images);
-    vector<VkImageMemoryBarrier> _imageBarriers{};
+    void init(const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
+    std::vector<VkImageMemoryBarrier> _imageBarriers{};
 
-    vector<std::pair<size_t, BasicImage*>> _layoutChanges{};
+    std::vector<std::pair<size_t, BasicImage*>> _layoutChanges{};
 
     friend PipelineBarrier;
 
@@ -89,8 +87,8 @@ public:
     struct Info;
     explicit BufferBarrier(const PipelineStages stages) : PipelineStages(stages) {}
     explicit BufferBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage) : PipelineStages{src_stage, dst_stage} {}
-    BufferBarrier(PipelineStages stages, const unordered_map<const BasicBuffer*, Info>& buffers);
-    BufferBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, const unordered_map<const BasicBuffer*, Info>& buffers);
+    BufferBarrier(PipelineStages stages, const std::unordered_map<const BasicBuffer*, Info>& buffers);
+    BufferBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, const std::unordered_map<const BasicBuffer*, Info>& buffers);
 
     virtual ~BufferBarrier() = default;
 
@@ -100,13 +98,13 @@ public:
     virtual void execute(const CmdBuffer& cmd_buffer);
 
 protected:
-    explicit BufferBarrier(const unordered_map<const BasicBuffer*, Info>& buffers);
+    explicit BufferBarrier(const std::unordered_map<const BasicBuffer*, Info>& buffers);
     BufferBarrier() = default;
 
 private:
-    void init(const unordered_map<const BasicBuffer*, Info>& buffers);
-    vector<const BasicBuffer*> _buffers{};
-    vector<VkBufferMemoryBarrier> _bufferBarriers{};
+    void init(const std::unordered_map<const BasicBuffer*, Info>& buffers);
+    std::vector<const BasicBuffer*> _buffers{};
+    std::vector<VkBufferMemoryBarrier> _bufferBarriers{};
 
     friend PipelineBarrier;
 
@@ -134,11 +132,11 @@ public:
     }
 
 
-    PipelineBarrier(PipelineStages stages, const unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
-        const unordered_map<BasicImage*, ImageBarrier::Info>& images);
+    PipelineBarrier(PipelineStages stages, const std::unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
+        const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
     PipelineBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-        const unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
-        const unordered_map<BasicImage*, ImageBarrier::Info>& images);
+        const std::unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
+        const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
 
 
     void execute(const CmdBuffer& cmd_buffer) override;

@@ -3,9 +3,6 @@
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
-#include <cth/cth_log.hpp>
-
-
 
 //Sampler
 

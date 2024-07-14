@@ -1,13 +1,14 @@
 #pragma once
-#include <span>
-#include <vulkan/vulkan.h>
-
-#include <vector>
-
 #include "../buffer/CthBasicBuffer.hpp"
 
+
+#include <vulkan/vulkan.h>
+
+#include <span>
+#include <vector>
+
+
 namespace cth {
-using namespace std;
 
 
 class Descriptor;
@@ -30,7 +31,7 @@ public:
 private:
     void alloc(VkDescriptorSet set, DescriptorPool* pool);
     void deallocate();
-    [[nodiscard]] virtual vector<VkWriteDescriptorSet> writes();
+    [[nodiscard]] virtual std::vector<VkWriteDescriptorSet> writes();
 
     void clearDescriptors() { _descriptors.clear(); }
 
@@ -40,11 +41,11 @@ private:
 
 
     const DescriptorSetLayout* _layout;
-    vector<vector<Descriptor*>> _descriptors{};
-    vector<VkDescriptorBufferInfo> _bufferInfos{};
-    vector<VkDescriptorImageInfo> _imageInfos{};
+    std::vector<std::vector<Descriptor*>> _descriptors{};
+    std::vector<VkDescriptorBufferInfo> _bufferInfos{};
+    std::vector<VkDescriptorImageInfo> _imageInfos{};
 
-    ptr::mover<VkDescriptorSet_T> _vkSet = VK_NULL_HANDLE;
+    move_ptr<VkDescriptorSet_T> _vkSet = VK_NULL_HANDLE;
     bool _written = false;
 
     DescriptorPool* _pool = nullptr;
@@ -61,10 +62,10 @@ public:
         /**
          *@note in this constructor only one resource per binding can be specified
          */
-        explicit Builder(const DescriptorSetLayout* layout, span<Descriptor* const> descriptors, uint32_t binding_offset = 0);
+        explicit Builder(const DescriptorSetLayout* layout, std::span<Descriptor* const> descriptors, uint32_t binding_offset = 0);
 
         Builder& addDescriptor(Descriptor* descriptor, uint32_t binding, uint32_t arr_index = 0);
-        Builder& addDescriptors(span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first);
+        Builder& addDescriptors(std::span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first);
 
         Builder& removeDescriptor(uint32_t binding, uint32_t arr_index);
         Builder& removeDescriptors(uint32_t binding, uint32_t arr_first, uint32_t count);
@@ -73,7 +74,7 @@ public:
         void init(const DescriptorSetLayout* layout);
 
         const DescriptorSetLayout* _layout;
-        vector<vector<Descriptor*>> _descriptors{};
+        std::vector<std::vector<Descriptor*>> _descriptors{};
 
         friend DescriptorSet;
     };

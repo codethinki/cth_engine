@@ -1,22 +1,16 @@
 #include "CthRenderer.hpp"
 
-#include "interface/user/HlcCamera.hpp"
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/cmd/CthCmdPool.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/surface/CthOSWindow.hpp"
-
-#include <cth/cth_log.hpp>
-
-#include <array>
-
 #include "vulkan/surface/graphics_core/CthGraphicsSyncConfig.hpp"
 
 namespace cth {
 using std::vector;
 
-Renderer::Renderer(const BasicCore* core, DeletionQueue* deletion_queue, const Config& config) : _core(core), _deletionQueue(deletion_queue) { init(config); }
+Renderer::Renderer(const BasicCore* core, DeletionQueue* deletion_queue, const Config& config) : _core(core), _deletionQueue(deletion_queue),
+    _queues(config.queues()) { init(config); }
 Renderer::~Renderer() {
 
     std::ranges::fill(_cmdBuffers, nullptr);
@@ -25,7 +19,7 @@ Renderer::~Renderer() {
 
 
 void Renderer::wait() const {
-    VkResult result = semaphore()->wait();
+    const auto result = semaphore()->wait();
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait on current phase")
         throw except::vk_result_exception{result, details->exception()};
 }
@@ -91,11 +85,6 @@ void Renderer::createSubmitInfos(Config config) {
 
 
 
-uint32_t Renderer::frameIndex() const {
-    CTH_ERR(!_frameActive, "no frame active") throw details->exception();
-    return _frameIndex;
-}
-
 DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 
 } // namespace cth
@@ -103,7 +92,7 @@ DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 //Builder
 
 namespace cth {
-Renderer::Config Renderer::Config::Render(const BasicCore* core, DeletionQueue* deletion_queue, const Queue* graphics_queue,
+Renderer::Config Renderer::Config::Render(const Queue* graphics_queue,
     BasicGraphicsSyncConfig* sync_config) {
     Config config{};
     config.addQueue<PHASE_TRANSFER>(graphics_queue)

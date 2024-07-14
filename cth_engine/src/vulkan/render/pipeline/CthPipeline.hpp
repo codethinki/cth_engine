@@ -1,9 +1,8 @@
 #pragma once
-#include <memory>
 #include <vulkan/vulkan.h>
 
+#include <memory>
 #include <vector>
-#include<cth/cth_pointer.hpp>
 
 //TODO add support for more types of pipelines
 

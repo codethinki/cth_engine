@@ -4,7 +4,6 @@
 #include "vulkan/base/CthPhysicalDevice.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
-#include <vulkan/vulkan.h>
 
 
 namespace cth {
@@ -65,13 +64,12 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(const PhysicalDevice& physical_de
 
     return capabilities;
 }
-Surface Surface::Temp(const BasicInstance* instance) {
-    return Surface{instance, OSWindow::tempSurface(instance)};
-}
+Surface Surface::Temp(const BasicInstance* instance) { return Surface{instance, OSWindow::tempSurface(instance)}; }
 
 void Surface::debug_check(const Surface* surface) {
-    CTH_ERR(surface == nullptr, "surface invalid (nullptr)");
-    CTH_ERR(surface->get() == VK_NULL_HANDLE, "surface handle invalid (VK_NULL_HANDLE)");
+    CTH_ERR(surface == nullptr, "surface invalid (nullptr)") throw details->exception();
+    CTH_ERR(surface->get() == VK_NULL_HANDLE, "surface handle invalid (VK_NULL_HANDLE)")
+        throw details->exception();
 }
 
 

@@ -78,7 +78,7 @@ private:
     void setConstants(const Surface& surface);
 
 
-    ptr::mover<VkPhysicalDevice_T> _vkDevice;
+    move_ptr<VkPhysicalDevice_T> _vkDevice;
     const Instance* _instance;
 
     VkPhysicalDeviceFeatures _features{};
@@ -98,15 +98,26 @@ public:
     [[nodiscard]] const VkPhysicalDeviceLimits& limits() const { return _properties.limits; }
 
 
-    static constexpr std::array<std::string_view, 2> REQUIRED_DEVICE_EXTENSIONS = {
+    static constexpr std::array<std::string_view, 3> REQUIRED_DEVICE_EXTENSIONS = {
         std::string_view(VK_KHR_SWAPCHAIN_EXTENSION_NAME),
         std::string_view(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME),
     };
-    static constexpr VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES = []() {
-        VkPhysicalDeviceFeatures features{};
-        features.samplerAnisotropy = true;
-        return features;
-    }();
+
+    static constexpr VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES{
+    .samplerAnisotropy = true,
+    };
+    static constexpr VkPhysicalDeviceTimelineSemaphoreFeatures TIMELINE_SEMAPHORE_FEATURE{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR,
+        .timelineSemaphore = true
+    };
+
+    static constexpr VkPhysicalDeviceFeatures2 REQUIRED_DEVICE_FEATURES2{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR,
+        .pNext = (void*) (&TIMELINE_SEMAPHORE_FEATURE),
+        .features{
+            .samplerAnisotropy = true
+        }
+    };
 
 
 #ifdef CONSTANT_DEBUG_MODE

@@ -11,10 +11,10 @@ VkResult CmdBuffer::reset() const { return vkResetCommandBuffer(_handle.get(), 0
 VkResult CmdBuffer::reset(const VkCommandBufferResetFlags flags) const { return vkResetCommandBuffer(_handle.get(), flags); }
 VkResult CmdBuffer::end() const { return vkEndCommandBuffer(_handle.get()); }
 
-void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, span<const VkCommandBuffer> buffers) {
+void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, std::span<const VkCommandBuffer> buffers) {
     DEBUG_CHECK_DEVICE_HANDLE(device);
     const bool valid = std::ranges::all_of(buffers, [](auto buffer) { return static_cast<bool>(buffer); });
-    CTH_WARN(!valid, "> 0 vk_buffers invalid (VK_NULL_HANDLE)");
+    CTH_WARN(!valid, "> 0 vk_buffers invalid (VK_NULL_HANDLE)") {}
     CTH_ERR(valid && vk_pool == VK_NULL_HANDLE, "vk_pool is invalid (VK_NULL_HANDLE)")
         throw details->exception();
 
@@ -23,7 +23,7 @@ void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, span<const VkComman
 void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buffer) {
     DEBUG_CHECK_DEVICE_HANDLE(device);
     const bool valid = buffer != VK_NULL_HANDLE;
-    CTH_WARN(!valid, "vk_buffer is invalid (VK_NULL_HANDLE)");
+    CTH_WARN(!valid, "vk_buffer is invalid (VK_NULL_HANDLE)") {}
     CTH_ERR(valid && vk_pool != VK_NULL_HANDLE, "vk_pool is invalid (VK_NULL_HANDLE)")
         throw details->exception();
 

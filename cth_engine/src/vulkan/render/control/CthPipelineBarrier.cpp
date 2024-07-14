@@ -4,16 +4,15 @@
 #include "vulkan/resource/buffer/CthBasicBuffer.hpp"
 #include "vulkan/resource/image/CthBasicImage.hpp"
 
-#include <ranges>
 //ImageBarrier
 
 namespace cth {
 
-ImageBarrier::ImageBarrier(const PipelineStages stages, const unordered_map<BasicImage*, ImageBarrier::Info>& images) : PipelineStages(stages) {
+ImageBarrier::ImageBarrier(const PipelineStages stages, const std::unordered_map<BasicImage*, ImageBarrier::Info>& images) : PipelineStages(stages) {
     init(images);
 }
 ImageBarrier::ImageBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage,
-    const unordered_map<BasicImage*, ImageBarrier::Info>& images) : PipelineStages{src_stage, dst_stage} { init(images); }
+    const std::unordered_map<BasicImage*, ImageBarrier::Info>& images) : PipelineStages{src_stage, dst_stage} { init(images); }
 
 void ImageBarrier::add(BasicImage* image, const Info& info) {
     CTH_ERR(contains(image), "image already added, consider grouping") throw details->exception();
@@ -29,8 +28,8 @@ void ImageBarrier::add(BasicImage* image, const Info& info) {
 
 }
 void ImageBarrier::replace(BasicImage* image, const Info& info) {
-    auto&& rng = _imageBarriers | views::transform([](const auto& barrier) { return barrier.image; });
-    const auto barrierIndex = static_cast<size_t>(distance(ranges::find(rng, image->get()), std::end(rng)));
+    auto&& rng = _imageBarriers | std::views::transform([](const auto& barrier) { return barrier.image; });
+    const auto barrierIndex = static_cast<size_t>(std::distance(std::ranges::find(rng, image->get()), std::end(rng)));
 
 
     if(barrierIndex == _imageBarriers.size()) {
@@ -41,8 +40,8 @@ void ImageBarrier::replace(BasicImage* image, const Info& info) {
     _imageBarriers[barrierIndex] = info.createBarrier(*image);
 
 
-    auto images = _layoutChanges | views::values;
-    auto index = static_cast<uint32_t>(std::distance(std::begin(images), ranges::find(images, image)));
+    auto images = _layoutChanges | std::views::values;
+    const auto index = static_cast<uint32_t>(std::distance(std::begin(images), std::ranges::find(images, image)));
 
     if(index < _layoutChanges.size()) {
         if(info.newLayout == Constant::IMAGE_LAYOUT_IGNORED)
@@ -57,7 +56,7 @@ void ImageBarrier::remove(const BasicImage* image) {
 
     CTH_ERR(static_cast<size_t>(index) == _imageBarriers.size(), "image not present in barrier") throw details->exception();
 
-    _imageBarriers.erase(ranges::begin(_imageBarriers) + index);
+    _imageBarriers.erase(std::ranges::begin(_imageBarriers) + index);
 
     removeChange(index);
 }
@@ -75,25 +74,25 @@ void ImageBarrier::applyChanges() const {
         auto& barrier = _imageBarriers[index];
         auto& res = barrier.subresourceRange;
 
-        fill_n(image->_state.levelLayouts.begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
+        std::fill_n(image->_state.levelLayouts.begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
     }
 }
 
-ImageBarrier::ImageBarrier(const unordered_map<BasicImage*, ImageBarrier::Info>& images) { init(images); }
+ImageBarrier::ImageBarrier(const std::unordered_map<BasicImage*, ImageBarrier::Info>& images) { init(images); }
 ptrdiff_t ImageBarrier::find(const BasicImage* image) const {
-    auto&& rng = _imageBarriers | views::transform([](const auto& barrier) { return barrier.image; });
-    return static_cast<size_t>(distance(ranges::begin(rng), ranges::find(rng, image->get())));
+    auto&& rng = _imageBarriers | std::views::transform([](const auto& barrier) { return barrier.image; });
+    return static_cast<size_t>(std::distance(std::ranges::begin(rng), std::ranges::find(rng, image->get())));
 }
 void ImageBarrier::removeChange(const size_t barrier_index) {
-    auto&& rng = _layoutChanges | views::keys;
-    auto it = ranges::find(rng, barrier_index);
-    if(it == ranges::end(rng)) return;
+    auto&& rng = _layoutChanges | std::views::keys;
+    const auto it = std::ranges::find(rng, barrier_index);
+    if(it == std::ranges::end(rng)) return;
 
-    auto changeIndex = static_cast<size_t>(std::distance(ranges::begin(rng), it));
-    _layoutChanges.erase(ranges::begin(_layoutChanges) + changeIndex);
+    const auto changeIndex = static_cast<size_t>(std::distance(std::ranges::begin(rng), it));
+    _layoutChanges.erase(std::ranges::begin(_layoutChanges) + changeIndex);
     for(size_t i = changeIndex; i < _layoutChanges.size(); ++i) _layoutChanges[i].first--;
 }
-void ImageBarrier::init(const unordered_map<BasicImage*, ImageBarrier::Info>& images) { for(auto [image, info] : images) add(image, info); }
+void ImageBarrier::init(const std::unordered_map<BasicImage*, ImageBarrier::Info>& images) { for(auto [image, info] : images) add(image, info); }
 
 } // namespace cth
 
@@ -101,11 +100,11 @@ void ImageBarrier::init(const unordered_map<BasicImage*, ImageBarrier::Info>& im
 
 namespace cth {
 
-BufferBarrier::BufferBarrier(const PipelineStages stages, const unordered_map<const BasicBuffer*, Info>& buffers) : PipelineStages(stages) {
+BufferBarrier::BufferBarrier(const PipelineStages stages, const std::unordered_map<const BasicBuffer*, Info>& buffers) : PipelineStages(stages) {
     init(buffers);
 }
 BufferBarrier::BufferBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage,
-    const unordered_map<const BasicBuffer*, Info>& buffers) : PipelineStages{src_stage, dst_stage} { init(buffers); }
+    const std::unordered_map<const BasicBuffer*, Info>& buffers) : PipelineStages{src_stage, dst_stage} { init(buffers); }
 
 void BufferBarrier::add(const BasicBuffer* buffer, const Info& info) {
     CTH_ERR(std::ranges::contains(_buffers, buffer), "image already added, consider grouping") throw details->exception();
@@ -124,7 +123,7 @@ void BufferBarrier::add(const BasicBuffer* buffer, const Info& info) {
     _buffers.push_back(buffer);
 }
 void BufferBarrier::remove(const BasicBuffer* buffer) {
-    const auto index = ranges::find(_buffers, buffer);
+    const auto index = std::ranges::find(_buffers, buffer);
     CTH_ERR(index == std::end(_buffers), "buffer not present in barrier")
         throw details->exception();
 
@@ -135,8 +134,8 @@ void BufferBarrier::execute(const CmdBuffer& cmd_buffer) {
     vkCmdPipelineBarrier(cmd_buffer.get(), srcStage, dstStage, 0, 0, nullptr, static_cast<uint32_t>(_bufferBarriers.size()), _bufferBarriers.data(), 0,
         nullptr);
 }
-BufferBarrier::BufferBarrier(const unordered_map<const BasicBuffer*, Info>& buffers) { init(buffers); }
-void BufferBarrier::init(const unordered_map<const BasicBuffer*, Info>& buffers) { for(auto [buffer, info] : buffers) add(buffer, info); }
+BufferBarrier::BufferBarrier(const std::unordered_map<const BasicBuffer*, Info>& buffers) { init(buffers); }
+void BufferBarrier::init(const std::unordered_map<const BasicBuffer*, Info>& buffers) { for(auto [buffer, info] : buffers) add(buffer, info); }
 
 
 
@@ -146,14 +145,14 @@ void BufferBarrier::init(const unordered_map<const BasicBuffer*, Info>& buffers)
 
 namespace cth {
 
-PipelineBarrier::PipelineBarrier(const PipelineStages stages, const unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
-    const unordered_map<BasicImage*, ImageBarrier::Info>& images) : BufferBarrier(buffers), ImageBarrier(images) {
+PipelineBarrier::PipelineBarrier(const PipelineStages stages, const std::unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
+    const std::unordered_map<BasicImage*, ImageBarrier::Info>& images) : BufferBarrier(buffers), ImageBarrier(images) {
     BufferBarrier::srcStage = stages.srcStage;
     BufferBarrier::dstStage = stages.dstStage;
 }
 PipelineBarrier::PipelineBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage,
-    const unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
-    const unordered_map<BasicImage*, ImageBarrier::Info>& images) : BufferBarrier(buffers), ImageBarrier(images) {
+    const std::unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
+    const std::unordered_map<BasicImage*, ImageBarrier::Info>& images) : BufferBarrier(buffers), ImageBarrier(images) {
     BufferBarrier::srcStage = src_stage;
     BufferBarrier::dstStage = dst_stage;
 }

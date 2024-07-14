@@ -1,7 +1,6 @@
 #pragma once
 #include "vulkan/base/CthInstance.hpp"
 
-#include <cth/cth_log.hpp>
 
 
 namespace cth {
@@ -25,7 +24,7 @@ public:
     static Surface Temp(const BasicInstance* instance);
 
 private:
-    ptr::mover<VkSurfaceKHR_T> _handle = VK_NULL_HANDLE;
+    move_ptr<VkSurfaceKHR_T> _handle = VK_NULL_HANDLE;
 
     const BasicInstance* _instance;
 
