@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 #include "vulkan/debug/CthDebugMessenger.hpp"
 

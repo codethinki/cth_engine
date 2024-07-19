@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 namespace cth::vk {
 class DeletionQueue;

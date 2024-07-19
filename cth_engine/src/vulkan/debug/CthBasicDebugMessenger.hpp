@@ -1,5 +1,5 @@
 #pragma once
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 #include<cth/cth_pointer.hpp>
 
@@ -49,8 +49,8 @@ public:
 
     struct Config {
         std::function<callback_t> callback = dev::defaultDebugCallback;
-        VkDebugUtilsMessageSeverityFlagsEXT messageSeverities = constant::DEBUG_MESSAGE_SEVERITY;
-        VkDebugUtilsMessageTypeFlagsEXT messageTypes = constant::DEBUG_MESSAGE_TYPE;
+        VkDebugUtilsMessageSeverityFlagsEXT messageSeverities = constants::DEBUG_MESSAGE_SEVERITY;
+        VkDebugUtilsMessageTypeFlagsEXT messageTypes = constants::DEBUG_MESSAGE_TYPE;
 
 
         static Config Default(const std::function<callback_t>& callback = nullptr) {

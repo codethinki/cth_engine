@@ -1,6 +1,6 @@
 #pragma once
 #include "CthQueue.hpp"
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 #include<cth/cth_pointer.hpp>
 #include <vulkan/vulkan.h>

@@ -54,7 +54,7 @@
     <ClInclude Include="src\vulkan\resource\CthDeletionQueue.hpp" />
     <ClInclude Include="src\vulkan\resource\memory\CthBasicMemory.hpp" />
     <ClInclude Include="src\vulkan\base\CthQueue.hpp" />
-    <ClInclude Include="src\vulkan\utility\CthConstants.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_constants.hpp" />
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthSemaphore.hpp" />
     <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
@@ -69,11 +69,13 @@
     <ClInclude Include="src\vulkan\render\pass\CthRenderPass.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsCore.hpp" />
-    <ClInclude Include="src\vulkan\utility\cth_debug.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_debug_macros.hpp" />
     <ClInclude Include="precompile\group\std_pch.hpp" />
     <ClInclude Include="precompile\pch.hpp" />
     <ClInclude Include="precompile\util\macro.hpp" />
     <ClInclude Include="precompile\util\definition.hpp" />
+    <ClInclude Include="src\vulkan\utility\constant\cth_device_constants.hpp" />
+    <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />

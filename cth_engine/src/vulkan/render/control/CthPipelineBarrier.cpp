@@ -20,7 +20,7 @@ void ImageBarrier::add(BasicImage* image, const Info& info) {
 
     _imageBarriers.emplace_back(info.createBarrier(*image));
 
-    const bool change = info.newLayout != constant::IMAGE_LAYOUT_IGNORED;
+    const bool change = info.newLayout != constants::IMAGE_LAYOUT_IGNORED;
 
     if(!change) return;
 
@@ -44,7 +44,7 @@ void ImageBarrier::replace(BasicImage* image, const Info& info) {
     const auto index = static_cast<uint32_t>(std::distance(std::begin(images), std::ranges::find(images, image)));
 
     if(index < _layoutChanges.size()) {
-        if(info.newLayout == constant::IMAGE_LAYOUT_IGNORED)
+        if(info.newLayout == constants::IMAGE_LAYOUT_IGNORED)
             removeChange(barrierIndex);
     }
 }
@@ -181,14 +181,14 @@ VkImageMemoryBarrier ImageBarrier::Info::createBarrier(const BasicImage& image) 
         src.accessMask,
         dst.accessMask,
         image.layout(firstMipLevel),
-        newLayout == constant::IMAGE_LAYOUT_IGNORED ? image.layout(firstMipLevel) : newLayout,
+        newLayout == constants::IMAGE_LAYOUT_IGNORED ? image.layout(firstMipLevel) : newLayout,
         src.queueFamilyIndex,
         dst.queueFamilyIndex,
         image.get(),
         VkImageSubresourceRange{
-            static_cast<VkImageAspectFlags>(aspectMask == constant::ASPECT_MASK_IGNORED ? image.aspectMask() : aspectMask),
+            static_cast<VkImageAspectFlags>(aspectMask == constants::ASPECT_MASK_IGNORED ? image.aspectMask() : aspectMask),
             firstMipLevel,
-            levels == constant::ALL ? image.mipLevels() - firstMipLevel : levels,
+            levels == constants::ALL ? image.mipLevels() - firstMipLevel : levels,
             0, 1
         }};
 }

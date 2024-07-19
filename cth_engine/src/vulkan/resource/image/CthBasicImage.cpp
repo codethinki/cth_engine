@@ -133,7 +133,7 @@ void BasicImage::transitionLayout(ImageBarrier& barrier, const VkImageLayout new
 
     const auto oldLayout = _state.levelLayouts[first_mip_level];
     CTH_ERR(any_of(_state.levelLayouts.begin() + first_mip_level,
-        mip_levels == constant::ALL ? _state.levelLayouts.end() : _state.levelLayouts.begin() + first_mip_level + mip_levels,
+        mip_levels == constants::ALL ? _state.levelLayouts.end() : _state.levelLayouts.begin() + first_mip_level + mip_levels,
         [oldLayout](VkImageLayout layout) { return oldLayout != layout; }), "all transitioned layouts must be the same")
         throw details->exception();
 

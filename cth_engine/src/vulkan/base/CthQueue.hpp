@@ -2,7 +2,7 @@
 #include "CthQueueFamily.hpp"
 #include "vulkan/render/control/CthFence.hpp"
 #include "vulkan/render/control/CthWaitStage.hpp"
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 #include <cstdint>
 #include <span>

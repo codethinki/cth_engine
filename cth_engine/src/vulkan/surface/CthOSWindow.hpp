@@ -1,5 +1,5 @@
 #pragma once
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 
 #define GLFW_INCLUDE_VULKAN

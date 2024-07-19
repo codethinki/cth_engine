@@ -5,7 +5,7 @@
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/resource/memory/CthBasicMemory.hpp"
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
@@ -89,7 +89,7 @@ void BasicBuffer::destroy(DeletionQueue* deletion_queue) {
 
 
 std::span<char> BasicBuffer::map(const size_t size, const size_t offset) {
-    CTH_ERR(size + offset > _size && size != constant::WHOLE_SIZE, "memory out of bounds") throw details->exception();
+    CTH_ERR(size + offset > _size && size != constants::WHOLE_SIZE, "memory out of bounds") throw details->exception();
 
 
     if(!_state.mapped.empty() && _state.mapped.size() > offset + size) return span<char>{_state.mapped.data() + offset, size};
@@ -127,7 +127,7 @@ void BasicBuffer::copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src, cons
     CTH_ERR(!(_usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT), "dst buffer usage must be marked as transfer destination") throw details->exception();
 
 
-    const size_t copySize = (copy_size == constant::WHOLE_SIZE ? std::min(src._size - src_offset, _size - dst_offset) : copy_size);
+    const size_t copySize = (copy_size == constants::WHOLE_SIZE ? std::min(src._size - src_offset, _size - dst_offset) : copy_size);
 
     CTH_ERR(src_offset + copySize > src._size || dst_offset + copySize > _size, "copy region out of bounds") {
         if(src_offset + copySize > src._size) {
@@ -154,7 +154,7 @@ VkResult BasicBuffer::invalidate(const size_t size, const size_t offset) const {
 
 
 VkDescriptorBufferInfo BasicBuffer::descriptorInfo(const size_t size, const size_t offset) const {
-    return VkDescriptorBufferInfo{_handle.get(), offset, size == constant::WHOLE_SIZE ? _size : size};
+    return VkDescriptorBufferInfo{_handle.get(), offset, size == constants::WHOLE_SIZE ? _size : size};
 }
 
 

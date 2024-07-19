@@ -14,8 +14,8 @@ void BasicGraphicsSyncConfig::debug_check_not_null(const BasicGraphicsSyncConfig
 void BasicGraphicsSyncConfig::debug_check(const BasicGraphicsSyncConfig* config) {
     DEBUG_CHECK_SYNC_CONFIG_NOT_NULL(config);
 
-    CTH_ERR(config->renderFinishedSemaphores.size() != constant::FRAMES_IN_FLIGHT
-        || config->imageAvailableSemaphores.size() != constant::FRAMES_IN_FLIGHT,
+    CTH_ERR(config->renderFinishedSemaphores.size() != constants::FRAMES_IN_FLIGHT
+        || config->imageAvailableSemaphores.size() != constants::FRAMES_IN_FLIGHT,
         "one semaphore for each frame in flight required") {
         details->add("render finished semaphores: ({})", config->renderFinishedSemaphores.size());
         details->add("image available semaphores: ({})", config->imageAvailableSemaphores.size());
@@ -49,12 +49,12 @@ void GraphicsSyncConfig::create(const BasicCore* core, DeletionQueue* deletion_q
     _core = core;
     _deletionQueue = deletion_queue;
 
-    renderFinishedSemaphores.reserve(constant::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < constant::FRAMES_IN_FLIGHT; i++)
+    renderFinishedSemaphores.reserve(constants::FRAMES_IN_FLIGHT);
+    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
         renderFinishedSemaphores.emplace_back(new Semaphore(_core, _deletionQueue));
 
-    imageAvailableSemaphores.reserve(constant::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < constant::FRAMES_IN_FLIGHT; i++)
+    imageAvailableSemaphores.reserve(constants::FRAMES_IN_FLIGHT);
+    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
         imageAvailableSemaphores.emplace_back(new Semaphore(_core, _deletionQueue));
 }
 void GraphicsSyncConfig::destroy(DeletionQueue* deletion_queue) {

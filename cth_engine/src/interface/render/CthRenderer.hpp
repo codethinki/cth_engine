@@ -85,12 +85,12 @@ private:
     DeletionQueue* _deletionQueue;
 
     std::array<const Queue*, PHASES_SIZE> _queues{};
-    std::array<std::unique_ptr<PrimaryCmdBuffer>, PHASES_SIZE * constant::FRAMES_IN_FLIGHT> _cmdBuffers;
+    std::array<std::unique_ptr<PrimaryCmdBuffer>, PHASES_SIZE * constants::FRAMES_IN_FLIGHT> _cmdBuffers;
     std::array<std::unique_ptr<CmdPool>, PHASES_SIZE> _cmdPools;
     std::vector<Queue::SubmitInfo> _submitInfos;
 
-    std::array<size_t, constant::FRAMES_IN_FLIGHT> _stateCounters{};
-    std::array<std::unique_ptr<TimelineSemaphore>, constant::FRAMES_IN_FLIGHT> _semaphores{};
+    std::array<size_t, constants::FRAMES_IN_FLIGHT> _stateCounters{};
+    std::array<std::unique_ptr<TimelineSemaphore>, constants::FRAMES_IN_FLIGHT> _semaphores{};
 
     Phase _state = PHASE_TRANSFER;
 
@@ -100,13 +100,13 @@ private:
     [[nodiscard]] TimelineSemaphore* semaphore() const { return _semaphores[_frameIndex].get(); }
     template<Phase P> [[nodiscard]] const Queue* queue() const;
     template<Phase P> [[nodiscard]] PrimaryCmdBuffer* cmdBuffer() const;
-    template<Phase P> [[nodiscard]] Queue::SubmitInfo& submitInfo() { return _submitInfos[P * constant::FRAMES_IN_FLIGHT + _frameIndex]; }
+    template<Phase P> [[nodiscard]] Queue::SubmitInfo& submitInfo() { return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _frameIndex]; }
 
 
     //[[nodiscard]] size_t to_signal(const State state) const { return _frameStateCounter + state; }
     //void signal(const State state) const { semaphore().signal(to_signal(state)); }
-    [[nodiscard]] std::array<PipelineWaitStage, constant::FRAMES_IN_FLIGHT> createWaitSet() const;
-    [[nodiscard]] std::array<BasicSemaphore*, constant::FRAMES_IN_FLIGHT> createSignalSet() const;
+    [[nodiscard]] std::array<PipelineWaitStage, constants::FRAMES_IN_FLIGHT> createWaitSet() const;
+    [[nodiscard]] std::array<BasicSemaphore*, constants::FRAMES_IN_FLIGHT> createSignalSet() const;
 
 #ifdef CONSTANT_DEBUG_MODE
     template<Phase P>
@@ -154,7 +154,7 @@ namespace cth::vk {
  * @note \b set:  collection of sync primitives, one for each frame in constant::FRAMES_IN_FLIGHT
  */
 struct Renderer::Config {
-    static constexpr size_t SET_SIZE = constant::FRAMES_IN_FLIGHT;
+    static constexpr size_t SET_SIZE = constants::FRAMES_IN_FLIGHT;
 
     static Config Render(const Queue* graphics_queue, BasicGraphicsSyncConfig* sync_config);
 

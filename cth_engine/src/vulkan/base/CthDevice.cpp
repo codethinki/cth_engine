@@ -56,11 +56,11 @@ void Device::createLogicalDevice() {
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-    vector<const char*> deviceExtensions(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS.size());
-    std::ranges::transform(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS, deviceExtensions.begin(), [](const string_view ext) { return ext.data(); });
+    vector<const char*> deviceExtensions(constants::REQUIRED_DEVICE_EXTENSIONS.size());
+    std::ranges::transform(constants::REQUIRED_DEVICE_EXTENSIONS, deviceExtensions.begin(), [](const string_view ext) { return ext.data(); });
 
-    createInfo.pEnabledFeatures = &PhysicalDevice::REQUIRED_DEVICE_FEATURES;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS.size());
+    createInfo.pEnabledFeatures = &constants::REQUIRED_DEVICE_FEATURES;
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(constants::REQUIRED_DEVICE_EXTENSIONS.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
     VkDevice ptr = VK_NULL_HANDLE;

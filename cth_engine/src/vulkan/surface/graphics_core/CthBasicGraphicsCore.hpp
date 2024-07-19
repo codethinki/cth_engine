@@ -7,8 +7,8 @@
 #include "CthGraphicsSyncConfig.hpp"
 #include "../swapchain/CthBasicSwapchain.hpp"
 #include "vulkan/base/CthQueue.hpp"
-#include "vulkan/utility/CthConstants.hpp"
-#include "vulkan/utility/cth_debug.hpp"
+#include "vulkan/utility/cth_constants.hpp"
+#include "vulkan/utility/cth_debug_macros.hpp"
 
 
 

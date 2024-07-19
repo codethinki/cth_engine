@@ -1,5 +1,5 @@
 #pragma once
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 #include <cth/cth_type_trait.hpp>
 #include <vulkan/vulkan.h>
@@ -43,7 +43,7 @@ private:
         deletable_handle_t dependency;
     };
 
-    static constexpr size_t QUEUES = constant::FRAMES_IN_FLIGHT;
+    static constexpr size_t QUEUES = constants::FRAMES_IN_FLIGHT;
 
     uint32_t _frame = 0;
     BasicCore* _core; //temp make this const_ptr

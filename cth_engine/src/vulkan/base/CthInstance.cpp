@@ -1,8 +1,8 @@
 #include "CthInstance.hpp"
 
 #include "vulkan/resource/CthDeletionQueue.hpp"
-#include "vulkan/utility/CthConstants.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 #ifdef CONSTANT_DEBUG_MODE
 #include "../debug/CthBasicDebugMessenger.hpp"
@@ -52,7 +52,7 @@ void BasicInstance::create(const std::optional<BasicDebugMessenger::Config>& mes
     createInfo.enabledLayerCount = 0;
     createInfo.pNext = nullptr;
 
-    if constexpr(constant::ENABLE_VALIDATION_LAYERS)
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS)
         if(messenger_config != std::nullopt) {
             VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 
@@ -91,7 +91,7 @@ void BasicInstance::checkInstanceExtensionSupport() {
     }
 }
 void BasicInstance::checkValidationLayerSupport() {
-    if constexpr(constant::ENABLE_VALIDATION_LAYERS) {
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         vector<string> missingLayers{};
 
         std::ranges::for_each(VALIDATION_LAYERS, [&](const string_view layer) {
@@ -169,7 +169,7 @@ namespace cth::vk {
 using namespace std;
 
 Instance::Instance(const string_view app_name, const span<const string> required_extensions) : BasicInstance(app_name, required_extensions) {
-    if constexpr(constant::ENABLE_VALIDATION_LAYERS) {
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         _availableLayers = getAvailableValidationLayers();
         checkValidationLayerSupport();
 

@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "vulkan/resource/buffer/CthBasicBuffer.hpp"
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 
 namespace cth::vk {
@@ -58,7 +58,7 @@ public:
     struct Config {
         size_t maxPrimaryBuffers = 0;
         size_t maxSecondaryBuffers = 0;
-        uint32_t queueFamilyIndex = constant::QUEUE_FAMILY_IGNORED;
+        uint32_t queueFamilyIndex = constants::QUEUE_FAMILY_IGNORED;
         VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
         static Config Default(const uint32_t queue_family_index, const uint32_t max_primary_buffers, const uint32_t max_secondary_buffers) {

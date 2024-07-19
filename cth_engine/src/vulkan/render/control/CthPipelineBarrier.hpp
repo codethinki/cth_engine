@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "vulkan/base/CthQueue.hpp"
-#include "vulkan/utility/CthConstants.hpp"
+#include "vulkan/utility/cth_constants.hpp"
 
 namespace cth::vk {
 class Queue;
@@ -22,13 +22,13 @@ class PipelineBarrier;
 
 struct PipelineStages {
 
-    VkPipelineStageFlags srcStage = constant::PIPELINE_STAGE_IGNORED;
-    VkPipelineStageFlags dstStage = constant::PIPELINE_STAGE_IGNORED;
+    VkPipelineStageFlags srcStage = constants::PIPELINE_STAGE_IGNORED;
+    VkPipelineStageFlags dstStage = constants::PIPELINE_STAGE_IGNORED;
 };
 
 struct PipelineAccess {
-    VkAccessFlags accessMask = constant::DEFAULT_ACCESS;
-    uint32_t queueFamilyIndex = constant::QUEUE_FAMILY_IGNORED;
+    VkAccessFlags accessMask = constants::DEFAULT_ACCESS;
+    uint32_t queueFamilyIndex = constants::QUEUE_FAMILY_IGNORED;
 };
 } // namespace cth
 
@@ -153,10 +153,10 @@ namespace cth::vk {
 struct ImageBarrier::Info {
 
 
-    VkImageAspectFlagBits aspectMask = constant::ASPECT_MASK_IGNORED; //Constants::ASPECT_MASK_IGNORED => image default aspect
+    VkImageAspectFlagBits aspectMask = constants::ASPECT_MASK_IGNORED; //Constants::ASPECT_MASK_IGNORED => image default aspect
     uint32_t firstMipLevel = 0;
-    uint32_t levels = constant::ALL; //Constants::ALL => all remaining
-    VkImageLayout newLayout = constant::IMAGE_LAYOUT_IGNORED; //Constants::IMAGE_LAYOUT_IGNORED => old layout
+    uint32_t levels = constants::ALL; //Constants::ALL => all remaining
+    VkImageLayout newLayout = constants::IMAGE_LAYOUT_IGNORED; //Constants::IMAGE_LAYOUT_IGNORED => old layout
 
     PipelineAccess src;
     PipelineAccess dst;

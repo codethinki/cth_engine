@@ -79,7 +79,9 @@
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.hpp" />
     <ClInclude Include="src\vulkan\surface\swapchain\CthSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthBasicGraphicsCore.hpp" />
-    <ClInclude Include="src\vulkan\utility\CthConstants.hpp" />
+    <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
+    <ClInclude Include="src\vulkan\utility\constant\cth_device_constants.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_constants.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthImageView.hpp" />
     <ClInclude Include="src\vulkan\render\pipeline\CthPipeline.hpp" />
     <ClInclude Include="src\vulkan\render\pipeline\layout\CthDescriptorSetLayout.hpp" />
@@ -99,7 +101,7 @@
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
     <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
-    <ClInclude Include="src\vulkan\utility\cth_debug.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_debug_macros.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />

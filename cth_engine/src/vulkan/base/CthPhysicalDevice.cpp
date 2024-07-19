@@ -64,7 +64,7 @@ unique_ptr<PhysicalDevice> PhysicalDevice::autoPick(const Instance* instance, co
 
 }
 unique_ptr<PhysicalDevice> PhysicalDevice::autoPick(const Instance& instance, const std::span<const Queue> queues) {
-    return autoPick(&instance, REQUIRED_DEVICE_FEATURES, REQUIRED_DEVICE_EXTENSIONS, enumerateDevices(instance), queues);
+    return autoPick(&instance, constants::REQUIRED_DEVICE_FEATURES, constants::REQUIRED_DEVICE_EXTENSIONS, enumerateDevices(instance), queues);
 }
 
 
