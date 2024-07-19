@@ -7,7 +7,7 @@
 #include<cth/cth_pointer.hpp>
 
 //TEMP add basic variant without raii
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 
 //TODO create a ShaderStageCollection class for managing shaders and the descriptor layout
@@ -45,7 +45,7 @@ public:
 
 //Builder
 
-namespace cth {
+namespace cth::vk {
 struct DescriptorSetLayout::Builder {
     Builder() = default;
     Builder& addBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags flags, uint32_t count = 1);

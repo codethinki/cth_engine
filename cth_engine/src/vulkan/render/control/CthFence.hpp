@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 class DeletionQueue;
 
@@ -80,7 +80,7 @@ public:
 };
 }
 
-namespace cth {
+namespace cth::vk {
 class Fence : public BasicFence {
 public:
     explicit Fence(const BasicCore* core, DeletionQueue* deletion_queue, VkFenceCreateFlags flags = 0);

@@ -3,7 +3,7 @@
 #include "../object/HlcStandardObject.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 void InputController::moveByKeys(const float dt, const std::unique_ptr<StandardObject>& object) const {
     const float yaw = object->_transform.rotation.y;
     const glm::vec3 forwardDir{sin(yaw), 0.f, cos(yaw)};

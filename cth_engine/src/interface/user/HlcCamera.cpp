@@ -1,7 +1,7 @@
 #include "HlcCamera.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 void Camera::setOrthographicProjection(const float left, const float right, const float top, const float bottom, const float near, const float far) {
     _projectionMatrix = glm::mat4{1.0f};
     _projectionMatrix[0][0] = 2.f / (right - left);

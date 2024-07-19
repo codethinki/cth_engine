@@ -4,7 +4,7 @@
 #include <string>
 
 
-namespace cth {
+namespace cth::vk {
 
 class ModelManager;
 

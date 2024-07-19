@@ -6,7 +6,7 @@
 #include "vulkan/surface/CthOSWindow.hpp"
 #include "vulkan/surface/graphics_core/CthGraphicsSyncConfig.hpp"
 
-namespace cth {
+namespace cth::vk {
 using std::vector;
 
 Renderer::Renderer(const BasicCore* core, DeletionQueue* deletion_queue, const Config& config) : _core(core), _deletionQueue(deletion_queue),
@@ -34,11 +34,11 @@ void Renderer::init(const Config& config) {
 
 void Renderer::createCmdPools() {
     for(size_t i = PHASES_FIRST; i < PHASES_LAST; ++i)
-        _cmdPools[i] = std::make_unique<CmdPool>(_core, CmdPool::Config::Default(_queues[i]->familyIndex(), Constant::FRAMES_IN_FLIGHT + 1, 0));
+        _cmdPools[i] = std::make_unique<CmdPool>(_core, CmdPool::Config::Default(_queues[i]->familyIndex(), constant::FRAMES_IN_FLIGHT + 1, 0));
 }
 void Renderer::createPrimaryCmdBuffers() {
     for(size_t i = PHASES_FIRST; i < PHASES_LAST; ++i)
-        for(size_t j = 0; j < Constant::FRAMES_IN_FLIGHT; ++j)
+        for(size_t j = 0; j < constant::FRAMES_IN_FLIGHT; ++j)
             _cmdBuffers[i * PHASES_SIZE + j] = std::make_unique<PrimaryCmdBuffer>(_cmdPools[i].get());
 }
 void Renderer::createSyncObjects() {
@@ -48,16 +48,16 @@ void Renderer::createSyncObjects() {
 }
 
 
-std::array<PipelineWaitStage, Constant::FRAMES_IN_FLIGHT> Renderer::createWaitSet() const {
-    std::array<PipelineWaitStage, Constant::FRAMES_IN_FLIGHT> stages{};
+std::array<PipelineWaitStage, constant::FRAMES_IN_FLIGHT> Renderer::createWaitSet() const {
+    std::array<PipelineWaitStage, constant::FRAMES_IN_FLIGHT> stages{};
     for(auto [stage, semaphore] : std::views::zip(stages, _semaphores)) {
         stage.stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
         stage.semaphore = semaphore.get();
     }
     return stages;
 }
-std::array<BasicSemaphore*, Constant::FRAMES_IN_FLIGHT> Renderer::createSignalSet() const {
-    std::array<BasicSemaphore*, Constant::FRAMES_IN_FLIGHT> semaphores{};
+std::array<BasicSemaphore*, constant::FRAMES_IN_FLIGHT> Renderer::createSignalSet() const {
+    std::array<BasicSemaphore*, constant::FRAMES_IN_FLIGHT> semaphores{};
     for(auto [dst, src] : std::views::zip(semaphores, _semaphores))
         dst = src.get();
 
@@ -91,7 +91,7 @@ DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 
 //Builder
 
-namespace cth {
+namespace cth::vk {
 Renderer::Config Renderer::Config::Render(const Queue* graphics_queue,
     BasicGraphicsSyncConfig* sync_config) {
     Config config{};
@@ -234,7 +234,7 @@ std::array<const Queue*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //            throw cth::except::vk_result_exception{submitResult, details->exception()};
 //
 //    _frameStarted = false;
-//    ++_currentFrameIndex %= Constant::MAX_FRAMES_IN_FLIGHT;
+//    ++_currentFrameIndex %= constant::MAX_FRAMES_IN_FLIGHT;
 //}
 
 

@@ -13,7 +13,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityF
     void* user_data);
 }
 
-namespace cth {
+namespace cth::vk {
 class BasicInstance;
 class DeletionQueue;
 
@@ -49,8 +49,8 @@ public:
 
     struct Config {
         std::function<callback_t> callback = dev::defaultDebugCallback;
-        VkDebugUtilsMessageSeverityFlagsEXT messageSeverities = Constant::DEBUG_MESSAGE_SEVERITY;
-        VkDebugUtilsMessageTypeFlagsEXT messageTypes = Constant::DEBUG_MESSAGE_TYPE;
+        VkDebugUtilsMessageSeverityFlagsEXT messageSeverities = constant::DEBUG_MESSAGE_SEVERITY;
+        VkDebugUtilsMessageTypeFlagsEXT messageTypes = constant::DEBUG_MESSAGE_TYPE;
 
 
         static Config Default(const std::function<callback_t>& callback = nullptr) {

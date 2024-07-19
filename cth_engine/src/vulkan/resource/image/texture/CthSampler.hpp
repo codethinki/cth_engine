@@ -5,7 +5,7 @@
 
 #include "vulkan/resource/buffer/CthBasicBuffer.hpp"
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 
 class Sampler {
@@ -33,7 +33,7 @@ public:
 }
 
 //Config
-namespace cth {
+namespace cth::vk {
 
 
 struct Sampler::Config {

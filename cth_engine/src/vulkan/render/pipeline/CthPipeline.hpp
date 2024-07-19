@@ -6,7 +6,7 @@
 
 //TODO add support for more types of pipelines
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 
 class PipelineLayout;
@@ -55,7 +55,7 @@ public:
 
 //Config
 
-namespace cth {
+namespace cth::vk {
 struct Pipeline::GraphicsConfig {
     void addShaderStage(const Shader* shader, const ShaderSpecialization* specialization_info = nullptr,
         VkPipelineShaderStageCreateFlags flags = 0);

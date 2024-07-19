@@ -8,7 +8,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 
 
 BasicMemory::BasicMemory(const BasicCore* core, const VkMemoryPropertyFlags vk_properties) : _core(core), _vkProperties(vk_properties) { init(); }

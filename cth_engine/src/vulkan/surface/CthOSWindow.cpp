@@ -9,7 +9,7 @@
 #include <vulkan/vulkan_win32.h>
 
 
-namespace cth {
+namespace cth::vk {
 OSWindow::OSWindow(const std::string_view name, const uint32_t width, const uint32_t height, const BasicInstance* instance) : _windowName{name},
     _width(static_cast<int>(width)), _height(static_cast<int>(height)) {
     initWindow();
@@ -85,7 +85,7 @@ void OSWindow::framebufferResizeCallback(const int new_width, const int new_heig
 
 //static methods
 
-namespace cth {
+namespace cth::vk {
 void OSWindow::setGLFWWindowHints() {
     //const vector windowIcons = loadWindowIcons();
     //glfwSetWindowIcon(hlcWindow, static_cast<int>(windowIcons.size()), windowIcons.data());

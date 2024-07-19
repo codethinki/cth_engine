@@ -4,7 +4,7 @@
 #include "CthInstance.hpp"
 #include "CthPhysicalDevice.hpp"
 
-namespace cth {
+namespace cth::vk {
 void BasicCore::wrap(const move_ptr<BasicInstance> instance, const move_ptr<PhysicalDevice> physical_device,
     const move_ptr<Device> device) {
     DEBUG_CHECK_INSTANCE(instance.get());
@@ -64,7 +64,7 @@ void BasicCore::debug_check_leak(const BasicCore* core) {
 }
 
 
-namespace cth {
+namespace cth::vk {
 Core::Core(const Config& config) { BasicCore::create(config); }
 Core::~Core() {
     Core::destroy();

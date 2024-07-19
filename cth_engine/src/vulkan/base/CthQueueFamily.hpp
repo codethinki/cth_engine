@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vulkan/vulkan.h>
 
-namespace cth {
+namespace cth::vk {
 enum QueueFamilyPropertyFlagBits : uint32_t {
     QUEUE_FAMILY_PROPERTY_GRAPHICS = VK_QUEUE_GRAPHICS_BIT,
     QUEUE_FAMILY_PROPERTY_COMPUTE = VK_QUEUE_COMPUTE_BIT,

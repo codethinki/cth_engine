@@ -6,7 +6,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 using std::vector;
 
 Surface::~Surface() {

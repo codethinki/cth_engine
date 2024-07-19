@@ -6,7 +6,7 @@
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 
 
 BasicSemaphore::BasicSemaphore(const BasicCore* core) : _core(core) {}
@@ -67,7 +67,7 @@ void BasicSemaphore::debug_check_leak(const BasicSemaphore* semaphore) {
 } //namespace cth
 
 
-namespace cth {
+namespace cth::vk {
 Semaphore::Semaphore(const BasicCore* core, DeletionQueue* deletion_queue, const bool create) : BasicSemaphore(core), _deletionQueue(deletion_queue) {
     if(create) BasicSemaphore::create();
 }

@@ -5,7 +5,7 @@
 #include "vulkan/resource/CthDeletionQueue.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 #ifdef CONSTANT_DEBUG_MODE
 void BasicGraphicsSyncConfig::debug_check_not_null(const BasicGraphicsSyncConfig* config) {
     CTH_ERR(config == nullptr, "sync config must not be nullptr")
@@ -14,8 +14,8 @@ void BasicGraphicsSyncConfig::debug_check_not_null(const BasicGraphicsSyncConfig
 void BasicGraphicsSyncConfig::debug_check(const BasicGraphicsSyncConfig* config) {
     DEBUG_CHECK_SYNC_CONFIG_NOT_NULL(config);
 
-    CTH_ERR(config->renderFinishedSemaphores.size() != Constant::FRAMES_IN_FLIGHT
-        || config->imageAvailableSemaphores.size() != Constant::FRAMES_IN_FLIGHT,
+    CTH_ERR(config->renderFinishedSemaphores.size() != constant::FRAMES_IN_FLIGHT
+        || config->imageAvailableSemaphores.size() != constant::FRAMES_IN_FLIGHT,
         "one semaphore for each frame in flight required") {
         details->add("render finished semaphores: ({})", config->renderFinishedSemaphores.size());
         details->add("image available semaphores: ({})", config->imageAvailableSemaphores.size());
@@ -29,7 +29,7 @@ void BasicGraphicsSyncConfig::debug_check(const BasicGraphicsSyncConfig* config)
 #endif
 } //namespace cth
 
-namespace cth {
+namespace cth::vk {
 
 
 GraphicsSyncConfig::GraphicsSyncConfig(const BasicCore* core, DeletionQueue* deletion_queue) {
@@ -49,12 +49,12 @@ void GraphicsSyncConfig::create(const BasicCore* core, DeletionQueue* deletion_q
     _core = core;
     _deletionQueue = deletion_queue;
 
-    renderFinishedSemaphores.reserve(Constant::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < Constant::FRAMES_IN_FLIGHT; i++)
+    renderFinishedSemaphores.reserve(constant::FRAMES_IN_FLIGHT);
+    for(size_t i = 0; i < constant::FRAMES_IN_FLIGHT; i++)
         renderFinishedSemaphores.emplace_back(new Semaphore(_core, _deletionQueue));
 
-    imageAvailableSemaphores.reserve(Constant::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < Constant::FRAMES_IN_FLIGHT; i++)
+    imageAvailableSemaphores.reserve(constant::FRAMES_IN_FLIGHT);
+    for(size_t i = 0; i < constant::FRAMES_IN_FLIGHT; i++)
         imageAvailableSemaphores.emplace_back(new Semaphore(_core, _deletionQueue));
 }
 void GraphicsSyncConfig::destroy(DeletionQueue* deletion_queue) {

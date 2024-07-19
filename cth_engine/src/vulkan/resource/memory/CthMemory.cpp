@@ -2,7 +2,7 @@
 
 
 //Memory
-namespace cth {
+namespace cth::vk {
 Memory::Memory(const BasicCore* core, DeletionQueue* deletion_queue, const VkMemoryPropertyFlags properties) : BasicMemory(core, properties),
     _deletionQueue(deletion_queue) {}
 Memory::Memory(const BasicCore* core, DeletionQueue* deletion_queue, const VkMemoryPropertyFlags properties, const size_t size, VkDeviceMemory memory) :

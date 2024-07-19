@@ -9,7 +9,7 @@
 #include <vector>
 
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 
 class DeletionQueue {
@@ -43,7 +43,7 @@ private:
         deletable_handle_t dependency;
     };
 
-    static constexpr size_t QUEUES = Constant::FRAMES_IN_FLIGHT;
+    static constexpr size_t QUEUES = constant::FRAMES_IN_FLIGHT;
 
     uint32_t _frame = 0;
     BasicCore* _core; //temp make this const_ptr

@@ -1,7 +1,7 @@
 #pragma once
 #include "CthBasicSwapchain.hpp"
 //
-//namespace cth {
+//namespace cth::vk {
 //    //TEMP dont continue until the basic swapchain is finished
 //
 //    class Swapchain : public BasicSwapchain {

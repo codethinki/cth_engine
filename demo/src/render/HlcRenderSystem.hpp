@@ -11,16 +11,21 @@
 
 
 namespace cth {
-class Shader;
-class PipelineLayout;
-class Pipeline;
-class DescriptorSetLayout;
-class DescriptorPool;
-class DescriptorSet;
-class TextureDescriptor;
-class ImageView;
-class Texture;
-class Sampler;
+namespace vk {
+    class Texture;
+    class Shader;
+    class PipelineLayout;
+    class Pipeline;
+    class DescriptorSetLayout;
+    class DescriptorPool;
+    class DescriptorSet;
+    class TextureDescriptor;
+    class ImageView;
+    class Texture;
+    class Sampler;
+}
+
+
 
 
 
@@ -31,7 +36,7 @@ inline constexpr std::string_view TEXTURE_DIR = R"(res\img\texture\)";
 
 class RenderSystem {
 public:
-    RenderSystem(const BasicCore* core, DeletionQueue* deletion_queue, const PrimaryCmdBuffer& init_cmd_buffer, VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
+    RenderSystem(const vk::BasicCore* core, vk::DeletionQueue* deletion_queue, const vk::PrimaryCmdBuffer& init_cmd_buffer, VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
     ~RenderSystem() = default;
 
     void render(FrameInfo& frame_info) const;
@@ -45,30 +50,30 @@ private:
 
     void createDescriptorPool();
 
-    void loadDescriptorData(const CmdBuffer& init_cmd_buffer, DeletionQueue* deletion_queue);
+    void loadDescriptorData(const vk::CmdBuffer& init_cmd_buffer, vk::DeletionQueue* deletion_queue);
 
     void createDescriptorSets();
 
     //TEMP replace this with actual model loading
-    void createDefaultTriangle(const CmdBuffer& cmd_buffer, DeletionQueue* deletion_queue);
+    void createDefaultTriangle(const vk::CmdBuffer& cmd_buffer, vk::DeletionQueue* deletion_queue);
 
-    const BasicCore* _core;
-    std::unique_ptr<PipelineLayout> _pipelineLayout;
-    std::unique_ptr<Pipeline> _pipeline;
+    const vk::BasicCore* _core;
+    std::unique_ptr<vk::PipelineLayout> _pipelineLayout;
+    std::unique_ptr<vk::Pipeline> _pipeline;
 
-    std::unique_ptr<Shader> _vertexShader, _fragmentShader;
+    std::unique_ptr<vk::Shader> _vertexShader, _fragmentShader;
 
     //TEMP replaced with actual model data once ready
-    std::unique_ptr<Buffer<Vertex>> _defaultTriangleBuffer{};
+    std::unique_ptr<vk::Buffer<vk::Vertex>> _defaultTriangleBuffer{};
 
-    std::unique_ptr<DescriptorSetLayout> _descriptorSetLayout;
-    std::unique_ptr<DescriptorPool> _descriptorPool;
-    std::unique_ptr<DescriptorSet> _descriptorSet;
-    std::unique_ptr<TextureDescriptor> _textureDescriptor;
+    std::unique_ptr<vk::DescriptorSetLayout> _descriptorSetLayout;
+    std::unique_ptr<vk::DescriptorPool> _descriptorPool;
+    std::unique_ptr<vk::DescriptorSet> _descriptorSet;
+    std::unique_ptr<vk::TextureDescriptor> _textureDescriptor;
 
-    std::unique_ptr<Texture> _texture;
-    std::unique_ptr<ImageView> _textureView;
-    std::unique_ptr<Sampler> _textureSampler;
+    std::unique_ptr<vk::Texture> _texture;
+    std::unique_ptr<vk::ImageView> _textureView;
+    std::unique_ptr<vk::Sampler> _textureSampler;
 
 public:
     RenderSystem(const RenderSystem& other) = delete;

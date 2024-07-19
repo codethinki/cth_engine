@@ -4,7 +4,7 @@
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 TimelineSemaphore::TimelineSemaphore(const BasicCore* core, DeletionQueue* deletion_queue, const bool create) : Semaphore(core, deletion_queue, false) {
     if(create) BasicSemaphore::createHandle(TimelineSemaphore::createInfo());
 }

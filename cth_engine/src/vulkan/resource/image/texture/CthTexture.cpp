@@ -4,7 +4,7 @@
 #include "vulkan/render/control/CthPipelineBarrier.hpp"
 #include "vulkan/resource/buffer/CthBuffer.hpp"
 
-namespace cth {
+namespace cth::vk {
 
 
 Texture::Texture(const BasicCore* core, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,

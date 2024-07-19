@@ -11,7 +11,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class BasicMemory;
 class CmdBuffer;
 class BasicCore;
@@ -116,7 +116,7 @@ public:
     * @param src_offset in bytes
     * @param dst_offset in bytes
      */
-    void copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src, size_t copy_size = Constant::WHOLE_SIZE, size_t src_offset = 0,
+    void copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src, size_t copy_size = constant::WHOLE_SIZE, size_t src_offset = 0,
         size_t dst_offset = 0) const;
 
 
@@ -125,14 +125,14 @@ public:
      * @param size in bytes, Constants::WHOLE_SIZE -> whole buffer
      * @param offset in bytes
      */
-    [[nodiscard]] VkResult flush(size_t size = Constant::WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] VkResult flush(size_t size = constant::WHOLE_SIZE, size_t offset = 0) const;
 
     /**
     * @param size in elements
     * @param offset in elements
     * @return result of vkInvalidateMappedMemoryRanges()
     */
-    [[nodiscard]] VkResult invalidate(size_t size = Constant::WHOLE_SIZE, size_t offset = 0) const;
+    [[nodiscard]] VkResult invalidate(size_t size = constant::WHOLE_SIZE, size_t offset = 0) const;
 
 
     /**

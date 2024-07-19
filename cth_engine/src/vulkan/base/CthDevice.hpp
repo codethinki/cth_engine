@@ -11,7 +11,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 class Surface;
 class Instance;

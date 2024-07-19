@@ -6,7 +6,7 @@
 //
 //
 //
-//namespace cth {
+//namespace cth::vk {
 //
 //ModelManager::ModelManager(const string& model_list_dir) {
 //	loadModelList(model_list_dir);

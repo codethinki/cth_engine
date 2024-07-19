@@ -5,7 +5,7 @@
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 
 DescriptorSetLayout::DescriptorSetLayout(const BasicCore* core, const Builder& builder) : _core(core), _vkBindings(builder.bindings()) { create(); }
 DescriptorSetLayout::~DescriptorSetLayout() {
@@ -34,7 +34,7 @@ void DescriptorSetLayout::create() {
 
 //Builder
 
-namespace cth {
+namespace cth::vk {
 
 DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(const uint32_t binding, const VkDescriptorType type,
     const VkShaderStageFlags flags, const uint32_t count) {

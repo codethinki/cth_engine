@@ -7,7 +7,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 
 struct PushConstants {
     glm::mat4 matrix;

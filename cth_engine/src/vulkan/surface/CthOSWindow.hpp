@@ -10,7 +10,7 @@
 #include <vector>
 
 
-namespace cth {
+namespace cth::vk {
 class BasicInstance;
 class Surface;
 //TODO implement DEBUG_CHECK_OS_WINDOW

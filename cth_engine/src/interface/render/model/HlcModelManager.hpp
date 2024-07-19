@@ -7,7 +7,7 @@
 //#include <tiny_obj_loader.h>
 //#include<glm/glm.hpp>
 //
-//namespace cth {
+//namespace cth::vk {
 //using namespace std;
 //
 //class RenderObject;

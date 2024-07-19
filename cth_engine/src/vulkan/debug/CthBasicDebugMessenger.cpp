@@ -6,7 +6,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 
 void BasicDebugMessenger::create(const BasicInstance* instance) {
     _instance = instance;
@@ -62,7 +62,7 @@ void BasicDebugMessenger::debug_check_leak(const BasicDebugMessenger* debug_mess
 
 //Config
 
-namespace cth {
+namespace cth::vk {
 VkDebugUtilsMessengerCreateInfoEXT BasicDebugMessenger::Config::createInfo() const {
     VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;

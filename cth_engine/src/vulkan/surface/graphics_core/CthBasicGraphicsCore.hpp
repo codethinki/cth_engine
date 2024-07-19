@@ -12,7 +12,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 class DeletionQueue;
 class Surface;

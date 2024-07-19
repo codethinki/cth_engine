@@ -2,7 +2,7 @@
 
 #include "vulkan/surface/CthOSWindow.hpp"
 
-namespace cth {
+namespace cth::vk {
 void Engine::terminate() {
     cth::log::msg<except::INFO>("terminating engine...");
 

@@ -3,7 +3,7 @@
 
 #include<span>
 
-namespace cth {
+namespace cth::vk {
 class TimelineSemaphore : public Semaphore {
 public:
     explicit TimelineSemaphore(const BasicCore* core, DeletionQueue* deletion_queue, bool create = true);

@@ -25,18 +25,18 @@ void App::run() {
 void App::initFrame() {
     _graphicsCore->acquireFrame();
 
-    auto* initCmdBuffer = _renderer->begin<Renderer::PHASE_TRANSFER>();
+    auto* initCmdBuffer = _renderer->begin<vk::Renderer::PHASE_TRANSFER>();
     initRenderSystem(*initCmdBuffer);
-    _renderer->end<Renderer::PHASE_TRANSFER>();
+    _renderer->end<vk::Renderer::PHASE_TRANSFER>();
 
-    _renderer->skip<Renderer::PHASE_GRAPHICS>();
+    _renderer->skip<vk::Renderer::PHASE_GRAPHICS>();
     _graphicsCore->presentFrame(_deletionQueue.get());
 }
 
 void App::renderFrame() {
     _graphicsCore->acquireFrame();
 
-    _renderer->skip<Renderer::PHASE_TRANSFER>();
+    _renderer->skip<vk::Renderer::PHASE_TRANSFER>();
 
     graphicsPhase();
 
@@ -45,7 +45,7 @@ void App::renderFrame() {
     _frameIndex++;
 }
 void App::graphicsPhase() const {
-    auto* cmdBuffer = _renderer->begin<Renderer::PHASE_GRAPHICS>();
+    auto* cmdBuffer = _renderer->begin<vk::Renderer::PHASE_GRAPHICS>();
 
 
     FrameInfo info = {_renderer->frameIndex(), 0.f, cmdBuffer};
@@ -55,18 +55,18 @@ void App::graphicsPhase() const {
     _renderSystem->render(info);
 
 
-    _renderer->end<Renderer::PHASE_GRAPHICS>();
+    _renderer->end<vk::Renderer::PHASE_GRAPHICS>();
 }
 
 
-void App::initRenderSystem(PrimaryCmdBuffer& cmd_buffer) {
+void App::initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer) {
     _renderSystem = std::make_unique<RenderSystem>(_core.get(), _deletionQueue.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(), _graphicsCore->msaaSamples());
 }
 
 
 
 std::vector<std::string> App::getRequiredInstanceExtensions() {
-    auto extensions = OSWindow::getGLFWInstanceExtensions();
+    auto extensions = vk::OSWindow::getGLFWInstanceExtensions();
     return extensions;
 }
 

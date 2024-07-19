@@ -11,7 +11,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class Device;
 class ImageView;
 class BasicBuffer;
@@ -90,13 +90,13 @@ public:
      * @brief transitions the image layout via a pipeline barrier
      * @param mip_levels (Constants::ALL => all remaining)
      */
-    void transitionLayout(const CmdBuffer& cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = Constant::ALL);
+    void transitionLayout(const CmdBuffer& cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = constant::ALL);
     /**
     * @brief adds the transition to the pipeline barrier
     * @param mip_levels (Constants::ALL => all remaining)
     */
     void transitionLayout(ImageBarrier& barrier, VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access,
-        uint32_t first_mip_level = 0, uint32_t mip_levels = Constant::ALL);
+        uint32_t first_mip_level = 0, uint32_t mip_levels = constant::ALL);
 
 
     static void destroy(VkDevice vk_device, VkImage vk_image);

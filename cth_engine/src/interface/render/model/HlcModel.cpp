@@ -2,7 +2,7 @@
 
 
 
-//namespace cth {
+//namespace cth::vk {
 
 //Model::Model(ModelManager* manager, const string& name, const uint32_t id, const string& filepath, const string& mtl_base_dir) : name(name), id(id),
 //	path(filepath), mtlBaseDir(mtl_base_dir), manager(manager) { assert(!filepath.empty() && "empty path provided"); }

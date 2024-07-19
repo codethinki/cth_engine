@@ -9,7 +9,7 @@
 
 //DescriptorSet
 
-namespace cth {
+namespace cth::vk {
 DescriptorSet::DescriptorSet(const Builder& builder) : _layout(builder._layout), _descriptors(builder._descriptors) { copyInfos(); }
 DescriptorSet::~DescriptorSet() { if(_pool != nullptr) _pool->returnSet(this); }
 
@@ -132,7 +132,7 @@ DescriptorSet::InfoType DescriptorSet::infoType(const VkDescriptorType descripto
 
 //Builder
 
-namespace cth {
+namespace cth::vk {
 DescriptorSet::Builder::Builder(const DescriptorSetLayout* layout) : _layout(layout) { init(layout); }
 DescriptorSet::Builder::Builder(const DescriptorSetLayout* layout, const std::span<Descriptor* const> descriptors, const uint32_t binding_offset) : _layout(layout) {
     init(layout);

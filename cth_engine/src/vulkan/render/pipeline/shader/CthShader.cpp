@@ -5,14 +5,14 @@
 
 //Specialization
 
-namespace cth {
+namespace cth::vk {
 ShaderSpecialization::ShaderSpecialization(std::span<VkSpecializationMapEntry> entries, std::span<char> data) : _vkInfo{static_cast<uint32_t>(entries.size()),
     entries.data(), data.size(), reinterpret_cast<void*>(data.data())} {}
 }
 
 //Shader
 
-namespace cth {
+namespace cth::vk {
 Shader::Shader(const BasicCore* core, const VkShaderStageFlagBits stage, const std::string_view spv_path) : _core(core), _vkStage(stage), _spvPath(spv_path) {
     auto spv = loadSpv();
     create(spv);

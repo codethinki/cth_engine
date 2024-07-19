@@ -8,7 +8,7 @@
 #include <type_traits>
 
 
-namespace cth {
+namespace cth::vk {
 
 class Device;
 class PrimaryCmdBuffer;
@@ -66,7 +66,7 @@ inline CmdBuffer::~CmdBuffer() = default;
 
 //PrimaryCmdBuffer
 
-namespace cth {
+namespace cth::vk {
 class PrimaryCmdBuffer : public CmdBuffer {
 public:
     explicit PrimaryCmdBuffer(CmdPool* cmd_pool, VkCommandBufferUsageFlags usage = 0);
@@ -80,7 +80,7 @@ private:
 
 //SecondaryCmdBuffer
 
-namespace cth {
+namespace cth::vk {
 class SecondaryCmdBuffer : public CmdBuffer {
 public:
     struct Config;

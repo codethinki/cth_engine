@@ -12,7 +12,7 @@
 #include <functional>
 
 
-namespace cth {
+namespace cth::vk {
 
 struct Vertex {
     glm::vec3 position{};
@@ -56,8 +56,8 @@ concept render_type = is_render_type_v<T>;
 
 
 template<>
-struct std::hash<cth::Vertex> {
-    size_t operator()(cth::Vertex const& vertex) const {
+struct std::hash<cth::vk::Vertex> {
+    size_t operator()(cth::vk::Vertex const& vertex) const {
         size_t seed = 0;
         cth::algorithm::hash::combine(seed, vertex.position, vertex.normal, vertex.uv);
         return seed;

@@ -20,7 +20,7 @@ struct UniformBuffer {
     explicit UniformBuffer(const glm::mat4& projection_view) : projectionView{projection_view} {}
 };
 //TEMP renderer should not be here
-RenderSystem::RenderSystem(const BasicCore* core, DeletionQueue* deletion_queue, const PrimaryCmdBuffer&  init_cmd_buffer, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : _core
+RenderSystem::RenderSystem(const vk::BasicCore* core, vk::DeletionQueue* deletion_queue, const vk::PrimaryCmdBuffer&  init_cmd_buffer, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : _core
     {core} {
     createShaders();
 
@@ -48,29 +48,29 @@ void RenderSystem::createShaders() {
     vertexShader = make_unique<Shader>(_device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
     fragmentShader = make_unique<Shader>(_device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
 #else
-    _vertexShader = std::make_unique<Shader>(_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
+    _vertexShader = std::make_unique<vk::Shader>(_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
         std::format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
-    _fragmentShader = std::make_unique<Shader>(_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
+    _fragmentShader = std::make_unique<vk::Shader>(_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
         std::format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
 #endif
 }
 void RenderSystem::createDescriptorSetLayouts() {
-    DescriptorSetLayout::Builder builder{};
-    builder.addBinding(0, TextureDescriptor::TYPE, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+    vk::DescriptorSetLayout::Builder builder{};
+    builder.addBinding(0, vk::TextureDescriptor::TYPE, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 
 
-    _descriptorSetLayout = std::make_unique<DescriptorSetLayout>(_core, builder);
+    _descriptorSetLayout = std::make_unique<vk::DescriptorSetLayout>(_core, builder);
 }
 
 
 void RenderSystem::createPipelineLayout() {
-    PipelineLayout::Builder builder{};
+    vk::PipelineLayout::Builder builder{};
     builder.addSetLayout(_descriptorSetLayout.get(), 0);
 
-    _pipelineLayout = std::make_unique<PipelineLayout>(_core, builder);
+    _pipelineLayout = std::make_unique<vk::PipelineLayout>(_core, builder);
 }
 void RenderSystem::createPipeline(VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
-    Pipeline::GraphicsConfig config = Pipeline::GraphicsConfig::createDefault();
+    vk::Pipeline::GraphicsConfig config = vk::Pipeline::GraphicsConfig::createDefault();
 
     config.renderPass = render_pass;
     config.multisampleInfo->rasterizationSamples = msaa_samples;
@@ -78,45 +78,45 @@ void RenderSystem::createPipeline(VkRenderPass render_pass, const VkSampleCountF
     config.addShaderStage(_fragmentShader.get());
 
 
-    _pipeline = std::make_unique<Pipeline>(_core, _pipelineLayout.get(), config);
+    _pipeline = std::make_unique<vk::Pipeline>(_core, _pipelineLayout.get(), config);
 }
 void RenderSystem::createDescriptorPool() {
-    _descriptorPool = std::make_unique<DescriptorPool>(_core, DescriptorPool::Builder{{{_descriptorSetLayout.get(), 1}}});
+    _descriptorPool = std::make_unique<vk::DescriptorPool>(_core, vk::DescriptorPool::Builder{{{_descriptorSetLayout.get(), 1}}});
 }
-void RenderSystem::loadDescriptorData(const CmdBuffer& init_cmd_buffer, DeletionQueue* deletion_queue) {
+void RenderSystem::loadDescriptorData(const vk::CmdBuffer& init_cmd_buffer, vk::DeletionQueue* deletion_queue) {
     const cth::img::stb_image image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
-    _texture = std::make_unique<Texture>(_core, deletion_queue, VkExtent2D{image.width(), image.height()}, Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
+    _texture = std::make_unique<vk::Texture>(_core, deletion_queue, VkExtent2D{image.width(), image.height()}, vk::Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
         init_cmd_buffer, image.raw());
 }
 
 
 void RenderSystem::createDescriptorSets() {
-    _textureSampler = std::make_unique<Sampler>(_core, Sampler::Config::Default());
+    _textureSampler = std::make_unique<vk::Sampler>(_core, vk::Sampler::Config::Default());
 
 
-    _textureView = std::make_unique<ImageView>(_core, _texture.get(), ImageView::Config::Default());
-    _textureDescriptor = std::make_unique<TextureDescriptor>(_textureView.get(), _textureSampler.get());
+    _textureView = std::make_unique<vk::ImageView>(_core, _texture.get(), vk::ImageView::Config::Default());
+    _textureDescriptor = std::make_unique<vk::TextureDescriptor>(_textureView.get(), _textureSampler.get());
 
-    _descriptorSet = std::make_unique<DescriptorSet>(
-        DescriptorSet::Builder{_descriptorSetLayout.get(), std::vector<Descriptor*>{_textureDescriptor.get()}});
+    _descriptorSet = std::make_unique<vk::DescriptorSet>(
+        vk::DescriptorSet::Builder{_descriptorSetLayout.get(), std::vector<vk::Descriptor*>{_textureDescriptor.get()}});
 
     _descriptorPool->writeSets(std::vector{_descriptorSet.get()});
 }
-std::array<Vertex, 3> defaultTriangle{
-    Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {1, 0}},
-    Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {0.5, 1}},
-    Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {0, 0}},
+std::array<vk::Vertex, 3> defaultTriangle{
+    vk::Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {1, 0}},
+    vk::Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {0.5, 1}},
+    vk::Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {0, 0}},
 };
 
 
 
-void RenderSystem::createDefaultTriangle(const CmdBuffer& cmd_buffer, DeletionQueue* deletion_queue) {
-    _defaultTriangleBuffer = std::make_unique<Buffer<Vertex>>(_core, deletion_queue, 3,
+void RenderSystem::createDefaultTriangle(const vk::CmdBuffer& cmd_buffer, vk::DeletionQueue* deletion_queue) {
+    _defaultTriangleBuffer = std::make_unique<vk::Buffer<vk::Vertex>>(_core, deletion_queue, 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    Buffer<Vertex> stagingBuffer{_core, deletion_queue,  3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    vk::Buffer<vk::Vertex> stagingBuffer{_core, deletion_queue,  3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
     stagingBuffer.map();
     stagingBuffer.write(defaultTriangle);

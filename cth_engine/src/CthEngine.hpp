@@ -1,6 +1,6 @@
 #pragma once
 
-namespace cth {
+namespace cth::vk {
 
 class Engine {
 public:

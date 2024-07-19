@@ -1,7 +1,7 @@
 #pragma once
 #include "CthBasicMemory.hpp"
 
-namespace cth {
+namespace cth::vk {
 class Memory : public BasicMemory {
 public:
     Memory(const BasicCore* core, DeletionQueue* deletion_queue, VkMemoryPropertyFlags properties);

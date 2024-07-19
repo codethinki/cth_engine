@@ -2,7 +2,7 @@
 #include "interface/object/HlcStandardObject.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 
 class User final : public StandardObject {
 public:

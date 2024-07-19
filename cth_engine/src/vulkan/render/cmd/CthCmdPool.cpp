@@ -9,7 +9,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 
 CmdPool::CmdPool(const BasicCore* device, const Config& config) : _core(device), _config(config) {
     DEBUG_CHECK_CORE(device);
@@ -130,7 +130,7 @@ void CmdPool::alloc() {
 
 //Config
 
-namespace cth {
+namespace cth::vk {
 CmdPool::Config CmdPool::Config::Default(const Queue& queue, const uint32_t max_primary_buffers, const uint32_t max_secondary_buffers) {
     return Config{max_primary_buffers, max_secondary_buffers, queue.familyIndex()};
 }

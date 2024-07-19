@@ -2,11 +2,11 @@
 #include <vector>
 #include "vulkan/utility/CthConstants.hpp"
 
-namespace cth {
+namespace cth::vk {
 class DeletionQueue;
 }
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 class BasicSemaphore;
 

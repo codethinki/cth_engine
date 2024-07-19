@@ -9,7 +9,7 @@
 
 //PipelineLayout
 
-namespace cth {
+namespace cth::vk {
 PipelineLayout::PipelineLayout(const BasicCore* core, const Builder& builder) : _core(core),
     _setLayouts(builder.build(core->physicalDevice()->limits().maxBoundDescriptorSets)) { create(); }
 PipelineLayout::~PipelineLayout() {
@@ -41,7 +41,7 @@ void PipelineLayout::create() {
 
 //Builder
 
-namespace cth {
+namespace cth::vk {
 PipelineLayout::Builder& PipelineLayout::Builder::addSetLayouts(const std::span<DescriptorSetLayout* const> layouts, uint32_t location_offset) {
     CTH_WARN(layouts.empty(), "layouts vector empty") {}
 

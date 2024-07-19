@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace cth {
+namespace cth::vk {
 using namespace std;
 
 struct Vertex;

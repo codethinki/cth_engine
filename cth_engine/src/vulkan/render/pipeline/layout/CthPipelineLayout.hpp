@@ -8,7 +8,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 class DescriptorSetLayout;
 
@@ -44,7 +44,7 @@ public:
 
 //Builder
 
-namespace cth {
+namespace cth::vk {
 struct PipelineLayout::Builder {
     Builder() = default;
     explicit Builder(std::span<DescriptorSetLayout*> layouts);

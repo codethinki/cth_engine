@@ -4,7 +4,7 @@
 #include "vulkan/base/CthDevice.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 CmdBuffer::CmdBuffer(CmdPool* pool, const VkCommandBufferUsageFlags usage) : _pool(pool), _bufferUsage(usage) {}
 
 VkResult CmdBuffer::reset() const { return vkResetCommandBuffer(_handle.get(), 0); }
@@ -44,7 +44,7 @@ void CmdBuffer::debug_check(const CmdBuffer* cmd_buffer) {
 
 //PrimaryCmdBuffer
 
-namespace cth {
+namespace cth::vk {
 
 PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool* cmd_pool, const VkCommandBufferUsageFlags usage) : CmdBuffer(cmd_pool, usage) { create(); }
 PrimaryCmdBuffer::~PrimaryCmdBuffer() { _pool->returnCmdBuffer(this); }
@@ -64,7 +64,7 @@ void PrimaryCmdBuffer::create() { _pool->newCmdBuffer(this); }
 
 //SecondaryCmdBuffer
 
-namespace cth {
+namespace cth::vk {
 SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool* cmd_pool, PrimaryCmdBuffer* primary, const Config& config, const VkCommandBufferUsageFlags usage) :
     CmdBuffer(cmd_pool, usage), _primary(primary), _inheritanceInfo(config.inheritanceInfo()) { create(); }
 SecondaryCmdBuffer::~SecondaryCmdBuffer() { _pool->returnCmdBuffer(this); }

@@ -8,7 +8,7 @@
 #include <vector>
 
 
-namespace cth {
+namespace cth::vk {
 
 
 class Descriptor;

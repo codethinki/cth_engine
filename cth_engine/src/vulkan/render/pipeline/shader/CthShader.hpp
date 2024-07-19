@@ -8,7 +8,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class Device;
 
 struct ShaderSpecialization {

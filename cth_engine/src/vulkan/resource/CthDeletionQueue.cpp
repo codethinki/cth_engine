@@ -20,7 +20,7 @@
 #include<cth/cth_variant.hpp>
 
 
-namespace cth {
+namespace cth::vk {
 
 DeletionQueue::DeletionQueue(BasicCore* core) : _core(core) {}
 DeletionQueue::~DeletionQueue() {

@@ -5,7 +5,7 @@
 #include "vulkan/resource/image/CthImageView.hpp"
 #include "vulkan/resource/image/texture/CthSampler.hpp"
 
-namespace cth {
+namespace cth::vk {
 class ImageDescriptor : public Descriptor {
 public:
     explicit ImageDescriptor(const VkDescriptorType type, const VkDescriptorImageInfo& info) : Descriptor(type), _vkDescriptorInfo(info) {}

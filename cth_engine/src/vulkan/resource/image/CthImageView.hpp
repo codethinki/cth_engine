@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 class BasicImage;
 class Device;
@@ -33,7 +33,7 @@ public:
 
 //Config
 
-namespace cth {
+namespace cth::vk {
 struct ImageView::Config {
     explicit Config() = default;
 

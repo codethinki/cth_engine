@@ -3,7 +3,7 @@
 
 #include "vulkan/utility/CthConstants.hpp"
 
-namespace cth {
+namespace cth::vk {
 class BasicSemaphore;
 
 

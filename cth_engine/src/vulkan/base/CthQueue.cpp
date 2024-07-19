@@ -9,7 +9,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class BasicSemaphore;
 class TimelineSemaphore;
 
@@ -65,7 +65,7 @@ void Queue::debug_check_present_queue(const Queue* queue) {
 
 //SubmitInfo
 
-namespace cth {
+namespace cth::vk {
 using std::span;
 
 
@@ -167,7 +167,7 @@ void Queue::SubmitInfo::initWait(const std::span<const PipelineWaitStage> wait_s
 
 //PresentInfo
 
-namespace cth {
+namespace cth::vk {
 Queue::PresentInfo::PresentInfo(const BasicSwapchain* swapchain, std::span<const BasicSemaphore*> wait_semaphores) : _swapchain(swapchain->get()) {
     _waitSemaphores.resize(wait_semaphores.size());
     std::ranges::transform(wait_semaphores, _waitSemaphores.begin(), [](const BasicSemaphore* semaphore) { return semaphore->get(); });

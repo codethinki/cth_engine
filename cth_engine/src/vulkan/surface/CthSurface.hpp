@@ -3,7 +3,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class PhysicalDevice;
 
 class Instance;

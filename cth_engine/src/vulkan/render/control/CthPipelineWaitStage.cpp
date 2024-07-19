@@ -2,7 +2,7 @@
 
 #include "CthSemaphore.hpp"
 
-namespace cth {
+namespace cth::vk {
 
 
 void PipelineWaitStage::debug_check(const PipelineWaitStage wait_stage) {

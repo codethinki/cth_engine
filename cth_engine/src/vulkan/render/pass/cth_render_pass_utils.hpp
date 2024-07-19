@@ -5,7 +5,7 @@
 
 //TEMP this is bad solve the issue differently
 
-namespace cth {
+namespace cth::vk {
 
 struct SubpassDescription {
     SubpassDescription(const VkPipelineBindPoint bind_point,

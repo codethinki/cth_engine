@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 
-namespace cth {
+namespace cth::vk {
 
 class Camera {
 public:

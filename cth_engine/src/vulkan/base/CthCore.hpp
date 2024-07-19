@@ -7,7 +7,7 @@
 
 #include <span>
 
-namespace cth {
+namespace cth::vk {
 class BasicInstance;
 class PhysicalDevice;
 class Device;
@@ -62,7 +62,7 @@ public:
 }
 
 
-namespace cth {
+namespace cth::vk {
 class Instance;
 
 class Core : public BasicCore {
@@ -92,7 +92,7 @@ public:
 
 //Config
 
-namespace cth {
+namespace cth::vk {
 struct BasicCore::Config {
     std::string_view appName;
     std::string_view engineName;

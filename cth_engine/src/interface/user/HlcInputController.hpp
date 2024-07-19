@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 
-namespace cth {
+namespace cth::vk {
 
 class StandardObject;
 

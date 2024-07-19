@@ -9,7 +9,7 @@
 #endif
 
 
-namespace cth {
+namespace cth::vk {
 
 using std::string;
 using std::string_view;
@@ -52,7 +52,7 @@ void BasicInstance::create(const std::optional<BasicDebugMessenger::Config>& mes
     createInfo.enabledLayerCount = 0;
     createInfo.pNext = nullptr;
 
-    if constexpr(Constant::ENABLE_VALIDATION_LAYERS)
+    if constexpr(constant::ENABLE_VALIDATION_LAYERS)
         if(messenger_config != std::nullopt) {
             VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 
@@ -91,7 +91,7 @@ void BasicInstance::checkInstanceExtensionSupport() {
     }
 }
 void BasicInstance::checkValidationLayerSupport() {
-    if constexpr(Constant::ENABLE_VALIDATION_LAYERS) {
+    if constexpr(constant::ENABLE_VALIDATION_LAYERS) {
         vector<string> missingLayers{};
 
         std::ranges::for_each(VALIDATION_LAYERS, [&](const string_view layer) {
@@ -165,11 +165,11 @@ void BasicInstance::debug_check_leak(const BasicInstance* instance) {
 } // namespace cth
 
 
-namespace cth {
+namespace cth::vk {
 using namespace std;
 
 Instance::Instance(const string_view app_name, const span<const string> required_extensions) : BasicInstance(app_name, required_extensions) {
-    if constexpr(Constant::ENABLE_VALIDATION_LAYERS) {
+    if constexpr(constant::ENABLE_VALIDATION_LAYERS) {
         _availableLayers = getAvailableValidationLayers();
         checkValidationLayerSupport();
 

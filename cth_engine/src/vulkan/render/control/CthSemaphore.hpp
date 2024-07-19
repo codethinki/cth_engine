@@ -3,7 +3,7 @@
 
 #include<cth/cth_pointer.hpp>
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 class Device;
 class DeletionQueue;
@@ -53,7 +53,7 @@ public:
 
 } //namespace cth
 
-namespace cth {
+namespace cth::vk {
 
 class Semaphore : public BasicSemaphore {
 public:

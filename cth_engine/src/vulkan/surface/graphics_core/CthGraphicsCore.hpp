@@ -1,7 +1,7 @@
 #pragma once
 #include "CthBasicGraphicsCore.hpp"
 
-namespace cth {
+namespace cth::vk {
 class GraphicsCore : public BasicGraphicsCore {
 public:
     explicit GraphicsCore(const BasicCore* core, DeletionQueue* deletion_queue);

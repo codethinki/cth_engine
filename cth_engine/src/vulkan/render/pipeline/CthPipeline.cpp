@@ -9,7 +9,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 using namespace std;
 
 Pipeline::Pipeline(const BasicCore* core, const PipelineLayout* pipeline_layout, const GraphicsConfig& config_info) : _device{core} {
@@ -58,7 +58,7 @@ void Pipeline::create(const GraphicsConfig& config_info, const PipelineLayout* p
 
 //Graphics Config
 
-namespace cth {
+namespace cth::vk {
 VkGraphicsPipelineCreateInfo Pipeline::GraphicsConfig::createInfo() const {
     VkGraphicsPipelineCreateInfo pipelineInfo{};
 

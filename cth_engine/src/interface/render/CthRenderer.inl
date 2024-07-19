@@ -9,7 +9,7 @@
 #include <ranges>
 #include <vector>
 
-namespace cth {
+namespace cth::vk {
 template<Renderer::Phase P>
 PrimaryCmdBuffer* Renderer::begin() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
@@ -100,7 +100,7 @@ void Renderer::debug_check_phase_change(const Renderer* renderer) {
 
 //Builder
 
-namespace cth {
+namespace cth::vk {
 template<Renderer::Phase P>
 auto Renderer::Config::addSignalSets(const std::span<BasicSemaphore* const> signal_semaphore_sets) -> Config& {
     add<P>(signal_semaphore_sets, _phaseSignalSets);

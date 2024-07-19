@@ -1,7 +1,7 @@
 #pragma once
 #include "CthBasicDebugMessenger.hpp"
 
-namespace cth {
+namespace cth::vk {
 class DebugMessenger : public BasicDebugMessenger {
 public:
     DebugMessenger(const BasicInstance* instance, const Config& config) : BasicDebugMessenger{config} { BasicDebugMessenger::create(instance); }

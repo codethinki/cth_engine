@@ -15,7 +15,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class TimelineSemaphore;
 class BasicSemaphore;
 class BasicFence;

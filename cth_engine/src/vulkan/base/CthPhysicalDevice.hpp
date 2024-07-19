@@ -15,7 +15,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class Queue;
 class Instance;
 class Surface;
@@ -101,22 +101,23 @@ public:
     static constexpr std::array<std::string_view, 3> REQUIRED_DEVICE_EXTENSIONS = {
         std::string_view(VK_KHR_SWAPCHAIN_EXTENSION_NAME),
         std::string_view(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME),
+        std::string_view(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME),
     };
 
     static constexpr VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES{
-    .samplerAnisotropy = true,
+        .samplerAnisotropy = true,
     };
     static constexpr VkPhysicalDeviceTimelineSemaphoreFeatures TIMELINE_SEMAPHORE_FEATURE{
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR,
         .timelineSemaphore = true
     };
 
+
+
     static constexpr VkPhysicalDeviceFeatures2 REQUIRED_DEVICE_FEATURES2{
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR,
         .pNext = (void*) (&TIMELINE_SEMAPHORE_FEATURE),
-        .features{
-            .samplerAnisotropy = true
-        }
+        .features = REQUIRED_DEVICE_FEATURES,
     };
 
 

@@ -1,7 +1,7 @@
 #include "CthDebugMessenger.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 
 DebugMessenger::~DebugMessenger() {
     if(get() != VK_NULL_HANDLE) DebugMessenger::destroy();

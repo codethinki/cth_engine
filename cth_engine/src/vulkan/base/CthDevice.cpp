@@ -8,7 +8,7 @@
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 using std::vector;
 using std::string_view;
 using std::span;
@@ -58,7 +58,7 @@ void Device::createLogicalDevice() {
 
     vector<const char*> deviceExtensions(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS.size());
     std::ranges::transform(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS, deviceExtensions.begin(), [](const string_view ext) { return ext.data(); });
-    
+
     createInfo.pEnabledFeatures = &PhysicalDevice::REQUIRED_DEVICE_FEATURES;
     createInfo.enabledExtensionCount = static_cast<uint32_t>(PhysicalDevice::REQUIRED_DEVICE_EXTENSIONS.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();

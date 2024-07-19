@@ -7,7 +7,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 
 BasicFence::BasicFence(const BasicCore* core) : _core(core) { DEBUG_CHECK_CORE(core); }
 
@@ -99,7 +99,7 @@ void BasicFence::debug_check_leak(const BasicFence* fence) { CTH_WARN(fence->_ha
 
 //Fence
 
-namespace cth {
+namespace cth::vk {
 Fence::Fence(const BasicCore* core, DeletionQueue* deletion_queue, const VkFenceCreateFlags flags) : BasicFence(core), _deletionQueue(deletion_queue) {
     DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
     BasicFence::create(flags);

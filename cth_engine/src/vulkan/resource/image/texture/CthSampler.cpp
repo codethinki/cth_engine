@@ -6,7 +6,7 @@
 
 //Sampler
 
-namespace cth {
+namespace cth::vk {
 
 Sampler::Sampler(const BasicCore* core, const Config& config) : _core(core) { create(config); }
 Sampler::~Sampler() {
@@ -35,7 +35,7 @@ void Sampler::create(const Config& config) {
 
 //Config
 
-namespace cth {
+namespace cth::vk {
 //
 //Sampler::Config::Config(const VkSamplerCreateInfo& create_info) : mipmapMode(create_info.mipmapMode),
 //    lodBias(create_info.mipLodBias), maxAnisotropy(create_info.maxAnisotropy), borderColor(create_info.borderColor), compareOp(create_info.compareOp),

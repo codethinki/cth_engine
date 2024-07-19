@@ -6,7 +6,7 @@
 
 //ImageBarrier
 
-namespace cth {
+namespace cth::vk {
 
 ImageBarrier::ImageBarrier(const PipelineStages stages, const std::unordered_map<BasicImage*, ImageBarrier::Info>& images) : PipelineStages(stages) {
     init(images);
@@ -20,7 +20,7 @@ void ImageBarrier::add(BasicImage* image, const Info& info) {
 
     _imageBarriers.emplace_back(info.createBarrier(*image));
 
-    const bool change = info.newLayout != Constant::IMAGE_LAYOUT_IGNORED;
+    const bool change = info.newLayout != constant::IMAGE_LAYOUT_IGNORED;
 
     if(!change) return;
 
@@ -44,7 +44,7 @@ void ImageBarrier::replace(BasicImage* image, const Info& info) {
     const auto index = static_cast<uint32_t>(std::distance(std::begin(images), std::ranges::find(images, image)));
 
     if(index < _layoutChanges.size()) {
-        if(info.newLayout == Constant::IMAGE_LAYOUT_IGNORED)
+        if(info.newLayout == constant::IMAGE_LAYOUT_IGNORED)
             removeChange(barrierIndex);
     }
 }
@@ -98,7 +98,7 @@ void ImageBarrier::init(const std::unordered_map<BasicImage*, ImageBarrier::Info
 
 //BufferBarrier
 
-namespace cth {
+namespace cth::vk {
 
 BufferBarrier::BufferBarrier(const PipelineStages stages, const std::unordered_map<const BasicBuffer*, Info>& buffers) : PipelineStages(stages) {
     init(buffers);
@@ -143,7 +143,7 @@ void BufferBarrier::init(const std::unordered_map<const BasicBuffer*, Info>& buf
 
 //Barrier
 
-namespace cth {
+namespace cth::vk {
 
 PipelineBarrier::PipelineBarrier(const PipelineStages stages, const std::unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
     const std::unordered_map<BasicImage*, ImageBarrier::Info>& images) : BufferBarrier(buffers), ImageBarrier(images) {
@@ -173,7 +173,7 @@ void PipelineBarrier::initStages(const VkPipelineStageFlags src_stage, const VkP
 
 //ImageBarrierInfo
 
-namespace cth {
+namespace cth::vk {
 VkImageMemoryBarrier ImageBarrier::Info::createBarrier(const BasicImage& image) const {
     return VkImageMemoryBarrier{
         VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -181,14 +181,14 @@ VkImageMemoryBarrier ImageBarrier::Info::createBarrier(const BasicImage& image) 
         src.accessMask,
         dst.accessMask,
         image.layout(firstMipLevel),
-        newLayout == Constant::IMAGE_LAYOUT_IGNORED ? image.layout(firstMipLevel) : newLayout,
+        newLayout == constant::IMAGE_LAYOUT_IGNORED ? image.layout(firstMipLevel) : newLayout,
         src.queueFamilyIndex,
         dst.queueFamilyIndex,
         image.get(),
         VkImageSubresourceRange{
-            static_cast<VkImageAspectFlags>(aspectMask == Constant::ASPECT_MASK_IGNORED ? image.aspectMask() : aspectMask),
+            static_cast<VkImageAspectFlags>(aspectMask == constant::ASPECT_MASK_IGNORED ? image.aspectMask() : aspectMask),
             firstMipLevel,
-            levels == Constant::ALL ? image.mipLevels() - firstMipLevel : levels,
+            levels == constant::ALL ? image.mipLevels() - firstMipLevel : levels,
             0, 1
         }};
 }

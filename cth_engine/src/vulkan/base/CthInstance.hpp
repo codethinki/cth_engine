@@ -14,7 +14,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class BasicDebugMessenger;
 
 class DeletionQueue;
@@ -76,9 +76,7 @@ public:
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
     };
 
-    static constexpr std::array<std::string_view, 1> REQUIRED_INSTANCE_EXTENSIONS{
-            VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
-    };
+    static constexpr std::array<std::string_view, 0> REQUIRED_INSTANCE_EXTENSIONS{};
 
     BasicInstance(const BasicInstance& other) = default;
     BasicInstance& operator=(const BasicInstance& other) = default;
@@ -100,7 +98,7 @@ public:
 };
 }
 
-namespace cth {
+namespace cth::vk {
 
 class Instance : public BasicInstance {
 public:

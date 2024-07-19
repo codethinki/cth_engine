@@ -3,7 +3,7 @@
 
 #include "vulkan/memory/buffer/CthDefaultBuffer.hpp"
 
-namespace cth {
+namespace cth::vk {
 class BufferDescriptor : public Descriptor {
 public:
     explicit BufferDescriptor(const VkDescriptorType type, const DefaultBuffer* buffer, const size_t descriptor_size = Constants::WHOLE_SIZE,

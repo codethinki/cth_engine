@@ -14,7 +14,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class Queue;
 class BasicCore;
 class Device;
@@ -171,9 +171,9 @@ private:
     std::vector<Queue::PresentInfo> _presentInfos;
 
     size_t _currentFrame = 0;
-    static size_t nextFrame(const size_t current) { return (current + 1) % Constant::FRAMES_IN_FLIGHT; }
+    static size_t nextFrame(const size_t current) { return (current + 1) % constant::FRAMES_IN_FLIGHT; }
 
-    std::array<uint32_t, Constant::FRAMES_IN_FLIGHT> _imageIndices{NO_IMAGE_INDEX};
+    std::array<uint32_t, constant::FRAMES_IN_FLIGHT> _imageIndices{NO_IMAGE_INDEX};
     [[nodiscard]] uint32_t imageIndex() const { return _imageIndices[_currentFrame]; }
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;

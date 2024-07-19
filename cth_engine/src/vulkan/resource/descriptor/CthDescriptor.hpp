@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.h>
 
-namespace cth {
+namespace cth::vk {
 
 class Device;
 class Pipeline;

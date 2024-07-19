@@ -8,11 +8,11 @@
 #include "vulkan/base/CthQueue.hpp"
 #include "vulkan/utility/CthConstants.hpp"
 
-namespace cth {
+namespace cth::vk {
 class Queue;
 }
 
-namespace cth {
+namespace cth::vk {
 class BasicImage;
 class BasicBuffer;
 
@@ -22,19 +22,19 @@ class PipelineBarrier;
 
 struct PipelineStages {
 
-    VkPipelineStageFlags srcStage = Constant::PIPELINE_STAGE_IGNORED;
-    VkPipelineStageFlags dstStage = Constant::PIPELINE_STAGE_IGNORED;
+    VkPipelineStageFlags srcStage = constant::PIPELINE_STAGE_IGNORED;
+    VkPipelineStageFlags dstStage = constant::PIPELINE_STAGE_IGNORED;
 };
 
 struct PipelineAccess {
-    VkAccessFlags accessMask = Constant::DEFAULT_ACCESS;
-    uint32_t queueFamilyIndex = Constant::QUEUE_FAMILY_IGNORED;
+    VkAccessFlags accessMask = constant::DEFAULT_ACCESS;
+    uint32_t queueFamilyIndex = constant::QUEUE_FAMILY_IGNORED;
 };
 } // namespace cth
 
 //ImageBarrier
 
-namespace cth {
+namespace cth::vk {
 class ImageBarrier : virtual protected PipelineStages {
 public:
     struct Info;
@@ -80,7 +80,7 @@ public:
 
 //BufferBarrier
 
-namespace cth {
+namespace cth::vk {
 
 class BufferBarrier : virtual protected PipelineStages {
 public:
@@ -118,7 +118,7 @@ public:
 
 //Barrier
 
-namespace cth {
+namespace cth::vk {
 
 class PipelineBarrier : public BufferBarrier, public ImageBarrier {
 public:
@@ -149,14 +149,14 @@ private:
 
 //Info
 
-namespace cth {
+namespace cth::vk {
 struct ImageBarrier::Info {
 
 
-    VkImageAspectFlagBits aspectMask = Constant::ASPECT_MASK_IGNORED; //Constants::ASPECT_MASK_IGNORED => image default aspect
+    VkImageAspectFlagBits aspectMask = constant::ASPECT_MASK_IGNORED; //Constants::ASPECT_MASK_IGNORED => image default aspect
     uint32_t firstMipLevel = 0;
-    uint32_t levels = Constant::ALL; //Constants::ALL => all remaining
-    VkImageLayout newLayout = Constant::IMAGE_LAYOUT_IGNORED; //Constants::IMAGE_LAYOUT_IGNORED => old layout
+    uint32_t levels = constant::ALL; //Constants::ALL => all remaining
+    VkImageLayout newLayout = constant::IMAGE_LAYOUT_IGNORED; //Constants::IMAGE_LAYOUT_IGNORED => old layout
 
     PipelineAccess src;
     PipelineAccess dst;

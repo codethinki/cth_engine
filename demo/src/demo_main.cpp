@@ -18,7 +18,7 @@ INT WINAPI WinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, char* lp_cmd
     cth::log::setLogStream(out::col_stream{logStream.get()});
 #endif
 
-    Engine::init();
+    vk::Engine::init();
 
 
     unique_ptr<App> app = make_unique<App>();
@@ -44,6 +44,6 @@ INT WINAPI WinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, char* lp_cmd
          std::terminate();
      }*/
 
-    Engine::terminate();
+    vk::Engine::terminate();
     return EXIT_SUCCESS;
 }

@@ -6,7 +6,7 @@
 #include "vulkan/utility/CthVkUtils.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 using std::vector;
 using std::string_view;
 using std::span;

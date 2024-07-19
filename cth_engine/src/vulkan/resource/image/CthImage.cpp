@@ -5,7 +5,7 @@
 #include "vulkan/resource/memory/CthMemory.hpp"
 
 
-namespace cth {
+namespace cth::vk {
 using namespace std;
 
 

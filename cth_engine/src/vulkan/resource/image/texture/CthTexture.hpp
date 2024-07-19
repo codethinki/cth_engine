@@ -3,7 +3,7 @@
 
 #include "vulkan/resource/image/CthImage.hpp"
 
-namespace cth {
+namespace cth::vk {
 
 class Texture : public Image {
 public:
@@ -48,7 +48,7 @@ private:
 
 //Config
 
-namespace cth {
+namespace cth::vk {
 struct Texture::Config {
     VkFormat format = VK_FORMAT_R8G8B8A8_SRGB;
     VkImageAspectFlagBits aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -57,7 +57,7 @@ struct Texture::Config {
     [[nodiscard]] static Texture::Config Default();
 };
 
-inline cth::Texture::Config cth::Texture::Config::Default() {
+inline Texture::Config Texture::Config::Default() {
     Texture::Config config;
     config.format = VK_FORMAT_R8G8B8A8_SRGB;
     config.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;

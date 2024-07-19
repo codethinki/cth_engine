@@ -6,7 +6,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 ImageView::ImageView(const BasicCore* device, const BasicImage* image, const Config& config) : _core(device), _image(image) {
     CTH_ERR(image == nullptr, "image ptr not valid") throw details->exception();
 

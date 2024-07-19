@@ -9,7 +9,7 @@
 
 //DescriptorPool
 
-namespace cth {
+namespace cth::vk {
 
 DescriptorPool::DescriptorPool(const BasicCore* device, const Builder& builder) : _core(device) {
     initSetEntries(builder);
@@ -131,7 +131,7 @@ void DescriptorPool::returnSet(DescriptorSet* set) {
 
 //Builder
 
-namespace cth {
+namespace cth::vk {
 void DescriptorPool::Builder::addLayout(const DescriptorSetLayout* layout, const uint32_t alloc_count) {
     CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
     CTH_WARN(alloc_count == 0, "alloc_count should be > 0") {}

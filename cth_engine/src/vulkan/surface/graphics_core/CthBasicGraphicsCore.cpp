@@ -6,7 +6,7 @@
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/utility/CthVkUtils.hpp"
 
-namespace cth {
+namespace cth::vk {
 BasicGraphicsCore::BasicGraphicsCore(const BasicCore* core, OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain) : _core(core) {
     BasicGraphicsCore::wrap(os_window, surface, swapchain);
 }

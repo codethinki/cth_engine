@@ -13,7 +13,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 
 BasicSwapchain::BasicSwapchain(const BasicCore* core, const Queue* present_queue, BasicGraphicsSyncConfig sync_config) :
     _core(core), _presentQueue(present_queue), _syncConfig(std::move(sync_config)) {
@@ -177,14 +177,14 @@ VkSampleCountFlagBits BasicSwapchain::evalMsaaSampleCount() const {
     const uint32_t maxSamples = _core->physicalDevice()->maxSampleCount() / 2; //TODO add proper max_sample_count selection
 
     uint32_t samples = 1;
-    while(samples < maxSamples && samples < Constant::MAX_MSAA_SAMPLES) samples *= 2;
+    while(samples < maxSamples && samples < constant::MAX_MSAA_SAMPLES) samples *= 2;
 
     return static_cast<VkSampleCountFlagBits>(samples);
 }
 
 void BasicSwapchain::createSyncObjects() {
-    _imageAvailableFences.reserve(Constant::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < Constant::FRAMES_IN_FLIGHT; i++) 
+    _imageAvailableFences.reserve(constant::FRAMES_IN_FLIGHT);
+    for(size_t i = 0; i < constant::FRAMES_IN_FLIGHT; i++) 
         _imageAvailableFences.emplace_back(_core, nullptr);
 }
 
@@ -229,7 +229,7 @@ uint32_t BasicSwapchain::evalMinImageCount(const uint32_t min, const uint32_t ma
     if(max > 0 && imageCount > max) imageCount = max;
 
 
-    log::msg<except::INFO>("image count: {0}, frames in flight: {1}", min + 1, Constant::FRAMES_IN_FLIGHT);
+    log::msg<except::INFO>("image count: {0}, frames in flight: {1}", min + 1, constant::FRAMES_IN_FLIGHT);
 
     return imageCount;
 }
@@ -494,9 +494,9 @@ void BasicSwapchain::createFramebuffers() {
 
 
 void BasicSwapchain::createPresentInfos() {
-    _presentInfos.reserve(Constant::FRAMES_IN_FLIGHT);
+    _presentInfos.reserve(constant::FRAMES_IN_FLIGHT);
 
-    for(size_t i = 0; i < Constant::FRAMES_IN_FLIGHT; i++) {
+    for(size_t i = 0; i < constant::FRAMES_IN_FLIGHT; i++) {
         std::vector<const BasicSemaphore*> semaphores{_syncConfig.renderFinishedSemaphores[i]};
         _presentInfos.emplace_back(this, semaphores);
     }
@@ -603,7 +603,7 @@ void BasicSwapchain::debug_check_compatibility(const BasicSwapchain& a, const Ba
 //
 //    vkDestroyRenderPass(_core->vkDevice(), _renderPass, nullptr);
 //
-//    for(size_t i = 0; i < Constant::MAX_FRAMES_IN_FLIGHT; i++) {
+//    for(size_t i = 0; i < constant::MAX_FRAMES_IN_FLIGHT; i++) {
 //        vkDestroySemaphore(_core->vkDevice(), _renderFinishedSemaphores[i], nullptr);
 //        vkDestroySemaphore(_core->vkDevice(), _imageAvailableSemaphores[i], nullptr);
 //        vkDestroyFence(_core->vkDevice(), _inFlightFences[i], nullptr);
@@ -650,4 +650,4 @@ void BasicSwapchain::debug_check_compatibility(const BasicSwapchain& a, const Ba
 //
 //const auto presentResult = present(image_index);
 //
-//++_currentFrame %= Constant::FRAMES_IN_FLIGHT;
+//++_currentFrame %= constant::FRAMES_IN_FLIGHT;

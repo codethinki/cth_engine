@@ -13,7 +13,7 @@
 
 
 
-namespace cth {
+namespace cth::vk {
 class BasicCore;
 class DescriptorSet;
 class DescriptorSetLayout;
@@ -98,7 +98,7 @@ public:
         void addLayout(const DescriptorSetLayout* layout, uint32_t alloc_count);
         void addLayouts(const std::unordered_map<const DescriptorSetLayout*, uint32_t>& set_allocations);
 
-        void removeLayout(const DescriptorSetLayout* layout, size_t amount = Constant::WHOLE_SIZE);
+        void removeLayout(const DescriptorSetLayout* layout, size_t amount = constant::WHOLE_SIZE);
         void removeLayouts(const std::unordered_map<const DescriptorSetLayout*, uint32_t>& set_allocations);
 
     private:

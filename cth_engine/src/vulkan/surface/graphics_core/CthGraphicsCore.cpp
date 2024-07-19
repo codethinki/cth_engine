@@ -2,7 +2,7 @@
 
 #include "vulkan/resource/CthDeletionQueue.hpp"
 
-namespace cth {
+namespace cth::vk {
 GraphicsCore::GraphicsCore(const BasicCore* core, DeletionQueue* deletion_queue) : BasicGraphicsCore(core), _deletionQueue(deletion_queue) {
     DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
 }
