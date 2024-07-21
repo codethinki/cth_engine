@@ -6,7 +6,7 @@
 namespace cth::vk {
 class TimelineSemaphore : public Semaphore {
 public:
-    explicit TimelineSemaphore(const BasicCore* core, DeletionQueue* deletion_queue, bool create = true);
+    explicit TimelineSemaphore(BasicCore const* core, DeletionQueue* deletion_queue, bool create = true);
     ~TimelineSemaphore() override = default;
 
 
@@ -20,13 +20,13 @@ public:
     [[nodiscard]] VkResult wait(uint64_t nanoseconds = UINT64_MAX) const;
 
 protected:
-    [[nodiscard]] VkSemaphoreSignalInfo signalInfo(const size_t& value) const;
+    [[nodiscard]] VkSemaphoreSignalInfo signalInfo(size_t const& value) const;
 
-    [[nodiscard]] static VkTimelineSemaphoreSubmitInfo submitInfo(const size_t& wait_value, const size_t& signal_value);
+    [[nodiscard]] static VkTimelineSemaphoreSubmitInfo submitInfo(size_t const& wait_value, size_t const& signal_value);
 
-    [[nodiscard]] static VkSemaphoreWaitInfo waitInfo(const size_t& value, const VkSemaphore& p_semaphore);
+    [[nodiscard]] static VkSemaphoreWaitInfo waitInfo(size_t const& value, VkSemaphore const& p_semaphore);
 
-    [[nodiscard]] static VkSemaphoreWaitInfo waitInfo(std::span<const size_t> wait_values, std::span<const VkSemaphore> wait_semaphores);
+    [[nodiscard]] static VkSemaphoreWaitInfo waitInfo(std::span<size_t const> wait_values, std::span<VkSemaphore const> wait_semaphores);
 
 
 
@@ -36,8 +36,8 @@ private:
     size_t _value = 0;
 
 public:
-    TimelineSemaphore(const TimelineSemaphore& other) = delete;
-    TimelineSemaphore& operator=(const TimelineSemaphore& other) = delete;
+    TimelineSemaphore(TimelineSemaphore const& other) = delete;
+    TimelineSemaphore& operator=(TimelineSemaphore const& other) = delete;
     TimelineSemaphore(TimelineSemaphore&& other) noexcept = default;
     TimelineSemaphore& operator=(TimelineSemaphore&& other) noexcept = default;
 };

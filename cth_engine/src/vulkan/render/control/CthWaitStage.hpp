@@ -9,7 +9,7 @@ class BasicSemaphore;
 
 struct PipelineWaitStage {
     VkPipelineStageFlags stage;
-    const BasicSemaphore* semaphore;
+    BasicSemaphore const* semaphore;
 
 #ifdef CONSTANT_DEBUG_MODE
     static void debug_check(PipelineWaitStage wait_stage);

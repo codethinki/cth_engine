@@ -7,19 +7,19 @@
 #include "vulkan/resource/CthDeletionQueue.hpp"
 #include "vulkan/resource/buffer/CthBasicBuffer.hpp"
 #include "vulkan/resource/memory/CthBasicMemory.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 
 namespace cth::vk {
 
-BasicImage::BasicImage(const BasicCore* core, const VkExtent2D extent, const Config& config) : _core(core),
+BasicImage::BasicImage(BasicCore const* core, VkExtent2D const extent, Config const& config) : _core(core),
     _extent(extent), _config(config) { init(); }
 
-BasicImage::BasicImage(const BasicCore* core, const VkExtent2D extent, const Config& config, VkImage vk_image, State state) : _core(core),
+BasicImage::BasicImage(BasicCore const* core, VkExtent2D const extent, Config const& config, VkImage vk_image, State state) : _core(core),
     _extent(extent), _config(config), _state(std::move(state)), _handle(vk_image) { init(); }
 
-void BasicImage::wrap(VkImage vk_image, const State& state) {
+void BasicImage::wrap(VkImage vk_image, State const& state) {
     DEBUG_CHECK_IMAGE(this);
     DEBUG_CHECK_MEMORY_LEAK(_state.memory.get());
 
@@ -39,7 +39,7 @@ void BasicImage::create() {
 
     VkImage ptr = VK_NULL_HANDLE;
 
-    const auto createResult = vkCreateImage(_core->vkDevice(), &createInfo, nullptr, &ptr);
+    auto const createResult = vkCreateImage(_core->vkDevice(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create image")
         throw except::vk_result_exception{createResult, details->exception()};
 
@@ -71,7 +71,7 @@ void BasicImage::bind() {
     DEBUG_CHECK_IMAGE(this);
     DEBUG_CHECK_MEMORY(_state.memory.get());
 
-    const auto bindResult = vkBindImageMemory(_core->vkDevice(), _handle.get(), _state.memory->get(), 0);
+    auto const bindResult = vkBindImageMemory(_core->vkDevice(), _handle.get(), _state.memory->get(), 0);
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind image memory")
         throw except::vk_result_exception{bindResult, details->exception()};
@@ -92,7 +92,7 @@ void BasicImage::destroy(DeletionQueue* deletion_queue) {
 
 
 
-void BasicImage::copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src_buffer, const size_t src_offset, const uint32_t mip_level) const {
+void BasicImage::copy(CmdBuffer const& cmd_buffer, BasicBuffer const& src_buffer, size_t const src_offset, uint32_t const mip_level) const {
     DEBUG_CHECK_IMAGE(this);
 
     CTH_WARN(_state.levelLayouts[mip_level] != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -115,8 +115,8 @@ void BasicImage::copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src_buffer
     vkCmdCopyBufferToImage(cmd_buffer.get(), src_buffer.get(), _handle.get(), _state.levelLayouts[mip_level], 1, &region);
 }
 
-void BasicImage::transitionLayout(const CmdBuffer& cmd_buffer, const VkImageLayout new_layout, const uint32_t first_mip_level,
-    const uint32_t mip_levels) {
+void BasicImage::transitionLayout(CmdBuffer const& cmd_buffer, VkImageLayout const new_layout, uint32_t const first_mip_level,
+    uint32_t const mip_levels) {
 
 
     auto [srcAccess, dstAccess, srcStage, dstStage] = transitionConfig(_state.levelLayouts[first_mip_level], new_layout);
@@ -127,11 +127,11 @@ void BasicImage::transitionLayout(const CmdBuffer& cmd_buffer, const VkImageLayo
 
     barrier.execute(cmd_buffer);
 }
-void BasicImage::transitionLayout(ImageBarrier& barrier, const VkImageLayout new_layout, const VkAccessFlags src_access,
-    const VkAccessFlags dst_access, const uint32_t first_mip_level, const uint32_t mip_levels) {
+void BasicImage::transitionLayout(ImageBarrier& barrier, VkImageLayout const new_layout, VkAccessFlags const src_access,
+    VkAccessFlags const dst_access, uint32_t const first_mip_level, uint32_t const mip_levels) {
     DEBUG_CHECK_IMAGE(this);
 
-    const auto oldLayout = _state.levelLayouts[first_mip_level];
+    auto const oldLayout = _state.levelLayouts[first_mip_level];
     CTH_ERR(any_of(_state.levelLayouts.begin() + first_mip_level,
         mip_levels == constants::ALL ? _state.levelLayouts.end() : _state.levelLayouts.begin() + first_mip_level + mip_levels,
         [oldLayout](VkImageLayout layout) { return oldLayout != layout; }), "all transitioned layouts must be the same")
@@ -148,7 +148,7 @@ void BasicImage::destroy(VkDevice vk_device, VkImage vk_image) {
     vkDestroyImage(vk_device, vk_image, nullptr);
 }
 
-uint32_t BasicImage::evalMipLevelCount(const VkExtent2D extent) {
+uint32_t BasicImage::evalMipLevelCount(VkExtent2D const extent) {
     return static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height))) + 1);
 }
 
@@ -172,7 +172,7 @@ void BasicImage::setMemory(BasicMemory* new_memory) {
     _state.memory = new_memory;
 }
 
-BasicImage::transition_config BasicImage::transitionConfig(const VkImageLayout current_layout, const VkImageLayout new_layout) {
+BasicImage::transition_config BasicImage::transitionConfig(VkImageLayout const current_layout, VkImageLayout const new_layout) {
     if(current_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
         return {0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
     if(current_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -199,17 +199,17 @@ void BasicImage::init() {
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void BasicImage::debug_check(const BasicImage* image) {
+void BasicImage::debug_check(BasicImage const* image) {
     CTH_ERR(image == nullptr, "image must not be nullptr") throw details->exception();
     CTH_ERR(image->_handle == VK_NULL_HANDLE, "image must be a valid handle") throw details->exception();
 }
-void BasicImage::debug_check_leak(const BasicImage* image) {
+void BasicImage::debug_check_leak(BasicImage const* image) {
     CTH_WARN(image->_handle != VK_NULL_HANDLE, "image handle replaced (potential memory leak)") {}
 }
-void BasicImage::debug_check_memory_leak(const BasicImage* image) {
+void BasicImage::debug_check_memory_leak(BasicImage const* image) {
     CTH_WARN(image->_state.memory != nullptr, "memory ptr replaced (potential memory leak)") {}
 }
-void BasicImage::debug_not_bound_check(const BasicImage* image) {
+void BasicImage::debug_not_bound_check(BasicImage const* image) {
     CTH_ERR(image->_state.bound, "image must not be bound") throw details->exception();
 }
 #endif
@@ -238,13 +238,13 @@ VkImageCreateInfo BasicImage::Config::createInfo() const {
     return info;
 }
 
-void BasicImage::State::reset(const Config& config) {
+void BasicImage::State::reset(Config const& config) {
     levelLayouts.resize(config.mipLevels);
     std::ranges::fill_n(levelLayouts.begin(), config.mipLevels, config.initialLayout);
 
     bound = false;
 }
-void BasicImage::State::init(const Config& config) { while(levelLayouts.size() != config.mipLevels) levelLayouts.push_back(config.initialLayout); }
+void BasicImage::State::init(Config const& config) { while(levelLayouts.size() != config.mipLevels) levelLayouts.push_back(config.initialLayout); }
 
 
 } // namespace cth

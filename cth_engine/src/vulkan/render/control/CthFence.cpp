@@ -3,13 +3,13 @@
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 
 namespace cth::vk {
 
-BasicFence::BasicFence(const BasicCore* core) : _core(core) { DEBUG_CHECK_CORE(core); }
+BasicFence::BasicFence(BasicCore const* core) : _core(core) { DEBUG_CHECK_CORE(core); }
 
 void BasicFence::wrap(VkFence vk_fence) {
     CTH_ERR(vk_fence == VK_NULL_HANDLE, "fence handle invalid") throw details->exception();
@@ -18,13 +18,13 @@ void BasicFence::wrap(VkFence vk_fence) {
     _handle = vk_fence;
 }
 
-void BasicFence::create(const VkFenceCreateFlags flags) {
+void BasicFence::create(VkFenceCreateFlags const flags) {
     DEBUG_CHECK_FENCE_LEAK(this);
 
-    const auto info = createInfo(flags);
+    auto const info = createInfo(flags);
 
     VkFence ptr = VK_NULL_HANDLE;
-    const auto result = vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create fence")
         throw cth::except::vk_result_exception{result, details->exception()};
@@ -46,21 +46,21 @@ VkResult BasicFence::status() const {
 }
 void BasicFence::reset() const {
     DEBUG_CHECK_FENCE(this);
-    const std::array<VkFence, 1> fences = {_handle.get()};
-    const auto result = vkResetFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data());
+    std::array<VkFence, 1> const fences = {_handle.get()};
+    auto const result = vkResetFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset fence")
         throw cth::except::vk_result_exception{result, details->exception()};
 }
 
 
-VkResult BasicFence::wait(const uint64_t timeout) const {
+VkResult BasicFence::wait(uint64_t const timeout) const {
     CTH_INFORM(timeout == UINT64_MAX, "consider using wait() instead") {}
 
     DEBUG_CHECK_FENCE(this);
 
-    const std::array<VkFence, 1> fences = {_handle.get()};
-    const VkResult result = vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, timeout);
+    std::array<VkFence, 1> const fences = {_handle.get()};
+    VkResult const result = vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, timeout);
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
         throw cth::except::vk_result_exception{result, details->exception()};
@@ -80,7 +80,7 @@ void BasicFence::destroy(VkDevice vk_device, VkFence vk_fence) {
     vkDestroyFence(vk_device, vk_fence, nullptr);
 }
 
-VkFenceCreateInfo BasicFence::createInfo(const VkFenceCreateFlags flags) {
+VkFenceCreateInfo BasicFence::createInfo(VkFenceCreateFlags const flags) {
     return VkFenceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
         .pNext = nullptr,
@@ -89,18 +89,18 @@ VkFenceCreateInfo BasicFence::createInfo(const VkFenceCreateFlags flags) {
 }
 
 
-void BasicFence::debug_check(const BasicFence* fence) {
+void BasicFence::debug_check(BasicFence const* fence) {
     CTH_ERR(fence == nullptr, "fence must not be nullptr") throw details->exception();
     CTH_ERR(fence->_handle == VK_NULL_HANDLE, "fence handle invalid") throw details->exception();
 }
-void BasicFence::debug_check_leak(const BasicFence* fence) { CTH_WARN(fence->_handle != VK_NULL_HANDLE, "fence replaced (potential memory leak)") {} }
+void BasicFence::debug_check_leak(BasicFence const* fence) { CTH_WARN(fence->_handle != VK_NULL_HANDLE, "fence replaced (potential memory leak)") {} }
 
 }
 
 //Fence
 
 namespace cth::vk {
-Fence::Fence(const BasicCore* core, DeletionQueue* deletion_queue, const VkFenceCreateFlags flags) : BasicFence(core), _deletionQueue(deletion_queue) {
+Fence::Fence(BasicCore const* core, DeletionQueue* deletion_queue, VkFenceCreateFlags const flags) : BasicFence(core), _deletionQueue(deletion_queue) {
     DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
     BasicFence::create(flags);
 }
@@ -110,7 +110,7 @@ void Fence::wrap(VkFence vk_fence) {
     if(get() != VK_NULL_HANDLE) destroy(_deletionQueue);
     BasicFence::wrap(vk_fence);
 }
-void Fence::create(const VkFenceCreateFlags flags) {
+void Fence::create(VkFenceCreateFlags const flags) {
     if(get() != VK_NULL_HANDLE) destroy(_deletionQueue);
     BasicFence::create(flags);
 }

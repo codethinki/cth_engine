@@ -25,7 +25,7 @@ class DescriptorSet {
 
 public:
     struct Builder;
-    explicit DescriptorSet(const Builder& builder);
+    explicit DescriptorSet(Builder const& builder);
     virtual ~DescriptorSet();
 
 private:
@@ -40,7 +40,7 @@ private:
     [[nodiscard]] static InfoType infoType(VkDescriptorType descriptor_type);
 
 
-    const DescriptorSetLayout* _layout;
+    DescriptorSetLayout const* _layout;
     std::vector<std::vector<Descriptor*>> _descriptors{};
     std::vector<VkDescriptorBufferInfo> _bufferInfos{};
     std::vector<VkDescriptorImageInfo> _imageInfos{};
@@ -57,12 +57,12 @@ public:
     [[nodiscard]] bool written() const { return _written; }
 
     struct Builder {
-        explicit Builder(const DescriptorSetLayout* layout);
+        explicit Builder(DescriptorSetLayout const* layout);
 
         /**
          *@note in this constructor only one resource per binding can be specified
          */
-        explicit Builder(const DescriptorSetLayout* layout, std::span<Descriptor* const> descriptors, uint32_t binding_offset = 0);
+        explicit Builder(DescriptorSetLayout const* layout, std::span<Descriptor* const> descriptors, uint32_t binding_offset = 0);
 
         Builder& addDescriptor(Descriptor* descriptor, uint32_t binding, uint32_t arr_index = 0);
         Builder& addDescriptors(std::span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first);
@@ -71,17 +71,17 @@ public:
         Builder& removeDescriptors(uint32_t binding, uint32_t arr_first, uint32_t count);
 
     private:
-        void init(const DescriptorSetLayout* layout);
+        void init(DescriptorSetLayout const* layout);
 
-        const DescriptorSetLayout* _layout;
+        DescriptorSetLayout const* _layout;
         std::vector<std::vector<Descriptor*>> _descriptors{};
 
         friend DescriptorSet;
     };
 
-    DescriptorSet(const DescriptorSet& other) = delete;
+    DescriptorSet(DescriptorSet const& other) = delete;
     DescriptorSet(DescriptorSet&& other) = delete;
-    DescriptorSet& operator=(const DescriptorSet& other) = delete;
+    DescriptorSet& operator=(DescriptorSet const& other) = delete;
     DescriptorSet& operator=(DescriptorSet&& other) = delete;
 };
 

@@ -1,6 +1,6 @@
 #pragma once
 namespace cth::vk::constants {
-static constexpr std::array<std::string_view, 3> REQUIRED_DEVICE_EXTENSIONS = {
+static std::array<std::string, 3> const REQUIRED_DEVICE_EXTENSIONS = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
     VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,

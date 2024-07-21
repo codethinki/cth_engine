@@ -10,7 +10,7 @@ class DeletionQueue;
 
 class BasicSemaphore {
 public:
-    explicit BasicSemaphore(const BasicCore* core);
+    explicit BasicSemaphore(BasicCore const* core);
     virtual ~BasicSemaphore() = default;
 
     virtual void create();
@@ -21,9 +21,9 @@ public:
 
 protected:
     virtual VkSemaphoreCreateInfo createInfo();
-    virtual void createHandle(const VkSemaphoreCreateInfo& info);
+    virtual void createHandle(VkSemaphoreCreateInfo const& info);
 
-    const BasicCore* _core;
+    BasicCore const* _core;
 
 private:
     move_ptr<VkSemaphore_T> _handle{};
@@ -31,14 +31,14 @@ private:
 public:
     [[nodiscard]] VkSemaphore get() const { return _handle.get(); }
 
-    BasicSemaphore(const BasicSemaphore& other) = default;
+    BasicSemaphore(BasicSemaphore const& other) = default;
     BasicSemaphore(BasicSemaphore&& other) = default;
-    BasicSemaphore& operator=(const BasicSemaphore& other) = default;
+    BasicSemaphore& operator=(BasicSemaphore const& other) = default;
     BasicSemaphore& operator=(BasicSemaphore&& other) = default;
 
 #ifdef _DEBUG
-    static void debug_check(const BasicSemaphore* semaphore);
-    static void debug_check_leak(const BasicSemaphore* semaphore);
+    static void debug_check(BasicSemaphore const* semaphore);
+    static void debug_check_leak(BasicSemaphore const* semaphore);
 
 #define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) BasicSemaphore::debug_check(semaphore_ptr)
 #define DEBUG_CHECK_SEMAPHORE_LEAK(semaphore_ptr) BasicSemaphore::debug_check_leak(semaphore_ptr)
@@ -57,7 +57,7 @@ namespace cth::vk {
 
 class Semaphore : public BasicSemaphore {
 public:
-    explicit Semaphore(const BasicCore* core, DeletionQueue* deletion_queue, bool create = true);
+    explicit Semaphore(BasicCore const* core, DeletionQueue* deletion_queue, bool create = true);
     ~Semaphore() override;
 
     void create() override;
@@ -67,8 +67,8 @@ private:
     DeletionQueue* _deletionQueue;
 
 public:
-    Semaphore(const Semaphore& other) = delete;
-    Semaphore& operator=(const Semaphore& other) = delete;
+    Semaphore(Semaphore const& other) = delete;
+    Semaphore& operator=(Semaphore const& other) = delete;
     Semaphore(Semaphore&& other) noexcept = default;
     Semaphore& operator=(Semaphore&& other) noexcept = default;
 

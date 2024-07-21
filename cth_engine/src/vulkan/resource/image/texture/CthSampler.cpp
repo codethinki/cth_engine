@@ -1,25 +1,25 @@
 #include "CthSampler.hpp"
 
 #include "vulkan/base/CthCore.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 //Sampler
 
 namespace cth::vk {
 
-Sampler::Sampler(const BasicCore* core, const Config& config) : _core(core) { create(config); }
+Sampler::Sampler(BasicCore const* core, Config const& config) : _core(core) { create(config); }
 Sampler::~Sampler() {
     vkDestroySampler(_core->vkDevice(), _handle.get(), nullptr);
 
     log::msg("destroyed sampler");
 }
 
-void Sampler::create(const Config& config) {
-    const auto createInfo = config.createInfo();
+void Sampler::create(Config const& config) {
+    auto const createInfo = config.createInfo();
 
     VkSampler ptr = VK_NULL_HANDLE;
-    const VkResult createResult = vkCreateSampler(_core->vkDevice(), &createInfo, nullptr, &ptr);
+    VkResult const createResult = vkCreateSampler(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create sampler")
         throw except::vk_result_exception(createResult, details->exception());

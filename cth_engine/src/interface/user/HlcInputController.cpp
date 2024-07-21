@@ -4,10 +4,10 @@
 
 
 namespace cth::vk {
-void InputController::moveByKeys(const float dt, const std::unique_ptr<StandardObject>& object) const {
-    const float yaw = object->_transform.rotation.y;
-    const glm::vec3 forwardDir{sin(yaw), 0.f, cos(yaw)};
-    const glm::vec3 rightDir{forwardDir.z, 0.f, -forwardDir.x};
+void InputController::moveByKeys(float const dt, std::unique_ptr<StandardObject> const& object) const {
+    float const yaw = object->_transform.rotation.y;
+    glm::vec3 const forwardDir{sin(yaw), 0.f, cos(yaw)};
+    glm::vec3 const rightDir{forwardDir.z, 0.f, -forwardDir.x};
     constexpr glm::vec3 upDir{0.f, -1.f, 0.f};
 
     glm::vec3 moveDir{0.f};
@@ -19,7 +19,7 @@ void InputController::moveByKeys(const float dt, const std::unique_ptr<StandardO
     if(getKeyState(MOVE_DOWN)) moveDir -= upDir;
     if(dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon()) object->_transform.translation += moveSpeed * dt * normalize(moveDir);
 }
-void InputController::rotateByMouse(const float dt, const std::unique_ptr<StandardObject>& object) const {
+void InputController::rotateByMouse(float const dt, std::unique_ptr<StandardObject> const& object) const {
     object->_transform.rotation += glm::vec3(-mouseDtY, mouseDtX, 0) * dt * 0.2f;
     object->_transform.rotation.x = glm::clamp(object->_transform.rotation.x, -1.5f, 1.5f);
     object->_transform.rotation.y = glm::mod(object->_transform.rotation.y, glm::two_pi<float>());
@@ -39,7 +39,7 @@ void InputController::updateMousePos(GLFWwindow* window) {
     double mouseX, mouseY;
     glfwGetCursorPos(window, &mouseX, &mouseY);
 
-    const double dtX = mouseX - prevMouseX, dtY = mouseY - prevMouseY;
+    double const dtX = mouseX - prevMouseX, dtY = mouseY - prevMouseY;
     prevMouseX = mouseX;
     prevMouseY = mouseY;
 

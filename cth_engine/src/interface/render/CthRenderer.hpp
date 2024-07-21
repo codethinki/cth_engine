@@ -41,7 +41,7 @@ public:
         PHASES_SIZE
     };
 
-    explicit Renderer(const BasicCore* core, DeletionQueue* deletion_queue, const Config& config);
+    explicit Renderer(BasicCore const* core, DeletionQueue* deletion_queue, Config const& config);
     ~Renderer();
 
     /**
@@ -75,16 +75,16 @@ private:
 
     template<Phase P> void submit();
 
-    void init(const Config& config);
+    void init(Config const& config);
     void createCmdPools();
     void createPrimaryCmdBuffers();
     void createSyncObjects();
     void createSubmitInfos(Config config);
 
-    const BasicCore* _core;
+    BasicCore const* _core;
     DeletionQueue* _deletionQueue;
 
-    std::array<const Queue*, PHASES_SIZE> _queues{};
+    std::array<Queue const*, PHASES_SIZE> _queues{};
     std::array<std::unique_ptr<PrimaryCmdBuffer>, PHASES_SIZE * constants::FRAMES_IN_FLIGHT> _cmdBuffers;
     std::array<std::unique_ptr<CmdPool>, PHASES_SIZE> _cmdPools;
     std::vector<Queue::SubmitInfo> _submitInfos;
@@ -98,7 +98,7 @@ private:
 
 
     [[nodiscard]] TimelineSemaphore* semaphore() const { return _semaphores[_frameIndex].get(); }
-    template<Phase P> [[nodiscard]] const Queue* queue() const;
+    template<Phase P> [[nodiscard]] Queue const* queue() const;
     template<Phase P> [[nodiscard]] PrimaryCmdBuffer* cmdBuffer() const;
     template<Phase P> [[nodiscard]] Queue::SubmitInfo& submitInfo() { return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _frameIndex]; }
 
@@ -110,20 +110,20 @@ private:
 
 #ifdef CONSTANT_DEBUG_MODE
     template<Phase P>
-    static void debug_check_current_phase(const Renderer* renderer);
+    static void debug_check_current_phase(Renderer const* renderer);
 
     template<Phase P>
     static constexpr void debug_check_phase();
     template<Phase P>
-    static void debug_check_phase_change(const Renderer* renderer);
+    static void debug_check_phase_change(Renderer const* renderer);
 #endif
 
 public:
     [[nodiscard]] uint32_t frameIndex() const { return _frameIndex; }
     [[nodiscard]] DeletionQueue* deletionQueue() const;
 
-    Renderer(const Renderer&) = delete;
-    Renderer& operator=(const Renderer&) = delete;
+    Renderer(Renderer const&) = delete;
+    Renderer& operator=(Renderer const&) = delete;
 
 
 #ifdef CONSTANT_DEBUG_MODE
@@ -156,7 +156,7 @@ namespace cth::vk {
 struct Renderer::Config {
     static constexpr size_t SET_SIZE = constants::FRAMES_IN_FLIGHT;
 
-    static Config Render(const Queue* graphics_queue, BasicGraphicsSyncConfig* sync_config);
+    static Config Render(Queue const* graphics_queue, BasicGraphicsSyncConfig* sync_config);
 
     Config() = default;
     //Config(const BasicCore* core, DeletionQueue* deletion_queue);
@@ -173,7 +173,7 @@ struct Renderer::Config {
     * @note sets.size() % SET_SIZE must be 0
     */
     template<Phase P>
-    Config& addWaitSets(std::span<const PipelineWaitStage> wait_stage_sets);
+    Config& addWaitSets(std::span<PipelineWaitStage const> wait_stage_sets);
 
     /**
     * @tparam P phase
@@ -194,35 +194,35 @@ struct Renderer::Config {
      * @note sets.size() % SET_SIZE must be 0
      */
     template<Phase P>
-    Config& removeWaitSets(std::span<const VkPipelineStageFlags> wait_stage_sets);
+    Config& removeWaitSets(std::span<VkPipelineStageFlags const> wait_stage_sets);
 
     /**
      * @tparam P phase
      * @note every phase needs exactly one queue to proceed
      */
     template<Phase P>
-    Config& addQueue(const Queue* queue);
+    Config& addQueue(Queue const* queue);
 
 
     /**
      * @tparam P phase
      */
     template<Phase P>
-    Config& removeQueue(const Queue* queue);
+    Config& removeQueue(Queue const* queue);
 
     /**
      * @brief shortcut for addQueue(), addSignalSets() and addWaitSets()
      */
     template<Phase P>
-    Config& addPhase(const Queue* queue, std::optional<std::span<BasicSemaphore* const>> signal_semaphore_sets = std::nullopt,
-        std::optional<std::span<const PipelineWaitStage>> wait_stage_sets = std::nullopt);
+    Config& addPhase(Queue const* queue, std::optional<std::span<BasicSemaphore* const>> signal_semaphore_sets = std::nullopt,
+        std::optional<std::span<PipelineWaitStage const>> wait_stage_sets = std::nullopt);
 
 
     /**
      *@brief shortcut for addSignalSets() and addWaitSets()
      */
     template<Phase P>
-    Config& addSets(std::span<BasicSemaphore* const> signal_semaphore_sets, std::span<const PipelineWaitStage> wait_stage_sets);
+    Config& addSets(std::span<BasicSemaphore* const> signal_semaphore_sets, std::span<PipelineWaitStage const> wait_stage_sets);
 
 private:
     /**
@@ -232,7 +232,7 @@ private:
      */
     template<Phase P>
     [[nodiscard]] std::vector<Queue::SubmitInfo> createPhaseSubmitInfos(
-        std::span<const PrimaryCmdBuffer* const> phase_buffers) const;
+        std::span<PrimaryCmdBuffer const* const> phase_buffers) const;
 
     /**
      * @brief creates the SubmitInfos for the Phases and FrameSets
@@ -240,7 +240,7 @@ private:
      * @return vector[phase][frame] -> SubmitInfo
      */
     [[nodiscard]] std::vector<Queue::SubmitInfo> createSubmitInfos(
-        std::span<const PrimaryCmdBuffer* const> cmd_buffers) const;
+        std::span<PrimaryCmdBuffer const* const> cmd_buffers) const;
 
 
     template<class T>
@@ -259,18 +259,18 @@ private:
      */
     template<Phase P, class T> void remove(std::span<T const> sets, collection_t<T>& from);
 
-    std::array<const Queue*, PHASES_SIZE> _queues{};
+    std::array<Queue const*, PHASES_SIZE> _queues{};
     collection_t<BasicSemaphore*> _phaseSignalSets{};
     collection_t<PipelineWaitStage> _phaseWaitSets{};
 
     friend class Renderer;
 
-    [[nodiscard]] std::array<const Queue*, PHASES_SIZE> queues() const;
+    [[nodiscard]] std::array<Queue const*, PHASES_SIZE> queues() const;
 
 public:
 #ifdef CONSTANT_DEBUG_MODE
     template<class Rng>
-    static void debug_check_sets_size(const Rng& rng); //asserts: rng.size() % SET_SIZE == 0
+    static void debug_check_sets_size(Rng const& rng); //asserts: rng.size() % SET_SIZE == 0
 #define DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(rng) Config::debug_check_sets_size(rng)
 #else
 #define DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(rng) ((void)0)

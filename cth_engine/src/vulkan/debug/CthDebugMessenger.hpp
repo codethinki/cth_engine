@@ -4,15 +4,15 @@
 namespace cth::vk {
 class DebugMessenger : public BasicDebugMessenger {
 public:
-    DebugMessenger(const BasicInstance* instance, const Config& config) : BasicDebugMessenger{config} { BasicDebugMessenger::create(instance); }
+    DebugMessenger(BasicInstance const* instance, Config const& config) : BasicDebugMessenger{config} { BasicDebugMessenger::create(instance); }
     ~DebugMessenger() override;
 
-    void create(const BasicInstance* instance) override;
+    void create(BasicInstance const* instance) override;
 
 
 public:
-    DebugMessenger(const DebugMessenger& other) = delete;
-    DebugMessenger& operator=(const DebugMessenger& other) = delete;
+    DebugMessenger(DebugMessenger const& other) = delete;
+    DebugMessenger& operator=(DebugMessenger const& other) = delete;
     DebugMessenger(DebugMessenger&& other) = default;
     DebugMessenger& operator=(DebugMessenger&& other) = default;
 };

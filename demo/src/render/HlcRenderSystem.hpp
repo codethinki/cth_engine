@@ -27,8 +27,6 @@ namespace vk {
 
 
 
-
-
 inline constexpr std::string_view GLSL_COMPILER_PATH = R"(..\..\..\sdk\Vulkan\Bin\glslc.exe)";
 inline constexpr std::string_view SHADER_GLSL_DIR = R"(src\render\glsl\)";
 inline constexpr std::string_view SHADER_BINARY_DIR = R"(res\bin\shader\)";
@@ -36,7 +34,8 @@ inline constexpr std::string_view TEXTURE_DIR = R"(res\img\texture\)";
 
 class RenderSystem {
 public:
-    RenderSystem(const vk::BasicCore* core, vk::DeletionQueue* deletion_queue, const vk::PrimaryCmdBuffer& init_cmd_buffer, VkRenderPass render_pass, VkSampleCountFlagBits msaa_samples);
+    RenderSystem(vk::BasicCore const* core, vk::DeletionQueue* deletion_queue, vk::PrimaryCmdBuffer const& init_cmd_buffer, VkRenderPass render_pass,
+        VkSampleCountFlagBits msaa_samples);
     ~RenderSystem() = default;
 
     void render(FrameInfo& frame_info) const;
@@ -50,14 +49,14 @@ private:
 
     void createDescriptorPool();
 
-    void loadDescriptorData(const vk::CmdBuffer& init_cmd_buffer, vk::DeletionQueue* deletion_queue);
+    void loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer, vk::DeletionQueue* deletion_queue);
 
     void createDescriptorSets();
 
     //TEMP replace this with actual model loading
-    void createDefaultTriangle(const vk::CmdBuffer& cmd_buffer, vk::DeletionQueue* deletion_queue);
+    void createDefaultTriangle(vk::CmdBuffer const& cmd_buffer, vk::DeletionQueue* deletion_queue);
 
-    const vk::BasicCore* _core;
+    vk::BasicCore const* _core;
     std::unique_ptr<vk::PipelineLayout> _pipelineLayout;
     std::unique_ptr<vk::Pipeline> _pipeline;
 
@@ -76,9 +75,9 @@ private:
     std::unique_ptr<vk::Sampler> _textureSampler;
 
 public:
-    RenderSystem(const RenderSystem& other) = delete;
+    RenderSystem(RenderSystem const& other) = delete;
     RenderSystem(RenderSystem&& other) noexcept = default;
-    RenderSystem& operator=(const RenderSystem& other) = delete;
+    RenderSystem& operator=(RenderSystem const& other) = delete;
     RenderSystem& operator=(RenderSystem&& other) noexcept = default;
 };
 } // namespace cth

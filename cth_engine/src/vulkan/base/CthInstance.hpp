@@ -22,7 +22,7 @@ class DeletionQueue;
 
 class BasicInstance {
 public:
-    BasicInstance(std::string_view app_name, std::span<const std::string> required_extensions);
+    BasicInstance(std::string_view app_name, std::span<std::string const> required_extensions);
     virtual ~BasicInstance() = default;
 
     /**
@@ -34,7 +34,7 @@ public:
     * @throws cth::except::vk_result_exception result of vkCreateInstance()
     * @note debug_messenger will not be stored
     */
-    virtual void create(const std::optional<BasicDebugMessenger::Config>& messenger_config = std::nullopt);
+    virtual void create(std::optional<BasicDebugMessenger::Config> const& messenger_config = std::nullopt);
 
     void destroy();
 
@@ -69,23 +69,23 @@ public:
     [[nodiscard]] std::vector<std::string> requiredExtensions() const { return _availableExt; }
     [[nodiscard]] std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
 
-    static constexpr std::array<const char*, 1> VALIDATION_LAYERS = {
+    static constexpr std::array<char const*, 1> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation"
     };
-    static constexpr std::array<const char*, 1> VALIDATION_LAYER_EXTENSIONS{
+    static constexpr std::array<char const*, 1> VALIDATION_LAYER_EXTENSIONS{
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
     };
 
     static constexpr std::array<std::string_view, 0> REQUIRED_INSTANCE_EXTENSIONS{};
 
-    BasicInstance(const BasicInstance& other) = default;
-    BasicInstance& operator=(const BasicInstance& other) = default;
+    BasicInstance(BasicInstance const& other) = default;
+    BasicInstance& operator=(BasicInstance const& other) = default;
     BasicInstance(BasicInstance&& other) noexcept = default;
     BasicInstance& operator=(BasicInstance&& other) noexcept = default;
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const BasicInstance* instance);
+    static void debug_check(BasicInstance const* instance);
     static void debug_check_handle(VkInstance vk_instance);
-    static void debug_check_leak(const BasicInstance* instance);
+    static void debug_check_leak(BasicInstance const* instance);
 
 
 #define DEBUG_CHECK_INSTANCE(instance_ptr) BasicInstance::debug_check(instance_ptr)
@@ -107,12 +107,12 @@ public:
     * @throws cth::except::default_exception reason: missing required instance extensions
     * @throws cth::except::default_exception reason: missing required validation layers
     */
-    explicit Instance(std::string_view app_name, const std::span<const std::string> required_extensions);
+    explicit Instance(std::string_view app_name, std::span<std::string const> const required_extensions);
     ~Instance() override;
 
     void wrap(VkInstance vk_instance) override;
 
-    void create(const std::optional<BasicDebugMessenger::Config>& messenger_config) override;
+    void create(std::optional<BasicDebugMessenger::Config> const& messenger_config) override;
 
 private:
 #ifdef CONSTANT_DEBUG_MODE
@@ -120,9 +120,9 @@ private:
 #endif
 
 public:
-    Instance(const Instance& other) = delete;
+    Instance(Instance const& other) = delete;
     Instance(Instance&& other) noexcept = default;
-    Instance& operator=(const Instance& other) = delete;
+    Instance& operator=(Instance const& other) = delete;
     Instance& operator=(Instance&& other) noexcept = default;
 };
 }

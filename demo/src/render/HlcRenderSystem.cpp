@@ -17,10 +17,11 @@
 namespace cth {
 struct UniformBuffer {
     glm::mat4 projectionView;
-    explicit UniformBuffer(const glm::mat4& projection_view) : projectionView{projection_view} {}
+    explicit UniformBuffer(glm::mat4 const& projection_view) : projectionView{projection_view} {}
 };
 //TEMP renderer should not be here
-RenderSystem::RenderSystem(const vk::BasicCore* core, vk::DeletionQueue* deletion_queue, const vk::PrimaryCmdBuffer&  init_cmd_buffer, VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) : _core
+RenderSystem::RenderSystem(vk::BasicCore const* core, vk::DeletionQueue* deletion_queue, vk::PrimaryCmdBuffer const& init_cmd_buffer,
+    VkRenderPass render_pass, VkSampleCountFlagBits const msaa_samples) : _core
     {core} {
     createShaders();
 
@@ -41,8 +42,8 @@ RenderSystem::RenderSystem(const vk::BasicCore* core, vk::DeletionQueue* deletio
 
 void RenderSystem::createShaders() {
 
-    const std::string vertexBinary = std::format("{}shader.vert.spv", SHADER_BINARY_DIR);
-    const std::string fragmentBinary = std::format("{}shader.frag.spv", SHADER_BINARY_DIR);
+    std::string const vertexBinary = std::format("{}shader.vert.spv", SHADER_BINARY_DIR);
+    std::string const fragmentBinary = std::format("{}shader.frag.spv", SHADER_BINARY_DIR);
 
 #ifndef CONSTANT_DEBUG_MODE
     vertexShader = make_unique<Shader>(_device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
@@ -69,7 +70,7 @@ void RenderSystem::createPipelineLayout() {
 
     _pipelineLayout = std::make_unique<vk::PipelineLayout>(_core, builder);
 }
-void RenderSystem::createPipeline(VkRenderPass render_pass, const VkSampleCountFlagBits msaa_samples) {
+void RenderSystem::createPipeline(VkRenderPass render_pass, VkSampleCountFlagBits const msaa_samples) {
     vk::Pipeline::GraphicsConfig config = vk::Pipeline::GraphicsConfig::createDefault();
 
     config.renderPass = render_pass;
@@ -83,10 +84,11 @@ void RenderSystem::createPipeline(VkRenderPass render_pass, const VkSampleCountF
 void RenderSystem::createDescriptorPool() {
     _descriptorPool = std::make_unique<vk::DescriptorPool>(_core, vk::DescriptorPool::Builder{{{_descriptorSetLayout.get(), 1}}});
 }
-void RenderSystem::loadDescriptorData(const vk::CmdBuffer& init_cmd_buffer, vk::DeletionQueue* deletion_queue) {
-    const cth::img::stb_image image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
+void RenderSystem::loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer, vk::DeletionQueue* deletion_queue) {
+    cth::img::stb_image const image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
-    _texture = std::make_unique<vk::Texture>(_core, deletion_queue, VkExtent2D{image.width(), image.height()}, vk::Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
+    _texture = std::make_unique<vk::Texture>(_core, deletion_queue, VkExtent2D{image.width(), image.height()},
+        vk::Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
         init_cmd_buffer, image.raw());
 }
 
@@ -111,12 +113,12 @@ std::array<vk::Vertex, 3> defaultTriangle{
 
 
 
-void RenderSystem::createDefaultTriangle(const vk::CmdBuffer& cmd_buffer, vk::DeletionQueue* deletion_queue) {
+void RenderSystem::createDefaultTriangle(vk::CmdBuffer const& cmd_buffer, vk::DeletionQueue* deletion_queue) {
     _defaultTriangleBuffer = std::make_unique<vk::Buffer<vk::Vertex>>(_core, deletion_queue, 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    vk::Buffer<vk::Vertex> stagingBuffer{_core, deletion_queue,  3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    vk::Buffer<vk::Vertex> stagingBuffer{_core, deletion_queue, 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
     stagingBuffer.map();
     stagingBuffer.write(defaultTriangle);
@@ -126,9 +128,9 @@ void RenderSystem::createDefaultTriangle(const vk::CmdBuffer& cmd_buffer, vk::De
 
 void RenderSystem::render(FrameInfo& frame_info) const {
     _pipeline->bind(frame_info.commandBuffer);
-    const std::vector<VkBuffer> vertexBuffers{_defaultTriangleBuffer->get()};
-    const std::vector<size_t> offsets(vertexBuffers.size());
-    const std::vector<VkDescriptorSet> descriptorSets{_descriptorSet->get()};
+    std::vector<VkBuffer> const vertexBuffers{_defaultTriangleBuffer->get()};
+    std::vector<size_t> const offsets(vertexBuffers.size());
+    std::vector<VkDescriptorSet> const descriptorSets{_descriptorSet->get()};
 
     vkCmdBindDescriptorSets(frame_info.commandBuffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout->get(), 0, 1, descriptorSets.data(), 0,
         nullptr);

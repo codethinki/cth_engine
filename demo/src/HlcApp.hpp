@@ -73,9 +73,9 @@ private:
     [[nodiscard]] static std::vector<std::string> getRequiredInstanceExtensions();
 
 public:
-    App(const App& other) = delete;
+    App(App const& other) = delete;
     App(App&& other) noexcept = delete;
-    App& operator=(const App& other) = delete;
+    App& operator=(App const& other) = delete;
     App& operator=(App&& other) noexcept = delete;
 };
 

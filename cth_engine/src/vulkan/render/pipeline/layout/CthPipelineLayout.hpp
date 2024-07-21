@@ -19,13 +19,13 @@ public:
     * @throws cth::except::vk_result_exception data: VkResult of vkCreatePipelineLayout()
     * @throws cth::except::exception reason: device limits exceeded, too many locations specified
     */
-    PipelineLayout(const BasicCore* core, const Builder& builder);
+    PipelineLayout(BasicCore const* core, Builder const& builder);
     ~PipelineLayout();
 
 private:
     void create();
 
-    const BasicCore* _core;
+    BasicCore const* _core;
     VkPipelineLayout _vkLayout = VK_NULL_HANDLE;
     std::vector<DescriptorSetLayout*> _setLayouts{};
 
@@ -34,9 +34,9 @@ public:
 
 
 
-    PipelineLayout(const PipelineLayout& other) = delete;
+    PipelineLayout(PipelineLayout const& other) = delete;
     PipelineLayout(PipelineLayout&& other) = delete;
-    PipelineLayout& operator=(const PipelineLayout& other) = delete;
+    PipelineLayout& operator=(PipelineLayout const& other) = delete;
     PipelineLayout& operator=(PipelineLayout&& other) = delete;
 };
 

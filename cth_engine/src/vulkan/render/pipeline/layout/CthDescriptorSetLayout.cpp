@@ -2,12 +2,12 @@
 
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/resource/descriptor/CthDescriptor.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 namespace cth::vk {
 
-DescriptorSetLayout::DescriptorSetLayout(const BasicCore* core, const Builder& builder) : _core(core), _vkBindings(builder.bindings()) { create(); }
+DescriptorSetLayout::DescriptorSetLayout(BasicCore const* core, Builder const& builder) : _core(core), _vkBindings(builder.bindings()) { create(); }
 DescriptorSetLayout::~DescriptorSetLayout() {
     vkDestroyDescriptorSetLayout(_core->vkDevice(), _handle.get(), nullptr);
     log::msg("destroyed descriptor set layout");
@@ -20,7 +20,7 @@ void DescriptorSetLayout::create() {
     descriptorSetLayoutInfo.pBindings = _vkBindings.data();
 
     VkDescriptorSetLayout ptr = VK_NULL_HANDLE;
-    const VkResult result = vkCreateDescriptorSetLayout(_core->vkDevice(), &descriptorSetLayoutInfo, nullptr, &ptr);
+    VkResult const result = vkCreateDescriptorSetLayout(_core->vkDevice(), &descriptorSetLayoutInfo, nullptr, &ptr);
     CTH_STABLE_ERR(result != VK_SUCCESS, "Vk: failed to create descriptor set layout")
         throw cth::except::vk_result_exception(result, details->exception());
 
@@ -36,8 +36,8 @@ void DescriptorSetLayout::create() {
 
 namespace cth::vk {
 
-DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(const uint32_t binding, const VkDescriptorType type,
-    const VkShaderStageFlags flags, const uint32_t count) {
+DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(uint32_t const binding, VkDescriptorType const type,
+    VkShaderStageFlags const flags, uint32_t const count) {
     CTH_WARN(count == 0, "empty binding created (count = 0)") {}
     if(binding >= _bindings.size()) _bindings.resize(binding + 1);
 
@@ -54,7 +54,7 @@ DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(const uin
 
     return *this;
 }
-DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(const uint32_t binding) {
+DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(uint32_t const binding) {
     _bindings[binding] = VkDescriptorSetLayoutBinding{};
     return *this;
 }
@@ -65,7 +65,7 @@ std::vector<VkDescriptorSetLayoutBinding> DescriptorSetLayout::Builder::bindings
         throw details->exception();
 
     std::vector<VkDescriptorSetLayoutBinding> vec(_bindings.size());
-    std::ranges::transform(_bindings, vec.begin(), [](const binding_t& binding) { return binding.value(); });
+    std::ranges::transform(_bindings, vec.begin(), [](binding_t const& binding) { return binding.value(); });
     return vec;
 #else
     return _bindings;

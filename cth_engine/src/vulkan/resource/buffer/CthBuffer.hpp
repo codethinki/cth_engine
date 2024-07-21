@@ -14,11 +14,11 @@ class Device;
 template<typename T>
 class Buffer final : public BasicBuffer {
 public:
-    Buffer(const BasicCore* core, DeletionQueue* deletion_queue, size_t element_count, VkBufferUsageFlags usage_flags,
+    Buffer(BasicCore const* core, DeletionQueue* deletion_queue, size_t element_count, VkBufferUsageFlags usage_flags,
         VkMemoryPropertyFlags memory_property_flags);
     ~Buffer() override;
 
-    void wrap(VkBuffer vk_buffer, const State& state) override;
+    void wrap(VkBuffer vk_buffer, State const& state) override;
 
     /**
     * @brief creates the buffer
@@ -50,17 +50,17 @@ public:
      * @brief stages a device local buffer with a temporary host visible buffer
      * @param dst_offset in elements
      */
-    void stage(const CmdBuffer& cmd_buffer, const Buffer<T>& staging_buffer, size_t dst_offset = 0) const;
+    void stage(CmdBuffer const& cmd_buffer, Buffer<T> const& staging_buffer, size_t dst_offset = 0) const;
 
     /**
      * @brief writes to a mapped memory range
      */
-    static void write(std::span<const T> data, std::span<T> mapped_memory);
+    static void write(std::span<T const> data, std::span<T> mapped_memory);
     /**
     * @brief writes to the mapped range of the whole buffer
     * @note CAUTION whole buffer must be mapped first
     */
-    void write(std::span<const T> data, size_t mapped_offset = 0) const;
+    void write(std::span<T const> data, size_t mapped_offset = 0) const;
 
     /**
     * @brief copies buffer data on the gpu
@@ -69,7 +69,7 @@ public:
     * @param src_offset in elements
     * @param dst_offset in elements
     */
-    void copy(const CmdBuffer& cmd_buffer, const Buffer<T>& src, size_t copy_size = constants::WHOLE_SIZE, size_t src_offset = 0,
+    void copy(CmdBuffer const& cmd_buffer, Buffer<T> const& src, size_t copy_size = constants::WHOLE_SIZE, size_t src_offset = 0,
         size_t dst_offset = 0) const;
 
     /**
@@ -105,9 +105,9 @@ private:
 public:
     [[nodiscard]] uint32_t elements() const { return _elements; }
 
-    Buffer(const Buffer& other) = delete;
+    Buffer(Buffer const& other) = delete;
     Buffer(Buffer&& other) = default;
-    Buffer& operator=(const Buffer& other) = delete;
+    Buffer& operator=(Buffer const& other) = delete;
     Buffer& operator=(Buffer&& other) = default;
 };
 

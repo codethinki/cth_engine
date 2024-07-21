@@ -27,11 +27,11 @@ public:
      * @brief creates an image and allocates memory
      * @note implicitly calls create, allocate and bind
      */
-    explicit Image(const BasicCore* core, DeletionQueue* deletion_queue, VkExtent2D extent, const Config& config, VkMemoryPropertyFlags memory_properties);
+    explicit Image(BasicCore const* core, DeletionQueue* deletion_queue, VkExtent2D extent, Config const& config, VkMemoryPropertyFlags memory_properties);
 
     ~Image() override;
 
-    void wrap(VkImage vk_image, const State& state) override;
+    void wrap(VkImage vk_image, State const& state) override;
 
     /**
      * @brief creates the image
@@ -56,9 +56,9 @@ private:
     DeletionQueue* _deletionQueue;
 
 public:
-    Image(const Image& other) = delete;
+    Image(Image const& other) = delete;
     Image(Image&& other) = default;
-    Image& operator=(const Image& other) = delete;
+    Image& operator=(Image const& other) = delete;
     Image& operator=(Image&& other) = default;
 };
 

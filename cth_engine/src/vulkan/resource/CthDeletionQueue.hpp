@@ -31,7 +31,7 @@ public:
 
 
     void clear(uint32_t current_frame);
-    void next(const uint32_t next_frame) { _frame = next_frame; }
+    void next(uint32_t const next_frame) { _frame = next_frame; }
 
 private:
     using handle_t = std::variant<
@@ -53,14 +53,14 @@ private:
 public:
     [[nodiscard]] uint32_t currentFrame() const { return _frame; }
 
-    DeletionQueue(const DeletionQueue& other) = delete;
+    DeletionQueue(DeletionQueue const& other) = delete;
     DeletionQueue(DeletionQueue&& other) = default;
-    DeletionQueue& operator=(const DeletionQueue& other) = delete;
+    DeletionQueue& operator=(DeletionQueue const& other) = delete;
     DeletionQueue& operator=(DeletionQueue&& other) = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const DeletionQueue* queue);
-    static void debug_check_null_allowed(const DeletionQueue* queue);
+    static void debug_check(DeletionQueue const* queue);
+    static void debug_check_null_allowed(DeletionQueue const* queue);
 #define DEBUG_CHECK_DELETION_QUEUE(deletion_queue_ptr) DeletionQueue::debug_check(deletion_queue_ptr)
 #define DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue_ptr) 
 #else

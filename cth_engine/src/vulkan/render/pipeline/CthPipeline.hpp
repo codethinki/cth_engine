@@ -23,30 +23,30 @@ public:
     /**
     *@throws from private void create()
     */
-    Pipeline(const BasicCore* core, const PipelineLayout* pipeline_layout, const GraphicsConfig& config_info);
+    Pipeline(BasicCore const* core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info);
     /**
     *@throws from private void create()
     */
-    Pipeline(const BasicCore* core, const Pipeline* parent, const GraphicsConfig& config_info);
+    Pipeline(BasicCore const* core, Pipeline const* parent, GraphicsConfig const& config_info);
 
     ~Pipeline();
 
-    void bind(const CmdBuffer* cmd_buffer) const;
+    void bind(CmdBuffer const* cmd_buffer) const;
 
 private:
     /**
      *@throws cth::except::default_exception reason: missing render pass
      *@throws cth::except::vk_result_exception result of vkCreateGraphicsPipelines()
     */
-    void create(const GraphicsConfig& config_info, const PipelineLayout* pipeline_layout = nullptr, const Pipeline* parent = nullptr);
+    void create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout = nullptr, Pipeline const* parent = nullptr);
 
-    const BasicCore* _device;
+    BasicCore const* _device;
     VkPipeline _vkGraphicsPipeline{};
 
 public:
-    Pipeline(const Pipeline& other) = delete;
+    Pipeline(Pipeline const& other) = delete;
     Pipeline(Pipeline&& other) = delete;
-    Pipeline& operator=(const Pipeline& other) = delete;
+    Pipeline& operator=(Pipeline const& other) = delete;
     Pipeline& operator=(Pipeline&& other) = delete;
 };
 
@@ -57,9 +57,9 @@ public:
 
 namespace cth::vk {
 struct Pipeline::GraphicsConfig {
-    void addShaderStage(const Shader* shader, const ShaderSpecialization* specialization_info = nullptr,
+    void addShaderStage(Shader const* shader, ShaderSpecialization const* specialization_info = nullptr,
         VkPipelineShaderStageCreateFlags flags = 0);
-    void removeShaderStage(const Shader* shader);
+    void removeShaderStage(Shader const* shader);
     void removeShaderStage(VkShaderStageFlagBits shader_stage);
 
     [[nodiscard]] VkGraphicsPipelineCreateInfo createInfo() const;

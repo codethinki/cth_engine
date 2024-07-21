@@ -9,7 +9,7 @@
 namespace cth::vk {
 using std::vector;
 
-Renderer::Renderer(const BasicCore* core, DeletionQueue* deletion_queue, const Config& config) : _core(core), _deletionQueue(deletion_queue),
+Renderer::Renderer(BasicCore const* core, DeletionQueue* deletion_queue, Config const& config) : _core(core), _deletionQueue(deletion_queue),
     _queues(config.queues()) { init(config); }
 Renderer::~Renderer() {
 
@@ -19,12 +19,12 @@ Renderer::~Renderer() {
 
 
 void Renderer::wait() const {
-    const auto result = semaphore()->wait();
+    auto const result = semaphore()->wait();
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait on current phase")
         throw except::vk_result_exception{result, details->exception()};
 }
 
-void Renderer::init(const Config& config) {
+void Renderer::init(Config const& config) {
     createCmdPools();
     createPrimaryCmdBuffers();
     createSyncObjects();
@@ -66,8 +66,8 @@ std::array<BasicSemaphore*, constants::FRAMES_IN_FLIGHT> Renderer::createSignalS
 
 
 void Renderer::createSubmitInfos(Config config) {
-    const auto& signalSet = createSignalSet();
-    const auto& waitSet = createWaitSet();
+    auto const& signalSet = createSignalSet();
+    auto const& waitSet = createWaitSet();
 
     config.addWaitSets<PHASE_TRANSFER>(waitSet);
     config.addSignalSets<PHASE_TRANSFER>(signalSet);
@@ -77,8 +77,8 @@ void Renderer::createSubmitInfos(Config config) {
 
     static_assert(PHASES_SIZE == 2, "missing phases to inject into config");
 
-    vector<const PrimaryCmdBuffer*> cmdBuffers(_cmdBuffers.size());
-    std::ranges::transform(_cmdBuffers, cmdBuffers.begin(), [](const auto& buffer) { return buffer.get(); });
+    vector<PrimaryCmdBuffer const*> cmdBuffers(_cmdBuffers.size());
+    std::ranges::transform(_cmdBuffers, cmdBuffers.begin(), [](auto const& buffer) { return buffer.get(); });
 
     _submitInfos = config.createSubmitInfos(cmdBuffers);
 }
@@ -92,7 +92,7 @@ DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 //Builder
 
 namespace cth::vk {
-Renderer::Config Renderer::Config::Render(const Queue* graphics_queue,
+Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
     BasicGraphicsSyncConfig* sync_config) {
     Config config{};
     config.addQueue<PHASE_TRANSFER>(graphics_queue)
@@ -108,7 +108,7 @@ Renderer::Config Renderer::Config::Render(const Queue* graphics_queue,
 
 
 
-auto Renderer::Config::createSubmitInfos(const std::span<const PrimaryCmdBuffer* const> cmd_buffers) const
+auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const> const cmd_buffers) const
     -> std::vector<Queue::SubmitInfo> {
     DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(cmd_buffers);
 
@@ -119,15 +119,15 @@ auto Renderer::Config::createSubmitInfos(const std::span<const PrimaryCmdBuffer*
         createPhaseSubmitInfos<PHASE_TRANSFER>(phaseBuffers[PHASE_TRANSFER]),
         createPhaseSubmitInfos<PHASE_GRAPHICS>(phaseBuffers[PHASE_GRAPHICS]),
     };
+    static_assert(phaseSubmitInfos.size() == PHASES_SIZE, "missing phases");
     static_assert(PHASES_SIZE == 2, "missing phases to add");
-    CTH_ERR(phaseSubmitInfos.size() != PHASES_SIZE, "missing phase") throw details->exception();
 
-    auto views = phaseSubmitInfos | std::views::join;
+    auto view = phaseSubmitInfos | std::views::join;
 
-    return std::vector(std::ranges::begin(views), std::ranges::end(views));
+    return {std::ranges::begin(view), std::ranges::end(view)};
 }
 
-std::array<const Queue*, Renderer::PHASES_SIZE> Renderer::Config::queues() const {
+std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const {
     for(auto& queue : _queues)
         DEBUG_CHECK_QUEUE(queue);
 

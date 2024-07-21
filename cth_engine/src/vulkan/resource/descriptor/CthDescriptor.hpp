@@ -14,7 +14,7 @@ class DescriptedResource;
 
 class Descriptor {
 public:
-    explicit Descriptor(const VkDescriptorType type) : _vkType(type) {}
+    explicit Descriptor(VkDescriptorType const type) : _vkType(type) {}
     virtual ~Descriptor() = 0;
 
 
@@ -33,9 +33,9 @@ private:
 public:
     [[nodiscard]] VkDescriptorType type() const { return _vkType; }
 
-    Descriptor(const Descriptor& other) = default;
+    Descriptor(Descriptor const& other) = default;
     Descriptor(Descriptor&& other) = delete;
-    Descriptor& operator=(const Descriptor& other) = default;
+    Descriptor& operator=(Descriptor const& other) = default;
     Descriptor& operator=(Descriptor&& other) = delete;
 };
 

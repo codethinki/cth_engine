@@ -17,7 +17,7 @@ class Surface;
 
 class OSWindow {
 public:
-    OSWindow(std::string_view name, uint32_t width, uint32_t height, const BasicInstance* instance);
+    OSWindow(std::string_view name, uint32_t width, uint32_t height, BasicInstance const* instance);
     ~OSWindow();
 
     void resetWindowResized() { _framebufferResized = false; }
@@ -27,12 +27,12 @@ public:
     static void init();
     static void terminate();
 
-    static VkSurfaceKHR tempSurface(const BasicInstance* instance);
+    static VkSurfaceKHR tempSurface(BasicInstance const* instance);
 
 private:
     void initWindow();
     void setCallbacks();
-    void createSurface(const BasicInstance* instance);
+    void createSurface(BasicInstance const* instance);
 
 
     void keyCallback(int key, int scan_code, int action, int mods);
@@ -74,14 +74,14 @@ public:
   
 
 
-    OSWindow(const OSWindow& other) = delete;
-    OSWindow& operator=(const OSWindow& other) = delete;
+    OSWindow(OSWindow const& other) = delete;
+    OSWindow& operator=(OSWindow const& other) = delete;
     OSWindow(OSWindow&& other) = default;
     OSWindow& operator=(OSWindow&& other) = default; // copy/move operations
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check_not_null(const OSWindow* os_window);
-    static void debug_check(const OSWindow* os_window);
+    static void debug_check_not_null(OSWindow const* os_window);
+    static void debug_check(OSWindow const* os_window);
 
 #define DEBUG_CHECK_OS_WINDOW(os_window_ptr) OSWindow::debug_check(os_window_ptr)
 #define DEBUG_CHECK_OS_WINDOW_NOT_NULL(os_window_ptr) OSWindow::debug_check_not_null(os_window_ptr)

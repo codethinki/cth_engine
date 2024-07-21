@@ -7,8 +7,8 @@
 namespace cth::vk {
 
 
-Texture::Texture(const BasicCore* core, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
-    const std::span<const char> staging_data) : Image(core, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+Texture::Texture(BasicCore const* core, DeletionQueue* deletion_queue, VkExtent2D const extent, Config const& config, CmdBuffer const& cmd_buffer,
+    std::span<char const> const staging_data) : Image(core, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
 
     Buffer<char> buffer{core, deletion_queue, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
@@ -17,12 +17,12 @@ Texture::Texture(const BasicCore* core, DeletionQueue* deletion_queue, const VkE
 
     init(cmd_buffer, buffer);
 }
-Texture::Texture(const BasicCore* core, DeletionQueue* deletion_queue, const VkExtent2D extent, const Config& config, const CmdBuffer& cmd_buffer,
-    const BasicBuffer& staging_buffer, const size_t buffer_offset) : Image(core, deletion_queue, extent, imageConfig(extent, config),
+Texture::Texture(BasicCore const* core, DeletionQueue* deletion_queue, VkExtent2D const extent, Config const& config, CmdBuffer const& cmd_buffer,
+    BasicBuffer const& staging_buffer, size_t const buffer_offset) : Image(core, deletion_queue, extent, imageConfig(extent, config),
     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) { init(cmd_buffer, staging_buffer, buffer_offset); }
 
 
-void Texture::init(const CmdBuffer& cmd_buffer, const BasicBuffer& buffer, const size_t offset) {
+void Texture::init(CmdBuffer const& cmd_buffer, BasicBuffer const& buffer, size_t const offset) {
     CTH_ERR(_state.levelLayouts[0] == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, "already initialized")
         throw details->exception();
 
@@ -35,7 +35,7 @@ void Texture::init(const CmdBuffer& cmd_buffer, const BasicBuffer& buffer, const
     Image::transitionLayout(cmd_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1);
 }
 
-BasicImage::Config Texture::imageConfig(const VkExtent2D extent, const Config& config) {
+BasicImage::Config Texture::imageConfig(VkExtent2D const extent, Config const& config) {
     return BasicImage::Config{
         config.aspectMask,
         config.format,
@@ -47,7 +47,7 @@ BasicImage::Config Texture::imageConfig(const VkExtent2D extent, const Config& c
     };
 }
 
-void Texture::blitMipLevels(const CmdBuffer& cmd_buffer, const int32_t first, int32_t levels) {
+void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, int32_t const first, int32_t levels) {
     if(levels == 0) levels = mipLevels() - first;
 
     CTH_ERR(_state.levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal")

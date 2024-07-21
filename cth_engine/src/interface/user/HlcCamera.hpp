@@ -17,8 +17,8 @@ public:
 
 
 
-    [[nodiscard]] const glm::mat4& getProjection() const { return _projectionMatrix; }
-    [[nodiscard]] const glm::mat4& getView() const { return _viewMatrix; }
+    [[nodiscard]] glm::mat4 const& getProjection() const { return _projectionMatrix; }
+    [[nodiscard]] glm::mat4 const& getView() const { return _viewMatrix; }
 
 private:
     glm::mat4 _projectionMatrix{1.f};

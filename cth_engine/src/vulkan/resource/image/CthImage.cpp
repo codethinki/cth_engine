@@ -9,8 +9,8 @@ namespace cth::vk {
 using namespace std;
 
 
-Image::Image(const BasicCore* core, DeletionQueue* deletion_queue, const VkExtent2D extent, const BasicImage::Config& config,
-    const VkMemoryPropertyFlags memory_properties) : BasicImage(core, extent, config), _deletionQueue(deletion_queue) {
+Image::Image(BasicCore const* core, DeletionQueue* deletion_queue, VkExtent2D const extent, BasicImage::Config const& config,
+    VkMemoryPropertyFlags const memory_properties) : BasicImage(core, extent, config), _deletionQueue(deletion_queue) {
     BasicMemory* memory = new Memory(core, _deletionQueue, memory_properties);
     DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
 
@@ -22,7 +22,7 @@ Image::~Image() {
     if(get() != VK_NULL_HANDLE) Image::destroy();
     if(_state.memory) destroyMemory();
 }
-void Image::wrap(VkImage vk_image, const State& state) {
+void Image::wrap(VkImage vk_image, State const& state) {
     if(get() != VK_NULL_HANDLE) destroy();
     if(_state.memory) destroyMemory();
 

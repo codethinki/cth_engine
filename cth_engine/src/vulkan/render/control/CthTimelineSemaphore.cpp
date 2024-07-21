@@ -1,44 +1,44 @@
 #include "CthTimelineSemaphore.hpp"
 
 #include "vulkan/base/CthCore.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 namespace cth::vk {
-TimelineSemaphore::TimelineSemaphore(const BasicCore* core, DeletionQueue* deletion_queue, const bool create) : Semaphore(core, deletion_queue, false) {
+TimelineSemaphore::TimelineSemaphore(BasicCore const* core, DeletionQueue* deletion_queue, bool const create) : Semaphore(core, deletion_queue, false) {
     if(create) BasicSemaphore::createHandle(TimelineSemaphore::createInfo());
 }
 
 size_t TimelineSemaphore::gpuValue() const {
     size_t value = 0;
-    const auto result = vkGetSemaphoreCounterValue(_core->vkDevice(), get(), &value);
+    auto const result = vkGetSemaphoreCounterValue(_core->vkDevice(), get(), &value);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to get semaphore counter value")
         throw except::vk_result_exception{result, details->exception()};
 
     return value;
 }
 void TimelineSemaphore::signal() {
-    const auto info = signalInfo(++_value);
+    auto const info = signalInfo(++_value);
 
-    const auto result = vkSignalSemaphore(_core->vkDevice(), &info);
+    auto const result = vkSignalSemaphore(_core->vkDevice(), &info);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to signal semaphore")
         throw except::vk_result_exception{result, details->exception()};
 }
-VkResult TimelineSemaphore::wait(const uint64_t nanoseconds) const {
+VkResult TimelineSemaphore::wait(uint64_t const nanoseconds) const {
     DEBUG_CHECK_SEMAPHORE(this);
-    const auto handle = get();
+    auto const handle = get();
 
-    const auto info = waitInfo(_value, handle);
+    auto const info = waitInfo(_value, handle);
 
-    const auto result = vkWaitSemaphores(_core->vkDevice(), &info, nanoseconds);
+    auto const result = vkWaitSemaphores(_core->vkDevice(), &info, nanoseconds);
 
     return result;
 }
 
 
 
-VkSemaphoreSignalInfo TimelineSemaphore::signalInfo(const size_t& value) const {
-    const VkSemaphoreSignalInfo signalInfo{
+VkSemaphoreSignalInfo TimelineSemaphore::signalInfo(size_t const& value) const {
+    VkSemaphoreSignalInfo const signalInfo{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
         .pNext = nullptr,
         .semaphore = get(),
@@ -48,13 +48,13 @@ VkSemaphoreSignalInfo TimelineSemaphore::signalInfo(const size_t& value) const {
 }
 
 
-VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(std::span<const size_t> wait_values, std::span<const VkSemaphore> wait_semaphores) {
+VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(std::span<size_t const> wait_values, std::span<VkSemaphore const> wait_semaphores) {
     CTH_ERR(wait_values.size() != wait_semaphores.size(), "wait_values size ({0}) must equal wait_semaphores size ({1}) required", wait_values.size(),
         wait_semaphores.size())
         throw details->exception();
 
 
-    const VkSemaphoreWaitInfo waitInfo{
+    VkSemaphoreWaitInfo const waitInfo{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
         .pNext = nullptr,
         .flags = 0,
@@ -66,8 +66,8 @@ VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(std::span<const size_t> wait_val
 
 }
 
-VkTimelineSemaphoreSubmitInfo TimelineSemaphore::submitInfo(const size_t& wait_value, const size_t& signal_value) {
-    const VkTimelineSemaphoreSubmitInfo timelineInfo{
+VkTimelineSemaphoreSubmitInfo TimelineSemaphore::submitInfo(size_t const& wait_value, size_t const& signal_value) {
+    VkTimelineSemaphoreSubmitInfo const timelineInfo{
         .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
         .pNext = nullptr,
         .waitSemaphoreValueCount = 1,
@@ -77,8 +77,8 @@ VkTimelineSemaphoreSubmitInfo TimelineSemaphore::submitInfo(const size_t& wait_v
     };
     return timelineInfo;
 }
-VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(const size_t& value, const VkSemaphore& p_semaphore) {
-    const VkSemaphoreWaitInfo waitInfo{
+VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(size_t const& value, VkSemaphore const& p_semaphore) {
+    VkSemaphoreWaitInfo const waitInfo{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
         .pNext = nullptr,
         .flags = 0,

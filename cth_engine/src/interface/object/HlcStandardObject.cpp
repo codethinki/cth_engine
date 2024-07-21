@@ -20,7 +20,7 @@ namespace cth::vk {
 //}
 
 glm::mat4 Transform::matrix() const {
-    const float c3 = glm::cos(rotation.z), s3 = glm::sin(rotation.z), c2 = glm::cos(rotation.x), s2 = glm::sin(
+    float const c3 = glm::cos(rotation.z), s3 = glm::sin(rotation.z), c2 = glm::cos(rotation.x), s2 = glm::sin(
                     rotation.x), c1 = glm::cos(rotation.y), s1 = glm::sin(rotation.y);
 
     return glm::mat4{
@@ -39,10 +39,10 @@ glm::mat4 Transform::matrix() const {
         {translation.x, translation.y, translation.z, 1.0f}};
 }
 glm::mat3 Transform::normal() const {
-    const float c3 = glm::cos(rotation.z), s3 = glm::sin(rotation.z), c2 = glm::cos(rotation.x), s2 = glm::sin(
+    float const c3 = glm::cos(rotation.z), s3 = glm::sin(rotation.z), c2 = glm::cos(rotation.x), s2 = glm::sin(
                     rotation.x), c1 = glm::cos(rotation.y), s1 = glm::sin(rotation.y);
 
-    const glm::vec3 invScale = 1.0f / scale;
+    glm::vec3 const invScale = 1.0f / scale;
 
     return glm::mat3{
         {invScale.x * (c1 * c3 + s1 * s2 * s3),

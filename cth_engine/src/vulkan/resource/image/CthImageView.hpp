@@ -10,23 +10,23 @@ class ImageView {
 public:
     struct Config;
 
-    ImageView(const BasicCore* device, const BasicImage* image, const Config& config);
+    ImageView(BasicCore const* device, BasicImage const* image, Config const& config);
     ~ImageView();
 
 private:
-    void create(const Config& config);
+    void create(Config const& config);
 
-    const BasicCore* _core;
-    const BasicImage* _image;
+    BasicCore const* _core;
+    BasicImage const* _image;
     move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkImageView get() const { return _handle.get(); }
-    [[nodiscard]] const BasicImage* image() const { return _image; }
+    [[nodiscard]] BasicImage const* image() const { return _image; }
 
-    ImageView(const ImageView& other) = delete;
+    ImageView(ImageView const& other) = delete;
     ImageView(ImageView&& other) noexcept = default;
-    ImageView& operator=(const ImageView& other) = delete;
+    ImageView& operator=(ImageView const& other) = delete;
     ImageView& operator=(ImageView&& other) noexcept = default;
 };
 } // namespace cth

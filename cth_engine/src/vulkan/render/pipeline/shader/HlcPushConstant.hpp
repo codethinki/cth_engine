@@ -2,7 +2,6 @@
 
 #include <vulkan/vulkan_core.h>
 
-#define GLM_ENABLE_EXPERIMENTAL
 #include<glm/glm.hpp>
 
 
@@ -12,12 +11,12 @@ namespace cth::vk {
 struct PushConstants {
     glm::mat4 matrix;
     glm::vec4 color;
-    void set(const glm::mat4& new_matrix, const glm::vec3& new_color) {
+    void set(glm::mat4 const& new_matrix, glm::vec3 const& new_color) {
         matrix = new_matrix;
         color = glm::vec4(new_color, 0.f);
     }
     PushConstants() = default;
-    explicit PushConstants(const glm::vec3& color, const glm::mat4& matrix): matrix{matrix}, color{glm::vec4(color, 0.f)} {}
+    explicit PushConstants(glm::vec3 const& color, glm::mat4 const& matrix): matrix{matrix}, color{glm::vec4(color, 0.f)} {}
 
     inline static constexpr uint32_t MATRIX_SIZE = sizeof(matrix);
     inline static constexpr uint32_t MATRIX_OFFSET = 0;

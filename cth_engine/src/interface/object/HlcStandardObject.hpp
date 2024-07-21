@@ -10,7 +10,7 @@ class InputController;
 
 
 struct Transform {
-    explicit Transform(const glm::vec3& translation = {}, const glm::vec3& scale = {}, const glm::vec3& rotation = {}) : translation(translation),
+    explicit Transform(glm::vec3 const& translation = {}, glm::vec3 const& scale = {}, glm::vec3 const& rotation = {}) : translation(translation),
         scale(scale),
         rotation(rotation) {}
 
@@ -24,13 +24,13 @@ struct Transform {
 class StandardObject {
 public:
     StandardObject() { _id = currentId++; };
-    explicit StandardObject(const Transform& transform) : _transform{transform} { _id = currentId++; };
+    explicit StandardObject(Transform const& transform) : _transform{transform} { _id = currentId++; };
     virtual ~StandardObject() = 0;
 
     [[nodiscard]] uint32_t getId() const { return _id; }
 
-    StandardObject(const StandardObject&) = default;
-    StandardObject& operator=(const StandardObject&) = default;
+    StandardObject(StandardObject const&) = default;
+    StandardObject& operator=(StandardObject const&) = default;
     StandardObject(StandardObject&&) = default;
     StandardObject& operator=(StandardObject&&) = default; // copy/move operations
 

@@ -3,7 +3,6 @@
 
 
 
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 #include <vulkan/vulkan.h>
@@ -20,15 +19,15 @@ struct Vertex {
     glm::vec2 uv{};
 
     constexpr Vertex() = default;
-    constexpr Vertex(const glm::vec3& position, const glm::vec3& normal, const glm::vec2& uv) : position(position),
+    constexpr Vertex(glm::vec3 const& position, glm::vec3 const& normal, glm::vec2 const& uv) : position(position),
         normal(normal), uv(uv) {}
 
-    constexpr bool operator==(const Vertex& other) const {
+    constexpr bool operator==(Vertex const& other) const {
         return position == other.position && normal == other.normal && uv == other.uv;
     }
 
-    constexpr Vertex(const Vertex& other) = default;
-    constexpr Vertex& operator=(const Vertex& other) = default;
+    constexpr Vertex(Vertex const& other) = default;
+    constexpr Vertex& operator=(Vertex const& other) = default;
 
     //IMPLEMENT the per instance data field
 };

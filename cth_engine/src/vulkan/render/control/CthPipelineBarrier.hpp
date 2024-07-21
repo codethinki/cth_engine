@@ -38,31 +38,31 @@ namespace cth::vk {
 class ImageBarrier : virtual protected PipelineStages {
 public:
     struct Info;
-    explicit ImageBarrier(const PipelineStages stages) : PipelineStages(stages) {}
-    explicit ImageBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage) : PipelineStages{src_stage, dst_stage} {}
-    explicit ImageBarrier(PipelineStages stages, const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
+    explicit ImageBarrier(PipelineStages const stages) : PipelineStages(stages) {}
+    explicit ImageBarrier(VkPipelineStageFlags const src_stage, VkPipelineStageFlags const dst_stage) : PipelineStages{src_stage, dst_stage} {}
+    explicit ImageBarrier(PipelineStages stages, std::unordered_map<BasicImage*, ImageBarrier::Info> const& images);
     explicit ImageBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-        const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
+        std::unordered_map<BasicImage*, ImageBarrier::Info> const& images);
     virtual ~ImageBarrier() = default;
 
-    void add(BasicImage* image, const Info& info);
-    void replace(BasicImage* image, const Info& info);
-    void remove(const BasicImage* image);
+    void add(BasicImage* image, Info const& info);
+    void replace(BasicImage* image, Info const& info);
+    void remove(BasicImage const* image);
 
-    virtual void execute(const CmdBuffer& cmd_buffer);
+    virtual void execute(CmdBuffer const& cmd_buffer);
 
-    [[nodiscard]] bool contains(const BasicImage* image) const;
+    [[nodiscard]] bool contains(BasicImage const* image) const;
 
 protected:
     void applyChanges() const;
     ImageBarrier() = default;
-    explicit ImageBarrier(const std::unordered_map<BasicImage*, Info>& images);
+    explicit ImageBarrier(std::unordered_map<BasicImage*, Info> const& images);
 
 private:
-    [[nodiscard]] ptrdiff_t find(const BasicImage* image) const;
+    [[nodiscard]] ptrdiff_t find(BasicImage const* image) const;
 
     void removeChange(size_t barrier_index);
-    void init(const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
+    void init(std::unordered_map<BasicImage*, ImageBarrier::Info> const& images);
     std::vector<VkImageMemoryBarrier> _imageBarriers{};
 
     std::vector<std::pair<size_t, BasicImage*>> _layoutChanges{};
@@ -70,8 +70,8 @@ private:
     friend PipelineBarrier;
 
 public:
-    ImageBarrier(const ImageBarrier& other) = delete;
-    ImageBarrier& operator=(const ImageBarrier& other) = delete;
+    ImageBarrier(ImageBarrier const& other) = delete;
+    ImageBarrier& operator=(ImageBarrier const& other) = delete;
     ImageBarrier(ImageBarrier&& other) noexcept = default;
     ImageBarrier& operator=(ImageBarrier&& other) noexcept = default;
 };
@@ -85,32 +85,32 @@ namespace cth::vk {
 class BufferBarrier : virtual protected PipelineStages {
 public:
     struct Info;
-    explicit BufferBarrier(const PipelineStages stages) : PipelineStages(stages) {}
-    explicit BufferBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage) : PipelineStages{src_stage, dst_stage} {}
-    BufferBarrier(PipelineStages stages, const std::unordered_map<const BasicBuffer*, Info>& buffers);
-    BufferBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, const std::unordered_map<const BasicBuffer*, Info>& buffers);
+    explicit BufferBarrier(PipelineStages const stages) : PipelineStages(stages) {}
+    explicit BufferBarrier(VkPipelineStageFlags const src_stage, VkPipelineStageFlags const dst_stage) : PipelineStages{src_stage, dst_stage} {}
+    BufferBarrier(PipelineStages stages, std::unordered_map<BasicBuffer const*, Info> const& buffers);
+    BufferBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, std::unordered_map<BasicBuffer const*, Info> const& buffers);
 
     virtual ~BufferBarrier() = default;
 
-    void add(const BasicBuffer* buffer, const Info& info);
-    void remove(const BasicBuffer* buffer);
+    void add(BasicBuffer const* buffer, Info const& info);
+    void remove(BasicBuffer const* buffer);
 
-    virtual void execute(const CmdBuffer& cmd_buffer);
+    virtual void execute(CmdBuffer const& cmd_buffer);
 
 protected:
-    explicit BufferBarrier(const std::unordered_map<const BasicBuffer*, Info>& buffers);
+    explicit BufferBarrier(std::unordered_map<BasicBuffer const*, Info> const& buffers);
     BufferBarrier() = default;
 
 private:
-    void init(const std::unordered_map<const BasicBuffer*, Info>& buffers);
-    std::vector<const BasicBuffer*> _buffers{};
+    void init(std::unordered_map<BasicBuffer const*, Info> const& buffers);
+    std::vector<BasicBuffer const*> _buffers{};
     std::vector<VkBufferMemoryBarrier> _bufferBarriers{};
 
     friend PipelineBarrier;
 
 public:
-    BufferBarrier(const BufferBarrier& other) = delete;
-    BufferBarrier& operator=(const BufferBarrier& other) = delete;
+    BufferBarrier(BufferBarrier const& other) = delete;
+    BufferBarrier& operator=(BufferBarrier const& other) = delete;
     BufferBarrier(BufferBarrier&& other) noexcept = default;
     BufferBarrier& operator=(BufferBarrier&& other) noexcept = default;
 };
@@ -122,27 +122,27 @@ namespace cth::vk {
 
 class PipelineBarrier : public BufferBarrier, public ImageBarrier {
 public:
-    explicit PipelineBarrier(const PipelineStages stages) : BufferBarrier(stages), ImageBarrier(stages) {
+    explicit PipelineBarrier(PipelineStages const stages) : BufferBarrier(stages), ImageBarrier(stages) {
         srcStage = stages.srcStage;
         dstStage = stages.dstStage;
     }
-    explicit PipelineBarrier(const VkPipelineStageFlags src_stage, const VkPipelineStageFlags dst_stage) {
+    explicit PipelineBarrier(VkPipelineStageFlags const src_stage, VkPipelineStageFlags const dst_stage) {
         srcStage = src_stage;
         dstStage = dst_stage;
     }
 
 
-    PipelineBarrier(PipelineStages stages, const std::unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
-        const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
+    PipelineBarrier(PipelineStages stages, std::unordered_map<BasicBuffer const*, BufferBarrier::Info> const& buffers,
+        std::unordered_map<BasicImage*, ImageBarrier::Info> const& images);
     PipelineBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-        const std::unordered_map<const BasicBuffer*, BufferBarrier::Info>& buffers,
-        const std::unordered_map<BasicImage*, ImageBarrier::Info>& images);
+        std::unordered_map<BasicBuffer const*, BufferBarrier::Info> const& buffers,
+        std::unordered_map<BasicImage*, ImageBarrier::Info> const& images);
 
 
-    void execute(const CmdBuffer& cmd_buffer) override;
+    void execute(CmdBuffer const& cmd_buffer) override;
 
 private:
-    void initStages(const PipelineStages stages) { initStages(stages.srcStage, stages.dstStage); }
+    void initStages(PipelineStages const stages) { initStages(stages.srcStage, stages.dstStage); }
     void initStages(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage);
 };
 } // namespace cth
@@ -164,16 +164,16 @@ struct ImageBarrier::Info {
 
     static Info Default() { return Info{}; }
 
-    static Info QueueTransition(const PipelineAccess& src, const PipelineAccess& dst) { return Info{.src = src, .dst = dst}; }
-    static Info QueueTransition(const VkAccessFlags src_access, const uint32_t src_queue_family_index, const VkAccessFlags dst_access,
-        const uint32_t dst_queue_family_index) {
+    static Info QueueTransition(PipelineAccess const& src, PipelineAccess const& dst) { return Info{.src = src, .dst = dst}; }
+    static Info QueueTransition(VkAccessFlags const src_access, uint32_t const src_queue_family_index, VkAccessFlags const dst_access,
+        uint32_t const dst_queue_family_index) {
         return Info{
             .src = {src_access, src_queue_family_index},
             .dst = {dst_access, dst_queue_family_index}
         };
     }
-    static Info QueueTransition(const VkAccessFlags src_access, const Queue& src_queue, const VkAccessFlags dst_access,
-        const Queue& dst_queue) {
+    static Info QueueTransition(VkAccessFlags const src_access, Queue const& src_queue, VkAccessFlags const dst_access,
+        Queue const& dst_queue) {
         return Info{
             .src = {src_access, src_queue.familyIndex()},
             .dst = {dst_access, dst_queue.familyIndex()}
@@ -182,8 +182,8 @@ struct ImageBarrier::Info {
     /**
      * @param levels (Constants::ALL => all remaining)
      */
-    static Info LayoutTransition(const VkImageLayout new_layout, const VkAccessFlags src_access, const VkAccessFlags dst_access,
-        const uint32_t first_mip_level = 0, const uint32_t levels = 0) {
+    static Info LayoutTransition(VkImageLayout const new_layout, VkAccessFlags const src_access, VkAccessFlags const dst_access,
+        uint32_t const first_mip_level = 0, uint32_t const levels = 0) {
         return Info{
             .firstMipLevel = first_mip_level,
             .levels = levels,
@@ -194,7 +194,7 @@ struct ImageBarrier::Info {
     }
 
 private:
-    [[nodiscard]] VkImageMemoryBarrier createBarrier(const BasicImage& image) const;
+    [[nodiscard]] VkImageMemoryBarrier createBarrier(BasicImage const& image) const;
 
     friend ImageBarrier;
 };
@@ -205,6 +205,6 @@ struct BufferBarrier::Info {
 
 
     static Info Default() { return Info{}; }
-    static Info QueueTransition(const PipelineAccess& src, const PipelineAccess& dst) { return Info{src, dst}; }
+    static Info QueueTransition(PipelineAccess const& src, PipelineAccess const& dst) { return Info{src, dst}; }
 };
 }

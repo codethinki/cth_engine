@@ -13,21 +13,21 @@ class Sampler {
 public:
     struct Config;
 
-    explicit Sampler(const BasicCore* core, const Config& config);
+    explicit Sampler(BasicCore const* core, Config const& config);
     ~Sampler();
 
 private:
-    void create(const Config& config);
+    void create(Config const& config);
 
-    const BasicCore* _core;
+    BasicCore const* _core;
     move_ptr<VkSampler_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkSampler get() const { return _handle.get(); }
 
-    Sampler(const Sampler& other) = delete;
+    Sampler(Sampler const& other) = delete;
     Sampler(Sampler&& other) = delete;
-    Sampler& operator=(const Sampler& other) = delete;
+    Sampler& operator=(Sampler const& other) = delete;
     Sampler& operator=(Sampler&& other) = delete;
 };
 }

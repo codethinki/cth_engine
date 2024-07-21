@@ -5,15 +5,15 @@
 
 
 namespace cth::vk {
-CmdBuffer::CmdBuffer(CmdPool* pool, const VkCommandBufferUsageFlags usage) : _pool(pool), _bufferUsage(usage) {}
+CmdBuffer::CmdBuffer(CmdPool* pool, VkCommandBufferUsageFlags const usage) : _pool(pool), _bufferUsage(usage) {}
 
 VkResult CmdBuffer::reset() const { return vkResetCommandBuffer(_handle.get(), 0); }
-VkResult CmdBuffer::reset(const VkCommandBufferResetFlags flags) const { return vkResetCommandBuffer(_handle.get(), flags); }
+VkResult CmdBuffer::reset(VkCommandBufferResetFlags const flags) const { return vkResetCommandBuffer(_handle.get(), flags); }
 VkResult CmdBuffer::end() const { return vkEndCommandBuffer(_handle.get()); }
 
-void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, std::span<const VkCommandBuffer> buffers) {
+void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers) {
     DEBUG_CHECK_DEVICE_HANDLE(device);
-    const bool valid = std::ranges::all_of(buffers, [](auto buffer) { return static_cast<bool>(buffer); });
+    bool const valid = std::ranges::all_of(buffers, [](auto buffer) { return static_cast<bool>(buffer); });
     CTH_WARN(!valid, "> 0 vk_buffers invalid (VK_NULL_HANDLE)") {}
     CTH_ERR(valid && vk_pool == VK_NULL_HANDLE, "vk_pool is invalid (VK_NULL_HANDLE)")
         throw details->exception();
@@ -22,7 +22,7 @@ void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, std::span<const VkC
 }
 void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buffer) {
     DEBUG_CHECK_DEVICE_HANDLE(device);
-    const bool valid = buffer != VK_NULL_HANDLE;
+    bool const valid = buffer != VK_NULL_HANDLE;
     CTH_WARN(!valid, "vk_buffer is invalid (VK_NULL_HANDLE)") {}
     CTH_ERR(valid && vk_pool != VK_NULL_HANDLE, "vk_pool is invalid (VK_NULL_HANDLE)")
         throw details->exception();
@@ -32,7 +32,7 @@ void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buf
 }
 
 #ifdef CONSTANT_DEBUG_MODE
-void CmdBuffer::debug_check(const CmdBuffer* cmd_buffer) {
+void CmdBuffer::debug_check(CmdBuffer const* cmd_buffer) {
     CTH_ERR(cmd_buffer == nullptr, "cmd_buffer is invalid (nullptr)") throw details->exception();
     CTH_ERR(cmd_buffer->_handle == VK_NULL_HANDLE, "cmd_buffer handle is invalid (VK_NULL_HANDLE)") throw details->exception();
 }
@@ -46,10 +46,10 @@ void CmdBuffer::debug_check(const CmdBuffer* cmd_buffer) {
 
 namespace cth::vk {
 
-PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool* cmd_pool, const VkCommandBufferUsageFlags usage) : CmdBuffer(cmd_pool, usage) { create(); }
+PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool* cmd_pool, VkCommandBufferUsageFlags const usage) : CmdBuffer(cmd_pool, usage) { create(); }
 PrimaryCmdBuffer::~PrimaryCmdBuffer() { _pool->returnCmdBuffer(this); }
 VkResult PrimaryCmdBuffer::begin() const {
-    const VkCommandBufferBeginInfo info{
+    VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,
         _bufferUsage,
@@ -65,12 +65,12 @@ void PrimaryCmdBuffer::create() { _pool->newCmdBuffer(this); }
 //SecondaryCmdBuffer
 
 namespace cth::vk {
-SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool* cmd_pool, PrimaryCmdBuffer* primary, const Config& config, const VkCommandBufferUsageFlags usage) :
+SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool* cmd_pool, PrimaryCmdBuffer* primary, Config const& config, VkCommandBufferUsageFlags const usage) :
     CmdBuffer(cmd_pool, usage), _primary(primary), _inheritanceInfo(config.inheritanceInfo()) { create(); }
 SecondaryCmdBuffer::~SecondaryCmdBuffer() { _pool->returnCmdBuffer(this); }
 
 VkResult SecondaryCmdBuffer::begin() const {
-    const VkCommandBufferBeginInfo info{
+    VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,
         _bufferUsage,

@@ -8,10 +8,10 @@
 namespace cth::vk {
 
 struct SubpassDescription {
-    SubpassDescription(const VkPipelineBindPoint bind_point,
-        const std::vector<VkAttachmentReference>& color_attachments,
-        const VkAttachmentReference& depth_attachment,
-        const std::vector<VkAttachmentReference>& resolve_attachments) : depthAttachment(depth_attachment),
+    SubpassDescription(VkPipelineBindPoint const bind_point,
+        std::vector<VkAttachmentReference> const& color_attachments,
+        VkAttachmentReference const& depth_attachment,
+        std::vector<VkAttachmentReference> const& resolve_attachments) : depthAttachment(depth_attachment),
         colorAttachments(color_attachments), resolveAttachments(resolve_attachments) {
 
         vkDescription.pipelineBindPoint = bind_point;

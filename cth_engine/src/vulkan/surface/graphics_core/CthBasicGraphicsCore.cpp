@@ -4,10 +4,10 @@
 #include "../CthSurface.hpp"
 #include "../swapchain/CthBasicSwapchain.hpp"
 #include "vulkan/base/CthCore.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 namespace cth::vk {
-BasicGraphicsCore::BasicGraphicsCore(const BasicCore* core, OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain) : _core(core) {
+BasicGraphicsCore::BasicGraphicsCore(BasicCore const* core, OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain) : _core(core) {
     BasicGraphicsCore::wrap(os_window, surface, swapchain);
 }
 #ifdef CONSTANT_DEBUG_MODE
@@ -27,8 +27,8 @@ void BasicGraphicsCore::wrap(OSWindow* os_window, Surface* surface, BasicSwapcha
 }
 
 
-void BasicGraphicsCore::create(const std::string_view window_name, const VkExtent2D extent, const Queue* present_queue,
-    const BasicGraphicsSyncConfig& sync_config, DeletionQueue* deletion_queue) {
+void BasicGraphicsCore::create(std::string_view const window_name, VkExtent2D const extent, Queue const* present_queue,
+    BasicGraphicsSyncConfig const& sync_config, DeletionQueue* deletion_queue) {
     DEBUG_CHECK_GRAPHICS_CORE_LEAK(this);
     _osWindow = new OSWindow(window_name, extent.width, extent.height, _core->instance());
     _surface = new Surface(_core->instance(), _osWindow->surface()->get());
@@ -37,7 +37,7 @@ void BasicGraphicsCore::create(const std::string_view window_name, const VkExten
 }
 void BasicGraphicsCore::destroy(DeletionQueue* deletion_queue) {
     _swapchain->destroy(deletion_queue);
-    const auto ptrs = release();
+    auto const ptrs = release();
 
 
     delete ptrs.swapchain;
@@ -46,7 +46,7 @@ void BasicGraphicsCore::destroy(DeletionQueue* deletion_queue) {
 }
 auto BasicGraphicsCore::release() -> handles {
 
-    const auto temp = handles{_osWindow.get(), _surface.get(), _swapchain.get()};
+    auto const temp = handles{_osWindow.get(), _surface.get(), _swapchain.get()};
 
 
     _swapchain = nullptr;
@@ -68,32 +68,32 @@ void BasicGraphicsCore::minimized() const {
 
 
 void BasicGraphicsCore::acquireFrame() const {
-    const auto result = _swapchain->acquireNextImage();
+    auto const result = _swapchain->acquireNextImage();
     if(result == VK_SUCCESS) return;
 
     _swapchain->resize(_osWindow->extent());
-    const auto result2 = _swapchain->acquireNextImage();
+    auto const result2 = _swapchain->acquireNextImage();
     CTH_ERR(result2 != VK_SUCCESS, "failed to acquire next image")
         throw cth::except::vk_result_exception{result2, details->exception()};
 }
 
-void BasicGraphicsCore::beginWindowPass(const PrimaryCmdBuffer* render_cmd_buffer) const { _swapchain->beginRenderPass(render_cmd_buffer); }
-void BasicGraphicsCore::endWindowPass(const PrimaryCmdBuffer* render_cmd_buffer) const { _swapchain->endRenderPass(render_cmd_buffer); }
+void BasicGraphicsCore::beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const { _swapchain->beginRenderPass(render_cmd_buffer); }
+void BasicGraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const { _swapchain->endRenderPass(render_cmd_buffer); }
 
 
 void BasicGraphicsCore::presentFrame(DeletionQueue* deletion_queue) const {
-    const auto result = _swapchain->present(deletion_queue);
+    auto const result = _swapchain->present(deletion_queue);
     if(result == VK_SUBOPTIMAL_KHR) _swapchain->resize(_osWindow->extent());
 }
 
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void BasicGraphicsCore::debug_check_not_null(const BasicGraphicsCore* graphics_core) {
+void BasicGraphicsCore::debug_check_not_null(BasicGraphicsCore const* graphics_core) {
     CTH_ERR(!graphics_core, "graphics core must not be nullptr")
         throw details->exception();
 }
-void BasicGraphicsCore::debug_check_leak(const BasicGraphicsCore* graphics_core) {
+void BasicGraphicsCore::debug_check_leak(BasicGraphicsCore const* graphics_core) {
     DEBUG_CHECK_GRAPHICS_CORE_NOT_NULL(graphics_core);
 
     CTH_WARN(graphics_core->_osWindow != nullptr, "osWindow not nullptr (potential memory leak)") {}

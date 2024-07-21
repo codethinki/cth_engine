@@ -21,12 +21,12 @@ public:
     /**
      * @param core must not be nullptr
      */
-    BasicMemory(const BasicCore* core, VkMemoryPropertyFlags vk_properties);
+    BasicMemory(BasicCore const* core, VkMemoryPropertyFlags vk_properties);
     /**
      * @param core must not be nullptr
      * @note implicitly calls wrap();
      */
-    BasicMemory(const BasicCore* core, VkMemoryPropertyFlags properties, size_t byte_size, VkDeviceMemory vk_memory);
+    BasicMemory(BasicCore const* core, VkMemoryPropertyFlags properties, size_t byte_size, VkDeviceMemory vk_memory);
     virtual ~BasicMemory() = default;
 
     /**
@@ -38,7 +38,7 @@ public:
      * @brief allocates memory according to the requirements
      * @note does not free previous memory
      */
-    virtual void alloc(const VkMemoryRequirements& vk_requirements);
+    virtual void alloc(VkMemoryRequirements const& vk_requirements);
 
     [[nodiscard]] std::span<char> map(size_t map_size = VK_WHOLE_SIZE, size_t offset = 0) const;
     [[nodiscard]] VkResult flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
@@ -65,7 +65,7 @@ protected:
     void init() const;
 
 private:
-    const BasicCore* _core;
+    BasicCore const* _core;
     VkMemoryPropertyFlags _vkProperties;
     size_t _size = 0;
     move_ptr<VkDeviceMemory_T> _handle = VK_NULL_HANDLE;
@@ -76,14 +76,14 @@ public:
     [[nodiscard]] size_t size() const { return _size; }
     [[nodiscard]] VkMemoryPropertyFlags properties() const { return _vkProperties; }
 
-    BasicMemory(const BasicMemory& other) = default;
+    BasicMemory(BasicMemory const& other) = default;
     BasicMemory(BasicMemory&& other) = default;
-    BasicMemory& operator=(const BasicMemory& other) = default;
+    BasicMemory& operator=(BasicMemory const& other) = default;
     BasicMemory& operator=(BasicMemory&& other) = default;
 #ifdef CONSTANT_DEBUG_MODE
 
-    static void debug_check(const BasicMemory* memory);
-    static void debug_check_leak(const BasicMemory* memory);
+    static void debug_check(BasicMemory const* memory);
+    static void debug_check_leak(BasicMemory const* memory);
 #define DEBUG_CHECK_MEMORY(memory_ptr) BasicMemory::debug_check(memory_ptr)
 #define DEBUG_CHECK_MEMORY_LEAK(memory_ptr) BasicMemory::debug_check_leak(memory_ptr)
 #else

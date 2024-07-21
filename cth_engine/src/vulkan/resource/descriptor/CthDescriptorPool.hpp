@@ -31,13 +31,13 @@ public:
     * @param builder [layout, count] pairs -> limit for allocated sets per layout
     * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
     */
-    DescriptorPool(const BasicCore* device, const Builder& builder);
+    DescriptorPool(BasicCore const* device, Builder const& builder);
     ~DescriptorPool();
     /**
      * @note descriptor sets are not required to stay valid
      * @note the pool does not take ownership of the sets
      */
-    void writeSets(const std::vector<DescriptorSet*>& sets);
+    void writeSets(std::vector<DescriptorSet*> const& sets);
 
 
 
@@ -62,7 +62,7 @@ private:
 
     std::vector<VkDescriptorPoolSize> calcPoolSizes();
 
-    void initSetEntries(const Builder& builder);
+    void initSetEntries(Builder const& builder);
     /**
      * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
      */
@@ -75,9 +75,9 @@ private:
 
     void returnSet(DescriptorSet* set);
 
-    const BasicCore* _core;
+    BasicCore const* _core;
 
-    std::unordered_map<const DescriptorSetLayout*, SetLayoutEntry> _allocatedSets{};
+    std::unordered_map<DescriptorSetLayout const*, SetLayoutEntry> _allocatedSets{};
     std::vector<VkDescriptorSet> _vkSets{};
 
     std::unordered_set<DescriptorSet*> _descriptorSets{};
@@ -93,23 +93,23 @@ public:
 
     struct Builder {
         Builder() = default;
-        explicit Builder(const std::unordered_map<const DescriptorSetLayout*, uint32_t>& max_descriptor_sets) { addLayouts(max_descriptor_sets); }
+        explicit Builder(std::unordered_map<DescriptorSetLayout const*, uint32_t> const& max_descriptor_sets) { addLayouts(max_descriptor_sets); }
 
-        void addLayout(const DescriptorSetLayout* layout, uint32_t alloc_count);
-        void addLayouts(const std::unordered_map<const DescriptorSetLayout*, uint32_t>& set_allocations);
+        void addLayout(DescriptorSetLayout const* layout, uint32_t alloc_count);
+        void addLayouts(std::unordered_map<DescriptorSetLayout const*, uint32_t> const& set_allocations);
 
-        void removeLayout(const DescriptorSetLayout* layout, size_t amount = constants::WHOLE_SIZE);
-        void removeLayouts(const std::unordered_map<const DescriptorSetLayout*, uint32_t>& set_allocations);
+        void removeLayout(DescriptorSetLayout const* layout, size_t amount = constants::WHOLE_SIZE);
+        void removeLayouts(std::unordered_map<DescriptorSetLayout const*, uint32_t> const& set_allocations);
 
     private:
-        std::unordered_map<const DescriptorSetLayout*, size_t> _maxDescriptorSets;
+        std::unordered_map<DescriptorSetLayout const*, size_t> _maxDescriptorSets;
 
         friend DescriptorPool;
     };
 
-    DescriptorPool(const DescriptorPool& other) = delete;
+    DescriptorPool(DescriptorPool const& other) = delete;
     DescriptorPool(DescriptorPool&& other) = delete;
-    DescriptorPool& operator=(const DescriptorPool& other) = delete;
+    DescriptorPool& operator=(DescriptorPool const& other) = delete;
     DescriptorPool& operator=(DescriptorPool&& other) = delete;
 };
 } // namespace cth

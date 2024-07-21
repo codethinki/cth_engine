@@ -19,16 +19,16 @@ public:
      * @param filepath path to model.obj
      * @param mtl_base_dir path to material dir, empty -> same dir
      */
-    explicit Model(ModelManager* manager, const std::string& name, uint32_t id, const std::string& filepath, const std::string& mtl_base_dir = "");
+    explicit Model(ModelManager* manager, std::string const& name, uint32_t id, std::string const& filepath, std::string const& mtl_base_dir = "");
 
 
 
-    void render(uint32_t first_instance, uint32_t instances, const FrameInfo& frame_info); //IMPLEMENT render function
+    void render(uint32_t first_instance, uint32_t instances, FrameInfo const& frame_info); //IMPLEMENT render function
 
-    const std::string name; /*model name (unique)*/
-    const uint32_t id; /*model id in manager list*/
-    const std::string path; /*path to model.obj*/
-    const std::string mtlBaseDir; /*path to material dir, empty -> same dir*/
+    std::string const name; /*model name (unique)*/
+    uint32_t const id; /*model id in manager list*/
+    std::string const path; /*path to model.obj*/
+    std::string const mtlBaseDir; /*path to material dir, empty -> same dir*/
     bool loaded = false;
 
 private:

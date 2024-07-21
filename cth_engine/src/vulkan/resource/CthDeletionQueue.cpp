@@ -34,8 +34,8 @@ void DeletionQueue::push(deletable_handle_t handle) {
     _queue[_frame].emplace_back(handle);
 }
 void DeletionQueue::push(dependent_handle_t handle, deletable_handle_t dependency) {
-    const bool validHandle = std::visit(var::visitor{[](auto temp_handle) { return temp_handle != VK_NULL_HANDLE; }}, handle);
-    const bool validDependency = std::visit(var::visitor{[](auto temp_dependency) { return temp_dependency == VK_NULL_HANDLE; }}, dependency);
+    bool const validHandle = std::visit(var::visitor{[](auto temp_handle) { return temp_handle != VK_NULL_HANDLE; }}, handle);
+    bool const validDependency = std::visit(var::visitor{[](auto temp_dependency) { return temp_dependency == VK_NULL_HANDLE; }}, dependency);
     CTH_WARN(!validHandle, "handle should not be VK_NULL_HANDLE or nullptr") {}
     CTH_WARN(!validDependency, "dependency should not be VK_NULL_HANDLE or nullptr") {}
 
@@ -46,7 +46,7 @@ void DeletionQueue::push(dependent_handle_t handle, deletable_handle_t dependenc
 
 
 
-void DeletionQueue::clear(const uint32_t current_frame) {
+void DeletionQueue::clear(uint32_t const current_frame) {
 
     auto& deletables = _queue[current_frame];
     for(auto [deletable, dependency] : deletables) {
@@ -77,10 +77,10 @@ void DeletionQueue::clear(const uint32_t current_frame) {
 }
 
 #ifdef CONSTANT_DEBUG_MODE
-void DeletionQueue::debug_check(const DeletionQueue* queue) {
+void DeletionQueue::debug_check(DeletionQueue const* queue) {
     CTH_ERR(queue == nullptr, "queue must not be nullptr") throw details->exception();
 }
-void DeletionQueue::debug_check_null_allowed(const DeletionQueue* queue) { if(queue) debug_check(queue); }
+void DeletionQueue::debug_check_null_allowed(DeletionQueue const* queue) { if(queue) debug_check(queue); }
 #endif
 
 }

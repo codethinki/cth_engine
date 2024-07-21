@@ -10,6 +10,7 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/hash.hpp>
 
 #include "group/std_pch.hpp"
 

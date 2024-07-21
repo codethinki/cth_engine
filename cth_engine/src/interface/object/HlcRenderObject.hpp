@@ -15,7 +15,7 @@ class Model;
 class RenderObject : public StandardObject {
 public:
     RenderObject() = default;
-    explicit RenderObject(const Transform& transform) : StandardObject(transform) {}
+    explicit RenderObject(Transform const& transform) : StandardObject(transform) {}
     ~RenderObject() override = 0;
 
     enum Render_Group {
@@ -41,11 +41,11 @@ public:
     /**
      * @brief receive model pointers for rendering
      */
-    virtual void recModelPtrs(const vector<Model*>& model_ptrs) = 0;
+    virtual void recModelPtrs(vector<Model*> const& model_ptrs) = 0;
 
 
-    RenderObject(const RenderObject&) = default;
-    RenderObject& operator=(const RenderObject&) = default;
+    RenderObject(RenderObject const&) = default;
+    RenderObject& operator=(RenderObject const&) = default;
     RenderObject(RenderObject&&) = default;
     RenderObject& operator=(RenderObject&&) = default; //copy/move constructors
 

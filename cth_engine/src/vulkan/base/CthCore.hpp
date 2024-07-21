@@ -21,7 +21,7 @@ public:
 
     virtual void wrap(move_ptr<BasicInstance> instance, move_ptr<PhysicalDevice> physical_device, move_ptr<Device> device);
 
-    virtual void create(const Config& config);
+    virtual void create(Config const& config);
     void destroy();
 
     /**
@@ -36,20 +36,20 @@ private:
     move_ptr<BasicInstance> _instance = nullptr;
 
 public:
-    [[nodiscard]] const Device* device() const;
+    [[nodiscard]] Device const* device() const;
     [[nodiscard]] VkDevice vkDevice() const;
-    [[nodiscard]] const PhysicalDevice* physicalDevice() const;
+    [[nodiscard]] PhysicalDevice const* physicalDevice() const;
     [[nodiscard]] VkPhysicalDevice vkPhysicalDevice() const;
-    [[nodiscard]] const BasicInstance* instance() const;
+    [[nodiscard]] BasicInstance const* instance() const;
     [[nodiscard]] VkInstance vkInstance() const;
 
-    bool operator==(const BasicCore& other) const {
+    bool operator==(BasicCore const& other) const {
         return _device == other._device && _physicalDevice == other._physicalDevice && _instance == other._instance;
     }
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const BasicCore* core);
-    static void debug_check_leak(const BasicCore* core);
+    static void debug_check(BasicCore const* core);
+    static void debug_check_leak(BasicCore const* core);
 #define DEBUG_CHECK_CORE(core_ptr) BasicCore::debug_check(core_ptr)
 #define DEBUG_CHECK_CORE_LEAK(core_ptr) BasicCore::debug_check_leak(core_ptr)
 #else
@@ -68,7 +68,7 @@ class Instance;
 class Core : public BasicCore {
 public:
     //TEMP left off here
-    explicit Core(const Config& config);
+    explicit Core(Config const& config);
     virtual ~Core();
 
     /**
@@ -79,7 +79,7 @@ public:
      * @brief creates the components
      * @note not necessary when using wrap
      */
-    void create(const Config& config) override;
+    void create(Config const& config) override;
 
     /**
      * @brief deletes all components
@@ -97,9 +97,9 @@ struct BasicCore::Config {
     std::string_view appName;
     std::string_view engineName;
     std::span<Queue> queues;
-    std::span<const std::string> requiredExtensions; //TEMP
+    std::span<std::string const> requiredExtensions; //TEMP
 
-    static Config Default(const std::string_view app_name, const std::string_view engine_name, const std::span<Queue> queues, const std::span<const std::string> required_extensions) {
+    static Config Default(std::string_view const app_name, std::string_view const engine_name, std::span<Queue> const queues, std::span<std::string const> const required_extensions) {
         return Config{app_name, engine_name, queues, required_extensions};
     }
 };

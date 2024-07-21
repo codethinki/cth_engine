@@ -7,11 +7,11 @@
 
 namespace cth::vk {
 #ifdef CONSTANT_DEBUG_MODE
-void BasicGraphicsSyncConfig::debug_check_not_null(const BasicGraphicsSyncConfig* config) {
+void BasicGraphicsSyncConfig::debug_check_not_null(BasicGraphicsSyncConfig const* config) {
     CTH_ERR(config == nullptr, "sync config must not be nullptr")
         throw details->exception();
 }
-void BasicGraphicsSyncConfig::debug_check(const BasicGraphicsSyncConfig* config) {
+void BasicGraphicsSyncConfig::debug_check(BasicGraphicsSyncConfig const* config) {
     DEBUG_CHECK_SYNC_CONFIG_NOT_NULL(config);
 
     CTH_ERR(config->renderFinishedSemaphores.size() != constants::FRAMES_IN_FLIGHT
@@ -21,7 +21,7 @@ void BasicGraphicsSyncConfig::debug_check(const BasicGraphicsSyncConfig* config)
         details->add("image available semaphores: ({})", config->imageAvailableSemaphores.size());
     }
 
-    for(const auto& semaphore : config->renderFinishedSemaphores)
+    for(auto const& semaphore : config->renderFinishedSemaphores)
         DEBUG_CHECK_SEMAPHORE(semaphore);
     for(auto& semaphore : config->imageAvailableSemaphores)
         DEBUG_CHECK_SEMAPHORE(semaphore);
@@ -32,16 +32,16 @@ void BasicGraphicsSyncConfig::debug_check(const BasicGraphicsSyncConfig* config)
 namespace cth::vk {
 
 
-GraphicsSyncConfig::GraphicsSyncConfig(const BasicCore* core, DeletionQueue* deletion_queue) {
+GraphicsSyncConfig::GraphicsSyncConfig(BasicCore const* core, DeletionQueue* deletion_queue) {
     create(core, deletion_queue);
 }
 GraphicsSyncConfig::~GraphicsSyncConfig() { destroyOpt(); }
-void GraphicsSyncConfig::wrap(const BasicGraphicsSyncConfig& config) {
+void GraphicsSyncConfig::wrap(BasicGraphicsSyncConfig const& config) {
     DEBUG_CHECK_SYNC_CONFIG(&config);
     renderFinishedSemaphores = config.renderFinishedSemaphores;
     imageAvailableSemaphores = config.imageAvailableSemaphores;
 }
-void GraphicsSyncConfig::create(const BasicCore* core, DeletionQueue* deletion_queue) {
+void GraphicsSyncConfig::create(BasicCore const* core, DeletionQueue* deletion_queue) {
     destroyOpt();
 
     DEBUG_CHECK_CORE(core);
@@ -58,20 +58,20 @@ void GraphicsSyncConfig::create(const BasicCore* core, DeletionQueue* deletion_q
         imageAvailableSemaphores.emplace_back(new Semaphore(_core, _deletionQueue));
 }
 void GraphicsSyncConfig::destroy(DeletionQueue* deletion_queue) {
-    const auto config = release();
+    auto const config = release();
 
-    for(const auto& semaphore : config.renderFinishedSemaphores){
+    for(auto const& semaphore : config.renderFinishedSemaphores){
         semaphore->destroy(deletion_queue);
         delete semaphore;
     }
 
-    for(const auto& semaphore : config.imageAvailableSemaphores){
+    for(auto const& semaphore : config.imageAvailableSemaphores){
         semaphore->destroy(deletion_queue);
         delete semaphore;
     }
 }
 BasicGraphicsSyncConfig GraphicsSyncConfig::release() {
-    const BasicGraphicsSyncConfig temp = {renderFinishedSemaphores, imageAvailableSemaphores};
+    BasicGraphicsSyncConfig const temp = {renderFinishedSemaphores, imageAvailableSemaphores};
     renderFinishedSemaphores.clear();
     imageAvailableSemaphores.clear();
     return temp;

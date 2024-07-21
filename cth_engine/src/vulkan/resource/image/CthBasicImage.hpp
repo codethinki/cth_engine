@@ -28,11 +28,11 @@ public:
     struct Config;
     struct State;
 
-    BasicImage(const BasicCore* core, VkExtent2D extent, const Config& config);
-    BasicImage(const BasicCore* core, VkExtent2D extent, const Config& config, VkImage vk_image, State state);
+    BasicImage(BasicCore const* core, VkExtent2D extent, Config const& config);
+    BasicImage(BasicCore const* core, VkExtent2D extent, Config const& config, VkImage vk_image, State state);
     virtual ~BasicImage() = default;
 
-    virtual void wrap(VkImage vk_image, const State& state);
+    virtual void wrap(VkImage vk_image, State const& state);
 
     /**
      * @brief creates the image
@@ -84,13 +84,13 @@ public:
      * @param mip_level copy dst
      * @note image must be bound & allocated
      */
-    void copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src_buffer, size_t src_offset = 0, uint32_t mip_level = 0) const;
+    void copy(CmdBuffer const& cmd_buffer, BasicBuffer const& src_buffer, size_t src_offset = 0, uint32_t mip_level = 0) const;
 
     /**
      * @brief transitions the image layout via a pipeline barrier
      * @param mip_levels (Constants::ALL => all remaining)
      */
-    void transitionLayout(const CmdBuffer& cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = constants::ALL);
+    void transitionLayout(CmdBuffer const& cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = constants::ALL);
     /**
     * @brief adds the transition to the pipeline barrier
     * @param mip_levels (Constants::ALL => all remaining)
@@ -121,8 +121,8 @@ public:
         static State Default() { return State{}; }
 
     private:
-        void reset(const Config& config);
-        void init(const Config& config);
+        void reset(Config const& config);
+        void init(Config const& config);
 
         friend BasicImage;
     };
@@ -135,7 +135,7 @@ protected:
     virtual void setMemory(BasicMemory* new_memory);
 
 
-    const BasicCore* _core;
+    BasicCore const* _core;
     VkExtent2D _extent;
     Config _config;
 
@@ -161,23 +161,23 @@ public:
     [[nodiscard]] VkFormat format() const { return _config.format; }
     [[nodiscard]] VkExtent2D extent() const { return _extent; }
     [[nodiscard]] uint32_t mipLevels() const { return _config.mipLevels; }
-    [[nodiscard]] VkImageLayout layout(const uint32_t mip_level) const { return _state.levelLayouts[mip_level]; }
-    [[nodiscard]] std::span<const VkImageLayout> layouts() const { return _state.levelLayouts; }
+    [[nodiscard]] VkImageLayout layout(uint32_t const mip_level) const { return _state.levelLayouts[mip_level]; }
+    [[nodiscard]] std::span<VkImageLayout const> layouts() const { return _state.levelLayouts; }
     [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return _config.aspectMask; }
     [[nodiscard]] bool bound() const { return _state.bound; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] Config config() const { return _config; }
     [[nodiscard]] State state() const { return _state; }
 
-    BasicImage(const BasicImage& other) = default;
+    BasicImage(BasicImage const& other) = default;
     BasicImage(BasicImage&& other) = default;
-    BasicImage& operator=(const BasicImage& other) = default;
+    BasicImage& operator=(BasicImage const& other) = default;
     BasicImage& operator=(BasicImage&& other) = default;
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const BasicImage* image);
-    static void debug_check_leak(const BasicImage* image);
-    static void debug_check_memory_leak(const BasicImage* image);
-    static void debug_not_bound_check(const BasicImage* image);
+    static void debug_check(BasicImage const* image);
+    static void debug_check_leak(BasicImage const* image);
+    static void debug_check_memory_leak(BasicImage const* image);
+    static void debug_not_bound_check(BasicImage const* image);
 
 
 #define DEBUG_CHECK_IMAGE(image_ptr) BasicImage::debug_check(image_ptr)

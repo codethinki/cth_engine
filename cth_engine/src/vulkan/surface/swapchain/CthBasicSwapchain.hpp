@@ -28,11 +28,11 @@ class PrimaryCmdBuffer;
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(const BasicCore* core, const Queue* present_queue, BasicGraphicsSyncConfig sync_config);
+    BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig sync_config);
     virtual ~BasicSwapchain();
 
     //virtual void wrap(const Surface* surface, VkExtent2D window_extent);
-    virtual void create(const Surface* surface, VkExtent2D window_extent, const BasicSwapchain* old_swapchain = nullptr);
+    virtual void create(Surface const* surface, VkExtent2D window_extent, BasicSwapchain const* old_swapchain = nullptr);
     /**
      * @brief destroys the swapchain
      * @note implicitly calls destroyResources()
@@ -41,7 +41,7 @@ public:
 
 
     virtual void resize(VkExtent2D window_extent);
-    virtual void relocate(const Surface* surface, VkExtent2D window_extent);
+    virtual void relocate(Surface const* surface, VkExtent2D window_extent);
 
 
 
@@ -52,16 +52,16 @@ public:
      */
     [[nodiscard]] VkResult acquireNextImage();
 
-    void beginRenderPass(const PrimaryCmdBuffer* cmd_buffer) const;
+    void beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const;
 
-    void endRenderPass(const PrimaryCmdBuffer* cmd_buffer);
+    void endRenderPass(PrimaryCmdBuffer const* cmd_buffer);
 
 
     [[nodiscard]] VkResult present(DeletionQueue* deletion_queue); //TEMP remove deletion queue from here
 
 
-    void changeSwapchainImageQueue(uint32_t release_queue, const CmdBuffer& release_cmd_buffer, uint32_t acquire_queue,
-        const CmdBuffer& acquire_cmd_buffer, uint32_t image_index);
+    void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
+        CmdBuffer const& acquire_cmd_buffer, uint32_t image_index);
 
     static void destroy(VkDevice device, VkSwapchainKHR swapchain);
 
@@ -78,14 +78,14 @@ private:
     void createSyncObjects();
 
     //createSwapchain
-    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& available_formats);
-    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& available_present_modes);
-    [[nodiscard]] static VkExtent2D chooseSwapExtent(VkExtent2D window_extent, const VkSurfaceCapabilitiesKHR& capabilities);
+    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> const& available_formats);
+    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(std::vector<VkPresentModeKHR> const& available_present_modes);
+    [[nodiscard]] static VkExtent2D chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities);
     [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
-    [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(const Surface* surface, VkSurfaceFormatKHR surface_format,
-        const VkSurfaceCapabilitiesKHR& capabilities, VkPresentModeKHR present_mode, VkExtent2D extent, uint32_t image_count,
-        const BasicSwapchain* old_swapchain);
-    void createSwapchain(const Surface* surface, VkExtent2D window_extent, const BasicSwapchain* old_swapchain);
+    [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(Surface const* surface, VkSurfaceFormatKHR surface_format,
+        VkSurfaceCapabilitiesKHR const& capabilities, VkPresentModeKHR present_mode, VkExtent2D extent, uint32_t image_count,
+        BasicSwapchain const* old_swapchain);
+    void createSwapchain(Surface const* surface, VkExtent2D window_extent, BasicSwapchain const* old_swapchain);
 
     [[nodiscard]] BasicImage::Config createImageConfig() const;
     [[nodiscard]] BasicImage::Config createColorImageConfig() const;
@@ -136,9 +136,9 @@ private:
 
 
 
-    const BasicCore* _core;
-    const Queue* _presentQueue;
-    const Surface* _surface = nullptr;
+    BasicCore const* _core;
+    Queue const* _presentQueue;
+    Surface const* _surface = nullptr;
 
     cth::move_ptr<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
     std::shared_ptr<BasicSwapchain> _oldSwapchain; //TODO why is this a shared_ptr?
@@ -171,7 +171,7 @@ private:
     std::vector<Queue::PresentInfo> _presentInfos;
 
     size_t _currentFrame = 0;
-    static size_t nextFrame(const size_t current) { return (current + 1) % constants::FRAMES_IN_FLIGHT; }
+    static size_t nextFrame(size_t const current) { return (current + 1) % constants::FRAMES_IN_FLIGHT; }
 
     std::array<uint32_t, constants::FRAMES_IN_FLIGHT> _imageIndices{NO_IMAGE_INDEX};
     [[nodiscard]] uint32_t imageIndex() const { return _imageIndices[_currentFrame]; }
@@ -182,30 +182,30 @@ private:
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }
     [[nodiscard]] float extentAspectRatio() const { return _aspectRatio; }
-    [[nodiscard]] bool compareSwapFormats(const BasicSwapchain& other) const {
+    [[nodiscard]] bool compareSwapFormats(BasicSwapchain const& other) const {
         return other._depthFormat != _depthFormat || other._imageFormat != _imageFormat;
     }
 
-    [[nodiscard]] const ImageView* imageView(const size_t index) const { return &_swapchainImageViews[index]; }
+    [[nodiscard]] ImageView const* imageView(size_t const index) const { return &_swapchainImageViews[index]; }
     [[nodiscard]] size_t imageCount() const { return _swapchainImages.size(); }
     [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
-    [[nodiscard]] const BasicImage* image(const size_t index) const { return &_swapchainImages[index]; }
+    [[nodiscard]] BasicImage const* image(size_t const index) const { return &_swapchainImages[index]; }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; } //TODO move this to framebuffer or render pass
     [[nodiscard]] VkRenderPass renderPass() const { return _renderPass; }
 
 
 
-    BasicSwapchain(const BasicSwapchain& other) = default;
+    BasicSwapchain(BasicSwapchain const& other) = default;
     BasicSwapchain(BasicSwapchain&& other) noexcept = default;
-    BasicSwapchain& operator=(const BasicSwapchain& other) = default;
+    BasicSwapchain& operator=(BasicSwapchain const& other) = default;
     BasicSwapchain& operator=(BasicSwapchain&& other) noexcept = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const BasicSwapchain* swapchain);
-    static void debug_check_leak(const BasicSwapchain* swapchain);
+    static void debug_check(BasicSwapchain const* swapchain);
+    static void debug_check_leak(BasicSwapchain const* swapchain);
 
     static void debug_check_window_extent(VkExtent2D window_extent);
-    static void debug_check_compatibility(const BasicSwapchain& a, const BasicSwapchain& b);
+    static void debug_check_compatibility(BasicSwapchain const& a, BasicSwapchain const& b);
 
 #define DEBUG_CHECK_SWAPCHAIN_WINDOW_EXTENT(window_extent) BasicSwapchain::debug_check_window_extent(window_extent);
 #define DEBUG_CHECK_SWAPCHAIN_COMPATIBILITY(a_ptr, b_ptr) BasicSwapchain::debug_check_compatibility(a, b)

@@ -8,7 +8,7 @@
 namespace cth::vk {
 class ImageDescriptor : public Descriptor {
 public:
-    explicit ImageDescriptor(const VkDescriptorType type, const VkDescriptorImageInfo& info) : Descriptor(type), _vkDescriptorInfo(info) {}
+    explicit ImageDescriptor(VkDescriptorType const type, VkDescriptorImageInfo const& info) : Descriptor(type), _vkDescriptorInfo(info) {}
     ~ImageDescriptor() override = 0;
 
 private:
@@ -17,9 +17,9 @@ private:
 public:
     [[nodiscard]] VkDescriptorImageInfo imageInfo() const override { return _vkDescriptorInfo; }
 
-    ImageDescriptor(const ImageDescriptor& other) = default;
+    ImageDescriptor(ImageDescriptor const& other) = default;
     ImageDescriptor(ImageDescriptor&& other) = delete;
-    ImageDescriptor& operator=(const ImageDescriptor& other) = default;
+    ImageDescriptor& operator=(ImageDescriptor const& other) = default;
     ImageDescriptor& operator=(ImageDescriptor&& other) = delete;
 };
 inline ImageDescriptor::~ImageDescriptor() = default;
@@ -30,7 +30,7 @@ class StorageImageDescriptor : public ImageDescriptor {
 public:
     static constexpr VkDescriptorType TYPE = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
-    explicit StorageImageDescriptor(const ImageView* image_view) : ImageDescriptor(TYPE,
+    explicit StorageImageDescriptor(ImageView const* image_view) : ImageDescriptor(TYPE,
         VkDescriptorImageInfo{VK_NULL_HANDLE, image_view->get(), image_view->image()->layout(0)}) {}
 };
 
@@ -38,7 +38,7 @@ class TextureDescriptor : public ImageDescriptor {
 public:
     static constexpr VkDescriptorType TYPE = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
-    explicit TextureDescriptor(const ImageView* image_view, const Sampler* sampler) : ImageDescriptor(TYPE,
+    explicit TextureDescriptor(ImageView const* image_view, Sampler const* sampler) : ImageDescriptor(TYPE,
         VkDescriptorImageInfo{sampler->get(), image_view->get(), image_view->image()->layout(0)}) {}
 };
 

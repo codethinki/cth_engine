@@ -13,7 +13,7 @@ enum QueueFamilyPropertyFlagBits : uint32_t {
 
 using QueueFamilyProperties = uint32_t;
 
-static QueueFamilyProperties to_queue_properties(const VkQueueFlags flags, const bool present_support) {
+static QueueFamilyProperties to_queue_properties(VkQueueFlags const flags, bool const present_support) {
     QueueFamilyProperties result{};
     if(flags & VK_QUEUE_GRAPHICS_BIT) result |= QUEUE_FAMILY_PROPERTY_GRAPHICS;
     if(flags & VK_QUEUE_COMPUTE_BIT) result |= QUEUE_FAMILY_PROPERTY_COMPUTE;
@@ -25,7 +25,7 @@ static QueueFamilyProperties to_queue_properties(const VkQueueFlags flags, const
 struct QueueFamily {
 
 
-    QueueFamily(const uint32_t index, const VkQueueFamilyProperties& vk_properties, const bool present_support) : index(index),
+    QueueFamily(uint32_t const index, VkQueueFamilyProperties const& vk_properties, bool const present_support) : index(index),
         properties(to_queue_properties(vk_properties.queueFlags, present_support)), vkProperties(vk_properties) {}
 
     uint32_t index;

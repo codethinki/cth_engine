@@ -25,8 +25,8 @@ struct BasicGraphicsSyncConfig {
     std::vector<BasicSemaphore*> imageAvailableSemaphores;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check_not_null(const BasicGraphicsSyncConfig* config);
-    static void debug_check(const BasicGraphicsSyncConfig* config);
+    static void debug_check_not_null(BasicGraphicsSyncConfig const* config);
+    static void debug_check(BasicGraphicsSyncConfig const* config);
 #define DEBUG_CHECK_SYNC_CONFIG_NOT_NULL(config) BasicGraphicsSyncConfig::debug_check_not_null(config)
 #define DEBUG_CHECK_SYNC_CONFIG(config) BasicGraphicsSyncConfig::debug_check(config)
 #else
@@ -38,11 +38,11 @@ struct BasicGraphicsSyncConfig {
 class GraphicsSyncConfig : public BasicGraphicsSyncConfig {
 public:
     GraphicsSyncConfig() = default;
-    explicit GraphicsSyncConfig(const BasicCore* core, DeletionQueue* deletion_queue);
+    explicit GraphicsSyncConfig(BasicCore const* core, DeletionQueue* deletion_queue);
     ~GraphicsSyncConfig();
 
-    void wrap(const BasicGraphicsSyncConfig& config);
-    void create(const BasicCore* core, DeletionQueue* deletion_queue);
+    void wrap(BasicGraphicsSyncConfig const& config);
+    void create(BasicCore const* core, DeletionQueue* deletion_queue);
     void destroy(DeletionQueue* deletion_queue = nullptr);
 
     BasicGraphicsSyncConfig release(); 
@@ -52,12 +52,12 @@ public:
 private:
     void destroyOpt(DeletionQueue* deletion_queue = nullptr);
 
-    const BasicCore* _core = nullptr;
+    BasicCore const* _core = nullptr;
     DeletionQueue* _deletionQueue = nullptr;
 public:
-    GraphicsSyncConfig(const GraphicsSyncConfig& other) = delete;
+    GraphicsSyncConfig(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig(GraphicsSyncConfig&& other) noexcept = default;
-    GraphicsSyncConfig& operator=(const GraphicsSyncConfig& other) = delete;
+    GraphicsSyncConfig& operator=(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig&& other) noexcept = default;
 };
 

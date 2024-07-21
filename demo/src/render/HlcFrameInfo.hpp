@@ -10,7 +10,7 @@ namespace vk {
 } //namespace vk
 
 struct FrameInfo {
-    FrameInfo(const uint32_t frame_index, const float frame_time, const vk::PrimaryCmdBuffer* cmd_buffer) : frameIndex(frame_index),
+    FrameInfo(uint32_t const frame_index, float const frame_time, vk::PrimaryCmdBuffer const* cmd_buffer) : frameIndex(frame_index),
         frameTime(frame_time),
         commandBuffer(cmd_buffer) {}
 
@@ -19,7 +19,7 @@ struct FrameInfo {
     //set at creation
     uint32_t frameIndex;
     float frameTime;
-    const vk::PrimaryCmdBuffer* commandBuffer;
+    vk::PrimaryCmdBuffer const* commandBuffer;
 };
 
 } // namespace cth

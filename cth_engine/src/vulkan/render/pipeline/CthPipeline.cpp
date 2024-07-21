@@ -5,17 +5,17 @@
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/pipeline/shader/CthShader.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 
 namespace cth::vk {
 using namespace std;
 
-Pipeline::Pipeline(const BasicCore* core, const PipelineLayout* pipeline_layout, const GraphicsConfig& config_info) : _device{core} {
+Pipeline::Pipeline(BasicCore const* core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info) : _device{core} {
     create(config_info, pipeline_layout, nullptr);
 }
-Pipeline::Pipeline(const BasicCore* core, const Pipeline* parent, const GraphicsConfig& config_info) : _device(core) {
+Pipeline::Pipeline(BasicCore const* core, Pipeline const* parent, GraphicsConfig const& config_info) : _device(core) {
     create(config_info, nullptr, parent);
 }
 
@@ -24,9 +24,9 @@ Pipeline::~Pipeline() {
     log::msg("destroyed graphics-pipeline ");
 }
 
-void Pipeline::bind(const CmdBuffer* cmd_buffer) const { vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline); }
+void Pipeline::bind(CmdBuffer const* cmd_buffer) const { vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline); }
 
-void Pipeline::create(const GraphicsConfig& config_info, const PipelineLayout* pipeline_layout, const Pipeline* parent) {
+void Pipeline::create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout, Pipeline const* parent) {
     CTH_ERR(pipeline_layout != nullptr && parent != nullptr, "something went wrong, cannot inherit and specify layout")
         throw details->exception();
 
@@ -43,7 +43,7 @@ void Pipeline::create(const GraphicsConfig& config_info, const PipelineLayout* p
     else pipelineInfo.basePipelineHandle = parent->_vkGraphicsPipeline;
 
 
-    const VkResult createResult = vkCreateGraphicsPipelines(_device->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+    VkResult const createResult = vkCreateGraphicsPipelines(_device->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
         &_vkGraphicsPipeline);
 
 
@@ -83,8 +83,8 @@ VkGraphicsPipelineCreateInfo Pipeline::GraphicsConfig::createInfo() const {
     return pipelineInfo;
 }
 
-void Pipeline::GraphicsConfig::addShaderStage(const Shader* shader, const ShaderSpecialization* specialization_info,
-    const VkPipelineShaderStageCreateFlags flags) {
+void Pipeline::GraphicsConfig::addShaderStage(Shader const* shader, ShaderSpecialization const* specialization_info,
+    VkPipelineShaderStageCreateFlags const flags) {
     VkPipelineShaderStageCreateInfo stageInfo{};
 
     stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -96,10 +96,10 @@ void Pipeline::GraphicsConfig::addShaderStage(const Shader* shader, const Shader
 
     _vkShaderStages.push_back(stageInfo);
 }
-void Pipeline::GraphicsConfig::removeShaderStage(const Shader* shader) { removeShaderStage(shader->stage()); }
+void Pipeline::GraphicsConfig::removeShaderStage(Shader const* shader) { removeShaderStage(shader->stage()); }
 void Pipeline::GraphicsConfig::removeShaderStage(VkShaderStageFlagBits shader_stage) {
-    const auto it = ranges::find_if(_vkShaderStages,
-        [shader_stage](const VkPipelineShaderStageCreateInfo& info) { return info.stage == shader_stage; });
+    auto const it = std::ranges::find_if(_vkShaderStages,
+        [shader_stage](VkPipelineShaderStageCreateInfo const& info) { return info.stage == shader_stage; });
 
     if(it != _vkShaderStages.end()) _vkShaderStages.erase(it);
     else

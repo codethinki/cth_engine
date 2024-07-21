@@ -5,7 +5,7 @@
 namespace cth::vk {
 
 
-void PipelineWaitStage::debug_check(const PipelineWaitStage wait_stage) {
+void PipelineWaitStage::debug_check(PipelineWaitStage const wait_stage) {
     DEBUG_CHECK_SEMAPHORE(wait_stage.semaphore);
 }
 

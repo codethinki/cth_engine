@@ -33,7 +33,7 @@ public:
     struct PresentInfo;
 
 
-    explicit Queue(const QueueFamilyProperties family_properties) : _familyProperties(family_properties) {}
+    explicit Queue(QueueFamilyProperties const family_properties) : _familyProperties(family_properties) {}
     ~Queue() = default;
 
     /**
@@ -52,7 +52,7 @@ public:
      * @brief submits the submit_info
      * @note does not advance the @ref submit_info
      */
-    void const_submit(const SubmitInfo& submit_info) const;
+    void const_submit(SubmitInfo const& submit_info) const;
 
     /**
      * @brief skip submits without the command_buffer
@@ -65,7 +65,7 @@ public:
      * @brief skip submits to the queue
      * @note does not advance the @ref submit_info
      */
-    void const_skip(const SubmitInfo& submit_info) const;
+    void const_skip(SubmitInfo const& submit_info) const;
 
     /**
      * @brief presents the image via vkQueuePresentKHR()
@@ -73,7 +73,7 @@ public:
      * @return result of vkQueuePresentKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
      * @throws cth::except::vk_result_exception result of vkQueuePresentKHR()
      */
-    [[nodiscard]] VkResult present(uint32_t image_index, const PresentInfo& present_info) const;
+    [[nodiscard]] VkResult present(uint32_t image_index, PresentInfo const& present_info) const;
 
 private:
     QueueFamilyProperties _familyProperties;
@@ -90,14 +90,14 @@ public:
     [[nodiscard]] auto familyIndex() const { return _familyIndex; }
     [[nodiscard]] auto familyProperties() const { return _familyProperties; }
 
-    Queue(const Queue& other) = default;
+    Queue(Queue const& other) = default;
     Queue(Queue&& other) = default;
-    Queue& operator=(const Queue& other) = default;
+    Queue& operator=(Queue const& other) = default;
     Queue& operator=(Queue&& other) = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const Queue* queue);
-    static void debug_check_present_queue(const Queue* queue);
+    static void debug_check(Queue const* queue);
+    static void debug_check_present_queue(Queue const* queue);
 #define DEBUG_CHECK_QUEUE(queue_ptr) Queue::debug_check(queue_ptr)
 #define DEBUG_CHECK_PRESENT_QUEUE(queue_ptr) Queue::debug_check_present_queue(queue_ptr)
 
@@ -116,8 +116,8 @@ public:
  *
  */
 struct Queue::SubmitInfo {
-    SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffers, std::span<const PipelineWaitStage> wait_stages,
-        std::span<BasicSemaphore* const> signal_semaphores, const BasicFence* fence);
+    SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffers, std::span<PipelineWaitStage const> wait_stages,
+        std::span<BasicSemaphore* const> signal_semaphores, BasicFence const* fence);
 
     /**
      * @brief advances the timeline semaphores and returns this
@@ -128,7 +128,7 @@ private:
     [[nodiscard]] VkSubmitInfo createInfo() const;
     [[nodiscard]] VkTimelineSemaphoreSubmitInfo createTimelineInfo() const;
     void initSignal(std::span<BasicSemaphore* const> signal_semaphores);
-    void initWait(std::span<const PipelineWaitStage> wait_stages);
+    void initWait(std::span<PipelineWaitStage const> wait_stages);
 
     VkSubmitInfo _submitInfo{};
     VkTimelineSemaphoreSubmitInfo _timelineInfo{};
@@ -140,15 +140,15 @@ private:
     std::vector<VkSemaphore> _signalSemaphores;
     std::vector<VkPipelineStageFlags> _pipelineWaitStages;
 
-    std::vector<const TimelineSemaphore*> _waitTimelineSemaphores;
+    std::vector<TimelineSemaphore const*> _waitTimelineSemaphores;
     std::vector<TimelineSemaphore*> _signalTimelineSemaphores;
     std::vector<size_t> _waitValues{};
     std::vector<size_t> _signalValues{};
 
-    const BasicFence* _fence = VK_NULL_HANDLE;
+    BasicFence const* _fence = VK_NULL_HANDLE;
 
 public:
-    [[nodiscard]] const VkSubmitInfo* get() const { return &_submitInfo; }
+    [[nodiscard]] VkSubmitInfo const* get() const { return &_submitInfo; }
     [[nodiscard]] VkFence fence() const { return _fence->get(); }
 };
 
@@ -156,12 +156,12 @@ struct Queue::PresentInfo {
     /**
      * @param swapchain must not be recreated
      */
-    explicit PresentInfo(const BasicSwapchain* swapchain, std::span<const BasicSemaphore*> wait_semaphores);
+    explicit PresentInfo(BasicSwapchain const* swapchain, std::span<BasicSemaphore const*> wait_semaphores);
 
-    [[nodiscard]] VkPresentInfoKHR createInfo(const uint32_t& image_index) const;
+    [[nodiscard]] VkPresentInfoKHR createInfo(uint32_t const& image_index) const;
 
 private:
-    const VkSwapchainKHR _swapchain;
+    VkSwapchainKHR const _swapchain;
     std::vector<VkSemaphore> _waitSemaphores;
 };
 

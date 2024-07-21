@@ -26,9 +26,9 @@ public:
         KEY_MAPPINGS_SIZE
     };
 
-    void moveByKeys(float dt, const std::unique_ptr<StandardObject>& object) const;
+    void moveByKeys(float dt, std::unique_ptr<StandardObject> const& object) const;
 
-    void rotateByMouse(float dt, const std::unique_ptr<StandardObject>& object) const;
+    void rotateByMouse(float dt, std::unique_ptr<StandardObject> const& object) const;
 
     explicit InputController() = default;
     ~InputController() = default;
@@ -37,7 +37,7 @@ public:
     static void resetMouseDt(GLFWwindow* window);
 
 
-    static bool getKeyState(const Key_Mappings key) { return keyStates[KEY_MAPPINGS[key]]; }
+    static bool getKeyState(Key_Mappings const key) { return keyStates[KEY_MAPPINGS[key]]; }
 
     static constexpr auto KEY_MAPPINGS = [] {
         std::array<int, KEY_MAPPINGS_SIZE> arr{};

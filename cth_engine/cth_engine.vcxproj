@@ -39,16 +39,18 @@
     <ClInclude Include="include\vulkan\cth_debug.hpp" />
     <ClInclude Include="include\vulkan\cth_resource.hpp" />
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
-    <ClInclude Include="precompile\util\definition.hpp" />
-    <ClInclude Include="precompile\util\macro.hpp" />
-    <ClInclude Include="precompile\pch.hpp" />
+    <ClInclude Include="src\vulkan\utility\utility\cth_vk_format_utils.hpp" />
+    <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
+    <ClInclude Include="src\pch\util\definition.hpp" />
+    <ClInclude Include="src\pch\util\macro.hpp" />
+    <ClInclude Include="src\pch\pch.hpp" />
     <ClInclude Include="src\CthEngine.hpp" />
     <ClInclude Include="src\interface\object\HlcRenderObject.hpp" />
     <ClInclude Include="src\interface\object\HlcStandardObject.hpp" />
     <ClInclude Include="src\interface\user\HlcCamera.hpp" />
     <ClInclude Include="src\interface\user\HlcInputController.hpp" />
     <ClInclude Include="src\interface\user\HlcUser.hpp" />
-    <ClInclude Include="precompile\group\std_pch.hpp" />
+    <ClInclude Include="src\pch\group\std_pch.hpp" />
     <ClInclude Include="src\vulkan\base\CthDevice.hpp" />
     <ClInclude Include="src\vulkan\base\CthInstance.hpp" />
     <ClInclude Include="src\vulkan\base\CthPhysicalDevice.hpp" />
@@ -100,7 +102,7 @@
     <ClInclude Include="src\vulkan\surface\swapchain\CthBasicSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
-    <ClInclude Include="src\vulkan\utility\CthVkUtils.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_vk_utils.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_debug_macros.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -112,23 +114,24 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="engine_main.cpp" />
+    <ClCompile Include="src\vulkan\utility\device\PhysicalDeviceFeatures.cpp" />
     <ClCompile Include="src\CthEngine.cpp" />
     <ClCompile Include="src\interface\object\HlcStandardObject.cpp" />
     <ClCompile Include="src\interface\user\HlcCamera.cpp" />
     <ClCompile Include="src\interface\user\HlcInputController.cpp" />
-    <ClCompile Include="precompile\util\pch.cpp">
+    <ClCompile Include="src\pch\util\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='sanitize|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='sanitize|Win32'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='sanitize|Win32'">$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
       <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</MultiProcessorCompilation>
       <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</MultiProcessorCompilation>
       <MultiProcessorCompilation Condition="'$(Configuration)|$(Platform)'=='sanitize|Win32'">false</MultiProcessorCompilation>
@@ -314,8 +317,8 @@
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -333,8 +336,8 @@
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -354,8 +357,8 @@
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -376,8 +379,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BrowseInformation>true</BrowseInformation>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -398,8 +401,8 @@
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -419,8 +422,8 @@
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)precompile\pch.hpp</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>$(ProjectDir)precompile\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

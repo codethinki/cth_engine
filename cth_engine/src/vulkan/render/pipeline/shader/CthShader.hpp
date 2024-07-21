@@ -18,7 +18,7 @@ private:
     VkSpecializationInfo _vkInfo;
 
 public:
-    [[nodiscard]] const VkSpecializationInfo* get() const { return &_vkInfo; }
+    [[nodiscard]] VkSpecializationInfo const* get() const { return &_vkInfo; }
 };
 
 class Shader {
@@ -26,24 +26,24 @@ public:
     /**
      *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
      */
-    explicit Shader(const BasicCore* core, VkShaderStageFlagBits stage, std::string_view spv_path);
+    explicit Shader(BasicCore const* core, VkShaderStageFlagBits stage, std::string_view spv_path);
     /**
      *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
      */
-    explicit Shader(const BasicCore* core, VkShaderStageFlagBits stage, std::span<const char> spv);
+    explicit Shader(BasicCore const* core, VkShaderStageFlagBits stage, std::span<char const> spv);
 
     ~Shader();
 
 private:
     std::vector<char> loadSpv();
-    void create(std::span<const char> spv);
+    void create(std::span<char const> spv);
 
-    static std::string filename(const std::string_view path) { return std::filesystem::path{path.data()}.filename().string(); }
+    static std::string filename(std::string_view const path) { return std::filesystem::path{path.data()}.filename().string(); }
 #ifndef _FINAL
     void compile(std::string_view glsl_path, std::string_view compiler_path, std::string_view = "-O") const;
 #endif
 
-    const BasicCore* _core;
+    BasicCore const* _core;
     VkShaderStageFlagBits _vkStage;
     std::string _spvPath;
 
@@ -54,15 +54,15 @@ public:
     /**
     *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
     */
-    explicit Shader(const BasicCore* core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path, std::string_view compiler_path);
+    explicit Shader(BasicCore const* core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path, std::string_view compiler_path);
 #endif
 
     [[nodiscard]] VkShaderModule module() const { return _handle.get(); }
     [[nodiscard]] VkShaderStageFlagBits stage() const { return _vkStage; }
 
-    Shader(const Shader& other) = delete;
+    Shader(Shader const& other) = delete;
     Shader(Shader&& other) = delete;
-    Shader& operator=(const Shader& other) = delete;
+    Shader& operator=(Shader const& other) = delete;
     Shader& operator=(Shader&& other) = delete;
 };
 } // namespace cth

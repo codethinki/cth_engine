@@ -1,7 +1,7 @@
 #include "CthInstance.hpp"
 
 #include "vulkan/resource/CthDeletionQueue.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
 #ifdef CONSTANT_DEBUG_MODE
@@ -17,7 +17,7 @@ using std::vector;
 using std::span;
 
 
-BasicInstance::BasicInstance(const string_view app_name, const span<const string> required_extensions) : _name(app_name),
+BasicInstance::BasicInstance(string_view const app_name, span<string const> const required_extensions) : _name(app_name),
     _availableExt(getAvailableInstanceExtensions()) {
     _requiredExt.reserve(required_extensions.size() + REQUIRED_INSTANCE_EXTENSIONS.size());
     _requiredExt.insert(_requiredExt.end(), required_extensions.begin(), required_extensions.end());
@@ -34,16 +34,16 @@ void BasicInstance::wrap(VkInstance vk_instance) {
     _handle = vk_instance;
 }
 
-void BasicInstance::create(const std::optional<BasicDebugMessenger::Config>& messenger_config) {
+void BasicInstance::create(std::optional<BasicDebugMessenger::Config> const& messenger_config) {
     DEBUG_CHECK_INSTANCE_LEAK(this);
 
-    vector<const char*> requiredExtVec(_requiredExt.size());
-    std::ranges::copy(_requiredExt | std::views::transform([](const auto& str) { return str.data(); }), requiredExtVec.begin());
+    vector<char const*> requiredExtVec(_requiredExt.size());
+    std::ranges::copy(_requiredExt | std::views::transform([](auto const& str) { return str.data(); }), requiredExtVec.begin());
 
     VkInstanceCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
-    const auto appInfo = this->appInfo();
+    auto const appInfo = this->appInfo();
     createInfo.pApplicationInfo = &appInfo;
 
 
@@ -64,7 +64,7 @@ void BasicInstance::create(const std::optional<BasicDebugMessenger::Config>& mes
         }
 
     VkInstance ptr = VK_NULL_HANDLE;
-    const VkResult createInstanceResult = vkCreateInstance(&createInfo, nullptr, &ptr);
+    VkResult const createInstanceResult = vkCreateInstance(&createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createInstanceResult != VK_SUCCESS, "failed to create instance!")
         throw cth::except::vk_result_exception{createInstanceResult, details->exception()};
 
@@ -85,7 +85,7 @@ void BasicInstance::checkInstanceExtensionSupport() {
         if(!std::ranges::contains(_availableExt, extension)) missingExtensions.emplace_back(extension);
 
     CTH_STABLE_ERR(!missingExtensions.empty(), "instance extensions missing") {
-        std::ranges::for_each(missingExtensions, [&details](const string_view extension) { details->add(extension); });
+        std::ranges::for_each(missingExtensions, [&details](string_view const extension) { details->add(extension); });
 
         throw details->exception();
     }
@@ -94,11 +94,11 @@ void BasicInstance::checkValidationLayerSupport() {
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         vector<string> missingLayers{};
 
-        std::ranges::for_each(VALIDATION_LAYERS, [&](const string_view layer) {
+        std::ranges::for_each(VALIDATION_LAYERS, [&](string_view const layer) {
             if(!std::ranges::contains(_availableLayers, layer)) missingLayers.emplace_back(layer);
         });
         CTH_STABLE_ERR(!missingLayers.empty(), "validation layers missing") {
-            std::ranges::for_each(missingLayers, [&details](const string_view layer) { details->add(layer); });
+            std::ranges::for_each(missingLayers, [&details](string_view const layer) { details->add(layer); });
 
             throw details->exception();
         }
@@ -112,7 +112,7 @@ vector<string> BasicInstance::getAvailableValidationLayers() {
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
     vector<string> layers(availableLayers.size());
-    std::ranges::transform(availableLayers, layers.begin(), [](const VkLayerProperties& layer) { return string(layer.layerName); });
+    std::ranges::transform(availableLayers, layers.begin(), [](VkLayerProperties const& layer) { return string(layer.layerName); });
 
     return layers;
 }
@@ -125,7 +125,7 @@ vector<string> BasicInstance::getAvailableInstanceExtensions() {
 
     vector<string> availableExtensionsStr{availableExtensions.size()};
     std::ranges::transform(availableExtensions, availableExtensionsStr.begin(),
-        [](const VkExtensionProperties& ext) { return ext.extensionName; });
+        [](VkExtensionProperties const& ext) { return ext.extensionName; });
 
 
     return availableExtensionsStr;
@@ -149,14 +149,14 @@ void BasicInstance::destroy(VkInstance vk_instance) {
 }
 
 #ifdef CONSTANT_DEBUG_MODE
-void BasicInstance::debug_check(const BasicInstance* instance) {
+void BasicInstance::debug_check(BasicInstance const* instance) {
     CTH_ERR(instance == nullptr, "instance must not be nullptr") throw details->exception();
     debug_check_handle(instance->get());
 }
 void BasicInstance::debug_check_handle(VkInstance vk_instance) {
     CTH_ERR(vk_instance == VK_NULL_HANDLE, "vk_instance invalid (VK_NULL_HANDLE)") throw details->exception();
 }
-void BasicInstance::debug_check_leak(const BasicInstance* instance) {
+void BasicInstance::debug_check_leak(BasicInstance const* instance) {
     CTH_WARN(instance->_handle != VK_NULL_HANDLE, "instance replaced (potential memory leak)") {}
 }
 #endif
@@ -168,7 +168,7 @@ void BasicInstance::debug_check_leak(const BasicInstance* instance) {
 namespace cth::vk {
 using namespace std;
 
-Instance::Instance(const string_view app_name, const span<const string> required_extensions) : BasicInstance(app_name, required_extensions) {
+Instance::Instance(string_view const app_name, span<string const> const required_extensions) : BasicInstance(app_name, required_extensions) {
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         _availableLayers = getAvailableValidationLayers();
         checkValidationLayerSupport();
@@ -192,7 +192,7 @@ void Instance::wrap(VkInstance vk_instance) {
 
     BasicInstance::wrap(vk_instance);
 }
-void Instance::create(const std::optional<BasicDebugMessenger::Config>& messenger_config) {
+void Instance::create(std::optional<BasicDebugMessenger::Config> const& messenger_config) {
     if(get() != VK_NULL_HANDLE) destroy();
 
 

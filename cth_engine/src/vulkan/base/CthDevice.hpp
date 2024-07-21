@@ -21,7 +21,7 @@ class Queue;
 
 class Device {
 public:
-    explicit Device(const Instance* instance, const PhysicalDevice* physical_device, std::span<Queue> queues);
+    explicit Device(Instance const* instance, PhysicalDevice const* physical_device, std::span<Queue> queues);
     ~Device();
 
     void waitIdle() const;
@@ -30,16 +30,16 @@ private:
      * @brief sets the unique family indices
      * @return the queue family indices
      */
-    [[nodiscard]] std::vector<uint32_t> setUniqueFamilyIndices(std::span<const Queue> queues);
+    [[nodiscard]] std::vector<uint32_t> setUniqueFamilyIndices(std::span<Queue const> queues);
     /**
     * @throws cth::except::vk_result_exception result of vkCreateDevice()
     */
     void createLogicalDevice();
-    void wrapQueues(std::span<const uint32_t> family_indices, std::span<Queue> queues) const;
+    void wrapQueues(std::span<uint32_t const> family_indices, std::span<Queue> queues) const;
 
 
-    const Instance* _instance;
-    const PhysicalDevice* _physicalDevice;
+    Instance const* _instance;
+    PhysicalDevice const* _physicalDevice;
 
     move_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
 
@@ -51,13 +51,13 @@ public:
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
     [[nodiscard]] auto familyIndices() const { return _familyIndices; }
 
-    Device(const Device&) = delete;
-    Device& operator=(const Device&) = delete;
+    Device(Device const&) = delete;
+    Device& operator=(Device const&) = delete;
     Device(Device&&) = default;
     Device& operator=(Device&&) = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const Device* device);
+    static void debug_check(Device const* device);
     static void debug_check_handle(VkDevice vk_device);
 #define DEBUG_CHECK_DEVICE(device_ptr) Device::debug_check(device_ptr)
 #define DEBUG_CHECK_DEVICE_HANDLE(vk_device) Device::debug_check_handle(vk_device)

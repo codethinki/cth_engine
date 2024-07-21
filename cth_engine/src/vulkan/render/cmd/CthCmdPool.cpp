@@ -5,13 +5,13 @@
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/base/CthQueue.hpp"
 #include "vulkan/resource/CthDeletionQueue.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 
 namespace cth::vk {
 
-CmdPool::CmdPool(const BasicCore* device, const Config& config) : _core(device), _config(config) {
+CmdPool::CmdPool(BasicCore const* device, Config const& config) : _core(device), _config(config) {
     DEBUG_CHECK_CORE(device);
 
     create();
@@ -85,10 +85,10 @@ void CmdPool::destroy(VkDevice vk_device, VkCommandPool vk_pool) {
 
 
 void CmdPool::create() {
-    const auto info = _config.createInfo();
+    auto const info = _config.createInfo();
 
     VkCommandPool ptr = VK_NULL_HANDLE;
-    const auto result = vkCreateCommandPool(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = vkCreateCommandPool(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create command pool")
         throw cth::except::vk_result_exception{result, details->exception()};
@@ -108,7 +108,7 @@ void CmdPool::alloc() {
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(_primaryBuffers.size());
 
-        const auto allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _primaryBuffers.data());
+        auto const allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _primaryBuffers.data());
 
         CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} primary command buffers", _config.maxPrimaryBuffers)
             throw cth::except::vk_result_exception{allocResult, details->exception()};
@@ -117,7 +117,7 @@ void CmdPool::alloc() {
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
         allocInfo.commandBufferCount = static_cast<uint32_t>(_secondaryBuffers.size());
 
-        const auto allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _secondaryBuffers.data());
+        auto const allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _secondaryBuffers.data());
 
         CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} secondary command buffers", _config.maxSecondaryBuffers)
             throw cth::except::vk_result_exception{allocResult, details->exception()};
@@ -131,7 +131,7 @@ void CmdPool::alloc() {
 //Config
 
 namespace cth::vk {
-CmdPool::Config CmdPool::Config::Default(const Queue& queue, const uint32_t max_primary_buffers, const uint32_t max_secondary_buffers) {
+CmdPool::Config CmdPool::Config::Default(Queue const& queue, uint32_t const max_primary_buffers, uint32_t const max_secondary_buffers) {
     return Config{max_primary_buffers, max_secondary_buffers, queue.familyIndex()};
 }
 

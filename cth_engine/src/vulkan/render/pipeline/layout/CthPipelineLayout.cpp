@@ -3,14 +3,14 @@
 #include "CthDescriptorSetLayout.hpp"
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 
 //PipelineLayout
 
 namespace cth::vk {
-PipelineLayout::PipelineLayout(const BasicCore* core, const Builder& builder) : _core(core),
+PipelineLayout::PipelineLayout(BasicCore const* core, Builder const& builder) : _core(core),
     _setLayouts(builder.build(core->physicalDevice()->limits().maxBoundDescriptorSets)) { create(); }
 PipelineLayout::~PipelineLayout() {
     vkDestroyPipelineLayout(_core->vkDevice(), _vkLayout, nullptr);
@@ -19,14 +19,14 @@ PipelineLayout::~PipelineLayout() {
 
 void PipelineLayout::create() {
     std::vector<VkDescriptorSetLayout> vkLayouts(_setLayouts.size());
-    std::ranges::transform(_setLayouts, vkLayouts.begin(), [](const DescriptorSetLayout* layout) { return layout->get(); });
+    std::ranges::transform(_setLayouts, vkLayouts.begin(), [](DescriptorSetLayout const* layout) { return layout->get(); });
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(vkLayouts.size());
     pipelineLayoutInfo.pSetLayouts = vkLayouts.data();
 
-    const VkResult result = vkCreatePipelineLayout(_core->vkDevice(), &pipelineLayoutInfo, nullptr, &_vkLayout);
+    VkResult const result = vkCreatePipelineLayout(_core->vkDevice(), &pipelineLayoutInfo, nullptr, &_vkLayout);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline-layout")
         throw except::vk_result_exception(result, details->exception());
@@ -42,19 +42,19 @@ void PipelineLayout::create() {
 //Builder
 
 namespace cth::vk {
-PipelineLayout::Builder& PipelineLayout::Builder::addSetLayouts(const std::span<DescriptorSetLayout* const> layouts, uint32_t location_offset) {
+PipelineLayout::Builder& PipelineLayout::Builder::addSetLayouts(std::span<DescriptorSetLayout* const> const layouts, uint32_t location_offset) {
     CTH_WARN(layouts.empty(), "layouts vector empty") {}
 
 
-    for(const auto layout : layouts) addSetLayout(layout, location_offset++);
+    for(auto const layout : layouts) addSetLayout(layout, location_offset++);
 
     return *this;
 }
-PipelineLayout::Builder& PipelineLayout::Builder::addSetLayout(DescriptorSetLayout* layout, const uint32_t location) {
+PipelineLayout::Builder& PipelineLayout::Builder::addSetLayout(DescriptorSetLayout* layout, uint32_t const location) {
     CTH_WARN(layout == nullptr, "empty layout provided") {}
 
-    const auto keys = _setLayouts | std::views::keys;
-    const bool result = std::ranges::any_of(keys, [location](const uint32_t key) { return key == location; });
+    auto const keys = _setLayouts | std::views::keys;
+    bool const result = std::ranges::any_of(keys, [location](uint32_t const key) { return key == location; });
     CTH_ERR(result, "location already used") {
         details->add("location: {}", location);
         throw details->exception();
@@ -64,7 +64,7 @@ PipelineLayout::Builder& PipelineLayout::Builder::addSetLayout(DescriptorSetLayo
 
     return *this;
 }
-PipelineLayout::Builder& PipelineLayout::Builder::removeSetLayout(const uint32_t location) {
+PipelineLayout::Builder& PipelineLayout::Builder::removeSetLayout(uint32_t const location) {
     CTH_ERR(location >= _setLayouts.size(), "location out of range") throw details->exception();
 
     if(location == _setLayouts.size() - 1) _setLayouts.pop_back();
@@ -73,9 +73,9 @@ PipelineLayout::Builder& PipelineLayout::Builder::removeSetLayout(const uint32_t
     return *this;
 }
 
-PipelineLayout::Builder::Builder(const std::span<DescriptorSetLayout*> layouts) { addSetLayouts(layouts); }
+PipelineLayout::Builder::Builder(std::span<DescriptorSetLayout*> const layouts) { addSetLayouts(layouts); }
 
-std::vector<DescriptorSetLayout*> PipelineLayout::Builder::build(const uint32_t max_bound_descriptor_sets) const {
+std::vector<DescriptorSetLayout*> PipelineLayout::Builder::build(uint32_t const max_bound_descriptor_sets) const {
     std::vector<DescriptorSetLayout*> result(_setLayouts.size());
 
     CTH_STABLE_ERR(_setLayouts.size() > max_bound_descriptor_sets, "device limits exceeded, too many locations") {
@@ -83,7 +83,7 @@ std::vector<DescriptorSetLayout*> PipelineLayout::Builder::build(const uint32_t 
         throw details->exception();
     }
 
-    for(const auto& [location, layout] : _setLayouts) result[location] = layout;
+    for(auto const& [location, layout] : _setLayouts) result[location] = layout;
 
 
     return result;

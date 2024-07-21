@@ -29,8 +29,8 @@ public:
     };
 
 
-    BasicGraphicsCore(const BasicCore* core, OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain);
-    explicit BasicGraphicsCore(const BasicCore* core) : _core(core) {}
+    BasicGraphicsCore(BasicCore const* core, OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain);
+    explicit BasicGraphicsCore(BasicCore const* core) : _core(core) {}
     virtual ~BasicGraphicsCore() CTH_DEBUG_IMPL;
 
 
@@ -40,8 +40,8 @@ public:
      * @brief constructs osWindow, surface and swapchain
      * @note does not destroy/delete
      */
-    virtual void create(std::string_view window_name, VkExtent2D extent, const Queue* present_queue,
-        const BasicGraphicsSyncConfig& sync_config, DeletionQueue* deletion_queue = nullptr);
+    virtual void create(std::string_view window_name, VkExtent2D extent, Queue const* present_queue,
+        BasicGraphicsSyncConfig const& sync_config, DeletionQueue* deletion_queue = nullptr);
 
 
     /**
@@ -65,29 +65,29 @@ public:
 
     void acquireFrame() const;
 
-    void beginWindowPass(const PrimaryCmdBuffer* render_cmd_buffer) const;
-    void endWindowPass(const PrimaryCmdBuffer* render_cmd_buffer) const;
+    void beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
+    void endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
 
     void presentFrame(DeletionQueue* deletion_queue) const; //TEMP
 
 private:
-    const BasicCore* _core;
+    BasicCore const* _core;
 
     move_ptr<OSWindow> _osWindow = nullptr;
     move_ptr<Surface> _surface = nullptr;
     move_ptr<BasicSwapchain> _swapchain = nullptr; //TODO change to Swapchain ptr once implemented
 
 public:
-    [[nodiscard]] const OSWindow* osWindow() const { return _osWindow.get(); }
-    [[nodiscard]] const Surface* surface() const { return _surface.get(); }
-    [[nodiscard]] const BasicSwapchain* swapchain() const { return _swapchain.get(); }
+    [[nodiscard]] OSWindow const* osWindow() const { return _osWindow.get(); }
+    [[nodiscard]] Surface const* surface() const { return _surface.get(); }
+    [[nodiscard]] BasicSwapchain const* swapchain() const { return _swapchain.get(); }
     [[nodiscard]] VkRenderPass swapchainRenderPass() const { return _swapchain->renderPass(); }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _swapchain->msaaSamples(); }
 
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check_not_null(const BasicGraphicsCore* graphics_core);
-    static void debug_check_leak(const BasicGraphicsCore* graphics_core);
+    static void debug_check_not_null(BasicGraphicsCore const* graphics_core);
+    static void debug_check_leak(BasicGraphicsCore const* graphics_core);
 
 #define DEBUG_CHECK_GRAPHICS_CORE_LEAK(graphics_core) BasicGraphicsCore::debug_check_leak(graphics_core)
 #define DEBUG_CHECK_GRAPHICS_CORE_NOT_NULL(graphics_core) BasicGraphicsCore::debug_check_not_null(graphics_core)
@@ -97,9 +97,9 @@ public:
 #endif
 
 
-    BasicGraphicsCore(const BasicGraphicsCore& other) = default;
+    BasicGraphicsCore(BasicGraphicsCore const& other) = default;
     BasicGraphicsCore(BasicGraphicsCore&& other) noexcept = default;
-    BasicGraphicsCore& operator=(const BasicGraphicsCore& other) = default;
+    BasicGraphicsCore& operator=(BasicGraphicsCore const& other) = default;
     BasicGraphicsCore& operator=(BasicGraphicsCore&& other) noexcept = default;
 };
 }

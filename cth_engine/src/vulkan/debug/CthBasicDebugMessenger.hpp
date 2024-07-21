@@ -9,7 +9,7 @@
 
 namespace cth::dev {
 VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-    VkDebugUtilsMessageTypeFlagsEXT message_type, const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+    VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
     void* user_data);
 }
 
@@ -20,8 +20,8 @@ class DeletionQueue;
 class BasicDebugMessenger {
 public:
     struct Config;
-    using callback_t = VkBool32(const VkDebugUtilsMessageSeverityFlagBitsEXT, const VkDebugUtilsMessageTypeFlagsEXT,
-        const VkDebugUtilsMessengerCallbackDataEXT*,
+    using callback_t = VkBool32(VkDebugUtilsMessageSeverityFlagBitsEXT const, VkDebugUtilsMessageTypeFlagsEXT const,
+        VkDebugUtilsMessengerCallbackDataEXT const*,
         void*);
 
 
@@ -36,7 +36,7 @@ public:
      * @throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      * @throws cth::except::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
      */
-    virtual void create(const BasicInstance* instance);
+    virtual void create(BasicInstance const* instance);
 
     /**
      * @throws cth::except::default_exception reason: messenger not active
@@ -53,7 +53,7 @@ public:
         VkDebugUtilsMessageTypeFlagsEXT messageTypes = constants::DEBUG_MESSAGE_TYPE;
 
 
-        static Config Default(const std::function<callback_t>& callback = nullptr) {
+        static Config Default(std::function<callback_t> const& callback = nullptr) {
             return Config{
                 .callback = callback == nullptr ? dev::defaultDebugCallback : callback,
             };
@@ -64,7 +64,7 @@ public:
     };
 
 protected:
-    const BasicInstance* _instance = nullptr;
+    BasicInstance const* _instance = nullptr;
     Config _config;
 
 private:
@@ -74,14 +74,14 @@ public:
     [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
     [[nodiscard]] Config config() const { return _config; }
 
-    BasicDebugMessenger(const BasicDebugMessenger&) = default;
-    BasicDebugMessenger& operator=(const BasicDebugMessenger&) = default;
+    BasicDebugMessenger(BasicDebugMessenger const&) = default;
+    BasicDebugMessenger& operator=(BasicDebugMessenger const&) = default;
     BasicDebugMessenger(BasicDebugMessenger&&) = default;
     BasicDebugMessenger& operator=(BasicDebugMessenger&&) = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const BasicDebugMessenger* debug_messenger);
-    static void debug_check_leak(const BasicDebugMessenger* debug_messenger);
+    static void debug_check(BasicDebugMessenger const* debug_messenger);
+    static void debug_check_leak(BasicDebugMessenger const* debug_messenger);
 
 #define DEBUG_CHECK_MESSENGER(messenger_ptr) BasicDebugMessenger::debug_check(messenger_ptr)
 #define DEBUG_CHECK_MESSENGER_LEAK(messenger_ptr) BasicDebugMessenger::debug_check_leak(messenger_ptr)

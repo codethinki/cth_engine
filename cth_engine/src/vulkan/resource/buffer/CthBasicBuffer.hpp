@@ -25,13 +25,13 @@ public:
     /**
      * @param buffer_size in bytes
      */
-    BasicBuffer(const BasicCore* core, size_t buffer_size, VkBufferUsageFlags usage_flags);
-    BasicBuffer(const BasicCore* core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, State state);
+    BasicBuffer(BasicCore const* core, size_t buffer_size, VkBufferUsageFlags usage_flags);
+    BasicBuffer(BasicCore const* core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, State state);
 
     virtual ~BasicBuffer() = default;
 
 
-    virtual void wrap(VkBuffer vk_buffer, const State& state);
+    virtual void wrap(VkBuffer vk_buffer, State const& state);
 
     /**
     * @brief creates the image
@@ -99,14 +99,14 @@ public:
      * @brief stages a device local buffer with a temporary host visible buffer
      * @param dst_offset in bytes
      */
-    void stage(const CmdBuffer& cmd_buffer, const BasicBuffer& staging_buffer, size_t dst_offset = 0) const;
+    void stage(CmdBuffer const& cmd_buffer, BasicBuffer const& staging_buffer, size_t dst_offset = 0) const;
 
     /**
      * @brief writes to the mapped range of the whole buffer
      * @note whole buffer must be mapped first
      * @note not virtual
      */
-    void write(std::span<const char> data, size_t buffer_offset = 0) const;
+    void write(std::span<char const> data, size_t buffer_offset = 0) const;
 
 
     /**
@@ -116,7 +116,7 @@ public:
     * @param src_offset in bytes
     * @param dst_offset in bytes
      */
-    void copy(const CmdBuffer& cmd_buffer, const BasicBuffer& src, size_t copy_size = constants::WHOLE_SIZE, size_t src_offset = 0,
+    void copy(CmdBuffer const& cmd_buffer, BasicBuffer const& src, size_t copy_size = constants::WHOLE_SIZE, size_t src_offset = 0,
         size_t dst_offset = 0) const;
 
 
@@ -144,7 +144,7 @@ public:
     /**
     * @brief writes to a mapped memory range
     */
-    static void write(std::span<const char> data, std::span<char> mapped_memory);
+    static void write(std::span<char const> data, std::span<char> mapped_memory);
 
     static void destroy(VkDevice vk_device, VkBuffer vk_buffer);
 
@@ -180,7 +180,7 @@ protected:
     */
     virtual void setMemory(BasicMemory* new_memory);
 
-    const BasicCore* _core;
+    BasicCore const* _core;
     size_t _size;
     VkBufferUsageFlags _usage;
 
@@ -202,16 +202,16 @@ public:
     [[nodiscard]] bool allocated() const;
     [[nodiscard]] auto state() const { return _state; }
 
-    BasicBuffer(const BasicBuffer& other) = default;
+    BasicBuffer(BasicBuffer const& other) = default;
     BasicBuffer(BasicBuffer&& other) = default;
-    BasicBuffer& operator=(const BasicBuffer& other) = default;
+    BasicBuffer& operator=(BasicBuffer const& other) = default;
     BasicBuffer& operator=(BasicBuffer&& other) = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const BasicBuffer* buffer);
-    static void debug_check_leak(const BasicBuffer* buffer);
-    static void debug_check_memory_leak(const BasicBuffer* buffer);
-    static void debug_check_not_bound(const BasicBuffer* buffer);
+    static void debug_check(BasicBuffer const* buffer);
+    static void debug_check_leak(BasicBuffer const* buffer);
+    static void debug_check_memory_leak(BasicBuffer const* buffer);
+    static void debug_check_not_bound(BasicBuffer const* buffer);
 
 #define DEBUG_CHECK_BUFFER(buffer_ptr) BasicBuffer::debug_check(buffer_ptr)
 #define DEBUG_CHECK_BUFFER_LEAK(buffer_ptr) BasicBuffer::debug_check_leak(buffer_ptr)

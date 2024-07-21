@@ -5,7 +5,7 @@
 #include "vulkan/render/control/CthSemaphore.hpp"
 #include "vulkan/render/control/CthTimelineSemaphore.hpp"
 #include "vulkan/surface/swapchain/CthBasicSwapchain.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 
@@ -15,32 +15,32 @@ class TimelineSemaphore;
 
 using std::vector;
 
-void Queue::wrap(const uint32_t family_index, const uint32_t queue_index, VkQueue vk_queue) {
+void Queue::wrap(uint32_t const family_index, uint32_t const queue_index, VkQueue vk_queue) {
     _familyIndex = family_index;
     _queueIndex = queue_index;
     _handle = vk_queue;
 }
 void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
-void Queue::const_submit(const SubmitInfo& submit_info) const {
-    const auto result = vkQueueSubmit(_handle, 1, submit_info.get(), submit_info.fence());
+void Queue::const_submit(SubmitInfo const& submit_info) const {
+    auto const result = vkQueueSubmit(_handle, 1, submit_info.get(), submit_info.fence());
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
         throw cth::except::vk_result_exception{result, details->exception()};
 }
 void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next()); }
-void Queue::const_skip(const SubmitInfo& submit_info) const {
+void Queue::const_skip(SubmitInfo const& submit_info) const {
     auto submitInfo = *submit_info.get();
     submitInfo.commandBufferCount = 0;
-    const auto result = vkQueueSubmit(_handle, 1, &submitInfo, submit_info.fence());
+    auto const result = vkQueueSubmit(_handle, 1, &submitInfo, submit_info.fence());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip submit to queue")
         throw except::vk_result_exception{result, details->exception()};
 }
 
 
-VkResult Queue::present(const uint32_t image_index, const PresentInfo& present_info) const {
-    const auto& info = present_info.createInfo(image_index);
+VkResult Queue::present(uint32_t const image_index, PresentInfo const& present_info) const {
+    auto const& info = present_info.createInfo(image_index);
 
-    const auto result = vkQueuePresentKHR(get(), &info);
+    auto const result = vkQueuePresentKHR(get(), &info);
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR, "failed to present")
         throw cth::except::vk_result_exception{result, details->exception()};
@@ -50,10 +50,10 @@ VkResult Queue::present(const uint32_t image_index, const PresentInfo& present_i
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void Queue::debug_check(const Queue* queue) {
+void Queue::debug_check(Queue const* queue) {
     CTH_ERR(queue == nullptr, "queue invalid (nullptr)") throw details->exception();
 }
-void Queue::debug_check_present_queue(const Queue* queue) {
+void Queue::debug_check_present_queue(Queue const* queue) {
     CTH_ERR(queue == nullptr, "queue invalid (nullptr)") throw details->exception();
     CTH_ERR(!(queue->familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT), "queue is not a present queue") throw details->exception();
 }
@@ -69,11 +69,11 @@ namespace cth::vk {
 using std::span;
 
 
-Queue::SubmitInfo::SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffers, const std::span<const PipelineWaitStage> wait_stages,
-    const std::span<BasicSemaphore* const> signal_semaphores, const BasicFence* fence) : _fence(fence) {
+Queue::SubmitInfo::SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffers, std::span<PipelineWaitStage const> const wait_stages,
+    std::span<BasicSemaphore* const> const signal_semaphores, BasicFence const* fence) : _fence(fence) {
     _cmdBuffers.resize(cmd_buffers.size());
 
-    std::ranges::transform(cmd_buffers, _cmdBuffers.begin(), [](const PrimaryCmdBuffer* cmd_buffer) {
+    std::ranges::transform(cmd_buffers, _cmdBuffers.begin(), [](PrimaryCmdBuffer const* cmd_buffer) {
         DEBUG_CHECK_CMD_BUFFER(cmd_buffer);
         return cmd_buffer->get();
     });
@@ -86,7 +86,7 @@ Queue::SubmitInfo::SubmitInfo(std::span<const PrimaryCmdBuffer* const> cmd_buffe
     _submitInfo = createInfo();
 }
 Queue::SubmitInfo Queue::SubmitInfo::next() {
-    std::ranges::transform(_waitTimelineSemaphores, _waitValues.begin(), [](const TimelineSemaphore* semaphore) { return semaphore->value(); });
+    std::ranges::transform(_waitTimelineSemaphores, _waitValues.begin(), [](TimelineSemaphore const* semaphore) { return semaphore->value(); });
     std::ranges::transform(_signalTimelineSemaphores, _signalValues.begin(), [](TimelineSemaphore* semaphore) { return semaphore->next(); });
 
     _submitInfo = createInfo();
@@ -109,7 +109,7 @@ VkSubmitInfo Queue::SubmitInfo::createInfo() const {
     };
 }
 VkTimelineSemaphoreSubmitInfo Queue::SubmitInfo::createTimelineInfo() const {
-    const VkTimelineSemaphoreSubmitInfo timelineInfo{
+    VkTimelineSemaphoreSubmitInfo const timelineInfo{
         .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
         .pNext = nullptr,
         .waitSemaphoreValueCount = static_cast<uint32_t>(_waitValues.size()),
@@ -119,7 +119,7 @@ VkTimelineSemaphoreSubmitInfo Queue::SubmitInfo::createTimelineInfo() const {
     };
     return timelineInfo;
 }
-void Queue::SubmitInfo::initSignal(const std::span<BasicSemaphore* const> signal_semaphores) {
+void Queue::SubmitInfo::initSignal(std::span<BasicSemaphore* const> const signal_semaphores) {
     _signalValues.resize(signal_semaphores.size());
     _signalSemaphores.reserve(signal_semaphores.size());
 
@@ -138,7 +138,7 @@ void Queue::SubmitInfo::initSignal(const std::span<BasicSemaphore* const> signal
 
     _signalSemaphores.insert(_signalSemaphores.end(), semaphores.begin(), semaphores.end());
 }
-void Queue::SubmitInfo::initWait(const std::span<const PipelineWaitStage> wait_stages) {
+void Queue::SubmitInfo::initWait(std::span<PipelineWaitStage const> const wait_stages) {
     _waitValues.resize(wait_stages.size());
     _waitSemaphores.reserve(wait_stages.size());
 
@@ -147,7 +147,7 @@ void Queue::SubmitInfo::initWait(const std::span<const PipelineWaitStage> wait_s
 
     for(auto& waitStage : wait_stages) {
         DEBUG_CHECK_SEMAPHORE(waitStage.semaphore);
-        auto semaphore = dynamic_cast<const TimelineSemaphore*>(waitStage.semaphore);
+        auto semaphore = dynamic_cast<TimelineSemaphore const*>(waitStage.semaphore);
         if(!semaphore) stages.push_back(waitStage);
         else {
             _waitTimelineSemaphores.push_back(semaphore);
@@ -156,7 +156,7 @@ void Queue::SubmitInfo::initWait(const std::span<const PipelineWaitStage> wait_s
         }
     }
 
-    std::ranges::transform(stages, std::ranges::begin(std::views::zip(_waitSemaphores, _pipelineWaitStages)), [](const PipelineWaitStage& stage) {
+    std::ranges::transform(stages, std::ranges::begin(std::views::zip(_waitSemaphores, _pipelineWaitStages)), [](PipelineWaitStage const& stage) {
         return std::pair{stage.semaphore->get(), stage.stage};
     });
 }
@@ -168,12 +168,12 @@ void Queue::SubmitInfo::initWait(const std::span<const PipelineWaitStage> wait_s
 //PresentInfo
 
 namespace cth::vk {
-Queue::PresentInfo::PresentInfo(const BasicSwapchain* swapchain, std::span<const BasicSemaphore*> wait_semaphores) : _swapchain(swapchain->get()) {
+Queue::PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<BasicSemaphore const*> wait_semaphores) : _swapchain(swapchain->get()) {
     _waitSemaphores.resize(wait_semaphores.size());
-    std::ranges::transform(wait_semaphores, _waitSemaphores.begin(), [](const BasicSemaphore* semaphore) { return semaphore->get(); });
+    std::ranges::transform(wait_semaphores, _waitSemaphores.begin(), [](BasicSemaphore const* semaphore) { return semaphore->get(); });
 
 }
-VkPresentInfoKHR Queue::PresentInfo::createInfo(const uint32_t& image_index) const {
+VkPresentInfoKHR Queue::PresentInfo::createInfo(uint32_t const& image_index) const {
     return VkPresentInfoKHR{
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .swapchainCount = 1u,

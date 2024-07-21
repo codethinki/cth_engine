@@ -5,9 +5,7 @@
 
 namespace cth {
 
-App::App() {
-    initFrame();
-}
+App::App() { initFrame(); }
 
 void App::run() {
 
@@ -60,7 +58,8 @@ void App::graphicsPhase() const {
 
 
 void App::initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer) {
-    _renderSystem = std::make_unique<RenderSystem>(_core.get(), _deletionQueue.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(), _graphicsCore->msaaSamples());
+    _renderSystem = std::make_unique<RenderSystem>(_core.get(), _deletionQueue.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(),
+        _graphicsCore->msaaSamples());
 }
 
 

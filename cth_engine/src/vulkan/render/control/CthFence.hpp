@@ -12,7 +12,7 @@ class DeletionQueue;
 
 class BasicFence {
 public:
-    explicit BasicFence(const BasicCore* core);
+    explicit BasicFence(BasicCore const* core);
     virtual ~BasicFence() = default;
 
     virtual void wrap(VkFence vk_fence);
@@ -53,7 +53,7 @@ public:
     static void destroy(VkDevice vk_device, VkFence vk_fence);
 
 protected:
-    const BasicCore* _core;
+    BasicCore const* _core;
 
 private:
     static VkFenceCreateInfo createInfo(VkFenceCreateFlags flags);
@@ -63,14 +63,14 @@ private:
 public:
     [[nodiscard]] VkFence get() const { return _handle.get(); }
 
-    BasicFence(const BasicFence& other) = default;
+    BasicFence(BasicFence const& other) = default;
     BasicFence(BasicFence&& other) = default;
-    BasicFence& operator=(const BasicFence& other) = default;
+    BasicFence& operator=(BasicFence const& other) = default;
     BasicFence& operator=(BasicFence&& other) = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(const BasicFence* fence);
-    static void debug_check_leak(const BasicFence* fence);
+    static void debug_check(BasicFence const* fence);
+    static void debug_check_leak(BasicFence const* fence);
 #define DEBUG_CHECK_FENCE(fence_ptr) BasicFence::debug_check(fence_ptr)
 #define DEBUG_CHECK_FENCE_LEAK(fence_ptr) BasicFence::debug_check_leak(fence_ptr)
 #else
@@ -83,7 +83,7 @@ public:
 namespace cth::vk {
 class Fence : public BasicFence {
 public:
-    explicit Fence(const BasicCore* core, DeletionQueue* deletion_queue, VkFenceCreateFlags flags = 0);
+    explicit Fence(BasicCore const* core, DeletionQueue* deletion_queue, VkFenceCreateFlags flags = 0);
     ~Fence() override;
 
     void wrap(VkFence vk_fence) override;
@@ -95,9 +95,9 @@ private:
     DeletionQueue* _deletionQueue = nullptr;
 
 public:
-    Fence(const Fence& other) = delete;
+    Fence(Fence const& other) = delete;
     Fence(Fence&& other) = default;
-    Fence& operator=(const Fence& other) = delete;
+    Fence& operator=(Fence const& other) = delete;
     Fence& operator=(Fence&& other) = default;
 };
 }

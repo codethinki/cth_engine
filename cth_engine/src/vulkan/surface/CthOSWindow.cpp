@@ -3,14 +3,14 @@
 #include "CthSurface.hpp"
 #include "interface/user/HlcInputController.hpp"
 #include "vulkan/base/CthInstance.hpp"
-#include "vulkan/utility/CthVkUtils.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 #include <vulkan/vulkan_win32.h>
 
 
 namespace cth::vk {
-OSWindow::OSWindow(const std::string_view name, const uint32_t width, const uint32_t height, const BasicInstance* instance) : _windowName{name},
+OSWindow::OSWindow(std::string_view const name, uint32_t const width, uint32_t const height, BasicInstance const* instance) : _windowName{name},
     _width(static_cast<int>(width)), _height(static_cast<int>(height)) {
     initWindow();
 
@@ -40,9 +40,9 @@ void OSWindow::setCallbacks() {
     glfwSetWindowFocusCallback(_glfwWindow, staticFocusCallback);
     //glfwSetCursorPosCallback(hlcWindow, staticMovementCallback);
 }
-void OSWindow::createSurface(const BasicInstance* instance) {
+void OSWindow::createSurface(BasicInstance const* instance) {
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
-    const auto result = glfwCreateWindowSurface(instance->get(), window(), nullptr, &vkSurface);
+    auto const result = glfwCreateWindowSurface(instance->get(), window(), nullptr, &vkSurface);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create GLFW window surface")
         throw cth::except::vk_result_exception{result, details->exception()};
@@ -54,9 +54,9 @@ void OSWindow::createSurface(const BasicInstance* instance) {
 }
 
 void OSWindow::keyCallback(int key, int scan_code, int action, int mods) {}
-void OSWindow::mouseCallback(const int button, const int action) {} //FEATURE mouse callback
+void OSWindow::mouseCallback(int const button, int const action) {} //FEATURE mouse callback
 void OSWindow::scrollCallback(double x_offset, double y_offset) {} //FEATURE scroll callback
-void OSWindow::focusCallback(const int focused) {
+void OSWindow::focusCallback(int const focused) {
     _focus = static_cast<bool>(focused);
 
     if(_focus) cth::log::msg("window focused");
@@ -73,7 +73,7 @@ void OSWindow::focusCallback(const int focused) {
         focus = false;
     }*/
 }
-void OSWindow::framebufferResizeCallback(const int new_width, const int new_height) {
+void OSWindow::framebufferResizeCallback(int const new_width, int const new_height) {
     _framebufferResized = true;
     _width = new_width;
     _height = new_height;
@@ -97,11 +97,11 @@ void OSWindow::setGLFWWindowHints() {
 OSWindow* OSWindow::window_ptr(GLFWwindow* glfw_window) { return static_cast<OSWindow*>(glfwGetWindowUserPointer(glfw_window)); }
 std::vector<std::string> OSWindow::getGLFWInstanceExtensions() {
     uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    char const** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    std::span<const char*> extensionsSpan{glfwExtensions, glfwExtensionCount};
+    std::span<char const*> extensionsSpan{glfwExtensions, glfwExtensionCount};
     std::vector<std::string> extensions{extensionsSpan.size()};
-    std::ranges::transform(extensionsSpan, extensions.begin(), [](const std::string_view c) { return std::string(c); });
+    std::ranges::transform(extensionsSpan, extensions.begin(), [](std::string_view const c) { return std::string(c); });
 
     return extensions;
 }
@@ -118,12 +118,12 @@ void OSWindow::terminate() {
     glfwTerminate();
     log::msg("terminated window");
 }
-VkSurfaceKHR OSWindow::tempSurface(const BasicInstance* instance) {
+VkSurfaceKHR OSWindow::tempSurface(BasicInstance const* instance) {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     // Create a hidden window for the surface
     constexpr std::wstring_view name = L"TempHiddenWindow";
-    const WNDCLASSEX wc{
+    WNDCLASSEX const wc{
         .cbSize = sizeof(wc),
         .lpfnWndProc = DefWindowProc,
         .hInstance = GetModuleHandle(nullptr),
@@ -143,7 +143,7 @@ VkSurfaceKHR OSWindow::tempSurface(const BasicInstance* instance) {
     createInfo.hinstance = GetModuleHandle(nullptr);
     createInfo.hwnd = hwnd;
 
-    const auto result = vkCreateWin32SurfaceKHR(instance->get(), &createInfo, nullptr, &surface);
+    auto const result = vkCreateWin32SurfaceKHR(instance->get(), &createInfo, nullptr, &surface);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create temp surface") {
         DestroyWindow(hwnd);
         throw except::vk_result_exception{result, details->exception()};
@@ -155,11 +155,11 @@ VkSurfaceKHR OSWindow::tempSurface(const BasicInstance* instance) {
 }
 
 #ifdef CONSTANT_DEBUG_MODE
-void OSWindow::debug_check_not_null(const OSWindow* os_window) {
+void OSWindow::debug_check_not_null(OSWindow const* os_window) {
     CTH_ERR(os_window == nullptr, "os_window must not be nullptr")
         throw details->exception();
 }
-void OSWindow::debug_check(const OSWindow* os_window) {
+void OSWindow::debug_check(OSWindow const* os_window) {
     DEBUG_CHECK_OS_WINDOW_NOT_NULL(os_window);
 
     CTH_ERR(os_window->_glfwWindow == nullptr, "os_window must be initialized")
@@ -169,21 +169,21 @@ void OSWindow::debug_check(const OSWindow* os_window) {
 
 
 
-void OSWindow::staticKeyCallback(GLFWwindow* glfw_window, const int key, const int scan_code, const int action, const int mods) {
+void OSWindow::staticKeyCallback(GLFWwindow* glfw_window, int const key, int const scan_code, int const action, int const mods) {
     if(key < 0) return;
     InputController::keyStates[key] = action; //TODO review this
     window_ptr(glfw_window)->keyCallback(key, scan_code, action, mods);
 }
-void OSWindow::staticMouseCallback(GLFWwindow* glfw_window, const int button, const int action, int mods) {
+void OSWindow::staticMouseCallback(GLFWwindow* glfw_window, int const button, int const action, int mods) {
     window_ptr(glfw_window)->mouseCallback(button, action);
 }
-void OSWindow::staticScrollCallback(GLFWwindow* glfw_window, const double x_offset, const double y_offset) {
+void OSWindow::staticScrollCallback(GLFWwindow* glfw_window, double const x_offset, double const y_offset) {
     window_ptr(glfw_window)->scrollCallback(x_offset, y_offset);
 }
-void OSWindow::staticFramebufferResizeCallback(GLFWwindow* glfw_window, const int width, const int height) {
+void OSWindow::staticFramebufferResizeCallback(GLFWwindow* glfw_window, int const width, int const height) {
     window_ptr(glfw_window)->framebufferResizeCallback(width, height);
 }
-void OSWindow::staticFocusCallback(GLFWwindow* glfw_window, const int focused) { window_ptr(glfw_window)->focusCallback(focused); }
+void OSWindow::staticFocusCallback(GLFWwindow* glfw_window, int const focused) { window_ptr(glfw_window)->focusCallback(focused); }
 
 
 
