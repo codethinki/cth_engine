@@ -200,7 +200,9 @@ auto Renderer::Config::createPhaseSubmitInfos(
         auto semaphores = extract(signalSets);
         auto waitStages = extract(waitSets);
 
-        submitInfos.emplace_back(phase_buffers, waitStages, semaphores, nullptr);
+
+        std::array cmdBuffers{phase_buffers[i]};
+        submitInfos.emplace_back(cmdBuffers, waitStages, semaphores, nullptr);
     }
     return submitInfos;
 }

@@ -13,8 +13,6 @@
 
 
 
-
-
 namespace cth::vk {
 class TimelineSemaphore;
 class BasicSemaphore;
@@ -123,15 +121,17 @@ struct Queue::SubmitInfo {
      * @brief advances the timeline semaphores and returns this
      */
     [[nodiscard]] SubmitInfo next();
-    //TEMP complete this
+
 private:
-    [[nodiscard]] VkSubmitInfo createInfo() const;
-    [[nodiscard]] VkTimelineSemaphoreSubmitInfo createTimelineInfo() const;
-    void initSignal(std::span<BasicSemaphore* const> signal_semaphores);
+    void createTimelineInfo();
+    void createInfo();
+    void create();
+
     void initWait(std::span<PipelineWaitStage const> wait_stages);
+    void initSignal(std::span<BasicSemaphore* const> signal_semaphores);
 
     VkSubmitInfo _submitInfo{};
-    VkTimelineSemaphoreSubmitInfo _timelineInfo{};
+    std::unique_ptr<VkTimelineSemaphoreSubmitInfo> _timelineInfo{};
 
 
 
@@ -145,11 +145,14 @@ private:
     std::vector<size_t> _waitValues{};
     std::vector<size_t> _signalValues{};
 
-    BasicFence const* _fence = VK_NULL_HANDLE;
+    BasicFence const* _fence = nullptr;
 
 public:
     [[nodiscard]] VkSubmitInfo const* get() const { return &_submitInfo; }
-    [[nodiscard]] VkFence fence() const { return _fence->get(); }
+    [[nodiscard]] VkFence fence() const {
+        if(_fence == nullptr) return nullptr;
+        return _fence->get();
+    }
 };
 
 struct Queue::PresentInfo {
@@ -161,7 +164,7 @@ struct Queue::PresentInfo {
     [[nodiscard]] VkPresentInfoKHR createInfo(uint32_t const& image_index) const;
 
 private:
-    VkSwapchainKHR const _swapchain;
+    VkSwapchainKHR _swapchain;
     std::vector<VkSemaphore> _waitSemaphores;
 };
 

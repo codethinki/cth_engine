@@ -33,11 +33,11 @@ void Renderer::init(Config const& config) {
 }
 
 void Renderer::createCmdPools() {
-    for(size_t i = PHASES_FIRST; i < PHASES_LAST; ++i)
+    for(size_t i = PHASES_FIRST; i < PHASES_SIZE; ++i)
         _cmdPools[i] = std::make_unique<CmdPool>(_core, CmdPool::Config::Default(_queues[i]->familyIndex(), constants::FRAMES_IN_FLIGHT + 1, 0));
 }
 void Renderer::createPrimaryCmdBuffers() {
-    for(size_t i = PHASES_FIRST; i < PHASES_LAST; ++i)
+    for(size_t i = PHASES_FIRST; i < PHASES_SIZE; ++i)
         for(size_t j = 0; j < constants::FRAMES_IN_FLIGHT; ++j)
             _cmdBuffers[i * PHASES_SIZE + j] = std::make_unique<PrimaryCmdBuffer>(_cmdPools[i].get());
 }

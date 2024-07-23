@@ -10,8 +10,6 @@ public:
     ~TimelineSemaphore() override = default;
 
 
-
-
     [[nodiscard]] size_t value() const { return _value; }
     [[nodiscard]] size_t next() { return ++_value; }
 
