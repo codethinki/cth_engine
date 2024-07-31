@@ -25,13 +25,13 @@ namespace cth::vk {
 DeletionQueue::DeletionQueue(BasicCore* core) : _core(core) {}
 DeletionQueue::~DeletionQueue() {
     for(uint32_t i = 0; i < QUEUES; ++i)
-        clear((_frame + i) % QUEUES);
+        clear((_frameIndex + i) % QUEUES);
 }
 void DeletionQueue::push(deletable_handle_t handle) {
     CTH_WARN(std::visit(var::visitor{[](auto handle) { return handle == VK_NULL_HANDLE; }}, handle),
         "handle should not be VK_NULL_HANDLE or nullptr") {}
 
-    _queue[_frame].emplace_back(handle);
+    _queue[_frameIndex].emplace_back(handle);
 }
 void DeletionQueue::push(dependent_handle_t handle, deletable_handle_t dependency) {
     bool const validHandle = std::visit(var::visitor{[](auto temp_handle) { return temp_handle != VK_NULL_HANDLE; }}, handle);
@@ -41,14 +41,14 @@ void DeletionQueue::push(dependent_handle_t handle, deletable_handle_t dependenc
 
     CTH_ERR(validHandle ^ validDependency, "handle and dependency must both be valid or invalid") throw details->exception();
 
-    _queue[_frame].emplace_back(handle, dependency);
+    _queue[_frameIndex].emplace_back(handle, dependency);
 }
 
 
 
-void DeletionQueue::clear(uint32_t const current_frame) {
+void DeletionQueue::clear(size_t const frame_index) {
 
-    auto& deletables = _queue[current_frame];
+    auto& deletables = _queue[frame_index];
     for(auto [deletable, dependency] : deletables) {
         std::visit(cth::var::overload{
             [this](deletable_handle_t handle) {

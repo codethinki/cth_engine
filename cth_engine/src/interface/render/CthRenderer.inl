@@ -9,12 +9,13 @@
 #include <ranges>
 #include <vector>
 
+
 namespace cth::vk {
 template<Renderer::Phase P>
 PrimaryCmdBuffer* Renderer::begin() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-   // if constexpr(P == PHASES_FIRST) wait(); TEMP maybe i need that but i dont think so
+     if constexpr(P == PHASES_FIRST) wait(); //TEMP this is bad code but i dont know an alternative
 
     auto buffer = cmdBuffer<P>();
     VkResult const beginResult = buffer->begin();
@@ -39,7 +40,7 @@ void Renderer::end() {
 template<Renderer::Phase P> void Renderer::skip() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-
+    queue<P>()->skip(submitInfo<P>());
 
     nextState<P>();
 }
@@ -49,6 +50,7 @@ void Renderer::submit() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
     queue<P>()->submit(submitInfo<P>());
+
     nextState<P>();
 }
 
@@ -97,6 +99,7 @@ void Renderer::debug_check_phase_change(Renderer const* renderer) {
 #endif
 
 }
+
 
 //Builder
 
@@ -190,19 +193,18 @@ auto Renderer::Config::createPhaseSubmitInfos(
     submitInfos.reserve(SET_SIZE);
 
     for(size_t i = 0; i < SET_SIZE; i++) {
-
         auto extract = [i]<class Rng>(Rng const& rng) {
-            using T = type::range2d_value_t<Rng>;
-            return rng | std::views::transform([i](auto const& set) { return set[i]; })
+            using T = std::ranges::range_value_t<Rng>;
+            return rng | std::views::drop(i) | std::views::stride(SET_SIZE)
                 | std::ranges::to<std::vector<T>>();
         };
 
-        auto semaphores = extract(signalSets);
+        auto signalSemaphores = extract(signalSets);
         auto waitStages = extract(waitSets);
 
 
         std::array cmdBuffers{phase_buffers[i]};
-        submitInfos.emplace_back(cmdBuffers, waitStages, semaphores, nullptr);
+        submitInfos.emplace_back(cmdBuffers, waitStages, signalSemaphores, nullptr);
     }
     return submitInfos;
 }
@@ -214,11 +216,9 @@ auto Renderer::Config::add(std::span<T const> sets, collection_t<T>& to) -> void
 
 
     auto& phase = to[P];
-    for(auto const& set : sets | std::views::chunk(SET_SIZE)) {
-        phase.emplace_back();
+    phase.reserve(phase.size() + sets.size());
 
-        std::ranges::copy(set, phase.back().begin());
-    }
+    std::ranges::copy(sets, std::back_inserter(phase));
 }
 
 template<Renderer::Phase P, class T>

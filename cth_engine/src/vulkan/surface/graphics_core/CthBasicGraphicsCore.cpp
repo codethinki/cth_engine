@@ -28,7 +28,7 @@ void BasicGraphicsCore::wrap(OSWindow* os_window, Surface* surface, BasicSwapcha
 
 
 void BasicGraphicsCore::create(std::string_view const window_name, VkExtent2D const extent, Queue const* present_queue,
-    BasicGraphicsSyncConfig const& sync_config, DeletionQueue* deletion_queue) {
+    BasicGraphicsSyncConfig const* sync_config, DeletionQueue* deletion_queue) {
     DEBUG_CHECK_GRAPHICS_CORE_LEAK(this);
     _osWindow = new OSWindow(window_name, extent.width, extent.height, _core->instance());
     _surface = new Surface(_core->instance(), _osWindow->surface()->get());

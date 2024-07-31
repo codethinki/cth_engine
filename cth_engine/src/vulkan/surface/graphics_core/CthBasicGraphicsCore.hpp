@@ -40,8 +40,8 @@ public:
      * @brief constructs osWindow, surface and swapchain
      * @note does not destroy/delete
      */
-    virtual void create(std::string_view window_name, VkExtent2D extent, Queue const* present_queue,
-        BasicGraphicsSyncConfig const& sync_config, DeletionQueue* deletion_queue = nullptr);
+    virtual void create(std::string_view const window_name, VkExtent2D const extent, Queue const* present_queue,
+        BasicGraphicsSyncConfig const* sync_config, DeletionQueue* deletion_queue = nullptr);
 
 
     /**

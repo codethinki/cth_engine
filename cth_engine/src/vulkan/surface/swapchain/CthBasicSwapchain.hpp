@@ -28,10 +28,10 @@ class PrimaryCmdBuffer;
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig sync_config);
+    BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config);
     virtual ~BasicSwapchain();
 
-    //virtual void wrap(const Surface* surface, VkExtent2D window_extent);
+    //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
     virtual void create(Surface const* surface, VkExtent2D window_extent, BasicSwapchain const* old_swapchain = nullptr);
     /**
      * @brief destroys the swapchain
@@ -164,17 +164,17 @@ private:
     std::vector<Image> _depthImages;
     std::vector<ImageView> _depthImageViews;
 
-    BasicGraphicsSyncConfig _syncConfig;
+    BasicGraphicsSyncConfig const* _syncConfig;
 
     std::vector<Fence> _imageAvailableFences;
 
     std::vector<Queue::PresentInfo> _presentInfos;
 
-    size_t _currentFrame = 0;
+    size_t _frameIndex = 0;
     static size_t nextFrame(size_t const current) { return (current + 1) % constants::FRAMES_IN_FLIGHT; }
 
-    std::array<uint32_t, constants::FRAMES_IN_FLIGHT> _imageIndices{NO_IMAGE_INDEX};
-    [[nodiscard]] uint32_t imageIndex() const { return _imageIndices[_currentFrame]; }
+    std::array<uint32_t, constants::FRAMES_IN_FLIGHT> _imageIndices{};
+    [[nodiscard]] uint32_t imageIndex() const { return _imageIndices[_frameIndex]; }
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 

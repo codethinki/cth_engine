@@ -41,9 +41,9 @@ private:
         vk::Queue{vk::QUEUE_FAMILY_PROPERTY_GRAPHICS | vk::QUEUE_FAMILY_PROPERTY_PRESENT | vk::QUEUE_FAMILY_PROPERTY_TRANSFER}
     };
 
-    std::vector<std::string> _asdf = getRequiredInstanceExtensions();
+    std::vector<std::string> _glfwExtensions = getRequiredInstanceExtensions();
 
-    std::unique_ptr<vk::Core> _core = std::make_unique<vk::Core>(vk::BasicCore::Config::Default("demo", "engine", _queues, _asdf));
+    std::unique_ptr<vk::Core> _core = std::make_unique<vk::Core>(vk::BasicCore::Config::Default("demo", "engine", _queues, _glfwExtensions));
 
 
 

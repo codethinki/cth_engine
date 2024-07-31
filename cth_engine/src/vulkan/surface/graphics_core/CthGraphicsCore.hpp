@@ -11,7 +11,7 @@ public:
     ~GraphicsCore() override;
 
     void wrap(OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain) override;
-    void create(std::string_view window_name, VkExtent2D extent, Queue const* present_queue, BasicGraphicsSyncConfig const& sync_config,
+    void create(std::string_view const window_name, VkExtent2D const extent, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config,
         DeletionQueue* deletion_queue = nullptr) override;
 
     void destroy(DeletionQueue* deletion_queue = nullptr) override;

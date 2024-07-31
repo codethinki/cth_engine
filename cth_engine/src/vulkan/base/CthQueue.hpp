@@ -40,6 +40,7 @@ public:
      */
     void wrap(uint32_t family_index, uint32_t queue_index, VkQueue vk_queue);
 
+
     /**
      * @brief advances and submits the submit_info
      * @param[in, out] submit_info @attention calls @ref submit_info.next()
@@ -51,6 +52,11 @@ public:
      * @note does not advance the @ref submit_info
      */
     void const_submit(SubmitInfo const& submit_info) const;
+
+    /**
+     * @brief submits the submit_info 
+     */
+    void skip_submit(SubmitInfo const& submit_info) const;
 
     /**
      * @brief skip submits without the command_buffer
@@ -74,6 +80,9 @@ public:
     [[nodiscard]] VkResult present(uint32_t image_index, PresentInfo const& present_info) const;
 
 private:
+    void submit(VkSubmitInfo const* submit_info, VkFence fence = nullptr) const;
+
+
     QueueFamilyProperties _familyProperties;
 
     uint32_t _familyIndex = 0;
@@ -125,12 +134,14 @@ struct Queue::SubmitInfo {
 private:
     void createTimelineInfo();
     void createInfo();
+    void createSkipSubmitInfo();
     void create();
 
     void initWait(std::span<PipelineWaitStage const> wait_stages);
     void initSignal(std::span<BasicSemaphore* const> signal_semaphores);
 
     VkSubmitInfo _submitInfo{};
+    VkSubmitInfo _skipSubmitInfo{};
     std::unique_ptr<VkTimelineSemaphoreSubmitInfo> _timelineInfo{};
 
 
@@ -149,6 +160,7 @@ private:
 
 public:
     [[nodiscard]] VkSubmitInfo const* get() const { return &_submitInfo; }
+    [[nodiscard]] VkSubmitInfo const* skip() const { return &_skipSubmitInfo; }
     [[nodiscard]] VkFence fence() const {
         if(_fence == nullptr) return nullptr;
         return _fence->get();
@@ -158,6 +170,7 @@ public:
 struct Queue::PresentInfo {
     /**
      * @param swapchain must not be recreated
+     *
      */
     explicit PresentInfo(BasicSwapchain const* swapchain, std::span<BasicSemaphore const*> wait_semaphores);
 

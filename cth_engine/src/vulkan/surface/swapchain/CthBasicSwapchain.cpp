@@ -15,8 +15,8 @@
 
 namespace cth::vk {
 
-BasicSwapchain::BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig sync_config) :
-    _core(core), _presentQueue(present_queue), _syncConfig(std::move(sync_config)) {
+BasicSwapchain::BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config) :
+    _core(core), _presentQueue(present_queue), _syncConfig(sync_config) {
     DEBUG_CHECK_CORE(core);
     createSyncObjects();
 }
@@ -30,6 +30,7 @@ void BasicSwapchain::create(Surface const* surface, VkExtent2D const window_exte
     DEBUG_CHECK_SWAPCHAIN_LEAK(this);
     DEBUG_CHECK_SURFACE(surface);
 
+    _imageIndices.fill(NO_IMAGE_INDEX);
     _msaaSamples = evalMsaaSampleCount();
 
     createSwapchain(surface, window_extent, old_swapchain);
@@ -71,11 +72,11 @@ void BasicSwapchain::relocate(Surface const* surface, VkExtent2D const window_ex
 
 
 VkResult BasicSwapchain::acquireNextImage() {
-    if(_imageIndices[_currentFrame] == NO_IMAGE_INDEX)
-        if(auto const result = acquireNewImage(_currentFrame); result != VK_SUCCESS) return result;
+    if(_imageIndices[_frameIndex] == NO_IMAGE_INDEX)
+        if(auto const result = acquireNewImage(_frameIndex); result != VK_SUCCESS) return result;
 
 
-    return acquireNewImage(nextFrame(_currentFrame));
+    return acquireNewImage(nextFrame(_frameIndex));
 }
 void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const {
 
@@ -110,26 +111,28 @@ void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const {
 void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const* cmd_buffer) { vkCmdEndRenderPass(cmd_buffer->get()); }
 
 VkResult BasicSwapchain::present(DeletionQueue* deletion_queue) {
-    CTH_ERR(_imageIndices[_currentFrame] == NO_IMAGE_INDEX, "no acquired image available")
+    CTH_ERR(_imageIndices[_frameIndex] == NO_IMAGE_INDEX, "no acquired image available") {
+        details->add("frame: ({})", _frameIndex);
         throw details->exception();
+    }
 
 
-    auto const result = _presentQueue->present(_imageIndices[_currentFrame], _presentInfos[_currentFrame]);
+    auto const result = _presentQueue->present(_imageIndices[_frameIndex], _presentInfos[_frameIndex]);
 
-    auto const& fence = _imageAvailableFences[_currentFrame];
+    auto const& fence = _imageAvailableFences[_frameIndex];
 
 
     fence.wait();
-    deletion_queue->clear(static_cast<uint32_t>(_currentFrame)); //TEMP remove this from here
+    deletion_queue->clear(_frameIndex); //TEMP remove this from here
 
-    deletion_queue->next(static_cast<uint32_t>(_currentFrame)); //TEMP remove this from here
+    deletion_queue->next(_frameIndex); //TEMP remove this from here
 
     fence.reset();
 
-    _imageIndices[_currentFrame] = NO_IMAGE_INDEX;
+    _imageIndices[_frameIndex] = NO_IMAGE_INDEX;
 
 
-    _currentFrame = nextFrame(_currentFrame);
+    _frameIndex = nextFrame(_frameIndex);
 
     return result;
 }
@@ -158,9 +161,9 @@ void BasicSwapchain::destroy(VkDevice device, VkSwapchainKHR swapchain) {
 
 
 VkResult BasicSwapchain::acquireNewImage(size_t const frame) {
-    VkResult const acquireResult = vkAcquireNextImageKHR(_core->vkDevice(), _handle.get(), std::numeric_limits<uint64_t>::max(),
-        _syncConfig.imageAvailableSemaphores[frame]->get(), _imageAvailableFences[frame].get(), &_imageIndices[frame]);
 
+    VkResult const acquireResult = vkAcquireNextImageKHR(_core->vkDevice(), _handle.get(), std::numeric_limits<uint64_t>::max(),
+        _syncConfig->imageAvailableSemaphores[frame]->get(), _imageAvailableFences[frame].get(), &_imageIndices[frame]);
     CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR, "failed to acquire image")
         throw cth::except::vk_result_exception{acquireResult, details->exception()};
 
@@ -496,7 +499,7 @@ void BasicSwapchain::createPresentInfos() {
     _presentInfos.reserve(constants::FRAMES_IN_FLIGHT);
 
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++) {
-        std::vector<BasicSemaphore const*> semaphores{_syncConfig.renderFinishedSemaphores[i]};
+        std::vector<BasicSemaphore const*> semaphores{_syncConfig->renderFinishedSemaphores[i]};
         _presentInfos.emplace_back(this, semaphores);
     }
 }
@@ -619,7 +622,7 @@ void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwa
 //    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 //
 //    submitInfo.waitSemaphoreCount = 1u;
-//    submitInfo.pWaitSemaphores = &_imageAvailableSemaphores[_currentFrame];
+//    submitInfo.pWaitSemaphores = &_imageAvailableSemaphores[_frameIndex];
 //
 //    constexpr array<VkPipelineStageFlags, 1> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 //    submitInfo.pWaitDstStageMask = waitStages.data();
@@ -627,20 +630,20 @@ void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwa
 //    submitInfo.pCommandBuffers = cmdBuffers.data();
 //
 //    submitInfo.signalSemaphoreCount = 1u;
-//    submitInfo.pSignalSemaphores = &_renderFinishedSemaphores[_currentFrame];
+//    submitInfo.pSignalSemaphores = &_renderFinishedSemaphores[_frameIndex];
 //
-//    return vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, _inFlightFences[_currentFrame]);
+//    return vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, _inFlightFences[_frameIndex]);
 //}
 
 //submitCommandBuffer()
 //if(_imagesInFlight[image_index].get() != VK_NULL_HANDLE) {
 //    vkWaitForFences(_core->vkDevice(), 1, &_imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
-//    deletion_queue->clear(static_cast<uint32_t>(_currentFrame));
-//deletion_queue->next(static_cast<uint32_t>(_currentFrame)); 
+//    deletion_queue->clear(static_cast<uint32_t>(_frameIndex));
+//deletion_queue->next(static_cast<uint32_t>(_frameIndex)); 
 //
-//_imagesInFlight[image_index] = _inFlightFences[_currentFrame];
+//_imagesInFlight[image_index] = _inFlightFences[_frameIndex];
 //
-//vkResetFences(_core->vkDevice(), 1, &_inFlightFences[_currentFrame]);
+//vkResetFences(_core->vkDevice(), 1, &_inFlightFences[_frameIndex]);
 //
 //
 //const VkResult submitResult = submit(vector{cmd_buffer});
@@ -649,4 +652,4 @@ void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwa
 //
 //const auto presentResult = present(image_index);
 //
-//++_currentFrame %= constants::FRAMES_IN_FLIGHT;
+//++_frameIndex %= constants::FRAMES_IN_FLIGHT;

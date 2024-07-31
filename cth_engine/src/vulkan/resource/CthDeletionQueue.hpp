@@ -30,8 +30,8 @@ public:
     void push(dependent_handle_t handle, deletable_handle_t dependency);
 
 
-    void clear(uint32_t current_frame);
-    void next(uint32_t const next_frame) { _frame = next_frame; }
+    void clear(size_t frame_index);
+    void next(size_t const next_frame) { _frameIndex = next_frame; }
 
 private:
     using handle_t = std::variant<
@@ -45,13 +45,13 @@ private:
 
     static constexpr size_t QUEUES = constants::FRAMES_IN_FLIGHT;
 
-    uint32_t _frame = 0;
+    size_t _frameIndex = 0;
     BasicCore* _core; //temp make this const_ptr
 
     std::array<std::vector<deletable>, QUEUES> _queue;
 
 public:
-    [[nodiscard]] uint32_t currentFrame() const { return _frame; }
+    [[nodiscard]] uint32_t currentFrame() const { return _frameIndex; }
 
     DeletionQueue(DeletionQueue const& other) = delete;
     DeletionQueue(DeletionQueue&& other) = default;

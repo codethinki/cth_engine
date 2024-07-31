@@ -21,24 +21,13 @@ void Queue::wrap(uint32_t const family_index, uint32_t const queue_index, VkQueu
     _handle = vk_queue;
 }
 void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
-void Queue::const_submit(SubmitInfo const& submit_info) const {
-    auto const result = vkQueueSubmit(_handle, 1, submit_info.get(), submit_info.fence());
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
-        throw cth::except::vk_result_exception{result, details->exception()};
-}
+void Queue::const_submit(SubmitInfo const& submit_info) const { submit(submit_info.get(), submit_info.fence()); }
 void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next()); }
-void Queue::const_skip(SubmitInfo const& submit_info) const {
-    auto submitInfo = *submit_info.get();
-    submitInfo.commandBufferCount = 0;
-    auto const result = vkQueueSubmit(_handle, 1, &submitInfo, submit_info.fence());
-
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip submit to queue")
-        throw except::vk_result_exception{result, details->exception()};
-}
+void Queue::const_skip(SubmitInfo const& submit_info) const { submit(submit_info.skip(), submit_info.fence()); }
 
 
 VkResult Queue::present(uint32_t const image_index, PresentInfo const& present_info) const {
-    auto const& info = present_info.createInfo(image_index);
+    auto const info = present_info.createInfo(image_index);
 
     auto const result = vkQueuePresentKHR(get(), &info);
 
@@ -46,6 +35,11 @@ VkResult Queue::present(uint32_t const image_index, PresentInfo const& present_i
         throw cth::except::vk_result_exception{result, details->exception()};
 
     return result;
+}
+void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
+    auto const result = vkQueueSubmit(_handle, 1, submit_info, fence);
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
+        throw cth::except::vk_result_exception{result, details->exception()};
 }
 
 
@@ -128,10 +122,16 @@ void Queue::SubmitInfo::createInfo() {
         .pSignalSemaphores = _signalSemaphores.data(),
     };
 }
+void Queue::SubmitInfo::createSkipSubmitInfo() {
+    _skipSubmitInfo = _submitInfo;
+    _skipSubmitInfo.pCommandBuffers = nullptr;
+    _skipSubmitInfo.commandBufferCount = 0;
+}
 
 void Queue::SubmitInfo::create() {
     createTimelineInfo();
     createInfo();
+    createSkipSubmitInfo();
 }
 
 
@@ -190,8 +190,12 @@ void Queue::SubmitInfo::initSignal(std::span<BasicSemaphore* const> const signal
 namespace cth::vk {
 Queue::PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<BasicSemaphore const*> wait_semaphores) : _swapchain(swapchain->get()) {
     _waitSemaphores.resize(wait_semaphores.size());
-    std::ranges::transform(wait_semaphores, _waitSemaphores.begin(), [](BasicSemaphore const* semaphore) { return semaphore->get(); });
 
+    for(auto [dst, src] : std::views::zip(_waitSemaphores, wait_semaphores)) {
+        dst = src->get();
+        CTH_ERR(dynamic_cast<TimelineSemaphore const*>(src) != nullptr, "semaphores in present info must not be timeline semaphores")
+            throw details->exception();
+    }
 }
 VkPresentInfoKHR Queue::PresentInfo::createInfo(uint32_t const& image_index) const {
     return VkPresentInfoKHR{

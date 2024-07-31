@@ -100,7 +100,9 @@ private:
     [[nodiscard]] TimelineSemaphore* semaphore() const { return _semaphores[_frameIndex].get(); }
     template<Phase P> [[nodiscard]] Queue const* queue() const;
     template<Phase P> [[nodiscard]] PrimaryCmdBuffer* cmdBuffer() const;
-    template<Phase P> [[nodiscard]] Queue::SubmitInfo& submitInfo() { return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _frameIndex]; }
+    template<Phase P> [[nodiscard]] Queue::SubmitInfo& submitInfo() {
+        return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _frameIndex];
+    }
 
 
     //[[nodiscard]] size_t to_signal(const State state) const { return _frameStateCounter + state; }
@@ -244,7 +246,7 @@ private:
 
 
     template<class T>
-    using collection_t = std::array<std::vector<std::array<T, SET_SIZE>>, PHASES_SIZE>;
+    using collection_t = std::array<std::vector<T>, PHASES_SIZE>;
 
     /**
      * @brief adds the sets to the collection

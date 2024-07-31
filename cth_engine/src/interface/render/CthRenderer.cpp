@@ -21,7 +21,7 @@ Renderer::~Renderer() {
 
 void Renderer::wait() const {
     auto const result = semaphore()->wait();
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait on current phase")
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for current phase")
         throw except::vk_result_exception{result, details->exception()};
 }
 
@@ -90,7 +90,7 @@ DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
 
 } // namespace cth
 
-//Builder
+//Config
 
 namespace cth::vk {
 Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
@@ -99,7 +99,7 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
     config.addQueue<PHASE_TRANSFER>(graphics_queue)
           .addQueue<PHASE_GRAPHICS>(graphics_queue)
           .addWaitSets<PHASE_GRAPHICS>(sync_config->imageAvailableSemaphores, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)
-          .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores); //TEMP continue here
+          .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores);
     return config;
 }
 //Renderer::Config::Config(const BasicCore* core, DeletionQueue* deletion_queue) : _core{core}, _deletionQueue{deletion_queue} {
@@ -110,7 +110,7 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
 
 
 auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const> const cmd_buffers) const
-    ->std::vector<Queue::SubmitInfo> {
+    -> std::vector<Queue::SubmitInfo> {
     DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(cmd_buffers);
 
     auto phaseBuffers = cmd_buffers | std::views::chunk(SET_SIZE);
@@ -130,12 +130,7 @@ auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const
     return result;
 }
 
-std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const {
-    for(auto& queue : _queues)
-        DEBUG_CHECK_QUEUE(queue);
-
-    return _queues;
-}
+std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const { return _queues; }
 
 }
 

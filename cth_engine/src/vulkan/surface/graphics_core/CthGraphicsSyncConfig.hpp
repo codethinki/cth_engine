@@ -2,9 +2,11 @@
 #include <vector>
 #include "vulkan/utility/cth_constants.hpp"
 
+
 namespace cth::vk {
 class DeletionQueue;
 }
+
 
 namespace cth::vk {
 class BasicCore;
@@ -45,7 +47,7 @@ public:
     void create(BasicCore const* core, DeletionQueue* deletion_queue);
     void destroy(DeletionQueue* deletion_queue = nullptr);
 
-    BasicGraphicsSyncConfig release(); 
+    BasicGraphicsSyncConfig release();
 
     [[nodiscard]] bool destroyed() const;
 
@@ -54,6 +56,7 @@ private:
 
     BasicCore const* _core = nullptr;
     DeletionQueue* _deletionQueue = nullptr;
+
 public:
     GraphicsSyncConfig(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig(GraphicsSyncConfig&& other) noexcept = default;

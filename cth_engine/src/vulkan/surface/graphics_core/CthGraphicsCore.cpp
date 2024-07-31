@@ -8,7 +8,7 @@ GraphicsCore::GraphicsCore(BasicCore const* core, DeletionQueue* deletion_queue)
 }
 GraphicsCore::GraphicsCore(BasicCore const* core, DeletionQueue* deletion_queue, std::string_view const window_name, VkExtent2D const extent,
     Queue const* present_queue, BasicGraphicsSyncConfig const& sync_config) : GraphicsCore(core, deletion_queue) {
-    GraphicsCore::create(window_name, extent, present_queue, sync_config);
+    GraphicsCore::create(window_name, extent, present_queue, &sync_config);
 }
 
 
@@ -18,7 +18,7 @@ void GraphicsCore::wrap(OSWindow* os_window, Surface* surface, BasicSwapchain* s
     BasicGraphicsCore::wrap(os_window, surface, swapchain);
 }
 void GraphicsCore::create(std::string_view const window_name, VkExtent2D const extent, Queue const* present_queue,
-    BasicGraphicsSyncConfig const& sync_config, DeletionQueue* deletion_queue) {
+    BasicGraphicsSyncConfig const* sync_config, DeletionQueue* deletion_queue) {
     optDestroy();
     BasicGraphicsCore::create(window_name, extent, present_queue, sync_config, deletion_queue);
 }

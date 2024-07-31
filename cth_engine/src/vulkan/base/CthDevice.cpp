@@ -84,7 +84,7 @@ void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues)
 void Device::waitIdle() const {
     auto const result = vkDeviceWaitIdle(_handle.get());
 
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait on device") throw except::vk_result_exception{result, details->exception()};
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for device") throw except::vk_result_exception{result, details->exception()};
 }
 
 
