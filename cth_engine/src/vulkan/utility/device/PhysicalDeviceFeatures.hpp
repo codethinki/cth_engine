@@ -1,4 +1,7 @@
 #pragma once
+#include <gsl/pointers>
+
+
 namespace cth::vk::utils {
 
 class PhysicalDeviceFeatures {

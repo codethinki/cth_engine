@@ -55,8 +55,6 @@ void BasicFence::reset() const {
 
 
 VkResult BasicFence::wait(uint64_t const timeout) const {
-    CTH_INFORM(timeout == UINT64_MAX, "consider using wait() instead") {}
-
     DEBUG_CHECK_FENCE(this);
 
     std::array<VkFence, 1> const fences = {_handle.get()};
@@ -69,7 +67,7 @@ VkResult BasicFence::wait(uint64_t const timeout) const {
 }
 void BasicFence::wait() const {
     // ReSharper disable once CppExpressionWithoutSideEffects
-    wait(UINT64_MAX);
+    wait(std::numeric_limits<uint64_t>::max());
 }
 
 

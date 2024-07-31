@@ -6,6 +6,7 @@
 #include "vulkan/surface/CthOSWindow.hpp"
 #include "vulkan/surface/graphics_core/CthGraphicsSyncConfig.hpp"
 
+
 namespace cth::vk {
 using std::vector;
 
@@ -109,7 +110,7 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
 
 
 auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const> const cmd_buffers) const
-    -> std::vector<Queue::SubmitInfo> {
+    ->std::vector<Queue::SubmitInfo> {
     DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(cmd_buffers);
 
     auto phaseBuffers = cmd_buffers | std::views::chunk(SET_SIZE);
@@ -124,7 +125,9 @@ auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const
 
     auto view = phaseSubmitInfos | std::views::join;
 
-    return {std::ranges::begin(view), std::ranges::end(view)};
+    std::vector<Queue::SubmitInfo> result{};
+    std::ranges::move(view, std::back_inserter(result));
+    return result;
 }
 
 std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const {

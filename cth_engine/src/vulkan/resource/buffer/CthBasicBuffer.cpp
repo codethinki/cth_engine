@@ -215,7 +215,7 @@ BasicMemory* BasicBuffer::memory() const { return _state.memory.get(); }
 bool BasicBuffer::allocated() const { return _state.memory->allocated(); }
 
 
-#ifdef _DEBUG
+#ifdef CONSTANT_DEBUG_MODE
 void BasicBuffer::debug_check(BasicBuffer const* buffer) {
     CTH_ERR(buffer == nullptr, "buffer must not be nullptr") throw details->exception();
     CTH_ERR(buffer->_handle == VK_NULL_HANDLE, "buffer must be a valid handle") throw details->exception();

@@ -26,8 +26,6 @@ BasicSwapchain::~BasicSwapchain() {
 }
 
 void BasicSwapchain::create(Surface const* surface, VkExtent2D const window_extent, BasicSwapchain const* old_swapchain) {
-    //TEMP continue here
-    //temp 
     //create the reset function
     DEBUG_CHECK_SWAPCHAIN_LEAK(this);
     DEBUG_CHECK_SURFACE(surface);
@@ -43,6 +41,8 @@ void BasicSwapchain::create(Surface const* surface, VkExtent2D const window_exte
     createRenderPass();
 
     createFramebuffers();
+
+    createPresentInfos();
 }
 
 void BasicSwapchain::destroy(DeletionQueue* deletion_queue) {
@@ -110,7 +110,7 @@ void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const {
 void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const* cmd_buffer) { vkCmdEndRenderPass(cmd_buffer->get()); }
 
 VkResult BasicSwapchain::present(DeletionQueue* deletion_queue) {
-    CTH_ERR(_imageIndices[_currentFrame] != NO_IMAGE_INDEX, "no acquired image available")
+    CTH_ERR(_imageIndices[_currentFrame] == NO_IMAGE_INDEX, "no acquired image available")
         throw details->exception();
 
 
@@ -119,7 +119,6 @@ VkResult BasicSwapchain::present(DeletionQueue* deletion_queue) {
     auto const& fence = _imageAvailableFences[_currentFrame];
 
 
-    // ReSharper disable once CppExpressionWithoutSideEffects
     fence.wait();
     deletion_queue->clear(static_cast<uint32_t>(_currentFrame)); //TEMP remove this from here
 

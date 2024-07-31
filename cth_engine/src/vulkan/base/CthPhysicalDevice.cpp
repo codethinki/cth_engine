@@ -141,8 +141,8 @@ bool PhysicalDevice::supportsQueueSet(span<Queue const> const queues) const { re
 
 
 PhysicalDevice::PhysicalDevice(VkPhysicalDevice device, Instance const* instance, Surface const& surface,
-    utils::PhysicalDeviceFeatures const& required_features, std::span<std::string const> required_extensions) :
-    _vkDevice(device), _instance(instance),
+    utils::PhysicalDeviceFeatures const& required_features, std::span<std::string const> required_extensions) : _vkDevice(device),
+    _instance(instance),
     _features(device, required_features), _requiredFeatures(required_features),
     _requiredExtensions({required_extensions.begin(), required_extensions.end()}) { setConstants(surface); }
 

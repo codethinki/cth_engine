@@ -49,8 +49,10 @@ void App::graphicsPhase() const {
     FrameInfo info = {_renderer->frameIndex(), 0.f, cmdBuffer};
 
     _graphicsCore->beginWindowPass(cmdBuffer);
-
+    
     _renderSystem->render(info);
+
+    _graphicsCore->endWindowPass(cmdBuffer);
 
 
     _renderer->end<vk::Renderer::PHASE_GRAPHICS>();

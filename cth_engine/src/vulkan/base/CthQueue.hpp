@@ -120,7 +120,7 @@ struct Queue::SubmitInfo {
     /**
      * @brief advances the timeline semaphores and returns this
      */
-    [[nodiscard]] SubmitInfo next();
+    [[nodiscard]] SubmitInfo& next();
 
 private:
     void createTimelineInfo();

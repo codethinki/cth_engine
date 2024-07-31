@@ -93,7 +93,7 @@ void Shader::compile(std::string_view const glsl_path, std::string_view const co
         compiler_path, flags, glsl_path, _spvPath, logFile);
     int const result = cth::win::cmd::hidden(command);
 
-    std::vector<std::string> debugInfo = cth::io::loadTxt(logFile);
+    std::vector<std::string> debugInfo = cth::io::readText(logFile);
 
     if(debugInfo.empty()) {
         CTH_STABLE_ERR(result != 0, "compile command failed") {

@@ -1,10 +1,12 @@
 #pragma once
+#include "vulkan/utility/cth_constants.hpp"
 
-#include <optional>
+#include<cth/cth_pointer.hpp>
 #include <vulkan/vulkan.h>
 
+#include <optional>
 #include <vector>
-#include<cth/cth_pointer.hpp>
+
 
 //TEMP add basic variant without raii
 namespace cth::vk {
@@ -52,7 +54,7 @@ struct DescriptorSetLayout::Builder {
     Builder& removeBinding(uint32_t binding);
 
 private:
-#ifdef _DEBUG
+#ifdef CONSTANT_DEBUG_MODE
     using binding_t = std::optional<VkDescriptorSetLayoutBinding>;
 #else
     using binding_t = VkDescriptorSetLayoutBinding;

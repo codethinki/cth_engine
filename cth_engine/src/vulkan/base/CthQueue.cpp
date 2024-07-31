@@ -20,9 +20,7 @@ void Queue::wrap(uint32_t const family_index, uint32_t const queue_index, VkQueu
     _queueIndex = queue_index;
     _handle = vk_queue;
 }
-void Queue::submit(SubmitInfo& submit_info) const {
-    const_submit(submit_info.next());
-}
+void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
 void Queue::const_submit(SubmitInfo const& submit_info) const {
     auto const result = vkQueueSubmit(_handle, 1, submit_info.get(), submit_info.fence());
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
@@ -86,7 +84,7 @@ Queue::SubmitInfo::SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffe
 
     create();
 }
-Queue::SubmitInfo Queue::SubmitInfo::next() {
+Queue::SubmitInfo& Queue::SubmitInfo::next() {
     std::ranges::transform(_waitTimelineSemaphores, _waitValues.begin(), [](TimelineSemaphore const* semaphore) { return semaphore->value(); });
     std::ranges::transform(_signalTimelineSemaphores, _signalValues.begin(), [](TimelineSemaphore* semaphore) { return semaphore->next(); });
 
@@ -95,31 +93,29 @@ Queue::SubmitInfo Queue::SubmitInfo::next() {
 
 
 void Queue::SubmitInfo::createTimelineInfo() {
-    CTH_ERR(_waitValues.size() != _waitSemaphores.size() || _signalValues.size() != _signalSemaphores.size(), "wait values must be the same size as wait semaphores") {
+    CTH_ERR(_waitValues.size() != _waitSemaphores.size() || _signalValues.size() != _signalSemaphores.size(),
+        "wait values must be the same size as wait semaphores") {
         details->add("signal values ({0}), semaphores ({1})", _signalValues.size(), _signalSemaphores.size());
         details->add("wait values ({0}), wait semaphores ({1})", _waitValues.size(), _waitSemaphores.size());
         details->add("vulkan docs: https://registry.khronos.org/vulkan/specs/1.3-extensions/html/vkspec.html#VK_KHR_timeline_semaphore");
         throw details->exception();
     }
 
-    _timelineInfo = VkTimelineSemaphoreSubmitInfo{
-        .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
-        .pNext = nullptr,
-        .waitSemaphoreValueCount = static_cast<uint32_t>(_waitValues.size()), 
-        .pWaitSemaphoreValues = _waitValues.data(),
-        .signalSemaphoreValueCount = static_cast<uint32_t>(_signalValues.size()), 
-        .pSignalSemaphoreValues = _signalValues.data(),
-    };
+    _timelineInfo = std::make_unique<VkTimelineSemaphoreSubmitInfo>(
+        VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO, nullptr,
+        static_cast<uint32_t>(_waitValues.size()), _waitValues.data(),
+        static_cast<uint32_t>(_signalValues.size()), _signalValues.data()
+        );
 }
 
 
 void Queue::SubmitInfo::createInfo() {
-    CTH_ERR(_timelineInfo.sType != VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO, "timeline info invalid or not initialized")
+    CTH_ERR(_timelineInfo->sType != VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO, "timeline info invalid or not initialized")
         throw details->exception();
 
     _submitInfo = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pNext = &_timelineInfo,
+        .pNext = _timelineInfo.get(),
 
         .waitSemaphoreCount = static_cast<uint32_t>(_waitSemaphores.size()),
         .pWaitSemaphores = _waitSemaphores.data(),
