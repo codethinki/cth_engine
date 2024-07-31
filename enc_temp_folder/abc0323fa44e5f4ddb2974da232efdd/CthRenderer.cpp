@@ -99,7 +99,7 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
     config.addQueue<PHASE_TRANSFER>(graphics_queue)
           .addQueue<PHASE_GRAPHICS>(graphics_queue)
           .addWaitSets<PHASE_GRAPHICS>(sync_config->imageAvailableSemaphores, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)
-          .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores); //TEMP continue here
+          .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores);
     return config;
 }
 //Renderer::Config::Config(const BasicCore* core, DeletionQueue* deletion_queue) : _core{core}, _deletionQueue{deletion_queue} {

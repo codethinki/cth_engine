@@ -14,7 +14,7 @@ template<Renderer::Phase P>
 PrimaryCmdBuffer* Renderer::begin() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-   // if constexpr(P == PHASES_FIRST) wait(); TEMP maybe i need that but i dont think so
+    if constexpr(P == PHASES_FIRST) wait();
 
     auto buffer = cmdBuffer<P>();
     VkResult const beginResult = buffer->begin();

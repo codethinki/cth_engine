@@ -60,12 +60,12 @@ void GraphicsSyncConfig::create(BasicCore const* core, DeletionQueue* deletion_q
 void GraphicsSyncConfig::destroy(DeletionQueue* deletion_queue) {
     auto const config = release();
 
-    for(auto const& semaphore : config.renderFinishedSemaphores) {
+    for(auto const& semaphore : config.renderFinishedSemaphores){
         semaphore->destroy(deletion_queue);
         delete semaphore;
     }
 
-    for(auto const& semaphore : config.imageAvailableSemaphores) {
+    for(auto const& semaphore : config.imageAvailableSemaphores){
         semaphore->destroy(deletion_queue);
         delete semaphore;
     }

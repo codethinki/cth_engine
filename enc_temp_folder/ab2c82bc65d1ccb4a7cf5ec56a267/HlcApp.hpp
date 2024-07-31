@@ -52,7 +52,7 @@ private:
 
     std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(_core.get(), _deletionQueue.get(), WINDOW_NAME,
         VkExtent2D{WIDTH, HEIGHT},
-        &_queues[0], *_syncConfig);
+        &_queues[0], *_syncConfig.get());
 
     std::unique_ptr<vk::OSWindow> _window = make_unique<vk::OSWindow>(WINDOW_NAME, WIDTH, HEIGHT, _core->instance());
 
