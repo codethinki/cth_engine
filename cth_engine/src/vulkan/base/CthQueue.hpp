@@ -54,11 +54,6 @@ public:
     void const_submit(SubmitInfo const& submit_info) const;
 
     /**
-     * @brief submits the submit_info 
-     */
-    void skip_submit(SubmitInfo const& submit_info) const;
-
-    /**
      * @brief skip submits without the command_buffer
      * @param[in, out] submit_info @attention calls @ref submit_info.next()
      * @throws cth::except::vk_result_exception result of vkQueueSubmit()

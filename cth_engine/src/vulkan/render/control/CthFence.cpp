@@ -42,7 +42,12 @@ void BasicFence::destroy(DeletionQueue* deletion_queue) {
 VkResult BasicFence::status() const {
     DEBUG_CHECK_FENCE(this);
 
-    return vkGetFenceStatus(_core->vkDevice(), _handle.get());
+    auto const result = vkGetFenceStatus(_core->vkDevice(), _handle.get());
+
+    CTH_STABLE_ERR(result  != VK_SUCCESS && result != VK_NOT_READY, "failed to get fence status")
+        throw except::vk_result_exception{result, details->exception()};
+
+    return result;
 }
 void BasicFence::reset() const {
     DEBUG_CHECK_FENCE(this);

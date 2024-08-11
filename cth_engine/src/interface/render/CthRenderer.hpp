@@ -51,7 +51,7 @@ public:
      * @throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
      */
     template<Phase P>
-    [[nodiscard]] PrimaryCmdBuffer* begin();
+    [[nodiscard]] PrimaryCmdBuffer* begin() const;
 
     /**
      * @brief ends the recording for the phase
@@ -101,7 +101,7 @@ private:
     template<Phase P> [[nodiscard]] Queue const* queue() const;
     template<Phase P> [[nodiscard]] PrimaryCmdBuffer* cmdBuffer() const;
     template<Phase P> [[nodiscard]] Queue::SubmitInfo& submitInfo() {
-        return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _frameIndex];
+        return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _frameIndex]; //TODO change this to frame major instead of phase major
     }
 
 

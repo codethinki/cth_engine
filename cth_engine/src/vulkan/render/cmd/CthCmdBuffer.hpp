@@ -23,16 +23,17 @@ public:
     explicit CmdBuffer(CmdPool* pool, VkCommandBufferUsageFlags usage = 0);
     virtual ~CmdBuffer() = 0;
 
-    [[nodiscard]] VkResult reset() const;
-    [[nodiscard]] VkResult reset(VkCommandBufferResetFlags flags) const;
+    void reset(VkCommandBufferResetFlags flags = 0) const;
+    virtual void begin() const = 0;
 
-    [[nodiscard]] VkResult end() const;
-    [[nodiscard]] virtual VkResult begin() const = 0;
+    [[nodiscard]] void end() const;
 
     static void free(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers);
     static void free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buffer);
 
 protected:
+    void begin(VkCommandBufferBeginInfo const& info) const;
+
     move_ptr<CmdPool> _pool;
 
     move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
@@ -71,7 +72,7 @@ class PrimaryCmdBuffer : public CmdBuffer {
 public:
     explicit PrimaryCmdBuffer(CmdPool* cmd_pool, VkCommandBufferUsageFlags usage = 0);
     ~PrimaryCmdBuffer() override;
-    [[nodiscard]] VkResult begin() const override;
+   void begin() const override;
 
 private:
     void create();
@@ -87,7 +88,7 @@ public:
     SecondaryCmdBuffer(CmdPool* cmd_pool, PrimaryCmdBuffer* primary, Config const& config, VkCommandBufferUsageFlags usage = 0);
     ~SecondaryCmdBuffer() override;
 
-    [[nodiscard]] VkResult begin() const override;
+    void begin() const override;
 
 private:
     void create();

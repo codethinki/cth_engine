@@ -12,15 +12,13 @@
 
 namespace cth::vk {
 template<Renderer::Phase P>
-PrimaryCmdBuffer* Renderer::begin() {
+PrimaryCmdBuffer* Renderer::begin() const {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-     if constexpr(P == PHASES_FIRST) wait(); //TEMP this is bad code but i dont know an alternative
+    if constexpr(P == PHASES_FIRST) wait(); //TEMP this is bad code but i dont know an alternative
 
-    auto buffer = cmdBuffer<P>();
-    VkResult const beginResult = buffer->begin();
-    CTH_STABLE_ERR(beginResult != VK_SUCCESS, "failed to begin command buffer")
-        throw except::vk_result_exception{beginResult, details->exception()};
+    PrimaryCmdBuffer* buffer = cmdBuffer<P>();
+    buffer->begin();
 
     return buffer;
 }
@@ -30,10 +28,7 @@ void Renderer::end() {
 
     PrimaryCmdBuffer const* buffer = cmdBuffer<P>();
 
-    VkResult const recordResult = buffer->end();
-    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
-        throw except::vk_result_exception{recordResult, details->exception()};
-
+    buffer->end();
 
     submit<P>();
 }

@@ -51,7 +51,7 @@ private:
     std::array<std::vector<deletable>, QUEUES> _queue;
 
 public:
-    [[nodiscard]] uint32_t currentFrame() const { return _frameIndex; }
+    [[nodiscard]] size_t currentFrame() const { return _frameIndex; }
 
     DeletionQueue(DeletionQueue const& other) = delete;
     DeletionQueue(DeletionQueue&& other) = default;

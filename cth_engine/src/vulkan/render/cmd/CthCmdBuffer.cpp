@@ -2,14 +2,24 @@
 
 #include "CthCmdPool.hpp"
 #include "vulkan/base/CthDevice.hpp"
+#include "vulkan/utility/cth_vk_utils.hpp"
 
 
 namespace cth::vk {
 CmdBuffer::CmdBuffer(CmdPool* pool, VkCommandBufferUsageFlags const usage) : _pool(pool), _bufferUsage(usage) {}
 
-VkResult CmdBuffer::reset() const { return vkResetCommandBuffer(_handle.get(), 0); }
-VkResult CmdBuffer::reset(VkCommandBufferResetFlags const flags) const { return vkResetCommandBuffer(_handle.get(), flags); }
-VkResult CmdBuffer::end() const { return vkEndCommandBuffer(_handle.get()); }
+
+
+void CmdBuffer::reset(VkCommandBufferResetFlags const flags) const {
+    auto const result = vkResetCommandBuffer(_handle.get(), flags);
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset command buffer")
+        throw except::vk_result_exception{result, details->exception()};
+}
+void CmdBuffer::end() const {
+    auto const result = vkEndCommandBuffer(_handle.get());
+     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset end buffer")
+        throw except::vk_result_exception{result, details->exception()};
+}
 
 void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers) {
     DEBUG_CHECK_DEVICE_HANDLE(device);
@@ -30,6 +40,11 @@ void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buf
 
     vkFreeCommandBuffers(device, vk_pool, 1, &buffer);
 }
+void CmdBuffer::begin( VkCommandBufferBeginInfo const& info) const {
+    auto const result = vkBeginCommandBuffer(_handle.get(), &info);
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to begin command buffer")
+        throw except::vk_result_exception{result, details->exception()}; }
 
 #ifdef CONSTANT_DEBUG_MODE
 void CmdBuffer::debug_check(CmdBuffer const* cmd_buffer) {
@@ -48,14 +63,14 @@ namespace cth::vk {
 
 PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool* cmd_pool, VkCommandBufferUsageFlags const usage) : CmdBuffer(cmd_pool, usage) { create(); }
 PrimaryCmdBuffer::~PrimaryCmdBuffer() { _pool->returnCmdBuffer(this); }
-VkResult PrimaryCmdBuffer::begin() const {
+void PrimaryCmdBuffer::begin() const {
     VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,
         _bufferUsage,
         nullptr,
     };
-    return vkBeginCommandBuffer(_handle.get(), &info);
+    CmdBuffer::begin(info);
 }
 
 void PrimaryCmdBuffer::create() { _pool->newCmdBuffer(this); }
@@ -69,14 +84,14 @@ SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool* cmd_pool, PrimaryCmdBuffer* prim
     CmdBuffer(cmd_pool, usage), _primary(primary), _inheritanceInfo(config.inheritanceInfo()) { create(); }
 SecondaryCmdBuffer::~SecondaryCmdBuffer() { _pool->returnCmdBuffer(this); }
 
-VkResult SecondaryCmdBuffer::begin() const {
+void SecondaryCmdBuffer::begin() const {
     VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,
         _bufferUsage,
         &_inheritanceInfo,
     };
-    return vkBeginCommandBuffer(_handle.get(), &info);
+    CmdBuffer::begin(info);
 }
 
 void SecondaryCmdBuffer::create() { _pool->newCmdBuffer(this); }
