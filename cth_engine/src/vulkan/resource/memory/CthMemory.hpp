@@ -4,18 +4,18 @@
 namespace cth::vk {
 class Memory : public BasicMemory {
 public:
-    Memory(BasicCore const* core, DeletionQueue* deletion_queue, VkMemoryPropertyFlags properties);
-    Memory(BasicCore const* core, DeletionQueue* deletion_queue, VkMemoryPropertyFlags properties, size_t size, VkDeviceMemory memory);
+    Memory(BasicCore const* core, DestructionQueue* destruction_queue, VkMemoryPropertyFlags properties);
+    Memory(BasicCore const* core, DestructionQueue* destruction_queue, VkMemoryPropertyFlags properties, size_t size, VkDeviceMemory memory);
     ~Memory() override;
 
     void alloc(VkMemoryRequirements const& requirements) override;
 
-    void free(DeletionQueue* deletion_queue = nullptr) override;
+    void free(DestructionQueue* destruction_queue = nullptr) override;
 
     void reset() override;
 
 private:
-    DeletionQueue* _deletionQueue;
+    DestructionQueue* _destructionQueue;
 
 public:
     Memory(Memory const& other) = delete;

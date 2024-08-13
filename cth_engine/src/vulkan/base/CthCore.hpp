@@ -18,8 +18,13 @@ public:
     struct Config;
 
     BasicCore() = default;
+    virtual ~BasicCore() = default;
 
-    virtual void wrap(move_ptr<BasicInstance> instance, move_ptr<PhysicalDevice> physical_device, move_ptr<Device> device);
+    /**
+     * @brief wraps the components
+     * @param destruction_queue optional
+     */
+    virtual void wrap(BasicInstance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue = nullptr);
 
     virtual void create(Config const& config);
     void destroy();
@@ -30,10 +35,19 @@ public:
      */
     virtual void reset();
 
+    struct Ptrs {
+        BasicInstance* instance;
+        PhysicalDevice* physicalDevice;
+        Device* device;
+        DestructionQueue* destructionQueue;
+    };
+    Ptrs release();
+
 private:
     move_ptr<Device> _device = nullptr;
     move_ptr<PhysicalDevice> _physicalDevice = nullptr;
     move_ptr<BasicInstance> _instance = nullptr;
+    move_ptr<DestructionQueue> _destructionQueue = nullptr;
 
 public:
     [[nodiscard]] Device const* device() const;
@@ -42,6 +56,7 @@ public:
     [[nodiscard]] VkPhysicalDevice vkPhysicalDevice() const;
     [[nodiscard]] BasicInstance const* instance() const;
     [[nodiscard]] VkInstance vkInstance() const;
+    [[nodiscard]] DestructionQueue* destructionQueue() const;
 
     bool operator==(BasicCore const& other) const {
         return _device == other._device && _physicalDevice == other._physicalDevice && _instance == other._instance;
@@ -69,12 +84,12 @@ class Core : public BasicCore {
 public:
     //TEMP left off here
     explicit Core(Config const& config);
-    virtual ~Core();
+    ~Core() override;
 
     /**
      * @brief wraps and takes ownership
      */
-    void wrap(move_ptr<BasicInstance> instance, move_ptr<PhysicalDevice> physical_device, move_ptr<Device> device) override;
+    void wrap(BasicInstance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) override;
     /**
      * @brief creates the components
      * @note not necessary when using wrap
@@ -85,8 +100,6 @@ public:
      * @brief deletes all components
      */
     void reset() override;
-
-    void release();
 };
 }
 
@@ -98,9 +111,9 @@ struct BasicCore::Config {
     std::string_view engineName;
     std::span<Queue> queues;
     std::span<std::string const> requiredExtensions; //TEMP
+    bool destructionQueue;
 
-    static Config Default(std::string_view const app_name, std::string_view const engine_name, std::span<Queue> const queues, std::span<std::string const> const required_extensions) {
-        return Config{app_name, engine_name, queues, required_extensions};
-    }
+    static Config Default(std::string_view const app_name, std::string_view const engine_name, std::span<Queue> const queues,
+        std::span<std::string const> const required_extensions) { return Config{app_name, engine_name, queues, required_extensions, true}; }
 };
 }

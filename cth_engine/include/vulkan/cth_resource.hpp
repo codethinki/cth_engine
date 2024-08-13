@@ -1,5 +1,5 @@
 #pragma once
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 
 //buffer
 #include "vulkan/resource/buffer/CthBasicBuffer.hpp"

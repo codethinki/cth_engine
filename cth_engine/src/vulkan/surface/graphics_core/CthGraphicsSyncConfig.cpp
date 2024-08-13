@@ -2,7 +2,7 @@
 
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/render/control/CthSemaphore.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 
 
 namespace cth::vk {
@@ -32,8 +32,8 @@ void BasicGraphicsSyncConfig::debug_check(BasicGraphicsSyncConfig const* config)
 namespace cth::vk {
 
 
-GraphicsSyncConfig::GraphicsSyncConfig(BasicCore const* core, DeletionQueue* deletion_queue) {
-    create(core, deletion_queue);
+GraphicsSyncConfig::GraphicsSyncConfig(BasicCore const* core, DestructionQueue* destruction_queue) {
+    create(core, destruction_queue);
 }
 GraphicsSyncConfig::~GraphicsSyncConfig() { destroyOpt(); }
 void GraphicsSyncConfig::wrap(BasicGraphicsSyncConfig const& config) {
@@ -41,32 +41,32 @@ void GraphicsSyncConfig::wrap(BasicGraphicsSyncConfig const& config) {
     renderFinishedSemaphores = config.renderFinishedSemaphores;
     imageAvailableSemaphores = config.imageAvailableSemaphores;
 }
-void GraphicsSyncConfig::create(BasicCore const* core, DeletionQueue* deletion_queue) {
+void GraphicsSyncConfig::create(BasicCore const* core, DestructionQueue* destruction_queue) {
     destroyOpt();
 
     DEBUG_CHECK_CORE(core);
-    DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
+    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(destruction_queue);
     _core = core;
-    _deletionQueue = deletion_queue;
+    _destructionQueue = destruction_queue;
 
     renderFinishedSemaphores.reserve(constants::FRAMES_IN_FLIGHT);
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
-        renderFinishedSemaphores.emplace_back(new Semaphore(_core, _deletionQueue));
+        renderFinishedSemaphores.emplace_back(new Semaphore(_core, _destructionQueue));
 
     imageAvailableSemaphores.reserve(constants::FRAMES_IN_FLIGHT);
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
-        imageAvailableSemaphores.emplace_back(new Semaphore(_core, _deletionQueue));
+        imageAvailableSemaphores.emplace_back(new Semaphore(_core, _destructionQueue));
 }
-void GraphicsSyncConfig::destroy(DeletionQueue* deletion_queue) {
+void GraphicsSyncConfig::destroy(DestructionQueue* destruction_queue) {
     auto const config = release();
 
     for(auto const& semaphore : config.renderFinishedSemaphores) {
-        semaphore->destroy(deletion_queue);
+        semaphore->destroy(destruction_queue);
         delete semaphore;
     }
 
     for(auto const& semaphore : config.imageAvailableSemaphores) {
-        semaphore->destroy(deletion_queue);
+        semaphore->destroy(destruction_queue);
         delete semaphore;
     }
 }
@@ -77,5 +77,5 @@ BasicGraphicsSyncConfig GraphicsSyncConfig::release() {
     return temp;
 }
 bool GraphicsSyncConfig::destroyed() const { return renderFinishedSemaphores.empty() && imageAvailableSemaphores.empty(); }
-void GraphicsSyncConfig::destroyOpt(DeletionQueue* deletion_queue) { if(!destroyed()) destroy(deletion_queue); }
+void GraphicsSyncConfig::destroyOpt(DestructionQueue* destruction_queue) { if(!destroyed()) destroy(destruction_queue); }
 } //namespace cth

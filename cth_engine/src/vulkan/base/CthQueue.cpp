@@ -23,19 +23,21 @@ void Queue::wrap(uint32_t const family_index, uint32_t const queue_index, VkQueu
 void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
 void Queue::const_submit(SubmitInfo const& submit_info) const { submit(submit_info.get(), submit_info.fence()); }
 void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next()); }
-void Queue::const_skip(SubmitInfo const& submit_info) const { submit(submit_info.skip(), submit_info.fence()); }
+void Queue::const_skip(SubmitInfo const& submit_info) const {
+    submit(submit_info.skip(), submit_info.fence());
+}
 
 
-VkResult Queue::present(uint32_t const image_index, PresentInfo const& present_info) const {
-    auto const info = present_info.createInfo(image_index);
+VkResult Queue::present(uint32_t const image_index, PresentInfo& present_info) const {
 
-    auto const result = vkQueuePresentKHR(get(), &info);
+    auto const result = vkQueuePresentKHR(get(), present_info.create(image_index));
 
-    CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR, "failed to present")
+    CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR, "failed to present")
         throw cth::except::vk_result_exception{result, details->exception()};
 
     return result;
 }
+
 void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
     auto const result = vkQueueSubmit(_handle, 1, submit_info, fence);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
@@ -196,15 +198,24 @@ Queue::PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<Basic
         CTH_ERR(dynamic_cast<TimelineSemaphore const*>(src) != nullptr, "semaphores in present info must not be timeline semaphores")
             throw details->exception();
     }
+
+    _presentInfo = createInfo();
 }
-VkPresentInfoKHR Queue::PresentInfo::createInfo(uint32_t const& image_index) const {
+VkPresentInfoKHR Queue::PresentInfo::createInfo() const {
     return VkPresentInfoKHR{
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .pNext = nullptr,
+        .waitSemaphoreCount = static_cast<uint32_t>(_waitSemaphores.size()),
+        .pWaitSemaphores = _waitSemaphores.data(),
         .swapchainCount = 1u,
         .pSwapchains = &_swapchain,
-        .pImageIndices = &image_index,
+        .pImageIndices = nullptr,
         .pResults = nullptr,
     };
+}
+VkPresentInfoKHR const* Queue::PresentInfo::create(uint32_t const& image_index) {
+    _presentInfo.pImageIndices = &image_index;
+    return &_presentInfo;
 }
 
 }

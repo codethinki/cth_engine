@@ -6,7 +6,7 @@
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/control/CthPipelineBarrier.hpp"
 #include "vulkan/render/control/CthSemaphore.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/resource/image/CthImage.hpp"
 #include "vulkan/surface/CthSurface.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
@@ -15,29 +15,26 @@
 
 namespace cth::vk {
 
-BasicSwapchain::BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config) :
-    _core(core), _presentQueue(present_queue), _syncConfig(sync_config) {
+BasicSwapchain::BasicSwapchain(BasicCore const* core, DestructionQueue* destruction_queue, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config) :
+    _core(core), _destructionQueue{destruction_queue}, _presentQueue(present_queue), _syncConfig(sync_config) {
     DEBUG_CHECK_CORE(core);
     createSyncObjects();
 }
 BasicSwapchain::~BasicSwapchain() {
     DEBUG_CHECK_SWAPCHAIN_LEAK(this);
-    destroySyncObjects(nullptr);
+    destroySyncObjects(_destructionQueue);
 }
 
-void BasicSwapchain::create(Surface const* surface, VkExtent2D const window_extent, BasicSwapchain const* old_swapchain) {
+void BasicSwapchain::create(Surface const* surface, VkExtent2D const window_extent, VkSwapchainKHR const old_swapchain) {
     //create the reset function
-    DEBUG_CHECK_SWAPCHAIN_LEAK(this);
-    DEBUG_CHECK_SURFACE(surface);
-
     _imageIndices.fill(NO_IMAGE_INDEX);
     _msaaSamples = evalMsaaSampleCount();
 
     createSwapchain(surface, window_extent, old_swapchain);
 
     createSwapchainImages();
-    createMsaaResources(nullptr);
-    createDepthResources(nullptr);
+    createMsaaResources(_destructionQueue);
+    createDepthResources(_destructionQueue);
 
     createRenderPass();
 
@@ -46,37 +43,51 @@ void BasicSwapchain::create(Surface const* surface, VkExtent2D const window_exte
     createPresentInfos();
 }
 
-void BasicSwapchain::destroy(DeletionQueue* deletion_queue) {
+void BasicSwapchain::destroy(DestructionQueue* destruction_queue) {
 
-    destroyResources(deletion_queue);
+    destroyResources(destruction_queue);
 
-    destroySwapchain(deletion_queue);
+    destroySwapchain(destruction_queue);
 }
-void BasicSwapchain::destroyResources(DeletionQueue* deletion_queue) {
+void BasicSwapchain::destroyResources(DestructionQueue* destruction_queue) {
     clearPresentInfos();
-    destroyFramebuffers(deletion_queue);
-    destroyRenderPass(deletion_queue);
-    destroyImages(deletion_queue);
+    destroyFramebuffers(destruction_queue);
+    destroyRenderPass(destruction_queue);
+    destroyImages(destruction_queue);
 }
 
 
 void BasicSwapchain::resize(VkExtent2D const window_extent) { relocate(_surface, window_extent); }
 void BasicSwapchain::relocate(Surface const* surface, VkExtent2D const window_extent) {
     VkSwapchainKHR old = _handle.get();
-    destroyResources(); //TEMP deletion_queue?
-    create(surface, window_extent, this);
+    _handle = nullptr;
 
-    destroy(_core->vkDevice(), old); //TEMP deletion_queue?
+    destroyResources(_destructionQueue); //TEMP destruction_queue?
+    create(surface, window_extent, old);
+
+    destroy(_core->vkDevice(), old); //TEMP destruction_queue?
 }
 
 
 
-VkResult BasicSwapchain::acquireNextImage() {
-    if(_imageIndices[_frameIndex] == NO_IMAGE_INDEX)
-        if(auto const result = acquireNewImage(_frameIndex); result != VK_SUCCESS) return result;
+VkResult BasicSwapchain::acquireNextImage(DestructionQueue* destruction_queue) {
+    auto const& fence = _imageAvailableFences[_frameIndex];
+    auto const semaphore = _syncConfig->imageAvailableSemaphores[_frameIndex]->get();
+
+    fence.wait();
+    fence.reset();
+
+    destruction_queue->clear(_frameIndex); //TEMP remove this from here
+    destruction_queue->next(_frameIndex); //TEMP remove this from here
 
 
-    return acquireNewImage(nextFrame(_frameIndex));
+    VkResult const acquireResult = vkAcquireNextImageKHR(_core->vkDevice(), _handle.get(), std::numeric_limits<uint64_t>::max(), semaphore,
+        fence.get(), &_imageIndices[_frameIndex]);
+
+    CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR, "failed to acquire image")
+        throw cth::except::vk_result_exception{acquireResult, details->exception()};
+
+    return acquireResult;
 }
 void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const {
 
@@ -90,7 +101,7 @@ void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const {
     renderPassInfo.renderArea.extent = _extent;
 
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {0, 0, 0, 1}; // NOLINT(cppcoreguidelines-pro-type-union-access)
+    clearValues[0].color = {{0, 0, 0, 1}}; // NOLINT(cppcoreguidelines-pro-type-union-access)
     clearValues[1].depthStencil = {1.0f, 0}; // NOLINT(cppcoreguidelines-pro-type-union-access)
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
@@ -110,7 +121,7 @@ void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const {
 }
 void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const* cmd_buffer) { vkCmdEndRenderPass(cmd_buffer->get()); }
 
-VkResult BasicSwapchain::present(DeletionQueue* deletion_queue) {
+VkResult BasicSwapchain::present() {
     CTH_ERR(_imageIndices[_frameIndex] == NO_IMAGE_INDEX, "no acquired image available") {
         details->add("frame: ({})", _frameIndex);
         throw details->exception();
@@ -118,16 +129,6 @@ VkResult BasicSwapchain::present(DeletionQueue* deletion_queue) {
 
 
     auto const result = _presentQueue->present(_imageIndices[_frameIndex], _presentInfos[_frameIndex]);
-
-    auto const& fence = _imageAvailableFences[_frameIndex];
-
-
-    fence.wait();
-    deletion_queue->clear(_frameIndex); //TEMP remove this from here
-
-    deletion_queue->next(_frameIndex); //TEMP remove this from here
-
-    fence.reset();
 
     _imageIndices[_frameIndex] = NO_IMAGE_INDEX;
 
@@ -160,21 +161,6 @@ void BasicSwapchain::destroy(VkDevice device, VkSwapchainKHR swapchain) {
 
 
 
-VkResult BasicSwapchain::acquireNewImage(size_t const frame) {
-
-    VkResult const acquireResult = vkAcquireNextImageKHR(_core->vkDevice(), _handle.get(), std::numeric_limits<uint64_t>::max(),
-        _syncConfig->imageAvailableSemaphores[frame]->get(), _imageAvailableFences[frame].get(), &_imageIndices[frame]);
-    CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR, "failed to acquire image")
-        throw cth::except::vk_result_exception{acquireResult, details->exception()};
-
-    if(acquireResult == VK_SUBOPTIMAL_KHR) _imageIndices[frame] = NO_IMAGE_INDEX;
-
-
-    return acquireResult;
-}
-
-
-
 VkSampleCountFlagBits BasicSwapchain::evalMsaaSampleCount() const {
     uint32_t const maxSamples = _core->physicalDevice()->maxSampleCount() / 2; //TODO add proper max_sample_count selection
 
@@ -186,8 +172,8 @@ VkSampleCountFlagBits BasicSwapchain::evalMsaaSampleCount() const {
 
 void BasicSwapchain::createSyncObjects() {
     _imageAvailableFences.reserve(constants::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++) 
-        _imageAvailableFences.emplace_back(_core, nullptr);
+    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
+        _imageAvailableFences.emplace_back(_core, nullptr, VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
 VkSurfaceFormatKHR BasicSwapchain::chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> const& available_formats) {
@@ -238,7 +224,7 @@ uint32_t BasicSwapchain::evalMinImageCount(uint32_t const min, uint32_t const ma
 
 VkSwapchainCreateInfoKHR BasicSwapchain::createInfo(Surface const* surface, VkSurfaceFormatKHR const surface_format,
     VkSurfaceCapabilitiesKHR const& capabilities, VkPresentModeKHR const present_mode, VkExtent2D const extent, uint32_t const image_count,
-    BasicSwapchain const* old_swapchain) {
+    VkSwapchainKHR const old_swapchain) {
 
     VkSwapchainCreateInfoKHR const createInfo{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -263,15 +249,15 @@ VkSwapchainCreateInfoKHR BasicSwapchain::createInfo(Surface const* surface, VkSu
         .presentMode = present_mode,
         .clipped = VK_TRUE,
 
-        .oldSwapchain = old_swapchain ? old_swapchain->get() : VK_NULL_HANDLE,
+        .oldSwapchain = old_swapchain,
     };
     return createInfo;
 }
 
-void BasicSwapchain::createSwapchain(Surface const* surface, VkExtent2D const window_extent, BasicSwapchain const* old_swapchain) {
+void BasicSwapchain::createSwapchain(Surface const* surface, VkExtent2D const window_extent, VkSwapchainKHR const old_swapchain) {
+    DEBUG_CHECK_SURFACE(surface);
     DEBUG_CHECK_SWAPCHAIN_LEAK(this);
     DEBUG_CHECK_SWAPCHAIN_WINDOW_EXTENT(window_extent);
-    DEBUG_CHECK_SWAPCHAIN_NULLPTR_ALLOWED(old_swapchain);
 
     _windowExtent = window_extent;
     _surface = surface;
@@ -347,14 +333,14 @@ void BasicSwapchain::createSwapchainImages() {
 
     for(auto i = 0u; i < imageCount; i++) _swapchainImageViews.emplace_back(_core, &_swapchainImages[i], ImageView::Config::Default());
 }
-void BasicSwapchain::createMsaaResources(DeletionQueue* deletion_queue) {
+void BasicSwapchain::createMsaaResources(DestructionQueue* destruction_queue) {
     auto const imageConfig = createColorImageConfig();
 
     _msaaImages.reserve(imageCount());
     _msaaImageViews.reserve(imageCount());
 
     for(uint32_t i = 0; i < imageCount(); i++) {
-        _msaaImages.emplace_back(_core, deletion_queue, _extent, imageConfig, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        _msaaImages.emplace_back(_core, destruction_queue, _extent, imageConfig, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         _msaaImageViews.emplace_back(_core, &_msaaImages.back(), ImageView::Config::Default());
     }
 }
@@ -363,7 +349,7 @@ VkFormat BasicSwapchain::findDepthFormat() const {
         std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
-void BasicSwapchain::createDepthResources(DeletionQueue* deletion_queue) {
+void BasicSwapchain::createDepthResources(DestructionQueue* destruction_queue) {
     _depthFormat = findDepthFormat();
 
     auto const imageConfig = createDepthImageConfig();
@@ -372,7 +358,7 @@ void BasicSwapchain::createDepthResources(DeletionQueue* deletion_queue) {
     _depthImageViews.reserve(imageCount());
 
     for(uint32_t i = 0; i < imageCount(); i++) {
-        _depthImages.emplace_back(_core, deletion_queue, _extent, imageConfig, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        _depthImages.emplace_back(_core, destruction_queue, _extent, imageConfig, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         _depthImageViews.emplace_back(_core, &_depthImages.back(), ImageView::Config::Default());
     }
 }
@@ -507,46 +493,46 @@ void BasicSwapchain::createPresentInfos() {
 
 void BasicSwapchain::clearPresentInfos() { _presentInfos.clear(); }
 
-void BasicSwapchain::destroySyncObjects(DeletionQueue* deletion_queue) {
-    for(auto& fence : _imageAvailableFences) fence.destroy(deletion_queue);
+void BasicSwapchain::destroySyncObjects(DestructionQueue* destruction_queue) {
+    for(auto& fence : _imageAvailableFences) fence.destroy(destruction_queue);
     _imageAvailableFences.clear();
 }
-void BasicSwapchain::destroyFramebuffers(DeletionQueue* deletion_queue) {
+void BasicSwapchain::destroyFramebuffers(DestructionQueue* destruction_queue) {
     for(auto const& framebuffer : _swapchainFramebuffers)
         vkDestroyFramebuffer(_core->vkDevice(), framebuffer, nullptr);
     _swapchainFramebuffers.clear();
 }
-void BasicSwapchain::destroyRenderPass(DeletionQueue* deletion_queue) {
+void BasicSwapchain::destroyRenderPass(DestructionQueue* destruction_queue) {
     vkDestroyRenderPass(_core->vkDevice(), _renderPass, nullptr);
     _renderPass = VK_NULL_HANDLE;
 }
 
-void BasicSwapchain::destroyDepthImages(DeletionQueue* deletion_queue) {
+void BasicSwapchain::destroyDepthImages(DestructionQueue* destruction_queue) {
     _depthImageViews.clear();
 
-    for(auto& image : _depthImages) image.destroy(deletion_queue);
+    for(auto& image : _depthImages) image.destroy(destruction_queue);
     _depthImages.clear();
 }
-void BasicSwapchain::destroyMsaaImages(DeletionQueue* deletion_queue) {
+void BasicSwapchain::destroyMsaaImages(DestructionQueue* destruction_queue) {
     _msaaImageViews.clear();
 
-    for(auto& image : _msaaImages) image.destroy(deletion_queue);
+    for(auto& image : _msaaImages) image.destroy(destruction_queue);
     _msaaImages.clear();
 }
-void BasicSwapchain::destroySwapchainImages(DeletionQueue* deletion_queue) {
+void BasicSwapchain::destroySwapchainImages(DestructionQueue* destruction_queue) {
     _swapchainImageViews.clear();
     _swapchainImages.clear();
 }
-void BasicSwapchain::destroyImages(DeletionQueue* deletion_queue) {
+void BasicSwapchain::destroyImages(DestructionQueue* destruction_queue) {
     //TODO they dont have to be destroyed necessarily they can be kept sometimes
-    destroyDepthImages(deletion_queue);
-    destroyMsaaImages(deletion_queue);
-    destroySwapchainImages(deletion_queue);
+    destroyDepthImages(destruction_queue);
+    destroyMsaaImages(destruction_queue);
+    destroySwapchainImages(destruction_queue);
 }
-void BasicSwapchain::destroySwapchain(DeletionQueue* deletion_queue) {
-    DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue)
+void BasicSwapchain::destroySwapchain(DestructionQueue* destruction_queue) {
+    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(destruction_queue)
 
-    if(deletion_queue) deletion_queue->push(_handle.get());
+    if(destruction_queue) destruction_queue->push(_handle.get());
     else destroy(_core->vkDevice(), _handle.get());
 
     _handle = VK_NULL_HANDLE;
@@ -577,12 +563,12 @@ void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwa
 
 //TEMP old code
 
-//BasicSwapchain::BasicSwapchain(const BasicCore* core, DeletionQueue* deletion_queue, const Surface* surface, const Queue* present_queue,
-//    const VkExtent2D window_extent) : _core(core), _presentQueue(present_queue), _windowExtent(window_extent), { init(surface, deletion_queue); }
-//BasicSwapchain::BasicSwapchain(const BasicCore* core, DeletionQueue* deletion_queue, const Surface* surface, const Queue* present_queue,
+//BasicSwapchain::BasicSwapchain(const BasicCore* core, DestructionQueue* destruction_queue, const Surface* surface, const Queue* present_queue,
+//    const VkExtent2D window_extent) : _core(core), _presentQueue(present_queue), _windowExtent(window_extent), { init(surface, destruction_queue); }
+//BasicSwapchain::BasicSwapchain(const BasicCore* core, DestructionQueue* destruction_queue, const Surface* surface, const Queue* present_queue,
 //    const VkExtent2D window_extent, shared_ptr<BasicSwapchain> previous) : _core{core}, _presentQueue(present_queue), _windowExtent(window_extent),
 //    _oldSwapchain{std::move(previous)} {
-//    init(surface, deletion_queue);
+//    init(surface, destruction_queue);
 //    _oldSwapchain = nullptr;
 //}
 
@@ -638,8 +624,8 @@ void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwa
 //submitCommandBuffer()
 //if(_imagesInFlight[image_index].get() != VK_NULL_HANDLE) {
 //    vkWaitForFences(_core->vkDevice(), 1, &_imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
-//    deletion_queue->clear(static_cast<uint32_t>(_frameIndex));
-//deletion_queue->next(static_cast<uint32_t>(_frameIndex)); 
+//    destruction_queue->clear(static_cast<uint32_t>(_frameIndex));
+//destruction_queue->create(static_cast<uint32_t>(_frameIndex)); 
 //
 //_imagesInFlight[image_index] = _inFlightFences[_frameIndex];
 //

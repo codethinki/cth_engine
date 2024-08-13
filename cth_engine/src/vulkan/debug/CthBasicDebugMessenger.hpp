@@ -15,7 +15,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityF
 
 namespace cth::vk {
 class BasicInstance;
-class DeletionQueue;
+class DestructionQueue;
 
 class BasicDebugMessenger {
 public:

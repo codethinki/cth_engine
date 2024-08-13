@@ -7,7 +7,7 @@
 
 namespace cth::vk {
 class BasicCore;
-class DeletionQueue;
+class DestructionQueue;
 
 
 class BasicFence {
@@ -21,7 +21,7 @@ public:
      * @throws cth::except::vk_result_exception result of vkCreateFence()
      */
     virtual void create(VkFenceCreateFlags flags = 0);
-    virtual void destroy(DeletionQueue* deletion_queue = nullptr);
+    virtual void destroy(DestructionQueue* destruction_queue = nullptr);
 
 
     /**
@@ -56,6 +56,9 @@ protected:
     BasicCore const* _core;
 
 private:
+    static [[nodiscard]] VkResult wait(VkDevice vk_device, std::span<VkFence const> vk_fences, uint64_t timeout);
+    static [[nodiscard]] void wait(VkDevice vk_device, std::span<VkFence const> vk_fences);
+
     static VkFenceCreateInfo createInfo(VkFenceCreateFlags flags);
 
     move_ptr<VkFence_T> _handle = VK_NULL_HANDLE;
@@ -71,10 +74,16 @@ public:
 #ifdef CONSTANT_DEBUG_MODE
     static void debug_check(BasicFence const* fence);
     static void debug_check_leak(BasicFence const* fence);
+    static void debug_check_handle(VkFence vk_fence);
+    template<class Rng>
+    static void debug_check_handles(Rng const& rng) { for(auto const& fence : rng) BasicFence::debug_check_handle(fence); }
 #define DEBUG_CHECK_FENCE(fence_ptr) BasicFence::debug_check(fence_ptr)
+#define DEBUG_CHECK_FENCE_HANDLE(vk_fence) BasicFence::debug_check_handle(vk_fence)
+#define DEBUG_CHECK_FENCE_HANDLES(vk_fences) BasicFence::debug_check_handles(vk_fences)
 #define DEBUG_CHECK_FENCE_LEAK(fence_ptr) BasicFence::debug_check_leak(fence_ptr)
 #else
 #define DEBUG_CHECK_FENCE(fence_ptr) ((void)0)
+#define DEBUG_CHECK_FENCE_HANDLE(vk_fence) ((void)0)
 #define DEBUG_CHECK_FENCE_LEAK(fence_ptr) ((void)0)
 #endif
 };
@@ -83,16 +92,16 @@ public:
 namespace cth::vk {
 class Fence : public BasicFence {
 public:
-    explicit Fence(BasicCore const* core, DeletionQueue* deletion_queue, VkFenceCreateFlags flags = 0);
+    explicit Fence(BasicCore const* core, DestructionQueue* destruction_queue, VkFenceCreateFlags flags = 0);
     ~Fence() override;
 
     void wrap(VkFence vk_fence) override;
 
     void create(VkFenceCreateFlags flags = 0) override;
-    void destroy(DeletionQueue* deletion_queue = nullptr) override;
+    void destroy(DestructionQueue* destruction_queue = nullptr) override;
 
 private:
-    DeletionQueue* _deletionQueue = nullptr;
+    DestructionQueue* _destructionQueue = nullptr;
 
 public:
     Fence(Fence const& other) = delete;

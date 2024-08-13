@@ -4,7 +4,7 @@
 
 
 namespace cth::vk {
-class DeletionQueue;
+class DestructionQueue;
 }
 
 
@@ -40,22 +40,22 @@ struct BasicGraphicsSyncConfig {
 class GraphicsSyncConfig : public BasicGraphicsSyncConfig {
 public:
     GraphicsSyncConfig() = default;
-    explicit GraphicsSyncConfig(BasicCore const* core, DeletionQueue* deletion_queue);
+    explicit GraphicsSyncConfig(BasicCore const* core, DestructionQueue* destruction_queue);
     ~GraphicsSyncConfig();
 
     void wrap(BasicGraphicsSyncConfig const& config);
-    void create(BasicCore const* core, DeletionQueue* deletion_queue);
-    void destroy(DeletionQueue* deletion_queue = nullptr);
+    void create(BasicCore const* core, DestructionQueue* destruction_queue);
+    void destroy(DestructionQueue* destruction_queue = nullptr);
 
     BasicGraphicsSyncConfig release();
 
     [[nodiscard]] bool destroyed() const;
 
 private:
-    void destroyOpt(DeletionQueue* deletion_queue = nullptr);
+    void destroyOpt(DestructionQueue* destruction_queue = nullptr);
 
     BasicCore const* _core = nullptr;
-    DeletionQueue* _deletionQueue = nullptr;
+    DestructionQueue* _destructionQueue = nullptr;
 
 public:
     GraphicsSyncConfig(GraphicsSyncConfig const& other) = delete;

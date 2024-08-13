@@ -68,7 +68,7 @@
     <ClInclude Include="src\vulkan\render\pass\CthRenderPass.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBasicBuffer.hpp" />
-    <ClInclude Include="src\vulkan\resource\CthDeletionQueue.hpp" />
+    <ClInclude Include="src\vulkan\resource\CthDestructionQueue.hpp" />
     <ClInclude Include="src\vulkan\resource\memory\CthBasicMemory.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptor.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptorPool.hpp" />
@@ -150,7 +150,7 @@
     <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthTimelineSemaphore.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthRenderPass.cpp" />
-    <ClCompile Include="src\vulkan\resource\CthDeletionQueue.cpp" />
+    <ClCompile Include="src\vulkan\resource\CthDestructionQueue.cpp" />
     <ClCompile Include="src\vulkan\debug\CthBasicDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthPipelineBarrier.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdPool.cpp" />

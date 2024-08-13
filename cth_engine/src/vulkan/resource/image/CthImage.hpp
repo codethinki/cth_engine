@@ -11,7 +11,7 @@ class BasicBuffer;
 class Sampler;
 class ImageView;
 class Image;
-class DeletionQueue;
+class DestructionQueue;
 class CmdBuffer;
 
 
@@ -27,7 +27,7 @@ public:
      * @brief creates an image and allocates memory
      * @note implicitly calls create, allocate and bind
      */
-    explicit Image(BasicCore const* core, DeletionQueue* deletion_queue, VkExtent2D extent, Config const& config, VkMemoryPropertyFlags memory_properties);
+    explicit Image(BasicCore const* core, DestructionQueue* destruction_queue, VkExtent2D extent, Config const& config, VkMemoryPropertyFlags memory_properties);
 
     ~Image() override;
 
@@ -42,18 +42,18 @@ public:
 
     /**
     * @brief submits image & memory to cached deletion queues and resets the object
-    * @param deletion_queue != nullptr => submits to new deletion queue
+    * @param destruction_queue != nullptr => submits to new deletion queue
     * @note new deletion queue will be cached
     * @note frees but doesn't delete memory
     */
-    void destroy(DeletionQueue* deletion_queue = nullptr) override;
+    void destroy(DestructionQueue* destruction_queue = nullptr) override;
 
     void setMemory(BasicMemory* new_memory) override;
 
 private:
-    void destroyMemory(DeletionQueue* deletion_queue = nullptr);
+    void destroyMemory(DestructionQueue* destruction_queue = nullptr);
 
-    DeletionQueue* _deletionQueue;
+    DestructionQueue* _destructionQueue;
 
 public:
     Image(Image const& other) = delete;

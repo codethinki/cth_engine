@@ -21,7 +21,7 @@ struct BasicGraphicsSyncConfig;
 namespace cth::vk {
 class Queue;
 class BasicCore;
-class DeletionQueue;
+class DestructionQueue;
 class Device;
 class OSWindow;
 class CmdPool;
@@ -41,7 +41,7 @@ public:
         PHASES_SIZE
     };
 
-    explicit Renderer(BasicCore const* core, DeletionQueue* deletion_queue, Config const& config);
+    explicit Renderer(BasicCore const* core, DestructionQueue* destruction_queue, Config const& config);
     ~Renderer();
 
     /**
@@ -68,8 +68,13 @@ public:
     template<Phase P>
     void skip();
 
-private:
+    /**
+     * @brief blocks until the last recorded phase was executed
+     * @note there is no need to wait for a skipped phase
+     */
     void wait() const;
+
+private:
     template<Phase P> void nextState();
 
 
@@ -82,7 +87,7 @@ private:
     void createSubmitInfos(Config config);
 
     BasicCore const* _core;
-    DeletionQueue* _deletionQueue;
+    DestructionQueue* _destructionQueue;
 
     std::array<Queue const*, PHASES_SIZE> _queues{};
     std::array<std::unique_ptr<PrimaryCmdBuffer>, PHASES_SIZE * constants::FRAMES_IN_FLIGHT> _cmdBuffers;
@@ -122,7 +127,7 @@ private:
 
 public:
     [[nodiscard]] uint32_t frameIndex() const { return _frameIndex; }
-    [[nodiscard]] DeletionQueue* deletionQueue() const;
+    [[nodiscard]] DestructionQueue* destructionQueue() const;
 
     Renderer(Renderer const&) = delete;
     Renderer& operator=(Renderer const&) = delete;
@@ -161,7 +166,7 @@ struct Renderer::Config {
     static Config Render(Queue const* graphics_queue, BasicGraphicsSyncConfig* sync_config);
 
     Config() = default;
-    //Config(const BasicCore* core, DeletionQueue* deletion_queue);
+    //Config(const BasicCore* core, DestructionQueue* destruction_queue);
 
     /**
      * @tparam P phase

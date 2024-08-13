@@ -33,7 +33,7 @@ public:
      */
     void alloc();
 
-    void destroy(DeletionQueue* deletion_queue = nullptr);
+    void destroy(DestructionQueue* destruction_queue = nullptr);
 
 
 

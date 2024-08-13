@@ -3,6 +3,7 @@
 #include "CthSurface.hpp"
 #include "interface/user/HlcInputController.hpp"
 #include "vulkan/base/CthInstance.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
 
 
@@ -10,8 +11,9 @@
 
 
 namespace cth::vk {
-OSWindow::OSWindow(std::string_view const name, uint32_t const width, uint32_t const height, BasicInstance const* instance) : _windowName{name},
-    _width(static_cast<int>(width)), _height(static_cast<int>(height)) {
+OSWindow::OSWindow(BasicInstance const* instance, DestructionQueue* destruction_queue, std::string_view const name, uint32_t const width,
+    uint32_t const height) : _instance{instance}, _destructionQueue{destruction_queue}, _windowName{name}, _width(static_cast<int>(width)),
+    _height(static_cast<int>(height)) {
     initWindow();
 
     setCallbacks();
@@ -19,35 +21,46 @@ OSWindow::OSWindow(std::string_view const name, uint32_t const width, uint32_t c
     createSurface(instance);
 }
 OSWindow::~OSWindow() {
-    _surface = nullptr;
+    CTH_STABLE_ERR(_surface != nullptr, "surface must be retrieved (i have to swap glfw with native windows impl, this is crap")
+        throw details->exception(); // NOLINT(clang-diagnostic-exceptions)
 
-    glfwDestroyWindow(_glfwWindow);
-    cth::log::msg("destroyed window");
+    if(_surface) {
+        Surface::destroy(_surface.get(), _instance->get());
+        _surface = nullptr;
+    }
+    if(_handle) destroy();
 }
+void OSWindow::destroy(DestructionQueue* destruction_queue) {
+    if(destruction_queue) _destructionQueue = destruction_queue;
 
+    if(_destructionQueue) _destructionQueue->push(_handle.get());
+    else destroy(_handle.get());
+
+    _handle = nullptr;
+}
 
 
 void OSWindow::initWindow() {
-    _glfwWindow = glfwCreateWindow(_width, _height, _windowName.c_str(), nullptr, nullptr);
-    glfwGetWindowSize(_glfwWindow, &_width, &_height);
+    _handle = glfwCreateWindow(_width, _height, _windowName.c_str(), nullptr, nullptr);
+    glfwGetWindowSize(_handle.get(), &_width, &_height);
 }
 void OSWindow::setCallbacks() {
-    glfwSetWindowUserPointer(_glfwWindow, this);
-    glfwSetKeyCallback(_glfwWindow, staticKeyCallback);
-    glfwSetMouseButtonCallback(_glfwWindow, staticMouseCallback);
-    glfwSetScrollCallback(_glfwWindow, staticScrollCallback);
-    glfwSetFramebufferSizeCallback(_glfwWindow, staticFramebufferResizeCallback);
-    glfwSetWindowFocusCallback(_glfwWindow, staticFocusCallback);
+    glfwSetWindowUserPointer(_handle.get(), this);
+    glfwSetKeyCallback(_handle.get(), staticKeyCallback);
+    glfwSetMouseButtonCallback(_handle.get(), staticMouseCallback);
+    glfwSetScrollCallback(_handle.get(), staticScrollCallback);
+    glfwSetFramebufferSizeCallback(_handle.get(), staticFramebufferResizeCallback);
+    glfwSetWindowFocusCallback(_handle.get(), staticFocusCallback);
     //glfwSetCursorPosCallback(hlcWindow, staticMovementCallback);
 }
 void OSWindow::createSurface(BasicInstance const* instance) {
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
     auto const result = glfwCreateWindowSurface(instance->get(), window(), nullptr, &vkSurface);
 
+    _surface = vkSurface;
+
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create GLFW window surface")
         throw cth::except::vk_result_exception{result, details->exception()};
-
-    _surface = std::make_unique<Surface>(instance, vkSurface);
 
     cth::log::msg("created surface");
 
@@ -153,6 +166,10 @@ VkSurfaceKHR OSWindow::tempSurface(BasicInstance const* instance) {
 
     return surface;
 }
+void OSWindow::destroy(GLFWwindow* glfw_window) {
+    glfwDestroyWindow(glfw_window);
+    cth::log::msg("destroyed window");
+}
 
 #ifdef CONSTANT_DEBUG_MODE
 void OSWindow::debug_check_not_null(OSWindow const* os_window) {
@@ -162,7 +179,7 @@ void OSWindow::debug_check_not_null(OSWindow const* os_window) {
 void OSWindow::debug_check(OSWindow const* os_window) {
     DEBUG_CHECK_OS_WINDOW_NOT_NULL(os_window);
 
-    CTH_ERR(os_window->_glfwWindow == nullptr, "os_window must be initialized")
+    CTH_ERR(os_window->_handle == nullptr, "os_window must be initialized")
         throw details->exception();
 }
 #endif

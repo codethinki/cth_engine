@@ -19,7 +19,7 @@ class Queue;
 class BasicCore;
 class Device;
 class Surface;
-class DeletionQueue;
+class DestructionQueue;
 class ImageView;
 class Image;
 class CmdBuffer;
@@ -28,16 +28,16 @@ class PrimaryCmdBuffer;
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config);
+    BasicSwapchain(BasicCore const* core, DestructionQueue* destruction_queue, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config);
     virtual ~BasicSwapchain();
 
     //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
-    virtual void create(Surface const* surface, VkExtent2D window_extent, BasicSwapchain const* old_swapchain = nullptr);
+    virtual void create(Surface const* surface, VkExtent2D window_extent, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE);
     /**
      * @brief destroys the swapchain
      * @note implicitly calls destroyResources()
      */
-    virtual void destroy(DeletionQueue* deletion_queue = nullptr);
+    virtual void destroy(DestructionQueue* destruction_queue = nullptr);
 
 
     virtual void resize(VkExtent2D window_extent);
@@ -46,18 +46,20 @@ public:
 
 
     /**
-     * @note might block
      * @return result of vkAcquireNextImageKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
      *
+     * @note might block
+     * @note the semaphore must not be signaled
+     * @note the fence must be signaled
      */
-    [[nodiscard]] VkResult acquireNextImage();
+    VkResult acquireNextImage(DestructionQueue* destruction_queue);
 
     void beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const;
 
     void endRenderPass(PrimaryCmdBuffer const* cmd_buffer);
 
 
-    [[nodiscard]] VkResult present(DeletionQueue* deletion_queue); //TEMP remove deletion queue from here
+    [[nodiscard]] VkResult present(); //TEMP remove deletion queue from here
 
 
     void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
@@ -68,7 +70,6 @@ public:
 private:
     static constexpr uint32_t NO_IMAGE_INDEX = std::numeric_limits<uint32_t>::max();
 
-    VkResult acquireNewImage(size_t frame);
 
     //setMsaaSampleCount
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
@@ -84,18 +85,18 @@ private:
     [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
     [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(Surface const* surface, VkSurfaceFormatKHR surface_format,
         VkSurfaceCapabilitiesKHR const& capabilities, VkPresentModeKHR present_mode, VkExtent2D extent, uint32_t image_count,
-        BasicSwapchain const* old_swapchain);
-    void createSwapchain(Surface const* surface, VkExtent2D window_extent, BasicSwapchain const* old_swapchain);
+        VkSwapchainKHR old_swapchain);
+    void createSwapchain(Surface const* surface, VkExtent2D window_extent, VkSwapchainKHR old_swapchain);
 
     [[nodiscard]] BasicImage::Config createImageConfig() const;
     [[nodiscard]] BasicImage::Config createColorImageConfig() const;
     void createSwapchainImages();
 
-    void createMsaaResources(DeletionQueue* deletion_queue); //TEMP remove deletion queue argument
+    void createMsaaResources(DestructionQueue* destruction_queue); //TEMP remove deletion queue argument
 
     [[nodiscard]] BasicImage::Config createDepthImageConfig() const;
     [[nodiscard]] VkFormat findDepthFormat() const;
-    void createDepthResources(DeletionQueue* deletion_queue);
+    void createDepthResources(DestructionQueue* destruction_queue);
 
 
 
@@ -118,25 +119,26 @@ private:
 
 
     void clearPresentInfos();
-    void destroyFramebuffers(DeletionQueue* deletion_queue);
-    void destroyRenderPass(DeletionQueue* deletion_queue);
+    void destroyFramebuffers(DestructionQueue* destruction_queue);
+    void destroyRenderPass(DestructionQueue* destruction_queue);
 
-    void destroyDepthImages(DeletionQueue* deletion_queue);
-    void destroyMsaaImages(DeletionQueue* deletion_queue);
-    void destroySwapchainImages(DeletionQueue* deletion_queue);
-    void destroyImages(DeletionQueue* deletion_queue);
+    void destroyDepthImages(DestructionQueue* destruction_queue);
+    void destroyMsaaImages(DestructionQueue* destruction_queue);
+    void destroySwapchainImages(DestructionQueue* destruction_queue);
+    void destroyImages(DestructionQueue* destruction_queue);
     /**
     * @brief destroys everything that is not the swapchain
     */
-    virtual void destroyResources(DeletionQueue* deletion_queue = nullptr);
+    virtual void destroyResources(DestructionQueue* destruction_queue = nullptr);
 
-    void destroySwapchain(DeletionQueue* deletion_queue);
+    void destroySwapchain(DestructionQueue* destruction_queue);
 
-    void destroySyncObjects(DeletionQueue* deletion_queue);
+    void destroySyncObjects(DestructionQueue* destruction_queue);
 
 
 
     BasicCore const* _core;
+    DestructionQueue* _destructionQueue;
     Queue const* _presentQueue;
     Surface const* _surface = nullptr;
 
@@ -177,7 +179,6 @@ private:
     [[nodiscard]] uint32_t imageIndex() const { return _imageIndices[_frameIndex]; }
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-
 
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }
@@ -233,4 +234,4 @@ public:
 // * @return result of vkQueueSubmit() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
 // * @note implicitly calls presentQueue->present()
 // */
-//VkResult submitCommandBuffer(DeletionQueue* deletion_queue, const PrimaryCmdBuffer* cmd_buffer, uint32_t image_index);
+//VkResult submitCommandBuffer(DestructionQueue* destruction_queue, const PrimaryCmdBuffer* cmd_buffer, uint32_t image_index);

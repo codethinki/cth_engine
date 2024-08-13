@@ -6,7 +6,10 @@
 namespace cth::vk {
 class BasicCore;
 class Device;
-class DeletionQueue;
+class DestructionQueue;
+
+static size_t idCounter = 0; //TEMP remove the id
+
 
 class BasicSemaphore {
 public:
@@ -14,7 +17,7 @@ public:
     virtual ~BasicSemaphore() = default;
 
     virtual void create();
-    virtual void destroy(DeletionQueue* deletion_queue = nullptr);
+    virtual void destroy(DestructionQueue* destruction_queue = nullptr);
 
 
     static void destroy(VkDevice vk_device, VkSemaphore vk_semaphore);
@@ -26,6 +29,8 @@ protected:
     BasicCore const* _core;
 
 private:
+    size_t _id = idCounter++; //TEMP remove the id
+
     move_ptr<VkSemaphore_T> _handle{};
 
 public:
@@ -57,14 +62,14 @@ namespace cth::vk {
 
 class Semaphore : public BasicSemaphore {
 public:
-    explicit Semaphore(BasicCore const* core, DeletionQueue* deletion_queue, bool create = true);
+    explicit Semaphore(BasicCore const* core, DestructionQueue* destruction_queue, bool create = true);
     ~Semaphore() override;
 
     void create() override;
-    void destroy(DeletionQueue* deletion_queue = nullptr) override;
+    void destroy(DestructionQueue* destruction_queue = nullptr) override;
 
 private:
-    DeletionQueue* _deletionQueue;
+    DestructionQueue* _destructionQueue;
 
 public:
     Semaphore(Semaphore const& other) = delete;
@@ -75,6 +80,3 @@ public:
 };
 
 }
-
-
-

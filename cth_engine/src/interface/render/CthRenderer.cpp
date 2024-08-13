@@ -10,7 +10,7 @@
 namespace cth::vk {
 using std::vector;
 
-Renderer::Renderer(BasicCore const* core, DeletionQueue* deletion_queue, Config const& config) : _core(core), _deletionQueue(deletion_queue),
+Renderer::Renderer(BasicCore const* core, DestructionQueue* destruction_queue, Config const& config) : _core(core), _destructionQueue(destruction_queue),
     _queues(config.queues()) { init(config); }
 Renderer::~Renderer() {
 
@@ -33,6 +33,7 @@ void Renderer::init(Config const& config) {
     createSubmitInfos(config);
 }
 
+
 void Renderer::createCmdPools() {
     for(size_t i = PHASES_FIRST; i < PHASES_SIZE; ++i)
         _cmdPools[i] = std::make_unique<CmdPool>(_core, CmdPool::Config::Default(_queues[i]->familyIndex(), constants::FRAMES_IN_FLIGHT + 1, 0));
@@ -43,9 +44,8 @@ void Renderer::createPrimaryCmdBuffers() {
             _cmdBuffers[i * PHASES_SIZE + j] = std::make_unique<PrimaryCmdBuffer>(_cmdPools[i].get());
 }
 void Renderer::createSyncObjects() {
-    std::ranges::transform(_semaphores, _semaphores.begin(),
-        [this](auto&) { return std::make_unique<TimelineSemaphore>(_core, _deletionQueue); }
-        );
+    for(auto& semaphore : _semaphores)
+        semaphore = std::make_unique<TimelineSemaphore>(_core, _destructionQueue);
 }
 
 
@@ -86,7 +86,7 @@ void Renderer::createSubmitInfos(Config config) {
 
 
 
-DeletionQueue* Renderer::deletionQueue() const { return _deletionQueue; }
+DestructionQueue* Renderer::destructionQueue() const { return _destructionQueue; }
 
 } // namespace cth
 
@@ -102,9 +102,9 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
           .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores);
     return config;
 }
-//Renderer::Config::Config(const BasicCore* core, DeletionQueue* deletion_queue) : _core{core}, _deletionQueue{deletion_queue} {
+//Renderer::Config::Config(const BasicCore* core, DestructionQueue* destruction_queue) : _core{core}, _destructionQueue{destruction_queue} {
 //    DEBUG_CHECK_CORE(core);
-//    DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
+//    DEBUG_CHECK_DESTRUCTION_QUEUE(destruction_queue);
 //}
 
 
@@ -152,12 +152,12 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //    vkDeviceWaitIdle(_core->vkDevice());
 //
 //    if(_swapchain == nullptr) {
-//        _swapchain = std::make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), windowExtent);
+//        _swapchain = std::make_unique<BasicSwapchain>(_core, _destructionQueue, *_window->surface(), windowExtent);
 //        return;
 //    }
 //
 //    std::shared_ptr oldSwapchain = std::move(_swapchain);
-//    _swapchain = std::make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), windowExtent, oldSwapchain);
+//    _swapchain = std::make_unique<BasicSwapchain>(_core, _destructionQueue, *_window->surface(), windowExtent, oldSwapchain);
 //
 //    //TODO i dont understand why the formats cant change?
 //    const bool change = oldSwapchain->compareSwapFormats(*_swapchain);
@@ -168,7 +168,7 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 
 //void Renderer::createSwapchain() {
 //    vkDeviceWaitIdle(_core->vkDevice());
-//    _swapchain = make_unique<BasicSwapchain>(_core, _deletionQueue, *_window->surface(), _window->extent());
+//    _swapchain = make_unique<BasicSwapchain>(_core, _destructionQueue, *_window->surface(), _window->extent());
 //}
 //const PrimaryCmdBuffer* Renderer::beginRender() {
 //
@@ -220,7 +220,7 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
 //        throw cth::except::vk_result_exception{recordResult, details->exception()};
 //
-//    const VkResult submitResult = _swapchain->submitCommandBuffer(_deletionQueue, cmdBuffer, _currentImageIndex);
+//    const VkResult submitResult = _swapchain->submitCommandBuffer(_destructionQueue, cmdBuffer, _currentImageIndex);
 //
 //
 //    if(submitResult == VK_ERROR_OUT_OF_DATE_KHR || submitResult == VK_SUBOPTIMAL_KHR || _window->windowResized()) {
@@ -256,7 +256,7 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //    vkQueueSubmit(_core->graphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
 //    vkQueueWaitIdle(_core->graphicsQueue());
 //
-//    _deletionQueue->clear(_currentFrameIndex);
+//    _destructionQueue->clear(_currentFrameIndex);
 //
 //    _cmdBuffers.back().pop_back();
 //}

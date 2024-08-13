@@ -2,6 +2,7 @@
 
 #include "CthOSWindow.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
 
 
@@ -10,8 +11,17 @@ namespace cth::vk {
 using std::vector;
 
 Surface::~Surface() {
-    vkDestroySurfaceKHR(_instance->get(), _handle.get(), nullptr);
+    if(_handle) destroy();
+
     log::msg("destroyed surface");
+}
+void Surface::destroy(DestructionQueue* destruction_queue) {
+    if(destruction_queue) _destructionQueue = destruction_queue;
+
+    if(_destructionQueue) _destructionQueue->push(_handle.get());
+    else destroy(_handle.get(), _instance->get());
+
+    _handle = VK_NULL_HANDLE;
 }
 bool Surface::supportsFamily(PhysicalDevice const& physical_device, uint32_t const family_index) const {
     VkBool32 support = false;
@@ -64,11 +74,22 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physical_de
 
     return capabilities;
 }
-Surface Surface::Temp(BasicInstance const* instance) { return Surface{instance, OSWindow::tempSurface(instance)}; }
+Surface Surface::Temp(BasicInstance const* instance, DestructionQueue* destruction_queue) {
+    return Surface{instance, destruction_queue, OSWindow::tempSurface(instance)};
+}
+void Surface::destroy(VkSurfaceKHR surface, VkInstance instance) {
+    CTH_WARN(surface == VK_NULL_HANDLE, "surface invalid (VK_NULL_HANDLE)") {}
+    DEBUG_CHECK_INSTANCE_HANDLE(instance);
+
+    vkDestroySurfaceKHR(instance, surface, nullptr);
+}
 
 void Surface::debug_check(Surface const* surface) {
     CTH_ERR(surface == nullptr, "surface invalid (nullptr)") throw details->exception();
-    CTH_ERR(surface->get() == VK_NULL_HANDLE, "surface handle invalid (VK_NULL_HANDLE)")
+    DEBUG_CHECK_SURFACE_HANDLE(surface->get());
+}
+void Surface::debug_check_handle(VkSurfaceKHR surface) {
+    CTH_ERR(surface == VK_NULL_HANDLE, "surface handle invalid (VK_NULL_HANDLE)")
         throw details->exception();
 }
 

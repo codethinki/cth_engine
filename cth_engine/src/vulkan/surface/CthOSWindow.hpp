@@ -11,14 +11,20 @@
 
 
 namespace cth::vk {
+class DestructionQueue;
+}
+
+namespace cth::vk {
 class BasicInstance;
 class Surface;
 //TODO implement DEBUG_CHECK_OS_WINDOW
 
 class OSWindow {
 public:
-    OSWindow(std::string_view name, uint32_t width, uint32_t height, BasicInstance const* instance);
+    OSWindow(BasicInstance const* instance, DestructionQueue* destruction_queue, std::string_view name, uint32_t width, uint32_t height);
     ~OSWindow();
+
+    void destroy(DestructionQueue* destruction_queue = nullptr);
 
     void resetWindowResized() { _framebufferResized = false; }
     void waitEvents() { glfwWaitEvents(); }
@@ -29,6 +35,7 @@ public:
 
     static VkSurfaceKHR tempSurface(BasicInstance const* instance);
 
+    static void destroy(GLFWwindow* glfw_window);
 private:
     void initWindow();
     void setCallbacks();
@@ -42,14 +49,17 @@ private:
     void framebufferResizeCallback(int new_width, int new_height);
 
 
+    BasicInstance const* _instance = nullptr;
+    DestructionQueue* _destructionQueue;
+
     bool _focus = true;
     bool _framebufferResized = false;
 
     std::string _windowName;
     int _width, _height;
 
-    GLFWwindow* _glfwWindow = nullptr;
-    std::unique_ptr<Surface> _surface;
+    move_ptr<GLFWwindow> _handle = nullptr;
+    cth::move_ptr<VkSurfaceKHR_T> _surface;
 
     static OSWindow* window_ptr(GLFWwindow* glfw_window);
 
@@ -62,14 +72,18 @@ private:
     static void staticFocusCallback(GLFWwindow* glfw_window, int focused);
 
 public:
-    [[nodiscard]] bool shouldClose() const { return glfwWindowShouldClose(_glfwWindow); }
+    [[nodiscard]] bool shouldClose() const { return glfwWindowShouldClose(_handle.get()); }
     [[nodiscard]] VkExtent2D extent() const { return {static_cast<uint32_t>(_width), static_cast<uint32_t>(_height)}; }
     [[nodiscard]] bool windowResized() const { return _framebufferResized; }
-    [[nodiscard]] GLFWwindow* window() const { return _glfwWindow; }
+    [[nodiscard]] GLFWwindow* window() const { return _handle.get(); }
     [[nodiscard]] bool focused() const { return _focus; }
-    [[nodiscard]] GLFWwindow* get() const { return _glfwWindow; }
+    [[nodiscard]] GLFWwindow* get() const { return _handle.get(); }
 
-    [[nodiscard]] Surface* surface() const { return _surface.get(); }
+    [[nodiscard]] VkSurfaceKHR releaseSurface() {
+        auto const handle = _surface.get();
+        _surface = VK_NULL_HANDLE;
+        return handle;
+    }
 
   
 

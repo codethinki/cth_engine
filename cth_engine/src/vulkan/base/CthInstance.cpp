@@ -1,6 +1,6 @@
 #include "CthInstance.hpp"
 
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
@@ -52,9 +52,9 @@ void BasicInstance::create(std::optional<BasicDebugMessenger::Config> const& mes
     createInfo.enabledLayerCount = 0;
     createInfo.pNext = nullptr;
 
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
     if constexpr(constants::ENABLE_VALIDATION_LAYERS)
         if(messenger_config != std::nullopt) {
-            VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 
             createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
             createInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
@@ -182,7 +182,7 @@ Instance::~Instance() {
     _debugMessenger = nullptr;
 #endif
 
-    if(get() != VK_NULL_HANDLE) destroy();
+    if(get() != VK_NULL_HANDLE) Instance::destroy();
 }
 
 
@@ -210,6 +210,10 @@ void Instance::create(std::optional<BasicDebugMessenger::Config> const& messenge
     BasicInstance::create(config);
     _debugMessenger = make_unique<DebugMessenger>(this, config);
 #endif
+}
+void Instance::destroy() {
+    if(_debugMessenger) _debugMessenger = nullptr;
+    BasicInstance::destroy();
 }
 
 

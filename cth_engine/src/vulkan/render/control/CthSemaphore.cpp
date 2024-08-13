@@ -2,7 +2,7 @@
 
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
 
 
@@ -13,8 +13,8 @@ BasicSemaphore::BasicSemaphore(BasicCore const* core) : _core(core) {}
 
 void BasicSemaphore::create() { createHandle(createInfo()); }
 
-void BasicSemaphore::destroy(DeletionQueue* deletion_queue) {
-    if(deletion_queue) deletion_queue->push(_handle.get());
+void BasicSemaphore::destroy(DestructionQueue* destruction_queue) {
+    if(destruction_queue) destruction_queue->push(_handle.get());
     else destroy(_core->vkDevice(), _handle.get());
 
     _handle = VK_NULL_HANDLE;
@@ -66,18 +66,18 @@ void BasicSemaphore::debug_check_leak(BasicSemaphore const* semaphore) {
 
 
 namespace cth::vk {
-Semaphore::Semaphore(BasicCore const* core, DeletionQueue* deletion_queue, bool const create) : BasicSemaphore(core), _deletionQueue(deletion_queue) {
+Semaphore::Semaphore(BasicCore const* core, DestructionQueue* destruction_queue, bool const create) : BasicSemaphore(core), _destructionQueue(destruction_queue) {
     if(create) BasicSemaphore::create();
 }
-Semaphore::~Semaphore() { if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_deletionQueue); }
+Semaphore::~Semaphore() { if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_destructionQueue); }
 
 void Semaphore::create() {
-    if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_deletionQueue);
+    if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_destructionQueue);
 
     BasicSemaphore::create();
 }
-void Semaphore::destroy(DeletionQueue* deletion_queue) {
-    if(deletion_queue) BasicSemaphore::destroy(deletion_queue);
-    else BasicSemaphore::destroy(_deletionQueue);
+void Semaphore::destroy(DestructionQueue* destruction_queue) {
+    if(destruction_queue) BasicSemaphore::destroy(destruction_queue);
+    else BasicSemaphore::destroy(_destructionQueue);
 }
 }

@@ -3,7 +3,7 @@
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
 
 
@@ -71,9 +71,9 @@ VkResult BasicMemory::invalidate(size_t const size, size_t const offset) const {
 }
 void BasicMemory::unmap() const { vkUnmapMemory(_core->vkDevice(), _handle.get()); }
 
-void BasicMemory::free(DeletionQueue* deletion_queue) {
+void BasicMemory::free(DestructionQueue* destruction_queue) {
     CTH_WARN(_handle == VK_NULL_HANDLE, "memory not valid") {}
-    if(deletion_queue) deletion_queue->push(_handle.get());
+    if(destruction_queue) destruction_queue->push(_handle.get());
     else BasicMemory::free(_core->vkDevice(), _handle.get());
 
     _handle = VK_NULL_HANDLE;

@@ -4,7 +4,7 @@
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/control/CthPipelineBarrier.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/resource/buffer/CthBasicBuffer.hpp"
 #include "vulkan/resource/memory/CthBasicMemory.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
@@ -79,10 +79,10 @@ void BasicImage::bind() {
     _state.bound = true;
 }
 
-void BasicImage::destroy(DeletionQueue* deletion_queue) {
-    if(deletion_queue) {
-        DEBUG_CHECK_DELETION_QUEUE(deletion_queue);
-        deletion_queue->push(_handle.get());
+void BasicImage::destroy(DestructionQueue* destruction_queue) {
+    if(destruction_queue) {
+        DEBUG_CHECK_DESTRUCTION_QUEUE(destruction_queue);
+        destruction_queue->push(_handle.get());
     } else destroy(_core->vkDevice(), _handle.get());
 
     _handle = VK_NULL_HANDLE;

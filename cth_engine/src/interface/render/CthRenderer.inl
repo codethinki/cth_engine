@@ -15,8 +15,6 @@ template<Renderer::Phase P>
 PrimaryCmdBuffer* Renderer::begin() const {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-    if constexpr(P == PHASES_FIRST) wait(); //TEMP this is bad code but i dont know an alternative
-
     PrimaryCmdBuffer* buffer = cmdBuffer<P>();
     buffer->begin();
 
@@ -56,15 +54,16 @@ Queue const* Renderer::queue() const { return _queues[P]; }
 template<Renderer::Phase P>
 PrimaryCmdBuffer* Renderer::cmdBuffer() const {
     DEBUG_CHECK_RENDERER_CURRENT_PHASE(this, P);
-    return _cmdBuffers[_frameIndex * PHASES_SIZE + P].get();
+    return _cmdBuffers[P * constants::FRAMES_IN_FLIGHT + _frameIndex].get();
 }
 
 template<Renderer::Phase P> void Renderer::nextState() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-    if constexpr(P == PHASES_LAST) _state = PHASES_FIRST;
-    else _state = static_cast<Phase>(static_cast<size_t>(_state) + 1);
-
+    if constexpr(P == PHASES_LAST) {
+        _state = PHASES_FIRST;
+        ++_frameIndex %= constants::FRAMES_IN_FLIGHT;
+    } else _state = static_cast<Phase>(static_cast<size_t>(_state) + 1);
 }
 
 

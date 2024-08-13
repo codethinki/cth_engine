@@ -4,7 +4,7 @@
 
 
 namespace cth::vk {
-class DeletionQueue;
+class DestructionQueue;
 }
 
 namespace cth::vk {
@@ -14,7 +14,7 @@ class Device;
 template<typename T>
 class Buffer final : public BasicBuffer {
 public:
-    Buffer(BasicCore const* core, DeletionQueue* deletion_queue, size_t element_count, VkBufferUsageFlags usage_flags,
+    Buffer(BasicCore const* core, DestructionQueue* destruction_queue, size_t element_count, VkBufferUsageFlags usage_flags,
         VkMemoryPropertyFlags memory_property_flags);
     ~Buffer() override;
 
@@ -28,10 +28,10 @@ public:
 
     /**
     * @brief submits buffer & memory to cached deletion queues and resets the object
-    * @param deletion_queue != nullptr => submits to new deletion queue
+    * @param destruction_queue != nullptr => submits to new deletion queue
     * @note new deletion queue will be cached
     */
-    void destroy(DeletionQueue* deletion_queue = nullptr) override;
+    void destroy(DestructionQueue* destruction_queue = nullptr) override;
 
     /**
      *@brief maps part of the buffer memory
@@ -100,7 +100,7 @@ private:
     void setMemory(BasicMemory* new_memory) override;
 
     size_t _elements;
-    DeletionQueue* _deletionQueue;
+    DestructionQueue* _destructionQueue;
 
 public:
     [[nodiscard]] uint32_t elements() const { return _elements; }

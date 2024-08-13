@@ -11,9 +11,7 @@ BasicGraphicsCore::BasicGraphicsCore(BasicCore const* core, OSWindow* os_window,
     BasicGraphicsCore::wrap(os_window, surface, swapchain);
 }
 #ifdef CONSTANT_DEBUG_MODE
-BasicGraphicsCore::~BasicGraphicsCore() {
-    DEBUG_CHECK_GRAPHICS_CORE_LEAK(this);
-}
+BasicGraphicsCore::~BasicGraphicsCore() { DEBUG_CHECK_GRAPHICS_CORE_LEAK(this); }
 #endif
 
 void BasicGraphicsCore::wrap(OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain) {
@@ -28,19 +26,19 @@ void BasicGraphicsCore::wrap(OSWindow* os_window, Surface* surface, BasicSwapcha
 
 
 void BasicGraphicsCore::create(std::string_view const window_name, VkExtent2D const extent, Queue const* present_queue,
-    BasicGraphicsSyncConfig const* sync_config, DeletionQueue* deletion_queue) {
+    BasicGraphicsSyncConfig const* sync_config, DestructionQueue* destruction_queue) {
     DEBUG_CHECK_GRAPHICS_CORE_LEAK(this);
-    _osWindow = new OSWindow(window_name, extent.width, extent.height, _core->instance());
-    _surface = new Surface(_core->instance(), _osWindow->surface()->get());
-    _swapchain = new BasicSwapchain(_core, present_queue, sync_config);
+    _osWindow = new OSWindow(_core->instance(), destruction_queue, window_name, extent.width, extent.height);
+    _surface = new Surface(_core->instance(), destruction_queue, _osWindow->releaseSurface());
+    _swapchain = new BasicSwapchain(_core, destruction_queue, present_queue, sync_config);
     _swapchain->create(_surface.get(), _osWindow->extent());
 }
-void BasicGraphicsCore::destroy(DeletionQueue* deletion_queue) {
-    _swapchain->destroy(deletion_queue);
+void BasicGraphicsCore::destroy(DestructionQueue* destruction_queue) {
+    _swapchain->destroy(destruction_queue);
+    _surface->destroy(destruction_queue);
+    _osWindow->destroy(destruction_queue);
     auto const ptrs = release();
-
-
-    delete ptrs.swapchain;
+    delete ptrs.swapchain; //TEMP left off here the swapchain gets submitted to the deletion queue while the surface and window do not -> no proper destruction
     delete ptrs.surface;
     delete ptrs.osWindow;
 }
@@ -67,23 +65,20 @@ void BasicGraphicsCore::minimized() const {
 
 
 
-void BasicGraphicsCore::acquireFrame() const {
-    auto const result = _swapchain->acquireNextImage();
-    if(result == VK_SUCCESS) return;
+void BasicGraphicsCore::acquireFrame(DestructionQueue* destruction_queue) const {
+    auto const result = _swapchain->acquireNextImage(destruction_queue);
 
-    _swapchain->resize(_osWindow->extent());
-    auto const result2 = _swapchain->acquireNextImage();
-    CTH_ERR(result2 != VK_SUCCESS, "failed to acquire next image")
-        throw cth::except::vk_result_exception{result2, details->exception()};
+    CTH_WARN(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR, "suboptimal / out of date swapchain discovered on image acquire") {}
 }
 
 void BasicGraphicsCore::beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const { _swapchain->beginRenderPass(render_cmd_buffer); }
 void BasicGraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const { _swapchain->endRenderPass(render_cmd_buffer); }
 
 
-void BasicGraphicsCore::presentFrame(DeletionQueue* deletion_queue) const {
-    auto const result = _swapchain->present(deletion_queue);
-    if(result == VK_SUBOPTIMAL_KHR) _swapchain->resize(_osWindow->extent());
+void BasicGraphicsCore::presentFrame() const {
+    auto const result = _swapchain->present();
+    if(result != VK_SUCCESS) [[unlikely]]
+        _swapchain->resize(_osWindow->extent());
 }
 
 

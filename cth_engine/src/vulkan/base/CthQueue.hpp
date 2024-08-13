@@ -69,10 +69,10 @@ public:
     /**
      * @brief presents the image via vkQueuePresentKHR()
      * @param image_index swapchain image index
-     * @return result of vkQueuePresentKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+     * @return result of vkQueuePresentKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR, VK_ERROR_OUT_OF_DATE_KHR]
      * @throws cth::except::vk_result_exception result of vkQueuePresentKHR()
      */
-    [[nodiscard]] VkResult present(uint32_t image_index, PresentInfo const& present_info) const;
+    [[nodiscard]] VkResult present(uint32_t image_index, PresentInfo& present_info) const;
 
 private:
     void submit(VkSubmitInfo const* submit_info, VkFence fence = nullptr) const;
@@ -109,6 +109,8 @@ public:
 #define DEBUG_CHECK_PRESENT_QUEUE(queue_ptr) ((void)0)
 #endif
 };
+
+inline size_t submitInfoId = 0; //TEMP remove the id
 
 /**
  * @brief encapsulates the submit info for reuse
@@ -153,6 +155,8 @@ private:
 
     BasicFence const* _fence = nullptr;
 
+
+    size_t _id = submitInfoId++; //TEMP remove this
 public:
     [[nodiscard]] VkSubmitInfo const* get() const { return &_submitInfo; }
     [[nodiscard]] VkSubmitInfo const* skip() const { return &_skipSubmitInfo; }
@@ -169,11 +173,18 @@ struct Queue::PresentInfo {
      */
     explicit PresentInfo(BasicSwapchain const* swapchain, std::span<BasicSemaphore const*> wait_semaphores);
 
-    [[nodiscard]] VkPresentInfoKHR createInfo(uint32_t const& image_index) const;
+    [[nodiscard]] VkPresentInfoKHR createInfo() const;
 
 private:
+    VkPresentInfoKHR _presentInfo{};
+
+    size_t _id = submitInfoId++; //TEMP remove this
+
     VkSwapchainKHR _swapchain;
     std::vector<VkSemaphore> _waitSemaphores;
+
+public:
+    [[nodiscard]] VkPresentInfoKHR const* create(uint32_t const& image_index);
 };
 
 }

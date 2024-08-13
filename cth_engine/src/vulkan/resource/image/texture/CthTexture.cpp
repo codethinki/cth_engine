@@ -7,18 +7,18 @@
 namespace cth::vk {
 
 
-Texture::Texture(BasicCore const* core, DeletionQueue* deletion_queue, VkExtent2D const extent, Config const& config, CmdBuffer const& cmd_buffer,
-    std::span<char const> const staging_data) : Image(core, deletion_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+Texture::Texture(BasicCore const* core, DestructionQueue* destruction_queue, VkExtent2D const extent, Config const& config, CmdBuffer const& cmd_buffer,
+    std::span<char const> const staging_data) : Image(core, destruction_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
 
-    Buffer<char> buffer{core, deletion_queue, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    Buffer<char> buffer{core, destruction_queue, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
     buffer.map();
     buffer.write(staging_data);
 
     init(cmd_buffer, buffer);
 }
-Texture::Texture(BasicCore const* core, DeletionQueue* deletion_queue, VkExtent2D const extent, Config const& config, CmdBuffer const& cmd_buffer,
-    BasicBuffer const& staging_buffer, size_t const buffer_offset) : Image(core, deletion_queue, extent, imageConfig(extent, config),
+Texture::Texture(BasicCore const* core, DestructionQueue* destruction_queue, VkExtent2D const extent, Config const& config, CmdBuffer const& cmd_buffer,
+    BasicBuffer const& staging_buffer, size_t const buffer_offset) : Image(core, destruction_queue, extent, imageConfig(extent, config),
     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) { init(cmd_buffer, staging_buffer, buffer_offset); }
 
 

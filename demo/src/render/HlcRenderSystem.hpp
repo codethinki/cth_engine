@@ -34,7 +34,7 @@ inline constexpr std::string_view TEXTURE_DIR = R"(res\img\texture\)";
 
 class RenderSystem {
 public:
-    RenderSystem(vk::BasicCore const* core, vk::DeletionQueue* deletion_queue, vk::PrimaryCmdBuffer const& init_cmd_buffer, VkRenderPass render_pass,
+    RenderSystem(vk::BasicCore const* core, vk::DestructionQueue* destruction_queue, vk::PrimaryCmdBuffer const& init_cmd_buffer, VkRenderPass render_pass,
         VkSampleCountFlagBits msaa_samples);
     ~RenderSystem() = default;
 
@@ -49,12 +49,12 @@ private:
 
     void createDescriptorPool();
 
-    void loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer, vk::DeletionQueue* deletion_queue);
+    void loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer, vk::DestructionQueue* destruction_queue);
 
     void createDescriptorSets();
 
     //TEMP replace this with actual model loading
-    void createDefaultTriangle(vk::CmdBuffer const& cmd_buffer, vk::DeletionQueue* deletion_queue);
+    void createDefaultTriangle(vk::CmdBuffer const& cmd_buffer, vk::DestructionQueue* destruction_queue);
 
     vk::BasicCore const* _core;
     std::unique_ptr<vk::PipelineLayout> _pipelineLayout;

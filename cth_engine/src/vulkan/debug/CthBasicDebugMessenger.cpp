@@ -1,7 +1,7 @@
 #include "CthBasicDebugMessenger.hpp"
 
 #include "vulkan/base/CthInstance.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
 
 

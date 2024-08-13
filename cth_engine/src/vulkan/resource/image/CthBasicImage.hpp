@@ -18,7 +18,7 @@ class BasicBuffer;
 class CmdBuffer;
 class BasicMemory;
 class ImageBarrier;
-class DeletionQueue;
+class DestructionQueue;
 
 /**
  * @brief wrapper for VkImage with no ownership
@@ -66,10 +66,10 @@ public:
 
     /**
     * @brief destroys the image and resets the object
-    * @param deletion_queue != nullptr => submit to deletion_queue
+    * @param destruction_queue != nullptr => submit to destruction_queue
     * @note memory will not be reset
     */
-    virtual void destroy(DeletionQueue* deletion_queue = nullptr);
+    virtual void destroy(DestructionQueue* destruction_queue = nullptr);
 
     /**
      * @brief resets the image and its state

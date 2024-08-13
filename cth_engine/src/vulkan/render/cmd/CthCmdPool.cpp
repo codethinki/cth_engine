@@ -4,7 +4,7 @@
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/base/CthQueue.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
 
 
@@ -20,17 +20,17 @@ CmdPool::CmdPool(BasicCore const* device, Config const& config) : _core(device),
 }
 CmdPool::~CmdPool() { destroy(); }
 
-void CmdPool::destroy(DeletionQueue* deletion_queue) {
-    DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
+void CmdPool::destroy(DestructionQueue* destruction_queue) {
+    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(destruction_queue);
     CTH_ERR(_primaryBuffers.size() != _config.maxPrimaryBuffers, "all primary cmd buffers must be destroyed prior to the pool")
         throw details->exception();
     CTH_ERR(_secondaryBuffers.size() != _config.maxSecondaryBuffers, "all secondary cmd buffers must be destroyed prior to the pool")
         throw details->exception();
 
-    if(deletion_queue) {
-        for(auto& primary : _primaryBuffers) deletion_queue->push(primary, _handle.get());
-        for(auto& secondary : _secondaryBuffers) deletion_queue->push(secondary, _handle.get());
-        deletion_queue->push(_handle.get());
+    if(destruction_queue) {
+        for(auto& primary : _primaryBuffers) destruction_queue->push(primary, _handle.get());
+        for(auto& secondary : _secondaryBuffers) destruction_queue->push(secondary, _handle.get());
+        destruction_queue->push(_handle.get());
 
         return;
     }

@@ -10,7 +10,7 @@
 namespace cth::vk {
 class BasicCore;
 class Device;
-class DeletionQueue;
+class DestructionQueue;
 
 
 /**
@@ -48,9 +48,9 @@ public:
 
     /**
      * @brief frees the memory and resets the object
-     * @param deletion_queue deletion_queue != nullptr => submit to deletion queue
+     * @param destruction_queue destruction_queue != nullptr => submit to deletion queue
      */
-    virtual void free(DeletionQueue* deletion_queue = nullptr);
+    virtual void free(DestructionQueue* destruction_queue = nullptr);
 
 
     /**

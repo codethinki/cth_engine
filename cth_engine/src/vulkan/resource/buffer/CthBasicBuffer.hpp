@@ -15,7 +15,7 @@ namespace cth::vk {
 class BasicMemory;
 class CmdBuffer;
 class BasicCore;
-class DeletionQueue;
+class DestructionQueue;
 class Memory;
 
 class BasicBuffer {
@@ -64,10 +64,10 @@ public:
 
     /**
     * @brief destroys the buffer
-    * @param deletion_queue != nullptr => submit to deletion queue
+    * @param destruction_queue != nullptr => submit to deletion queue
     * @note memory will not be reset
     */
-    virtual void destroy(DeletionQueue* deletion_queue);
+    virtual void destroy(DestructionQueue* destruction_queue);
 
     /**
      * @brief resets the buffer and its state
@@ -169,10 +169,10 @@ public:
 protected:
     /**
     * @brief destroys the memory
-    * @param deletion_queue deletion_queue != nullptr => submit to deletion queue
+    * @param destruction_queue destruction_queue != nullptr => submit to deletion queue
     * @note the memory destruction happens immediately only the free() is queued
     */
-    void destroyMemory(DeletionQueue* deletion_queue = nullptr);
+    void destroyMemory(DestructionQueue* destruction_queue = nullptr);
 
     /**
     * @param new_memory must not be allocated, nullptr or current memory

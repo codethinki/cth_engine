@@ -14,7 +14,7 @@
 
 namespace cth::vk {
 class BasicCore;
-class DeletionQueue;
+class DestructionQueue;
 class Surface;
 class OSWindow;
 class BasicSwapchain;
@@ -41,15 +41,15 @@ public:
      * @note does not destroy/delete
      */
     virtual void create(std::string_view const window_name, VkExtent2D const extent, Queue const* present_queue,
-        BasicGraphicsSyncConfig const* sync_config, DeletionQueue* deletion_queue = nullptr);
+        BasicGraphicsSyncConfig const* sync_config, DestructionQueue* destruction_queue = nullptr);
 
 
     /**
      * @brief destroys & deletes osWindow, surface and swapchain
-     * @param deletion_queue optional
+     * @param destruction_queue optional
      * @note release() gets implicitly called
      */
-    virtual void destroy(DeletionQueue* deletion_queue = nullptr);
+    virtual void destroy(DestructionQueue* destruction_queue = nullptr);
 
     /**
      * @brief sets osWindow, surface and swapchain to nullptr
@@ -63,12 +63,12 @@ public:
     */
     void minimized() const;
 
-    void acquireFrame() const;
+    void acquireFrame(DestructionQueue* destruction_queue) const;
 
     void beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
     void endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
 
-    void presentFrame(DeletionQueue* deletion_queue) const; //TEMP
+    void presentFrame() const; //TEMP
 
 private:
     BasicCore const* _core;

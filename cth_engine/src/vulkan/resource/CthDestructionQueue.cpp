@@ -1,4 +1,4 @@
-#include "CthDeletionQueue.hpp"
+#include "CthDestructionQueue.hpp"
 
 #include "buffer/CthBasicBuffer.hpp"
 #include "image/CthBasicImage.hpp"
@@ -17,23 +17,27 @@
 
 
 
+#include "vulkan/surface/CthOSWindow.hpp"
+#include "vulkan/surface/CthSurface.hpp"
+
 #include<cth/cth_variant.hpp>
 
 
 namespace cth::vk {
 
-DeletionQueue::DeletionQueue(BasicCore* core) : _core(core) {}
-DeletionQueue::~DeletionQueue() {
+DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_device, BasicInstance* instance) : _device{device}, _physicalDevice{physical_device},
+    _instance{instance} {}
+DestructionQueue::~DestructionQueue() {
     for(uint32_t i = 0; i < QUEUES; ++i)
         clear((_frameIndex + i) % QUEUES);
 }
-void DeletionQueue::push(deletable_handle_t handle) {
+void DestructionQueue::push(destructible_handle_t handle) {
     CTH_WARN(std::visit(var::visitor{[](auto handle) { return handle == VK_NULL_HANDLE; }}, handle),
         "handle should not be VK_NULL_HANDLE or nullptr") {}
 
     _queue[_frameIndex].emplace_back(handle);
 }
-void DeletionQueue::push(dependent_handle_t handle, deletable_handle_t dependency) {
+void DestructionQueue::push(dependent_handle_t handle, destructible_handle_t dependency) {
     bool const validHandle = std::visit(var::visitor{[](auto temp_handle) { return temp_handle != VK_NULL_HANDLE; }}, handle);
     bool const validDependency = std::visit(var::visitor{[](auto temp_dependency) { return temp_dependency == VK_NULL_HANDLE; }}, dependency);
     CTH_WARN(!validHandle, "handle should not be VK_NULL_HANDLE or nullptr") {}
@@ -46,28 +50,32 @@ void DeletionQueue::push(dependent_handle_t handle, deletable_handle_t dependenc
 
 
 
-void DeletionQueue::clear(size_t const frame_index) {
+void DestructionQueue::clear(size_t const frame_index) {
 
     auto& deletables = _queue[frame_index];
     for(auto [deletable, dependency] : deletables) {
         std::visit(cth::var::overload{
-            [this](deletable_handle_t handle) {
+            [this](destructible_handle_t handle) {
                 std::visit(cth::var::overload{
-                    [this](VkDeviceMemory vk_memory) { BasicMemory::free(_core->vkDevice(), vk_memory); },
-                    [this](VkBuffer vk_buffer) { BasicBuffer::destroy(_core->vkDevice(), vk_buffer); },
-                    [this](VkImage vk_image) { BasicImage::destroy(_core->vkDevice(), vk_image); },
-                    [this](VkSemaphore vk_semaphore) { BasicSemaphore::destroy(_core->vkDevice(), vk_semaphore); },
-                    [this](VkFence vk_fence) { BasicFence::destroy(_core->vkDevice(), vk_fence); },
-                    [this](VkCommandPool vk_cmd_pool) { CmdPool::destroy(_core->vkDevice(), vk_cmd_pool); },
-                    [this](VkSwapchainKHR vk_swapchain) { BasicSwapchain::destroy(_core->vkDevice(), vk_swapchain); },
+                    //device destructible
+                    [this](VkDeviceMemory vk_memory) { BasicMemory::free(_device->get(), vk_memory); },
+                    [this](VkBuffer vk_buffer) { BasicBuffer::destroy(_device->get(), vk_buffer); },
+                    [this](VkImage vk_image) { BasicImage::destroy(_device->get(), vk_image); },
+                    [this](VkSemaphore vk_semaphore) { BasicSemaphore::destroy(_device->get(), vk_semaphore); },
+                    [this](VkFence vk_fence) { BasicFence::destroy(_device->get(), vk_fence); },
+                    [this](VkCommandPool vk_cmd_pool) { CmdPool::destroy(_device->get(), vk_cmd_pool); },
+                    [this](VkSwapchainKHR vk_swapchain) { BasicSwapchain::destroy(_device->get(), vk_swapchain); },
+
+                    //instance destructible
+                    [this](VkSurfaceKHR vk_surface) { Surface::destroy(vk_surface, _instance->get()); },
+                    [](GLFWwindow* glfw_window) { OSWindow::destroy(glfw_window); },
                 }, handle);
             },
-            //device deletable
 
             [this, dependency](dependent_handle_t dependent) {
                 std::visit(cth::var::overload{
                     [this, dependency](VkCommandBuffer vk_cmd_buffer) {
-                        CmdBuffer::free(_core->vkDevice(), std::get<VkCommandPool>(dependency), vk_cmd_buffer);
+                        CmdBuffer::free(_device->get(), std::get<VkCommandPool>(dependency), vk_cmd_buffer);
                     },
                 }, dependent);
             },
@@ -75,12 +83,16 @@ void DeletionQueue::clear(size_t const frame_index) {
     }
     deletables.clear();
 }
+void DestructionQueue::free() {
+    for(uint32_t i = 0; i < QUEUES; ++i)
+        clear((_frameIndex + i) % QUEUES);
+}
 
 #ifdef CONSTANT_DEBUG_MODE
-void DeletionQueue::debug_check(DeletionQueue const* queue) {
+void DestructionQueue::debug_check(DestructionQueue const* queue) {
     CTH_ERR(queue == nullptr, "queue must not be nullptr") throw details->exception();
 }
-void DeletionQueue::debug_check_null_allowed(DeletionQueue const* queue) { if(queue) debug_check(queue); }
+void DestructionQueue::debug_check_null_allowed(DestructionQueue const* queue) { if(queue) debug_check(queue); }
 #endif
 
 }

@@ -8,39 +8,46 @@ namespace cth {
 App::App() { initFrame(); }
 
 void App::run() {
+    cth::log::msg<except::INFO>("starting...");
 
-
-    while(!_window->shouldClose()) {
+    while(!_graphicsCore->osWindow()->shouldClose()) {
         glfwPollEvents();
 
         renderFrame();
     }
     _core->device()->waitIdle();
 
+    cth::log::msg<except::INFO>("shutting down...");
+
     //OldModel::clearModels();
 }
 
 void App::initFrame() {
-    _graphicsCore->acquireFrame();
+    _graphicsCore->acquireFrame(_destructionQueue.get());
 
     auto* initCmdBuffer = _renderer->begin<vk::Renderer::PHASE_TRANSFER>();
     initRenderSystem(*initCmdBuffer);
     _renderer->end<vk::Renderer::PHASE_TRANSFER>();
 
     _renderer->skip<vk::Renderer::PHASE_GRAPHICS>();
-    _graphicsCore->presentFrame(_deletionQueue.get());
+
+    _graphicsCore->presentFrame();
+
+    _frameCount++;
 }
 
 void App::renderFrame() {
-    _graphicsCore->acquireFrame();
+    _renderer->wait();
+
+    _graphicsCore->acquireFrame(_destructionQueue.get());
 
     _renderer->skip<vk::Renderer::PHASE_TRANSFER>();
 
     graphicsPhase();
 
-    _graphicsCore->presentFrame(_deletionQueue.get());
+    _graphicsCore->presentFrame();
 
-    _frameIndex++;
+    _frameCount++;
 }
 void App::graphicsPhase() const {
     auto* cmdBuffer = _renderer->begin<vk::Renderer::PHASE_GRAPHICS>();
@@ -49,7 +56,7 @@ void App::graphicsPhase() const {
     FrameInfo info = {_renderer->frameIndex(), 0.f, cmdBuffer};
 
     _graphicsCore->beginWindowPass(cmdBuffer);
-    
+
     _renderSystem->render(info);
 
     _graphicsCore->endWindowPass(cmdBuffer);
@@ -60,7 +67,7 @@ void App::graphicsPhase() const {
 
 
 void App::initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer) {
-    _renderSystem = std::make_unique<RenderSystem>(_core.get(), _deletionQueue.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(),
+    _renderSystem = std::make_unique<RenderSystem>(_core.get(), _destructionQueue.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(),
         _graphicsCore->msaaSamples());
 }
 

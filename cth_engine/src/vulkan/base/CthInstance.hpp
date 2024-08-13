@@ -17,7 +17,7 @@
 namespace cth::vk {
 class BasicDebugMessenger;
 
-class DeletionQueue;
+class DestructionQueue;
 
 
 class BasicInstance {
@@ -36,7 +36,7 @@ public:
     */
     virtual void create(std::optional<BasicDebugMessenger::Config> const& messenger_config = std::nullopt);
 
-    void destroy();
+    virtual void destroy();
 
     /**
  * @throws cth::except::default_exception reason: required extension not supported
@@ -112,7 +112,9 @@ public:
 
     void wrap(VkInstance vk_instance) override;
 
-    void create(std::optional<BasicDebugMessenger::Config> const& messenger_config) override;
+    void create(std::optional<BasicDebugMessenger::Config> const& messenger_config = std::nullopt) override;
+
+    void destroy() override;
 
 private:
 #ifdef CONSTANT_DEBUG_MODE

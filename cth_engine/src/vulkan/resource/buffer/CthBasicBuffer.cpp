@@ -3,7 +3,7 @@
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/resource/CthDeletionQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/resource/memory/CthBasicMemory.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
@@ -75,10 +75,10 @@ void BasicBuffer::bind() const {
 
 
 
-void BasicBuffer::destroy(DeletionQueue* deletion_queue) {
-    DEBUG_CHECK_DELETION_QUEUE_NULL_ALLOWED(deletion_queue);
+void BasicBuffer::destroy(DestructionQueue* destruction_queue) {
+    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(destruction_queue);
 
-    if(deletion_queue) deletion_queue->push(_handle.get());
+    if(destruction_queue) destruction_queue->push(_handle.get());
     else destroy(_core->vkDevice(), _handle.get());
 
     _handle = VK_NULL_HANDLE;
@@ -189,10 +189,10 @@ BasicMemory* BasicBuffer::releaseMemory() {
 
 //protected
 
-void BasicBuffer::destroyMemory(DeletionQueue* deletion_queue) {
+void BasicBuffer::destroyMemory(DestructionQueue* destruction_queue) {
     CTH_ERR(_state.memory == nullptr, "memory invalid") throw details->exception();
 
-    if(_state.memory->allocated()) _state.memory->free(deletion_queue);
+    if(_state.memory->allocated()) _state.memory->free(destruction_queue);
 
     delete _state.memory.get();
     _state.memory = nullptr;

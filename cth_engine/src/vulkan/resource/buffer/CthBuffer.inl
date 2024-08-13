@@ -1,5 +1,5 @@
 #pragma once
-#include "../CthDeletionQueue.hpp"
+#include "../CthDestructionQueue.hpp"
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/resource/memory/CthMemory.hpp"
@@ -9,10 +9,10 @@
 namespace cth::vk {
 
 template<typename T>
-Buffer<T>::Buffer(BasicCore const* core, DeletionQueue* deletion_queue, size_t const element_count, VkBufferUsageFlags const usage_flags,
+Buffer<T>::Buffer(BasicCore const* core, DestructionQueue* destruction_queue, size_t const element_count, VkBufferUsageFlags const usage_flags,
     VkMemoryPropertyFlags const memory_property_flags) : BasicBuffer(core, element_count * sizeof(T), usage_flags),
-    _elements(element_count), _deletionQueue(deletion_queue) {
-    BasicMemory* memory = new Memory{core, deletion_queue, memory_property_flags};
+    _elements(element_count), _destructionQueue(destruction_queue) {
+    BasicMemory* memory = new Memory{core, destruction_queue, memory_property_flags};
 
     BasicBuffer::create();
     BasicBuffer::alloc(memory);
@@ -39,10 +39,10 @@ void Buffer<T>::create() {
 }
 
 template<typename T>
-void Buffer<T>::destroy(DeletionQueue* deletion_queue) {
-    if(deletion_queue)_deletionQueue = deletion_queue;
-    if(_state.memory->allocated()) _state.memory->free(deletion_queue);
-    BasicBuffer::destroy(_deletionQueue);
+void Buffer<T>::destroy(DestructionQueue* destruction_queue) {
+    if(destruction_queue)_destructionQueue = destruction_queue;
+    if(_state.memory->allocated()) _state.memory->free(destruction_queue);
+    BasicBuffer::destroy(_destructionQueue);
 }
 
 template<typename T>
