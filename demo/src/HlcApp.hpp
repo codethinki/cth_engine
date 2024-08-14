@@ -29,8 +29,8 @@ public:
 
 private:
     void initFrame();
-    void renderFrame();
-    void graphicsPhase() const;
+    void renderFrame() const;
+    void graphicsPhase(vk::Cycle const& cycle) const;
 
 
     void initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer);
@@ -49,13 +49,12 @@ private:
 
     std::unique_ptr<vk::GraphicsSyncConfig> _syncConfig = std::make_unique<vk::GraphicsSyncConfig>(_core.get(), _destructionQueue.get());
 
-    std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(_core.get(), _destructionQueue.get(), WINDOW_NAME,
-        VkExtent2D{WIDTH, HEIGHT},
-        &_queues[0], *_syncConfig);
+    std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(_core.get(), WINDOW_NAME,
+        VkExtent2D{WIDTH, HEIGHT}, &_queues[0], *_syncConfig);
 
 
 
-    std::unique_ptr<vk::Renderer> _renderer = std::make_unique<vk::Renderer>(_core.get(), _destructionQueue.get(),
+    std::unique_ptr<vk::Renderer> _renderer = std::make_unique<vk::Renderer>(_core.get(),
         vk::Renderer::Config::Render(&_queues[0], _syncConfig.get()));
     vk::InputController _inputController{};
     vk::Camera _camera{};

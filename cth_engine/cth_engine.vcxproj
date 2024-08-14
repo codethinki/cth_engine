@@ -39,6 +39,7 @@
     <ClInclude Include="include\vulkan\cth_debug.hpp" />
     <ClInclude Include="include\vulkan\cth_resource.hpp" />
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
+    <ClInclude Include="src\interface\render\CthRenderCycle.hpp" />
     <ClInclude Include="src\vulkan\utility\utility\cth_vk_format_utils.hpp" />
     <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
     <ClInclude Include="src\pch\util\definition.hpp" />

@@ -54,15 +54,14 @@ Queue const* Renderer::queue() const { return _queues[P]; }
 template<Renderer::Phase P>
 PrimaryCmdBuffer* Renderer::cmdBuffer() const {
     DEBUG_CHECK_RENDERER_CURRENT_PHASE(this, P);
-    return _cmdBuffers[P * constants::FRAMES_IN_FLIGHT + _frameIndex].get();
+    return _cmdBuffers[P * constants::FRAMES_IN_FLIGHT + _cycle.subIndex].get();
 }
 
 template<Renderer::Phase P> void Renderer::nextState() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-    if constexpr(P == PHASES_LAST) {
-        _state = PHASES_FIRST;
-        ++_frameIndex %= constants::FRAMES_IN_FLIGHT;
+    if constexpr(P >= PHASES_SIZE) {
+        CTH_STABLE_ERR(P >= PHASES_SIZE, "invalid phase submitted") throw details->exception();
     } else _state = static_cast<Phase>(static_cast<size_t>(_state) + 1);
 }
 
@@ -71,7 +70,7 @@ template<Renderer::Phase P> void Renderer::nextState() {
 #ifdef CONSTANT_DEBUG_MODE
 template<Renderer::Phase P> void Renderer::debug_check_current_phase(Renderer const* renderer) {
     DEBUG_CHECK_RENDERER_PHASE(P);
-    CTH_ERR(P != renderer->_state, "phase error, explicitly skip phases") throw details->exception();
+    CTH_ERR(P != renderer->_state, "phase error, explicitly const_skip phases") throw details->exception();
 }
 
 
@@ -87,7 +86,9 @@ constexpr void Renderer::debug_check_phase() {
 template<Renderer::Phase P>
 void Renderer::debug_check_phase_change(Renderer const* renderer) {
     DEBUG_CHECK_RENDERER_PHASE(P);
-    CTH_ERR(static_cast<size_t>(P) != static_cast<size_t>(renderer->_state), "phase error, explicitly skip phases") throw details->exception();
+
+    CTH_ERR(renderer->_state >= PHASES_SIZE, "phase error, forgot to call cycle?") throw details->exception();
+    CTH_ERR(static_cast<size_t>(P) != static_cast<size_t>(renderer->_state), "phase error, explicitly const_skip phases") throw details->exception();
 
 }
 #endif

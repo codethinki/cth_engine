@@ -6,6 +6,8 @@
 
 #include "CthGraphicsSyncConfig.hpp"
 #include "../swapchain/CthBasicSwapchain.hpp"
+
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthQueue.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_debug_macros.hpp"
@@ -30,7 +32,9 @@ public:
 
 
     BasicGraphicsCore(BasicCore const* core, OSWindow* os_window, Surface* surface, BasicSwapchain* swapchain);
-    explicit BasicGraphicsCore(BasicCore const* core) : _core(core) {}
+    explicit BasicGraphicsCore(BasicCore const* core) : _core(core) {
+        DEBUG_CHECK_CORE(core);
+    }
     virtual ~BasicGraphicsCore() CTH_DEBUG_IMPL;
 
 
@@ -63,16 +67,19 @@ public:
     */
     void minimized() const;
 
-    void acquireFrame(DestructionQueue* destruction_queue) const;
+    void acquireFrame(Cycle const& cycle) const;
+    void skipAcquire(Cycle const& cycle) const;
 
-    void beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
+    void beginWindowPass(Cycle const& cycle, PrimaryCmdBuffer const* render_cmd_buffer) const;
     void endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
 
-    void presentFrame() const; //TEMP
+    void presentFrame(Cycle const& cycle) const;
+    void skipPresent(Cycle const& cycle) const;
 
-private:
+protected:
     BasicCore const* _core;
 
+private:
     move_ptr<OSWindow> _osWindow = nullptr;
     move_ptr<Surface> _surface = nullptr;
     move_ptr<BasicSwapchain> _swapchain = nullptr; //TODO change to Swapchain ptr once implemented

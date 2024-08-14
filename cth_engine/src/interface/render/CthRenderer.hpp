@@ -1,4 +1,6 @@
 #pragma once
+#include "CthRenderCycle.hpp"
+
 #include "vulkan/base/CthQueue.hpp"
 #include "vulkan/render/control/CthTimelineSemaphore.hpp"
 #include "vulkan/render/control/CthWaitStage.hpp"
@@ -32,6 +34,7 @@ class Camera;
 class Renderer {
 public:
     struct Config;
+
     enum Phase : size_t {
         PHASE_TRANSFER,
         PHASE_GRAPHICS,
@@ -41,7 +44,7 @@ public:
         PHASES_SIZE
     };
 
-    explicit Renderer(BasicCore const* core, DestructionQueue* destruction_queue, Config const& config);
+    explicit Renderer(BasicCore const* core, Config const& config);
     ~Renderer();
 
     /**
@@ -68,8 +71,15 @@ public:
     template<Phase P>
     void skip();
 
+
     /**
-     * @brief blocks until the last recorded phase was executed
+     * @brief must be called at the beginning of each cycle
+     * @return cycle struct with info for current cycle
+     */
+    Cycle cycle();
+
+    /**
+     * @brief blocks until the last recorded phase with the same cycle index was executed
      * @note there is no need to wait for a skipped phase
      */
     void wait() const;
@@ -87,7 +97,6 @@ private:
     void createSubmitInfos(Config config);
 
     BasicCore const* _core;
-    DestructionQueue* _destructionQueue;
 
     std::array<Queue const*, PHASES_SIZE> _queues{};
     std::array<std::unique_ptr<PrimaryCmdBuffer>, PHASES_SIZE * constants::FRAMES_IN_FLIGHT> _cmdBuffers;
@@ -99,14 +108,13 @@ private:
 
     Phase _state = PHASE_TRANSFER;
 
-    uint32_t _frameIndex = 0;
+    Cycle _cycle{};
 
-
-    [[nodiscard]] TimelineSemaphore* semaphore() const { return _semaphores[_frameIndex].get(); }
+    [[nodiscard]] TimelineSemaphore* semaphore() const { return _semaphores[_cycle.subIndex].get(); }
     template<Phase P> [[nodiscard]] Queue const* queue() const;
     template<Phase P> [[nodiscard]] PrimaryCmdBuffer* cmdBuffer() const;
     template<Phase P> [[nodiscard]] Queue::SubmitInfo& submitInfo() {
-        return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _frameIndex]; //TODO change this to frame major instead of phase major
+        return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _cycle.subIndex]; //TODO change this to frame major instead of phase major
     }
 
 
@@ -126,9 +134,6 @@ private:
 #endif
 
 public:
-    [[nodiscard]] uint32_t frameIndex() const { return _frameIndex; }
-    [[nodiscard]] DestructionQueue* destructionQueue() const;
-
     Renderer(Renderer const&) = delete;
     Renderer& operator=(Renderer const&) = delete;
 
@@ -147,15 +152,10 @@ public:
 
 }
 
+
 //Builder
 
 namespace cth::vk {
-
-//TEMP left off here. implement this builder. the sync primitives should persist throughout the renderer's lifetime
-//TEMP the builder produces the Queue::SubmitInfo objects
-//TEMP continue with implementing the graphicsPhase core so the renderer doesnt have to know about the pipelines
-//TEMP wait sets have an implicit pipelinestageflag, no need to specify
-
 /**
  * @brief configuration interface for hooking sync primitives to the renderer
  * @note \b set:  collection of sync primitives, one for each frame in constant::FRAMES_IN_FLIGHT

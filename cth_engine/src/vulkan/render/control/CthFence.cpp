@@ -64,7 +64,13 @@ VkResult BasicFence::wait(uint64_t const timeout) const {
 
     std::array<VkFence, 1> const fences = {_handle.get()};
 
-    return BasicFence::wait(_core->vkDevice(), fences, timeout);
+
+    VkResult const result = vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, timeout);
+
+    CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
+        throw cth::except::vk_result_exception{result, details->exception()};
+
+    return result;
 }
 void BasicFence::wait() const {
     // ReSharper disable once CppExpressionWithoutSideEffects
@@ -74,28 +80,10 @@ void BasicFence::wait() const {
 
 void BasicFence::destroy(VkDevice vk_device, VkFence vk_fence) {
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);
-    CTH_WARN(vk_fence == VK_NULL_HANDLE, "handle invalid") throw details->exception();
+    CTH_WARN(vk_fence == VK_NULL_HANDLE, "vk_fence should not be invalid (VK_NULL_HANDLE)") {}
 
-    std::array<VkFence, 1> const fences = {vk_fence};
-    if(vk_fence) wait(vk_device, fences);
 
     vkDestroyFence(vk_device, vk_fence, nullptr);
-}
-
-VkResult BasicFence::wait(VkDevice vk_device, std::span<VkFence const> const vk_fences, uint64_t const timeout) {
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
-    DEBUG_CHECK_FENCE_HANDLES(vk_fences);
-
-    VkResult const result = vkWaitForFences(vk_device, static_cast<uint32_t>(vk_fences.size()), vk_fences.data(), VK_TRUE, timeout);
-
-    CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
-        throw cth::except::vk_result_exception{result, details->exception()};
-
-    return result;
-}
-void BasicFence::wait(VkDevice vk_device, std::span<VkFence const> const vk_fences) {
-    // ReSharper disable once CppNoDiscardExpression no timeout possible
-    wait(vk_device, vk_fences, std::numeric_limits<uint64_t>::max());
 }
 
 

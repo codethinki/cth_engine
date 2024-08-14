@@ -23,9 +23,7 @@ void Queue::wrap(uint32_t const family_index, uint32_t const queue_index, VkQueu
 void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
 void Queue::const_submit(SubmitInfo const& submit_info) const { submit(submit_info.get(), submit_info.fence()); }
 void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next()); }
-void Queue::const_skip(SubmitInfo const& submit_info) const {
-    submit(submit_info.skip(), submit_info.fence());
-}
+void Queue::const_skip(SubmitInfo const& submit_info) const { submit(submit_info.skip(), submit_info.fence()); }
 
 
 VkResult Queue::present(uint32_t const image_index, PresentInfo& present_info) const {
@@ -36,6 +34,12 @@ VkResult Queue::present(uint32_t const image_index, PresentInfo& present_info) c
         throw cth::except::vk_result_exception{result, details->exception()};
 
     return result;
+}
+void Queue::const_skip(PresentInfo const& present_info) const {
+    auto const result = vkQueueSubmit(get(), 1, present_info.skip(), VK_NULL_HANDLE);
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-present")
+        throw cth::except::vk_result_exception{result, details->exception()};
 }
 
 void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
@@ -199,10 +203,13 @@ Queue::PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<Basic
             throw details->exception();
     }
 
-    _presentInfo = createInfo();
+    createInfo();
 }
-VkPresentInfoKHR Queue::PresentInfo::createInfo() const {
-    return VkPresentInfoKHR{
+void Queue::PresentInfo::createInfo() {
+    _skipPipelineStages.resize(_waitSemaphores.size());
+    std::ranges::fill(_skipPipelineStages, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+    _presentInfo = VkPresentInfoKHR{
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .pNext = nullptr,
         .waitSemaphoreCount = static_cast<uint32_t>(_waitSemaphores.size()),
@@ -211,6 +218,13 @@ VkPresentInfoKHR Queue::PresentInfo::createInfo() const {
         .pSwapchains = &_swapchain,
         .pImageIndices = nullptr,
         .pResults = nullptr,
+    };
+    _skipInfo = VkSubmitInfo{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .waitSemaphoreCount = static_cast<uint32_t>(_waitSemaphores.size()),
+        .pWaitSemaphores = _waitSemaphores.data(),
+        .pWaitDstStageMask = _skipPipelineStages.data(),
+        .commandBufferCount = 0,
     };
 }
 VkPresentInfoKHR const* Queue::PresentInfo::create(uint32_t const& image_index) {

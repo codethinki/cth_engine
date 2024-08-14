@@ -38,7 +38,7 @@ public:
         VkSampleCountFlagBits msaa_samples);
     ~RenderSystem() = default;
 
-    void render(FrameInfo& frame_info) const;
+    void render(FrameInfo const& frame_info) const;
 
 private:
     void createShaders();

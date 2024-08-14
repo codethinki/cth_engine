@@ -78,6 +78,7 @@
     <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
     <ClInclude Include="src\vulkan\utility\utility\cth_vk_format_utils.hpp" />
+    <ClInclude Include="src\interface\render\CthRenderCycle.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />

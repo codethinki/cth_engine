@@ -4,8 +4,8 @@
 namespace cth::vk {
 class GraphicsCore : public BasicGraphicsCore {
 public:
-    explicit GraphicsCore(BasicCore const* core, DestructionQueue* destruction_queue);
-    explicit GraphicsCore(BasicCore const* core, DestructionQueue* destruction_queue, std::string_view window_name, VkExtent2D extent,
+    explicit GraphicsCore(BasicCore const* core);
+    explicit GraphicsCore(BasicCore const* core, std::string_view window_name, VkExtent2D extent,
         Queue const* present_queue, BasicGraphicsSyncConfig const& sync_config);
 
     ~GraphicsCore() override;
@@ -17,7 +17,7 @@ public:
     void destroy(DestructionQueue* destruction_queue = nullptr) override;
 
 private:
-    DestructionQueue* _destructionQueue = nullptr;
+
 
     [[nodiscard]] bool destroyed() const;
     void optDestroy(DestructionQueue* destruction_queue = nullptr) { if(!destroyed()) destroy(destruction_queue); }

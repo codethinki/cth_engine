@@ -1,5 +1,8 @@
 #pragma once
 #include "../graphics_core/CthGraphicsSyncConfig.hpp"
+
+#include "interface/render/CthRenderCycle.hpp"
+
 #include "vulkan/base/CthQueue.hpp"
 #include "vulkan/render/control/CthFence.hpp"
 #include "vulkan/render/pass/cth_render_pass_utils.hpp"
@@ -28,7 +31,7 @@ class PrimaryCmdBuffer;
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(BasicCore const* core, DestructionQueue* destruction_queue, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config);
+    BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config);
     virtual ~BasicSwapchain();
 
     //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
@@ -52,15 +55,16 @@ public:
      * @note the semaphore must not be signaled
      * @note the fence must be signaled
      */
-    VkResult acquireNextImage(DestructionQueue* destruction_queue);
+    VkResult acquireNextImage(Cycle const& cycle);
+    void skipAcquire(Cycle const& cycle);
 
-    void beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const;
+    void beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const* cmd_buffer) const;
 
     void endRenderPass(PrimaryCmdBuffer const* cmd_buffer);
 
 
-    [[nodiscard]] VkResult present(); //TEMP remove deletion queue from here
-
+    [[nodiscard]] VkResult present(Cycle const& cycle); //TEMP remove deletion queue from here
+    void skipPresent(Cycle const& cycle);
 
     void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
         CmdBuffer const& acquire_cmd_buffer, uint32_t image_index);
@@ -138,7 +142,6 @@ private:
 
 
     BasicCore const* _core;
-    DestructionQueue* _destructionQueue;
     Queue const* _presentQueue;
     Surface const* _surface = nullptr;
 
@@ -152,7 +155,6 @@ private:
 
 
     std::vector<VkFramebuffer> _swapchainFramebuffers;
-    [[nodiscard]] VkFramebuffer framebuffer() const { return _swapchainFramebuffers[imageIndex()]; }
 
     VkRenderPass _renderPass = VK_NULL_HANDLE;
 
@@ -172,11 +174,8 @@ private:
 
     std::vector<Queue::PresentInfo> _presentInfos;
 
-    size_t _frameIndex = 0;
-    static size_t nextFrame(size_t const current) { return (current + 1) % constants::FRAMES_IN_FLIGHT; }
 
     std::array<uint32_t, constants::FRAMES_IN_FLIGHT> _imageIndices{};
-    [[nodiscard]] uint32_t imageIndex() const { return _imageIndices[_frameIndex]; }
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 

@@ -66,18 +66,18 @@ void BasicSemaphore::debug_check_leak(BasicSemaphore const* semaphore) {
 
 
 namespace cth::vk {
-Semaphore::Semaphore(BasicCore const* core, DestructionQueue* destruction_queue, bool const create) : BasicSemaphore(core), _destructionQueue(destruction_queue) {
+Semaphore::Semaphore(BasicCore const* core, bool const create) : BasicSemaphore(core) {
     if(create) BasicSemaphore::create();
 }
-Semaphore::~Semaphore() { if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_destructionQueue); }
+Semaphore::~Semaphore() { if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_core->destructionQueue()); }
 
 void Semaphore::create() {
-    if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_destructionQueue);
+    if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_core->destructionQueue());
 
     BasicSemaphore::create();
 }
 void Semaphore::destroy(DestructionQueue* destruction_queue) {
     if(destruction_queue) BasicSemaphore::destroy(destruction_queue);
-    else BasicSemaphore::destroy(_destructionQueue);
+    else BasicSemaphore::destroy(_core->destructionQueue());
 }
 }

@@ -21,7 +21,7 @@ struct BasicGraphicsSyncConfig {
     std::vector<BasicSemaphore*> renderFinishedSemaphores;
 
     /**
-     * semaphores[currentFrame] will be signaled once the image is free to render on
+     * semaphores[currentFrame] will be signaled once the image is clear to render on
      * expects that the semaphore will be waited before rendering
      */
     std::vector<BasicSemaphore*> imageAvailableSemaphores;

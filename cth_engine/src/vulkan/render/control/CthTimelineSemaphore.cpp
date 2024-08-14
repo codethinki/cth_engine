@@ -5,7 +5,7 @@
 
 
 namespace cth::vk {
-TimelineSemaphore::TimelineSemaphore(BasicCore const* core, DestructionQueue* destruction_queue, bool const create) : Semaphore(core, destruction_queue, false) {
+TimelineSemaphore::TimelineSemaphore(BasicCore const* core, bool const create) : Semaphore(core, false) {
     if(create) BasicSemaphore::createHandle(TimelineSemaphore::createInfo());
 }
 

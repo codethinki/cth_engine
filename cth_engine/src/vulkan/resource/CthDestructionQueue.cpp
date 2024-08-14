@@ -17,6 +17,8 @@
 
 
 
+#include "interface/render/CthRenderer.hpp"
+
 #include "vulkan/surface/CthOSWindow.hpp"
 #include "vulkan/surface/CthSurface.hpp"
 
@@ -28,14 +30,13 @@ namespace cth::vk {
 DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_device, BasicInstance* instance) : _device{device}, _physicalDevice{physical_device},
     _instance{instance} {}
 DestructionQueue::~DestructionQueue() {
-    for(uint32_t i = 0; i < QUEUES; ++i)
-        clear((_frameIndex + i) % QUEUES);
+    clear();
 }
 void DestructionQueue::push(destructible_handle_t handle) {
     CTH_WARN(std::visit(var::visitor{[](auto handle) { return handle == VK_NULL_HANDLE; }}, handle),
         "handle should not be VK_NULL_HANDLE or nullptr") {}
 
-    _queue[_frameIndex].emplace_back(handle);
+    _queue[_cycleSubIndex].emplace_back(handle);
 }
 void DestructionQueue::push(dependent_handle_t handle, destructible_handle_t dependency) {
     bool const validHandle = std::visit(var::visitor{[](auto temp_handle) { return temp_handle != VK_NULL_HANDLE; }}, handle);
@@ -45,14 +46,14 @@ void DestructionQueue::push(dependent_handle_t handle, destructible_handle_t dep
 
     CTH_ERR(validHandle ^ validDependency, "handle and dependency must both be valid or invalid") throw details->exception();
 
-    _queue[_frameIndex].emplace_back(handle, dependency);
+    _queue[_cycleSubIndex].emplace_back(handle, dependency);
 }
 
 
 
-void DestructionQueue::clear(size_t const frame_index) {
+void DestructionQueue::clear(size_t const cycle_sub_index) {
 
-    auto& deletables = _queue[frame_index];
+    auto& deletables = _queue[cycle_sub_index];
     for(auto [deletable, dependency] : deletables) {
         std::visit(cth::var::overload{
             [this](destructible_handle_t handle) {
@@ -83,9 +84,9 @@ void DestructionQueue::clear(size_t const frame_index) {
     }
     deletables.clear();
 }
-void DestructionQueue::free() {
+void DestructionQueue::clear() {
     for(uint32_t i = 0; i < QUEUES; ++i)
-        clear((_frameIndex + i) % QUEUES);
+        clear((_cycleSubIndex + i) % QUEUES);
 }
 
 #ifdef CONSTANT_DEBUG_MODE

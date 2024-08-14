@@ -15,14 +15,14 @@
 
 namespace cth::vk {
 
-BasicSwapchain::BasicSwapchain(BasicCore const* core, DestructionQueue* destruction_queue, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config) :
-    _core(core), _destructionQueue{destruction_queue}, _presentQueue(present_queue), _syncConfig(sync_config) {
+BasicSwapchain::BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config) :
+    _core(core), _presentQueue(present_queue), _syncConfig(sync_config) {
     DEBUG_CHECK_CORE(core);
     createSyncObjects();
 }
 BasicSwapchain::~BasicSwapchain() {
     DEBUG_CHECK_SWAPCHAIN_LEAK(this);
-    destroySyncObjects(_destructionQueue);
+    destroySyncObjects(_core->destructionQueue());
 }
 
 void BasicSwapchain::create(Surface const* surface, VkExtent2D const window_extent, VkSwapchainKHR const old_swapchain) {
@@ -33,8 +33,8 @@ void BasicSwapchain::create(Surface const* surface, VkExtent2D const window_exte
     createSwapchain(surface, window_extent, old_swapchain);
 
     createSwapchainImages();
-    createMsaaResources(_destructionQueue);
-    createDepthResources(_destructionQueue);
+    createMsaaResources(_core->destructionQueue());
+    createDepthResources(_core->destructionQueue());
 
     createRenderPass();
 
@@ -62,7 +62,7 @@ void BasicSwapchain::relocate(Surface const* surface, VkExtent2D const window_ex
     VkSwapchainKHR old = _handle.get();
     _handle = nullptr;
 
-    destroyResources(_destructionQueue); //TEMP destruction_queue?
+    destroyResources(); //TEMP destruction_queue?
     create(surface, window_extent, old);
 
     destroy(_core->vkDevice(), old); //TEMP destruction_queue?
@@ -70,33 +70,49 @@ void BasicSwapchain::relocate(Surface const* surface, VkExtent2D const window_ex
 
 
 
-VkResult BasicSwapchain::acquireNextImage(DestructionQueue* destruction_queue) {
-    auto const& fence = _imageAvailableFences[_frameIndex];
-    auto const semaphore = _syncConfig->imageAvailableSemaphores[_frameIndex]->get();
+VkResult BasicSwapchain::acquireNextImage(Cycle const& cycle) {
+    auto const& fence = _imageAvailableFences[cycle.subIndex];
+    auto const semaphore = _syncConfig->imageAvailableSemaphores[cycle.subIndex]->get();
 
     fence.wait();
     fence.reset();
 
-    destruction_queue->clear(_frameIndex); //TEMP remove this from here
-    destruction_queue->next(_frameIndex); //TEMP remove this from here
-
-
     VkResult const acquireResult = vkAcquireNextImageKHR(_core->vkDevice(), _handle.get(), std::numeric_limits<uint64_t>::max(), semaphore,
-        fence.get(), &_imageIndices[_frameIndex]);
+        fence.get(), &_imageIndices[cycle.subIndex]);
 
     CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR, "failed to acquire image")
         throw cth::except::vk_result_exception{acquireResult, details->exception()};
 
     return acquireResult;
 }
-void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const {
+void BasicSwapchain::skipAcquire(Cycle const& cycle) {
+    auto const semaphore = _syncConfig->imageAvailableSemaphores[cycle.subIndex]->get();
+    auto const& fence = _imageAvailableFences[cycle.subIndex];
+
+    fence.wait();
+    fence.reset();
+
+
+    auto const submitInfo = VkSubmitInfo{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 0,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &semaphore,
+    };
+
+    auto const result = vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, fence.get());
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire an image")
+        throw cth::except::vk_result_exception{result, details->exception()};
+}
+void BasicSwapchain::beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const* cmd_buffer) const {
 
     //TEMP move part of this to the framebuffer & render pass abstractions
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = _renderPass;
-    renderPassInfo.framebuffer = framebuffer();
+    renderPassInfo.framebuffer = _swapchainFramebuffers[_imageIndices[cycle.subIndex]];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = _extent;
 
@@ -121,21 +137,31 @@ void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const* cmd_buffer) const {
 }
 void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const* cmd_buffer) { vkCmdEndRenderPass(cmd_buffer->get()); }
 
-VkResult BasicSwapchain::present() {
-    CTH_ERR(_imageIndices[_frameIndex] == NO_IMAGE_INDEX, "no acquired image available") {
-        details->add("frame: ({})", _frameIndex);
+VkResult BasicSwapchain::present(Cycle const& cycle) {
+    size_t subIndex = cycle.subIndex;
+
+    CTH_ERR(_imageIndices[subIndex] == NO_IMAGE_INDEX, "no acquired image available") {
+        details->add("frame: ({})", subIndex);
         throw details->exception();
     }
 
 
-    auto const result = _presentQueue->present(_imageIndices[_frameIndex], _presentInfos[_frameIndex]);
+    auto const result = _presentQueue->present(_imageIndices[subIndex], _presentInfos[subIndex]);
 
-    _imageIndices[_frameIndex] = NO_IMAGE_INDEX;
-
-
-    _frameIndex = nextFrame(_frameIndex);
+    _imageIndices[subIndex] = NO_IMAGE_INDEX;
 
     return result;
+}
+void BasicSwapchain::skipPresent(Cycle const& cycle) {
+    auto const& subIndex = cycle.subIndex;
+
+    auto& imageIndex = _imageIndices[subIndex];
+
+    CTH_WARN(imageIndex != NO_IMAGE_INDEX, "skip presenting an acquired image, it will be discarded") { int x = 0; }
+
+    _presentQueue->const_skip(_presentInfos[subIndex]);
+
+    imageIndex = NO_IMAGE_INDEX;
 }
 
 void BasicSwapchain::changeSwapchainImageQueue(uint32_t const release_queue, CmdBuffer const& release_cmd_buffer, uint32_t const acquire_queue,

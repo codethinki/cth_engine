@@ -23,40 +23,41 @@ void App::run() {
 }
 
 void App::initFrame() {
-    _graphicsCore->acquireFrame(_destructionQueue.get());
+    auto const& cycle = _renderer->cycle();
+
+    _graphicsCore->skipAcquire(cycle);
 
     auto* initCmdBuffer = _renderer->begin<vk::Renderer::PHASE_TRANSFER>();
+
     initRenderSystem(*initCmdBuffer);
+
     _renderer->end<vk::Renderer::PHASE_TRANSFER>();
 
     _renderer->skip<vk::Renderer::PHASE_GRAPHICS>();
 
-    _graphicsCore->presentFrame();
+    _graphicsCore->skipPresent(cycle);
 
-    _frameCount++;
 }
 
-void App::renderFrame() {
-    _renderer->wait();
+void App::renderFrame() const {
+    auto const& cycle = _renderer->cycle();
 
-    _graphicsCore->acquireFrame(_destructionQueue.get());
+    _destructionQueue->clear(cycle.subIndex);
+
+    _graphicsCore->acquireFrame(cycle);
 
     _renderer->skip<vk::Renderer::PHASE_TRANSFER>();
 
-    graphicsPhase();
+    graphicsPhase(cycle);
 
-    _graphicsCore->presentFrame();
-
-    _frameCount++;
+    _graphicsCore->presentFrame(cycle);
 }
-void App::graphicsPhase() const {
-    auto* cmdBuffer = _renderer->begin<vk::Renderer::PHASE_GRAPHICS>();
+void App::graphicsPhase(vk::Cycle const& cycle) const {
+    auto const* cmdBuffer = _renderer->begin<vk::Renderer::PHASE_GRAPHICS>();
 
+    _graphicsCore->beginWindowPass(cycle, cmdBuffer);
 
-    FrameInfo info = {_renderer->frameIndex(), 0.f, cmdBuffer};
-
-    _graphicsCore->beginWindowPass(cmdBuffer);
-
+    auto const info = FrameInfo{cycle.index, 0.f, cmdBuffer};
     _renderSystem->render(info);
 
     _graphicsCore->endWindowPass(cmdBuffer);

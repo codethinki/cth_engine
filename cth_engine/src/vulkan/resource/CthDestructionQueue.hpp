@@ -2,7 +2,6 @@
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
-#include <cth/cth_type_trait.hpp>
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
@@ -10,6 +9,10 @@
 #include <variant>
 #include <vector>
 
+
+namespace cth::vk {
+struct Cycle;
+}
 
 namespace cth::vk {
 class BasicInstance;
@@ -37,9 +40,8 @@ public:
     void push(dependent_handle_t handle, destructible_handle_t dependency);
 
 
-    void clear(size_t frame_index);
-    void free();
-    void next(size_t const next_frame) { _frameIndex = next_frame; }
+    void clear();
+    void clear(size_t cycle_sub_index);
 
 private:
     using handle_t = std::variant<
@@ -53,7 +55,7 @@ private:
 
     static constexpr size_t QUEUES = constants::FRAMES_IN_FLIGHT;
 
-    size_t _frameIndex = 0;
+    size_t _cycleSubIndex = 0;
 
     Device* _device;
     PhysicalDevice* _physicalDevice;
@@ -62,12 +64,10 @@ private:
     std::array<std::vector<destructible>, QUEUES> _queue;
 
 public:
-    [[nodiscard]] size_t currentFrame() const { return _frameIndex; }
-
     DestructionQueue(DestructionQueue const& other) = delete;
-    DestructionQueue(DestructionQueue&& other) = default;
+    DestructionQueue(DestructionQueue&& other) noexcept = default;
     DestructionQueue& operator=(DestructionQueue const& other) = delete;
-    DestructionQueue& operator=(DestructionQueue&& other) = default;
+    DestructionQueue& operator=(DestructionQueue&& other) noexcept = default;
 
 #ifdef CONSTANT_DEBUG_MODE
     static void debug_check(DestructionQueue const* queue);

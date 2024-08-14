@@ -54,14 +54,15 @@ public:
     void const_submit(SubmitInfo const& submit_info) const;
 
     /**
-     * @brief skip submits without the command_buffer
+     * @brief skip submits without the command_buffer to advance the sync primitives
      * @param[in, out] submit_info @attention calls @ref submit_info.next()
      * @throws cth::except::vk_result_exception result of vkQueueSubmit()
      */
     void skip(SubmitInfo& submit_info) const;
 
     /**
-     * @brief skip submits to the queue
+     * @brief does an empty submit without the commandBuffer
+     * @note this call respects sync primitives
      * @note does not advance the @ref submit_info
      */
     void const_skip(SubmitInfo const& submit_info) const;
@@ -73,6 +74,12 @@ public:
      * @throws cth::except::vk_result_exception result of vkQueuePresentKHR()
      */
     [[nodiscard]] VkResult present(uint32_t image_index, PresentInfo& present_info) const;
+
+    /**
+     * @brief skips presenting the info
+     * @note this call respects sync primitives
+     */
+    void const_skip(PresentInfo const& present_info) const;
 
 private:
     void submit(VkSubmitInfo const* submit_info, VkFence fence = nullptr) const;
@@ -173,18 +180,19 @@ struct Queue::PresentInfo {
      */
     explicit PresentInfo(BasicSwapchain const* swapchain, std::span<BasicSemaphore const*> wait_semaphores);
 
-    [[nodiscard]] VkPresentInfoKHR createInfo() const;
+    void createInfo();
 
 private:
     VkPresentInfoKHR _presentInfo{};
-
-    size_t _id = submitInfoId++; //TEMP remove this
+    VkSubmitInfo _skipInfo{};
+    std::vector<VkPipelineStageFlags> _skipPipelineStages;
 
     VkSwapchainKHR _swapchain;
     std::vector<VkSemaphore> _waitSemaphores;
 
 public:
     [[nodiscard]] VkPresentInfoKHR const* create(uint32_t const& image_index);
+    [[nodiscard]] VkSubmitInfo const* skip() const { return &_skipInfo; }
 };
 
 }

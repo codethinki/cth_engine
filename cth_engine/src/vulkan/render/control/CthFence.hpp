@@ -56,9 +56,6 @@ protected:
     BasicCore const* _core;
 
 private:
-    static [[nodiscard]] VkResult wait(VkDevice vk_device, std::span<VkFence const> vk_fences, uint64_t timeout);
-    static [[nodiscard]] void wait(VkDevice vk_device, std::span<VkFence const> vk_fences);
-
     static VkFenceCreateInfo createInfo(VkFenceCreateFlags flags);
 
     move_ptr<VkFence_T> _handle = VK_NULL_HANDLE;

@@ -10,13 +10,23 @@
 namespace cth::vk {
 using std::vector;
 
-Renderer::Renderer(BasicCore const* core, DestructionQueue* destruction_queue, Config const& config) : _core(core), _destructionQueue(destruction_queue),
+Renderer::Renderer(BasicCore const* core, Config const& config) : _core(core),
     _queues(config.queues()) { init(config); }
 Renderer::~Renderer() {
 
     std::ranges::fill(_cmdBuffers, nullptr);
     std::ranges::fill(_cmdPools, nullptr);
 }
+
+
+Cycle Renderer::cycle() {
+    _state = PHASES_FIRST;
+    wait();
+
+    _cycle = Cycle::Next(_cycle);
+    return _cycle;
+}
+
 
 
 void Renderer::wait() const {
@@ -45,7 +55,7 @@ void Renderer::createPrimaryCmdBuffers() {
 }
 void Renderer::createSyncObjects() {
     for(auto& semaphore : _semaphores)
-        semaphore = std::make_unique<TimelineSemaphore>(_core, _destructionQueue);
+        semaphore = std::make_unique<TimelineSemaphore>(_core);
 }
 
 
@@ -84,11 +94,8 @@ void Renderer::createSubmitInfos(Config config) {
     _submitInfos = config.createSubmitInfos(cmdBuffers);
 }
 
+}
 
-
-DestructionQueue* Renderer::destructionQueue() const { return _destructionQueue; }
-
-} // namespace cth
 
 //Config
 

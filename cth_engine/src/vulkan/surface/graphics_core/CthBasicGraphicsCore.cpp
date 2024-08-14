@@ -30,7 +30,7 @@ void BasicGraphicsCore::create(std::string_view const window_name, VkExtent2D co
     DEBUG_CHECK_GRAPHICS_CORE_LEAK(this);
     _osWindow = new OSWindow(_core->instance(), destruction_queue, window_name, extent.width, extent.height);
     _surface = new Surface(_core->instance(), destruction_queue, _osWindow->releaseSurface());
-    _swapchain = new BasicSwapchain(_core, destruction_queue, present_queue, sync_config);
+    _swapchain = new BasicSwapchain(_core, present_queue, sync_config);
     _swapchain->create(_surface.get(), _osWindow->extent());
 }
 void BasicGraphicsCore::destroy(DestructionQueue* destruction_queue) {
@@ -38,7 +38,8 @@ void BasicGraphicsCore::destroy(DestructionQueue* destruction_queue) {
     _surface->destroy(destruction_queue);
     _osWindow->destroy(destruction_queue);
     auto const ptrs = release();
-    delete ptrs.swapchain; //TEMP left off here the swapchain gets submitted to the deletion queue while the surface and window do not -> no proper destruction
+    delete ptrs.swapchain;
+    //TEMP left off here the swapchain gets submitted to the deletion queue while the surface and window do not -> no proper destruction
     delete ptrs.surface;
     delete ptrs.osWindow;
 }
@@ -65,20 +66,26 @@ void BasicGraphicsCore::minimized() const {
 
 
 
-void BasicGraphicsCore::acquireFrame(DestructionQueue* destruction_queue) const {
-    auto const result = _swapchain->acquireNextImage(destruction_queue);
+void BasicGraphicsCore::acquireFrame(Cycle const& cycle) const {
+    auto const result = _swapchain->acquireNextImage(cycle);
 
     CTH_WARN(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR, "suboptimal / out of date swapchain discovered on image acquire") {}
 }
+void BasicGraphicsCore::skipAcquire(Cycle const& cycle) const { _swapchain->skipAcquire(cycle); }
 
-void BasicGraphicsCore::beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const { _swapchain->beginRenderPass(render_cmd_buffer); }
+void BasicGraphicsCore::beginWindowPass(Cycle const& cycle, PrimaryCmdBuffer const* render_cmd_buffer) const {
+    _swapchain->beginRenderPass(cycle, render_cmd_buffer);
+}
 void BasicGraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const { _swapchain->endRenderPass(render_cmd_buffer); }
 
 
-void BasicGraphicsCore::presentFrame() const {
-    auto const result = _swapchain->present();
+void BasicGraphicsCore::presentFrame(Cycle const& cycle) const {
+    auto const result = _swapchain->present(cycle);
     if(result != VK_SUCCESS) [[unlikely]]
         _swapchain->resize(_osWindow->extent());
+}
+void BasicGraphicsCore::skipPresent(Cycle const& cycle) const {
+    _swapchain->skipPresent(cycle);
 }
 
 

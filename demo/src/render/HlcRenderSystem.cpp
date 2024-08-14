@@ -126,7 +126,7 @@ void RenderSystem::createDefaultTriangle(vk::CmdBuffer const& cmd_buffer, vk::De
     _defaultTriangleBuffer->stage(cmd_buffer, stagingBuffer);
 }
 
-void RenderSystem::render(FrameInfo& frame_info) const {
+void RenderSystem::render(FrameInfo const& frame_info) const {
     _pipeline->bind(frame_info.commandBuffer);
     std::vector<VkBuffer> const vertexBuffers{_defaultTriangleBuffer->get()};
     std::vector<size_t> const offsets(vertexBuffers.size());
@@ -148,39 +148,7 @@ void RenderSystem::render(FrameInfo& frame_info) const {
     /*vkCmdBindDescriptorSets(frame_info.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
         &descriptorSets[frame_info.frameIndex], 0, nullptr);*/
 
-    frame_info.pipelineLayout = _pipelineLayout->get();
-
-
-    /*uint32_t index = 0;
-    for(int i = 0; i < render_data.groupSizes.size(); i++) {
-        RenderObject::Render_Group group = RenderObject::RENDER_GROUP_INVALID;
-        switch(i) {
-            case 0:
-                group = RenderObject::RENDER_GROUP_STATIC;
-                break;
-            case 1:
-                group = RenderObject::RENDER_GROUP_STATIC_VERTICES;
-                break;
-            case 2:
-                group = RenderObject::RENDER_GROUP_STATIC_INDICES;
-                break;
-            case 3:
-                group = RenderObject::RENDER_GROUP_DYNAMIC;
-                break;
-        }
-
-        assert(group != RenderObject::RENDER_GROUP_INVALID && "render: invalid render group");
-
-        if(memoryManager.allowedRenderGroups & group) memoryManager.bind(group, frame_info);
-
-        for(int k = 0; k < render_data.groupSizes[i]; k++)
-            render_data.objects[render_data.groupIndices[index + k]]->render(
-                group, frame_info);
-
-        index += render_data.groupSizes[i];
-    }*/
 }
-
 } // namespace cth
 
 /*

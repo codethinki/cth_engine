@@ -62,14 +62,13 @@ namespace cth::vk {
 
 class Semaphore : public BasicSemaphore {
 public:
-    explicit Semaphore(BasicCore const* core, DestructionQueue* destruction_queue, bool create = true);
+    explicit Semaphore(BasicCore const* core, bool create = true);
     ~Semaphore() override;
 
     void create() override;
     void destroy(DestructionQueue* destruction_queue = nullptr) override;
 
 private:
-    DestructionQueue* _destructionQueue;
 
 public:
     Semaphore(Semaphore const& other) = delete;
