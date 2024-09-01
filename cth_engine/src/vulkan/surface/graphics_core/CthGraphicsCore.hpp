@@ -19,11 +19,7 @@ public:
     /**
      * @brief describes the state of @ref GraphicsCore
      */
-    struct State {
-        std::unique_ptr<OSWindow> osWindow = nullptr;
-        std::unique_ptr<Surface> surface = nullptr;
-        std::unique_ptr<BasicSwapchain> swapchain = nullptr;
-    };
+    struct State;
 
 
     /**
@@ -83,10 +79,21 @@ public:
 
     /**
      * brief waits until no longer minimized
+     * @note may block
+     * @note calls @ref OSWindow::extent
+     * @note calls @ref OSWindow::waitEvents
     */
     void minimized() const;
 
+    /**
+     * @brief acquires frame from swapchain
+     * @note calls @ref BasicSwapchain::acquireNextImage()
+     */
     void acquireFrame(Cycle const& cycle) const;
+    /**
+     * @brief skips the acquire
+     * @note calls @ref BasicSwapchain::skipAcquire()
+     */
     void skipAcquire(Cycle const& cycle) const;
 
     void beginWindowPass(Cycle const& cycle, PrimaryCmdBuffer const* render_cmd_buffer) const;
@@ -138,5 +145,15 @@ public:
 #define DEBUG_CHECK_GRAPHICS_CORE(graphics_core_ptr) ((void)0)
 
 #endif
+};
+}
+
+//State
+
+namespace cth::vk {
+struct GraphicsCore::State {
+    unique_not_null<OSWindow> osWindow;
+    unique_not_null<Surface> surface;
+    unique_not_null<BasicSwapchain> swapchain;
 };
 }

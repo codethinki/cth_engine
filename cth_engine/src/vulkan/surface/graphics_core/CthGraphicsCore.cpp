@@ -21,9 +21,9 @@ void GraphicsCore::wrap(State state) {
     optDestroy();
     DEBUG_CHECK_GRAPHICS_CORE_STATE(state);
 
-    _swapchain = std::move(state.swapchain);
-    _surface = std::move(state.surface);
-    _osWindow = std::move(state.osWindow);
+    _swapchain = state.swapchain.release();
+    _surface = state.surface.release();
+    _osWindow = state.osWindow.release();
 }
 
 
@@ -57,6 +57,8 @@ auto GraphicsCore::release() -> State {
 }
 void GraphicsCore::minimized() const {
     VkExtent2D extent = _osWindow->extent();
+
+    if(extent.width != 0 && extent.height != 0) return;
     while(extent.width == 0 || extent.height == 0) {
         extent = _osWindow->extent();
         _osWindow->waitEvents();
@@ -117,9 +119,9 @@ void GraphicsCore::debug_check(not_null<GraphicsCore const*> graphics_core) {
     CTH_ERR(!graphics_core->created(), "graphics core must be created") throw details->exception();
 }
 void GraphicsCore::debug_check_state(State const& state) {
-    DEBUG_CHECK_OS_WINDOW(state.osWindow.get());
-    DEBUG_CHECK_SURFACE(state.surface.get());
-    DEBUG_CHECK_SWAPCHAIN(state.swapchain.get());
+    DEBUG_CHECK_OS_WINDOW(state.osWindow.get().get());
+    DEBUG_CHECK_SURFACE(state.surface.get().get());
+    DEBUG_CHECK_SWAPCHAIN(state.swapchain.get().get());
 }
 #endif
 
