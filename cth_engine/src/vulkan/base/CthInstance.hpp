@@ -15,7 +15,7 @@
 
 
 namespace cth::vk {
-class BasicDebugMessenger;
+class DebugMessenger;
 
 class DestructionQueue;
 
@@ -34,7 +34,7 @@ public:
     * @throws cth::except::vk_result_exception result of vkCreateInstance()
     * @note debug_messenger will not be stored
     */
-    virtual void create(std::optional<BasicDebugMessenger::Config> const& messenger_config = std::nullopt);
+    virtual void create(std::optional<DebugMessenger::Config> const& messenger_config = std::nullopt);
 
     virtual void destroy();
 
@@ -83,7 +83,7 @@ public:
     BasicInstance(BasicInstance&& other) noexcept = default;
     BasicInstance& operator=(BasicInstance&& other) noexcept = default;
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(BasicInstance const* instance);
+    static void debug_check(not_null<BasicInstance const*> instance);
     static void debug_check_handle(VkInstance vk_instance);
     static void debug_check_leak(BasicInstance const* instance);
 
@@ -112,7 +112,7 @@ public:
 
     void wrap(VkInstance vk_instance) override;
 
-    void create(std::optional<BasicDebugMessenger::Config> const& messenger_config = std::nullopt) override;
+    void create(std::optional<DebugMessenger::Config> const& messenger_config = std::nullopt) override;
 
     void destroy() override;
 

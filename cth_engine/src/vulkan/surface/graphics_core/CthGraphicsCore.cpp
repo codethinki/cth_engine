@@ -91,8 +91,10 @@ void GraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) cons
 void GraphicsCore::presentFrame(Cycle const& cycle) const {
     DEBUG_CHECK_GRAPHICS_CORE(this);
     auto const result = _swapchain->present(cycle);
-    if(result != VK_SUCCESS) [[unlikely]]
+    if(result != VK_SUCCESS) [[unlikely]] {
+        minimized();
         _swapchain->resize(_osWindow->extent());
+    }
 }
 void GraphicsCore::skipPresent(Cycle const& cycle) const {
     DEBUG_CHECK_GRAPHICS_CORE(this);

@@ -12,7 +12,7 @@
 
 
 #ifdef CONSTANT_DEBUG_MODE
-#include "vulkan/debug/CthBasicDebugMessenger.hpp"
+#include "vulkan/debug/CthDebugMessenger.hpp"
 #endif
 
 

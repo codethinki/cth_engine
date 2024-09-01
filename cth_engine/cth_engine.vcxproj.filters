@@ -16,7 +16,7 @@
     <ClInclude Include="src\interface\user\HlcUser.hpp" />
     <ClInclude Include="src\vulkan\base\CthDevice.hpp" />
     <ClInclude Include="src\vulkan\base\CthInstance.hpp" />
-    <ClInclude Include="src\vulkan\debug\CthBasicDebugMessenger.hpp" />
+    <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBasicBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptor.hpp" />
@@ -57,7 +57,6 @@
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthSemaphore.hpp" />
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
-    <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthFence.hpp" />
     <ClInclude Include="src\vulkan\base\CthQueueFamily.hpp" />
     <ClInclude Include="src\vulkan\surface\swapchain\CthSwapchain.hpp" />
@@ -93,7 +92,7 @@
     <ClCompile Include="src\interface\user\HlcInputController.cpp" />
     <ClCompile Include="src\vulkan\base\CthDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
-    <ClCompile Include="src\vulkan\debug\CthBasicDebugMessenger.cpp" />
+    <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\resource\buffer\CthBasicBuffer.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorPool.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorSet.cpp" />
@@ -120,7 +119,6 @@
     <ClCompile Include="src\vulkan\resource\CthDestructionQueue.cpp" />
     <ClCompile Include="src\vulkan\base\CthQueue.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
-    <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthFence.cpp" />
     <ClCompile Include="src\vulkan\base\CthCore.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />

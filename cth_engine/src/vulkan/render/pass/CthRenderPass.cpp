@@ -54,7 +54,7 @@ RenderPass::RenderPass(not_null<BasicCore const*> core, std::span<Subpass const*
             _handle.get(),
             VK_NULL_HANDLE,
             VkRect2D{offset, extent},
-            clearValues.size(),
+            static_cast<uint32_t>(clearValues.size()),
             &_clearValues[_clearValues.size() - clearValues.size()]
             );
     }

@@ -60,7 +60,6 @@
     <ClInclude Include="src\vulkan\base\CthPhysicalDevice.hpp" />
     <ClInclude Include="src\vulkan\base\CthQueue.hpp" />
     <ClInclude Include="src\vulkan\base\CthQueueFamily.hpp" />
-    <ClInclude Include="src\vulkan\debug\CthBasicDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthFence.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthPipelineBarrier.hpp" />
@@ -148,14 +147,13 @@
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
     <ClCompile Include="src\vulkan\base\CthPhysicalDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthQueue.cpp" />
-    <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthFence.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthPipelineWaitStage.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthTimelineSemaphore.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthRenderPass.cpp" />
     <ClCompile Include="src\vulkan\resource\CthDestructionQueue.cpp" />
-    <ClCompile Include="src\vulkan\debug\CthBasicDebugMessenger.cpp" />
+    <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthPipelineBarrier.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdPool.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdBuffer.cpp" />

@@ -30,7 +30,7 @@ public:
      * @note calls @ref Image::Image()
      * @note calls @ref create() 
      */
-    Image(not_null<BasicCore const*>core, Config const& config, VkExtent2D extent);
+    Image(not_null<BasicCore const*> core, Config const& config, VkExtent2D extent);
 
     /**
      * @brief wraps an image with state

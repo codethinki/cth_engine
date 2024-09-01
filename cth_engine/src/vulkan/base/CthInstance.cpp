@@ -5,7 +5,7 @@
 #include "vulkan/utility/cth_constants.hpp"
 
 #ifdef CONSTANT_DEBUG_MODE
-#include "../debug/CthBasicDebugMessenger.hpp"
+#include "../debug/CthDebugMessenger.hpp"
 #endif
 
 
@@ -34,7 +34,7 @@ void BasicInstance::wrap(VkInstance vk_instance) {
     _handle = vk_instance;
 }
 
-void BasicInstance::create(std::optional<BasicDebugMessenger::Config> const& messenger_config) {
+void BasicInstance::create(std::optional<DebugMessenger::Config> const& messenger_config) {
     DEBUG_CHECK_INSTANCE_LEAK(this);
 
     vector<char const*> requiredExtVec(_requiredExt.size());
@@ -149,8 +149,7 @@ void BasicInstance::destroy(VkInstance vk_instance) {
 }
 
 #ifdef CONSTANT_DEBUG_MODE
-void BasicInstance::debug_check(BasicInstance const* instance) {
-    CTH_ERR(instance == nullptr, "instance must not be nullptr") throw details->exception();
+void BasicInstance::debug_check(not_null<BasicInstance const*> instance) {
     debug_check_handle(instance->get());
 }
 void BasicInstance::debug_check_handle(VkInstance vk_instance) {
@@ -192,7 +191,7 @@ void Instance::wrap(VkInstance vk_instance) {
 
     BasicInstance::wrap(vk_instance);
 }
-void Instance::create(std::optional<BasicDebugMessenger::Config> const& messenger_config) {
+void Instance::create(std::optional<DebugMessenger::Config> const& messenger_config) {
     if(get() != VK_NULL_HANDLE) destroy();
 
 
@@ -204,9 +203,9 @@ void Instance::create(std::optional<BasicDebugMessenger::Config> const& messenge
         BasicInstance::create(messenger_config);
         return;
     }
-    BasicDebugMessenger::Config config;
+    DebugMessenger::Config config;
 
-    config = BasicDebugMessenger::Config::Default();
+    config = DebugMessenger::Config::Default();
     BasicInstance::create(config);
     _debugMessenger = make_unique<DebugMessenger>(this, config);
 #endif

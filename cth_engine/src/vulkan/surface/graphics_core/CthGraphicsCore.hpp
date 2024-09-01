@@ -83,7 +83,6 @@ public:
 
     /**
      * brief waits until no longer minimized
-     * @return new window extent
     */
     void minimized() const;
 
@@ -93,6 +92,12 @@ public:
     void beginWindowPass(Cycle const& cycle, PrimaryCmdBuffer const* render_cmd_buffer) const;
     void endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
 
+    /**
+     * @brief presents the image
+     * @note calls @ref BasicSwapchain::present()
+     * @note may call @ref BasicSwapchain::resize()
+     * @note may call @ref minimized()
+     */
     void presentFrame(Cycle const& cycle) const;
     void skipPresent(Cycle const& cycle) const;
 
