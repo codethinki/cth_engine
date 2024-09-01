@@ -14,7 +14,7 @@ class Device;
 template<typename T>
 class Buffer final : public BasicBuffer {
 public:
-    Buffer(BasicCore const* core, DestructionQueue* destruction_queue, size_t element_count, VkBufferUsageFlags usage_flags,
+    Buffer(not_null<BasicCore const*> core, size_t element_count, VkBufferUsageFlags usage_flags,
         VkMemoryPropertyFlags memory_property_flags);
     ~Buffer() override;
 
@@ -97,10 +97,10 @@ private:
     * @param new_memory must not be allocated or nullptr
     * @note destroys current memory
     */
-    void setMemory(BasicMemory* new_memory) override;
+    void setMemory(Memory* new_memory) override;
 
     size_t _elements;
-    DestructionQueue* _destructionQueue;
+    DestructionQueue* _destructionQueue; //TEMP remove this
 
 public:
     [[nodiscard]] uint32_t elements() const { return _elements; }

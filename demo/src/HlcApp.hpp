@@ -50,7 +50,7 @@ private:
     std::unique_ptr<vk::GraphicsSyncConfig> _syncConfig = std::make_unique<vk::GraphicsSyncConfig>(_core.get(), _destructionQueue.get());
 
     std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(_core.get(), WINDOW_NAME,
-        VkExtent2D{WIDTH, HEIGHT}, &_queues[0], *_syncConfig);
+        VkExtent2D{WIDTH, HEIGHT}, &_queues[0], _syncConfig.get());
 
 
 

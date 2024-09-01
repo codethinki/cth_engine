@@ -10,7 +10,7 @@
 namespace cth::vk {
 using std::vector;
 
-Renderer::Renderer(BasicCore const* core, Config const& config) : _core(core),
+Renderer::Renderer(not_null<BasicCore const*> core, Config const& config) : _core(core),
     _queues(config.queues()) { init(config); }
 Renderer::~Renderer() {
 
@@ -116,7 +116,7 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
 
 
 
-auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const> const cmd_buffers) const
+auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const> cmd_buffers) const
     -> std::vector<Queue::SubmitInfo> {
     DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(cmd_buffers);
 

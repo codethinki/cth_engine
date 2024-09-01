@@ -2,7 +2,7 @@
 
 
 namespace cth::vk {
-void Camera::setOrthographicProjection(float const left, float const right, float const top, float const bottom, float const near, float const far) {
+void Camera::setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) {
     _projectionMatrix = glm::mat4{1.0f};
     _projectionMatrix[0][0] = 2.f / (right - left);
     _projectionMatrix[1][1] = 2.f / (bottom - top);
@@ -12,7 +12,7 @@ void Camera::setOrthographicProjection(float const left, float const right, floa
     _projectionMatrix[3][2] = -near / (far - near);
 }
 
-void Camera::setPerspectiveProjection(float const fov, float const view_ratio, float const near_clip, float const far_clip) {
+void Camera::setPerspectiveProjection(float fov, float view_ratio, float near_clip, float far_clip) {
     CTH_ASSERT(glm::abs(view_ratio - std::numeric_limits<float>::epsilon()) > 0.0f, "must be > 0") {}
 
     _currentProjection = glm::vec3{fov, near_clip, far_clip};
@@ -25,11 +25,11 @@ void Camera::setPerspectiveProjection(float const fov, float const view_ratio, f
     _projectionMatrix[2][3] = 1.f;
     _projectionMatrix[3][2] = -(far_clip * near_clip) / (far_clip - near_clip);
 }
-void Camera::correctViewRatio(float const view_ratio) {
+void Camera::correctViewRatio(float view_ratio) {
     setPerspectiveProjection(_currentProjection.x, view_ratio, _currentProjection.y, _currentProjection.z);
 }
 
-void Camera::setViewDirection(glm::vec3 const position, glm::vec3 const direction, glm::vec3 const up) {
+void Camera::setViewDirection(glm::vec3 position, glm::vec3 direction, glm::vec3 up) {
     glm::vec3 const w{normalize(direction)};
     glm::vec3 const u{normalize(cross(w, up))};
     glm::vec3 const v{cross(w, u)};
@@ -49,11 +49,11 @@ void Camera::setViewDirection(glm::vec3 const position, glm::vec3 const directio
     _viewMatrix[3][2] = -dot(w, position);
 }
 
-void Camera::setViewTarget(glm::vec3 const position, glm::vec3 const target, glm::vec3 const up) {
+void Camera::setViewTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up) {
     setViewDirection(position, target - position, up);
 }
 
-void Camera::setViewYXZ(glm::vec3 const position, glm::vec3 const rotation) {
+void Camera::setViewYXZ(glm::vec3 position, glm::vec3 rotation) {
     float const c3 = glm::cos(rotation.z), s3 = glm::sin(rotation.z), c2 = glm::cos(rotation.x), s2 =
                     glm::sin(rotation.x), c1 = glm::cos(rotation.y), s1 = glm::sin(rotation.y);
 

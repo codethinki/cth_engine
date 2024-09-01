@@ -1,13 +1,10 @@
 #pragma once
-#include "../graphics_core/CthGraphicsSyncConfig.hpp"
 
 #include "interface/render/CthRenderCycle.hpp"
 
 #include "vulkan/base/CthQueue.hpp"
-#include "vulkan/render/control/CthFence.hpp"
-#include "vulkan/render/pass/cth_render_pass_utils.hpp"
-#include "vulkan/resource/image/CthBasicImage.hpp"
-#include "vulkan/resource/image/CthImageView.hpp"
+#include "vulkan/resource/image/CthImage.hpp"
+
 
 #include <vulkan/vulkan.h>
 
@@ -18,33 +15,39 @@
 
 
 namespace cth::vk {
-class Queue;
-class BasicCore;
-class Device;
-class Surface;
-class DestructionQueue;
-class ImageView;
+class Fence;
+class Subpass;
+class RenderPass;
+class AttachmentCollection;
 class Image;
+class Framebuffer;
+class ImageView;
 class CmdBuffer;
 class PrimaryCmdBuffer;
+class Surface;
+struct BasicGraphicsSyncConfig;
+class Queue;
+class BasicCore;
 
+//TEMP make this non basic and remove components like renderpass and subpass as well as attachments (except resolve attachment)
+//TEMP maybe remove framebuffers idk
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(BasicCore const* core, Queue const* present_queue, BasicGraphicsSyncConfig const* sync_config);
+    BasicSwapchain(not_null<BasicCore const*> core, not_null<Queue const*> present_queue, not_null<BasicGraphicsSyncConfig const*> sync_config,
+        not_null<Surface const*> surface);
     virtual ~BasicSwapchain();
 
     //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
-    virtual void create(Surface const* surface, VkExtent2D window_extent, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE);
+    virtual void create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE);
     /**
      * @brief destroys the swapchain
-     * @note implicitly calls destroyResources()
+     * @note calls destroyResources()
      */
-    virtual void destroy(DestructionQueue* destruction_queue = nullptr);
+    virtual void destroy();
 
 
     virtual void resize(VkExtent2D window_extent);
-    virtual void relocate(Surface const* surface, VkExtent2D window_extent);
 
 
 
@@ -69,6 +72,10 @@ public:
     void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
         CmdBuffer const& acquire_cmd_buffer, uint32_t image_index);
 
+    [[nodiscard]] ImageView const* imageView(size_t index) const;
+    [[nodiscard]] Image const* image(size_t index) const;
+
+
     static void destroy(VkDevice device, VkSwapchainKHR swapchain);
 
 private:
@@ -87,28 +94,28 @@ private:
     [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(std::vector<VkPresentModeKHR> const& available_present_modes);
     [[nodiscard]] static VkExtent2D chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities);
     [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
-    [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(Surface const* surface, VkSurfaceFormatKHR surface_format,
-        VkSurfaceCapabilitiesKHR const& capabilities, VkPresentModeKHR present_mode, VkExtent2D extent, uint32_t image_count,
-        VkSwapchainKHR old_swapchain);
-    void createSwapchain(Surface const* surface, VkExtent2D window_extent, VkSwapchainKHR old_swapchain);
+    [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(VkSurfaceKHR surface,
+        VkSurfaceFormatKHR surface_format, VkSurfaceCapabilitiesKHR const& capabilities, VkPresentModeKHR present_mode, VkExtent2D extent,
+        uint32_t image_count, VkSwapchainKHR old_swapchain);
+    void createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain);
 
-    [[nodiscard]] BasicImage::Config createImageConfig() const;
-    [[nodiscard]] BasicImage::Config createColorImageConfig() const;
-    void createSwapchainImages();
 
-    void createMsaaResources(DestructionQueue* destruction_queue); //TEMP remove deletion queue argument
+    [[nodiscard]] Image::Config createColorImageConfig(VkSampleCountFlagBits samples) const;
+    [[nodiscard]] Image::Config createDepthImageConfig() const;
 
-    [[nodiscard]] BasicImage::Config createDepthImageConfig() const;
-    [[nodiscard]] VkFormat findDepthFormat() const;
-    void createDepthResources(DestructionQueue* destruction_queue);
+    [[nodiscard]] std::vector<VkImage> getSwapchainImages();
+    void findDepthFormat();
 
+
+    void createResolveAttachments(std::vector<VkImage> swapchain_images);
+    void createMsaaAttachments();
+    void createDepthAttachments();
+
+    void createAttachments();
 
 
     //createRenderPass
-    [[nodiscard]] VkAttachmentDescription createColorAttachmentDescription() const;
-    [[nodiscard]] VkAttachmentDescription createDepthAttachment() const;
-    [[nodiscard]] VkAttachmentDescription createColorAttachmentResolve() const;
-    [[nodiscard]] SubpassDescription createSubpassDescription() const;
+    void createSubpass();
     [[nodiscard]] VkSubpassDependency createSubpassDependency() const;
     /**
      * @throws cth::except::vk_result_exception result of vkCreateRenderPass()
@@ -122,28 +129,23 @@ private:
     void createPresentInfos();
 
 
-    void clearPresentInfos();
-    void destroyFramebuffers(DestructionQueue* destruction_queue);
-    void destroyRenderPass(DestructionQueue* destruction_queue);
+    void destroyRenderConstructs();
+    void destroyResources();
 
-    void destroyDepthImages(DestructionQueue* destruction_queue);
-    void destroyMsaaImages(DestructionQueue* destruction_queue);
-    void destroySwapchainImages(DestructionQueue* destruction_queue);
-    void destroyImages(DestructionQueue* destruction_queue);
-    /**
-    * @brief destroys everything that is not the swapchain
-    */
-    virtual void destroyResources(DestructionQueue* destruction_queue = nullptr);
 
-    void destroySwapchain(DestructionQueue* destruction_queue);
+
+    void destroySwapchain();
 
     void destroySyncObjects(DestructionQueue* destruction_queue);
+    //TEMP left off here check swapchain destruction and then try to make it compile
 
+    void resizeReset();
+    void reset();
 
+    not_null<BasicCore const*> _core;
+    not_null<Queue const*> _presentQueue;
+    not_null<Surface const*> _surface;
 
-    BasicCore const* _core;
-    Queue const* _presentQueue;
-    Surface const* _surface = nullptr;
 
     cth::move_ptr<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
     std::shared_ptr<BasicSwapchain> _oldSwapchain; //TODO why is this a shared_ptr?
@@ -154,21 +156,20 @@ private:
     VkExtent2D _windowExtent{};
 
 
-    std::vector<VkFramebuffer> _swapchainFramebuffers;
-
-    VkRenderPass _renderPass = VK_NULL_HANDLE;
-
+    size_t _imageCount = 0;
     VkFormat _imageFormat{};
-    std::vector<BasicImage> _swapchainImages;
-    std::vector<ImageView> _swapchainImageViews;
-    std::vector<Image> _msaaImages;
-    std::vector<ImageView> _msaaImageViews;
-
     VkFormat _depthFormat{};
-    std::vector<Image> _depthImages;
-    std::vector<ImageView> _depthImageViews;
 
-    BasicGraphicsSyncConfig const* _syncConfig;
+    std::unique_ptr<AttachmentCollection> _resolveAttachments;
+    std::unique_ptr<AttachmentCollection> _msaaAttachments; //TEMP this should not be here
+    std::unique_ptr<AttachmentCollection> _depthAttachments; //TEMP this should not be here
+
+    std::unique_ptr<RenderPass> _renderPass; //TEMP this should not be here
+    std::unique_ptr<Subpass> _subpass; //TEMP this should not be here
+    std::vector<Framebuffer> _swapchainFramebuffers; //TEMP this maybe should not be here
+
+
+    not_null<BasicGraphicsSyncConfig const*> _syncConfig;
 
     std::vector<Fence> _imageAvailableFences;
 
@@ -185,19 +186,16 @@ public:
     [[nodiscard]] bool compareSwapFormats(BasicSwapchain const& other) const {
         return other._depthFormat != _depthFormat || other._imageFormat != _imageFormat;
     }
+    [[nodiscard]] RenderPass const* renderPass() const { return _renderPass.get(); }
 
-    [[nodiscard]] ImageView const* imageView(size_t const index) const { return &_swapchainImageViews[index]; }
-    [[nodiscard]] size_t imageCount() const { return _swapchainImages.size(); }
+    [[nodiscard]] size_t imageCount() const { return _imageCount; }
     [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
-    [[nodiscard]] BasicImage const* image(size_t const index) const { return &_swapchainImages[index]; }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; } //TODO move this to framebuffer or render pass
-    [[nodiscard]] VkRenderPass renderPass() const { return _renderPass; }
 
 
-
-    BasicSwapchain(BasicSwapchain const& other) = default;
+    BasicSwapchain(BasicSwapchain const& other) = delete;
     BasicSwapchain(BasicSwapchain&& other) noexcept = default;
-    BasicSwapchain& operator=(BasicSwapchain const& other) = default;
+    BasicSwapchain& operator=(BasicSwapchain const& other) = delete;
     BasicSwapchain& operator=(BasicSwapchain&& other) noexcept = default;
 
 #ifdef CONSTANT_DEBUG_MODE
@@ -231,6 +229,6 @@ public:
 //
 ///**
 // * @return result of vkQueueSubmit() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
-// * @note implicitly calls presentQueue->present()
+// * @note calls presentQueue->present()
 // */
 //VkResult submitCommandBuffer(DestructionQueue* destruction_queue, const PrimaryCmdBuffer* cmd_buffer, uint32_t image_index);

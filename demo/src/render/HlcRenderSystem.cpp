@@ -2,6 +2,7 @@
 
 #include "interface/render/CthRenderer.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/render/pass/CthRenderPass.hpp"
 #include "vulkan/render/pipeline/CthPipeline.hpp"
 #include "vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
 #include "vulkan/render/pipeline/layout/CthPipelineLayout.hpp"
@@ -20,8 +21,8 @@ struct UniformBuffer {
     explicit UniformBuffer(glm::mat4 const& projection_view) : projectionView{projection_view} {}
 };
 //TEMP renderer should not be here
-RenderSystem::RenderSystem(vk::BasicCore const* core, vk::DestructionQueue* destruction_queue, vk::PrimaryCmdBuffer const& init_cmd_buffer,
-    VkRenderPass render_pass, VkSampleCountFlagBits const msaa_samples) : _core
+RenderSystem::RenderSystem(vk::BasicCore const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer,
+    vk::RenderPass const* render_pass, VkSampleCountFlagBits const msaa_samples) : _core
     {core} {
     createShaders();
 
@@ -30,13 +31,13 @@ RenderSystem::RenderSystem(vk::BasicCore const* core, vk::DestructionQueue* dest
     createPipelineLayout();
 
     createDescriptorPool();
-    loadDescriptorData(init_cmd_buffer, destruction_queue);
+    loadDescriptorData(init_cmd_buffer);
 
-    createPipeline(render_pass, msaa_samples);
+    createPipeline(render_pass->get(), msaa_samples);
 
     createDescriptorSets();
 
-    createDefaultTriangle(init_cmd_buffer, destruction_queue);
+    createDefaultTriangle(init_cmd_buffer);
 
 }
 
@@ -84,10 +85,10 @@ void RenderSystem::createPipeline(VkRenderPass render_pass, VkSampleCountFlagBit
 void RenderSystem::createDescriptorPool() {
     _descriptorPool = std::make_unique<vk::DescriptorPool>(_core, vk::DescriptorPool::Builder{{{_descriptorSetLayout.get(), 1}}});
 }
-void RenderSystem::loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer, vk::DestructionQueue* destruction_queue) {
+void RenderSystem::loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer) {
     cth::img::stb_image const image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
-    _texture = std::make_unique<vk::Texture>(_core, destruction_queue, VkExtent2D{image.width(), image.height()},
+    _texture = std::make_unique<vk::Texture>(_core, VkExtent2D{image.width(), image.height()},
         vk::Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
         init_cmd_buffer, image.raw());
 }
@@ -97,7 +98,7 @@ void RenderSystem::createDescriptorSets() {
     _textureSampler = std::make_unique<vk::Sampler>(_core, vk::Sampler::Config::Default());
 
 
-    _textureView = std::make_unique<vk::ImageView>(_core, _texture.get(), vk::ImageView::Config::Default());
+    _textureView = std::make_unique<vk::ImageView>(_core, vk::ImageView::Config::Default(), _texture.get());
     _textureDescriptor = std::make_unique<vk::TextureDescriptor>(_textureView.get(), _textureSampler.get());
 
     _descriptorSet = std::make_unique<vk::DescriptorSet>(
@@ -113,12 +114,12 @@ std::array<vk::Vertex, 3> defaultTriangle{
 
 
 
-void RenderSystem::createDefaultTriangle(vk::CmdBuffer const& cmd_buffer, vk::DestructionQueue* destruction_queue) {
-    _defaultTriangleBuffer = std::make_unique<vk::Buffer<vk::Vertex>>(_core, destruction_queue, 3,
+void RenderSystem::createDefaultTriangle(vk::CmdBuffer const& cmd_buffer) {
+    _defaultTriangleBuffer = std::make_unique<vk::Buffer<vk::Vertex>>(_core, 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    vk::Buffer<vk::Vertex> stagingBuffer{_core, destruction_queue, 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    vk::Buffer<vk::Vertex> stagingBuffer{_core, 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
     stagingBuffer.map();
     stagingBuffer.write(defaultTriangle);

@@ -25,7 +25,7 @@ void DescriptorSet::deallocate() {
 
 
 std::vector<VkWriteDescriptorSet> DescriptorSet::writes() {
-    CTH_ERR(_vkSet == VK_NULL_HANDLE, "no descriptor set provided, call alloc() first")
+    CTH_ERR(_vkSet == VK_NULL_HANDLE, "no descriptor set provided, call create() first")
         throw details->exception();
 
     _written = true;
@@ -103,7 +103,7 @@ void DescriptorSet::copyInfos() {
     }
 }
 
-DescriptorSet::InfoType DescriptorSet::infoType(VkDescriptorType const descriptor_type) {
+DescriptorSet::InfoType DescriptorSet::infoType(VkDescriptorType descriptor_type) {
     switch(descriptor_type) {
         case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
         case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
@@ -134,7 +134,7 @@ DescriptorSet::InfoType DescriptorSet::infoType(VkDescriptorType const descripto
 
 namespace cth::vk {
 DescriptorSet::Builder::Builder(DescriptorSetLayout const* layout) : _layout(layout) { init(layout); }
-DescriptorSet::Builder::Builder(DescriptorSetLayout const* layout, std::span<Descriptor* const> const descriptors, uint32_t const binding_offset) : _layout(layout) {
+DescriptorSet::Builder::Builder(DescriptorSetLayout const* layout, std::span<Descriptor* const> descriptors, uint32_t binding_offset) : _layout(layout) {
     init(layout);
 
     for(uint32_t i = 0; i < static_cast<uint32_t>(descriptors.size()); i++)
@@ -143,7 +143,7 @@ DescriptorSet::Builder::Builder(DescriptorSetLayout const* layout, std::span<Des
 
 
 
-DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descriptor, uint32_t binding, uint32_t const arr_index) {
+DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descriptor, uint32_t binding, uint32_t arr_index) {
 
     CTH_ERR(descriptor != nullptr && (descriptor->type() != _layout->bindingType(binding)), "descriptor and layout type at binding dont match") {
         details->add("binding: {}", binding);
@@ -165,7 +165,7 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descri
     _descriptors[binding][arr_index] = descriptor;
     return *this;
 }
-DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(std::span<Descriptor* const> const binding_descriptors, uint32_t binding, uint32_t arr_first) {
+DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(std::span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first) {
     CTH_ERR(_descriptors.size() + arr_first > _descriptors.size(), "out of range for layout size at binding") {
         details->add("binding: {0}, layout size: {1}", binding, _descriptors[binding].size());
         details->add("binding descriptors: {0}, arr_first: {1}", binding_descriptors.size(), arr_first);
@@ -181,11 +181,11 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(std::span<Descrip
 
     return *this;
 }
-DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptor(uint32_t const binding, uint32_t const arr_index) {
+DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptor(uint32_t binding, uint32_t arr_index) {
     _descriptors[binding][arr_index] = nullptr;
     return *this;
 }
-DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(uint32_t const binding, uint32_t const arr_first, uint32_t const count) {
+DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(uint32_t binding, uint32_t arr_first, uint32_t count) {
     CTH_ERR(arr_first + count > _descriptors[binding].size(), "out of ranger for layout size at binding") {
         details->add("binding: {0}, layout size: {1}", binding, _descriptors[binding].size());
         details->add("arr_first: {0}, count: {1}", arr_first, count);

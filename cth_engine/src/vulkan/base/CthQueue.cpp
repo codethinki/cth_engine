@@ -15,7 +15,7 @@ class TimelineSemaphore;
 
 using std::vector;
 
-void Queue::wrap(uint32_t const family_index, uint32_t const queue_index, VkQueue vk_queue) {
+void Queue::wrap(uint32_t  family_index, uint32_t  queue_index, VkQueue vk_queue) {
     _familyIndex = family_index;
     _queueIndex = queue_index;
     _handle = vk_queue;
@@ -26,7 +26,7 @@ void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next())
 void Queue::const_skip(SubmitInfo const& submit_info) const { submit(submit_info.skip(), submit_info.fence()); }
 
 
-VkResult Queue::present(uint32_t const image_index, PresentInfo& present_info) const {
+VkResult Queue::present(uint32_t  image_index, PresentInfo& present_info) const {
 
     auto const result = vkQueuePresentKHR(get(), present_info.create(image_index));
 
@@ -50,12 +50,15 @@ void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void Queue::debug_check(Queue const* queue) {
-    CTH_ERR(queue == nullptr, "queue invalid (nullptr)") throw details->exception();
+void Queue::debug_check(not_null<Queue const*> queue) {
+    CTH_ERR(!queue->valid(), "queue must be created") throw details->exception();
 }
-void Queue::debug_check_present_queue(Queue const* queue) {
-    CTH_ERR(queue == nullptr, "queue invalid (nullptr)") throw details->exception();
+void Queue::debug_check_present_queue(not_null<Queue const*> queue) {
+    DEBUG_CHECK_QUEUE(queue);
     CTH_ERR(!(queue->familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT), "queue is not a present queue") throw details->exception();
+}
+void Queue::debug_check_queue_handle(VkQueue vk_queue) {
+    CTH_ERR(vk_queue == VK_NULL_HANDLE, "vk_queue handle must not be invalid (VK_NULL_HANDLE)") throw details->exception();
 }
 
 #endif
@@ -69,8 +72,8 @@ namespace cth::vk {
 using std::span;
 
 
-Queue::SubmitInfo::SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffers, std::span<PipelineWaitStage const> const wait_stages,
-    std::span<BasicSemaphore* const> const signal_semaphores, BasicFence const* fence) : _fence(fence) {
+Queue::SubmitInfo::SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffers, std::span<PipelineWaitStage const> wait_stages,
+    std::span<BasicSemaphore* const> signal_semaphores, BasicFence const* fence) : _fence(fence) {
     _cmdBuffers.resize(cmd_buffers.size());
 
     std::ranges::transform(cmd_buffers, _cmdBuffers.begin(), [](PrimaryCmdBuffer const* cmd_buffer) {
@@ -141,7 +144,7 @@ void Queue::SubmitInfo::create() {
 }
 
 
-void Queue::SubmitInfo::initWait(std::span<PipelineWaitStage const> const wait_stages) {
+void Queue::SubmitInfo::initWait(std::span<PipelineWaitStage const> wait_stages) {
     _waitValues.resize(wait_stages.size());
     _waitSemaphores.reserve(wait_stages.size());
 
@@ -167,7 +170,7 @@ void Queue::SubmitInfo::initWait(std::span<PipelineWaitStage const> const wait_s
 
 
 }
-void Queue::SubmitInfo::initSignal(std::span<BasicSemaphore* const> const signal_semaphores) {
+void Queue::SubmitInfo::initSignal(std::span<BasicSemaphore* const> signal_semaphores) {
     _signalValues.resize(signal_semaphores.size());
     _signalSemaphores.reserve(signal_semaphores.size());
 

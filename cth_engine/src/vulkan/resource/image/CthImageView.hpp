@@ -1,65 +1,135 @@
 #pragma once
+#include "vulkan/utility/cth_constants.hpp"
+
+#include <gsl/pointers>
+
 #include <vulkan/vulkan.h>
 
 namespace cth::vk {
 class BasicCore;
-class BasicImage;
+class Image;
 class Device;
 
 class ImageView {
 public:
     struct Config;
+    struct State;
 
-    ImageView(BasicCore const* device, BasicImage const* image, Config const& config);
+    /**
+     * @brief base constructor
+     * @param core must be created
+     */
+    ImageView(not_null<BasicCore const*> core, Config const& config);
+
+    /**
+     * @brief constructs and creates
+     * @note calls @ref create()
+     * @note calls @ref ImageView(not_null<BasicCore const*>, Config const&)
+     */
+    ImageView(not_null<BasicCore const*> core, Config const& config, Image const* image);
+
+    /**
+     * @brief constructs and wraps state
+     * @note calls @ref wrap();
+     * @note calls @ref ImageView(not_null<BasicCore const*>, Config const&)
+     */
+    ImageView(not_null<BasicCore const*> core, Config const& config, State const& state);
+
+    /**
+     * @note calls @ref optDestroy()
+     */
     ~ImageView();
 
-private:
-    void create(Config const& config);
 
-    BasicCore const* _core;
-    BasicImage const* _image;
+    /**
+     * @brief creates the image view
+     * @param image must be created
+     * @note calls @ref optDestroy()
+     */
+    void create(not_null<Image const*> image);
+
+    /**
+     * @brief wraps the state with object
+     * @note calls @ref optDestroy()
+     */
+    void wrap(State const& state);
+
+    /**
+     * @brief destroys and resets the object
+     * @note pushes to @ref Core::destructionQueue() if available
+     */
+    void destroy();
+
+    /**
+     * @brief destroys if @ref created() == true
+     * @note may call @ref destroy()
+     */
+    void optDestroy() { if(created()) destroy(); }
+
+    /**
+     * @brief releases ownership and resets
+     * @return objects state
+     */
+    State release();
+
+    static void destroy(VkDevice vk_device, VkImageView vk_image_view);
+
+
+
+    struct Config {
+        //VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_NONE; //TODO not supported yet
+        uint32_t baseMipLevel = 0;
+        uint32_t levelCount = 0; //0 => imageLevels - baseMipLevel
+        //uint32_t baseArrayLayer = 0; //TODO not supported yet
+        //uint32_t layerCount = 0; //TODO not supported yet
+
+        [[nodiscard]] static Config Default();
+
+    private:
+        [[nodiscard]] VkImageSubresourceRange range(uint32_t image_mip_levels, VkImageAspectFlags aspect_mask) const;
+        friend class ImageView;
+    };
+
+private:
+    [[nodiscard]] VkImageViewCreateInfo createViewInfo() const;
+
+    void reset();
+
+    not_null<BasicCore const*> _core;
+    Image const* _image = nullptr;
     move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
 
+    Config _config;
+
 public:
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkImageView get() const { return _handle.get(); }
-    [[nodiscard]] BasicImage const* image() const { return _image; }
+    [[nodiscard]] Image const* image() const { return _image; }
 
     ImageView(ImageView const& other) = delete;
     ImageView(ImageView&& other) noexcept = default;
     ImageView& operator=(ImageView const& other) = delete;
     ImageView& operator=(ImageView&& other) noexcept = default;
+
+#ifdef CONSTANT_DEBUG_MODE
+    static void debug_check(ImageView const* image_view);
+    static void debug_check_handle(VkImageView vk_image_view);
+
+#define DEBUG_CHECK_IMAGE_VIEW(image_view) ImageView::debug_check(image_view)
+#define DEBUG_CHECK_IMAGE_VIEW_HANDLE(vk_image_view) ImageView::debug_check_handle(vk_image_view)
+#else
+#define DEBUG_CHECK_IMAGE_VIEW(image_view) ((void)0)
+#define DEBUG_CHECK_IMAGE_VIEW_HANDLE(vk_image_view) ((void)0)
+#endif
+
 };
 } // namespace cth
 
-//Config
+//State
 
 namespace cth::vk {
-struct ImageView::Config {
-    explicit Config() = default;
-
-    //VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_NONE;
-    uint32_t baseMipLevel = 0;
-    uint32_t levelCount = 0; //0 => imageLevels - baseMipLevel
-    //uint32_t baseArrayLayer = 0;
-    //uint32_t layerCount = 0;
-
-    [[nodiscard]] static Config Default();
-
-    [[nodiscard]] VkImageSubresourceRange range() const {
-        VkImageSubresourceRange range{};
-        range.baseMipLevel = baseMipLevel;
-        range.levelCount = levelCount;
-        range.baseArrayLayer = 0;
-        range.layerCount = 1;
-        return range;
-    }
+struct ImageView::State {
+    gsl::owner<VkImageView> vkImageView; // NOLINT(cppcoreguidelines-owning-memory)
+    Image const* image;
 };
-
-inline ImageView::Config ImageView::Config::Default() {
-    Config config;
-    config.baseMipLevel = 0;
-    config.levelCount = 1;
-    return config;
-}
-
 }

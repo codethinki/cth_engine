@@ -15,7 +15,7 @@ using std::unique_ptr;
 
 
 std::optional<PhysicalDevice> PhysicalDevice::Create(VkPhysicalDevice device, Instance const* instance, Surface const& surface,
-    std::span<Queue const> const queues, std::span<std::string const> const required_extensions,
+    std::span<Queue const> queues, std::span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features) {
 
     PhysicalDevice physicalDevice(device, instance, surface, required_features, required_extensions);
@@ -27,7 +27,7 @@ std::optional<PhysicalDevice> PhysicalDevice::Create(VkPhysicalDevice device, In
 }
 
 
-bool PhysicalDevice::suitable(std::span<Queue const> const queues) {
+bool PhysicalDevice::suitable(std::span<Queue const> queues) {
 
     auto const missingFeatures = supports(_requiredFeatures);
     auto const missingExtensions = supports(_requiredExtensions);
@@ -39,8 +39,8 @@ bool PhysicalDevice::suitable(std::span<Queue const> const queues) {
         for(auto const& missingExtension : missingExtensions) details->add("missing extension: {}", missingExtension);
         for(auto const& missingFeature : missingFeatures)
             std::visit(cth::var::overload{
-                [&details](size_t const index) { details->add("missing feature ({})", index); },
-                [&details](VkStructureType const s_type) { details->add("missing feature2 extension: ({})", static_cast<uint32_t>(s_type)); }
+                [&details](size_t index) { details->add("missing feature ({})", index); },
+                [&details](VkStructureType s_type) { details->add("missing feature2 extension: ({})", static_cast<uint32_t>(s_type)); }
             }, missingFeature);
 
         throw details->exception();
@@ -58,8 +58,8 @@ vector<VkPhysicalDevice> PhysicalDevice::enumerateVkDevices(Instance const& inst
 }
 
 //TEMP left off here complete this function and add the required required_extensions / features to be used by the logical device. 
-auto PhysicalDevice::AutoPick(Instance const* instance, std::span<Queue const> const queues,
-    span<std::string const> const required_extensions, utils::PhysicalDeviceFeatures const& required_features) -> unique_ptr<PhysicalDevice> {
+auto PhysicalDevice::AutoPick(Instance const* instance, std::span<Queue const> queues,
+    span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features) -> unique_ptr<PhysicalDevice> {
     auto const devices = enumerateVkDevices(*instance);
 
     auto joinView = ranges::views::concat(required_extensions, constants::REQUIRED_DEVICE_EXTENSIONS);
@@ -89,7 +89,7 @@ auto PhysicalDevice::supports(utils::PhysicalDeviceFeatures const& required_feat
     return _features.supports(required_features);
 }
 
-auto PhysicalDevice::supports(std::span<std::string const> const required_extensions) -> vector<std::string> {
+auto PhysicalDevice::supports(std::span<std::string const> required_extensions) -> vector<std::string> {
     vector<std::string> missingExtensions{};
     for(auto const& requiredExtension : required_extensions) {
         auto const it = std::ranges::find(_extensions, requiredExtension);
@@ -100,7 +100,7 @@ auto PhysicalDevice::supports(std::span<std::string const> const required_extens
     return missingExtensions;
 }
 
-uint32_t PhysicalDevice::findMemoryType(uint32_t const type_filter, VkMemoryPropertyFlags const mem_properties) const {
+uint32_t PhysicalDevice::findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags mem_properties) const {
     for(uint32_t i = 0; i < _memProperties.memoryTypeCount; i++)
         if((type_filter & (1 << i)) && (_memProperties.memoryTypes[i].propertyFlags & mem_properties) == mem_properties)
             return i;
@@ -108,8 +108,8 @@ uint32_t PhysicalDevice::findMemoryType(uint32_t const type_filter, VkMemoryProp
     CTH_STABLE_ERR(true, "no suitable memory type available") throw details->exception();
 }
 
-auto PhysicalDevice::findSupportedFormat(span<VkFormat const> const candidates, VkImageTiling const tiling,
-    VkFormatFeatureFlags const features) const -> VkFormat {
+auto PhysicalDevice::findSupportedFormat(span<VkFormat const> candidates, VkImageTiling tiling,
+    VkFormatFeatureFlags features) const -> VkFormat {
     for(VkFormat const format : candidates) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(_vkDevice.get(), format, &props);
@@ -137,7 +137,7 @@ auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vecto
     auto const result = algorithm::assign(queueIndices, familiesMaxQueues); //TEMP left off here the assign doesnt work
     return result;
 }
-bool PhysicalDevice::supportsQueueSet(span<Queue const> const queues) const { return !queueFamilyIndices(queues).empty(); }
+bool PhysicalDevice::supportsQueueSet(span<Queue const> queues) const { return !queueFamilyIndices(queues).empty(); }
 
 
 PhysicalDevice::PhysicalDevice(VkPhysicalDevice device, Instance const* instance, Surface const& surface,

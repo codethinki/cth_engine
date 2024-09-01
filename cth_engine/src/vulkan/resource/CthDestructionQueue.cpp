@@ -1,13 +1,13 @@
 #include "CthDestructionQueue.hpp"
 
 #include "buffer/CthBasicBuffer.hpp"
-#include "image/CthBasicImage.hpp"
-#include "memory/CthBasicMemory.hpp"
-#include "vulkan/base/CthCore.hpp"
+#include "image/CthImage.hpp"
+#include "memory/CthMemory.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/cmd/CthCmdPool.hpp"
 #include "vulkan/render/control/CthFence.hpp"
 #include "vulkan/render/control/CthSemaphore.hpp"
+#include "vulkan/resource/image/Framebuffer.hpp"
 #include "vulkan/surface/swapchain/CthBasicSwapchain.hpp"
 
 
@@ -17,8 +17,11 @@
 
 
 
+#include "image/CthImageView.hpp"
+
 #include "interface/render/CthRenderer.hpp"
 
+#include "vulkan/render/pass/CthRenderPass.hpp"
 #include "vulkan/surface/CthOSWindow.hpp"
 #include "vulkan/surface/CthSurface.hpp"
 
@@ -27,11 +30,10 @@
 
 namespace cth::vk {
 
-DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_device, BasicInstance* instance) : _device{device}, _physicalDevice{physical_device},
+DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_device, BasicInstance* instance) : _device{device},
+    _physicalDevice{physical_device},
     _instance{instance} {}
-DestructionQueue::~DestructionQueue() {
-    clear();
-}
+DestructionQueue::~DestructionQueue() { clear(); }
 void DestructionQueue::push(destructible_handle_t handle) {
     CTH_WARN(std::visit(var::visitor{[](auto handle) { return handle == VK_NULL_HANDLE; }}, handle),
         "handle should not be VK_NULL_HANDLE or nullptr") {}
@@ -51,7 +53,7 @@ void DestructionQueue::push(dependent_handle_t handle, destructible_handle_t dep
 
 
 
-void DestructionQueue::clear(size_t const cycle_sub_index) {
+void DestructionQueue::clear(size_t  cycle_sub_index) {
 
     auto& deletables = _queue[cycle_sub_index];
     for(auto [deletable, dependency] : deletables) {
@@ -59,12 +61,15 @@ void DestructionQueue::clear(size_t const cycle_sub_index) {
             [this](destructible_handle_t handle) {
                 std::visit(cth::var::overload{
                     //device destructible
-                    [this](VkDeviceMemory vk_memory) { BasicMemory::free(_device->get(), vk_memory); },
+                    [this](VkDeviceMemory vk_memory) { Memory::destroy(_device->get(), vk_memory); },
                     [this](VkBuffer vk_buffer) { BasicBuffer::destroy(_device->get(), vk_buffer); },
-                    [this](VkImage vk_image) { BasicImage::destroy(_device->get(), vk_image); },
+                    [this](VkImage vk_image) { Image::destroy(_device->get(), vk_image); },
+                    [this](VkImageView vk_image_view) { ImageView::destroy(_device->get(), vk_image_view); },
                     [this](VkSemaphore vk_semaphore) { BasicSemaphore::destroy(_device->get(), vk_semaphore); },
                     [this](VkFence vk_fence) { BasicFence::destroy(_device->get(), vk_fence); },
                     [this](VkCommandPool vk_cmd_pool) { CmdPool::destroy(_device->get(), vk_cmd_pool); },
+                    [this](VkRenderPass vk_render_pass) { RenderPass::destroy(_device->get(), vk_render_pass); },
+                    [this](VkFramebuffer vk_framebuffer) { Framebuffer::destroy(_device->get(), vk_framebuffer); },
                     [this](VkSwapchainKHR vk_swapchain) { BasicSwapchain::destroy(_device->get(), vk_swapchain); },
 
                     //instance destructible

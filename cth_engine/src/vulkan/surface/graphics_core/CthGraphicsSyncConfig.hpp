@@ -16,20 +16,18 @@ class BasicSemaphore;
 struct BasicGraphicsSyncConfig {
     /**
      * expects semaphores[currentFrame] to be signaled after rendering
-     * presents the image once the semaphore is signaled
+     * presents the vk_image once the semaphore is signaled
      */
     std::vector<BasicSemaphore*> renderFinishedSemaphores;
 
     /**
-     * semaphores[currentFrame] will be signaled once the image is clear to render on
+     * semaphores[currentFrame] will be signaled once the vk_image is clear to render on
      * expects that the semaphore will be waited before rendering
      */
     std::vector<BasicSemaphore*> imageAvailableSemaphores;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check_not_null(BasicGraphicsSyncConfig const* config);
-    static void debug_check(BasicGraphicsSyncConfig const* config);
-#define DEBUG_CHECK_SYNC_CONFIG_NOT_NULL(config) BasicGraphicsSyncConfig::debug_check_not_null(config)
+    static void debug_check(not_null<BasicGraphicsSyncConfig const*> config);
 #define DEBUG_CHECK_SYNC_CONFIG(config) BasicGraphicsSyncConfig::debug_check(config)
 #else
 #define DEBUG_CHECK_SYNC_CONFIG_NOT_NULL(config) ((void)0)
@@ -40,11 +38,11 @@ struct BasicGraphicsSyncConfig {
 class GraphicsSyncConfig : public BasicGraphicsSyncConfig {
 public:
     GraphicsSyncConfig() = default;
-    explicit GraphicsSyncConfig(BasicCore const* core, DestructionQueue* destruction_queue);
+    explicit GraphicsSyncConfig(not_null<BasicCore const*> core, DestructionQueue* destruction_queue);
     ~GraphicsSyncConfig();
 
     void wrap(BasicGraphicsSyncConfig const& config);
-    void create(BasicCore const* core, DestructionQueue* destruction_queue);
+    void create(not_null<BasicCore const*> core, DestructionQueue* destruction_queue);
     void destroy(DestructionQueue* destruction_queue = nullptr);
 
     BasicGraphicsSyncConfig release();
@@ -54,7 +52,7 @@ public:
 private:
     void destroyOpt(DestructionQueue* destruction_queue = nullptr);
 
-    BasicCore const* _core = nullptr;
+    not_null<BasicCore const*> _core;
     DestructionQueue* _destructionQueue = nullptr;
 
 public:

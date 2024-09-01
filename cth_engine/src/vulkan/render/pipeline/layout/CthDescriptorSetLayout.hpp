@@ -21,13 +21,13 @@ public:
     * @brief creates a DescriptorSetLayout with the copied builder data
     * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorSetLayout()
     */
-    explicit DescriptorSetLayout(BasicCore const* core, Builder const& builder);
+    explicit DescriptorSetLayout(not_null<BasicCore const*> core, Builder const& builder);
     ~DescriptorSetLayout();
 
 private:
     void create();
 
-    BasicCore const* _core;
+    not_null<BasicCore const*> _core;
     move_ptr<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
     std::vector<VkDescriptorSetLayoutBinding> _vkBindings{};
 
@@ -35,8 +35,8 @@ public:
     [[nodiscard]] VkDescriptorSetLayout get() const { return _handle.get(); }
     [[nodiscard]] uint32_t bindings() const { return static_cast<uint32_t>(_vkBindings.size()); }
     [[nodiscard]] std::vector<VkDescriptorSetLayoutBinding> bindingsVec() const { return _vkBindings; }
-    [[nodiscard]] VkDescriptorSetLayoutBinding binding(uint32_t const binding) const { return _vkBindings[binding]; }
-    [[nodiscard]] VkDescriptorType bindingType(uint32_t const binding) const { return _vkBindings[binding].descriptorType; }
+    [[nodiscard]] VkDescriptorSetLayoutBinding binding(uint32_t binding) const { return _vkBindings[binding]; }
+    [[nodiscard]] VkDescriptorType bindingType(uint32_t binding) const { return _vkBindings[binding].descriptorType; }
 
     DescriptorSetLayout(DescriptorSetLayout const& other) = delete;
     DescriptorSetLayout(DescriptorSetLayout&& other) = delete;

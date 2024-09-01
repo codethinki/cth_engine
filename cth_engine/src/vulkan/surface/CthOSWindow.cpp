@@ -11,9 +11,9 @@
 
 
 namespace cth::vk {
-OSWindow::OSWindow(BasicInstance const* instance, DestructionQueue* destruction_queue, std::string_view const name, uint32_t const width,
-    uint32_t const height) : _instance{instance}, _destructionQueue{destruction_queue}, _windowName{name}, _width(static_cast<int>(width)),
-    _height(static_cast<int>(height)) {
+OSWindow::OSWindow(BasicInstance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent) :
+    _instance{instance}, _destructionQueue{destruction_queue}, _windowName{name},
+    _width{static_cast<int>(extent.width)}, _height{static_cast<int>(extent.height)} {
     initWindow();
 
     setCallbacks();
@@ -67,9 +67,9 @@ void OSWindow::createSurface(BasicInstance const* instance) {
 }
 
 void OSWindow::keyCallback(int key, int scan_code, int action, int mods) {}
-void OSWindow::mouseCallback(int const button, int const action) {} //FEATURE mouse callback
+void OSWindow::mouseCallback(int button, int action) {} //FEATURE mouse callback
 void OSWindow::scrollCallback(double x_offset, double y_offset) {} //FEATURE scroll callback
-void OSWindow::focusCallback(int const focused) {
+void OSWindow::focusCallback(int focused) {
     _focus = static_cast<bool>(focused);
 
     if(_focus) cth::log::msg("window focused");
@@ -86,7 +86,7 @@ void OSWindow::focusCallback(int const focused) {
         focus = false;
     }*/
 }
-void OSWindow::framebufferResizeCallback(int const new_width, int const new_height) {
+void OSWindow::framebufferResizeCallback(int new_width, int new_height) {
     _framebufferResized = true;
     _width = new_width;
     _height = new_height;
@@ -114,7 +114,7 @@ std::vector<std::string> OSWindow::getGLFWInstanceExtensions() {
 
     std::span<char const*> extensionsSpan{glfwExtensions, glfwExtensionCount};
     std::vector<std::string> extensions{extensionsSpan.size()};
-    std::ranges::transform(extensionsSpan, extensions.begin(), [](std::string_view const c) { return std::string(c); });
+    std::ranges::transform(extensionsSpan, extensions.begin(), [](std::string_view c) { return std::string(c); });
 
     return extensions;
 }
@@ -186,21 +186,21 @@ void OSWindow::debug_check(OSWindow const* os_window) {
 
 
 
-void OSWindow::staticKeyCallback(GLFWwindow* glfw_window, int const key, int const scan_code, int const action, int const mods) {
+void OSWindow::staticKeyCallback(GLFWwindow* glfw_window, int key, int scan_code, int action, int mods) {
     if(key < 0) return;
     InputController::keyStates[key] = action; //TODO review this
     window_ptr(glfw_window)->keyCallback(key, scan_code, action, mods);
 }
-void OSWindow::staticMouseCallback(GLFWwindow* glfw_window, int const button, int const action, int mods) {
+void OSWindow::staticMouseCallback(GLFWwindow* glfw_window, int button, int action, int mods) {
     window_ptr(glfw_window)->mouseCallback(button, action);
 }
-void OSWindow::staticScrollCallback(GLFWwindow* glfw_window, double const x_offset, double const y_offset) {
+void OSWindow::staticScrollCallback(GLFWwindow* glfw_window, double x_offset, double y_offset) {
     window_ptr(glfw_window)->scrollCallback(x_offset, y_offset);
 }
-void OSWindow::staticFramebufferResizeCallback(GLFWwindow* glfw_window, int const width, int const height) {
+void OSWindow::staticFramebufferResizeCallback(GLFWwindow* glfw_window, int width, int height) {
     window_ptr(glfw_window)->framebufferResizeCallback(width, height);
 }
-void OSWindow::staticFocusCallback(GLFWwindow* glfw_window, int const focused) { window_ptr(glfw_window)->focusCallback(focused); }
+void OSWindow::staticFocusCallback(GLFWwindow* glfw_window, int focused) { window_ptr(glfw_window)->focusCallback(focused); }
 
 
 

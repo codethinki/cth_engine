@@ -43,7 +43,7 @@ public:
     Surface& operator=(Surface&& other) noexcept = delete;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(Surface const* surface);
+    static void debug_check(not_null<Surface const*> surface);
     static void debug_check_handle(VkSurfaceKHR surface);
 #define DEBUG_CHECK_SURFACE(surface_ptr) Surface::debug_check(surface_ptr)
 #define DEBUG_CHECK_SURFACE_HANDLE(surface) Surface::debug_check_handle(surface)

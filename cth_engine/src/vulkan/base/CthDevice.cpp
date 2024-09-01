@@ -13,7 +13,7 @@ using std::vector;
 using std::string_view;
 using std::span;
 
-Device::Device(Instance const* instance, PhysicalDevice const* physical_device, std::span<Queue> const queues) :
+Device::Device(Instance const* instance, PhysicalDevice const* physical_device, std::span<Queue> queues) :
     _instance(instance),
     _physicalDevice(physical_device) {
 
@@ -28,7 +28,7 @@ Device::~Device() {
     cth::log::msg<except::LOG>("destroyed device");
 }
 
-vector<uint32_t> Device::setUniqueFamilyIndices(span<Queue const> const queues) {
+vector<uint32_t> Device::setUniqueFamilyIndices(span<Queue const> queues) {
     auto const& queueFamilyIndices = _physicalDevice->queueFamilyIndices(queues);
 
     _familyIndices = queueFamilyIndices | std::ranges::to<std::unordered_set<uint32_t>>() | std::ranges::to<vector<uint32_t>>();
@@ -40,7 +40,7 @@ void Device::createLogicalDevice() {
     vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 
     float queuePriority = 1.0f;
-    std::ranges::for_each(_familyIndices, [&queueCreateInfos, queuePriority](uint32_t const queue_family) {
+    std::ranges::for_each(_familyIndices, [&queueCreateInfos, queuePriority](uint32_t queue_family) {
         VkDeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queue_family;
@@ -70,7 +70,7 @@ void Device::createLogicalDevice() {
     _handle = ptr;
 }
 void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues) const {
-    auto queueCounts = family_indices | std::views::transform([](uint32_t const index) { return std::pair{index, 0}; }) | std::ranges::to<
+    auto queueCounts = family_indices | std::views::transform([](uint32_t index) { return std::pair{index, 0}; }) | std::ranges::to<
         std::unordered_map<uint32_t, uint32_t>>();
 
     for(auto [index, queue] : std::views::zip(family_indices, queues)) {
@@ -93,7 +93,7 @@ void Device::debug_check(Device const* device) {
     CTH_ERR(device == nullptr, "device must not be nullptr") throw details->exception();
     debug_check_handle(device->get());
 }
-void Device::debug_check_handle(VkDevice const vk_device) {
+void Device::debug_check_handle(VkDevice vk_device) {
     CTH_ERR(vk_device == VK_NULL_HANDLE, "vk_device not be invalid (VK_NULL_HANDLE)") throw details->exception();
 }
 #endif

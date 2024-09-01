@@ -6,11 +6,11 @@
 
 
 namespace cth::vk {
-CmdBuffer::CmdBuffer(CmdPool* pool, VkCommandBufferUsageFlags const usage) : _pool(pool), _bufferUsage(usage) {}
+CmdBuffer::CmdBuffer(CmdPool* pool, VkCommandBufferUsageFlags  usage) : _pool(pool), _bufferUsage(usage) {}
 
 
 
-void CmdBuffer::reset(VkCommandBufferResetFlags const flags) const {
+void CmdBuffer::reset(VkCommandBufferResetFlags  flags) const {
     auto const result = vkResetCommandBuffer(_handle.get(), flags);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset command buffer")
         throw except::vk_result_exception{result, details->exception()};
@@ -61,7 +61,7 @@ void CmdBuffer::debug_check(CmdBuffer const* cmd_buffer) {
 
 namespace cth::vk {
 
-PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool* cmd_pool, VkCommandBufferUsageFlags const usage) : CmdBuffer(cmd_pool, usage) { create(); }
+PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool* cmd_pool, VkCommandBufferUsageFlags  usage) : CmdBuffer(cmd_pool, usage) { create(); }
 PrimaryCmdBuffer::~PrimaryCmdBuffer() { _pool->returnCmdBuffer(this); }
 void PrimaryCmdBuffer::begin() const {
     VkCommandBufferBeginInfo const info{
@@ -80,7 +80,7 @@ void PrimaryCmdBuffer::create() { _pool->newCmdBuffer(this); }
 //SecondaryCmdBuffer
 
 namespace cth::vk {
-SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool* cmd_pool, PrimaryCmdBuffer* primary, Config const& config, VkCommandBufferUsageFlags const usage) :
+SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool* cmd_pool, PrimaryCmdBuffer* primary, Config const& config, VkCommandBufferUsageFlags  usage) :
     CmdBuffer(cmd_pool, usage), _primary(primary), _inheritanceInfo(config.inheritanceInfo()) { create(); }
 SecondaryCmdBuffer::~SecondaryCmdBuffer() { _pool->returnCmdBuffer(this); }
 

@@ -9,7 +9,7 @@
 namespace cth::vk {
 
 
-BasicSemaphore::BasicSemaphore(BasicCore const* core) : _core(core) {}
+BasicSemaphore::BasicSemaphore(not_null<BasicCore const*> core) : _core(core) {}
 
 void BasicSemaphore::create() { createHandle(createInfo()); }
 
@@ -66,7 +66,7 @@ void BasicSemaphore::debug_check_leak(BasicSemaphore const* semaphore) {
 
 
 namespace cth::vk {
-Semaphore::Semaphore(BasicCore const* core, bool const create) : BasicSemaphore(core) {
+Semaphore::Semaphore(not_null<BasicCore const*> core, bool create) : BasicSemaphore(core) {
     if(create) BasicSemaphore::create();
 }
 Semaphore::~Semaphore() { if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_core->destructionQueue()); }

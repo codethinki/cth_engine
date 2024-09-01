@@ -9,10 +9,11 @@ namespace cth::vk {
 class BasicCore;
 class DestructionQueue;
 
+//TEMP remove the basic variant
 
 class BasicFence {
 public:
-    explicit BasicFence(BasicCore const* core);
+    explicit BasicFence(not_null<BasicCore const*> core);
     virtual ~BasicFence() = default;
 
     virtual void wrap(VkFence vk_fence);
@@ -53,7 +54,7 @@ public:
     static void destroy(VkDevice vk_device, VkFence vk_fence);
 
 protected:
-    BasicCore const* _core;
+    not_null<BasicCore const*> _core;
 
 private:
     static VkFenceCreateInfo createInfo(VkFenceCreateFlags flags);
@@ -89,7 +90,7 @@ public:
 namespace cth::vk {
 class Fence : public BasicFence {
 public:
-    explicit Fence(BasicCore const* core, DestructionQueue* destruction_queue, VkFenceCreateFlags flags = 0);
+    explicit Fence(not_null<BasicCore const*> core, VkFenceCreateFlags flags = 0);
     ~Fence() override;
 
     void wrap(VkFence vk_fence) override;
@@ -98,7 +99,6 @@ public:
     void destroy(DestructionQueue* destruction_queue = nullptr) override;
 
 private:
-    DestructionQueue* _destructionQueue = nullptr;
 
 public:
     Fence(Fence const& other) = delete;

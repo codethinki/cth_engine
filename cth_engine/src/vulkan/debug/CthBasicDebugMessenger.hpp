@@ -26,7 +26,7 @@ public:
 
 
     /**
-    * @note implicitly calls create();
+    * @note calls create();
     */
     explicit BasicDebugMessenger(Config config) : _config{std::move(config)} {}
     virtual ~BasicDebugMessenger() = default;

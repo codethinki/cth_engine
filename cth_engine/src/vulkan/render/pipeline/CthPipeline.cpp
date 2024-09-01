@@ -12,10 +12,10 @@
 namespace cth::vk {
 using namespace std;
 
-Pipeline::Pipeline(BasicCore const* core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info) : _device{core} {
+Pipeline::Pipeline(not_null<BasicCore const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info) : _device{core} {
     create(config_info, pipeline_layout, nullptr);
 }
-Pipeline::Pipeline(BasicCore const* core, Pipeline const* parent, GraphicsConfig const& config_info) : _device(core) {
+Pipeline::Pipeline(not_null<BasicCore const*> core, Pipeline const* parent, GraphicsConfig const& config_info) : _device(core) {
     create(config_info, nullptr, parent);
 }
 
@@ -84,7 +84,7 @@ VkGraphicsPipelineCreateInfo Pipeline::GraphicsConfig::createInfo() const {
 }
 
 void Pipeline::GraphicsConfig::addShaderStage(Shader const* shader, ShaderSpecialization const* specialization_info,
-    VkPipelineShaderStageCreateFlags const flags) {
+    VkPipelineShaderStageCreateFlags flags) {
     VkPipelineShaderStageCreateInfo stageInfo{};
 
     stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

@@ -8,7 +8,7 @@
 namespace cth::vk {
 class ImageDescriptor : public Descriptor {
 public:
-    explicit ImageDescriptor(VkDescriptorType const type, VkDescriptorImageInfo const& info) : Descriptor(type), _vkDescriptorInfo(info) {}
+    explicit ImageDescriptor(VkDescriptorType type, VkDescriptorImageInfo const& info) : Descriptor(type), _vkDescriptorInfo(info) {}
     ~ImageDescriptor() override = 0;
 
 private:

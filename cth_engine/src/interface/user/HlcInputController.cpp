@@ -4,7 +4,7 @@
 
 
 namespace cth::vk {
-void InputController::moveByKeys(float const dt, std::unique_ptr<StandardObject> const& object) const {
+void InputController::moveByKeys(float dt, std::unique_ptr<StandardObject> const& object) const {
     float const yaw = object->_transform.rotation.y;
     glm::vec3 const forwardDir{sin(yaw), 0.f, cos(yaw)};
     glm::vec3 const rightDir{forwardDir.z, 0.f, -forwardDir.x};
@@ -19,7 +19,7 @@ void InputController::moveByKeys(float const dt, std::unique_ptr<StandardObject>
     if(getKeyState(MOVE_DOWN)) moveDir -= upDir;
     if(dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon()) object->_transform.translation += moveSpeed * dt * normalize(moveDir);
 }
-void InputController::rotateByMouse(float const dt, std::unique_ptr<StandardObject> const& object) const {
+void InputController::rotateByMouse(float dt, std::unique_ptr<StandardObject> const& object) const {
     object->_transform.rotation += glm::vec3(-mouseDtY, mouseDtX, 0) * dt * 0.2f;
     object->_transform.rotation.x = glm::clamp(object->_transform.rotation.x, -1.5f, 1.5f);
     object->_transform.rotation.y = glm::mod(object->_transform.rotation.y, glm::two_pi<float>());

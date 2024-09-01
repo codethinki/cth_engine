@@ -5,7 +5,7 @@
 
 
 namespace cth::vk {
-TimelineSemaphore::TimelineSemaphore(BasicCore const* core, bool const create) : Semaphore(core, false) {
+TimelineSemaphore::TimelineSemaphore(not_null<BasicCore const*> core, bool create) : Semaphore(core, false) {
     if(create) BasicSemaphore::createHandle(TimelineSemaphore::createInfo());
 }
 
@@ -24,7 +24,7 @@ void TimelineSemaphore::signal() {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to signal semaphore")
         throw except::vk_result_exception{result, details->exception()};
 }
-VkResult TimelineSemaphore::wait(uint64_t const nanoseconds) const {
+VkResult TimelineSemaphore::wait(uint64_t nanoseconds) const {
     DEBUG_CHECK_SEMAPHORE(this);
     auto const handle = get();
 

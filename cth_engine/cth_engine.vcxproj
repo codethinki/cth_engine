@@ -40,6 +40,9 @@
     <ClInclude Include="include\vulkan\cth_resource.hpp" />
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
     <ClInclude Include="src\interface\render\CthRenderCycle.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\CthAttachmentCollection.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\CthSubpass.hpp" />
+    <ClInclude Include="src\vulkan\resource\image\Framebuffer.hpp" />
     <ClInclude Include="src\vulkan\utility\utility\cth_vk_format_utils.hpp" />
     <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
     <ClInclude Include="src\pch\util\definition.hpp" />
@@ -70,18 +73,15 @@
     <ClInclude Include="src\vulkan\resource\buffer\CthBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBasicBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\CthDestructionQueue.hpp" />
-    <ClInclude Include="src\vulkan\resource\memory\CthBasicMemory.hpp" />
+    <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptor.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptorPool.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptorSet.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\descriptors\CthBufferDescriptors.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\descriptors\CthImageDescriptors.hpp" />
-    <ClInclude Include="src\vulkan\resource\image\CthBasicImage.hpp" />
-    <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
-    <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsCore.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.hpp" />
     <ClInclude Include="src\vulkan\surface\swapchain\CthSwapchain.hpp" />
-    <ClInclude Include="src\vulkan\surface\graphics_core\CthBasicGraphicsCore.hpp" />
+    <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsCore.hpp" />
     <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\constant\cth_device_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_constants.hpp" />
@@ -115,6 +115,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="engine_main.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\AttachmentCollection.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\CthSubpass.cpp" />
+    <ClCompile Include="src\vulkan\resource\image\Framebuffer.cpp" />
     <ClCompile Include="src\vulkan\utility\device\PhysicalDeviceFeatures.cpp" />
     <ClCompile Include="src\CthEngine.cpp" />
     <ClCompile Include="src\interface\object\HlcStandardObject.cpp" />
@@ -157,10 +160,9 @@
     <ClCompile Include="src\vulkan\render\cmd\CthCmdPool.cpp" />
     <ClCompile Include="src\vulkan\render\cmd\CthCmdBuffer.cpp" />
     <ClCompile Include="src\vulkan\resource\buffer\CthBasicBuffer.cpp" />
-    <ClCompile Include="src\vulkan\resource\memory\CthBasicMemory.cpp" />
+    <ClCompile Include="src\vulkan\resource\memory\CthMemory.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorPool.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorSet.cpp" />
-    <ClCompile Include="src\vulkan\resource\image\CthBasicImage.cpp" />
     <ClCompile Include="src\vulkan\resource\image\CthImageView.cpp" />
     <ClCompile Include="src\vulkan\render\pipeline\CthPipeline.cpp" />
     <ClCompile Include="src\vulkan\render\pipeline\layout\CthDescriptorSetLayout.cpp" />
@@ -172,14 +174,12 @@
     <ClCompile Include="src\vulkan\resource\image\texture\CthSampler.cpp" />
     <ClCompile Include="src\vulkan\resource\image\texture\CthTexture.cpp" />
     <ClCompile Include="src\interface\render\CthRenderer.cpp" />
-    <ClCompile Include="src\vulkan\resource\memory\CthMemory.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />
-    <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsCore.cpp" />
     <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.cpp" />
     <ClCompile Include="src\vulkan\surface\swapchain\CthBasicSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\swapchain\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthOSWindow.cpp" />
-    <ClCompile Include="src\vulkan\surface\graphics_core\CthBasicGraphicsCore.cpp" />
+    <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsCore.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -378,7 +378,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <BrowseInformation>true</BrowseInformation>
+      <BrowseInformation>false</BrowseInformation>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
       <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>

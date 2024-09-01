@@ -114,7 +114,7 @@ bool PhysicalDeviceFeatures::checkSupport2(VkBaseOutStructure const* available_f
     auto const availableFlags = to_bool_args(available_feature2);
     auto const requiredFlags = to_bool_args(required_feature2);
 
-    return std::ranges::equal(availableFlags, requiredFlags, [](VkBool32 const available_flag, VkBool32 const required_flag) {
+    return std::ranges::equal(availableFlags, requiredFlags, [](VkBool32 available_flag, VkBool32 required_flag) {
         return (available_flag & required_flag) == required_flag;
     });
 }
@@ -157,7 +157,7 @@ auto PhysicalDeviceFeatures::copy2(VkPhysicalDeviceFeatures2 const& features)->s
     return std::move(copy);
 }
 
-auto PhysicalDeviceFeatures::find2(VkPhysicalDeviceFeatures2 const* features, VkStructureType const type)->VkBaseOutStructure* {
+auto PhysicalDeviceFeatures::find2(VkPhysicalDeviceFeatures2 const* features, VkStructureType type)->VkBaseOutStructure* {
     auto* ptr = static_cast<VkBaseOutStructure*>(features->pNext);
 
     while(ptr != nullptr && ptr->sType != type)
@@ -166,7 +166,7 @@ auto PhysicalDeviceFeatures::find2(VkPhysicalDeviceFeatures2 const* features, Vk
     return ptr;
 }
 
-size_t PhysicalDeviceFeatures::flagCount2(VkStructureType const feature_type) {
+size_t PhysicalDeviceFeatures::flagCount2(VkStructureType feature_type) {
     switch(feature_type) {
         //one bool comparison
         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR:
@@ -177,7 +177,7 @@ size_t PhysicalDeviceFeatures::flagCount2(VkStructureType const feature_type) {
 }
 
 
-constexpr auto PhysicalDeviceFeatures::indexToString(size_t const index)->std::string_view {
+constexpr auto PhysicalDeviceFeatures::indexToString(size_t index)->std::string_view {
     switch(index) {
         case 0:
             return "robustBufferAccess";

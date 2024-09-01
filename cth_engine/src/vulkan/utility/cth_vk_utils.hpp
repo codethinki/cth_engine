@@ -13,7 +13,7 @@
 
 
 namespace cth::vk::utils {
-inline std::string to_string(VkResult const result) {
+inline std::string to_string(VkResult result) {
     switch(result) {
         case VK_SUCCESS: return "VK_SUCCESS";
         case VK_NOT_READY: return "VK_NOT_READY";
@@ -65,7 +65,7 @@ inline std::string to_string(VkResult const result) {
         default: return "UNKNOWN_ERROR";
     }
 }
-inline std::string to_string(VkDescriptorType const type) {
+inline std::string to_string(VkDescriptorType type) {
     switch(type) {
         case VK_DESCRIPTOR_TYPE_SAMPLER: return "VK_DESCRIPTOR_TYPE_SAMPLER";
         case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return "VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER";
@@ -103,7 +103,7 @@ inline std::string to_string(VkDescriptorType const type) {
 namespace cth::except {
 class vk_result_exception : public cth::except::default_exception {
 public:
-    vk_result_exception(VkResult const result, cth::except::default_exception ex) : default_exception(ex), _vkResult(result) {
+    vk_result_exception(VkResult result, cth::except::default_exception ex) : default_exception(ex), _vkResult(result) {
         ex.add("error code {0} ({1})", vk::utils::to_string(_vkResult), static_cast<int>(_vkResult));
     }
     [[nodiscard]] VkResult result() const noexcept { return _vkResult; }

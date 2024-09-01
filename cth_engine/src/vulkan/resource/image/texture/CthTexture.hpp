@@ -14,7 +14,7 @@ public:
      * @param staging_data copied to texture via a staging buffer
      * @note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
-    Texture(BasicCore const* core, DestructionQueue* destruction_queue, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+    Texture(not_null<BasicCore const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
         std::span<char const> staging_data);
 
     /**
@@ -22,7 +22,7 @@ public:
      * @param staging_buffer staging buffer with image data
      * @note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
-    Texture(BasicCore const* core, DestructionQueue* destruction_queue, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+    Texture(not_null<BasicCore const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
         BasicBuffer const& staging_buffer, size_t buffer_offset = 0);
 
     ~Texture() override = default;

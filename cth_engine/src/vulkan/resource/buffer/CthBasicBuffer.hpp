@@ -1,5 +1,5 @@
 #pragma once
-#include "../memory/CthBasicMemory.hpp"
+#include "../memory/CthMemory.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
 #include<cth/cth_pointer.hpp>
@@ -12,11 +12,10 @@
 
 
 namespace cth::vk {
-class BasicMemory;
+class Memory;
 class CmdBuffer;
 class BasicCore;
 class DestructionQueue;
-class Memory;
 
 class BasicBuffer {
 public:
@@ -25,8 +24,8 @@ public:
     /**
      * @param buffer_size in bytes
      */
-    BasicBuffer(BasicCore const* core, size_t buffer_size, VkBufferUsageFlags usage_flags);
-    BasicBuffer(BasicCore const* core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, State state);
+    BasicBuffer(not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags);
+    BasicBuffer(not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, State state);
 
     virtual ~BasicBuffer() = default;
 
@@ -43,7 +42,7 @@ public:
     * @brief allocates buffer memory
     * @param new_memory must not be allocated or nullptr
     */
-    void alloc(BasicMemory* new_memory);
+    void alloc(Memory* new_memory);
     /**
     * @brief allocates buffer memory
     * @note memory must not be allocated
@@ -54,7 +53,7 @@ public:
     * @brief binds buffer to new_memory and replaces the old one
     * @param new_memory must be allocated
     */
-    void bind(BasicMemory* new_memory);
+    void bind(Memory* new_memory);
     /**
     * binds buffer to memory
     * @note memory must be allocated
@@ -75,7 +74,7 @@ public:
      */
     virtual void reset();
 
-    [[nodiscard]] BasicMemory* releaseMemory();
+    [[nodiscard]] Memory* releaseMemory();
 
     /**
      *@brief maps part of the buffer memory
@@ -155,7 +154,7 @@ public:
     static size_t calcAlignedSize(size_t actual_size);
 
     struct State {
-        move_ptr<BasicMemory> memory = nullptr;
+        move_ptr<Memory> memory = nullptr;
         bool bound = memory != nullptr;
         std::span<char> mapped{}; //must not specify an offset into the buffer
 
@@ -178,9 +177,9 @@ protected:
     * @param new_memory must not be allocated, nullptr or current memory
     * @note does not free current memory
     */
-    virtual void setMemory(BasicMemory* new_memory);
+    virtual void setMemory(Memory* new_memory);
 
-    BasicCore const* _core;
+    not_null<BasicCore const*> _core;
     size_t _size;
     VkBufferUsageFlags _usage;
 
@@ -194,7 +193,7 @@ private:
 
 public:
     [[nodiscard]] auto get() const { return _handle.get(); }
-    [[nodiscard]] BasicMemory* memory() const;
+    [[nodiscard]] Memory* memory() const;
     [[nodiscard]] auto bound() const { return _state.bound; }
     [[nodiscard]] auto mapped() const { return _state.mapped; }
     [[nodiscard]] auto usageFlags() const { return _usage; }

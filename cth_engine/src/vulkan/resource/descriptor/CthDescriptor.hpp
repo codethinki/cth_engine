@@ -14,7 +14,7 @@ class DescriptedResource;
 
 class Descriptor {
 public:
-    explicit Descriptor(VkDescriptorType const type) : _vkType(type) {}
+    explicit Descriptor(VkDescriptorType  type) : _vkType(type) {}
     virtual ~Descriptor() = 0;
 
 

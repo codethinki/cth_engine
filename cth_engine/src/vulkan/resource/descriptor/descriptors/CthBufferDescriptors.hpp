@@ -6,7 +6,7 @@
 namespace cth::vk {
 class BufferDescriptor : public Descriptor {
 public:
-    explicit BufferDescriptor(VkDescriptorType const type, DefaultBuffer const* buffer, size_t const descriptor_size = Constants::WHOLE_SIZE,
+    explicit BufferDescriptor(VkDescriptorType  type, DefaultBuffer const* buffer, size_t const descriptor_size = Constants::WHOLE_SIZE,
         size_t const buffer_offset = 0) : Descriptor(type), vkDescriptorInfo(buffer->descriptorInfo(descriptor_size, buffer_offset)) {}
     ~BufferDescriptor() override = 0;
 

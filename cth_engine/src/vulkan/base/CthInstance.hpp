@@ -107,7 +107,7 @@ public:
     * @throws cth::except::default_exception reason: missing required instance extensions
     * @throws cth::except::default_exception reason: missing required validation layers
     */
-    explicit Instance(std::string_view app_name, std::span<std::string const> const required_extensions);
+    explicit Instance(std::string_view app_name, std::span<std::string const> required_extensions);
     ~Instance() override;
 
     void wrap(VkInstance vk_instance) override;

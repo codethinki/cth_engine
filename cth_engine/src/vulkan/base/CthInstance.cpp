@@ -17,7 +17,7 @@ using std::vector;
 using std::span;
 
 
-BasicInstance::BasicInstance(string_view const app_name, span<string const> const required_extensions) : _name(app_name),
+BasicInstance::BasicInstance(string_view app_name, span<string const> required_extensions) : _name(app_name),
     _availableExt(getAvailableInstanceExtensions()) {
     _requiredExt.reserve(required_extensions.size() + REQUIRED_INSTANCE_EXTENSIONS.size());
     _requiredExt.insert(_requiredExt.end(), required_extensions.begin(), required_extensions.end());
@@ -85,7 +85,7 @@ void BasicInstance::checkInstanceExtensionSupport() {
         if(!std::ranges::contains(_availableExt, extension)) missingExtensions.emplace_back(extension);
 
     CTH_STABLE_ERR(!missingExtensions.empty(), "instance extensions missing") {
-        std::ranges::for_each(missingExtensions, [&details](string_view const extension) { details->add(extension); });
+        std::ranges::for_each(missingExtensions, [&details](string_view extension) { details->add(extension); });
 
         throw details->exception();
     }
@@ -94,11 +94,11 @@ void BasicInstance::checkValidationLayerSupport() {
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         vector<string> missingLayers{};
 
-        std::ranges::for_each(VALIDATION_LAYERS, [&](string_view const layer) {
+        std::ranges::for_each(VALIDATION_LAYERS, [&](string_view layer) {
             if(!std::ranges::contains(_availableLayers, layer)) missingLayers.emplace_back(layer);
         });
         CTH_STABLE_ERR(!missingLayers.empty(), "validation layers missing") {
-            std::ranges::for_each(missingLayers, [&details](string_view const layer) { details->add(layer); });
+            std::ranges::for_each(missingLayers, [&details](string_view layer) { details->add(layer); });
 
             throw details->exception();
         }
@@ -168,7 +168,7 @@ void BasicInstance::debug_check_leak(BasicInstance const* instance) {
 namespace cth::vk {
 using namespace std;
 
-Instance::Instance(string_view const app_name, span<string const> const required_extensions) : BasicInstance(app_name, required_extensions) {
+Instance::Instance(string_view app_name, span<string const> required_extensions) : BasicInstance(app_name, required_extensions) {
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         _availableLayers = getAvailableValidationLayers();
         checkValidationLayerSupport();

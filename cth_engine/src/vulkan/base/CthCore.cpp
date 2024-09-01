@@ -50,8 +50,8 @@ void BasicCore::reset() {
     _physicalDevice = nullptr;
     _instance = nullptr;
 }
-BasicCore::Ptrs BasicCore::release() {
-    Ptrs const temp{
+BasicCore::State BasicCore::release() {
+    State const temp{
         _instance.get(),
         _physicalDevice.get(),
         _device.get(),
@@ -73,8 +73,7 @@ VkInstance BasicCore::vkInstance() const { return _instance->get(); }
 DestructionQueue* BasicCore::destructionQueue() const { return _destructionQueue.get(); }
 
 #ifdef CONSTANT_DEBUG_MODE
-void BasicCore::debug_check(BasicCore const* core) {
-    CTH_ERR(core == nullptr, "core invalid (nullptr)") throw details->exception();
+void BasicCore::debug_check(not_null<BasicCore const*> core) {
     DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(core->_destructionQueue.get());
     DEBUG_CHECK_DEVICE(core->_device.get());
     DEBUG_CHECK_PHYSICAL_DEVICE(core->_physicalDevice.get());

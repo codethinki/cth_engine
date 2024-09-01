@@ -31,7 +31,7 @@ public:
     struct PresentInfo;
 
 
-    explicit Queue(QueueFamilyProperties const family_properties) : _familyProperties(family_properties) {}
+    explicit Queue(QueueFamilyProperties family_properties) : _familyProperties(family_properties) {}
     ~Queue() = default;
 
     /**
@@ -105,15 +105,18 @@ public:
     Queue& operator=(Queue&& other) = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(Queue const* queue);
-    static void debug_check_present_queue(Queue const* queue);
+    static void debug_check(not_null<Queue const*> queue);
+    static void debug_check_present_queue(not_null<Queue const*> queue);
+    static void debug_check_queue_handle(VkQueue vk_queue);
+
 #define DEBUG_CHECK_QUEUE(queue_ptr) Queue::debug_check(queue_ptr)
 #define DEBUG_CHECK_PRESENT_QUEUE(queue_ptr) Queue::debug_check_present_queue(queue_ptr)
+#define DEBUG_CHECK_QUEUE_HANDLE(vk_queue) Queue::debug_check_queue_handle(vk_queue)
 
 #else
-
 #define DEBUG_CHECK_QUEUE(queue_ptr) ((void)0)
 #define DEBUG_CHECK_PRESENT_QUEUE(queue_ptr) ((void)0)
+#define DEBUG_CHECK_QUEUE_HANDLE(vk_queue) ((void)0)
 #endif
 };
 

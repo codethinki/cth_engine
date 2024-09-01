@@ -6,7 +6,7 @@
 namespace cth::vk {
 class TimelineSemaphore : public Semaphore {
 public:
-    explicit TimelineSemaphore(BasicCore const* core, bool create = true);
+    explicit TimelineSemaphore(not_null<BasicCore const*> core, bool create = true);
     ~TimelineSemaphore() override = default;
 
 

@@ -100,7 +100,7 @@ void Renderer::debug_check_phase_change(Renderer const* renderer) {
 
 namespace cth::vk {
 template<Renderer::Phase P>
-auto Renderer::Config::addSignalSets(std::span<BasicSemaphore* const> const signal_semaphore_sets) -> Config& {
+auto Renderer::Config::addSignalSets(std::span<BasicSemaphore* const> signal_semaphore_sets) -> Config& {
     add<P>(signal_semaphore_sets, _phaseSignalSets);
 
     return *this;
@@ -111,7 +111,7 @@ auto Renderer::Config::addWaitSets(std::span<BasicSemaphore*> wait_semaphores, V
     waitStages.reserve(wait_semaphores.size());
 
     std::ranges::transform(wait_semaphores, std::back_inserter(waitStages),
-        [wait_stage](auto const semaphore) { return PipelineWaitStage{wait_stage, semaphore}; });
+        [wait_stage](auto semaphore) { return PipelineWaitStage{wait_stage, semaphore}; });
 
     addWaitSets<P>(waitStages);
 
@@ -119,14 +119,14 @@ auto Renderer::Config::addWaitSets(std::span<BasicSemaphore*> wait_semaphores, V
 }
 
 template<Renderer::Phase P>
-auto Renderer::Config::addWaitSets(std::span<PipelineWaitStage const> const wait_stage_sets) -> Config& {
+auto Renderer::Config::addWaitSets(std::span<PipelineWaitStage const> wait_stage_sets) -> Config& {
     add<P>(wait_stage_sets, _phaseWaitSets);
 
     return *this;
 }
 
 template<Renderer::Phase P>
-auto Renderer::Config::removeSignalSets(std::span<BasicSemaphore* const> const signal_semaphore_sets) -> Config& {
+auto Renderer::Config::removeSignalSets(std::span<BasicSemaphore* const> signal_semaphore_sets) -> Config& {
 
     remove<P>(signal_semaphore_sets, _phaseSignalSets);
     return *this;
@@ -166,8 +166,8 @@ auto Renderer::Config::addPhase(Queue const* queue, std::optional<std::span<Basi
     return *this;
 }
 template<Renderer::Phase P>
-auto Renderer::Config::addSets(std::span<BasicSemaphore* const> const signal_semaphore_sets,
-    std::span<PipelineWaitStage const> const wait_stage_sets) -> Config& {
+auto Renderer::Config::addSets(std::span<BasicSemaphore* const> signal_semaphore_sets,
+    std::span<PipelineWaitStage const> wait_stage_sets) -> Config& {
     addSignalSets<P>(signal_semaphore_sets);
     addWaitSets<P>(wait_stage_sets);
     return *this;
@@ -176,7 +176,7 @@ auto Renderer::Config::addSets(std::span<BasicSemaphore* const> const signal_sem
 
 template<Renderer::Phase P>
 auto Renderer::Config::createPhaseSubmitInfos(
-    std::span<PrimaryCmdBuffer const* const> const phase_buffers) const -> std::vector<Queue::SubmitInfo> {
+    std::span<PrimaryCmdBuffer const* const> phase_buffers) const -> std::vector<Queue::SubmitInfo> {
 
     DEBUG_CHECK_RENDERER_PHASE(P);
 

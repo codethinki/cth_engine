@@ -35,13 +35,13 @@ public:
      */
     virtual void reset();
 
-    struct Ptrs {
+    struct State {
         BasicInstance* instance;
         PhysicalDevice* physicalDevice;
         Device* device;
         DestructionQueue* destructionQueue;
     };
-    Ptrs release();
+    State release();
 
 private:
     move_ptr<Device> _device = nullptr;
@@ -63,7 +63,7 @@ public:
     }
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(BasicCore const* core);
+    static void debug_check(not_null<BasicCore const*> core);
     static void debug_check_leak(BasicCore const* core);
 #define DEBUG_CHECK_CORE(core_ptr) BasicCore::debug_check(core_ptr)
 #define DEBUG_CHECK_CORE_LEAK(core_ptr) BasicCore::debug_check_leak(core_ptr)
@@ -113,7 +113,7 @@ struct BasicCore::Config {
     std::span<std::string const> requiredExtensions; //TEMP
     bool destructionQueue;
 
-    static Config Default(std::string_view const app_name, std::string_view const engine_name, std::span<Queue> const queues,
-        std::span<std::string const> const required_extensions) { return Config{app_name, engine_name, queues, required_extensions, true}; }
+    static Config Default(std::string_view app_name, std::string_view engine_name, std::span<Queue> queues,
+        std::span<std::string const> required_extensions) { return Config{app_name, engine_name, queues, required_extensions, true}; }
 };
 }

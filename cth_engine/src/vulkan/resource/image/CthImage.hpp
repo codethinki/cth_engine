@@ -1,68 +1,175 @@
 #pragma once
-#include "CthBasicImage.hpp"
+#include "../memory/CthMemory.hpp"
+
+#include "vulkan/utility/cth_constants.hpp"
 
 #include <vulkan/vulkan.h>
 
 
 namespace cth::vk {
-class Memory;
-class Device;
 class BasicBuffer;
-class Sampler;
-class ImageView;
-class Image;
-class DestructionQueue;
+class ImageBarrier;
 class CmdBuffer;
 
 
 /**
  * @brief image wrapper with ownership of image & memory
  */
-class Image : public BasicImage {
+class Image {
     struct TransitionConfig;
 
 public:
-    //TEMP find a way to encapsulate the memory properties
+    struct Config;
+    struct State;
+
+
+    explicit Image(not_null<BasicCore const*> core, Config const& config);
+
     /**
-     * @brief creates an image and allocates memory
-     * @note implicitly calls create, allocate and bind
+     *@brief creates the image with extent
+     * @note calls @ref Image::Image()
+     * @note calls @ref create() 
      */
-    explicit Image(BasicCore const* core, DestructionQueue* destruction_queue, VkExtent2D extent, Config const& config, VkMemoryPropertyFlags memory_properties);
-
-    ~Image() override;
-
-    void wrap(VkImage vk_image, State const& state) override;
+    Image(not_null<BasicCore const*>core, Config const& config, VkExtent2D extent);
 
     /**
-     * @brief creates the image
-     * @note previous image will be destroyed
+     * @brief wraps an image with state
+     * @note calls @ref Image::Image()
+     * @note calls @ref wrap()
      */
-    void create() override;
+    Image(not_null<BasicCore const*> core, Config const& config, State const& state);
+
+    virtual ~Image();
+
+    void wrap(State const& state);
+
+    /**
+     * @brief allocates the image memory & binds it
+     * @note if(@ref created()) -> calls @ref destroy()
+     */
+    void create(VkExtent2D extent);
 
 
     /**
-    * @brief submits image & memory to cached deletion queues and resets the object
-    * @param destruction_queue != nullptr => submits to new deletion queue
-    * @note new deletion queue will be cached
-    * @note frees but doesn't delete memory
+    * @brief destroys and resets the object
+    * @note calls @ref Memory::destroy()
+    * @note pushes to destruction queue if(@ref Core::destructionQueue())
     */
-    void destroy(DestructionQueue* destruction_queue = nullptr) override;
+    void destroy();
 
-    void setMemory(BasicMemory* new_memory) override;
+    /**
+     * @brief releases the ownership of image & memory
+     */
+    State release();
+
+    /**
+     * @brief copies the buffer to the image
+     * @param mip_level copy dst
+     * @note image must be bound & allocated
+     */
+    void copy(CmdBuffer const& cmd_buffer, BasicBuffer const& src_buffer, size_t src_offset = 0, uint32_t mip_level = 0) const;
+
+    /**
+     * @brief transitions the image layout via a pipeline barrier
+     * @param mip_levels (Constants::ALL => all remaining)
+     */
+    void transitionLayout(CmdBuffer const& cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = constants::ALL);
+    /**
+    * @brief adds the transition to the pipeline barrier
+    * @param mip_levels (Constants::ALL => all remaining)
+    */
+    void transitionLayout(ImageBarrier& barrier, VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access,
+        uint32_t first_mip_level = 0, uint32_t mip_levels = constants::ALL);
+
+    static uint32_t evalMipLevelCount(VkExtent2D  extent);
+
+
+    static void destroy(VkDevice vk_device, VkImage vk_image);
+
+    struct Config {
+        VkImageAspectFlagBits aspectMask;
+        VkFormat format;
+        VkImageUsageFlags usage;
+        VkMemoryPropertyFlags memoryProperties;
+        VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+        uint32_t mipLevels = 1;
+        VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
+        VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        [[nodiscard]] VkImageCreateInfo createInfo() const;
+    };
+protected:
+    std::vector<VkImageLayout> _levelLayouts;
 
 private:
-    void destroyMemory(DestructionQueue* destruction_queue = nullptr);
+    void createHandle();
+    void alloc() const;
+    void bind() const;
 
-    DestructionQueue* _destructionQueue;
+    void reset();
+
+    not_null<BasicCore const*> _core;
+    VkExtent2D _extent;
+    Config _config;
+
+
+    struct TransitionConfig {
+        VkAccessFlags srcAccess, dstAccess;
+        VkPipelineStageFlags srcStage, vkPipelineStage;
+
+        static TransitionConfig Create(VkImageLayout current_layout, VkImageLayout new_layout);
+    };
+
+
+
+    move_ptr<VkImage_T> _handle = VK_NULL_HANDLE;
+    std::unique_ptr<Memory> _memory = nullptr;
+
+    friend ImageBarrier;
 
 public:
+    [[nodiscard]] VkImage get() const { return _handle.get(); }
+    [[nodiscard]] Memory* memory() const { return _memory.get(); }
+    [[nodiscard]] VkFormat format() const { return _config.format; }
+    [[nodiscard]] VkExtent2D extent() const { return _extent; }
+    [[nodiscard]] uint32_t mipLevels() const { return _config.mipLevels; }
+    [[nodiscard]] VkImageLayout layout(uint32_t  mip_level) const { return _levelLayouts[mip_level]; }
+    [[nodiscard]] std::span<VkImageLayout const> layouts() const { return _levelLayouts; }
+    [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return _config.aspectMask; }
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] Config config() const { return _config; }
+
     Image(Image const& other) = delete;
-    Image(Image&& other) = default;
+    Image(Image&& other) noexcept = default;
     Image& operator=(Image const& other) = delete;
-    Image& operator=(Image&& other) = default;
+    Image& operator=(Image&& other) noexcept = default;
+
+    static void debug_check(not_null<Image const*> image);
+    static void debug_check_handle(VkImage vk_image);
+
+#ifdef CONSTANT_DEBUG_MODE
+#define DEBUG_CHECK_IMAGE(image_ptr) Image::debug_check(image_ptr)
+#define DEBUG_CHECK_IMAGE_HANDLE(vk_image) Image::debug_check_handle(vk_image)
+#else
+#define DEBUG_CHECK_IMAGE(image_ptr) ((void)0)
+#define DEBUG_CHECK_IMAGE_HANDLE(vk_image) ((void)0)
+#endif
 };
 
 } // namespace cth
+
+//State
+namespace cth::vk {
+struct Image::State {
+    VkExtent2D extent;
+    gsl::owner<VkImage> vkImage = VK_NULL_HANDLE; // NOLINT(cppcoreguidelines-owning-memory)
+    std::vector<VkImageLayout> levelLayouts{}; // levelLayouts.size() < mipLevels => remaining levels are config.initialLayout
+    bool bound = false;
+
+    Memory::State memoryState{};
+    static State Default() { return State{}; }
+};
+}
 
 //TODO implement multidimensional image support
 //void write(const DefaultBuffer* buffer, size_t offset = 0, uint32_t mip_level = 0, VkImageAspectFlagBits aspect_mask = VK_IMAGE_ASPECT_NONE) const;

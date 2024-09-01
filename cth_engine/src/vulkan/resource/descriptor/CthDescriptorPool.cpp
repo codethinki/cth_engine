@@ -11,7 +11,7 @@
 
 namespace cth::vk {
 
-DescriptorPool::DescriptorPool(BasicCore const* device, Builder const& builder) : _core(device) {
+DescriptorPool::DescriptorPool(not_null<BasicCore const*> device, Builder const& builder) : _core(device) {
     initSetEntries(builder);
     create();
     allocSets();
@@ -82,7 +82,7 @@ void DescriptorPool::initSetEntries(Builder const& builder) {
 }
 
 void DescriptorPool::create() {
-    std::vector<VkDescriptorPoolSize> const poolSizes = calcPoolSizes();
+    std::vector<VkDescriptorPoolSize> poolSizes = calcPoolSizes();
 
     VkDescriptorPoolCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -132,7 +132,7 @@ void DescriptorPool::returnSet(DescriptorSet* set) {
 //Builder
 
 namespace cth::vk {
-void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint32_t const alloc_count) {
+void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint32_t  alloc_count) {
     CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
     CTH_WARN(alloc_count == 0, "alloc_count should be > 0") {}
 
@@ -141,7 +141,7 @@ void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint3
 void DescriptorPool::Builder::addLayouts(std::unordered_map<DescriptorSetLayout const*, uint32_t> const& set_allocations) {
     std::ranges::for_each(set_allocations, [this](auto const& pair) { this->addLayout(pair.first, pair.second); });
 }
-void DescriptorPool::Builder::removeLayout(DescriptorSetLayout const* layout, size_t const amount) {
+void DescriptorPool::Builder::removeLayout(DescriptorSetLayout const* layout, size_t  amount) {
     CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
     CTH_WARN(amount == 0, "alloc_count should be > 0") {}
     CTH_ERR(!_maxDescriptorSets.contains(layout), "builder does not contain layout") throw details->exception();

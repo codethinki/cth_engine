@@ -31,7 +31,7 @@ public:
     * @param builder [layout, count] pairs -> limit for allocated sets per layout
     * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
     */
-    DescriptorPool(BasicCore const* device, Builder const& builder);
+    DescriptorPool(not_null<BasicCore const*> device, Builder const& builder);
     ~DescriptorPool();
     /**
      * @note descriptor sets are not required to stay valid
@@ -75,7 +75,7 @@ private:
 
     void returnSet(DescriptorSet* set);
 
-    BasicCore const* _core;
+    not_null<BasicCore const*> _core;
 
     std::unordered_map<DescriptorSetLayout const*, SetLayoutEntry> _allocatedSets{};
     std::vector<VkDescriptorSet> _vkSets{};

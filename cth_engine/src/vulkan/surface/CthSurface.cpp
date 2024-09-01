@@ -23,7 +23,7 @@ void Surface::destroy(DestructionQueue* destruction_queue) {
 
     _handle = VK_NULL_HANDLE;
 }
-bool Surface::supportsFamily(PhysicalDevice const& physical_device, uint32_t const family_index) const {
+bool Surface::supportsFamily(PhysicalDevice const& physical_device, uint32_t family_index) const {
     VkBool32 support = false;
     VkResult const result = vkGetPhysicalDeviceSurfaceSupportKHR(physical_device.get(), family_index, _handle.get(), &support);
     CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface support query failed")
@@ -84,8 +84,7 @@ void Surface::destroy(VkSurfaceKHR surface, VkInstance instance) {
     vkDestroySurfaceKHR(instance, surface, nullptr);
 }
 
-void Surface::debug_check(Surface const* surface) {
-    CTH_ERR(surface == nullptr, "surface invalid (nullptr)") throw details->exception();
+void Surface::debug_check(not_null<Surface const*> surface) {
     DEBUG_CHECK_SURFACE_HANDLE(surface->get());
 }
 void Surface::debug_check_handle(VkSurfaceKHR surface) {

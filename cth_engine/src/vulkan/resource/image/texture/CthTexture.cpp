@@ -7,23 +7,23 @@
 namespace cth::vk {
 
 
-Texture::Texture(BasicCore const* core, DestructionQueue* destruction_queue, VkExtent2D const extent, Config const& config, CmdBuffer const& cmd_buffer,
-    std::span<char const> const staging_data) : Image(core, destruction_queue, extent, imageConfig(extent, config), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+Texture::Texture(not_null<BasicCore const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+    std::span<char const> staging_data) : Image{core, imageConfig(extent, config), extent} {
 
-    Buffer<char> buffer{core, destruction_queue, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    Buffer<char> buffer{core, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT};
     buffer.map();
     buffer.write(staging_data);
 
     init(cmd_buffer, buffer);
 }
-Texture::Texture(BasicCore const* core, DestructionQueue* destruction_queue, VkExtent2D const extent, Config const& config, CmdBuffer const& cmd_buffer,
-    BasicBuffer const& staging_buffer, size_t const buffer_offset) : Image(core, destruction_queue, extent, imageConfig(extent, config),
-    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) { init(cmd_buffer, staging_buffer, buffer_offset); }
+Texture::Texture(not_null<BasicCore const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+    BasicBuffer const& staging_buffer, size_t buffer_offset) : Image{core, imageConfig(extent, config),
+    extent} { init(cmd_buffer, staging_buffer, buffer_offset); }
 
 
-void Texture::init(CmdBuffer const& cmd_buffer, BasicBuffer const& buffer, size_t const offset) {
-    CTH_ERR(_state.levelLayouts[0] == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, "already initialized")
+void Texture::init(CmdBuffer const& cmd_buffer, BasicBuffer const& buffer, size_t offset) {
+    CTH_ERR(_levelLayouts[0] == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, "already initialized")
         throw details->exception();
 
     Image::transitionLayout(cmd_buffer, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
@@ -35,11 +35,12 @@ void Texture::init(CmdBuffer const& cmd_buffer, BasicBuffer const& buffer, size_
     Image::transitionLayout(cmd_buffer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, 1);
 }
 
-BasicImage::Config Texture::imageConfig(VkExtent2D const extent, Config const& config) {
-    return BasicImage::Config{
+Image::Config Texture::imageConfig(VkExtent2D extent, Config const& config) {
+    return Image::Config{
         config.aspectMask,
         config.format,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         VK_IMAGE_TILING_OPTIMAL,
         Image::evalMipLevelCount(extent),
         VK_SAMPLE_COUNT_1_BIT,
@@ -47,12 +48,12 @@ BasicImage::Config Texture::imageConfig(VkExtent2D const extent, Config const& c
     };
 }
 
-void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, int32_t const first, int32_t levels) {
+void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, int32_t first, int32_t levels) {
     if(levels == 0) levels = mipLevels() - first;
 
-    CTH_ERR(_state.levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal")
+    CTH_ERR(_levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal")
         throw details->exception();
-    CTH_ERR(any_of(_state.levelLayouts.begin() + first, _state.levelLayouts.begin() + first + levels, [](const VkImageLayout layout){\
+    CTH_ERR(std::ranges::any_of(_levelLayouts.begin() + first, _levelLayouts.begin() + first + levels, [](const VkImageLayout layout){\
         return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }), "image layouts not transfer dst optimal")
         throw details->exception();
 
@@ -96,7 +97,8 @@ void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, int32_t const first, in
         shaderBarrier.execute(cmd_buffer);
         shaderBarrier.remove(this);
     }
-    transitionLayout(shaderBarrier, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, first + levels - 1, 1);
+    transitionLayout(shaderBarrier, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+        first + levels - 1, 1);
     shaderBarrier.execute(cmd_buffer);
     shaderBarrier.remove(this);
 }

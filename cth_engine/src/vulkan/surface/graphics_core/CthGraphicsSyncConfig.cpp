@@ -7,12 +7,7 @@
 
 namespace cth::vk {
 #ifdef CONSTANT_DEBUG_MODE
-void BasicGraphicsSyncConfig::debug_check_not_null(BasicGraphicsSyncConfig const* config) {
-    CTH_ERR(config == nullptr, "sync config must not be nullptr")
-        throw details->exception();
-}
-void BasicGraphicsSyncConfig::debug_check(BasicGraphicsSyncConfig const* config) {
-    DEBUG_CHECK_SYNC_CONFIG_NOT_NULL(config);
+void BasicGraphicsSyncConfig::debug_check(not_null<BasicGraphicsSyncConfig const*> config) {
 
     CTH_ERR(config->renderFinishedSemaphores.size() != constants::FRAMES_IN_FLIGHT
         || config->imageAvailableSemaphores.size() != constants::FRAMES_IN_FLIGHT,
@@ -32,7 +27,7 @@ void BasicGraphicsSyncConfig::debug_check(BasicGraphicsSyncConfig const* config)
 namespace cth::vk {
 
 
-GraphicsSyncConfig::GraphicsSyncConfig(BasicCore const* core, DestructionQueue* destruction_queue) {
+GraphicsSyncConfig::GraphicsSyncConfig(not_null<BasicCore const*> core, DestructionQueue* destruction_queue) : _core{core} {
     create(core, destruction_queue);
 }
 GraphicsSyncConfig::~GraphicsSyncConfig() { destroyOpt(); }
@@ -41,7 +36,7 @@ void GraphicsSyncConfig::wrap(BasicGraphicsSyncConfig const& config) {
     renderFinishedSemaphores = config.renderFinishedSemaphores;
     imageAvailableSemaphores = config.imageAvailableSemaphores;
 }
-void GraphicsSyncConfig::create(BasicCore const* core, DestructionQueue* destruction_queue) {
+void GraphicsSyncConfig::create(not_null<BasicCore const*> core, DestructionQueue* destruction_queue) {
     destroyOpt();
 
     DEBUG_CHECK_CORE(core);

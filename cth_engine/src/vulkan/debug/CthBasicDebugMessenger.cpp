@@ -85,8 +85,8 @@ VkDebugUtilsMessengerCreateInfoEXT BasicDebugMessenger::Config::createInfo() con
 
 
 namespace cth::dev {
-VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT const message_severity,
-    VkDebugUtilsMessageTypeFlagsEXT const message_type, VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
+VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT  message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
     void* user_data) {
     except::Severity severity = except::CRITICAL;
 

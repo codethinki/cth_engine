@@ -7,7 +7,7 @@
 
 namespace cth::vk {
 
-DescriptorSetLayout::DescriptorSetLayout(BasicCore const* core, Builder const& builder) : _core(core), _vkBindings(builder.bindings()) { create(); }
+DescriptorSetLayout::DescriptorSetLayout(not_null<BasicCore const*> core, Builder const& builder) : _core(core), _vkBindings(builder.bindings()) { create(); }
 DescriptorSetLayout::~DescriptorSetLayout() {
     vkDestroyDescriptorSetLayout(_core->vkDevice(), _handle.get(), nullptr);
     log::msg("destroyed descriptor set layout");
@@ -36,8 +36,8 @@ void DescriptorSetLayout::create() {
 
 namespace cth::vk {
 
-DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(uint32_t const binding, VkDescriptorType const type,
-    VkShaderStageFlags const flags, uint32_t const count) {
+DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(uint32_t binding, VkDescriptorType type,
+    VkShaderStageFlags flags, uint32_t count) {
     CTH_WARN(count == 0, "empty binding created (count = 0)") {}
     if(binding >= _bindings.size()) _bindings.resize(binding + 1);
 
@@ -54,7 +54,7 @@ DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::addBinding(uint32_t 
 
     return *this;
 }
-DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(uint32_t const binding) {
+DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(uint32_t binding) {
     _bindings[binding] = VkDescriptorSetLayoutBinding{};
     return *this;
 }

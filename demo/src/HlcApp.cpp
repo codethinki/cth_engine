@@ -68,7 +68,7 @@ void App::graphicsPhase(vk::Cycle const& cycle) const {
 
 
 void App::initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer) {
-    _renderSystem = std::make_unique<RenderSystem>(_core.get(), _destructionQueue.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(),
+    _renderSystem = std::make_unique<RenderSystem>(_core.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(),
         _graphicsCore->msaaSamples());
 }
 

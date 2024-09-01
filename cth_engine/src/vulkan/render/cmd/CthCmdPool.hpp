@@ -21,7 +21,7 @@ class SecondaryCmdBuffer;
 class CmdPool {
 public:
     struct Config;
-    CmdPool(BasicCore const* device, Config const& config);
+    CmdPool(not_null<BasicCore const*> device, Config const& config);
     ~CmdPool();
 
     /**
@@ -49,7 +49,7 @@ private:
     void newCmdBuffer(PrimaryCmdBuffer* buffer);
     void newCmdBuffer(SecondaryCmdBuffer* buffer);
 
-    BasicCore const* _core;
+    not_null<BasicCore const*> _core;
     move_ptr<VkCommandPool_T> _handle = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> _primaryBuffers;
     std::vector<VkCommandBuffer> _secondaryBuffers;
@@ -61,7 +61,7 @@ public:
         uint32_t queueFamilyIndex = constants::QUEUE_FAMILY_IGNORED;
         VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-        static Config Default(uint32_t const queue_family_index, uint32_t const max_primary_buffers, uint32_t const max_secondary_buffers) {
+        static Config Default(uint32_t  queue_family_index, uint32_t  max_primary_buffers, uint32_t  max_secondary_buffers) {
             return Config{max_primary_buffers, max_secondary_buffers, queue_family_index};
         }
         static Config Default(Queue const& queue, uint32_t max_primary_buffers, uint32_t max_secondary_buffers);

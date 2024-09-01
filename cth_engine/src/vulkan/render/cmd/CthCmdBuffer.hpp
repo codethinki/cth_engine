@@ -108,7 +108,7 @@ public:
         VkQueryPipelineStatisticFlags pipelineStatistics = 0;
 
 
-        static auto Default(VkRenderPass render_pass, uint32_t const subpass_index, VkFramebuffer framebuffer) {
+        static auto Default(VkRenderPass render_pass, uint32_t  subpass_index, VkFramebuffer framebuffer) {
             return Config{render_pass, subpass_index, framebuffer};
         }
 

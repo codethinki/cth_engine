@@ -21,7 +21,7 @@ class Surface;
 
 class OSWindow {
 public:
-    OSWindow(BasicInstance const* instance, DestructionQueue* destruction_queue, std::string_view name, uint32_t width, uint32_t height);
+    OSWindow(BasicInstance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent);
     ~OSWindow();
 
     void destroy(DestructionQueue* destruction_queue = nullptr);

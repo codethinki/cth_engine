@@ -13,7 +13,7 @@ static size_t idCounter = 0; //TEMP remove the id
 
 class BasicSemaphore {
 public:
-    explicit BasicSemaphore(BasicCore const* core);
+    explicit BasicSemaphore(not_null<BasicCore const*> core);
     virtual ~BasicSemaphore() = default;
 
     virtual void create();
@@ -26,7 +26,7 @@ protected:
     virtual VkSemaphoreCreateInfo createInfo();
     virtual void createHandle(VkSemaphoreCreateInfo const& info);
 
-    BasicCore const* _core;
+    not_null<BasicCore const*> _core;
 
 private:
     size_t _id = idCounter++; //TEMP remove the id
@@ -62,7 +62,7 @@ namespace cth::vk {
 
 class Semaphore : public BasicSemaphore {
 public:
-    explicit Semaphore(BasicCore const* core, bool create = true);
+    explicit Semaphore(not_null<BasicCore const*> core, bool create = true);
     ~Semaphore() override;
 
     void create() override;

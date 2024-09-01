@@ -37,7 +37,7 @@ public:
     static void resetMouseDt(GLFWwindow* window);
 
 
-    static bool getKeyState(Key_Mappings const key) { return keyStates[KEY_MAPPINGS[key]]; }
+    static bool getKeyState(Key_Mappings  key) { return keyStates[KEY_MAPPINGS[key]]; }
 
     static constexpr auto KEY_MAPPINGS = [] {
         std::array<int, KEY_MAPPINGS_SIZE> arr{};
