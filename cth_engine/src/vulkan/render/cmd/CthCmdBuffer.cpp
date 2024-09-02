@@ -13,12 +13,12 @@ CmdBuffer::CmdBuffer(CmdPool* pool, VkCommandBufferUsageFlags  usage) : _pool(po
 void CmdBuffer::reset(VkCommandBufferResetFlags  flags) const {
     auto const result = vkResetCommandBuffer(_handle.get(), flags);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset command buffer")
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
 }
 void CmdBuffer::end() const {
     auto const result = vkEndCommandBuffer(_handle.get());
      CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset end buffer")
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
 }
 
 void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers) {
@@ -44,7 +44,7 @@ void CmdBuffer::begin( VkCommandBufferBeginInfo const& info) const {
     auto const result = vkBeginCommandBuffer(_handle.get(), &info);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to begin command buffer")
-        throw except::vk_result_exception{result, details->exception()}; }
+        throw vk::result_exception{result, details->exception()}; }
 
 #ifdef CONSTANT_DEBUG_MODE
 void CmdBuffer::debug_check(CmdBuffer const* cmd_buffer) {

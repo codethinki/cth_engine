@@ -91,7 +91,7 @@ void CmdPool::create() {
     auto const result = vkCreateCommandPool(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create command pool")
-        throw cth::except::vk_result_exception{result, details->exception()};
+        throw cth::vk::result_exception{result, details->exception()};
 
     _handle = ptr;
 }
@@ -111,7 +111,7 @@ void CmdPool::alloc() {
         auto const allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _primaryBuffers.data());
 
         CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} primary command buffers", _config.maxPrimaryBuffers)
-            throw cth::except::vk_result_exception{allocResult, details->exception()};
+            throw cth::vk::result_exception{allocResult, details->exception()};
     }
     if(_config.maxSecondaryBuffers > 0) {
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
@@ -120,7 +120,7 @@ void CmdPool::alloc() {
         auto const allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, _secondaryBuffers.data());
 
         CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate {} secondary command buffers", _config.maxSecondaryBuffers)
-            throw cth::except::vk_result_exception{allocResult, details->exception()};
+            throw cth::vk::result_exception{allocResult, details->exception()};
     }
 }
 

@@ -32,7 +32,7 @@ private:
      */
     [[nodiscard]] std::vector<uint32_t> setUniqueFamilyIndices(std::span<Queue const> queues);
     /**
-    * @throws cth::except::vk_result_exception result of vkCreateDevice()
+    * @throws cth::vk::result_exception result of @ref vkCreateDevice()
     */
     void createLogicalDevice();
     void wrapQueues(std::span<uint32_t const> family_indices, std::span<Queue> queues) const;

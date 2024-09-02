@@ -65,7 +65,7 @@ void Device::createLogicalDevice() {
 
     VkResult const createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create logical device")
-        throw cth::except::vk_result_exception{createResult, details->exception()};
+        throw cth::vk::result_exception{createResult, details->exception()};
 
     _handle = ptr;
 }
@@ -84,7 +84,7 @@ void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues)
 void Device::waitIdle() const {
     auto const result = vkDeviceWaitIdle(_handle.get());
 
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for device") throw except::vk_result_exception{result, details->exception()};
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for device") throw vk::result_exception{result, details->exception()};
 }
 
 

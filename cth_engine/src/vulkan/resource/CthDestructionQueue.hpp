@@ -15,7 +15,7 @@ struct Cycle;
 }
 
 namespace cth::vk {
-class BasicInstance;
+class Instance;
 class Device;
 class PhysicalDevice;
 
@@ -36,7 +36,7 @@ public:
         VkCommandBuffer
     >;
 
-    explicit DestructionQueue(Device* device, PhysicalDevice* physical_device, BasicInstance* instance);
+    explicit DestructionQueue(Device* device, PhysicalDevice* physical_device, Instance* instance);
     ~DestructionQueue();
 
     void push(destructible_handle_t handle);
@@ -62,7 +62,7 @@ private:
 
     Device* _device;
     PhysicalDevice* _physicalDevice;
-    BasicInstance* _instance;
+    Instance* _instance;
 
     std::array<std::vector<destructible>, QUEUES> _queue;
 

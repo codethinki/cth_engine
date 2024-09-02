@@ -15,7 +15,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityF
 }
 
 namespace cth::vk {
-class BasicInstance;
+class Instance;
 class DestructionQueue;
 
 class DebugMessenger {
@@ -38,7 +38,7 @@ public:
      * @note calls @ref DebugMessenger(Config)
      * @note calls @ref create()
      */
-    explicit DebugMessenger(not_null<BasicInstance const*> instance, Config const& config) : DebugMessenger{config} { create(instance); }
+    explicit DebugMessenger(Config const& config, not_null<Instance const*> instance) : DebugMessenger{config} { create(instance); }
 
 
     /**
@@ -51,9 +51,9 @@ public:
      * @param instance must be valid
      * @note may call @ref optDestroy()
      * @throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
-     * @throws cth::except::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
+     * @throws cth::vk::result_exception result of @ref vkCreateDebugUtilsMessengerEXT()
      */
-    void create(not_null<BasicInstance const*> instance);
+    void create(not_null<Instance const*> instance);
 
 
     /**
@@ -93,7 +93,7 @@ public:
     };
 
 protected:
-    BasicInstance const* _instance = nullptr;
+    Instance const* _instance = nullptr;
     Config _config;
 
 private:
@@ -125,7 +125,7 @@ public:
 
 namespace cth::vk {
 struct DebugMessenger::State {
-    not_null<BasicInstance const*> instance;
+    not_null<Instance const*> instance;
     gsl::owner<VkDebugUtilsMessengerEXT> vkMessenger; // NOLINT(cppcoreguidelines-owning-memory)
 };
 

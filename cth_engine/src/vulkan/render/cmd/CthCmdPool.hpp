@@ -25,11 +25,11 @@ public:
     ~CmdPool();
 
     /**
-    * @throws cth::except::vk_result_exception VkResult of vkCreateCommandPool()
+    * @throws cth::vk::result_exception VkResult of vkCreateCommandPool()
     */
     void create();
     /**
-     * @throws cth::except::vk_result_exception VkResult of vkAllocateCommandBuffers() (for primary or secondary buffers)
+     * @throws cth::vk::result_exception VkResult of vkAllocateCommandBuffers() (for primary or secondary buffers)
      */
     void alloc();
 

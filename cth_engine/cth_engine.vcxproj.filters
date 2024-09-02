@@ -73,11 +73,13 @@
     <ClInclude Include="src\vulkan\utility\constant\cth_device_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
-    <ClInclude Include="src\vulkan\utility\utility\cth_vk_format_utils.hpp" />
+    <ClInclude Include="src\vulkan\utility\utility\cth_vk_format.hpp" />
     <ClInclude Include="src\interface\render\CthRenderCycle.hpp" />
     <ClInclude Include="src\vulkan\resource\image\Framebuffer.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthSubpass.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthAttachmentCollection.hpp" />
+    <ClInclude Include="src\vulkan\utility\utility\cth_vk_types.hpp" />
+    <ClInclude Include="src\vulkan\utility\utility\cth_vk_exceptions.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />

@@ -8,7 +8,7 @@
 #include <span>
 
 namespace cth::vk {
-class BasicInstance;
+class Instance;
 class PhysicalDevice;
 class Device;
 class Queue;
@@ -24,7 +24,7 @@ public:
      * @brief wraps the components
      * @param destruction_queue optional
      */
-    virtual void wrap(BasicInstance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue = nullptr);
+    virtual void wrap(Instance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue = nullptr);
 
     virtual void create(Config const& config);
     void destroy();
@@ -36,7 +36,7 @@ public:
     virtual void reset();
 
     struct State {
-        BasicInstance* instance;
+        Instance* instance;
         PhysicalDevice* physicalDevice;
         Device* device;
         DestructionQueue* destructionQueue;
@@ -46,7 +46,7 @@ public:
 private:
     move_ptr<Device> _device = nullptr;
     move_ptr<PhysicalDevice> _physicalDevice = nullptr;
-    move_ptr<BasicInstance> _instance = nullptr;
+    move_ptr<Instance> _instance = nullptr;
     move_ptr<DestructionQueue> _destructionQueue = nullptr;
 
 public:
@@ -54,7 +54,7 @@ public:
     [[nodiscard]] VkDevice vkDevice() const;
     [[nodiscard]] PhysicalDevice const* physicalDevice() const;
     [[nodiscard]] VkPhysicalDevice vkPhysicalDevice() const;
-    [[nodiscard]] BasicInstance const* instance() const;
+    [[nodiscard]] Instance const* instance() const;
     [[nodiscard]] VkInstance vkInstance() const;
     [[nodiscard]] DestructionQueue* destructionQueue() const;
 
@@ -89,7 +89,7 @@ public:
     /**
      * @brief wraps and takes ownership
      */
-    void wrap(BasicInstance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) override;
+    void wrap(Instance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) override;
     /**
      * @brief creates the components
      * @note not necessary when using wrap

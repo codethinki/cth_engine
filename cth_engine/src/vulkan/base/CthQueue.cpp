@@ -31,7 +31,7 @@ VkResult Queue::present(uint32_t  image_index, PresentInfo& present_info) const 
     auto const result = vkQueuePresentKHR(get(), present_info.create(image_index));
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR, "failed to present")
-        throw cth::except::vk_result_exception{result, details->exception()};
+        throw cth::vk::result_exception{result, details->exception()};
 
     return result;
 }
@@ -39,13 +39,13 @@ void Queue::const_skip(PresentInfo const& present_info) const {
     auto const result = vkQueueSubmit(get(), 1, present_info.skip(), VK_NULL_HANDLE);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-present")
-        throw cth::except::vk_result_exception{result, details->exception()};
+        throw cth::vk::result_exception{result, details->exception()};
 }
 
 void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
     auto const result = vkQueueSubmit(_handle, 1, submit_info, fence);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
-        throw cth::except::vk_result_exception{result, details->exception()};
+        throw cth::vk::result_exception{result, details->exception()};
 }
 
 

@@ -82,7 +82,7 @@ VkResult BasicSwapchain::acquireNextImage(Cycle const& cycle) {
         fence.get(), &_imageIndices[cycle.subIndex]);
 
     CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR, "failed to acquire vk_image")
-        throw cth::except::vk_result_exception{acquireResult, details->exception()};
+        throw cth::vk::result_exception{acquireResult, details->exception()};
 
     return acquireResult;
 }
@@ -104,7 +104,7 @@ void BasicSwapchain::skipAcquire(Cycle const& cycle) {
     auto const result = vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, fence.get());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire an vk_image")
-        throw cth::except::vk_result_exception{result, details->exception()};
+        throw cth::vk::result_exception{result, details->exception()};
 }
 void BasicSwapchain::beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const* cmd_buffer) const {
 
@@ -306,7 +306,7 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
     VkSwapchainKHR ptr = nullptr;
     VkResult const createResult = vkCreateSwapchainKHR(_core->vkDevice(), &info, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create swapchain")
-        throw cth::except::vk_result_exception{createResult, details->exception()};
+        throw cth::vk::result_exception{createResult, details->exception()};
 
     _handle = ptr;
 
@@ -340,7 +340,7 @@ std::vector<VkImage> BasicSwapchain::getSwapchainImages() {
     auto const countResult = vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, nullptr);
 
     CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to get swapchain image count")
-        throw cth::except::vk_result_exception{countResult, details->exception()};
+        throw cth::vk::result_exception{countResult, details->exception()};
 
     _imageCount = imageCount;
 
@@ -348,7 +348,7 @@ std::vector<VkImage> BasicSwapchain::getSwapchainImages() {
     auto const getResult = vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, images.data());
 
     CTH_STABLE_ERR(getResult != VK_SUCCESS, "failed to get swapchain images")
-        throw cth::except::vk_result_exception{getResult, details->exception()};
+        throw cth::vk::result_exception{getResult, details->exception()};
 
     return images;
 }
@@ -626,7 +626,7 @@ void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwa
 //
 //const VkResult submitResult = submit(vector{cmd_buffer});
 //CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to submit draw call")
-//throw cth::except::vk_result_exception{submitResult, details->exception()};
+//throw cth::vk::result_exception{submitResult, details->exception()};
 //
 //const auto presentResult = present(image_index);
 //

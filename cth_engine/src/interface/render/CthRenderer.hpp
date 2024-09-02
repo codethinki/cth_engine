@@ -51,7 +51,7 @@ public:
      * @brief begins the recording for the phase
      * @tparam P Phase
      * @return cmd_buffer to submit to
-     * @throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
+     * @throws cth::vk::result_exception result of @ref vkBeginCommandBuffer()
      */
     template<Phase P>
     [[nodiscard]] PrimaryCmdBuffer* begin() const;
@@ -59,7 +59,7 @@ public:
     /**
      * @brief ends the recording for the phase
      * @tparam P Phase
-     * @throws cth::except::vk_result_exception result of vkEndCommandBuffer()
+     * @throws cth::vk::result_exception result of @ref vkEndCommandBuffer()
      */
     template<Phase P>
     void end();
@@ -294,12 +294,12 @@ public:
 
 //TEMP old code
 ///**
-// * @throws cth::except::vk_result_exception result of  Swapchain::acquireNextImage()
-// * @throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
+// * @throws cth::vk::result_exception result of @ref  Swapchain::acquireNextImage()
+// * @throws cth::vk::result_exception result of @ref vkBeginCommandBuffer()
 // */
 //const PrimaryCmdBuffer* beginFrame();
 ///**
-// * @throws cth::except::vk_result_exception result of Swapchain::submitCommandBuffers()
-// * @throws cth::except::vk_result_exception result of vkEndCommandBuffer()
+// * @throws cth::vk::result_exception result of @ref Swapchain::submitCommandBuffers()
+// * @throws cth::vk::result_exception result of @ref vkEndCommandBuffer()
 // */
 //void endFrame();

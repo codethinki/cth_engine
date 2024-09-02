@@ -30,7 +30,7 @@
 
 namespace cth::vk {
 
-DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_device, BasicInstance* instance) : _device{device},
+DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_device, Instance* instance) : _device{device},
     _physicalDevice{physical_device},
     _instance{instance} {}
 DestructionQueue::~DestructionQueue() { clear(); }

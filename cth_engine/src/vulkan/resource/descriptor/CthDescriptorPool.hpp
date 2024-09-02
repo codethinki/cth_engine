@@ -29,7 +29,7 @@ public:
     struct Builder;
     /**
     * @param builder [layout, count] pairs -> limit for allocated sets per layout
-    * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
+    * @throws cth::vk::result_exception data: VkResult of vkCreateDescriptorPool()
     */
     DescriptorPool(not_null<BasicCore const*> device, Builder const& builder);
     ~DescriptorPool();
@@ -43,7 +43,7 @@ public:
 
     /**
      * @brief resets the pool -> resets all descriptor sets
-     * @throws cth::except::vk_result_exception data: VkResult of vkResetDescriptorPool()
+     * @throws cth::vk::result_exception data: VkResult of vkResetDescriptorPool()
      */
     void reset();
 
@@ -64,12 +64,12 @@ private:
 
     void initSetEntries(Builder const& builder);
     /**
-     * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorPool()
+     * @throws cth::vk::result_exception data: VkResult of vkCreateDescriptorPool()
      */
     void create();
 
     /**
-     * @throws cth::except::vk_result_exception data: VkResult of vkAllocateDescriptorSets()
+     * @throws cth::vk::result_exception data: VkResult of vkAllocateDescriptorSets()
      */
     void allocSets();
 

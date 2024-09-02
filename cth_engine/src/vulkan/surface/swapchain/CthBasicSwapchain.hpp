@@ -52,7 +52,7 @@ public:
 
 
     /**
-     * @return result of vkAcquireNextImageKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+     * @return result of @ref vkAcquireNextImageKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
      *
      * @note might block
      * @note the semaphore must not be signaled
@@ -118,11 +118,11 @@ private:
     void createSubpass();
     [[nodiscard]] VkSubpassDependency createSubpassDependency() const;
     /**
-     * @throws cth::except::vk_result_exception result of vkCreateRenderPass()
+     * @throws cth::vk::result_exception result of @ref vkCreateRenderPass()
      */
     void createRenderPass();
     /**
-     * @throws cth::except::vk_result_exception result of vkCreateFramebuffer()
+     * @throws cth::vk::result_exception result of @ref vkCreateFramebuffer()
      */
     void createFramebuffers();
 
@@ -228,7 +228,7 @@ public:
 //
 //
 ///**
-// * @return result of vkQueueSubmit() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+// * @return result of @ref vkQueueSubmit() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
 // * @note calls presentQueue->present()
 // */
 //VkResult submitCommandBuffer(DestructionQueue* destruction_queue, const PrimaryCmdBuffer* cmd_buffer, uint32_t image_index);

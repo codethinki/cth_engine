@@ -24,11 +24,11 @@ public:
 class Shader {
 public:
     /**
-     *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
+     *@throws cth::vk::result_exception result of @ref vkCreateShaderModule()
      */
     explicit Shader(not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::string_view spv_path);
     /**
-     *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
+     *@throws cth::vk::result_exception result of @ref vkCreateShaderModule()
      */
     explicit Shader(not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::span<char const> spv);
 
@@ -52,7 +52,7 @@ private:
 public:
 #ifndef _FINAL
     /**
-    *@throws cth::except::vk_result_exception result of vkCreateShaderModule()
+    *@throws cth::vk::result_exception result of @ref vkCreateShaderModule()
     */
     explicit Shader(not_null<BasicCore const*> core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path, std::string_view compiler_path);
 #endif

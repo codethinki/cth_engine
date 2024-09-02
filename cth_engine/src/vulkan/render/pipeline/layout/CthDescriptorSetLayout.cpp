@@ -22,7 +22,7 @@ void DescriptorSetLayout::create() {
     VkDescriptorSetLayout ptr = VK_NULL_HANDLE;
     VkResult const result = vkCreateDescriptorSetLayout(_core->vkDevice(), &descriptorSetLayoutInfo, nullptr, &ptr);
     CTH_STABLE_ERR(result != VK_SUCCESS, "Vk: failed to create descriptor set layout")
-        throw cth::except::vk_result_exception(result, details->exception());
+        throw cth::vk::result_exception(result, details->exception());
 
     _handle = ptr;
 

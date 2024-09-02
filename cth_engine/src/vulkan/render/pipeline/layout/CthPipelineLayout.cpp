@@ -29,7 +29,7 @@ void PipelineLayout::create() {
     VkResult const result = vkCreatePipelineLayout(_core->vkDevice(), &pipelineLayoutInfo, nullptr, &_vkLayout);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline-layout")
-        throw except::vk_result_exception(result, details->exception());
+        throw vk::result_exception(result, details->exception());
 
     log::msg("created pipeline-layout");
 }

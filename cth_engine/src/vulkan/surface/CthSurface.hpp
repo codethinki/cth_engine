@@ -12,7 +12,7 @@ class OSWindow;
 
 class Surface {
 public:
-    explicit Surface(BasicInstance const* instance, DestructionQueue* destruction_queue, VkSurfaceKHR vk_surface) : _instance(instance),
+    explicit Surface(Instance const* instance, DestructionQueue* destruction_queue, VkSurfaceKHR vk_surface) : _instance(instance),
         _destructionQueue{destruction_queue}, _handle(vk_surface) {}
     ~Surface();
 
@@ -24,11 +24,11 @@ public:
     [[nodiscard]] VkSurfaceCapabilitiesKHR capabilities(PhysicalDevice const& physical_device) const;
 
 
-    static Surface Temp(BasicInstance const* instance, DestructionQueue* destruction_queue = nullptr);
+    static Surface Temp(Instance const* instance, DestructionQueue* destruction_queue = nullptr);
     static void destroy(VkSurfaceKHR surface, VkInstance instance);
 
 private:
-    BasicInstance const* _instance;
+    Instance const* _instance;
     DestructionQueue* _destructionQueue;
 
     move_ptr<VkSurfaceKHR_T> _handle = VK_NULL_HANDLE;

@@ -1,7 +1,7 @@
 #include "PhysicalDeviceFeatures.hpp"
 
 // ReSharper disable once CppUnusedIncludeDirective
-#include "../utility/cth_vk_format_utils.hpp"
+#include "../utility/cth_vk_format.hpp"
 
 #include<gsl/pointers>
 

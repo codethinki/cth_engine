@@ -27,7 +27,7 @@ bool Surface::supportsFamily(PhysicalDevice const& physical_device, uint32_t fam
     VkBool32 support = false;
     VkResult const result = vkGetPhysicalDeviceSurfaceSupportKHR(physical_device.get(), family_index, _handle.get(), &support);
     CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface support query failed")
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
     return support;
 }
 vector<VkPresentModeKHR> Surface::presentModes(PhysicalDevice const& physical_device) const {
@@ -35,7 +35,7 @@ vector<VkPresentModeKHR> Surface::presentModes(PhysicalDevice const& physical_de
     VkResult const result1 = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device.get(), _handle.get(), &size, nullptr);
 
     CTH_STABLE_ERR(result1 != VK_SUCCESS, "device-surface present modes query failed")
-        throw except::vk_result_exception{result1, details->exception()};
+        throw vk::result_exception{result1, details->exception()};
 
     if(!size) return {};
 
@@ -43,7 +43,7 @@ vector<VkPresentModeKHR> Surface::presentModes(PhysicalDevice const& physical_de
     VkResult const result2 = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device.get(), _handle.get(), &size, modes.data());
 
     CTH_STABLE_ERR(result2 != VK_SUCCESS, "device-surface present modes query failed")
-        throw except::vk_result_exception{result2, details->exception()};
+        throw vk::result_exception{result2, details->exception()};
 
     return modes;
 }
@@ -52,7 +52,7 @@ vector<VkSurfaceFormatKHR> Surface::formats(PhysicalDevice const& physical_devic
     VkResult const result1 = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device.get(), _handle.get(), &size, nullptr);
 
     CTH_STABLE_ERR(result1 != VK_SUCCESS, "device-surface formats query failed")
-        throw except::vk_result_exception{result1, details->exception()};
+        throw vk::result_exception{result1, details->exception()};
 
     if(!size) return {};
 
@@ -60,7 +60,7 @@ vector<VkSurfaceFormatKHR> Surface::formats(PhysicalDevice const& physical_devic
 
     VkResult const result2 = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device.get(), _handle.get(), &size, formats.data());
     CTH_STABLE_ERR(result2 != VK_SUCCESS, "device-surface formats query failed")
-        throw except::vk_result_exception{result2, details->exception()};
+        throw vk::result_exception{result2, details->exception()};
 
     return formats;
 }
@@ -70,11 +70,11 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physical_de
     auto const result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device.get(), _handle.get(), &capabilities);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface capabilities query failed")
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
 
     return capabilities;
 }
-Surface Surface::Temp(BasicInstance const* instance, DestructionQueue* destruction_queue) {
+Surface Surface::Temp(Instance const* instance, DestructionQueue* destruction_queue) {
     return Surface{instance, destruction_queue, OSWindow::tempSurface(instance)};
 }
 void Surface::destroy(VkSurfaceKHR surface, VkInstance instance) {

@@ -11,7 +11,7 @@
 
 
 namespace cth::vk {
-OSWindow::OSWindow(BasicInstance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent) :
+OSWindow::OSWindow(Instance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent) :
     _instance{instance}, _destructionQueue{destruction_queue}, _windowName{name},
     _width{static_cast<int>(extent.width)}, _height{static_cast<int>(extent.height)} {
     initWindow();
@@ -53,14 +53,14 @@ void OSWindow::setCallbacks() {
     glfwSetWindowFocusCallback(_handle.get(), staticFocusCallback);
     //glfwSetCursorPosCallback(hlcWindow, staticMovementCallback);
 }
-void OSWindow::createSurface(BasicInstance const* instance) {
+void OSWindow::createSurface(Instance const* instance) {
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
     auto const result = glfwCreateWindowSurface(instance->get(), window(), nullptr, &vkSurface);
 
     _surface = vkSurface;
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create GLFW window surface")
-        throw cth::except::vk_result_exception{result, details->exception()};
+        throw cth::vk::result_exception{result, details->exception()};
 
     cth::log::msg("created surface");
 
@@ -131,7 +131,7 @@ void OSWindow::terminate() {
     glfwTerminate();
     log::msg("terminated window");
 }
-VkSurfaceKHR OSWindow::tempSurface(BasicInstance const* instance) {
+VkSurfaceKHR OSWindow::tempSurface(Instance const* instance) {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     // Create a hidden window for the surface
@@ -159,7 +159,7 @@ VkSurfaceKHR OSWindow::tempSurface(BasicInstance const* instance) {
     auto const result = vkCreateWin32SurfaceKHR(instance->get(), &createInfo, nullptr, &surface);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create temp surface") {
         DestroyWindow(hwnd);
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
     }
 
     log::msg("created temp surface");
