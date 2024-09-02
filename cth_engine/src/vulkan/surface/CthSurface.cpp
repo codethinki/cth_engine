@@ -10,24 +10,41 @@
 namespace cth::vk {
 using std::vector;
 
+Surface::Surface(not_null<Instance const*> instance, DestructionQueue* destruction_queue, State const& state) : Surface{instance, destruction_queue} {
+    wrap(state);
+}
+
 Surface::~Surface() {
-    if(_handle) destroy();
+    optDestroy();
 
     log::msg("destroyed surface");
 }
-void Surface::destroy(DestructionQueue* destruction_queue) {
-    if(destruction_queue) _destructionQueue = destruction_queue;
+void Surface::wrap(State const& state) {
+    DEBUG_CHECK_SURFACE_HANDLE(state.vkSurface);
+    optDestroy();
+
+    _handle = state.vkSurface.get();
+}
+void Surface::destroy() {
 
     if(_destructionQueue) _destructionQueue->push(_handle.get());
-    else destroy(_handle.get(), _instance->get());
+    else destroy(_instance->get(), _handle.get());
 
     _handle = VK_NULL_HANDLE;
 }
+Surface::State Surface::release() {
+    DEBUG_CHECK_SURFACE(this);
+    State const state{_handle.get()};
+
+    reset();
+    return state;
+}
+
 bool Surface::supportsFamily(PhysicalDevice const& physical_device, uint32_t family_index) const {
     VkBool32 support = false;
     VkResult const result = vkGetPhysicalDeviceSurfaceSupportKHR(physical_device.get(), family_index, _handle.get(), &support);
     CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface support query failed")
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
     return support;
 }
 vector<VkPresentModeKHR> Surface::presentModes(PhysicalDevice const& physical_device) const {
@@ -35,7 +52,7 @@ vector<VkPresentModeKHR> Surface::presentModes(PhysicalDevice const& physical_de
     VkResult const result1 = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device.get(), _handle.get(), &size, nullptr);
 
     CTH_STABLE_ERR(result1 != VK_SUCCESS, "device-surface present modes query failed")
-        throw except::vk_result_exception{result1, details->exception()};
+        throw vk::result_exception{result1, details->exception()};
 
     if(!size) return {};
 
@@ -43,7 +60,7 @@ vector<VkPresentModeKHR> Surface::presentModes(PhysicalDevice const& physical_de
     VkResult const result2 = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device.get(), _handle.get(), &size, modes.data());
 
     CTH_STABLE_ERR(result2 != VK_SUCCESS, "device-surface present modes query failed")
-        throw except::vk_result_exception{result2, details->exception()};
+        throw vk::result_exception{result2, details->exception()};
 
     return modes;
 }
@@ -52,7 +69,7 @@ vector<VkSurfaceFormatKHR> Surface::formats(PhysicalDevice const& physical_devic
     VkResult const result1 = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device.get(), _handle.get(), &size, nullptr);
 
     CTH_STABLE_ERR(result1 != VK_SUCCESS, "device-surface formats query failed")
-        throw except::vk_result_exception{result1, details->exception()};
+        throw vk::result_exception{result1, details->exception()};
 
     if(!size) return {};
 
@@ -60,7 +77,7 @@ vector<VkSurfaceFormatKHR> Surface::formats(PhysicalDevice const& physical_devic
 
     VkResult const result2 = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device.get(), _handle.get(), &size, formats.data());
     CTH_STABLE_ERR(result2 != VK_SUCCESS, "device-surface formats query failed")
-        throw except::vk_result_exception{result2, details->exception()};
+        throw vk::result_exception{result2, details->exception()};
 
     return formats;
 }
@@ -70,27 +87,23 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physical_de
     auto const result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device.get(), _handle.get(), &capabilities);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "device-surface capabilities query failed")
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
 
     return capabilities;
 }
-Surface Surface::Temp(BasicInstance const* instance, DestructionQueue* destruction_queue) {
-    return Surface{instance, destruction_queue, OSWindow::tempSurface(instance)};
+Surface Surface::Temp(not_null<Instance const*> instance, DestructionQueue* destruction_queue) {
+    return Surface{instance, destruction_queue, State{OSWindow::tempSurface(instance)}};
 }
-void Surface::destroy(VkSurfaceKHR surface, VkInstance instance) {
+void Surface::destroy(vk::not_null<VkInstance> instance, VkSurfaceKHR surface) {
     CTH_WARN(surface == VK_NULL_HANDLE, "surface invalid (VK_NULL_HANDLE)") {}
     DEBUG_CHECK_INSTANCE_HANDLE(instance);
 
-    vkDestroySurfaceKHR(instance, surface, nullptr);
+    vkDestroySurfaceKHR(instance.get(), surface, nullptr);
 }
+void Surface::reset() { _handle = VK_NULL_HANDLE; }
 
-void Surface::debug_check(not_null<Surface const*> surface) {
-    DEBUG_CHECK_SURFACE_HANDLE(surface->get());
-}
-void Surface::debug_check_handle(VkSurfaceKHR surface) {
-    CTH_ERR(surface == VK_NULL_HANDLE, "surface handle invalid (VK_NULL_HANDLE)")
-        throw details->exception();
-}
+void Surface::debug_check(not_null<Surface const*> surface) { DEBUG_CHECK_SURFACE_HANDLE(surface->get()); }
+void Surface::debug_check_handle([[maybe_unused]] vk::not_null<VkSurfaceKHR> surface) {}
 
 
 

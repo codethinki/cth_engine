@@ -59,7 +59,6 @@
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthFence.hpp" />
     <ClInclude Include="src\vulkan\base\CthQueueFamily.hpp" />
-    <ClInclude Include="src\vulkan\surface\swapchain\CthSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsCore.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthTimelineSemaphore.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthWaitStage.hpp" />
@@ -73,11 +72,13 @@
     <ClInclude Include="src\vulkan\utility\constant\cth_device_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
-    <ClInclude Include="src\vulkan\utility\utility\cth_vk_format_utils.hpp" />
+    <ClInclude Include="src\vulkan\utility\utility\cth_vk_format.hpp" />
     <ClInclude Include="src\interface\render\CthRenderCycle.hpp" />
     <ClInclude Include="src\vulkan\resource\image\Framebuffer.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthSubpass.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthAttachmentCollection.hpp" />
+    <ClInclude Include="src\vulkan\utility\utility\cth_vk_types.hpp" />
+    <ClInclude Include="src\vulkan\utility\utility\cth_vk_exceptions.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -122,7 +123,6 @@
     <ClCompile Include="src\vulkan\render\control\CthFence.cpp" />
     <ClCompile Include="src\vulkan\base\CthCore.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />
-    <ClCompile Include="src\vulkan\surface\swapchain\CthSwapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsCore.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthTimelineSemaphore.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthPipelineWaitStage.cpp" />

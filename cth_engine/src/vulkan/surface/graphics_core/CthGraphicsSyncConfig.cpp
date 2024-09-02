@@ -6,71 +6,69 @@
 
 
 namespace cth::vk {
+
+GraphicsSyncConfig::GraphicsSyncConfig(not_null<BasicCore const*> core, State state) : GraphicsSyncConfig{core} {
+    wrap(std::move(state));
+}
+GraphicsSyncConfig::GraphicsSyncConfig(not_null<BasicCore const*> core, bool create) : GraphicsSyncConfig{core} {
+    if(create) this->create();
+}
+void GraphicsSyncConfig::wrap(State state) {
+    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG_STATE(state);
+    optDestroy();
+
+    _renderFinishedSemaphores = std::move(state.renderFinishedSemaphores);
+    _imageAvailableSemaphores = std::move(state.imageAvailableSemaphores);
+}
+void GraphicsSyncConfig::create() {
+    optDestroy();
+
+    for(auto& uniquePtr : _renderFinishedSemaphores)
+        uniquePtr = std::make_unique<Semaphore>(_core, true);
+    for(auto& uniquePtr : _imageAvailableSemaphores)
+        uniquePtr = std::make_unique<Semaphore>(_core, true);
+}
+void GraphicsSyncConfig::destroy() {
+    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
+
+    for(auto& semaphore : _renderFinishedSemaphores) semaphore = nullptr;
+    for(auto& semaphore : _imageAvailableSemaphores) semaphore = nullptr;
+}
+GraphicsSyncConfig::State GraphicsSyncConfig::release() {
+    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
+
+    return State{
+        .imageAvailableSemaphores = std::move(_imageAvailableSemaphores),
+        .renderFinishedSemaphores = std::move(_renderFinishedSemaphores)
+    };
+}
+std::array<BasicSemaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::renderFinishedSemaphores() const {
+    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
+
+
+    std::array<BasicSemaphore*, SET_SIZE> semaphores{};
+    for(auto [src, dst] : std::views::zip(_renderFinishedSemaphores, semaphores)) dst = src.get();
+    return semaphores;
+}
+std::array<BasicSemaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::imageAvailableSemaphores() const {
+    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
+
+    std::array<BasicSemaphore*, SET_SIZE> semaphores{};
+    for(auto [src, dst] : std::views::zip(_imageAvailableSemaphores, semaphores)) dst = src.get();
+    return semaphores;
+}
+
+
+
 #ifdef CONSTANT_DEBUG_MODE
-void BasicGraphicsSyncConfig::debug_check(not_null<BasicGraphicsSyncConfig const*> config) {
-
-    CTH_ERR(config->renderFinishedSemaphores.size() != constants::FRAMES_IN_FLIGHT
-        || config->imageAvailableSemaphores.size() != constants::FRAMES_IN_FLIGHT,
-        "one semaphore for each frame in flight required") {
-        details->add("render finished semaphores: ({})", config->renderFinishedSemaphores.size());
-        details->add("image available semaphores: ({})", config->imageAvailableSemaphores.size());
-    }
-
-    for(auto const& semaphore : config->renderFinishedSemaphores)
-        DEBUG_CHECK_SEMAPHORE(semaphore);
-    for(auto& semaphore : config->imageAvailableSemaphores)
-        DEBUG_CHECK_SEMAPHORE(semaphore);
+void GraphicsSyncConfig::debug_check(not_null<GraphicsSyncConfig const*> config) {
+    CTH_ERR(!config->created(), "config not created") throw details->exception();
+}
+void GraphicsSyncConfig::debug_check_state(State const& state) {
+    for(auto& semaphore : state.imageAvailableSemaphores)
+        DEBUG_CHECK_SEMAPHORE(semaphore.get());
+    for(auto& semaphore : state.renderFinishedSemaphores)
+        DEBUG_CHECK_SEMAPHORE(semaphore.get());
 }
 #endif
-} //namespace cth
-
-namespace cth::vk {
-
-
-GraphicsSyncConfig::GraphicsSyncConfig(not_null<BasicCore const*> core, DestructionQueue* destruction_queue) : _core{core} {
-    create(core, destruction_queue);
-}
-GraphicsSyncConfig::~GraphicsSyncConfig() { destroyOpt(); }
-void GraphicsSyncConfig::wrap(BasicGraphicsSyncConfig const& config) {
-    DEBUG_CHECK_SYNC_CONFIG(&config);
-    renderFinishedSemaphores = config.renderFinishedSemaphores;
-    imageAvailableSemaphores = config.imageAvailableSemaphores;
-}
-void GraphicsSyncConfig::create(not_null<BasicCore const*> core, DestructionQueue* destruction_queue) {
-    destroyOpt();
-
-    DEBUG_CHECK_CORE(core);
-    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(destruction_queue);
-    _core = core;
-    _destructionQueue = destruction_queue;
-
-    renderFinishedSemaphores.reserve(constants::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
-        renderFinishedSemaphores.emplace_back(new Semaphore(_core, _destructionQueue));
-
-    imageAvailableSemaphores.reserve(constants::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
-        imageAvailableSemaphores.emplace_back(new Semaphore(_core, _destructionQueue));
-}
-void GraphicsSyncConfig::destroy(DestructionQueue* destruction_queue) {
-    auto const config = release();
-
-    for(auto const& semaphore : config.renderFinishedSemaphores) {
-        semaphore->destroy(destruction_queue);
-        delete semaphore;
-    }
-
-    for(auto const& semaphore : config.imageAvailableSemaphores) {
-        semaphore->destroy(destruction_queue);
-        delete semaphore;
-    }
-}
-BasicGraphicsSyncConfig GraphicsSyncConfig::release() {
-    BasicGraphicsSyncConfig const temp = {renderFinishedSemaphores, imageAvailableSemaphores};
-    renderFinishedSemaphores.clear();
-    imageAvailableSemaphores.clear();
-    return temp;
-}
-bool GraphicsSyncConfig::destroyed() const { return renderFinishedSemaphores.empty() && imageAvailableSemaphores.empty(); }
-void GraphicsSyncConfig::destroyOpt(DestructionQueue* destruction_queue) { if(!destroyed()) destroy(destruction_queue); }
 } //namespace cth

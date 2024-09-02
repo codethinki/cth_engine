@@ -82,7 +82,7 @@ public:
     /**
      * @param size in elements
      * @param offset in elements
-     * @return result of vkInvalidateMappedMemoryRanges()
+     * @return result of @ref vkInvalidateMappedMemoryRanges()
      */
     [[nodiscard]] VkResult invalidate(size_t size = constants::WHOLE_SIZE, size_t offset = 0) const;
 

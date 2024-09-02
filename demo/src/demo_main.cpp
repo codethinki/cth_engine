@@ -27,7 +27,7 @@ INT WINAPI WinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, char* lp_cmd
     //try {
 
     /* }
-     catch(const cth::except::vk_result_exception& e) {
+     catch(const cth::except::result_exception& e) {
          cth::out::error.println(e.string());
          std::terminate();
      }

@@ -41,7 +41,7 @@ void Framebuffer::create() {
     VkResult const createResult = vkCreateFramebuffer(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "Vk: failed to create framebuffer")
-        throw cth::except::vk_result_exception{createResult, details->exception()};
+        throw cth::vk::result_exception{createResult, details->exception()};
 
     _handle = ptr;
 }

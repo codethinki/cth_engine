@@ -19,7 +19,7 @@ public:
     virtual void wrap(VkFence vk_fence);
 
     /**
-     * @throws cth::except::vk_result_exception result of vkCreateFence()
+     * @throws cth::vk::result_exception result of @ref vkCreateFence()
      */
     virtual void create(VkFenceCreateFlags flags = 0);
     virtual void destroy(DestructionQueue* destruction_queue = nullptr);
@@ -28,12 +28,12 @@ public:
     /**
      * @brief queries the status of the fence
      * @return VkResult of vkGetFenceStatus() [VK_SUCCESS, VK_NOT_READY]
-     * @throws cth::except::vk_result_exception result of vkGetFenceStatus()
+     * @throws cth::vk::result_exception result of @ref vkGetFenceStatus()
      */
     [[nodiscard]] VkResult status() const;
     /**
      * @brief resets the fence
-     * @throws cth::except::vk_result_exception result of vkResetFences()
+     * @throws cth::vk::result_exception result of @ref vkResetFences()
      */
     void reset() const;
 
@@ -41,13 +41,13 @@ public:
      * @brief blocks cpu until fence is signaled or the timeout is reached
      * @param timeout in nanoseconds
      * @return VkResult of vkWaitForFences() [VK_SUCCESS, VK_TIMEOUT]
-     * @throws cth::except::vk_result_exception result of vkWaitForFences()
+     * @throws cth::vk::result_exception result of @ref vkWaitForFences()
      */
     VkResult wait(uint64_t timeout) const; //NOLINT(modernize-use-nodiscard)
 
     /**
     * @brief blocks cpu until fence is signaled
-    * @throws cth::except::vk_result_exception result of vkWaitForFences()
+    * @throws cth::vk::result_exception result of @ref vkWaitForFences()
     */
     void wait() const;
 

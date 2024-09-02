@@ -19,7 +19,7 @@ public:
     struct Builder;
     /**
     * @brief creates a DescriptorSetLayout with the copied builder data
-    * @throws cth::except::vk_result_exception data: VkResult of vkCreateDescriptorSetLayout()
+    * @throws cth::vk::result_exception data: VkResult of vkCreateDescriptorSetLayout()
     */
     explicit DescriptorSetLayout(not_null<BasicCore const*> core, Builder const& builder);
     ~DescriptorSetLayout();

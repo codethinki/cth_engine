@@ -40,7 +40,7 @@ void Memory::create(VkMemoryRequirements const& vk_requirements) {
 
     VkResult const allocResult = vkAllocateMemory(_core->device()->get(), &allocInfo, nullptr, &ptr);
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate buffer memory")
-        throw cth::except::vk_result_exception{allocResult, details->exception()};
+        throw cth::vk::result_exception{allocResult, details->exception()};
 
     _handle = ptr;
 
@@ -52,7 +52,7 @@ std::span<char> Memory::map(size_t map_size, size_t offset) const {
     void* mappedPtr = nullptr;
     VkResult const mapResult = vkMapMemory(_core->vkDevice(), _handle.get(), offset, _size, 0, &mappedPtr);
     CTH_STABLE_ERR(mapResult != VK_SUCCESS, "memory mapping failed")
-        throw except::vk_result_exception{mapResult, details->exception()};
+        throw vk::result_exception{mapResult, details->exception()};
 
     return std::span<char>{static_cast<char*>(mappedPtr), map_size};
 }

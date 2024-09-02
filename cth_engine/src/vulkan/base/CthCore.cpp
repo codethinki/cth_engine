@@ -7,7 +7,7 @@
 #include "vulkan/resource/CthDestructionQueue.hpp"
 
 namespace cth::vk {
-void BasicCore::wrap(BasicInstance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) {
+void BasicCore::wrap(Instance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) {
     DEBUG_CHECK_INSTANCE(instance);
     DEBUG_CHECK_PHYSICAL_DEVICE(physical_device);
     DEBUG_CHECK_DEVICE(device);
@@ -20,7 +20,7 @@ void BasicCore::wrap(BasicInstance* instance, PhysicalDevice* physical_device, D
 }
 void BasicCore::create(Config const& config) {
     DEBUG_CHECK_CORE_LEAK(this);
-    auto const instance = new Instance(config.appName, config.requiredExtensions);
+    auto const instance = new Instance(config.appName, config.requiredExtensions, std::nullopt);
     auto const physicalDevice = PhysicalDevice::AutoPick(instance, config.queues, {}, {}).release();
     auto const device = new Device(instance, physicalDevice, config.queues);
     auto const destructionQueue = new DestructionQueue(device, physicalDevice, instance);
@@ -68,7 +68,7 @@ Device const* BasicCore::device() const { return _device.get(); }
 VkDevice BasicCore::vkDevice() const { return _device->get(); }
 PhysicalDevice const* BasicCore::physicalDevice() const { return _physicalDevice.get(); }
 VkPhysicalDevice BasicCore::vkPhysicalDevice() const { return _physicalDevice->get(); }
-BasicInstance const* BasicCore::instance() const { return _instance.get(); }
+Instance const* BasicCore::instance() const { return _instance.get(); }
 VkInstance BasicCore::vkInstance() const { return _instance->get(); }
 DestructionQueue* BasicCore::destructionQueue() const { return _destructionQueue.get(); }
 
@@ -95,7 +95,7 @@ namespace cth::vk {
 Core::Core(Config const& config) { BasicCore::create(config); }
 Core::~Core() { Core::destroy(); }
 
-void Core::wrap(BasicInstance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) {
+void Core::wrap(Instance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) {
     if(BasicCore::device() || BasicCore::physicalDevice() || BasicCore::instance()) Core::destroy();
     BasicCore::wrap(instance, physical_device, device, destruction_queue);
 }

@@ -15,13 +15,13 @@ class DestructionQueue;
 }
 
 namespace cth::vk {
-class BasicInstance;
+class Instance;
 class Surface;
 //TODO implement DEBUG_CHECK_OS_WINDOW
 
 class OSWindow {
 public:
-    OSWindow(BasicInstance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent);
+    OSWindow(Instance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent);
     ~OSWindow();
 
     void destroy(DestructionQueue* destruction_queue = nullptr);
@@ -33,13 +33,13 @@ public:
     static void init();
     static void terminate();
 
-    static VkSurfaceKHR tempSurface(BasicInstance const* instance);
+    static VkSurfaceKHR tempSurface(not_null<Instance const*> instance);
 
     static void destroy(GLFWwindow* glfw_window);
 private:
     void initWindow();
     void setCallbacks();
-    void createSurface(BasicInstance const* instance);
+    void createSurface(Instance const* instance);
 
 
     void keyCallback(int key, int scan_code, int action, int mods);
@@ -49,7 +49,7 @@ private:
     void framebufferResizeCallback(int new_width, int new_height);
 
 
-    BasicInstance const* _instance = nullptr;
+    Instance const* _instance = nullptr;
     DestructionQueue* _destructionQueue;
 
     bool _focus = true;

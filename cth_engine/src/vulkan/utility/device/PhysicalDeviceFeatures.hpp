@@ -1,4 +1,7 @@
 #pragma once
+#include "../cth_constants.hpp"
+#include "../utility/cth_vk_types.hpp"
+
 #include <gsl/pointers>
 
 
@@ -12,7 +15,7 @@ public:
      */
     explicit PhysicalDeviceFeatures(VkPhysicalDeviceFeatures2 const& features);
 
-    explicit PhysicalDeviceFeatures(VkPhysicalDevice vk_device, PhysicalDeviceFeatures const& other);
+    explicit PhysicalDeviceFeatures(vk::not_null<VkPhysicalDevice> vk_device, PhysicalDeviceFeatures const& other);
 
     /**
      * @brief copies and merges the features
@@ -70,6 +73,7 @@ private:
     bool _free = true;
 
 public:
+    [[nodiscard]] bool created() const { return _features != nullptr; }
     [[nodiscard]] VkPhysicalDeviceFeatures2 features() const { return *_features; }
     [[nodiscard]] VkPhysicalDeviceFeatures2* get() const { return _features.get(); }
     [[nodiscard]] bool empty() const { return _features == nullptr; }
@@ -85,6 +89,15 @@ public:
     }
     PhysicalDeviceFeatures(PhysicalDeviceFeatures&& other) noexcept = default;
     PhysicalDeviceFeatures& operator=(PhysicalDeviceFeatures&& other) noexcept = default;
+
+
+#ifdef CONSTANT_DEBUG_MODE
+    static void debug_check(not_null<PhysicalDeviceFeatures const*> features);
+
+#define DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(features) PhysicalDeviceFeatures::debug_check(features)
+#else
+#define DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(features) ((void)0)
+#endif
 };
 
 

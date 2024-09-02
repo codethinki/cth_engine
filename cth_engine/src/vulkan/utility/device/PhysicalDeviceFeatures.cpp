@@ -1,7 +1,9 @@
 #include "PhysicalDeviceFeatures.hpp"
 
 // ReSharper disable once CppUnusedIncludeDirective
-#include "../utility/cth_vk_format_utils.hpp"
+#include "../utility/cth_vk_format.hpp"
+
+#include "vulkan/base/CthPhysicalDevice.hpp"
 
 #include<gsl/pointers>
 
@@ -9,10 +11,10 @@
 namespace cth::vk::utils {
 
 PhysicalDeviceFeatures::PhysicalDeviceFeatures(VkPhysicalDeviceFeatures2 const& features) : _features(copy2(features)) {}
-PhysicalDeviceFeatures::PhysicalDeviceFeatures(VkPhysicalDevice vk_device, PhysicalDeviceFeatures const& other) : PhysicalDeviceFeatures(
-    other.features()) {
+PhysicalDeviceFeatures::PhysicalDeviceFeatures(vk::not_null<VkPhysicalDevice> vk_device, PhysicalDeviceFeatures const& other) :
+    PhysicalDeviceFeatures(other.features()) {
     _free = false; // NOLINT(cppcoreguidelines-prefer-member-initializer) cannot init in delegating constructor (bug in clang-tidy)
-    vkGetPhysicalDeviceFeatures2(vk_device, _features.get());
+    vkGetPhysicalDeviceFeatures2(vk_device.get(), _features.get());
 
     //auto feature = *reinterpret_cast<VkPhysicalDeviceTimelineSemaphoreFeaturesKHR*>(_features.pNext);
 }
@@ -21,14 +23,15 @@ PhysicalDeviceFeatures::PhysicalDeviceFeatures(VkPhysicalDeviceFeatures2 const& 
 }
 PhysicalDeviceFeatures::~PhysicalDeviceFeatures() { destroy(); }
 
-auto PhysicalDeviceFeatures::supports(PhysicalDeviceFeatures const& required_features) const->std::vector<std::variant<size_t, VkStructureType>> {
+auto PhysicalDeviceFeatures::supports(PhysicalDeviceFeatures const& required_features) const -> std::vector<std::variant<size_t, VkStructureType>> {
+    DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(this);
     return support(*_features, required_features.features());
 }
 
 
 
 auto PhysicalDeviceFeatures::support(VkPhysicalDeviceFeatures2 const& available_features,
-    VkPhysicalDeviceFeatures2 const& required_features)->std::vector<std::variant<size_t, VkStructureType>> {
+    VkPhysicalDeviceFeatures2 const& required_features) -> std::vector<std::variant<size_t, VkStructureType>> {
     std::vector<std::variant<size_t, VkStructureType>> missingFeatures{};
 
     auto const result = support(available_features.features, required_features.features);
@@ -47,8 +50,9 @@ auto PhysicalDeviceFeatures::support(VkPhysicalDeviceFeatures2 const& available_
 
 
 auto PhysicalDeviceFeatures::support(VkPhysicalDeviceFeatures const& available_features,
-    VkPhysicalDeviceFeatures const& required_features)->std::vector<size_t> {
-    constexpr size_t features = sizeof(VkPhysicalDeviceFeatures) / 4;
+    VkPhysicalDeviceFeatures const& required_features) -> std::vector<size_t> {
+
+    constexpr size_t features = sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32);
 
     auto const availableFlags = to_span(available_features);
     auto const requiredFlags = to_span(required_features);
@@ -61,6 +65,9 @@ auto PhysicalDeviceFeatures::support(VkPhysicalDeviceFeatures const& available_f
     return missingFeatures;
 }
 void PhysicalDeviceFeatures::merge(PhysicalDeviceFeatures const& other) {
+    DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(this);
+
+
     if(other.empty()) return;
     merge2(other._features.get());
 }
@@ -80,6 +87,8 @@ void PhysicalDeviceFeatures::destroy() {
 }
 
 void PhysicalDeviceFeatures::merge(VkPhysicalDeviceFeatures const& features) const {
+    DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(this);
+
     auto const aFlags = to_span(_features->features);
     auto const bFlags = to_span(features);
 
@@ -129,7 +138,7 @@ void PhysicalDeviceFeatures::merge2(VkBaseOutStructure const* from, VkBaseOutStr
     for(auto [fromFlag, toFlag] : std::views::zip(fromFlags, toFlags))
         toFlag |= fromFlag;
 }
-auto PhysicalDeviceFeatures::copy2(VkBaseOutStructure const* feature2)->gsl::owner<VkBaseOutStructure*> {
+auto PhysicalDeviceFeatures::copy2(VkBaseOutStructure const* feature2) -> gsl::owner<VkBaseOutStructure*> {
     size_t const flagBytes = flagCount2(feature2->sType) * sizeof(VkBool32);
 
     gsl::owner<void*> const memory = std::malloc(sizeof(VkBaseOutStructure) + flagBytes);
@@ -143,7 +152,7 @@ auto PhysicalDeviceFeatures::copy2(VkBaseOutStructure const* feature2)->gsl::own
 
 
 
-auto PhysicalDeviceFeatures::copy2(VkPhysicalDeviceFeatures2 const& features)->std::unique_ptr<VkPhysicalDeviceFeatures2> {
+auto PhysicalDeviceFeatures::copy2(VkPhysicalDeviceFeatures2 const& features) -> std::unique_ptr<VkPhysicalDeviceFeatures2> {
     auto copy = std::make_unique<VkPhysicalDeviceFeatures2>(features);
     auto last = reinterpret_cast<VkBaseOutStructure*>(copy.get());
     VkBaseOutStructure const* ptr = static_cast<VkBaseOutStructure*>(features.pNext);
@@ -157,7 +166,7 @@ auto PhysicalDeviceFeatures::copy2(VkPhysicalDeviceFeatures2 const& features)->s
     return std::move(copy);
 }
 
-auto PhysicalDeviceFeatures::find2(VkPhysicalDeviceFeatures2 const* features, VkStructureType type)->VkBaseOutStructure* {
+auto PhysicalDeviceFeatures::find2(VkPhysicalDeviceFeatures2 const* features, VkStructureType type) -> VkBaseOutStructure* {
     auto* ptr = static_cast<VkBaseOutStructure*>(features->pNext);
 
     while(ptr != nullptr && ptr->sType != type)
@@ -175,9 +184,12 @@ size_t PhysicalDeviceFeatures::flagCount2(VkStructureType feature_type) {
             CTH_ERR(true, "unknown feature structure feature_type: ({})", feature_type) throw details->exception();
     }
 }
+void PhysicalDeviceFeatures::debug_check(not_null<PhysicalDeviceFeatures const*> features) {
+    CTH_ERR(!features->created(), "features must be created") throw details->exception();
+}
 
 
-constexpr auto PhysicalDeviceFeatures::indexToString(size_t index)->std::string_view {
+constexpr auto PhysicalDeviceFeatures::indexToString(size_t index) -> std::string_view {
     switch(index) {
         case 0:
             return "robustBufferAccess";

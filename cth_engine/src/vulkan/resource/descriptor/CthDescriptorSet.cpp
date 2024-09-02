@@ -3,8 +3,8 @@
 #include "CthDescriptor.hpp"
 #include "CthDescriptorPool.hpp"
 #include "vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
-
+// ReSharper disable once CppUnusedIncludeDirective
+#include "vulkan/utility/utility/cth_vk_format.hpp"
 
 
 //DescriptorSet
@@ -44,7 +44,7 @@ std::vector<VkWriteDescriptorSet> DescriptorSet::writes() {
         write.dstArrayElement = 0;
         write.descriptorCount = 0;
 
-        for(auto [index, descriptor] : binding_descriptors | std::views::enumerate) {
+        for(auto const [index, descriptor] : binding_descriptors | std::views::enumerate) {
             if(descriptor != nullptr) {
                 write.descriptorCount++;
                 continue;
@@ -81,9 +81,11 @@ void DescriptorSet::copyInfos() {
         CTH_WARN(binding_descriptors.empty(), "empty binding discovered")
             details->add("binding: {}", binding);
 
-        CTH_STABLE_ASSERT(type != InfoType::NONE, "descriptor with no info not implemented") {
+
+        CTH_ERR(type == InfoType::NONE, "descriptor with no info not implemented") {
             details->add("binding: {}", binding);
-            details->add("descriptor type: {}", utils::to_string(vkType));
+            details->add("descriptor type: {}", vkType);
+            throw details->exception();
         }
 
 
@@ -134,7 +136,8 @@ DescriptorSet::InfoType DescriptorSet::infoType(VkDescriptorType descriptor_type
 
 namespace cth::vk {
 DescriptorSet::Builder::Builder(DescriptorSetLayout const* layout) : _layout(layout) { init(layout); }
-DescriptorSet::Builder::Builder(DescriptorSetLayout const* layout, std::span<Descriptor* const> descriptors, uint32_t binding_offset) : _layout(layout) {
+DescriptorSet::Builder::Builder(DescriptorSetLayout const* layout, std::span<Descriptor* const> descriptors, uint32_t binding_offset) : _layout(
+    layout) {
     init(layout);
 
     for(uint32_t i = 0; i < static_cast<uint32_t>(descriptors.size()); i++)
@@ -147,8 +150,8 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descri
 
     CTH_ERR(descriptor != nullptr && (descriptor->type() != _layout->bindingType(binding)), "descriptor and layout type at binding dont match") {
         details->add("binding: {}", binding);
-        details->add("descriptor type: {}", utils::to_string(descriptor->type()));
-        details->add("layout type at binding: {}", utils::to_string(_layout->bindingType(binding)));
+        details->add("descriptor type: {}", descriptor->type());
+        details->add("layout type at binding: {}", _layout->bindingType(binding));
 
         throw cth::except::data_exception{_layout->bindingType(binding), details->exception()};
     }
@@ -165,13 +168,14 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descri
     _descriptors[binding][arr_index] = descriptor;
     return *this;
 }
-DescriptorSet::Builder& DescriptorSet::Builder::addDescriptors(std::span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first) {
+DescriptorSet::Builder&
+DescriptorSet::Builder::addDescriptors(std::span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first) {
     CTH_ERR(_descriptors.size() + arr_first > _descriptors.size(), "out of range for layout size at binding") {
         details->add("binding: {0}, layout size: {1}", binding, _descriptors[binding].size());
         details->add("binding descriptors: {0}, arr_first: {1}", binding_descriptors.size(), arr_first);
         throw details->exception();
     }
-    CTH_INFORM(std::ranges::any_of(binding_descriptors, [](Descriptor* descriptor) { return !descriptor; }),
+    CTH_INFORM(std::ranges::any_of(binding_descriptors, [](Descriptor const* descriptor) { return !descriptor; }),
         "adding empty descriptors, consider using removeDescriptors() instead") {
         details->add("binding: {}", binding);
         details->add("array first: {}", arr_first);
@@ -198,7 +202,9 @@ void DescriptorSet::Builder::init(DescriptorSetLayout const* layout) {
     auto const& bindings = layout->bindingsVec();
     _descriptors.resize(bindings.size());
 
-    std::ranges::for_each(bindings, [this](VkDescriptorSetLayoutBinding const& binding) { _descriptors[binding.binding].resize(binding.descriptorCount); });
+    std::ranges::for_each(bindings, [this](VkDescriptorSetLayoutBinding const& binding) {
+        _descriptors[binding.binding].resize(binding.descriptorCount);
+    });
 }
 
 }

@@ -40,7 +40,7 @@ void BasicBuffer::create() {
 
     VkResult const createResult = vkCreateBuffer(_core->vkDevice(), &bufferInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create buffer")
-        throw cth::except::vk_result_exception{createResult, details->exception()};
+        throw cth::vk::result_exception{createResult, details->exception()};
 
     _handle = ptr;
 }
@@ -70,7 +70,7 @@ void BasicBuffer::bind() const {
     VkResult const bindResult = vkBindBufferMemory(_core->vkDevice(), _handle.get(), _state.memory->get(), 0);
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind buffer memory")
-        throw cth::except::vk_result_exception{bindResult, details->exception()};
+        throw cth::vk::result_exception{bindResult, details->exception()};
 }
 
 

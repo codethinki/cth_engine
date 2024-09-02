@@ -1,8 +1,8 @@
 #pragma once
 
-#include "vulkan/utility/cth_constants.hpp"
-
 #include "vulkan/debug/CthDebugMessenger.hpp"
+#include "vulkan/utility/cth_constants.hpp"
+#include "vulkan/utility/utility/cth_vk_types.hpp"
 
 #include<cth/cth_pointer.hpp>
 #include <vulkan/vulkan.h>
@@ -20,23 +20,55 @@ class DebugMessenger;
 class DestructionQueue;
 
 
-class BasicInstance {
+class Instance {
 public:
-    BasicInstance(std::string_view app_name, std::span<std::string const> required_extensions);
-    virtual ~BasicInstance() = default;
+    struct State;
 
     /**
-     * wraps an existing VkInstance
+   * @brief base constructor
+   * @throws cth::except::default_exception reason: missing required instance extensions
+   * @throws cth::except::default_exception reason: missing required validation layers
+   */
+    Instance(std::string_view app_name, std::span<std::string const> required_extensions);
+
+    /**
+     * @brief constructs and creates
+     * @note calls @ref Instance(std::string_view, std::span<std::string const>)
+     * @note calls @ref create()
      */
-    virtual void wrap(VkInstance vk_instance);
+    Instance(std::string_view app_name, std::span<std::string const> required_extensions,
+        std::optional<DebugMessenger::Config> const& messenger_config);
 
     /**
-    * @throws cth::except::vk_result_exception result of vkCreateInstance()
-    * @note debug_messenger will not be stored
-    */
-    virtual void create(std::optional<DebugMessenger::Config> const& messenger_config = std::nullopt);
+     * @brief constructs and wraps
+     *  @note calls @ref Instance(std::string_view, std::span<std::string const>)
+     *  @note calls @ref wrap()
+     */
+    Instance(std::string_view app_name, std::span<std::string const> required_extensions, State state);
 
-    virtual void destroy();
+    ~Instance() { optDestroy(); }
+
+    /**
+     * @brief wraps state
+     * @note calls @ref optDestroy()
+     */
+    void wrap(State state);
+
+    /**
+    * @brief creates the instance
+    * @param messenger_config if not std::nullopt creates messenger with config
+    * @note calls @ref optDestroy()
+    * @throws cth::vk::result_exception result of @ref vkCreateInstance()
+    */
+    void create(std::optional<DebugMessenger::Config> messenger_config = std::nullopt);
+
+    /**
+     * @brief destroys the instance
+     * @note @ref created() required
+     */
+    void destroy();
+    void optDestroy() { if(created()) destroy(); }
+
 
     /**
  * @throws cth::except::default_exception reason: required extension not supported
@@ -53,17 +85,20 @@ public:
 
     static void destroy(VkInstance vk_instance);
 
-protected:
+private:
+    void reset();
+
     std::string _name;
 
     std::vector<std::string> _requiredExt{};
     std::vector<std::string> _availableExt;
     std::vector<std::string> _availableLayers{};
 
-private:
+    std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
     move_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
 
 public:
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkInstance get() const { return _handle.get(); }
     [[nodiscard]] std::vector<std::string> availableExtensions() const { return _availableExt; }
     [[nodiscard]] std::vector<std::string> requiredExtensions() const { return _availableExt; }
@@ -78,19 +113,17 @@ public:
 
     static constexpr std::array<std::string_view, 0> REQUIRED_INSTANCE_EXTENSIONS{};
 
-    BasicInstance(BasicInstance const& other) = default;
-    BasicInstance& operator=(BasicInstance const& other) = default;
-    BasicInstance(BasicInstance&& other) noexcept = default;
-    BasicInstance& operator=(BasicInstance&& other) noexcept = default;
+    Instance(Instance const& other) = delete;
+    Instance& operator=(Instance const& other) = delete;
+    Instance(Instance&& other) noexcept = default;
+    Instance& operator=(Instance&& other) noexcept = default;
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(not_null<BasicInstance const*> instance);
-    static void debug_check_handle(VkInstance vk_instance);
-    static void debug_check_leak(BasicInstance const* instance);
+    static void debug_check(not_null<Instance const*> instance);
+    static void debug_check_handle(vk::not_null<VkInstance> vk_instance);
 
 
-#define DEBUG_CHECK_INSTANCE(instance_ptr) BasicInstance::debug_check(instance_ptr)
-#define DEBUG_CHECK_INSTANCE_HANDLE(instance_ptr) BasicInstance::debug_check_handle(instance_ptr)
-#define DEBUG_CHECK_INSTANCE_LEAK(instance_ptr) BasicInstance::debug_check_leak(instance_ptr)
+#define DEBUG_CHECK_INSTANCE(instance_ptr) Instance::debug_check(instance_ptr)
+#define DEBUG_CHECK_INSTANCE_HANDLE(instance_ptr) Instance::debug_check_handle(instance_ptr)
 #else
 #define DEBUG_CHECK_INSTANCE(instance_ptr) ((void)0)
 #define DEBUG_CHECK_INSTANCE_LEAK(instance_ptr) ((void)0)
@@ -98,33 +131,17 @@ public:
 };
 }
 
+//State
+
 namespace cth::vk {
+struct Instance::State {
+    vk::not_null<VkInstance> vkInstance;
 
-class Instance : public BasicInstance {
-public:
     /**
-    * @throws cth::except::vk_result_exception result vkCreateInstance()
-    * @throws cth::except::default_exception reason: missing required instance extensions
-    * @throws cth::except::default_exception reason: missing required validation layers
-    */
-    explicit Instance(std::string_view app_name, std::span<std::string const> required_extensions);
-    ~Instance() override;
-
-    void wrap(VkInstance vk_instance) override;
-
-    void create(std::optional<DebugMessenger::Config> const& messenger_config = std::nullopt) override;
-
-    void destroy() override;
-
-private:
-#ifdef CONSTANT_DEBUG_MODE
-    std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
-#endif
-
-public:
-    Instance(Instance const& other) = delete;
-    Instance(Instance&& other) noexcept = default;
-    Instance& operator=(Instance const& other) = delete;
-    Instance& operator=(Instance&& other) noexcept = default;
+     * @brief to @ref vkInstance attached debug messenger
+     * @note may be nullptr
+     */
+    std::unique_ptr<DebugMessenger> debugMessenger;
 };
+
 }

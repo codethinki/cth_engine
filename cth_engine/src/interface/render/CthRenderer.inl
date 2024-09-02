@@ -106,12 +106,13 @@ auto Renderer::Config::addSignalSets(std::span<BasicSemaphore* const> signal_sem
     return *this;
 }
 template<Renderer::Phase P>
-auto Renderer::Config::addWaitSets(std::span<BasicSemaphore*> wait_semaphores, VkPipelineStageFlags wait_stage) -> Config& {
+auto Renderer::Config::addWaitSets(std::span<BasicSemaphore* const> wait_semaphores, VkPipelineStageFlags wait_stage) -> Config& {
     std::vector<PipelineWaitStage> waitStages{};
     waitStages.reserve(wait_semaphores.size());
 
-    std::ranges::transform(wait_semaphores, std::back_inserter(waitStages),
-        [wait_stage](auto semaphore) { return PipelineWaitStage{wait_stage, semaphore}; });
+    for(auto const semaphore : wait_semaphores)
+        waitStages.emplace_back(wait_stage, semaphore);
+
 
     addWaitSets<P>(waitStages);
 

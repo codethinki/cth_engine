@@ -32,7 +32,7 @@ Cycle Renderer::cycle() {
 void Renderer::wait() const {
     auto const result = semaphore()->wait();
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for current phase")
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
 }
 
 void Renderer::init(Config const& config) {
@@ -101,12 +101,12 @@ void Renderer::createSubmitInfos(Config config) {
 
 namespace cth::vk {
 Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
-    BasicGraphicsSyncConfig* sync_config) {
+    GraphicsSyncConfig const* sync_config) {
     Config config{};
     config.addQueue<PHASE_TRANSFER>(graphics_queue)
           .addQueue<PHASE_GRAPHICS>(graphics_queue)
-          .addWaitSets<PHASE_GRAPHICS>(sync_config->imageAvailableSemaphores, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)
-          .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores);
+          .addWaitSets<PHASE_GRAPHICS>(sync_config->imageAvailableSemaphores(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)
+          .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores());
     return config;
 }
 //Renderer::Config::Config(const BasicCore* core, DestructionQueue* destruction_queue) : _core{core}, _destructionQueue{destruction_queue} {
@@ -185,7 +185,7 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //
 //    const VkResult beginResult = buffer->begin();
 //    CTH_STABLE_ERR(beginResult != VK_SUCCESS, "failed to begin command buffer")
-//        throw cth::except::vk_result_exception{beginResult, details->exception()};
+//        throw cth::vk::result_exception{beginResult, details->exception()};
 //
 //    return buffer;
 //}
@@ -201,7 +201,7 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //    }
 //
 //    CTH_STABLE_ERR(nextImageResult != VK_SUCCESS && nextImageResult != VK_SUBOPTIMAL_KHR, "failed to acquire swapchain image")
-//        throw cth::except::vk_result_exception{nextImageResult, details->exception()};
+//        throw cth::vk::result_exception{nextImageResult, details->exception()};
 //
 //    _frameStarted = true;
 //
@@ -209,7 +209,7 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //
 //    const VkResult beginResult = buffer->begin();
 //    CTH_STABLE_ERR(beginResult != VK_SUCCESS, "failed to begin command buffer")
-//        throw cth::except::vk_result_exception{beginResult, details->exception()};
+//        throw cth::vk::result_exception{beginResult, details->exception()};
 //
 //    return buffer;
 //}
@@ -225,7 +225,7 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //    const VkResult recordResult = cmdBuffer->end();
 //
 //    CTH_STABLE_ERR(recordResult != VK_SUCCESS, "failed to record command buffer")
-//        throw cth::except::vk_result_exception{recordResult, details->exception()};
+//        throw cth::vk::result_exception{recordResult, details->exception()};
 //
 //    const VkResult submitResult = _swapchain->submitCommandBuffer(_destructionQueue, cmdBuffer, _currentImageIndex);
 //
@@ -236,7 +236,7 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //        _window->resetWindowResized();
 //    } else
 //        CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to present swapchain image")
-//            throw cth::except::vk_result_exception{submitResult, details->exception()};
+//            throw cth::vk::result_exception{submitResult, details->exception()};
 //
 //    _frameStarted = false;
 //    ++_currentFrameIndex %= constants::MAX_FRAMES_IN_FLIGHT;

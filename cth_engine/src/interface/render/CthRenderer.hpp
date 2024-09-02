@@ -15,12 +15,8 @@
 #include <vector>
 
 
-
 namespace cth::vk {
-struct BasicGraphicsSyncConfig;
-}
-
-namespace cth::vk {
+class GraphicsSyncConfig;
 class Queue;
 class BasicCore;
 class DestructionQueue;
@@ -51,7 +47,7 @@ public:
      * @brief begins the recording for the phase
      * @tparam P Phase
      * @return cmd_buffer to submit to
-     * @throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
+     * @throws cth::vk::result_exception result of @ref vkBeginCommandBuffer()
      */
     template<Phase P>
     [[nodiscard]] PrimaryCmdBuffer* begin() const;
@@ -59,7 +55,7 @@ public:
     /**
      * @brief ends the recording for the phase
      * @tparam P Phase
-     * @throws cth::except::vk_result_exception result of vkEndCommandBuffer()
+     * @throws cth::vk::result_exception result of @ref vkEndCommandBuffer()
      */
     template<Phase P>
     void end();
@@ -163,7 +159,7 @@ namespace cth::vk {
 struct Renderer::Config {
     static constexpr size_t SET_SIZE = constants::FRAMES_IN_FLIGHT;
 
-    static Config Render(Queue const* graphics_queue, BasicGraphicsSyncConfig* sync_config);
+    static Config Render(Queue const* graphics_queue, GraphicsSyncConfig const* sync_config);
 
     Config() = default;
     //Config(const BasicCore* core, DestructionQueue* destruction_queue);
@@ -187,7 +183,7 @@ struct Renderer::Config {
     * @note sets.size() % SET_SIZE must be 0
     */
     template<Phase P>
-    Config& addWaitSets(std::span<BasicSemaphore*> wait_semaphores, VkPipelineStageFlags wait_stage);
+    Config& addWaitSets(std::span<BasicSemaphore* const> wait_semaphores, VkPipelineStageFlags wait_stage);
 
 
     /**
@@ -294,12 +290,12 @@ public:
 
 //TEMP old code
 ///**
-// * @throws cth::except::vk_result_exception result of  Swapchain::acquireNextImage()
-// * @throws cth::except::vk_result_exception result of vkBeginCommandBuffer()
+// * @throws cth::vk::result_exception result of @ref  Swapchain::acquireNextImage()
+// * @throws cth::vk::result_exception result of @ref vkBeginCommandBuffer()
 // */
 //const PrimaryCmdBuffer* beginFrame();
 ///**
-// * @throws cth::except::vk_result_exception result of Swapchain::submitCommandBuffers()
-// * @throws cth::except::vk_result_exception result of vkEndCommandBuffer()
+// * @throws cth::vk::result_exception result of @ref Swapchain::submitCommandBuffers()
+// * @throws cth::vk::result_exception result of @ref vkEndCommandBuffer()
 // */
 //void endFrame();

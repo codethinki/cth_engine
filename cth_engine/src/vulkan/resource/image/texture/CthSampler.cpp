@@ -22,7 +22,7 @@ void Sampler::create(Config const& config) {
     VkResult const createResult = vkCreateSampler(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create sampler")
-        throw except::vk_result_exception(createResult, details->exception());
+        throw vk::result_exception(createResult, details->exception());
 
     _handle = ptr;
 

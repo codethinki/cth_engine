@@ -56,7 +56,7 @@ public:
     /**
      * @brief skip submits without the command_buffer to advance the sync primitives
      * @param[in, out] submit_info @attention calls @ref submit_info.next()
-     * @throws cth::except::vk_result_exception result of vkQueueSubmit()
+     * @throws cth::vk::result_exception result of @ref vkQueueSubmit()
      */
     void skip(SubmitInfo& submit_info) const;
 
@@ -70,8 +70,8 @@ public:
     /**
      * @brief presents the image via vkQueuePresentKHR()
      * @param image_index swapchain image index
-     * @return result of vkQueuePresentKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR, VK_ERROR_OUT_OF_DATE_KHR]
-     * @throws cth::except::vk_result_exception result of vkQueuePresentKHR()
+     * @return result of @ref vkQueuePresentKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR, VK_ERROR_OUT_OF_DATE_KHR]
+     * @throws cth::vk::result_exception result of @ref vkQueuePresentKHR()
      */
     [[nodiscard]] VkResult present(uint32_t image_index, PresentInfo& present_info) const;
 

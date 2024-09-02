@@ -27,7 +27,7 @@ void BasicFence::create(VkFenceCreateFlags flags) {
     auto const result = vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create fence")
-        throw cth::except::vk_result_exception{result, details->exception()};
+        throw cth::vk::result_exception{result, details->exception()};
 
     _handle = ptr;
 }
@@ -45,7 +45,7 @@ VkResult BasicFence::status() const {
     auto const result = vkGetFenceStatus(_core->vkDevice(), _handle.get());
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_NOT_READY, "failed to get fence status")
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
 
     return result;
 }
@@ -55,7 +55,7 @@ void BasicFence::reset() const {
     auto const result = vkResetFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset fence")
-        throw cth::except::vk_result_exception{result, details->exception()};
+        throw cth::vk::result_exception{result, details->exception()};
 }
 
 
@@ -68,7 +68,7 @@ VkResult BasicFence::wait(uint64_t timeout) const {
     VkResult const result = vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, timeout);
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
-        throw cth::except::vk_result_exception{result, details->exception()};
+        throw cth::vk::result_exception{result, details->exception()};
 
     return result;
 }

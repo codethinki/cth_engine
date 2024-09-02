@@ -66,7 +66,7 @@ void Shader::create(std::span<char const> spv) {
     VkResult const createResult = vkCreateShaderModule(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create shader module")
-        throw cth::except::vk_result_exception{createResult, details->exception()};
+        throw cth::vk::result_exception{createResult, details->exception()};
 
     _handle = ptr;
 

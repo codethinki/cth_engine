@@ -43,7 +43,7 @@ public:
      * @note calls @ref GraphicsCore(not_null<BasicCore const*>)
      */
     GraphicsCore(not_null<BasicCore const*> core, std::string_view window_name, VkExtent2D extent, not_null<Queue const*> present_queue,
-        not_null<BasicGraphicsSyncConfig const*> sync_config);
+        not_null<GraphicsSyncConfig const*> sync_config);
 
     /**
      * @note calls @ref optDestroy()
@@ -56,7 +56,7 @@ public:
      * @note calls @ref optDestroy()
      */
     void create(std::string_view window_name, VkExtent2D extent, not_null<Queue const*> present_queue,
-        not_null<BasicGraphicsSyncConfig const*> sync_config);
+        not_null<GraphicsSyncConfig const*> sync_config);
 
     /**
      * @brief wraps the state
@@ -109,7 +109,7 @@ public:
     void skipPresent(Cycle const& cycle) const;
 
     /**
-     * @brief destroys if @ref created() == true
+     * @brief destroys if @ref created()
      */
     void optDestroy() { if(created()) destroy(); }
 

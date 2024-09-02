@@ -62,19 +62,19 @@ public:
     /**
      * @brief destroys the images, memory handles and views
      * @note uses @ref BasicCore::destructionQueue() if available
-     * @note @ref created() == true required
+     * @note @ref created() required
      */
     void destroy();
 
     /**
      * @brief releases the ownership of the images, memory handles and views
      * @return State of the Object
-     * @note @ref created() == true required
+     * @note @ref created() required
      */
     [[nodiscard]] State release();
 
     /**
-     * @brief destroys if @ref created() == true
+     * @brief destroys if @ref created()
      * @note may call @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }

@@ -33,7 +33,7 @@ void ImageView::create(not_null<Image const*> image) {
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create vk_image-view") {
         reset();
-        throw except::vk_result_exception{result, details->exception()};
+        throw vk::result_exception{result, details->exception()};
     }
 
     _handle = handle;

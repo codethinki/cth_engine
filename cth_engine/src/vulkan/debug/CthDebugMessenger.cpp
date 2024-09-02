@@ -8,7 +8,7 @@
 namespace cth::vk {
 
 DebugMessenger::DebugMessenger(Config config): _config{std::move(config)} {}
-void DebugMessenger::create(not_null<BasicInstance const*> instance) {
+void DebugMessenger::create(not_null<Instance const*> instance) {
     DEBUG_CHECK_INSTANCE(instance);
 
 
@@ -32,7 +32,7 @@ void DebugMessenger::create(not_null<BasicInstance const*> instance) {
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to set up debug messenger") {
         reset();
-        throw cth::except::vk_result_exception{createResult, details->exception()};
+        throw cth::vk::result_exception{createResult, details->exception()};
     }
 
     _handle = ptr;

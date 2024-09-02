@@ -25,7 +25,7 @@ class ImageView;
 class CmdBuffer;
 class PrimaryCmdBuffer;
 class Surface;
-struct BasicGraphicsSyncConfig;
+class GraphicsSyncConfig;
 class Queue;
 class BasicCore;
 
@@ -34,7 +34,7 @@ class BasicCore;
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(not_null<BasicCore const*> core, not_null<Queue const*> present_queue, not_null<BasicGraphicsSyncConfig const*> sync_config,
+    BasicSwapchain(not_null<BasicCore const*> core, not_null<Queue const*> present_queue, not_null<GraphicsSyncConfig const*> sync_config,
         not_null<Surface const*> surface);
     virtual ~BasicSwapchain();
 
@@ -52,14 +52,14 @@ public:
 
 
     /**
-     * @return result of vkAcquireNextImageKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+     * @return result of @ref vkAcquireNextImageKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
      *
      * @note might block
      * @note the semaphore must not be signaled
      * @note the fence must be signaled
      */
     VkResult acquireNextImage(Cycle const& cycle);
-    void skipAcquire(Cycle const& cycle);
+    void skipAcquire(Cycle const& cycle) const;
 
     void beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const* cmd_buffer) const;
 
@@ -118,11 +118,11 @@ private:
     void createSubpass();
     [[nodiscard]] VkSubpassDependency createSubpassDependency() const;
     /**
-     * @throws cth::except::vk_result_exception result of vkCreateRenderPass()
+     * @throws cth::vk::result_exception result of @ref vkCreateRenderPass()
      */
     void createRenderPass();
     /**
-     * @throws cth::except::vk_result_exception result of vkCreateFramebuffer()
+     * @throws cth::vk::result_exception result of @ref vkCreateFramebuffer()
      */
     void createFramebuffers();
 
@@ -169,7 +169,7 @@ private:
     std::vector<Framebuffer> _swapchainFramebuffers; //TEMP this maybe should not be here
 
 
-    not_null<BasicGraphicsSyncConfig const*> _syncConfig;
+    not_null<GraphicsSyncConfig const*> _syncConfig;
 
     std::vector<Fence> _imageAvailableFences;
 
@@ -228,7 +228,7 @@ public:
 //
 //
 ///**
-// * @return result of vkQueueSubmit() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+// * @return result of @ref vkQueueSubmit() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
 // * @note calls presentQueue->present()
 // */
 //VkResult submitCommandBuffer(DestructionQueue* destruction_queue, const PrimaryCmdBuffer* cmd_buffer, uint32_t image_index);

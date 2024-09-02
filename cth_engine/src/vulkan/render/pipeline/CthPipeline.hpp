@@ -36,7 +36,7 @@ public:
 private:
     /**
      *@throws cth::except::default_exception reason: missing render pass
-     *@throws cth::except::vk_result_exception result of vkCreateGraphicsPipelines()
+     *@throws cth::vk::result_exception result of @ref vkCreateGraphicsPipelines()
     */
     void create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout = nullptr, Pipeline const* parent = nullptr);
 

@@ -61,7 +61,7 @@ public:
     void destroy();
 
     /**
-     * @brief destroys if @ref created() == true
+     * @brief destroys if @ref created()
      * @note may call @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }

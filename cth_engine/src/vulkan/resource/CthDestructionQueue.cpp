@@ -30,7 +30,7 @@
 
 namespace cth::vk {
 
-DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_device, BasicInstance* instance) : _device{device},
+DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_device, Instance* instance) : _device{device},
     _physicalDevice{physical_device},
     _instance{instance} {}
 DestructionQueue::~DestructionQueue() { clear(); }
@@ -73,7 +73,7 @@ void DestructionQueue::clear(size_t  cycle_sub_index) {
                     [this](VkSwapchainKHR vk_swapchain) { BasicSwapchain::destroy(_device->get(), vk_swapchain); },
 
                     //instance destructible
-                    [this](VkSurfaceKHR vk_surface) { Surface::destroy(vk_surface, _instance->get()); },
+                    [this](VkSurfaceKHR vk_surface) { Surface::destroy(_instance->get(), vk_surface); },
                     [](GLFWwindow* glfw_window) { OSWindow::destroy(glfw_window); },
                 }, handle);
             },

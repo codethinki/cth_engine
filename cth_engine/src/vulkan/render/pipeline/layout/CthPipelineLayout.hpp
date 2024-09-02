@@ -16,7 +16,7 @@ class PipelineLayout {
 public:
     struct Builder;
     /**
-    * @throws cth::except::vk_result_exception data: VkResult of vkCreatePipelineLayout()
+    * @throws cth::vk::result_exception data: VkResult of vkCreatePipelineLayout()
     * @throws cth::except::exception reason: device limits exceeded, too many locations specified
     */
     PipelineLayout(not_null<BasicCore const*> core, Builder const& builder);

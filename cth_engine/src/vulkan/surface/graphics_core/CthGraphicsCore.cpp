@@ -11,7 +11,7 @@ GraphicsCore::GraphicsCore(not_null<BasicCore const*> core) : _core{core} {}
 GraphicsCore::GraphicsCore(not_null<BasicCore const*> core, State state) : GraphicsCore{core} { wrap(std::move(state)); }
 
 GraphicsCore::GraphicsCore(not_null<BasicCore const*> core, std::string_view window_name, VkExtent2D extent,
-    not_null<Queue const*> present_queue, not_null<BasicGraphicsSyncConfig const*> sync_config) : GraphicsCore{core} {
+    not_null<Queue const*> present_queue, not_null<GraphicsSyncConfig const*> sync_config) : GraphicsCore{core} {
     create(window_name, extent, present_queue, sync_config);
 }
 
@@ -21,19 +21,19 @@ void GraphicsCore::wrap(State state) {
     optDestroy();
     DEBUG_CHECK_GRAPHICS_CORE_STATE(state);
 
-    _swapchain = state.swapchain.release();
-    _surface = state.surface.release();
-    _osWindow = state.osWindow.release();
+    _swapchain = state.swapchain.release_val();
+    _surface = state.surface.release_val();
+    _osWindow = state.osWindow.release_val();
 }
 
 
 void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, not_null<Queue const*> present_queue,
-    not_null<BasicGraphicsSyncConfig const*> sync_config) {
+    not_null<GraphicsSyncConfig const*> sync_config) {
     optDestroy();
 
 
     _osWindow = std::make_unique<OSWindow>(_core->instance(), _core->destructionQueue(), window_name, extent);
-    _surface = std::make_unique<Surface>(_core->instance(), _core->destructionQueue(), _osWindow->releaseSurface());
+    _surface = std::make_unique<Surface>(_core->instance(), _core->destructionQueue(), Surface::State{_osWindow->releaseSurface()});
     _swapchain = std::make_unique<BasicSwapchain>(_core, present_queue, sync_config, _surface.get());
     _swapchain->create(_osWindow->extent()); //TEMP replace this with swapchain create constructor
 }
@@ -119,9 +119,9 @@ void GraphicsCore::debug_check(not_null<GraphicsCore const*> graphics_core) {
     CTH_ERR(!graphics_core->created(), "graphics core must be created") throw details->exception();
 }
 void GraphicsCore::debug_check_state(State const& state) {
-    DEBUG_CHECK_OS_WINDOW(state.osWindow.get().get());
-    DEBUG_CHECK_SURFACE(state.surface.get().get());
-    DEBUG_CHECK_SWAPCHAIN(state.swapchain.get().get());
+    DEBUG_CHECK_OS_WINDOW(state.osWindow.get());
+    DEBUG_CHECK_SURFACE(state.surface.get());
+    DEBUG_CHECK_SWAPCHAIN(state.swapchain.get());
 }
 #endif
 
