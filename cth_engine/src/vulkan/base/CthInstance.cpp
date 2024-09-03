@@ -3,9 +3,9 @@
 #include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_utils.hpp"
 
-#ifdef CONSTANT_DEBUG_MODE
+
 #include "../debug/CthDebugMessenger.hpp"
-#endif
+
 
 
 namespace cth::vk {
@@ -24,9 +24,6 @@ Instance::Instance(string_view app_name, span<string const> required_extensions)
 
     checkInstanceExtensionSupport();
 
-    if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
-        _availableLayers = getAvailableValidationLayers();
-        checkValidationLayerSupport();
 
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         _availableLayers = getAvailableValidationLayers();
@@ -35,9 +32,9 @@ Instance::Instance(string_view app_name, span<string const> required_extensions)
         _requiredExt.insert(_requiredExt.begin(), VALIDATION_LAYER_EXTENSIONS.begin(), VALIDATION_LAYER_EXTENSIONS.end());
     }
 }
+
 Instance::Instance(std::string_view app_name, std::span<std::string const> required_extensions,
-    std::optional<DebugMessenger::Config> const& messenger_config) :
-    Instance{app_name, required_extensions} { create(messenger_config); }
+    std::optional<DebugMessenger::Config> const& messenger_config) : Instance{app_name, required_extensions} { create(messenger_config); }
 
 Instance::Instance(std::string_view app_name, std::span<std::string const> required_extensions, State state) : Instance{app_name,
     required_extensions} { wrap(std::move(state)); }
@@ -183,4 +180,4 @@ void Instance::debug_check_handle([[maybe_unused]] vk::not_null<VkInstance> vk_i
 #endif
 
 
-} // namespace cth
+}
