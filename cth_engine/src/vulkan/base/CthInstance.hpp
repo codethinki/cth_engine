@@ -71,6 +71,14 @@ public:
 
 
     /**
+     * @brief destroys the instance
+     * @note @ref created() == true required
+     */
+    void destroy();
+    void optDestroy() { if(created()) destroy(); }
+
+
+    /**
  * @throws cth::except::default_exception reason: required extension not supported
  */
     void checkInstanceExtensionSupport();

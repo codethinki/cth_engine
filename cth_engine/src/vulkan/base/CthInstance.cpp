@@ -24,6 +24,9 @@ Instance::Instance(string_view app_name, span<string const> required_extensions)
 
     checkInstanceExtensionSupport();
 
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
+        _availableLayers = getAvailableValidationLayers();
+        checkValidationLayerSupport();
 
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         _availableLayers = getAvailableValidationLayers();
