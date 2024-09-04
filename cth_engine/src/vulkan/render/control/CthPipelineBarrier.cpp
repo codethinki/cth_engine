@@ -1,7 +1,7 @@
 #include "CthPipelineBarrier.hpp"
 
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/resource/buffer/CthBasicBuffer.hpp"
+#include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 #include "vulkan/resource/image/CthImage.hpp"
 
 //ImageBarrier

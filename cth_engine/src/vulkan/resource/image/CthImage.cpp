@@ -1,6 +1,6 @@
 #include "CthImage.hpp"
 
-#include "../buffer/CthBasicBuffer.hpp"
+#include "../buffer/CthBaseBuffer.hpp"
 
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"

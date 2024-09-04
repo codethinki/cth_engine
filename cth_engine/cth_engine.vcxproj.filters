@@ -18,7 +18,7 @@
     <ClInclude Include="src\vulkan\base\CthInstance.hpp" />
     <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBuffer.hpp" />
-    <ClInclude Include="src\vulkan\resource\buffer\CthBasicBuffer.hpp" />
+    <ClInclude Include="src\vulkan\resource\buffer\CthBaseBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptor.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptorPool.hpp" />
     <ClInclude Include="src\vulkan\resource\descriptor\CthDescriptorSet.hpp" />
@@ -94,7 +94,7 @@
     <ClCompile Include="src\vulkan\base\CthDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
     <ClCompile Include="src\vulkan\debug\CthDebugMessenger.cpp" />
-    <ClCompile Include="src\vulkan\resource\buffer\CthBasicBuffer.cpp" />
+    <ClCompile Include="src\vulkan\resource\buffer\CthBaseBuffer.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorPool.cpp" />
     <ClCompile Include="src\vulkan\resource\descriptor\CthDescriptorSet.cpp" />
     <ClCompile Include="src\vulkan\render\pipeline\layout\CthDescriptorSetLayout.cpp" />

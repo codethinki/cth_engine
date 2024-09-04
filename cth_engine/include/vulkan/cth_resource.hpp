@@ -2,7 +2,7 @@
 #include "vulkan/resource/CthDestructionQueue.hpp"
 
 //buffer
-#include "vulkan/resource/buffer/CthBasicBuffer.hpp"
+#include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 #include "vulkan/resource/buffer/CthBuffer.hpp"
 
 //vk_image

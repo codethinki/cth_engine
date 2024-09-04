@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "vulkan/resource/buffer/CthBasicBuffer.hpp"
+#include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
 

@@ -3,7 +3,7 @@
 #include <array>
 #include <vulkan/vulkan.h>
 
-#include "vulkan/resource/buffer/CthBasicBuffer.hpp"
+#include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 
 namespace cth::vk {
 class BasicCore;

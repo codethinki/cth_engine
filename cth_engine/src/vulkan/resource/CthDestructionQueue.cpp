@@ -1,6 +1,6 @@
 #include "CthDestructionQueue.hpp"
 
-#include "buffer/CthBasicBuffer.hpp"
+#include "buffer/CthBaseBuffer.hpp"
 #include "image/CthImage.hpp"
 #include "memory/CthMemory.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"

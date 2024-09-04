@@ -1,4 +1,4 @@
-#include "CthBasicBuffer.hpp"
+#include "CthBaseBuffer.hpp"
 
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
