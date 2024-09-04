@@ -9,17 +9,18 @@
 
 namespace cth::vk {
 
-cth::vk::BasicFence::BasicFence(cth::not_null<BasicCore const*>core) : _core(core) { DEBUG_CHECK_CORE(core); }
+cth::vk::Fence::Fence(cth::not_null<BasicCore const*> core) : _core(core) { DEBUG_CHECK_CORE(core); }
+Fence::Fence(cth::not_null<BasicCore const*> core, State const& state) : Fence{core} { wrap(state); }
+Fence::Fence(cth::not_null<BasicCore const*> core, VkFenceCreateFlags flags) : Fence{core} { create(flags); }
 
-void BasicFence::wrap(VkFence vk_fence) {
-    CTH_ERR(vk_fence == VK_NULL_HANDLE, "fence handle invalid") throw details->exception();
-    DEBUG_CHECK_FENCE_LEAK(this);
+void Fence::wrap(State const& state) {
+    optDestroy();
 
-    _handle = vk_fence;
+    _handle = state.vkFence.get();
 }
 
-void BasicFence::create(VkFenceCreateFlags flags) {
-    DEBUG_CHECK_FENCE_LEAK(this);
+void Fence::create(VkFenceCreateFlags flags) {
+    optDestroy();
 
     auto const info = createInfo(flags);
 
@@ -31,15 +32,17 @@ void BasicFence::create(VkFenceCreateFlags flags) {
 
     _handle = ptr;
 }
-void BasicFence::destroy(DestructionQueue* destruction_queue) {
-    if(destruction_queue) {
-        DEBUG_CHECK_DESTRUCTION_QUEUE(destruction_queue);
-        destruction_queue->push(_handle.get());
-    } else destroy(_core->vkDevice(), _handle.get());
+void Fence::destroy() {
+    DEBUG_CHECK_FENCE(this);
 
-    _handle = VK_NULL_HANDLE;
+    auto const queue = _core->destructionQueue();
+    if(queue) queue->push(_handle.get());
+    else destroy(_core->vkDevice(), _handle.get());
+
+
+    resetState();
 }
-VkResult BasicFence::status() const {
+VkResult Fence::status() const {
     DEBUG_CHECK_FENCE(this);
 
     auto const result = vkGetFenceStatus(_core->vkDevice(), _handle.get());
@@ -49,7 +52,7 @@ VkResult BasicFence::status() const {
 
     return result;
 }
-void BasicFence::reset() const {
+void Fence::reset() const {
     DEBUG_CHECK_FENCE(this);
     std::array<VkFence, 1> const fences = {_handle.get()};
     auto const result = vkResetFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data());
@@ -59,7 +62,7 @@ void BasicFence::reset() const {
 }
 
 
-VkResult BasicFence::wait(uint64_t timeout) const {
+VkResult Fence::wait(uint64_t timeout) const {
     DEBUG_CHECK_FENCE(this);
 
     std::array<VkFence, 1> const fences = {_handle.get()};
@@ -72,23 +75,25 @@ VkResult BasicFence::wait(uint64_t timeout) const {
 
     return result;
 }
-void BasicFence::wait() const {
+void Fence::wait() const {
     // ReSharper disable once CppExpressionWithoutSideEffects
     wait(std::numeric_limits<uint64_t>::max());
 }
 
 
-void BasicFence::destroy(VkDevice vk_device, VkFence vk_fence) {
+void Fence::destroy(vk::not_null<VkDevice> vk_device, VkFence vk_fence) {
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);
     CTH_WARN(vk_fence == VK_NULL_HANDLE, "vk_fence should not be invalid (VK_NULL_HANDLE)") {}
 
 
-    vkDestroyFence(vk_device, vk_fence, nullptr);
+    vkDestroyFence(vk_device.get(), vk_fence, nullptr);
 }
 
 
 
-VkFenceCreateInfo BasicFence::createInfo(VkFenceCreateFlags flags) {
+void Fence::resetState() { _handle = VK_NULL_HANDLE; }
+
+VkFenceCreateInfo Fence::createInfo(VkFenceCreateFlags flags) {
     return VkFenceCreateInfo{
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
         .pNext = nullptr,
@@ -97,37 +102,15 @@ VkFenceCreateInfo BasicFence::createInfo(VkFenceCreateFlags flags) {
 }
 
 
-void BasicFence::debug_check(BasicFence const* fence) {
+void Fence::debug_check(Fence const* fence) {
     CTH_ERR(fence == nullptr, "fence must not be nullptr") throw details->exception();
     DEBUG_CHECK_FENCE_HANDLE(fence->_handle.get());
 }
-void BasicFence::debug_check_leak(BasicFence const* fence) {
+void Fence::debug_check_leak(Fence const* fence) {
     CTH_WARN(fence->_handle != VK_NULL_HANDLE, "fence replaced (potential memory leak)") {}
 }
-void BasicFence::debug_check_handle(VkFence vk_fence) {
+void Fence::debug_check_handle(VkFence vk_fence) {
     CTH_ERR(vk_fence == VK_NULL_HANDLE, "vk_fence handle must not be invalid (VK_NULL_HANDLE)") throw details->exception();
-}
-
-}
-
-//Fence
-
-namespace cth::vk {
-cth::vk::Fence::Fence(cth::not_null<BasicCore const*>core, VkFenceCreateFlags flags) : BasicFence(core) {
-    BasicFence::create(flags);
-}
-Fence::~Fence() { if(get() != VK_NULL_HANDLE) Fence::destroy(); }
-
-void Fence::wrap(VkFence vk_fence) {
-    if(get() != VK_NULL_HANDLE) destroy();
-    BasicFence::wrap(vk_fence);
-}
-void Fence::create(VkFenceCreateFlags flags) {
-    if(get() != VK_NULL_HANDLE) destroy();
-    BasicFence::create(flags);
-}
-void Fence::destroy(DestructionQueue* destruction_queue) {
-    BasicFence::destroy(_core->destructionQueue());
 }
 
 }

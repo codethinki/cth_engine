@@ -512,7 +512,7 @@ void BasicSwapchain::destroySwapchain() {
 }
 
 void BasicSwapchain::destroySyncObjects(DestructionQueue* destruction_queue) {
-    for(auto& fence : _imageAvailableFences) fence.destroy(destruction_queue);
+    for(auto& fence : _imageAvailableFences) fence.destroy();
     _imageAvailableFences.clear();
 }
 void BasicSwapchain::resizeReset() {

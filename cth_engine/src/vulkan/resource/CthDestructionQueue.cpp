@@ -66,7 +66,7 @@ void DestructionQueue::clear(size_t  cycle_sub_index) {
                     [this](VkImage vk_image) { Image::destroy(_device->get(), vk_image); },
                     [this](VkImageView vk_image_view) { ImageView::destroy(_device->get(), vk_image_view); },
                     [this](VkSemaphore vk_semaphore) { Semaphore::destroy(_device->get(), vk_semaphore); },
-                    [this](VkFence vk_fence) { BasicFence::destroy(_device->get(), vk_fence); },
+                    [this](VkFence vk_fence) { Fence::destroy(_device->get(), vk_fence); },
                     [this](VkCommandPool vk_cmd_pool) { CmdPool::destroy(_device->get(), vk_cmd_pool); },
                     [this](VkRenderPass vk_render_pass) { RenderPass::destroy(_device->get(), vk_render_pass); },
                     [this](VkFramebuffer vk_framebuffer) { Framebuffer::destroy(_device->get(), vk_framebuffer); },

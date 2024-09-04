@@ -11,7 +11,6 @@ class BasicCore;
 
 
 class Semaphore {
-    //TEMP remove this 
 public:
     struct State;
 
@@ -23,14 +22,14 @@ public:
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
-     * @note calls @ref Semaphore::Semaphore(BasicCore*)
+     * @note calls @ref Semaphore::Semaphore(not_null<BasicCore const*>)
      */
     Semaphore(cth::not_null<BasicCore const*> core, State const& state);
 
     /**
      * @brief constructs and creates
      * @note might call @ref create()
-     * @note calls @ref Semaphore::Semaphore(BasicCore*)
+     * @note calls @ref Semaphore::Semaphore(not_null<BasicCore const*>)
      */
     explicit Semaphore(cth::not_null<BasicCore const*> core, bool create);
 

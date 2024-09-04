@@ -16,7 +16,7 @@
 namespace cth::vk {
 class TimelineSemaphore;
 class Semaphore;
-class BasicFence;
+class Fence;
 class BasicCore;
 class BasicSwapchain;
 class PrimaryCmdBuffer;
@@ -131,7 +131,7 @@ inline size_t submitInfoId = 0; //TEMP remove the id
  */
 struct Queue::SubmitInfo {
     SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffers, std::span<PipelineWaitStage const> wait_stages,
-        std::span<Semaphore* const> signal_semaphores, BasicFence const* fence);
+        std::span<Semaphore* const> signal_semaphores, Fence const* fence);
 
     /**
      * @brief advances the timeline semaphores and returns this
@@ -163,7 +163,7 @@ private:
     std::vector<size_t> _waitValues{};
     std::vector<size_t> _signalValues{};
 
-    BasicFence const* _fence = nullptr;
+    Fence const* _fence = nullptr;
 
 
     size_t _id = submitInfoId++; //TEMP remove this

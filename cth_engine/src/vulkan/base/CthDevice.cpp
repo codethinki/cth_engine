@@ -89,13 +89,11 @@ void Device::waitIdle() const {
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void Device::debug_check(Device const* device) {
-    CTH_ERR(device == nullptr, "device must not be nullptr") throw details->exception();
-    debug_check_handle(device->get());
+void Device::debug_check(cth::not_null<Device const*> device) {
+    CTH_ERR(!device->created(), "device must be created") throw details->exception();
+    DEBUG_CHECK_DEVICE_HANDLE(device->get());
 }
-void Device::debug_check_handle(VkDevice vk_device) {
-    CTH_ERR(vk_device == VK_NULL_HANDLE, "vk_device not be invalid (VK_NULL_HANDLE)") throw details->exception();
-}
+void Device::debug_check_handle([[maybe_unused]] vk::not_null<VkDevice> vk_device) {}
 #endif
 
 }

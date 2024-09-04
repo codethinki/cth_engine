@@ -9,13 +9,9 @@
 namespace cth::vk {
 
 
-Semaphore::Semaphore(cth::not_null<BasicCore const*> core) : _core(core) {}
-Semaphore::Semaphore(cth::not_null<BasicCore const*> core, State const& state) : Semaphore{core} {
-    wrap(state);
-}
-Semaphore::Semaphore(cth::not_null<BasicCore const*> core, bool create) : Semaphore{core} {
-    if(create) this->create();
-}
+Semaphore::Semaphore(cth::not_null<BasicCore const*> core) : _core(core) { DEBUG_CHECK_CORE(core); }
+Semaphore::Semaphore(cth::not_null<BasicCore const*> core, State const& state) : Semaphore{core} { wrap(state); }
+Semaphore::Semaphore(cth::not_null<BasicCore const*> core, bool create) : Semaphore{core} { if(create) this->create(); }
 
 void Semaphore::wrap(State const& state) {
     optDestroy();
@@ -61,15 +57,13 @@ VkSemaphoreCreateInfo Semaphore::createInfo() {
 void Semaphore::createHandle(VkSemaphoreCreateInfo const& info) {
     VkSemaphore ptr = VK_NULL_HANDLE;
     auto const createResult = vkCreateSemaphore(_core->vkDevice(), &info, nullptr, &ptr);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create semaphore"){
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create semaphore") {
         reset();
         throw cth::vk::result_exception{createResult, details->exception()};
     }
     _handle = ptr;
 }
-void Semaphore::reset() {
-    _handle = nullptr;
-}
+void Semaphore::reset() { _handle = nullptr; }
 
 
 

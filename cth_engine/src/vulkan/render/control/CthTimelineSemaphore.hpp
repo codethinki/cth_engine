@@ -8,7 +8,28 @@ class TimelineSemaphore : public Semaphore {
 public:
     struct State;
 
-    explicit TimelineSemaphore(cth::not_null<BasicCore const*> core, bool create = true);
+    /**
+     * @brief base constructor
+     * @note calls @ref Semaphore::Semaphore(cth::not_null<BasicCore const*>)
+     */
+    explicit TimelineSemaphore(cth::not_null<BasicCore const*> core);
+
+    /**
+     * @brief constructs and wraps
+     * @note calls @ref wrap()
+     */
+    TimelineSemaphore(cth::not_null<BasicCore const*> core, State const& state);
+
+    /**
+     * @brief constructs and creates if @param create
+     *  @note may call @ref create()
+     */
+    explicit TimelineSemaphore(cth::not_null<BasicCore const*> core, bool create);
+
+
+    /**
+     * @note calls @ref Semaphore::~Semaphore()
+     */
     ~TimelineSemaphore() override = default;
 
     void wrap(State const& state);

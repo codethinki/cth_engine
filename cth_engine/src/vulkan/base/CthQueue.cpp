@@ -73,7 +73,7 @@ using std::span;
 
 
 Queue::SubmitInfo::SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffers, std::span<PipelineWaitStage const> wait_stages,
-    std::span<Semaphore* const> signal_semaphores, BasicFence const* fence) : _fence(fence) {
+    std::span<Semaphore* const> signal_semaphores, Fence const* fence) : _fence(fence) {
     _cmdBuffers.resize(cmd_buffers.size());
 
     std::ranges::transform(cmd_buffers, _cmdBuffers.begin(), [](PrimaryCmdBuffer const* cmd_buffer) {

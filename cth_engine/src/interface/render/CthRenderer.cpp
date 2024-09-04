@@ -55,7 +55,7 @@ void Renderer::createPrimaryCmdBuffers() {
 }
 void Renderer::createSyncObjects() {
     for(auto& semaphore : _semaphores)
-        semaphore = std::make_unique<TimelineSemaphore>(_core);
+        semaphore = std::make_unique<TimelineSemaphore>(_core, true);
 }
 
 
