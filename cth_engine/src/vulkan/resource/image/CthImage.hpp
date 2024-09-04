@@ -5,9 +5,9 @@
 
 #include <vulkan/vulkan.h>
 
-
+//TEMP edit state to not expose the raw VkMemory handle
 namespace cth::vk {
-class BasicBuffer;
+class BaseBuffer;
 class ImageBarrier;
 class CmdBuffer;
 
@@ -76,7 +76,7 @@ public:
      * @param mip_level copy dst
      * @note image must be bound & allocated
      */
-    void copy(CmdBuffer const& cmd_buffer, BasicBuffer const& src_buffer, size_t src_offset = 0, uint32_t mip_level = 0) const;
+    void copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src_buffer, size_t src_offset = 0, uint32_t mip_level = 0) const;
 
     /**
      * @brief transitions the image layout via a pipeline barrier

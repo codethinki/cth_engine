@@ -108,7 +108,7 @@ Image::TransitionConfig Image::TransitionConfig::Create(VkImageLayout  current_l
 
 
 
-void Image::copy(CmdBuffer const& cmd_buffer, BasicBuffer const& src_buffer, size_t  src_offset, uint32_t mip_level) const {
+void Image::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src_buffer, size_t  src_offset, uint32_t mip_level) const {
     DEBUG_CHECK_IMAGE(this);
 
     CTH_WARN(_levelLayouts[mip_level] != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,

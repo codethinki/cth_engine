@@ -15,9 +15,7 @@ Memory::Memory(cth::not_null<BasicCore const*> core, VkMemoryPropertyFlags vk_pr
     DEBUG_CHECK_CORE(_core);
 }
 Memory::Memory(cth::not_null<BasicCore const*> core, VkMemoryPropertyFlags properties,
-    VkMemoryRequirements const& vk_requirements) : Memory{core, properties} {
-    create(vk_requirements);
-}
+    VkMemoryRequirements const& vk_requirements) : Memory{core, properties} { create(vk_requirements); }
 Memory::~Memory() { if(created()) Memory::destroy(); }
 
 void Memory::wrap(State const& state) {
@@ -56,21 +54,25 @@ std::span<char> Memory::map(size_t map_size, size_t offset) const {
 
     return std::span<char>{static_cast<char*>(mappedPtr), map_size};
 }
-VkResult Memory::flush(size_t size, size_t offset) const {
+void Memory::flush(size_t size, size_t offset) const {
     VkMappedMemoryRange mappedRange = {};
     mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     mappedRange.memory = _handle.get();
     mappedRange.offset = offset;
     mappedRange.size = size;
-    return vkFlushMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
+    auto const result = vkFlushMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to flush mapped memory ranges") throw vk::result_exception{result, details->exception()};
 }
-VkResult Memory::invalidate(size_t size, size_t offset) const {
+void Memory::invalidate(size_t size, size_t offset) const {
     VkMappedMemoryRange mappedRange = {};
     mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     mappedRange.memory = _handle.get();
     mappedRange.offset = offset;
     mappedRange.size = size;
-    return vkInvalidateMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
+    auto const result = vkInvalidateMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to invalidate mapped memory ranges") throw vk::result_exception{result, details->exception()};
 }
 void Memory::unmap() const { vkUnmapMemory(_core->vkDevice(), _handle.get()); }
 

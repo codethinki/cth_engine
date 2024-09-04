@@ -37,4 +37,5 @@
 - submit to graphics queue with the acquire semaphore for n as top of pipe wait stage and register another renderFinished for n
 - present submit to present queue with the render finished for n
 - wait for the acquire fence for n
+- check namespace to find accidental false documentation
 ...

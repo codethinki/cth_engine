@@ -62,7 +62,7 @@ void DestructionQueue::clear(size_t  cycle_sub_index) {
                 std::visit(cth::var::overload{
                     //device destructible
                     [this](VkDeviceMemory vk_memory) { Memory::destroy(_device->get(), vk_memory); },
-                    [this](VkBuffer vk_buffer) { BasicBuffer::destroy(_device->get(), vk_buffer); },
+                    [this](VkBuffer vk_buffer) { BaseBuffer::destroy(_device->get(), vk_buffer); },
                     [this](VkImage vk_image) { Image::destroy(_device->get(), vk_image); },
                     [this](VkImageView vk_image_view) { ImageView::destroy(_device->get(), vk_image_view); },
                     [this](VkSemaphore vk_semaphore) { Semaphore::destroy(_device->get(), vk_semaphore); },

@@ -100,13 +100,13 @@ void ImageBarrier::init(std::unordered_map<Image*, ImageBarrier::Info> const& im
 
 namespace cth::vk {
 
-BufferBarrier::BufferBarrier(PipelineStages stages, std::unordered_map<BasicBuffer const*, Info> const& buffers) : PipelineStages(stages) {
+BufferBarrier::BufferBarrier(PipelineStages stages, std::unordered_map<BaseBuffer const*, Info> const& buffers) : PipelineStages(stages) {
     init(buffers);
 }
 BufferBarrier::BufferBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-    std::unordered_map<BasicBuffer const*, Info> const& buffers) : PipelineStages{src_stage, dst_stage} { init(buffers); }
+    std::unordered_map<BaseBuffer const*, Info> const& buffers) : PipelineStages{src_stage, dst_stage} { init(buffers); }
 
-void BufferBarrier::add(BasicBuffer const* buffer, Info const& info) {
+void BufferBarrier::add(BaseBuffer const* buffer, Info const& info) {
     CTH_ERR(std::ranges::contains(_buffers, buffer), "image already added, consider grouping") throw details->exception();
 
     _bufferBarriers.emplace_back(
@@ -122,7 +122,7 @@ void BufferBarrier::add(BasicBuffer const* buffer, Info const& info) {
         );
     _buffers.push_back(buffer);
 }
-void BufferBarrier::remove(BasicBuffer const* buffer) {
+void BufferBarrier::remove(BaseBuffer const* buffer) {
     auto const index = std::ranges::find(_buffers, buffer);
     CTH_ERR(index == std::end(_buffers), "buffer not present in barrier")
         throw details->exception();
@@ -134,8 +134,8 @@ void BufferBarrier::execute(CmdBuffer const& cmd_buffer) {
     vkCmdPipelineBarrier(cmd_buffer.get(), srcStage, dstStage, 0, 0, nullptr, static_cast<uint32_t>(_bufferBarriers.size()), _bufferBarriers.data(), 0,
         nullptr);
 }
-BufferBarrier::BufferBarrier(std::unordered_map<BasicBuffer const*, Info> const& buffers) { init(buffers); }
-void BufferBarrier::init(std::unordered_map<BasicBuffer const*, Info> const& buffers) { for(auto [buffer, info] : buffers) add(buffer, info); }
+BufferBarrier::BufferBarrier(std::unordered_map<BaseBuffer const*, Info> const& buffers) { init(buffers); }
+void BufferBarrier::init(std::unordered_map<BaseBuffer const*, Info> const& buffers) { for(auto [buffer, info] : buffers) add(buffer, info); }
 
 
 
@@ -145,13 +145,13 @@ void BufferBarrier::init(std::unordered_map<BasicBuffer const*, Info> const& buf
 
 namespace cth::vk {
 
-PipelineBarrier::PipelineBarrier(PipelineStages stages, std::unordered_map<BasicBuffer const*, BufferBarrier::Info> const& buffers,
+PipelineBarrier::PipelineBarrier(PipelineStages stages, std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
     std::unordered_map<Image*, ImageBarrier::Info> const& images) : BufferBarrier(buffers), ImageBarrier(images) {
     BufferBarrier::srcStage = stages.srcStage;
     BufferBarrier::dstStage = stages.dstStage;
 }
 PipelineBarrier::PipelineBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-    std::unordered_map<BasicBuffer const*, BufferBarrier::Info> const& buffers,
+    std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
     std::unordered_map<Image*, ImageBarrier::Info> const& images) : BufferBarrier(buffers), ImageBarrier(images) {
     BufferBarrier::srcStage = src_stage;
     BufferBarrier::dstStage = dst_stage;

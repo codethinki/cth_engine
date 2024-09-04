@@ -23,14 +23,14 @@ public:
      * @note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
     Texture(cth::not_null<BasicCore const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
-        BasicBuffer const& staging_buffer, size_t buffer_offset = 0);
+        BaseBuffer const& staging_buffer, size_t buffer_offset = 0);
 
     ~Texture() override = default;
 
 
     //void blit(const CmdBuffer* cmd_buffer);
 
-    void init(CmdBuffer const& cmd_buffer, BasicBuffer const& buffer, size_t offset = 0);
+    void init(CmdBuffer const& cmd_buffer, BaseBuffer const& buffer, size_t offset = 0);
 
 private:
     /**

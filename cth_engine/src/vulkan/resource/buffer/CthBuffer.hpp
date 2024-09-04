@@ -4,63 +4,74 @@
 
 
 namespace cth::vk {
-class DestructionQueue;
-}
-
-namespace cth::vk {
-class Device;
-
-
 template<typename T>
-class Buffer final : public BasicBuffer {
+class Buffer final : public BaseBuffer {
 public:
+    /**
+     * @brief base constructor
+     * @param element_count of T
+     * @note calls @ref BaseBuffer(cth::not_null<BasicCore const*>, size_t, VkBufferUsageFlags)
+     */
+    Buffer(cth::not_null<BasicCore const*> core, size_t element_count, VkBufferUsageFlags usage_flags);
+
+    /**
+     * @brief constructs and wraps
+     * @note calls @ref Buffer(cth::not_null<BasicCore const*>, size_t, VkBufferUsageFlags)
+     * @note calls @ref BaseBuffer::wrap()
+     */
+    Buffer(cth::not_null<BasicCore const*> core, size_t element_count, VkBufferUsageFlags usage_flags, State state);
+
+    /**
+     * @brief constructs and creates
+     * @note calls @ref Buffer(cth::not_null<BasicCore const*>, size_t, VkBufferUsageFlags)
+     * @note calls @ref BaseBuffer::create()
+     */
     Buffer(cth::not_null<BasicCore const*> core, size_t element_count, VkBufferUsageFlags usage_flags,
         VkMemoryPropertyFlags memory_property_flags);
-    ~Buffer() override;
 
-    void wrap(VkBuffer vk_buffer, State const& state) override;
 
-    /**
-    * @brief creates the buffer
-    * @note previous buffer will be destroyed
-    */
-    void create() override;
+    ~Buffer() override = default;
 
-    /**
-    * @brief submits buffer & memory to cached deletion queues and resets the object
-    * @param destruction_queue != nullptr => submits to new deletion queue
-    * @note new deletion queue will be cached
-    */
-    void destroy(DestructionQueue* destruction_queue = nullptr) override;
+    // ReSharper disable CppHidingFunction
 
     /**
      *@brief maps part of the buffer memory
     * @param size in elements
     * @param offset in elements
     * @return mapped memory range
-    * @note use map without arguments for whole buffer mapping
+    * @note calls @ref BaseBuffer::map(size_t, size_t)
     */
     [[nodiscard]] std::span<T> map(size_t size, size_t offset);
+
     /**
-    * @return mapped memory of whole buffer
+    * @brief maps whole buffer
+    * @return mapped memory range
+    * @note calls @ref BaseBuffer::map()
     */
     std::span<T> map();
 
     /**
-     * @brief stages a device local buffer with a temporary host visible buffer
-     * @param dst_offset in elements
-     */
-    void stage(CmdBuffer const& cmd_buffer, Buffer<T> const& staging_buffer, size_t dst_offset = 0) const;
-
-    /**
-     * @brief writes to a mapped memory range
-     */
-    static void write(std::span<T const> data, std::span<T> mapped_memory);
-    /**
     * @brief writes to the mapped range of the whole buffer
-    * @note CAUTION whole buffer must be mapped first
+    * @note calls @ref BaseBuffer::write()
     */
     void write(std::span<T const> data, size_t mapped_offset = 0) const;
+
+    /**
+    * @brief updates non-coherent host visible memory
+    * @param size in elements, Constants::WHOLE_SIZE -> whole buffer
+    * @param offset in elements
+    * @note calls @ref BaseBuffer::flush()
+     */
+    void flush(size_t size = constants::WHOLE_SIZE, size_t offset = 0) const;
+
+    /**
+     * @param size in elements
+     * @param offset in elements
+     * @note calls @ref BaseBuffer::invalidate()
+     */
+    void invalidate(size_t size = constants::WHOLE_SIZE, size_t offset = 0) const;
+
+    // ReSharper restore CppHidingFunction
 
     /**
     * @brief copies buffer data on the gpu
@@ -68,23 +79,17 @@ public:
     * @param copy_size in elements (Constants::WHOLE_SIZE => whole buffer)
     * @param src_offset in elements
     * @param dst_offset in elements
+    * @note calls @ref BaseBuffer::copy()
     */
-    void copy(CmdBuffer const& cmd_buffer, Buffer<T> const& src, size_t copy_size = constants::WHOLE_SIZE, size_t src_offset = 0,
+    void copy(CmdBuffer const& cmd_buffer, Buffer const& src, size_t copy_size = constants::WHOLE_SIZE, size_t src_offset = 0,
         size_t dst_offset = 0) const;
 
     /**
-    * @brief updates non-coherent host visible memory
-    * @param size in elements, Constants::WHOLE_SIZE -> whole buffer
-    * @param offset in elements
+     * @brief stages a device local buffer with a temporary host visible buffer
+     * @param dst_offset in elements
+     * @note calls @ref BaseBuffer::stage()
      */
-    [[nodiscard]] VkResult flush(size_t size = constants::WHOLE_SIZE, size_t offset = 0) const;
-
-    /**
-     * @param size in elements
-     * @param offset in elements
-     * @return result of @ref vkInvalidateMappedMemoryRanges()
-     */
-    [[nodiscard]] VkResult invalidate(size_t size = constants::WHOLE_SIZE, size_t offset = 0) const;
+    void stage(CmdBuffer const& cmd_buffer, Buffer const& staging_buffer, size_t dst_offset = 0) const;
 
     /**
     * @param size in elements, Constants::WHOLE_SIZE -> whole buffer
@@ -92,15 +97,14 @@ public:
     */
     [[nodiscard]] VkDescriptorBufferInfo descriptorInfo(size_t size, size_t offset) const override;
 
-private:
     /**
-    * @param new_memory must not be allocated or nullptr
-    * @note destroys current memory
-    */
-    void setMemory(Memory* new_memory) override;
+     * @brief writes to a mapped memory range
+     * @note calls @ref BaseBuffer::write()
+     */
+    static void write(std::span<T const> data, std::span<T> mapped_memory);
 
+private:
     size_t _elements;
-    DestructionQueue* _destructionQueue; //TEMP remove this
 
 public:
     [[nodiscard]] uint32_t elements() const { return _elements; }

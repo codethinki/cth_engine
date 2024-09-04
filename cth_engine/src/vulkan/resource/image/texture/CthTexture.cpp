@@ -18,11 +18,11 @@ Texture::Texture(cth::not_null<BasicCore const*> core, VkExtent2D extent, Config
     init(cmd_buffer, buffer);
 }
 Texture::Texture(cth::not_null<BasicCore const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
-    BasicBuffer const& staging_buffer, size_t buffer_offset) : Image{core, imageConfig(extent, config),
+    BaseBuffer const& staging_buffer, size_t buffer_offset) : Image{core, imageConfig(extent, config),
     extent} { init(cmd_buffer, staging_buffer, buffer_offset); }
 
 
-void Texture::init(CmdBuffer const& cmd_buffer, BasicBuffer const& buffer, size_t offset) {
+void Texture::init(CmdBuffer const& cmd_buffer, BaseBuffer const& buffer, size_t offset) {
     CTH_ERR(_levelLayouts[0] == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, "already initialized")
         throw details->exception();
 

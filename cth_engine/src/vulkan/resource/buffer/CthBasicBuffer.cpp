@@ -14,115 +14,88 @@ using std::span;
 
 
 
-BasicBuffer::BasicBuffer(cth::not_null<BasicCore const*> core, size_t  buffer_size, VkBufferUsageFlags usage_flags) :
-    _core(core), _size(buffer_size), _usage(usage_flags) { init(); }
-BasicBuffer::BasicBuffer(cth::not_null<BasicCore const*> core, size_t  buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer,
-    State state) : _core(core), _size(buffer_size), _usage(usage_flags), _state(std::move(state)), _handle(vk_buffer) { init(); }
+BaseBuffer::BaseBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags) :
+    _core{core}, _size{buffer_size}, _usage{usage_flags} { DEBUG_CHECK_CORE(_core); }
+BaseBuffer::BaseBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, State state) :
+    BaseBuffer{core, buffer_size, usage_flags} { BaseBuffer::wrap(std::move(state)); }
+BaseBuffer::BaseBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags,
+    VkMemoryPropertyFlags vk_memory_flags) :
+    BaseBuffer{core, buffer_size, usage_flags} { BaseBuffer::create(vk_memory_flags); }
 
-void BasicBuffer::wrap(VkBuffer vk_buffer, State const& state) {
-    DEBUG_CHECK_BUFFER_LEAK(this);
-    CTH_ERR(_state.memory.get() == VK_NULL_HANDLE, "memory handle invalid") throw details->exception();
 
-    _handle = vk_buffer;
-    _state = state;
+
+void BaseBuffer::wrap(State state) {
+
+
+    optDestroy();
+
+
+    _handle = state.vkBuffer.get();
+    if(state.memory) {
+        DEBUG_CHECK_MEMORY(state.memory.get());
+        _memory = std::move(state.memory);
+    }
+
+    _bound = state.bound;
+    _mapped = state.mapped;
 }
 
-void BasicBuffer::create() {
-    DEBUG_CHECK_BUFFER_LEAK(this);
-
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = _size;
-    bufferInfo.usage = _usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VkBuffer ptr = VK_NULL_HANDLE;
-
-    VkResult const createResult = vkCreateBuffer(_core->vkDevice(), &bufferInfo, nullptr, &ptr);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create buffer")
-        throw cth::vk::result_exception{createResult, details->exception()};
-
-    _handle = ptr;
-}
-
-void BasicBuffer::alloc(Memory* new_memory) {
-    setMemory(new_memory);
-    alloc();
-}
-void BasicBuffer::alloc() const {
-    DEBUG_CHECK_BUFFER(this);
-    DEBUG_CHECK_BUFFER_NOT_BOUND(this);
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(_core->vkDevice(), _handle.get(), &memRequirements);
-
-    _state.memory->create(memRequirements);
-}
-
-void BasicBuffer::bind(Memory* new_memory) {
-    setMemory(new_memory);
+void BaseBuffer::create(VkMemoryPropertyFlags vk_memory_flags) {
+    optDestroy();
+    createBuffer();
+    createMemory(vk_memory_flags);
     bind();
 }
-void BasicBuffer::bind() const {
-    DEBUG_CHECK_BUFFER(this);
-    DEBUG_CHECK_BUFFER_NOT_BOUND(this);
-
-    VkResult const bindResult = vkBindBufferMemory(_core->vkDevice(), _handle.get(), _state.memory->get(), 0);
-
-    CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind buffer memory")
-        throw cth::vk::result_exception{bindResult, details->exception()};
-}
 
 
+void BaseBuffer::destroy() {
+    auto const queue = _core->destructionQueue();
 
-void BasicBuffer::destroy(DestructionQueue* destruction_queue) {
-    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(destruction_queue);
-
-    if(destruction_queue) destruction_queue->push(_handle.get());
+    if(queue) queue->push(_handle.get());
     else destroy(_core->vkDevice(), _handle.get());
 
-    _handle = VK_NULL_HANDLE;
-
-    BasicBuffer::reset();
+    reset();
 }
 
 
 
-std::span<char> BasicBuffer::map(size_t  size, size_t offset) {
+BaseBuffer::State BaseBuffer::release() {
+    DEBUG_CHECK_BUFFER(this);
+    State state{_handle.get(), std::move(_memory), _bound, _mapped};
+
+    reset();
+
+    return state;
+}
+
+
+
+std::span<char> BaseBuffer::map(size_t size, size_t offset) {
     CTH_ERR(size + offset > _size && size != constants::WHOLE_SIZE, "memory out of bounds") throw details->exception();
 
 
-    if(!_state.mapped.empty() && _state.mapped.size() > offset + size) return span<char>{_state.mapped.data() + offset, size};
+    if(!_mapped.empty() && _mapped.size() > offset + size) return span<char>{_mapped.data() + offset, size};
 
-    auto mem = span<char>{_state.memory->map(size, offset).data(), size};
+    auto mem = span<char>{_memory->map(size, offset).data(), size};
 
-    if(offset == 0 && mem.size() > mapped().size()) _state.mapped = mem;
+    if(offset == 0 && mem.size() > mapped().size()) _mapped = mem;
 
     return span<char>{mem.data(), size};
 }
-std::span<char> BasicBuffer::map() {
-    _state.mapped = _state.memory->map(_size, 0);
+std::span<char> BaseBuffer::map() {
+    _mapped = _memory->map(_size, 0);
 
-    return _state.mapped;
-}
-
-void BasicBuffer::unmap() {
-    _state.mapped = {};
-    _state.memory->unmap();
+    return _mapped;
 }
 
 
-void BasicBuffer::stage(CmdBuffer const& cmd_buffer, BasicBuffer const& staging_buffer, size_t  dst_offset) const {
-    debug_check(&staging_buffer);
-    this->copy(cmd_buffer, staging_buffer, staging_buffer._size, 0, dst_offset);
+
+void BaseBuffer::write(span<char const> data, size_t buffer_offset) const {
+    CTH_ERR(_mapped.size() < data.size() + buffer_offset, "mapped region out of bounds") throw details->exception();
+    std::memcpy(_mapped.data() + buffer_offset, data.data(), data.size());
 }
 
-void BasicBuffer::write(span<char const> data, size_t  buffer_offset) const {
-    CTH_ERR(_state.mapped.size() < data.size() + buffer_offset, "mapped region out of bounds") throw details->exception();
-    memcpy(_state.mapped.data() + buffer_offset, data.data(), data.size());
-}
-
-void BasicBuffer::copy(CmdBuffer const& cmd_buffer, BasicBuffer const& src, size_t  copy_size, size_t src_offset, size_t dst_offset) const {
+void BaseBuffer::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src, size_t copy_size, size_t src_offset, size_t dst_offset) const {
     CTH_ERR(!(src._usage & VK_BUFFER_USAGE_TRANSFER_SRC_BIT), "src buffer usage must be marked as transfer source") throw details->exception();
     CTH_ERR(!(_usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT), "dst buffer usage must be marked as transfer destination") throw details->exception();
 
@@ -148,97 +121,105 @@ void BasicBuffer::copy(CmdBuffer const& cmd_buffer, BasicBuffer const& src, size
     vkCmdCopyBuffer(cmd_buffer.get(), src.get(), _handle.get(), 1, &copyRegion);
 }
 
-VkResult BasicBuffer::flush(size_t  size, size_t offset) const { return _state.memory->flush(size, offset); }
+void BaseBuffer::flush(size_t size, size_t offset) const { _memory->flush(size, offset); }
 
-VkResult BasicBuffer::invalidate(size_t  size, size_t offset) const { return _state.memory->invalidate(size, offset); }
+void BaseBuffer::invalidate(size_t size, size_t offset) const { _memory->invalidate(size, offset); }
 
 
-VkDescriptorBufferInfo BasicBuffer::descriptorInfo(size_t  size, size_t offset) const {
+void BaseBuffer::unmap() {
+    _mapped = {};
+    _memory->unmap();
+}
+
+void BaseBuffer::stage(CmdBuffer const& cmd_buffer, BaseBuffer const& staging_buffer, size_t dst_offset) const {
+    debug_check(&staging_buffer);
+    this->copy(cmd_buffer, staging_buffer, staging_buffer._size, 0, dst_offset);
+}
+
+
+VkDescriptorBufferInfo BaseBuffer::descriptorInfo(size_t size, size_t offset) const {
     return VkDescriptorBufferInfo{_handle.get(), offset, size == constants::WHOLE_SIZE ? _size : size};
 }
 
 
-void BasicBuffer::write(span<char const> data, span<char> mapped_memory) {
+void BaseBuffer::write(span<char const> data, span<char> mapped_memory) {
     CTH_ERR(mapped_memory.size() >= data.size(), "mapped region out of bounds") throw details->exception();
-    memcpy(mapped_memory.data(), data.data(), data.size());
+    std::memcpy(mapped_memory.data(), data.data(), data.size());
 }
 
-void BasicBuffer::destroy(VkDevice vk_device, VkBuffer vk_buffer) {
+size_t BaseBuffer::calcAlignedSize(size_t actual_size) {
+    constexpr size_t minAlignment = 16;
+    return actual_size + (minAlignment - (actual_size % minAlignment));
+}
+
+void BaseBuffer::destroy(VkDevice vk_device, VkBuffer vk_buffer) {
     CTH_WARN(vk_buffer == VK_NULL_HANDLE, "vk_buffer invalid") {}
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);
 
     vkDestroyBuffer(vk_device, vk_buffer, nullptr);
 }
 
-size_t BasicBuffer::calcAlignedSize(size_t  actual_size) {
-    constexpr size_t minAlignment = 16;
-    return actual_size + (minAlignment - (actual_size % minAlignment));
-}
 
-void BasicBuffer::reset() {
-    DEBUG_CHECK_BUFFER_LEAK(this);
 
+void BaseBuffer::reset() {
     _handle = VK_NULL_HANDLE;
-    _state.reset();
-}
-Memory* BasicBuffer::releaseMemory() {
-    Memory* mem = _state.memory.get();
-    _state.memory = nullptr;
-    return mem;
+    _memory = nullptr;
+    _bound = false;
+    _mapped = {};
 }
 
-//protected
+void BaseBuffer::createBuffer() {
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = _size;
+    bufferInfo.usage = _usage;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-void BasicBuffer::destroyMemory(DestructionQueue* destruction_queue) {
-    CTH_ERR(_state.memory == nullptr, "memory invalid") throw details->exception();
+    VkBuffer ptr = VK_NULL_HANDLE;
 
-    if(_state.memory->created()) _state.memory->destroy();
+    VkResult const createResult = vkCreateBuffer(_core->vkDevice(), &bufferInfo, nullptr, &ptr);
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create buffer") {
+        reset();
+        throw result_exception{createResult, details->exception()};
+    }
 
-    delete _state.memory.get();
-    _state.memory = nullptr;
+    _handle = ptr;
 }
 
-void BasicBuffer::setMemory(Memory* new_memory) {
-    CTH_ERR(new_memory != nullptr && new_memory == _state.memory.get(), "new_memory must not be current memory") throw details->exception();
+void BaseBuffer::createMemory(VkMemoryPropertyFlags vk_memory_properties) {
+    CTH_ERR(_memory != nullptr, "memory must be empty") throw details->exception();
 
-    DEBUG_CHECK_BUFFER_NOT_BOUND(this);
-    DEBUG_CHECK_BUFFER_MEMORY_LEAK(this);
-
-    _state.memory = new_memory;
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(_core->vkDevice(), _handle.get(), &memRequirements);
+    _memory = std::make_unique<Memory>(_core, vk_memory_properties, memRequirements);
 }
 
+void BaseBuffer::bind() {
+    CTH_ERR(!_memory->created(), "memory must be allocated") throw details->exception();
 
-void BasicBuffer::init() const { DEBUG_CHECK_CORE(_core); }
+    VkResult const bindResult = vkBindBufferMemory(_core->vkDevice(), _handle.get(), _memory->get(), 0);
+
+    CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind buffer memory") {
+        destroy();
+        throw cth::vk::result_exception{bindResult, details->exception()};
+    }
+}
+
 
 //public
-Memory* BasicBuffer::memory() const { return _state.memory.get(); }
-bool BasicBuffer::allocated() const { return _state.memory->created(); }
+Memory* BaseBuffer::memory() const { return _memory.get(); }
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void BasicBuffer::debug_check(BasicBuffer const* buffer) {
+void BaseBuffer::debug_check(BaseBuffer const* buffer) {
     CTH_ERR(buffer == nullptr, "buffer must not be nullptr") throw details->exception();
     CTH_ERR(buffer->_handle == VK_NULL_HANDLE, "buffer must be a valid handle") throw details->exception();
 }
-void BasicBuffer::debug_check_leak(BasicBuffer const* buffer) {
-    CTH_WARN(buffer->_handle != VK_NULL_HANDLE, "buffer handle replaced (potential memory leak)") {}
-}
-void BasicBuffer::debug_check_memory_leak(BasicBuffer const* buffer) {
-    CTH_WARN(buffer->_state.memory != nullptr, "memory ptr replaced (potential memory leak)") {}
-}
-
-void BasicBuffer::debug_check_not_bound(BasicBuffer const* buffer) {
-    CTH_ERR(buffer->_state.bound, "buffer must not be bound") throw details->exception();
+void BaseBuffer::debug_check_state(State const& state) {
+    if(state.memory)
+        DEBUG_CHECK_MEMORY(state.memory.get());
+    else { CTH_ERR(!state.bound, "state must have created memory or be bound") throw details->exception(); }
 }
 #endif
 
 } //namespace cth
-
-//State
-
-namespace cth::vk {
-void BasicBuffer::State::reset() {
-    bound = false;
-    mapped = {};
-}
-}

@@ -48,9 +48,9 @@ public:
     void create(VkMemoryRequirements const& vk_requirements);
 
     [[nodiscard]] std::span<char> map(size_t map_size = VK_WHOLE_SIZE, size_t offset = 0) const;
-    [[nodiscard]] VkResult flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
+    void flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
 
-    [[nodiscard]] VkResult invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
+    void invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
     void unmap() const;
 
 

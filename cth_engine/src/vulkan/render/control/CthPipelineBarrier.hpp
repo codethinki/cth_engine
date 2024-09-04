@@ -13,7 +13,7 @@ namespace cth::vk {
 class Queue;
 
 class Image;
-class BasicBuffer;
+class BaseBuffer;
 
 class CmdBuffer;
 
@@ -86,23 +86,23 @@ public:
     struct Info;
     explicit BufferBarrier(PipelineStages stages) : PipelineStages(stages) {}
     explicit BufferBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage) : PipelineStages{src_stage, dst_stage} {}
-    BufferBarrier(PipelineStages stages, std::unordered_map<BasicBuffer const*, Info> const& buffers);
-    BufferBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, std::unordered_map<BasicBuffer const*, Info> const& buffers);
+    BufferBarrier(PipelineStages stages, std::unordered_map<BaseBuffer const*, Info> const& buffers);
+    BufferBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, std::unordered_map<BaseBuffer const*, Info> const& buffers);
 
     virtual ~BufferBarrier() = default;
 
-    void add(BasicBuffer const* buffer, Info const& info);
-    void remove(BasicBuffer const* buffer);
+    void add(BaseBuffer const* buffer, Info const& info);
+    void remove(BaseBuffer const* buffer);
 
     virtual void execute(CmdBuffer const& cmd_buffer);
 
 protected:
-    explicit BufferBarrier(std::unordered_map<BasicBuffer const*, Info> const& buffers);
+    explicit BufferBarrier(std::unordered_map<BaseBuffer const*, Info> const& buffers);
     BufferBarrier() = default;
 
 private:
-    void init(std::unordered_map<BasicBuffer const*, Info> const& buffers);
-    std::vector<BasicBuffer const*> _buffers{};
+    void init(std::unordered_map<BaseBuffer const*, Info> const& buffers);
+    std::vector<BaseBuffer const*> _buffers{};
     std::vector<VkBufferMemoryBarrier> _bufferBarriers{};
 
     friend PipelineBarrier;
@@ -131,10 +131,10 @@ public:
     }
 
 
-    PipelineBarrier(PipelineStages stages, std::unordered_map<BasicBuffer const*, BufferBarrier::Info> const& buffers,
+    PipelineBarrier(PipelineStages stages, std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
         std::unordered_map<Image*, ImageBarrier::Info> const& images);
     PipelineBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-        std::unordered_map<BasicBuffer const*, BufferBarrier::Info> const& buffers,
+        std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
         std::unordered_map<Image*, ImageBarrier::Info> const& images);
 
 
