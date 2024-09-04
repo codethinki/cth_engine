@@ -13,13 +13,13 @@ class Sampler {
 public:
     struct Config;
 
-    explicit Sampler(not_null<BasicCore const*> core, Config const& config);
+    explicit Sampler(cth::not_null<BasicCore const*> core, Config const& config);
     ~Sampler();
 
 private:
     void create(Config const& config);
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
     move_ptr<VkSampler_T> _handle = VK_NULL_HANDLE;
 
 public:

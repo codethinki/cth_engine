@@ -31,7 +31,7 @@ public:
      * @brief base constructor
      * @param instance @ref Instance::created() required
      */
-    explicit PhysicalDevice(not_null<Instance const*> instance, utils::PhysicalDeviceFeatures required_features,
+    explicit PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures required_features,
         std::span<std::string const> required_extensions);
 
     /**
@@ -39,15 +39,15 @@ public:
      * @note calls @ref PhysicalDevice(Instance*, utils::PhysicalDeviceFeatures, std::span<std::string const>, Surface const&)
      * @note calls @ref create()
      */
-    explicit PhysicalDevice(not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
-        std::span<std::string const> required_extensions, Surface const& surface, not_null<VkPhysicalDevice> vk_device);
+    explicit PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+        std::span<std::string const> required_extensions, Surface const& surface, vk::not_null<VkPhysicalDevice> vk_device);
 
     /**
      * @brief constructs and wraps
      * @note calls @ref PhysicalDevice(Instance*, utils::PhysicalDeviceFeatures, std::span<std::string const>, Surface const&)
      * @note calls @ref wrap(State const&)
      */
-    explicit PhysicalDevice(not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+    explicit PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
         std::span<std::string const> required_extensions, State const& state);
 
 
@@ -56,9 +56,9 @@ public:
      * @brief creates if requirements are met
      * @return if @ref suitable() with @param queues returns instance, else nullopt
      */
-    static std::optional<PhysicalDevice> Create(not_null<Instance const*> instance, Surface const& surface, std::span<Queue const> queues,
+    static std::optional<PhysicalDevice> Create(cth::not_null<Instance const*> instance, Surface const& surface, std::span<Queue const> queues,
         std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features,
-        not_null<VkPhysicalDevice> vk_device);
+        vk::not_null<VkPhysicalDevice> vk_device);
 
     ~PhysicalDevice() = default;
 
@@ -76,7 +76,7 @@ public:
      * @note calls @ref getMemoryProperties()
      * @note calls @ref getQueueFamilyProperties()
      */
-    void create(Surface const& surface, not_null<VkPhysicalDevice> vk_device);
+    void create(Surface const& surface, cth::not_null<VkPhysicalDevice> vk_device);
 
     /**
      * @brief enumerates all available devices and picks one that fits the requirements
@@ -87,7 +87,7 @@ public:
      * @link cth::vk::constants::REQUIRED_DEVICE_FEATURES
      * @link cth::vk::constants::REQUIRED_DEVICE_EXTENSIONS
      */
-    [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(not_null<Instance const*> instance, std::span<Queue const> queues,
+    [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(cth::not_null<Instance const*> instance, std::span<Queue const> queues,
         std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features);
 
 
@@ -127,7 +127,7 @@ public:
    * @brief enumerates all available physical devices
    * @throws cth::vk::result_exception result of @ref vkEnumeratePhysicalDevices()
    */
-    [[nodiscard]] static std::vector<VkPhysicalDevice> enumerateVkDevices(not_null<VkInstance_T*> vk_instance);
+    [[nodiscard]] static std::vector<VkPhysicalDevice> enumerateVkDevices(vk::not_null<VkInstance> vk_instance);
 
     /**
      * @throws cth::vk::result_exception result of @ref vkGetPhysicalDeviceProperties()
@@ -179,7 +179,7 @@ public:
     PhysicalDevice& operator=(PhysicalDevice&& other) noexcept = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(not_null<PhysicalDevice const*> device);
+    static void debug_check(cth::not_null<PhysicalDevice const*> device);
     static void debug_check_handle(vk::not_null<VkPhysicalDevice> vk_device);
 #define DEBUG_CHECK_PHYSICAL_DEVICE_HANDLE(vk_device) PhysicalDevice::debug_check_handle(vk_device)
 #define DEBUG_CHECK_PHYSICAL_DEVICE(device_ptr) PhysicalDevice::debug_check(device_ptr)

@@ -7,7 +7,7 @@
 
 namespace cth::vk {
 
-DescriptorSetLayout::DescriptorSetLayout(not_null<BasicCore const*> core, Builder const& builder) : _core(core), _vkBindings(builder.bindings()) { create(); }
+DescriptorSetLayout::DescriptorSetLayout(cth::not_null<BasicCore const*> core, Builder const& builder) : _core(core), _vkBindings(builder.bindings()) { create(); }
 DescriptorSetLayout::~DescriptorSetLayout() {
     vkDestroyDescriptorSetLayout(_core->vkDevice(), _handle.get(), nullptr);
     log::msg("destroyed descriptor set layout");

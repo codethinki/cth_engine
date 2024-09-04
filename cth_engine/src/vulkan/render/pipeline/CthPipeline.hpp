@@ -23,11 +23,11 @@ public:
     /**
     *@throws from private void create()
     */
-    Pipeline(not_null<BasicCore const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info);
+    Pipeline(cth::not_null<BasicCore const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info);
     /**
     *@throws from private void create()
     */
-    Pipeline(not_null<BasicCore const*> core, Pipeline const* parent, GraphicsConfig const& config_info);
+    Pipeline(cth::not_null<BasicCore const*> core, Pipeline const* parent, GraphicsConfig const& config_info);
 
     ~Pipeline();
 
@@ -40,7 +40,7 @@ private:
     */
     void create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout = nullptr, Pipeline const* parent = nullptr);
 
-    not_null<BasicCore const*> _device;
+    cth::not_null<BasicCore const*> _device;
     VkPipeline _vkGraphicsPipeline{};
 
 public:

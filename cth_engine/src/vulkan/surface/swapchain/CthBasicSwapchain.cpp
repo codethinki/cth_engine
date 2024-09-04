@@ -20,8 +20,8 @@
 
 namespace cth::vk {
 
-BasicSwapchain::BasicSwapchain(not_null<BasicCore const*> core, not_null<Queue const*> present_queue,
-    not_null<GraphicsSyncConfig const*> sync_config, not_null<Surface const*> surface) :
+BasicSwapchain::BasicSwapchain(cth::not_null<BasicCore const*> core, cth::not_null<Queue const*> present_queue,
+    cth::not_null<GraphicsSyncConfig const*> sync_config, cth::not_null<Surface const*> surface) :
     _core(core), _presentQueue(present_queue), _surface{surface}, _syncConfig(sync_config) {
     DEBUG_CHECK_CORE(core.get());
     DEBUG_CHECK_SURFACE(surface);

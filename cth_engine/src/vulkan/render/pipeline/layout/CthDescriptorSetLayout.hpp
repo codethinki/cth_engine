@@ -21,13 +21,13 @@ public:
     * @brief creates a DescriptorSetLayout with the copied builder data
     * @throws cth::vk::result_exception data: VkResult of vkCreateDescriptorSetLayout()
     */
-    explicit DescriptorSetLayout(not_null<BasicCore const*> core, Builder const& builder);
+    explicit DescriptorSetLayout(cth::not_null<BasicCore const*> core, Builder const& builder);
     ~DescriptorSetLayout();
 
 private:
     void create();
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
     move_ptr<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
     std::vector<VkDescriptorSetLayoutBinding> _vkBindings{};
 

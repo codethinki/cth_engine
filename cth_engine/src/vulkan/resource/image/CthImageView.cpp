@@ -10,17 +10,17 @@
 
 
 namespace cth::vk {
-ImageView::ImageView(not_null<BasicCore const*> core, Config const& config) : _core(core), _config{config} {
+ImageView::ImageView(cth::not_null<BasicCore const*> core, Config const& config) : _core(core), _config{config} {
     DEBUG_CHECK_CORE(core);
 }
-ImageView::ImageView(not_null<BasicCore const*> core, Config const& config, Image const* image) : ImageView{core, config} { create(image); }
-ImageView::ImageView(not_null<BasicCore const*> core, Config const& config, State const& state) : ImageView{core, config} { wrap(state); }
+ImageView::ImageView(cth::not_null<BasicCore const*> core, Config const& config, Image const* image) : ImageView{core, config} { create(image); }
+ImageView::ImageView(cth::not_null<BasicCore const*> core, Config const& config, State const& state) : ImageView{core, config} { wrap(state); }
 
 ImageView::~ImageView() {
     optDestroy();
 }
 
-void ImageView::create(not_null<Image const*> image) {
+void ImageView::create(cth::not_null<Image const*> image) {
     DEBUG_CHECK_IMAGE(image);
    optDestroy();
 

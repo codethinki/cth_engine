@@ -14,14 +14,14 @@ namespace cth::vk {
 using namespace std;
 
 
-Image::Image(not_null<BasicCore const*> core, Config const& config) : _core{core}, _config{config},
+Image::Image(cth::not_null<BasicCore const*> core, Config const& config) : _core{core}, _config{config},
     _memory{make_unique<Memory>(_core, _config.memoryProperties)} {
     DEBUG_CHECK_CORE(core);
     _levelLayouts.resize(_config.mipLevels);
     std::ranges::fill(_levelLayouts, _config.initialLayout);
 }
-Image::Image(not_null<BasicCore const*> core, Config const& config, VkExtent2D  extent) : Image{core, config} { create(extent); }
-Image::Image(not_null<BasicCore const*> core, Config const& config, State const& state) : Image{core, config} { wrap(state); }
+Image::Image(cth::not_null<BasicCore const*> core, Config const& config, VkExtent2D  extent) : Image{core, config} { create(extent); }
+Image::Image(cth::not_null<BasicCore const*> core, Config const& config, State const& state) : Image{core, config} { wrap(state); }
 
 
 Image::~Image() { if(created()) destroy(); }
@@ -205,7 +205,7 @@ void Image::reset() {
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void Image::debug_check(not_null<Image const*> image) {
+void Image::debug_check(cth::not_null<Image const*> image) {
     CTH_ERR(!image->created(), "image must be created") throw details->exception();
     DEBUG_CHECK_IMAGE_HANDLE(image->get());
 }

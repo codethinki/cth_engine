@@ -7,10 +7,10 @@
 
 namespace cth::vk {
 
-GraphicsSyncConfig::GraphicsSyncConfig(not_null<BasicCore const*> core, State state) : GraphicsSyncConfig{core} {
+GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<BasicCore const*> core, State state) : GraphicsSyncConfig{core} {
     wrap(std::move(state));
 }
-GraphicsSyncConfig::GraphicsSyncConfig(not_null<BasicCore const*> core, bool create) : GraphicsSyncConfig{core} {
+GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<BasicCore const*> core, bool create) : GraphicsSyncConfig{core} {
     if(create) this->create();
 }
 void GraphicsSyncConfig::wrap(State state) {
@@ -61,7 +61,7 @@ std::array<Semaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::imageAv
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void GraphicsSyncConfig::debug_check(not_null<GraphicsSyncConfig const*> config) {
+void GraphicsSyncConfig::debug_check(cth::not_null<GraphicsSyncConfig const*> config) {
     CTH_ERR(!config->created(), "config not created") throw details->exception();
 }
 void GraphicsSyncConfig::debug_check_state(State const& state) {

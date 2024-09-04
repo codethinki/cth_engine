@@ -7,11 +7,11 @@
 #include "vulkan/utility/cth_vk_utils.hpp"
 
 namespace cth::vk {
-GraphicsCore::GraphicsCore(not_null<BasicCore const*> core) : _core{core} {}
-GraphicsCore::GraphicsCore(not_null<BasicCore const*> core, State state) : GraphicsCore{core} { wrap(std::move(state)); }
+GraphicsCore::GraphicsCore(cth::not_null<BasicCore const*> core) : _core{core} {}
+GraphicsCore::GraphicsCore(cth::not_null<BasicCore const*> core, State state) : GraphicsCore{core} { wrap(std::move(state)); }
 
-GraphicsCore::GraphicsCore(not_null<BasicCore const*> core, std::string_view window_name, VkExtent2D extent,
-    not_null<Queue const*> present_queue, not_null<GraphicsSyncConfig const*> sync_config) : GraphicsCore{core} {
+GraphicsCore::GraphicsCore(cth::not_null<BasicCore const*> core, std::string_view window_name, VkExtent2D extent,
+    cth::not_null<Queue const*> present_queue, cth::not_null<GraphicsSyncConfig const*> sync_config) : GraphicsCore{core} {
     create(window_name, extent, present_queue, sync_config);
 }
 
@@ -27,8 +27,8 @@ void GraphicsCore::wrap(State state) {
 }
 
 
-void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, not_null<Queue const*> present_queue,
-    not_null<GraphicsSyncConfig const*> sync_config) {
+void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
+    cth::not_null<GraphicsSyncConfig const*> sync_config) {
     optDestroy();
 
 
@@ -115,7 +115,7 @@ VkSampleCountFlagBits GraphicsCore::msaaSamples() const { return _swapchain->msa
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void GraphicsCore::debug_check(not_null<GraphicsCore const*> graphics_core) {
+void GraphicsCore::debug_check(cth::not_null<GraphicsCore const*> graphics_core) {
     CTH_ERR(!graphics_core->created(), "graphics core must be created") throw details->exception();
 }
 void GraphicsCore::debug_check_state(State const& state) {

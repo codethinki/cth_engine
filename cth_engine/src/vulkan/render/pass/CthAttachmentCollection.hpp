@@ -25,21 +25,21 @@ class AttachmentCollection {
 public:
     struct State;
 
-    AttachmentCollection(not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
+    AttachmentCollection(cth::not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description);
 
     /**
      * @brief initializes the collection and creates it
      * @note calls @ref create()
      */
-    AttachmentCollection(not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
+    AttachmentCollection(cth::not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description, VkExtent2D extent);
 
     /**
      * @brief initializes the collection and wraps the state
      * @note calls @ref wrap()
      */
-    AttachmentCollection(not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
+    AttachmentCollection(cth::not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description, State const& state);
 
 
@@ -84,7 +84,7 @@ private:
     void createImages();
     void createImageViews();
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
     Image::Config _config;
     uint32_t _renderPassIndex;
     size_t _size;

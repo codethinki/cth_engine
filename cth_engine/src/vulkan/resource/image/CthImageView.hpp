@@ -19,21 +19,21 @@ public:
      * @brief base constructor
      * @param core must be created
      */
-    ImageView(not_null<BasicCore const*> core, Config const& config);
+    ImageView(cth::not_null<BasicCore const*> core, Config const& config);
 
     /**
      * @brief constructs and creates
      * @note calls @ref create()
-     * @note calls @ref ImageView(not_null<BasicCore const*>, Config const&)
+     * @note calls @ref ImageView(cth::not_null<BasicCore const*>, Config const&)
      */
-    ImageView(not_null<BasicCore const*> core, Config const& config, Image const* image);
+    ImageView(cth::not_null<BasicCore const*> core, Config const& config, Image const* image);
 
     /**
      * @brief constructs and wraps state
      * @note calls @ref wrap();
-     * @note calls @ref ImageView(not_null<BasicCore const*>, Config const&)
+     * @note calls @ref ImageView(cth::not_null<BasicCore const*>, Config const&)
      */
-    ImageView(not_null<BasicCore const*> core, Config const& config, State const& state);
+    ImageView(cth::not_null<BasicCore const*> core, Config const& config, State const& state);
 
     /**
      * @note calls @ref optDestroy()
@@ -46,7 +46,7 @@ public:
      * @param image must be created
      * @note calls @ref optDestroy()
      */
-    void create(not_null<Image const*> image);
+    void create(cth::not_null<Image const*> image);
 
     /**
      * @brief wraps the state with object
@@ -95,7 +95,7 @@ private:
 
     void reset();
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
     Image const* _image = nullptr;
     move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
 

@@ -38,7 +38,7 @@ public:
      * @note calls @ref DebugMessenger(Config)
      * @note calls @ref create()
      */
-    explicit DebugMessenger(Config const& config, not_null<Instance const*> instance) : DebugMessenger{config} { create(instance); }
+    explicit DebugMessenger(Config const& config, cth::not_null<Instance const*> instance) : DebugMessenger{config} { create(instance); }
 
 
     /**
@@ -53,7 +53,7 @@ public:
      * @throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      * @throws cth::vk::result_exception result of @ref vkCreateDebugUtilsMessengerEXT()
      */
-    void create(not_null<Instance const*> instance);
+    void create(cth::not_null<Instance const*> instance);
 
 
     /**
@@ -112,7 +112,7 @@ public:
     DebugMessenger& operator=(DebugMessenger&& other) noexcept = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(not_null<DebugMessenger const*> debug_messenger);
+    static void debug_check(cth::not_null<DebugMessenger const*> debug_messenger);
 
 #define DEBUG_CHECK_MESSENGER(messenger_ptr) DebugMessenger::debug_check(messenger_ptr)
 #else
@@ -125,7 +125,7 @@ public:
 
 namespace cth::vk {
 struct DebugMessenger::State {
-    not_null<Instance const*> instance;
+    cth::not_null<Instance const*> instance;
     gsl::owner<VkDebugUtilsMessengerEXT> vkMessenger; // NOLINT(cppcoreguidelines-owning-memory)
 };
 

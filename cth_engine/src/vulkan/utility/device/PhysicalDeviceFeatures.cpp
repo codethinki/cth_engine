@@ -86,7 +86,7 @@ void PhysicalDeviceFeatures::destroy() {
     _features = nullptr;
 }
 
-void PhysicalDeviceFeatures::merge(VkPhysicalDeviceFeatures const& features) const {
+void PhysicalDeviceFeatures::merge(VkPhysicalDeviceFeatures const& features) {
     DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(this);
 
     auto const aFlags = to_span(_features->features);
@@ -184,7 +184,7 @@ size_t PhysicalDeviceFeatures::flagCount2(VkStructureType feature_type) {
             CTH_ERR(true, "unknown feature structure feature_type: ({})", feature_type) throw details->exception();
     }
 }
-void PhysicalDeviceFeatures::debug_check(not_null<PhysicalDeviceFeatures const*> features) {
+void PhysicalDeviceFeatures::debug_check(cth::not_null<PhysicalDeviceFeatures const*> features) {
     CTH_ERR(!features->created(), "features must be created") throw details->exception();
 }
 

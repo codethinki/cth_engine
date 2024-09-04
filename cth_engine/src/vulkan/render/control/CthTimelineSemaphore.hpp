@@ -8,7 +8,7 @@ class TimelineSemaphore : public Semaphore {
 public:
     struct State;
 
-    explicit TimelineSemaphore(not_null<BasicCore const*> core, bool create = true);
+    explicit TimelineSemaphore(cth::not_null<BasicCore const*> core, bool create = true);
     ~TimelineSemaphore() override = default;
 
     void wrap(State const& state);

@@ -24,8 +24,8 @@ public:
     /**
      * @param buffer_size in bytes
      */
-    BasicBuffer(not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags);
-    BasicBuffer(not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, State state);
+    BasicBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags);
+    BasicBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer, State state);
 
     virtual ~BasicBuffer() = default;
 
@@ -179,7 +179,7 @@ protected:
     */
     virtual void setMemory(Memory* new_memory);
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
     size_t _size;
     VkBufferUsageFlags _usage;
 

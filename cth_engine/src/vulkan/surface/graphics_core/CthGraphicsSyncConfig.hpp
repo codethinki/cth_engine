@@ -17,19 +17,19 @@ public:
     /**
      * @brief base constructor
      */
-    explicit GraphicsSyncConfig(not_null<BasicCore const*> core) : _core{core} {}
+    explicit GraphicsSyncConfig(cth::not_null<BasicCore const*> core) : _core{core} {}
 
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
      */
-    GraphicsSyncConfig(not_null<BasicCore const*> core, State state);
+    GraphicsSyncConfig(cth::not_null<BasicCore const*> core, State state);
 
     /**
      * @brief constructs and creates if create
     * @note may call @ref create()
      */
-    GraphicsSyncConfig(not_null<BasicCore const*> core, bool create);
+    GraphicsSyncConfig(cth::not_null<BasicCore const*> core, bool create);
 
     /**
      * @note calls @ref optDestroy()
@@ -70,7 +70,7 @@ public:
     [[nodiscard]] std::array<Semaphore*, SET_SIZE> imageAvailableSemaphores() const;
 
 private:
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
 
     /**
      * semaphores[currentFrame] will be signaled once the vk_image is clear to render on
@@ -95,7 +95,7 @@ public:
     GraphicsSyncConfig& operator=(GraphicsSyncConfig&& other) noexcept = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(not_null<GraphicsSyncConfig const*> config);
+    static void debug_check(cth::not_null<GraphicsSyncConfig const*> config);
     static void debug_check_state(State const& state);
 #define DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(config) GraphicsSyncConfig::debug_check(config)
 

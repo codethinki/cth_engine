@@ -24,17 +24,17 @@ auto AttachmentDescription::create(VkFormat format, VkImageLayout initial_layout
 
 namespace cth::vk {
 
-AttachmentCollection::AttachmentCollection(not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index,
+AttachmentCollection::AttachmentCollection(cth::not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index,
     Image::Config const& image_config, AttachmentDescription const& description) : _core{core}, _config{image_config},
     _renderPassIndex{render_pass_index}, _size{size}, _description{description} {
     _images.reserve(size);
     _views.reserve(size);
 }
-AttachmentCollection::AttachmentCollection(not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index,
+AttachmentCollection::AttachmentCollection(cth::not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index,
     Image::Config const& image_config, AttachmentDescription const& description, VkExtent2D extent) :
     AttachmentCollection{core, size, render_pass_index, image_config, description} { create(extent); }
 
-AttachmentCollection::AttachmentCollection(not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index,
+AttachmentCollection::AttachmentCollection(cth::not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index,
     Image::Config const& image_config, AttachmentDescription const& description, State const& state) :
     AttachmentCollection{core, size, render_pass_index, image_config, description} { wrap(state); }
 

@@ -15,7 +15,7 @@ class RenderPass {
 public:
     struct BeginConfig;
 
-    RenderPass(not_null<BasicCore const*> core, std::span<Subpass const* const> subpasses,
+    RenderPass(cth::not_null<BasicCore const*> core, std::span<Subpass const* const> subpasses,
         std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
         bool create = true);
     ~RenderPass();
@@ -32,7 +32,7 @@ public:
     static void destroy(VkDevice vk_device, VkRenderPass vk_render_pass);
 
 private:
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
 
     cth::move_ptr<VkRenderPass_T> _handle;
 

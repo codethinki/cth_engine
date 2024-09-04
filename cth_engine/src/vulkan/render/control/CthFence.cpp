@@ -9,7 +9,7 @@
 
 namespace cth::vk {
 
-cth::vk::BasicFence::BasicFence(not_null<BasicCore const*>core) : _core(core) { DEBUG_CHECK_CORE(core); }
+cth::vk::BasicFence::BasicFence(cth::not_null<BasicCore const*>core) : _core(core) { DEBUG_CHECK_CORE(core); }
 
 void BasicFence::wrap(VkFence vk_fence) {
     CTH_ERR(vk_fence == VK_NULL_HANDLE, "fence handle invalid") throw details->exception();
@@ -113,7 +113,7 @@ void BasicFence::debug_check_handle(VkFence vk_fence) {
 //Fence
 
 namespace cth::vk {
-cth::vk::Fence::Fence(not_null<BasicCore const*>core, VkFenceCreateFlags flags) : BasicFence(core) {
+cth::vk::Fence::Fence(cth::not_null<BasicCore const*>core, VkFenceCreateFlags flags) : BasicFence(core) {
     BasicFence::create(flags);
 }
 Fence::~Fence() { if(get() != VK_NULL_HANDLE) Fence::destroy(); }

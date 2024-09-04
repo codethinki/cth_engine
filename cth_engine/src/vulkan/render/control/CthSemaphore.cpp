@@ -9,11 +9,11 @@
 namespace cth::vk {
 
 
-Semaphore::Semaphore(not_null<BasicCore const*> core) : _core(core) {}
-Semaphore::Semaphore(not_null<BasicCore const*> core, State const& state) : Semaphore{core} {
+Semaphore::Semaphore(cth::not_null<BasicCore const*> core) : _core(core) {}
+Semaphore::Semaphore(cth::not_null<BasicCore const*> core, State const& state) : Semaphore{core} {
     wrap(state);
 }
-Semaphore::Semaphore(not_null<BasicCore const*> core, bool create) : Semaphore{core} {
+Semaphore::Semaphore(cth::not_null<BasicCore const*> core, bool create) : Semaphore{core} {
     if(create) this->create();
 }
 

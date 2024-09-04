@@ -50,10 +50,10 @@ void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void Queue::debug_check(not_null<Queue const*> queue) {
+void Queue::debug_check(cth::not_null<Queue const*> queue) {
     CTH_ERR(!queue->valid(), "queue must be created") throw details->exception();
 }
-void Queue::debug_check_present_queue(not_null<Queue const*> queue) {
+void Queue::debug_check_present_queue(cth::not_null<Queue const*> queue) {
     DEBUG_CHECK_QUEUE(queue);
     CTH_ERR(!(queue->familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT), "queue is not a present queue") throw details->exception();
 }

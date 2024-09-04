@@ -33,7 +33,7 @@ public:
     static void init();
     static void terminate();
 
-    static VkSurfaceKHR tempSurface(not_null<Instance const*> instance);
+    static VkSurfaceKHR tempSurface(cth::not_null<Instance const*> instance);
 
     static void destroy(GLFWwindow* glfw_window);
 private:

@@ -14,21 +14,21 @@ using std::unique_ptr;
 
 
 
-PhysicalDevice::PhysicalDevice(not_null<Instance const*> instance, utils::PhysicalDeviceFeatures required_features,
+PhysicalDevice::PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures required_features,
     std::span<std::string const> required_extensions) :
     _instance{(instance.get())}, _requiredFeatures{std::move(required_features)},
     _requiredExtensions{std::from_range, required_extensions} {}
 
-PhysicalDevice::PhysicalDevice(not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
-    std::span<std::string const> required_extensions, Surface const& surface, not_null<VkPhysicalDevice> vk_device) : PhysicalDevice{instance,
+PhysicalDevice::PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+    std::span<std::string const> required_extensions, Surface const& surface, vk::not_null<VkPhysicalDevice> vk_device) : PhysicalDevice{instance,
     required_features, required_extensions} { create(surface, vk_device); }
 
-PhysicalDevice::PhysicalDevice(not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+PhysicalDevice::PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
     std::span<std::string const> required_extensions, State const& state) : PhysicalDevice{instance, required_features,
     required_extensions} { wrap(state); }
 
 
-std::optional<PhysicalDevice> PhysicalDevice::Create(not_null<Instance const*> instance, Surface const& surface,
+std::optional<PhysicalDevice> PhysicalDevice::Create(cth::not_null<Instance const*> instance, Surface const& surface,
     std::span<Queue const> queues, std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features,
     vk::not_null<VkPhysicalDevice> vk_device) {
 
@@ -60,7 +60,7 @@ void PhysicalDevice::wrap(State const& state) {
     _queueFamilies = state.queueFamilies;
 
 }
-void PhysicalDevice::create(Surface const& surface, not_null<VkPhysicalDevice> vk_device) {
+void PhysicalDevice::create(Surface const& surface, cth::not_null<VkPhysicalDevice> vk_device) {
     DEBUG_CHECK_PHYSICAL_DEVICE_HANDLE(vk_device);
 
     _handle = vk_device.get();
@@ -99,7 +99,7 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
 
 
 //TEMP left off here complete this function and add the required required_extensions / features to be used by the logical device
-auto PhysicalDevice::AutoPick(not_null<Instance const*> instance, std::span<Queue const> queues, span<std::string const> required_extensions,
+auto PhysicalDevice::AutoPick(cth::not_null<Instance const*> instance, std::span<Queue const> queues, span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features) -> unique_ptr<PhysicalDevice> {
     DEBUG_CHECK_INSTANCE(instance);
 
@@ -276,7 +276,7 @@ VkSampleCountFlagBits PhysicalDevice::evalMaxSampleCount(VkPhysicalDevicePropert
 
 
 #ifdef CONSTANT_DEBUG_MODE
-void PhysicalDevice::debug_check(not_null<PhysicalDevice const*> device) {
+void PhysicalDevice::debug_check(cth::not_null<PhysicalDevice const*> device) {
     CTH_ERR(!device->created(), "physical device must be created") throw details->exception();
     debug_check_handle(device->get());
 }

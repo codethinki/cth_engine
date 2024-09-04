@@ -34,8 +34,8 @@ class BasicCore;
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(not_null<BasicCore const*> core, not_null<Queue const*> present_queue, not_null<GraphicsSyncConfig const*> sync_config,
-        not_null<Surface const*> surface);
+    BasicSwapchain(cth::not_null<BasicCore const*> core, cth::not_null<Queue const*> present_queue, cth::not_null<GraphicsSyncConfig const*> sync_config,
+        cth::not_null<Surface const*> surface);
     virtual ~BasicSwapchain();
 
     //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
@@ -142,9 +142,9 @@ private:
     void resizeReset();
     void reset();
 
-    not_null<BasicCore const*> _core;
-    not_null<Queue const*> _presentQueue;
-    not_null<Surface const*> _surface;
+    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Queue const*> _presentQueue;
+    cth::not_null<Surface const*> _surface;
 
 
     cth::move_ptr<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
@@ -169,7 +169,7 @@ private:
     std::vector<Framebuffer> _swapchainFramebuffers; //TEMP this maybe should not be here
 
 
-    not_null<GraphicsSyncConfig const*> _syncConfig;
+    cth::not_null<GraphicsSyncConfig const*> _syncConfig;
 
     std::vector<Fence> _imageAvailableFences;
 

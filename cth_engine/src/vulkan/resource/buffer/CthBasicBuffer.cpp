@@ -14,9 +14,9 @@ using std::span;
 
 
 
-BasicBuffer::BasicBuffer(not_null<BasicCore const*> core, size_t  buffer_size, VkBufferUsageFlags usage_flags) :
+BasicBuffer::BasicBuffer(cth::not_null<BasicCore const*> core, size_t  buffer_size, VkBufferUsageFlags usage_flags) :
     _core(core), _size(buffer_size), _usage(usage_flags) { init(); }
-BasicBuffer::BasicBuffer(not_null<BasicCore const*> core, size_t  buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer,
+BasicBuffer::BasicBuffer(cth::not_null<BasicCore const*> core, size_t  buffer_size, VkBufferUsageFlags usage_flags, VkBuffer vk_buffer,
     State state) : _core(core), _size(buffer_size), _usage(usage_flags), _state(std::move(state)), _handle(vk_buffer) { init(); }
 
 void BasicBuffer::wrap(VkBuffer vk_buffer, State const& state) {

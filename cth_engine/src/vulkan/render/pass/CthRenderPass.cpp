@@ -12,7 +12,7 @@
 #include "vulkan/utility/cth_vk_utils.hpp"
 
 namespace cth::vk {
-RenderPass::RenderPass(not_null<BasicCore const*> core, std::span<Subpass const* const> subpasses,
+RenderPass::RenderPass(cth::not_null<BasicCore const*> core, std::span<Subpass const* const> subpasses,
     std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
     bool create) : _core{core}, _subpasses{std::from_range, subpasses},
     _dependencies{std::from_range, dependencies} {

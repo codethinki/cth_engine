@@ -131,7 +131,7 @@ void OSWindow::terminate() {
     glfwTerminate();
     log::msg("terminated window");
 }
-VkSurfaceKHR OSWindow::tempSurface(not_null<Instance const*> instance) {
+VkSurfaceKHR OSWindow::tempSurface(cth::not_null<Instance const*> instance) {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     // Create a hidden window for the surface

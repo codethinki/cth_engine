@@ -63,7 +63,7 @@ public:
     }
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(not_null<BasicCore const*> core);
+    static void debug_check(cth::not_null<BasicCore const*> core);
     static void debug_check_leak(BasicCore const* core);
 #define DEBUG_CHECK_CORE(core_ptr) BasicCore::debug_check(core_ptr)
 #define DEBUG_CHECK_CORE_LEAK(core_ptr) BasicCore::debug_check_leak(core_ptr)

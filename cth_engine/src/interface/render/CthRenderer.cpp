@@ -10,7 +10,7 @@
 namespace cth::vk {
 using std::vector;
 
-Renderer::Renderer(not_null<BasicCore const*> core, Config const& config) : _core(core),
+Renderer::Renderer(cth::not_null<BasicCore const*> core, Config const& config) : _core(core),
     _queues(config.queues()) { init(config); }
 Renderer::~Renderer() {
 

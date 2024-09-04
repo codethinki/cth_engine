@@ -9,7 +9,7 @@
 namespace cth::vk {
 
 template<typename T>
-Buffer<T>::Buffer(not_null<BasicCore const*> core, size_t  element_count, VkBufferUsageFlags  usage_flags,
+Buffer<T>::Buffer(cth::not_null<BasicCore const*> core, size_t  element_count, VkBufferUsageFlags  usage_flags,
     VkMemoryPropertyFlags memory_property_flags) : BasicBuffer{core, element_count * sizeof(T), usage_flags},
     _elements{element_count}, _destructionQueue{_core->destructionQueue()} {
     Memory* memory = new Memory{core, memory_property_flags};

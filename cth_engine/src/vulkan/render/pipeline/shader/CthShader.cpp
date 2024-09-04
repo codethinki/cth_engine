@@ -13,11 +13,11 @@ ShaderSpecialization::ShaderSpecialization(std::span<VkSpecializationMapEntry> e
 //Shader
 
 namespace cth::vk {
-Shader::Shader(not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::string_view spv_path) : _core(core), _vkStage(stage), _spvPath(spv_path) {
+Shader::Shader(cth::not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::string_view spv_path) : _core(core), _vkStage(stage), _spvPath(spv_path) {
     auto spv = loadSpv();
     create(spv);
 }
-Shader::Shader(not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::span<char const> spv) : _core(core), _vkStage(stage) {
+Shader::Shader(cth::not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::span<char const> spv) : _core(core), _vkStage(stage) {
     create(spv);
 }
 Shader::~Shader() {
@@ -120,7 +120,7 @@ void Shader::compile(std::string_view glsl_path, std::string_view compiler_path,
 }
 
 
-Shader::Shader(not_null<BasicCore const*> core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path,
+Shader::Shader(cth::not_null<BasicCore const*> core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path,
     std::string_view compiler_path) : _core(core), _vkStage(stages),
     _spvPath{spv_path} {
 #ifndef _DEBUG

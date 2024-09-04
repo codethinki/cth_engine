@@ -25,14 +25,14 @@ public:
     /**
      * @param core must be created
      */
-    explicit GraphicsCore(not_null<BasicCore const*> core);
+    explicit GraphicsCore(cth::not_null<BasicCore const*> core);
 
     /**
      * @brief wraps the state
-     * @note calls @ref GraphicsCore(not_null<BasicCore const*>)
+     * @note calls @ref GraphicsCore(cth::not_null<BasicCore const*>)
      * @note calls @ref wrap()
      */
-    GraphicsCore(not_null<BasicCore const*> core, State state);
+    GraphicsCore(cth::not_null<BasicCore const*> core, State state);
 
 
     /**
@@ -40,10 +40,10 @@ public:
      * @param present_queue must be valid
      * @param sync_config must be valid
      * @note calls @ref create()
-     * @note calls @ref GraphicsCore(not_null<BasicCore const*>)
+     * @note calls @ref GraphicsCore(cth::not_null<BasicCore const*>)
      */
-    GraphicsCore(not_null<BasicCore const*> core, std::string_view window_name, VkExtent2D extent, not_null<Queue const*> present_queue,
-        not_null<GraphicsSyncConfig const*> sync_config);
+    GraphicsCore(cth::not_null<BasicCore const*> core, std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
+        cth::not_null<GraphicsSyncConfig const*> sync_config);
 
     /**
      * @note calls @ref optDestroy()
@@ -55,8 +55,8 @@ public:
      * @brief constructs osWindow, surface and swapchain
      * @note calls @ref optDestroy()
      */
-    void create(std::string_view window_name, VkExtent2D extent, not_null<Queue const*> present_queue,
-        not_null<GraphicsSyncConfig const*> sync_config);
+    void create(std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
+        cth::not_null<GraphicsSyncConfig const*> sync_config);
 
     /**
      * @brief wraps the state
@@ -116,7 +116,7 @@ public:
 private:
     void reset();
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
     std::unique_ptr<OSWindow> _osWindow = nullptr;
     std::unique_ptr<Surface> _surface = nullptr;
     std::unique_ptr<BasicSwapchain> _swapchain = nullptr; //TODO change to Swapchain ptr once implemented
@@ -134,7 +134,7 @@ public:
     GraphicsCore& operator=(GraphicsCore const& other) = delete;
     GraphicsCore& operator=(GraphicsCore&& other) noexcept = default;
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(not_null<GraphicsCore const*> graphics_core);
+    static void debug_check(cth::not_null<GraphicsCore const*> graphics_core);
     static void debug_check_state(State const& state);
 
 #define DEBUG_CHECK_GRAPHICS_CORE_STATE(state)

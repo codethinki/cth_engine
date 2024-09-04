@@ -40,7 +40,7 @@ public:
         PHASES_SIZE
     };
 
-    explicit Renderer(not_null<BasicCore const*> core, Config const& config);
+    explicit Renderer(cth::not_null<BasicCore const*> core, Config const& config);
     ~Renderer();
 
     /**
@@ -92,7 +92,7 @@ private:
     void createSyncObjects();
     void createSubmitInfos(Config config);
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
 
     std::array<Queue const*, PHASES_SIZE> _queues{};
     std::array<std::unique_ptr<PrimaryCmdBuffer>, PHASES_SIZE * constants::FRAMES_IN_FLIGHT> _cmdBuffers;

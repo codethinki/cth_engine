@@ -9,7 +9,7 @@
 
 namespace cth::vk {
 
-Framebuffer::Framebuffer(not_null<BasicCore const*> core, RenderPass const* render_pass, VkExtent2D extent,
+Framebuffer::Framebuffer(cth::not_null<BasicCore const*> core, RenderPass const* render_pass, VkExtent2D extent,
     std::span<ImageView const* const> attachments, uint32_t layers, bool create) : _core{core}, _renderPass{render_pass}, _extent{extent},
     _attachments{std::from_range, attachments}, _layers{layers} { if(create) this->create(); }
 Framebuffer::~Framebuffer() { optDestroy(); }

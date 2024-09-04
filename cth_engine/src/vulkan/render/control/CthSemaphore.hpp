@@ -18,21 +18,21 @@ public:
     /**
      * @brief base constructor
      */
-    explicit Semaphore(not_null<BasicCore const*> core);
+    explicit Semaphore(cth::not_null<BasicCore const*> core);
 
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
      * @note calls @ref Semaphore::Semaphore(BasicCore*)
      */
-    Semaphore(not_null<BasicCore const*> core, State const& state);
+    Semaphore(cth::not_null<BasicCore const*> core, State const& state);
 
     /**
      * @brief constructs and creates
      * @note might call @ref create()
      * @note calls @ref Semaphore::Semaphore(BasicCore*)
      */
-    explicit Semaphore(not_null<BasicCore const*> core, bool create);
+    explicit Semaphore(cth::not_null<BasicCore const*> core, bool create);
 
     virtual ~Semaphore() { optDestroy(); }
 

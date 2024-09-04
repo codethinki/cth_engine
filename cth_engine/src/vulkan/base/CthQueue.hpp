@@ -105,8 +105,8 @@ public:
     Queue& operator=(Queue&& other) = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(not_null<Queue const*> queue);
-    static void debug_check_present_queue(not_null<Queue const*> queue);
+    static void debug_check(cth::not_null<Queue const*> queue);
+    static void debug_check_present_queue(cth::not_null<Queue const*> queue);
     static void debug_check_queue_handle(VkQueue vk_queue);
 
 #define DEBUG_CHECK_QUEUE(queue_ptr) Queue::debug_check(queue_ptr)

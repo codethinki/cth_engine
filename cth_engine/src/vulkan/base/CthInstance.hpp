@@ -117,7 +117,7 @@ public:
     Instance(Instance&& other) noexcept = default;
     Instance& operator=(Instance&& other) noexcept = default;
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(not_null<Instance const*> instance);
+    static void debug_check(cth::not_null<Instance const*> instance);
     static void debug_check_handle(vk::not_null<VkInstance> vk_instance);
 
 

@@ -45,7 +45,7 @@ public:
 private:
     void destroy();
 
-    void merge(VkPhysicalDeviceFeatures const& features) const;
+    void merge(VkPhysicalDeviceFeatures const& features);
     void merge2(VkPhysicalDeviceFeatures2 const* features2);
 
 
@@ -92,7 +92,7 @@ public:
 
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(not_null<PhysicalDeviceFeatures const*> features);
+    static void debug_check(cth::not_null<PhysicalDeviceFeatures const*> features);
 
 #define DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(features) PhysicalDeviceFeatures::debug_check(features)
 #else

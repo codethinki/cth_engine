@@ -73,7 +73,7 @@ VkInstance BasicCore::vkInstance() const { return _instance->get(); }
 DestructionQueue* BasicCore::destructionQueue() const { return _destructionQueue.get(); }
 
 #ifdef CONSTANT_DEBUG_MODE
-void BasicCore::debug_check(not_null<BasicCore const*> core) {
+void BasicCore::debug_check(cth::not_null<BasicCore const*> core) {
     DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(core->_destructionQueue.get());
     DEBUG_CHECK_DEVICE(core->_device.get());
     DEBUG_CHECK_PHYSICAL_DEVICE(core->_physicalDevice.get());

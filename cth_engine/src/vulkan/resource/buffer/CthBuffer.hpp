@@ -14,7 +14,7 @@ class Device;
 template<typename T>
 class Buffer final : public BasicBuffer {
 public:
-    Buffer(not_null<BasicCore const*> core, size_t element_count, VkBufferUsageFlags usage_flags,
+    Buffer(cth::not_null<BasicCore const*> core, size_t element_count, VkBufferUsageFlags usage_flags,
         VkMemoryPropertyFlags memory_property_flags);
     ~Buffer() override;
 

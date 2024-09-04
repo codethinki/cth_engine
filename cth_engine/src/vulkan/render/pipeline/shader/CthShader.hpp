@@ -26,11 +26,11 @@ public:
     /**
      *@throws cth::vk::result_exception result of @ref vkCreateShaderModule()
      */
-    explicit Shader(not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::string_view spv_path);
+    explicit Shader(cth::not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::string_view spv_path);
     /**
      *@throws cth::vk::result_exception result of @ref vkCreateShaderModule()
      */
-    explicit Shader(not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::span<char const> spv);
+    explicit Shader(cth::not_null<BasicCore const*> core, VkShaderStageFlagBits stage, std::span<char const> spv);
 
     ~Shader();
 
@@ -43,7 +43,7 @@ private:
     void compile(std::string_view glsl_path, std::string_view compiler_path, std::string_view = "-O") const;
 #endif
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
     VkShaderStageFlagBits _vkStage;
     std::string _spvPath;
 
@@ -54,7 +54,7 @@ public:
     /**
     *@throws cth::vk::result_exception result of @ref vkCreateShaderModule()
     */
-    explicit Shader(not_null<BasicCore const*> core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path, std::string_view compiler_path);
+    explicit Shader(cth::not_null<BasicCore const*> core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path, std::string_view compiler_path);
 #endif
 
     [[nodiscard]] VkShaderModule module() const { return _handle.get(); }

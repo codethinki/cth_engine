@@ -8,7 +8,7 @@
 namespace cth::vk {
 
 DebugMessenger::DebugMessenger(Config config): _config{std::move(config)} {}
-void DebugMessenger::create(not_null<Instance const*> instance) {
+void DebugMessenger::create(cth::not_null<Instance const*> instance) {
     DEBUG_CHECK_INSTANCE(instance);
 
 
@@ -64,7 +64,7 @@ DebugMessenger::State DebugMessenger::release() {
 }
 
 #ifdef CONSTANT_DEBUG_MODE
-void DebugMessenger::debug_check(not_null<DebugMessenger const*> debug_messenger) {
+void DebugMessenger::debug_check(cth::not_null<DebugMessenger const*> debug_messenger) {
     CTH_ERR(!debug_messenger->created(), "debug_messenger not created") throw details->exception();
     CTH_ERR(debug_messenger->get() == VK_NULL_HANDLE, "debug_messenger invalid") throw details->exception();
 }

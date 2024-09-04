@@ -23,24 +23,28 @@ public:
     struct State;
 
 
-    explicit Image(not_null<BasicCore const*> core, Config const& config);
+    explicit Image(cth::not_null<BasicCore const*> core, Config const& config);
 
     /**
      *@brief creates the image with extent
      * @note calls @ref Image::Image()
      * @note calls @ref create() 
      */
-    Image(not_null<BasicCore const*> core, Config const& config, VkExtent2D extent);
+    Image(cth::not_null<BasicCore const*> core, Config const& config, VkExtent2D extent);
 
     /**
      * @brief wraps an image with state
      * @note calls @ref Image::Image()
      * @note calls @ref wrap()
      */
-    Image(not_null<BasicCore const*> core, Config const& config, State const& state);
+    Image(cth::not_null<BasicCore const*> core, Config const& config, State const& state);
 
     virtual ~Image();
 
+    /**
+     * @brief wraps the @param state
+     * @note calls @ref optDestroy()
+     */
     void wrap(State const& state);
 
     /**
@@ -56,6 +60,11 @@ public:
     * @note pushes to destruction queue if(@ref Core::destructionQueue())
     */
     void destroy();
+
+    /**
+     * @brief calls @ref destroy() if @ref created()
+     */
+    void optDestroy();
 
     /**
      * @brief releases the ownership of image & memory
@@ -108,7 +117,7 @@ private:
 
     void reset();
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
     VkExtent2D _extent;
     Config _config;
 
@@ -144,7 +153,7 @@ public:
     Image& operator=(Image const& other) = delete;
     Image& operator=(Image&& other) noexcept = default;
 
-    static void debug_check(not_null<Image const*> image);
+    static void debug_check(cth::not_null<Image const*> image);
     static void debug_check_handle(VkImage vk_image);
 
 #ifdef CONSTANT_DEBUG_MODE
