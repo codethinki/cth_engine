@@ -4,12 +4,12 @@
 #include "vulkan/utility/cth_constants.hpp"
 
 namespace cth::vk {
-class BasicSemaphore;
+class Semaphore;
 
 
 struct PipelineWaitStage {
     VkPipelineStageFlags stage;
-    BasicSemaphore const* semaphore;
+    Semaphore const* semaphore;
 
 #ifdef CONSTANT_DEBUG_MODE
     static void debug_check(PipelineWaitStage wait_stage);

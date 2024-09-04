@@ -478,7 +478,7 @@ void BasicSwapchain::createPresentInfos() {
     _presentInfos.reserve(constants::FRAMES_IN_FLIGHT);
 
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++) {
-        std::vector<BasicSemaphore const*> semaphores{_syncConfig->renderFinishedSemaphore(i)};
+        std::vector<Semaphore const*> semaphores{_syncConfig->renderFinishedSemaphore(i)};
         _presentInfos.emplace_back(this, semaphores);
     }
 }

@@ -9,26 +9,48 @@
 namespace cth::vk {
 
 
-BasicSemaphore::BasicSemaphore(not_null<BasicCore const*> core) : _core(core) {}
+Semaphore::Semaphore(not_null<BasicCore const*> core) : _core(core) {}
+Semaphore::Semaphore(not_null<BasicCore const*> core, State const& state) : Semaphore{core} {
+    wrap(state);
+}
+Semaphore::Semaphore(not_null<BasicCore const*> core, bool create) : Semaphore{core} {
+    if(create) this->create();
+}
 
-void BasicSemaphore::create() { createHandle(createInfo()); }
+void Semaphore::wrap(State const& state) {
+    optDestroy();
+    _handle = state.vkSemaphore.get();
+}
+void Semaphore::create() {
+    optDestroy();
+    createHandle(createInfo());
+}
 
-void BasicSemaphore::destroy(DestructionQueue* destruction_queue) {
-    if(destruction_queue) destruction_queue->push(_handle.get());
+void Semaphore::destroy() {
+    DEBUG_CHECK_SEMAPHORE(this);
+
+    auto const queue = _core->destructionQueue();
+
+    if(queue) queue->push(_handle.get());
     else destroy(_core->vkDevice(), _handle.get());
 
-    _handle = VK_NULL_HANDLE;
+    reset();
 }
 
 
-void BasicSemaphore::destroy(VkDevice vk_device, VkSemaphore vk_semaphore) {
+Semaphore::State Semaphore::release() {
+    State const state{_handle.get()};
+    reset();
+    return state;
+}
+void Semaphore::destroy(VkDevice vk_device, VkSemaphore vk_semaphore) {
     CTH_WARN(vk_semaphore == VK_NULL_HANDLE, "vk_semaphore invalid") {}
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);
 
     vkDestroySemaphore(vk_device, vk_semaphore, nullptr);
 }
 
-VkSemaphoreCreateInfo BasicSemaphore::createInfo() {
+VkSemaphoreCreateInfo Semaphore::createInfo() {
     constexpr VkSemaphoreCreateInfo info{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
         .pNext = nullptr,
@@ -36,48 +58,26 @@ VkSemaphoreCreateInfo BasicSemaphore::createInfo() {
     };
     return info;
 }
-void BasicSemaphore::createHandle(VkSemaphoreCreateInfo const& info) {
-    CTH_WARN(_handle != VK_NULL_HANDLE, "semaphore handle replaced (potential memory leak)") {}
-
-
+void Semaphore::createHandle(VkSemaphoreCreateInfo const& info) {
     VkSemaphore ptr = VK_NULL_HANDLE;
     auto const createResult = vkCreateSemaphore(_core->vkDevice(), &info, nullptr, &ptr);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create semaphore")
-        throw cth::vk::result_exception{createResult,
-            details->exception()};
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create semaphore"){
+        reset();
+        throw cth::vk::result_exception{createResult, details->exception()};
+    }
     _handle = ptr;
 }
-
-
-
-#ifdef _DEBUG
-
-void BasicSemaphore::debug_check(BasicSemaphore const* semaphore) {
-    CTH_ERR(semaphore == nullptr, "semaphore must not be nullptr") throw details->exception();
-    CTH_ERR(semaphore->_handle == nullptr, "semaphore must be a valid handle") throw details->exception();
+void Semaphore::reset() {
+    _handle = nullptr;
 }
-void BasicSemaphore::debug_check_leak(BasicSemaphore const* semaphore) {
-    CTH_WARN(semaphore->_handle != nullptr, "semaphore handle replaced (potential memory leak)") {}
+
+
+
+#ifdef CONSTANT_DEBUG_MODE
+void Semaphore::debug_check(cth::not_null<Semaphore const*> semaphore) {
+    CTH_ERR(!semaphore->created(), "semaphore must be created") throw details->exception();
 }
 
 #endif
 
 } //namespace cth
-
-
-namespace cth::vk {
-Semaphore::Semaphore(not_null<BasicCore const*> core, bool create) : BasicSemaphore(core) {
-    if(create) BasicSemaphore::create();
-}
-Semaphore::~Semaphore() { if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_core->destructionQueue()); }
-
-void Semaphore::create() {
-    if(get() != VK_NULL_HANDLE) BasicSemaphore::destroy(_core->destructionQueue());
-
-    BasicSemaphore::create();
-}
-void Semaphore::destroy(DestructionQueue* destruction_queue) {
-    if(destruction_queue) BasicSemaphore::destroy(destruction_queue);
-    else BasicSemaphore::destroy(_core->destructionQueue());
-}
-}

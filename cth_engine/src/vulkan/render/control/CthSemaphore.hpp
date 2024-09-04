@@ -1,23 +1,69 @@
 #pragma once
+#include "vulkan/utility/cth_constants.hpp"
+#include "vulkan/utility/utility/cth_vk_types.hpp"
+
 #include <vulkan/vulkan.h>
 
 #include<cth/cth_pointer.hpp>
 
 namespace cth::vk {
 class BasicCore;
-class Device;
-class DestructionQueue;
-
-static size_t idCounter = 0; //TEMP remove the id
 
 
-class BasicSemaphore {
+class Semaphore {
+    //TEMP remove this 
 public:
-    explicit BasicSemaphore(not_null<BasicCore const*> core);
-    virtual ~BasicSemaphore() = default;
+    struct State;
 
-    virtual void create();
-    virtual void destroy(DestructionQueue* destruction_queue = nullptr);
+    /**
+     * @brief base constructor
+     */
+    explicit Semaphore(not_null<BasicCore const*> core);
+
+    /**
+     * @brief constructs and wraps
+     * @note calls @ref wrap()
+     * @note calls @ref Semaphore::Semaphore(BasicCore*)
+     */
+    Semaphore(not_null<BasicCore const*> core, State const& state);
+
+    /**
+     * @brief constructs and creates
+     * @note might call @ref create()
+     * @note calls @ref Semaphore::Semaphore(BasicCore*)
+     */
+    explicit Semaphore(not_null<BasicCore const*> core, bool create);
+
+    virtual ~Semaphore() { optDestroy(); }
+
+    /**
+     * @brief wraps the @param state
+     * @note calls @ref optDestroy()
+     */
+    void wrap(State const& state);
+
+    /**
+     * @brief creates the semaphore
+     * @note calls @ref optDestroy()
+     * @throws vk::result_exception result of @ref vkCreateSemaphore()
+     */
+    void create();
+
+    /**
+     * @brief destroys and resets
+     * @attention requires @ref created()
+     * @note submits to BasicCore::destructionQueue() if available
+     * @note calls @ref destroy(VkDevice, VkSemaphore)
+     */
+    void destroy();
+    void optDestroy() { if(created()) destroy(); }
+
+    /**
+     * @brief releases ownership and resets
+     * @attention requires @ref created()
+     */
+    // ReSharper disable once CppHiddenFunction
+    State release();
 
 
     static void destroy(VkDevice vk_device, VkSemaphore vk_semaphore);
@@ -25,57 +71,36 @@ public:
 protected:
     virtual VkSemaphoreCreateInfo createInfo();
     virtual void createHandle(VkSemaphoreCreateInfo const& info);
+    virtual void reset();
 
-    not_null<BasicCore const*> _core;
+    cth::not_null<BasicCore const*> _core;
 
 private:
-    size_t _id = idCounter++; //TEMP remove the id
-
     move_ptr<VkSemaphore_T> _handle{};
 
 public:
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkSemaphore get() const { return _handle.get(); }
 
-    BasicSemaphore(BasicSemaphore const& other) = default;
-    BasicSemaphore(BasicSemaphore&& other) = default;
-    BasicSemaphore& operator=(BasicSemaphore const& other) = default;
-    BasicSemaphore& operator=(BasicSemaphore&& other) = default;
+    Semaphore(Semaphore const& other) = default;
+    Semaphore(Semaphore&& other) = default;
+    Semaphore& operator=(Semaphore const& other) = default;
+    Semaphore& operator=(Semaphore&& other) = default;
 
-#ifdef _DEBUG
-    static void debug_check(BasicSemaphore const* semaphore);
-    static void debug_check_leak(BasicSemaphore const* semaphore);
+#ifdef CONSTANT_DEBUG_MODE
+    static void debug_check(cth::not_null<Semaphore const*> semaphore);
 
-#define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) BasicSemaphore::debug_check(semaphore_ptr)
-#define DEBUG_CHECK_SEMAPHORE_LEAK(semaphore_ptr) BasicSemaphore::debug_check_leak(semaphore_ptr)
+#define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) Semaphore::debug_check(semaphore_ptr)
 #else
 #define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) ((void)0)
-#define DEBUG_CHECK_SEMAPHORE_LEAK(semaphore_ptr)  ((void)0)
 #endif
 
 };
 
-
-
 } //namespace cth
 
 namespace cth::vk {
-
-class Semaphore : public BasicSemaphore {
-public:
-    explicit Semaphore(not_null<BasicCore const*> core, bool create = true);
-    ~Semaphore() override;
-
-    void create() override;
-    void destroy(DestructionQueue* destruction_queue = nullptr) override;
-
-private:
-
-public:
-    Semaphore(Semaphore const& other) = delete;
-    Semaphore& operator=(Semaphore const& other) = delete;
-    Semaphore(Semaphore&& other) noexcept = default;
-    Semaphore& operator=(Semaphore&& other) noexcept = default;
-
+struct Semaphore::State {
+    vk::not_null<VkSemaphore> vkSemaphore;
 };
-
 }

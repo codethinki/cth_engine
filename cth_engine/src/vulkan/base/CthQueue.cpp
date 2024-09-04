@@ -10,7 +10,7 @@
 
 
 namespace cth::vk {
-class BasicSemaphore;
+class Semaphore;
 class TimelineSemaphore;
 
 using std::vector;
@@ -73,7 +73,7 @@ using std::span;
 
 
 Queue::SubmitInfo::SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffers, std::span<PipelineWaitStage const> wait_stages,
-    std::span<BasicSemaphore* const> signal_semaphores, BasicFence const* fence) : _fence(fence) {
+    std::span<Semaphore* const> signal_semaphores, BasicFence const* fence) : _fence(fence) {
     _cmdBuffers.resize(cmd_buffers.size());
 
     std::ranges::transform(cmd_buffers, _cmdBuffers.begin(), [](PrimaryCmdBuffer const* cmd_buffer) {
@@ -170,7 +170,7 @@ void Queue::SubmitInfo::initWait(std::span<PipelineWaitStage const> wait_stages)
 
 
 }
-void Queue::SubmitInfo::initSignal(std::span<BasicSemaphore* const> signal_semaphores) {
+void Queue::SubmitInfo::initSignal(std::span<Semaphore* const> signal_semaphores) {
     _signalValues.resize(signal_semaphores.size());
     _signalSemaphores.reserve(signal_semaphores.size());
 
@@ -197,7 +197,7 @@ void Queue::SubmitInfo::initSignal(std::span<BasicSemaphore* const> signal_semap
 //PresentInfo
 
 namespace cth::vk {
-Queue::PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<BasicSemaphore const*> wait_semaphores) : _swapchain(swapchain->get()) {
+Queue::PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<Semaphore const*> wait_semaphores) : _swapchain(swapchain->get()) {
     _waitSemaphores.resize(wait_semaphores.size());
 
     for(auto [dst, src] : std::views::zip(_waitSemaphores, wait_semaphores)) {

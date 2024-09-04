@@ -100,13 +100,13 @@ void Renderer::debug_check_phase_change(Renderer const* renderer) {
 
 namespace cth::vk {
 template<Renderer::Phase P>
-auto Renderer::Config::addSignalSets(std::span<BasicSemaphore* const> signal_semaphore_sets) -> Config& {
+auto Renderer::Config::addSignalSets(std::span<Semaphore* const> signal_semaphore_sets) -> Config& {
     add<P>(signal_semaphore_sets, _phaseSignalSets);
 
     return *this;
 }
 template<Renderer::Phase P>
-auto Renderer::Config::addWaitSets(std::span<BasicSemaphore* const> wait_semaphores, VkPipelineStageFlags wait_stage) -> Config& {
+auto Renderer::Config::addWaitSets(std::span<Semaphore* const> wait_semaphores, VkPipelineStageFlags wait_stage) -> Config& {
     std::vector<PipelineWaitStage> waitStages{};
     waitStages.reserve(wait_semaphores.size());
 
@@ -127,7 +127,7 @@ auto Renderer::Config::addWaitSets(std::span<PipelineWaitStage const> wait_stage
 }
 
 template<Renderer::Phase P>
-auto Renderer::Config::removeSignalSets(std::span<BasicSemaphore* const> signal_semaphore_sets) -> Config& {
+auto Renderer::Config::removeSignalSets(std::span<Semaphore* const> signal_semaphore_sets) -> Config& {
 
     remove<P>(signal_semaphore_sets, _phaseSignalSets);
     return *this;
@@ -157,7 +157,7 @@ auto Renderer::Config::removeQueue(Queue const* queue) -> Config& {
 }
 
 template<Renderer::Phase P>
-auto Renderer::Config::addPhase(Queue const* queue, std::optional<std::span<BasicSemaphore* const>> signal_semaphore_sets,
+auto Renderer::Config::addPhase(Queue const* queue, std::optional<std::span<Semaphore* const>> signal_semaphore_sets,
     std::optional<std::span<PipelineWaitStage const>> wait_stage_sets) -> Config& {
     addQueue<P>(queue);
 
@@ -167,7 +167,7 @@ auto Renderer::Config::addPhase(Queue const* queue, std::optional<std::span<Basi
     return *this;
 }
 template<Renderer::Phase P>
-auto Renderer::Config::addSets(std::span<BasicSemaphore* const> signal_semaphore_sets,
+auto Renderer::Config::addSets(std::span<Semaphore* const> signal_semaphore_sets,
     std::span<PipelineWaitStage const> wait_stage_sets) -> Config& {
     addSignalSets<P>(signal_semaphore_sets);
     addWaitSets<P>(wait_stage_sets);

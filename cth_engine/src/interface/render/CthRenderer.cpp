@@ -67,8 +67,8 @@ std::array<PipelineWaitStage, constants::FRAMES_IN_FLIGHT> Renderer::createWaitS
     }
     return stages;
 }
-std::array<BasicSemaphore*, constants::FRAMES_IN_FLIGHT> Renderer::createSignalSet() const {
-    std::array<BasicSemaphore*, constants::FRAMES_IN_FLIGHT> semaphores{};
+std::array<Semaphore*, constants::FRAMES_IN_FLIGHT> Renderer::createSignalSet() const {
+    std::array<Semaphore*, constants::FRAMES_IN_FLIGHT> semaphores{};
     for(auto [dst, src] : std::views::zip(semaphores, _semaphores))
         dst = src.get();
 

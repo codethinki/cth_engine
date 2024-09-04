@@ -117,7 +117,7 @@ private:
     //[[nodiscard]] size_t to_signal(const State state) const { return _frameStateCounter + state; }
     //void signal(const State state) const { semaphore().signal(to_signal(state)); }
     [[nodiscard]] std::array<PipelineWaitStage, constants::FRAMES_IN_FLIGHT> createWaitSet() const;
-    [[nodiscard]] std::array<BasicSemaphore*, constants::FRAMES_IN_FLIGHT> createSignalSet() const;
+    [[nodiscard]] std::array<Semaphore*, constants::FRAMES_IN_FLIGHT> createSignalSet() const;
 
 #ifdef CONSTANT_DEBUG_MODE
     template<Phase P>
@@ -169,7 +169,7 @@ struct Renderer::Config {
      * @note sets.size() % SET_SIZE must be 0
      */
     template<Phase P>
-    Config& addSignalSets(std::span<BasicSemaphore* const> signal_semaphore_sets);
+    Config& addSignalSets(std::span<Semaphore* const> signal_semaphore_sets);
 
     /**
     * @tparam P phase
@@ -183,7 +183,7 @@ struct Renderer::Config {
     * @note sets.size() % SET_SIZE must be 0
     */
     template<Phase P>
-    Config& addWaitSets(std::span<BasicSemaphore* const> wait_semaphores, VkPipelineStageFlags wait_stage);
+    Config& addWaitSets(std::span<Semaphore* const> wait_semaphores, VkPipelineStageFlags wait_stage);
 
 
     /**
@@ -191,7 +191,7 @@ struct Renderer::Config {
      * @note sets.size() % SET_SIZE must be 0
      */
     template<Phase P>
-    Config& removeSignalSets(std::span<BasicSemaphore* const> signal_semaphore_sets);
+    Config& removeSignalSets(std::span<Semaphore* const> signal_semaphore_sets);
     /**
      * @tparam P phase
      * @note sets.size() % SET_SIZE must be 0
@@ -217,7 +217,7 @@ struct Renderer::Config {
      * @brief shortcut for addQueue(), addSignalSets() and addWaitSets()
      */
     template<Phase P>
-    Config& addPhase(Queue const* queue, std::optional<std::span<BasicSemaphore* const>> signal_semaphore_sets = std::nullopt,
+    Config& addPhase(Queue const* queue, std::optional<std::span<Semaphore* const>> signal_semaphore_sets = std::nullopt,
         std::optional<std::span<PipelineWaitStage const>> wait_stage_sets = std::nullopt);
 
 
@@ -225,7 +225,7 @@ struct Renderer::Config {
      *@brief shortcut for addSignalSets() and addWaitSets()
      */
     template<Phase P>
-    Config& addSets(std::span<BasicSemaphore* const> signal_semaphore_sets, std::span<PipelineWaitStage const> wait_stage_sets);
+    Config& addSets(std::span<Semaphore* const> signal_semaphore_sets, std::span<PipelineWaitStage const> wait_stage_sets);
 
 private:
     /**
@@ -263,7 +263,7 @@ private:
     template<Phase P, class T> void remove(std::span<T const> sets, collection_t<T>& from);
 
     std::array<Queue const*, PHASES_SIZE> _queues{};
-    collection_t<BasicSemaphore*> _phaseSignalSets{};
+    collection_t<Semaphore*> _phaseSignalSets{};
     collection_t<PipelineWaitStage> _phaseWaitSets{};
 
     friend class Renderer;

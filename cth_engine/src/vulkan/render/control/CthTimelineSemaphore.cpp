@@ -5,9 +5,22 @@
 
 
 namespace cth::vk {
-TimelineSemaphore::TimelineSemaphore(not_null<BasicCore const*> core, bool create) : Semaphore(core, false) {
-    if(create) BasicSemaphore::createHandle(TimelineSemaphore::createInfo());
+TimelineSemaphore::TimelineSemaphore(not_null<BasicCore const*> core, bool create) : Semaphore{core} {
+    if(create) Semaphore::createHandle(TimelineSemaphore::createInfo());
 }
+
+void TimelineSemaphore::wrap(State const& state) {
+    Semaphore::wrap({state.vkSemaphore});
+    _value = state.value;
+}
+TimelineSemaphore::State TimelineSemaphore::release() {
+    auto const value = _value;
+    auto const [vkSemaphore] = Semaphore::release();
+
+    return State{vkSemaphore, value};
+}
+
+
 
 size_t TimelineSemaphore::gpuValue() const {
     size_t value = 0;
@@ -33,6 +46,10 @@ VkResult TimelineSemaphore::wait(uint64_t nanoseconds) const {
     auto const result = vkWaitSemaphores(_core->vkDevice(), &info, nanoseconds);
 
     return result;
+}
+void TimelineSemaphore::reset() {
+    Semaphore::reset();
+    _value = 0;
 }
 
 

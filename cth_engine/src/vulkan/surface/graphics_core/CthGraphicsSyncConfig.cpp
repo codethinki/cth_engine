@@ -42,18 +42,18 @@ GraphicsSyncConfig::State GraphicsSyncConfig::release() {
         .renderFinishedSemaphores = std::move(_renderFinishedSemaphores)
     };
 }
-std::array<BasicSemaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::renderFinishedSemaphores() const {
+std::array<Semaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::renderFinishedSemaphores() const {
     DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
 
 
-    std::array<BasicSemaphore*, SET_SIZE> semaphores{};
+    std::array<Semaphore*, SET_SIZE> semaphores{};
     for(auto [src, dst] : std::views::zip(_renderFinishedSemaphores, semaphores)) dst = src.get();
     return semaphores;
 }
-std::array<BasicSemaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::imageAvailableSemaphores() const {
+std::array<Semaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::imageAvailableSemaphores() const {
     DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
 
-    std::array<BasicSemaphore*, SET_SIZE> semaphores{};
+    std::array<Semaphore*, SET_SIZE> semaphores{};
     for(auto [src, dst] : std::views::zip(_imageAvailableSemaphores, semaphores)) dst = src.get();
     return semaphores;
 }

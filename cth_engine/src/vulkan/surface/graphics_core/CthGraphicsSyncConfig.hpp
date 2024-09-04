@@ -66,8 +66,8 @@ public:
     State release();
 
 
-    [[nodiscard]] std::array<BasicSemaphore*, SET_SIZE> renderFinishedSemaphores() const;
-    [[nodiscard]] std::array<BasicSemaphore*, SET_SIZE> imageAvailableSemaphores() const;
+    [[nodiscard]] std::array<Semaphore*, SET_SIZE> renderFinishedSemaphores() const;
+    [[nodiscard]] std::array<Semaphore*, SET_SIZE> imageAvailableSemaphores() const;
 
 private:
     not_null<BasicCore const*> _core;
@@ -76,18 +76,18 @@ private:
      * semaphores[currentFrame] will be signaled once the vk_image is clear to render on
      * expects that the semaphore will be waited before rendering
      */
-    std::array<std::unique_ptr<BasicSemaphore>, SET_SIZE> _imageAvailableSemaphores;
+    std::array<std::unique_ptr<Semaphore>, SET_SIZE> _imageAvailableSemaphores;
 
     /**
      * expects semaphores[currentFrame] to be signaled after rendering
      * presents the vk_image once the semaphore is signaled
      */
-    std::array<std::unique_ptr<BasicSemaphore>, SET_SIZE> _renderFinishedSemaphores;
+    std::array<std::unique_ptr<Semaphore>, SET_SIZE> _renderFinishedSemaphores;
 
 public:
     [[nodiscard]] bool created() const { return _imageAvailableSemaphores[0] && _renderFinishedSemaphores[0]; }
-    [[nodiscard]] BasicSemaphore* renderFinishedSemaphore(size_t index) const { return _renderFinishedSemaphores[index].get(); }
-    [[nodiscard]] BasicSemaphore* imageAvailableSemaphore(size_t index) const { return _imageAvailableSemaphores[index].get(); }
+    [[nodiscard]] Semaphore* renderFinishedSemaphore(size_t index) const { return _renderFinishedSemaphores[index].get(); }
+    [[nodiscard]] Semaphore* imageAvailableSemaphore(size_t index) const { return _imageAvailableSemaphores[index].get(); }
 
     GraphicsSyncConfig(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig const& other) = delete;
@@ -114,10 +114,10 @@ struct GraphicsSyncConfig::State {
     /**
      * @attention must not be nullptr
      */
-    std::array<std::unique_ptr<BasicSemaphore>, constants::FRAMES_IN_FLIGHT> imageAvailableSemaphores;
+    std::array<std::unique_ptr<Semaphore>, constants::FRAMES_IN_FLIGHT> imageAvailableSemaphores;
     /**
      * @attention must not be nullptr
      */
-    std::array<std::unique_ptr<BasicSemaphore>, constants::FRAMES_IN_FLIGHT> renderFinishedSemaphores;
+    std::array<std::unique_ptr<Semaphore>, constants::FRAMES_IN_FLIGHT> renderFinishedSemaphores;
 };
 }
