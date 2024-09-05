@@ -27,14 +27,14 @@ class PrimaryCmdBuffer;
 class Surface;
 class GraphicsSyncConfig;
 class Queue;
-class BasicCore;
+class Core;
 
 //TEMP make this non basic and remove components like renderpass and subpass as well as attachments (except resolve attachment)
 //TEMP maybe remove framebuffers idk
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(cth::not_null<BasicCore const*> core, cth::not_null<Queue const*> present_queue, cth::not_null<GraphicsSyncConfig const*> sync_config,
+    BasicSwapchain(cth::not_null<Core const*> core, cth::not_null<Queue const*> present_queue, cth::not_null<GraphicsSyncConfig const*> sync_config,
         cth::not_null<Surface const*> surface);
     virtual ~BasicSwapchain();
 
@@ -142,7 +142,7 @@ private:
     void resizeReset();
     void reset();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     cth::not_null<Queue const*> _presentQueue;
     cth::not_null<Surface const*> _surface;
 

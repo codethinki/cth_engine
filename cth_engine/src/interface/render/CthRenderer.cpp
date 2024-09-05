@@ -10,7 +10,7 @@
 namespace cth::vk {
 using std::vector;
 
-Renderer::Renderer(cth::not_null<BasicCore const*> core, Config const& config) : _core(core),
+Renderer::Renderer(cth::not_null<Core const*> core, Config const& config) : _core(core),
     _queues(config.queues()) { init(config); }
 Renderer::~Renderer() {
 
@@ -109,7 +109,7 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
           .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores());
     return config;
 }
-//Renderer::Config::Config(const BasicCore* core, DestructionQueue* destruction_queue) : _core{core}, _destructionQueue{destruction_queue} {
+//Renderer::Config::Config(const Core* core, DestructionQueue* destruction_queue) : _core{core}, _destructionQueue{destruction_queue} {
 //    DEBUG_CHECK_CORE(core);
 //    DEBUG_CHECK_DESTRUCTION_QUEUE(destruction_queue);
 //}

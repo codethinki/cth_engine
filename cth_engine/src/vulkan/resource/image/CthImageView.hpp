@@ -6,7 +6,7 @@
 #include <vulkan/vulkan.h>
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 class Image;
 class Device;
 
@@ -19,21 +19,21 @@ public:
      * @brief base constructor
      * @param core must be created
      */
-    ImageView(cth::not_null<BasicCore const*> core, Config const& config);
+    ImageView(cth::not_null<Core const*> core, Config const& config);
 
     /**
      * @brief constructs and creates
      * @note calls @ref create()
-     * @note calls @ref ImageView(cth::not_null<BasicCore const*>, Config const&)
+     * @note calls @ref ImageView(cth::not_null<Core const*>, Config const&)
      */
-    ImageView(cth::not_null<BasicCore const*> core, Config const& config, Image const* image);
+    ImageView(cth::not_null<Core const*> core, Config const& config, Image const* image);
 
     /**
      * @brief constructs and wraps state
      * @note calls @ref wrap();
-     * @note calls @ref ImageView(cth::not_null<BasicCore const*>, Config const&)
+     * @note calls @ref ImageView(cth::not_null<Core const*>, Config const&)
      */
-    ImageView(cth::not_null<BasicCore const*> core, Config const& config, State const& state);
+    ImageView(cth::not_null<Core const*> core, Config const& config, State const& state);
 
     /**
      * @note calls @ref optDestroy()
@@ -95,7 +95,7 @@ private:
 
     void reset();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     Image const* _image = nullptr;
     move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
 

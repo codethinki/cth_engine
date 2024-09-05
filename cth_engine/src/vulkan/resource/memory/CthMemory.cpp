@@ -11,10 +11,10 @@
 namespace cth::vk {
 
 
-Memory::Memory(cth::not_null<BasicCore const*> core, VkMemoryPropertyFlags vk_properties) : _core(core), _vkProperties(vk_properties) {
+Memory::Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags vk_properties) : _core(core), _vkProperties(vk_properties) {
     DEBUG_CHECK_CORE(_core);
 }
-Memory::Memory(cth::not_null<BasicCore const*> core, VkMemoryPropertyFlags properties,
+Memory::Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags properties,
     VkMemoryRequirements const& vk_requirements) : Memory{core, properties} { create(vk_requirements); }
 Memory::~Memory() { if(created()) Memory::destroy(); }
 

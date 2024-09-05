@@ -11,7 +11,7 @@
 
 namespace cth::vk {
 class Queue;
-class BasicCore;
+class Core;
 
 class CmdBuffer;
 class PrimaryCmdBuffer;
@@ -21,7 +21,7 @@ class SecondaryCmdBuffer;
 class CmdPool {
 public:
     struct Config;
-    CmdPool(cth::not_null<BasicCore const*> device, Config const& config);
+    CmdPool(cth::not_null<Core const*> device, Config const& config);
     ~CmdPool();
 
     /**
@@ -49,7 +49,7 @@ private:
     void newCmdBuffer(PrimaryCmdBuffer* buffer);
     void newCmdBuffer(SecondaryCmdBuffer* buffer);
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     move_ptr<VkCommandPool_T> _handle = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> _primaryBuffers;
     std::vector<VkCommandBuffer> _secondaryBuffers;

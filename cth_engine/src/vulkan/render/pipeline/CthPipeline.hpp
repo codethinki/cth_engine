@@ -7,7 +7,7 @@
 //TODO add support for more types of pipelines
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 
 class PipelineLayout;
 
@@ -23,11 +23,11 @@ public:
     /**
     *@throws from private void create()
     */
-    Pipeline(cth::not_null<BasicCore const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info);
+    Pipeline(cth::not_null<Core const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info);
     /**
     *@throws from private void create()
     */
-    Pipeline(cth::not_null<BasicCore const*> core, Pipeline const* parent, GraphicsConfig const& config_info);
+    Pipeline(cth::not_null<Core const*> core, Pipeline const* parent, GraphicsConfig const& config_info);
 
     ~Pipeline();
 
@@ -40,7 +40,7 @@ private:
     */
     void create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout = nullptr, Pipeline const* parent = nullptr);
 
-    cth::not_null<BasicCore const*> _device;
+    cth::not_null<Core const*> _device;
     VkPipeline _vkGraphicsPipeline{};
 
 public:

@@ -25,14 +25,14 @@ public:
     /**
      * @param core must be created
      */
-    explicit GraphicsCore(cth::not_null<BasicCore const*> core);
+    explicit GraphicsCore(cth::not_null<Core const*> core);
 
     /**
      * @brief wraps the state
-     * @note calls @ref GraphicsCore(cth::not_null<BasicCore const*>)
+     * @note calls @ref GraphicsCore(cth::not_null<Core const*>)
      * @note calls @ref wrap()
      */
-    GraphicsCore(cth::not_null<BasicCore const*> core, State state);
+    GraphicsCore(cth::not_null<Core const*> core, State state);
 
 
     /**
@@ -40,9 +40,9 @@ public:
      * @param present_queue must be valid
      * @param sync_config must be valid
      * @note calls @ref create()
-     * @note calls @ref GraphicsCore(cth::not_null<BasicCore const*>)
+     * @note calls @ref GraphicsCore(cth::not_null<Core const*>)
      */
-    GraphicsCore(cth::not_null<BasicCore const*> core, std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
+    GraphicsCore(cth::not_null<Core const*> core, std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
         cth::not_null<GraphicsSyncConfig const*> sync_config);
 
     /**
@@ -116,7 +116,7 @@ public:
 private:
     void reset();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     std::unique_ptr<OSWindow> _osWindow = nullptr;
     std::unique_ptr<Surface> _surface = nullptr;
     std::unique_ptr<BasicSwapchain> _swapchain = nullptr; //TODO change to Swapchain ptr once implemented

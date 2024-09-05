@@ -14,7 +14,7 @@
 namespace cth::vk {
 class Memory;
 class CmdBuffer;
-class BasicCore;
+class Core;
 class DestructionQueue;
 
 class BaseBuffer {
@@ -25,21 +25,21 @@ public:
      * @brief base constructor
      * @param buffer_size in bytes
      */
-    BaseBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags);
+    BaseBuffer(cth::not_null<Core const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags);
 
     /**
      * @brief constructs and wraps
-     * @note calls @ref wrap() with @param state
-     * @note calls @ref BasicBuffer(cth::not_null<BasicCore const*>, size_t, VkBufferUsageFlags)
+     * @param state passed to @ref wrap()
+     * @note calls @ref BaseBuffer(cth::not_null<Core const*>, size_t, VkBufferUsageFlags)
      */
-    BaseBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, State state);
+    BaseBuffer(cth::not_null<Core const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, State state);
 
     /**
      * @brief constructs and creates
      * @note calls @ref create()
-     * @note calls @ref BasicBuffer(cth::not_null<BasicCore const*>, size_t, VkBufferUsageFlags)
+     * @note calls @ref BaseBuffer(cth::not_null<Core const*>, size_t, VkBufferUsageFlags)
      */
-    BaseBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags vk_memory_flags);
+    BaseBuffer(cth::not_null<Core const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags vk_memory_flags);
 
 
     /**
@@ -58,8 +58,8 @@ public:
 
     /**
     * @brief destroys the buffer
-    * @attention @ref created() required
-    * @note if BasicCore::destructionQueue() submits to queue
+    * @attention requires @ref created()
+    * @note if Core::destructionQueue() submits to queue
     * @note calls @ref destroy(vk::not_null<VkDevice>, VkBuffer)
     * @note calls @ref Memory::~Memory() if @ref memory()
     */
@@ -180,7 +180,7 @@ private:
 
     /**
      * @brief creates the memory
-     * @note calls @ref Memory::Memory(cth::not_null<BasicCore const*>, VkMemoryPropertyFlags)
+     * @note calls @ref Memory::Memory(cth::not_null<Core const*>, VkMemoryPropertyFlags)
      * @note calls @ref Memory::create(VkMemoryRequirements const&)
      */
     void createMemory(VkMemoryPropertyFlags vk_memory_properties);
@@ -192,7 +192,7 @@ private:
     */
     void bind();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     size_t _size;
     VkBufferUsageFlags _usage;
 

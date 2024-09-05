@@ -8,7 +8,7 @@
 
 namespace cth::vk {
 
-Sampler::Sampler(cth::not_null<BasicCore const*> core, Config const& config) : _core(core) { create(config); }
+Sampler::Sampler(cth::not_null<Core const*> core, Config const& config) : _core(core) { create(config); }
 Sampler::~Sampler() {
     vkDestroySampler(_core->vkDevice(), _handle.get(), nullptr);
 

@@ -6,12 +6,12 @@ class ImageView;
 }
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 class RenderPass;
 class AttachmentCollection;
 class Framebuffer {
 public:
-    Framebuffer(cth::not_null<BasicCore const*> core, RenderPass const* render_pass, VkExtent2D extent, std::span<ImageView const* const> attachments,
+    Framebuffer(cth::not_null<Core const*> core, RenderPass const* render_pass, VkExtent2D extent, std::span<ImageView const* const> attachments,
         uint32_t layers = 1, bool create = true);
     ~Framebuffer();
 
@@ -26,7 +26,7 @@ public:
     static void destroy(VkDevice vk_device, VkFramebuffer vk_framebuffer);
 
 private:
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     cth::move_ptr<VkFramebuffer_T> _handle = VK_NULL_HANDLE;
 
     RenderPass const* _renderPass;

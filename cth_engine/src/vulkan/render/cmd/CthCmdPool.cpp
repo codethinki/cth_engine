@@ -11,7 +11,7 @@
 
 namespace cth::vk {
 
-CmdPool::CmdPool(cth::not_null<BasicCore const*> device, Config const& config) : _core(device), _config(config) {
+CmdPool::CmdPool(cth::not_null<Core const*> device, Config const& config) : _core(device), _config(config) {
     DEBUG_CHECK_CORE(device);
 
     create();

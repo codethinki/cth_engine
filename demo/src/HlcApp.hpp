@@ -43,7 +43,7 @@ private:
 
     std::vector<std::string> _glfwExtensions = getRequiredInstanceExtensions();
 
-    std::unique_ptr<vk::Core> _core = std::make_unique<vk::Core>(vk::BasicCore::Config::Default("demo", "engine", _queues, _glfwExtensions));
+    std::unique_ptr<vk::Core> _core = std::make_unique<vk::Core>(vk::Core::Config::Default("demo", "engine", _queues, _glfwExtensions));
 
     cth::move_ptr<vk::DestructionQueue> _destructionQueue = _core->destructionQueue();
 

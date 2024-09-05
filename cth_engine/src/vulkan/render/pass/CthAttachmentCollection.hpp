@@ -25,21 +25,21 @@ class AttachmentCollection {
 public:
     struct State;
 
-    AttachmentCollection(cth::not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
+    AttachmentCollection(cth::not_null<Core const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description);
 
     /**
      * @brief initializes the collection and creates it
      * @note calls @ref create()
      */
-    AttachmentCollection(cth::not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
+    AttachmentCollection(cth::not_null<Core const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description, VkExtent2D extent);
 
     /**
      * @brief initializes the collection and wraps the state
      * @note calls @ref wrap()
      */
-    AttachmentCollection(cth::not_null<BasicCore const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
+    AttachmentCollection(cth::not_null<Core const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description, State const& state);
 
 
@@ -61,15 +61,15 @@ public:
 
     /**
      * @brief destroys the images, memory handles and views
-     * @note uses @ref BasicCore::destructionQueue() if available
-     * @note @ref created() required
+     * @note uses @ref Core::destructionQueue() if available
+     * @note requires @ref created()
      */
     void destroy();
 
     /**
      * @brief releases the ownership of the images, memory handles and views
      * @return State of the Object
-     * @note @ref created() required
+     * @note requires @ref created()
      */
     [[nodiscard]] State release();
 
@@ -84,7 +84,7 @@ private:
     void createImages();
     void createImageViews();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     Image::Config _config;
     uint32_t _renderPassIndex;
     size_t _size;

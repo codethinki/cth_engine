@@ -9,7 +9,7 @@
 
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 class DescriptorSetLayout;
 
 class PipelineLayout {
@@ -19,13 +19,13 @@ public:
     * @throws cth::vk::result_exception data: VkResult of vkCreatePipelineLayout()
     * @throws cth::except::exception reason: device limits exceeded, too many locations specified
     */
-    PipelineLayout(cth::not_null<BasicCore const*> core, Builder const& builder);
+    PipelineLayout(cth::not_null<Core const*> core, Builder const& builder);
     ~PipelineLayout();
 
 private:
     void create();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     VkPipelineLayout _vkLayout = VK_NULL_HANDLE;
     std::vector<DescriptorSetLayout*> _setLayouts{};
 

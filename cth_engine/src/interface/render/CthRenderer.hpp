@@ -18,7 +18,7 @@
 namespace cth::vk {
 class GraphicsSyncConfig;
 class Queue;
-class BasicCore;
+class Core;
 class DestructionQueue;
 class Device;
 class OSWindow;
@@ -40,7 +40,7 @@ public:
         PHASES_SIZE
     };
 
-    explicit Renderer(cth::not_null<BasicCore const*> core, Config const& config);
+    explicit Renderer(cth::not_null<Core const*> core, Config const& config);
     ~Renderer();
 
     /**
@@ -92,7 +92,7 @@ private:
     void createSyncObjects();
     void createSubmitInfos(Config config);
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
 
     std::array<Queue const*, PHASES_SIZE> _queues{};
     std::array<std::unique_ptr<PrimaryCmdBuffer>, PHASES_SIZE * constants::FRAMES_IN_FLIGHT> _cmdBuffers;
@@ -162,7 +162,7 @@ struct Renderer::Config {
     static Config Render(Queue const* graphics_queue, GraphicsSyncConfig const* sync_config);
 
     Config() = default;
-    //Config(const BasicCore* core, DestructionQueue* destruction_queue);
+    //Config(const Core* core, DestructionQueue* destruction_queue);
 
     /**
      * @tparam P phase

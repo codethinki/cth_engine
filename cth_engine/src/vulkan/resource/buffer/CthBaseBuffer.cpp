@@ -14,11 +14,11 @@ using std::span;
 
 
 
-BaseBuffer::BaseBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags) :
+BaseBuffer::BaseBuffer(cth::not_null<Core const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags) :
     _core{core}, _size{buffer_size}, _usage{usage_flags} { DEBUG_CHECK_CORE(_core); }
-BaseBuffer::BaseBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, State state) :
+BaseBuffer::BaseBuffer(cth::not_null<Core const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, State state) :
     BaseBuffer{core, buffer_size, usage_flags} { BaseBuffer::wrap(std::move(state)); }
-BaseBuffer::BaseBuffer(cth::not_null<BasicCore const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags,
+BaseBuffer::BaseBuffer(cth::not_null<Core const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags,
     VkMemoryPropertyFlags vk_memory_flags) :
     BaseBuffer{core, buffer_size, usage_flags} { BaseBuffer::create(vk_memory_flags); }
 

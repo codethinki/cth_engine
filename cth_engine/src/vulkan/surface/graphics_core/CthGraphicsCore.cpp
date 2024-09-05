@@ -7,10 +7,10 @@
 #include "vulkan/utility/cth_vk_utils.hpp"
 
 namespace cth::vk {
-GraphicsCore::GraphicsCore(cth::not_null<BasicCore const*> core) : _core{core} {}
-GraphicsCore::GraphicsCore(cth::not_null<BasicCore const*> core, State state) : GraphicsCore{core} { wrap(std::move(state)); }
+GraphicsCore::GraphicsCore(cth::not_null<Core const*> core) : _core{core} {}
+GraphicsCore::GraphicsCore(cth::not_null<Core const*> core, State state) : GraphicsCore{core} { wrap(std::move(state)); }
 
-GraphicsCore::GraphicsCore(cth::not_null<BasicCore const*> core, std::string_view window_name, VkExtent2D extent,
+GraphicsCore::GraphicsCore(cth::not_null<Core const*> core, std::string_view window_name, VkExtent2D extent,
     cth::not_null<Queue const*> present_queue, cth::not_null<GraphicsSyncConfig const*> sync_config) : GraphicsCore{core} {
     create(window_name, extent, present_queue, sync_config);
 }

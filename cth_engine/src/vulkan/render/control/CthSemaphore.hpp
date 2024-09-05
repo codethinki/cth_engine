@@ -7,7 +7,7 @@
 #include<cth/pointers.hpp>
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 
 
 class Semaphore {
@@ -17,26 +17,26 @@ public:
     /**
      * @brief base constructor
      */
-    explicit Semaphore(cth::not_null<BasicCore const*> core);
+    explicit Semaphore(cth::not_null<Core const*> core);
 
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
-     * @note calls @ref Semaphore::Semaphore(not_null<BasicCore const*>)
+     * @note calls @ref Semaphore::Semaphore(not_null<Core const*>)
      */
-    Semaphore(cth::not_null<BasicCore const*> core, State const& state);
+    Semaphore(cth::not_null<Core const*> core, State const& state);
 
     /**
      * @brief constructs and creates
      * @note might call @ref create()
-     * @note calls @ref Semaphore::Semaphore(not_null<BasicCore const*>)
+     * @note calls @ref Semaphore::Semaphore(not_null<Core const*>)
      */
-    explicit Semaphore(cth::not_null<BasicCore const*> core, bool create);
+    explicit Semaphore(cth::not_null<Core const*> core, bool create);
 
     virtual ~Semaphore() { optDestroy(); }
 
     /**
-     * @brief wraps the @param state
+     * @brief wraps the @ref State
      * @note calls @ref optDestroy()
      */
     void wrap(State const& state);
@@ -51,7 +51,7 @@ public:
     /**
      * @brief destroys and resets
      * @attention requires @ref created()
-     * @note submits to BasicCore::destructionQueue() if available
+     * @note submits to Core::destructionQueue() if available
      * @note calls @ref destroy(VkDevice, VkSemaphore)
      */
     void destroy();
@@ -72,7 +72,7 @@ protected:
     virtual void createHandle(VkSemaphoreCreateInfo const& info);
     virtual void reset();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
 
 private:
     move_ptr<VkSemaphore_T> _handle{};

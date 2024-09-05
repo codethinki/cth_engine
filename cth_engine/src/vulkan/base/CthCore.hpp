@@ -13,43 +13,63 @@ class PhysicalDevice;
 class Device;
 class Queue;
 
-class BasicCore {
+class Core {
 public:
     struct Config;
+    struct State;
 
-    BasicCore() = default;
-    virtual ~BasicCore() = default;
+    Core() = default;
 
     /**
-     * @brief wraps the components
-     * @param destruction_queue optional
+     * @brief constructs and wraps
+     * @note calls @ref optDestroy()
      */
-    virtual void wrap(Instance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue = nullptr);
+    explicit Core(State state);
+    /**
+     * @brief constructs and creates
+     */
+    explicit Core(Config const& config);
 
-    virtual void create(Config const& config);
+    /**
+     * @note calls @ref optDestroy()
+     */
+    ~Core();
+
+    /**
+     * @brief wraps the @ref State
+     * @note calls @ref optDestroy()
+     */
+    void wrap(State state);
+
+    /**
+     * @brief creates the components
+     * @note calls @ref Instance::Instance(std::string_view, std::span<std::string const>, std::optional<PFN_vkDebugUtilsMessengerCallbackEXT>)
+     * @note calls @ref PhysicalDevice::AutoPick(Instance*, std::span<Queue>, std::span<std::string const>, std::span<std::string const>)
+     * @note calls @ref Device::Device(Instance*, PhysicalDevice*, std::span<Queue>)
+     * @note may calls @ref DestructionQueue::DestructionQueue(Device*, PhysicalDevice*, Instance*)
+     */
+    void create(Config const& config);
+
     void destroy();
+    void optDestroy() { if(created()) destroy(); }
 
     /**
      * @brief sets all components to nullptr
      * @note does not delete
      */
-    virtual void reset();
+    void reset();
 
-    struct State {
-        Instance* instance;
-        PhysicalDevice* physicalDevice;
-        Device* device;
-        DestructionQueue* destructionQueue;
-    };
     State release();
 
 private:
-    move_ptr<Device> _device = nullptr;
-    move_ptr<PhysicalDevice> _physicalDevice = nullptr;
-    move_ptr<Instance> _instance = nullptr;
-    move_ptr<DestructionQueue> _destructionQueue = nullptr;
+    std::unique_ptr<Device> _device;
+    std::unique_ptr<PhysicalDevice> _physicalDevice;
+    std::unique_ptr<Instance> _instance;
+    std::unique_ptr<DestructionQueue> _destructionQueue;
 
 public:
+    [[nodiscard]] bool created() const;
+
     [[nodiscard]] Device const* device() const;
     [[nodiscard]] VkDevice vkDevice() const;
     [[nodiscard]] PhysicalDevice const* physicalDevice() const;
@@ -58,17 +78,15 @@ public:
     [[nodiscard]] VkInstance vkInstance() const;
     [[nodiscard]] DestructionQueue* destructionQueue() const;
 
-    bool operator==(BasicCore const& other) const {
-        return _device == other._device && _physicalDevice == other._physicalDevice && _instance == other._instance;
-    }
+    Core(Core const& other) = delete;
+    Core(Core&& other) noexcept = default;
+    Core& operator=(Core const& other) = delete;
+    Core& operator=(Core&& other) noexcept = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<BasicCore const*> core);
-    static void debug_check_leak(BasicCore const* core);
-#define DEBUG_CHECK_CORE(core_ptr) BasicCore::debug_check(core_ptr)
-#define DEBUG_CHECK_CORE_LEAK(core_ptr) BasicCore::debug_check_leak(core_ptr)
+    static void debug_check(cth::not_null<Core const*> core);
+#define DEBUG_CHECK_CORE(core_ptr) Core::debug_check(core_ptr)
 #else
-
 #define DEBUG_CHECK_CORE(core_ptr) ((void)0)
 #endif
 };
@@ -76,41 +94,44 @@ public:
 
 }
 
+//State
 
 namespace cth::vk {
-class Instance;
-
-class Core : public BasicCore {
-public:
-    //TEMP left off here
-    explicit Core(Config const& config);
-    ~Core() override;
-
+struct Core::State {
     /**
-     * @brief wraps and takes ownership
+     * @attention Instance::created() required
      */
-    void wrap(Instance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) override;
+    unique_not_null<Instance> instance;
     /**
-     * @brief creates the components
-     * @note not necessary when using wrap
+     * @attention PhysicalDevice::created() required
      */
-    void create(Config const& config) override;
-
+    unique_not_null<PhysicalDevice> physicalDevice;
     /**
-     * @brief deletes all components
+     * @attention Device::created() required
      */
-    void reset() override;
+    unique_not_null<Device> device;
+    /**
+     *@brief optional but highly recommended
+     * @note may be nullptr
+     */
+    std::unique_ptr<DestructionQueue> destructionQueue;
 };
 }
+
+
 
 //Config
 
 namespace cth::vk {
-struct BasicCore::Config {
+struct Core::Config {
     std::string_view appName;
     std::string_view engineName;
     std::span<Queue> queues;
     std::span<std::string const> requiredExtensions; //TEMP
+
+    /**
+     * @brief if true, creates a DestructionQueue
+     */
     bool destructionQueue;
 
     static Config Default(std::string_view app_name, std::string_view engine_name, std::span<Queue> queues,

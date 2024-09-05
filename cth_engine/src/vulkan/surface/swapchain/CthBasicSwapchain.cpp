@@ -20,7 +20,7 @@
 
 namespace cth::vk {
 
-BasicSwapchain::BasicSwapchain(cth::not_null<BasicCore const*> core, cth::not_null<Queue const*> present_queue,
+BasicSwapchain::BasicSwapchain(cth::not_null<Core const*> core, cth::not_null<Queue const*> present_queue,
     cth::not_null<GraphicsSyncConfig const*> sync_config, cth::not_null<Surface const*> surface) :
     _core(core), _presentQueue(present_queue), _surface{surface}, _syncConfig(sync_config) {
     DEBUG_CHECK_CORE(core.get());
@@ -555,9 +555,9 @@ void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwa
 
 //TEMP old code
 
-//BasicSwapchain::BasicSwapchain(const BasicCore* core, DestructionQueue* destruction_queue, const Surface* surface, const Queue* present_queue,
+//BasicSwapchain::BasicSwapchain(const Core* core, DestructionQueue* destruction_queue, const Surface* surface, const Queue* present_queue,
 //    const VkExtent2D window_extent) : _core(core), _presentQueue(present_queue), _windowExtent(window_extent), { init(surface, destruction_queue); }
-//BasicSwapchain::BasicSwapchain(const BasicCore* core, DestructionQueue* destruction_queue, const Surface* surface, const Queue* present_queue,
+//BasicSwapchain::BasicSwapchain(const Core* core, DestructionQueue* destruction_queue, const Surface* surface, const Queue* present_queue,
 //    const VkExtent2D window_extent, shared_ptr<BasicSwapchain> previous) : _core{core}, _presentQueue(present_queue), _windowExtent(window_extent),
 //    _oldSwapchain{std::move(previous)} {
 //    init(surface, destruction_queue);

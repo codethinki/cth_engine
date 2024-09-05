@@ -17,7 +17,7 @@ namespace cth::vk {
 class TimelineSemaphore;
 class Semaphore;
 class Fence;
-class BasicCore;
+class Core;
 class BasicSwapchain;
 class PrimaryCmdBuffer;
 

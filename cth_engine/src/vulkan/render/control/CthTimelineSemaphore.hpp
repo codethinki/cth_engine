@@ -10,21 +10,21 @@ public:
 
     /**
      * @brief base constructor
-     * @note calls @ref Semaphore::Semaphore(cth::not_null<BasicCore const*>)
+     * @note calls @ref Semaphore::Semaphore(cth::not_null<Core const*>)
      */
-    explicit TimelineSemaphore(cth::not_null<BasicCore const*> core);
+    explicit TimelineSemaphore(cth::not_null<Core const*> core);
 
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
      */
-    TimelineSemaphore(cth::not_null<BasicCore const*> core, State const& state);
+    TimelineSemaphore(cth::not_null<Core const*> core, State const& state);
 
     /**
-     * @brief constructs and creates if @param create
-     *  @note may call @ref create()
+     * @brief constructs and may create
+     * @param create if true calls @ref create()
      */
-    explicit TimelineSemaphore(cth::not_null<BasicCore const*> core, bool create);
+    explicit TimelineSemaphore(cth::not_null<Core const*> core, bool create);
 
 
     /**

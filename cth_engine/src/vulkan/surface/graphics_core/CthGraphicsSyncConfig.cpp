@@ -7,10 +7,10 @@
 
 namespace cth::vk {
 
-GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<BasicCore const*> core, State state) : GraphicsSyncConfig{core} {
+GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<Core const*> core, State state) : GraphicsSyncConfig{core} {
     wrap(std::move(state));
 }
-GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<BasicCore const*> core, bool create) : GraphicsSyncConfig{core} {
+GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<Core const*> core, bool create) : GraphicsSyncConfig{core} {
     if(create) this->create();
 }
 void GraphicsSyncConfig::wrap(State state) {

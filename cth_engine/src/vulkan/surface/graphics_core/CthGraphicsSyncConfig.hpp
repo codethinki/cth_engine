@@ -6,7 +6,7 @@
 
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 
 
 class GraphicsSyncConfig {
@@ -17,19 +17,19 @@ public:
     /**
      * @brief base constructor
      */
-    explicit GraphicsSyncConfig(cth::not_null<BasicCore const*> core) : _core{core} {}
+    explicit GraphicsSyncConfig(cth::not_null<Core const*> core) : _core{core} {}
 
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
      */
-    GraphicsSyncConfig(cth::not_null<BasicCore const*> core, State state);
+    GraphicsSyncConfig(cth::not_null<Core const*> core, State state);
 
     /**
      * @brief constructs and creates if create
     * @note may call @ref create()
      */
-    GraphicsSyncConfig(cth::not_null<BasicCore const*> core, bool create);
+    GraphicsSyncConfig(cth::not_null<Core const*> core, bool create);
 
     /**
      * @note calls @ref optDestroy()
@@ -37,14 +37,14 @@ public:
     ~GraphicsSyncConfig() { optDestroy(); }
 
     /**
-     * @brief wraps semaphores in @param state
+     * @brief wraps @ref State
      * @note calls @ref optDestroy()
      */
     void wrap(State state);
     /**
      * @brief creates the semaphores
      * @note calls @ref optDestroy()
-     * @note calls @ref Semaphore::Semaphore(BasicCore*, bool) i.e. create constructor
+     * @note calls @ref Semaphore::Semaphore(Core*, bool) i.e. create constructor
      */
     void create();
 
@@ -70,7 +70,7 @@ public:
     [[nodiscard]] std::array<Semaphore*, SET_SIZE> imageAvailableSemaphores() const;
 
 private:
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
 
     /**
      * semaphores[currentFrame] will be signaled once the vk_image is clear to render on

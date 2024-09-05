@@ -10,7 +10,7 @@
 //PipelineLayout
 
 namespace cth::vk {
-PipelineLayout::PipelineLayout(cth::not_null<BasicCore const*> core, Builder const& builder) : _core(core),
+PipelineLayout::PipelineLayout(cth::not_null<Core const*> core, Builder const& builder) : _core(core),
     _setLayouts(builder.build(core->physicalDevice()->limits().maxBoundDescriptorSets)) { create(); }
 PipelineLayout::~PipelineLayout() {
     vkDestroyPipelineLayout(_core->vkDevice(), _vkLayout, nullptr);

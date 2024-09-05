@@ -7,10 +7,9 @@
 #include <vulkan/vulkan.h>
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 class DestructionQueue;
 
-//TEMP remove the basic variant
 
 class Fence {
 public:
@@ -19,20 +18,20 @@ public:
     /**
      * @brief base constructor 
      */
-    explicit Fence(cth::not_null<BasicCore const*> core);
+    explicit Fence(cth::not_null<Core const*> core);
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
-     * @note calls @ref BasicFence(cth::not_null<BasicCore const*>)
+     * @note calls @ref Fence(cth::not_null<Core const*>)
      */
-    explicit Fence(cth::not_null<BasicCore const*> core, State const& state);
+    explicit Fence(cth::not_null<Core const*> core, State const& state);
 
     /**
      * @brief constructs and creates
      * @note calls @ref create()
-     * @note calls @ref BasicFence(cth::not_null<BasicCore const*>)
+     * @note calls @ref Fence(cth::not_null<Core const*>)
      */
-    explicit Fence(cth::not_null<BasicCore const*> core, VkFenceCreateFlags flags);
+    explicit Fence(cth::not_null<Core const*> core, VkFenceCreateFlags flags);
 
 
     /**
@@ -41,7 +40,7 @@ public:
     ~Fence() { optDestroy(); };
 
     /**
-     * @brief wraps @param state
+     * @brief wraps @ref State
      * @note calls @ref optDestroy()
      */
     void wrap(State const& state);
@@ -55,8 +54,8 @@ public:
 
     /**
      * @brief destroys and resets the object
-     * @note pushes to @ref BasicCore::destructionQueue() if available
-     * @note calls @ref BasicFence::destroy(vk::not_null<VkDevice>, VkFence)
+     * @note pushes to @ref Core::destructionQueue() if available
+     * @note calls @ref Fence::destroy(vk::not_null<VkDevice>, VkFence)
      */
     void destroy();
 
@@ -103,7 +102,7 @@ private:
 
     static VkFenceCreateInfo createInfo(VkFenceCreateFlags flags);
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
 
     move_ptr<VkFence_T> _handle = VK_NULL_HANDLE;
 

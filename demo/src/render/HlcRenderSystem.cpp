@@ -21,7 +21,7 @@ struct UniformBuffer {
     explicit UniformBuffer(glm::mat4 const& projection_view) : projectionView{projection_view} {}
 };
 //TEMP renderer should not be here
-RenderSystem::RenderSystem(vk::BasicCore const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer,
+RenderSystem::RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer,
     vk::RenderPass const* render_pass, VkSampleCountFlagBits const msaa_samples) : _core
     {core} {
     createShaders();

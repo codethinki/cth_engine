@@ -14,14 +14,14 @@ namespace cth::vk {
 using namespace std;
 
 
-Image::Image(cth::not_null<BasicCore const*> core, Config const& config) : _core{core}, _config{config},
+Image::Image(cth::not_null<Core const*> core, Config const& config) : _core{core}, _config{config},
     _memory{make_unique<Memory>(_core, _config.memoryProperties)} {
     DEBUG_CHECK_CORE(core);
     _levelLayouts.resize(_config.mipLevels);
     std::ranges::fill(_levelLayouts, _config.initialLayout);
 }
-Image::Image(cth::not_null<BasicCore const*> core, Config const& config, VkExtent2D  extent) : Image{core, config} { create(extent); }
-Image::Image(cth::not_null<BasicCore const*> core, Config const& config, State const& state) : Image{core, config} { wrap(state); }
+Image::Image(cth::not_null<Core const*> core, Config const& config, VkExtent2D  extent) : Image{core, config} { create(extent); }
+Image::Image(cth::not_null<Core const*> core, Config const& config, State const& state) : Image{core, config} { wrap(state); }
 
 
 Image::~Image() { if(created()) destroy(); }

@@ -12,10 +12,10 @@
 namespace cth::vk {
 using namespace std;
 
-Pipeline::Pipeline(cth::not_null<BasicCore const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info) : _device{core} {
+Pipeline::Pipeline(cth::not_null<Core const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info) : _device{core} {
     create(config_info, pipeline_layout, nullptr);
 }
-Pipeline::Pipeline(cth::not_null<BasicCore const*> core, Pipeline const* parent, GraphicsConfig const& config_info) : _device(core) {
+Pipeline::Pipeline(cth::not_null<Core const*> core, Pipeline const* parent, GraphicsConfig const& config_info) : _device(core) {
     create(config_info, nullptr, parent);
 }
 

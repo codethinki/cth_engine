@@ -23,26 +23,26 @@ public:
     struct State;
 
 
-    explicit Image(cth::not_null<BasicCore const*> core, Config const& config);
+    explicit Image(cth::not_null<Core const*> core, Config const& config);
 
     /**
      *@brief creates the image with extent
      * @note calls @ref Image::Image()
      * @note calls @ref create() 
      */
-    Image(cth::not_null<BasicCore const*> core, Config const& config, VkExtent2D extent);
+    Image(cth::not_null<Core const*> core, Config const& config, VkExtent2D extent);
 
     /**
      * @brief wraps an image with state
      * @note calls @ref Image::Image()
      * @note calls @ref wrap()
      */
-    Image(cth::not_null<BasicCore const*> core, Config const& config, State const& state);
+    Image(cth::not_null<Core const*> core, Config const& config, State const& state);
 
     virtual ~Image();
 
     /**
-     * @brief wraps the @param state
+     * @brief wraps @ref State
      * @note calls @ref optDestroy()
      */
     void wrap(State const& state);
@@ -117,7 +117,7 @@ private:
 
     void reset();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     VkExtent2D _extent;
     Config _config;
 

@@ -3,112 +3,83 @@
 #include "CthDevice.hpp"
 #include "CthInstance.hpp"
 #include "CthPhysicalDevice.hpp"
-
 #include "vulkan/resource/CthDestructionQueue.hpp"
 
 namespace cth::vk {
-void BasicCore::wrap(Instance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) {
-    DEBUG_CHECK_INSTANCE(instance);
-    DEBUG_CHECK_PHYSICAL_DEVICE(physical_device);
-    DEBUG_CHECK_DEVICE(device);
-    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(destruction_queue);
 
-    _destructionQueue = destruction_queue;
-    _device = device;
-    _physicalDevice = physical_device;
-    _instance = instance;
+Core::Core(State state) { wrap(std::move(state)); }
+Core::Core(Config const& config) { create(config); }
+Core::~Core() { optDestroy(); }
+
+void Core::wrap(State state) {
+    DEBUG_CHECK_INSTANCE(state.instance.get());
+    DEBUG_CHECK_PHYSICAL_DEVICE(state.physicalDevice.get());
+    DEBUG_CHECK_DEVICE(state.device.get());
+    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(state.destructionQueue);
+
+    optDestroy();
+
+    _instance = state.instance.release_val();
+    _physicalDevice = state.physicalDevice.release_val();
+    _device = state.device.release_val();
+    _destructionQueue = std::move(state.destructionQueue);
 }
-void BasicCore::create(Config const& config) {
-    DEBUG_CHECK_CORE_LEAK(this);
-    auto const instance = new Instance(config.appName, config.requiredExtensions, std::nullopt);
-    auto const physicalDevice = PhysicalDevice::AutoPick(instance, config.queues, {}, {}).release();
-    auto const device = new Device(instance, physicalDevice, config.queues);
-    auto const destructionQueue = new DestructionQueue(device, physicalDevice, instance);
 
-    BasicCore::wrap(instance, physicalDevice, device, destructionQueue);
+void Core::create(Config const& config) {
+    optDestroy();
+
+    _instance = std::make_unique<Instance>(config.appName, config.requiredExtensions, std::nullopt);
+    _physicalDevice = PhysicalDevice::AutoPick(_instance.get(), config.queues, {}, {});
+    _device = std::make_unique<Device>(_instance.get(), _physicalDevice.get(), config.queues);
+    if(config.destructionQueue)
+        _destructionQueue = std::make_unique<DestructionQueue>(_device.get(), _physicalDevice.get(), _instance.get());
 }
-void BasicCore::destroy() {
-    if(_destructionQueue) {
-        delete _destructionQueue.get();
-        _destructionQueue = nullptr;
-    }
-
-    delete _device.get(); //TEMP add basic device and destroy()
-    _device = nullptr;
-    delete _physicalDevice.get(); //TEMP add basic device and destroy()
-    _physicalDevice = nullptr;
-    _instance->destroy();
-    delete _instance.get();
-
-    _instance = nullptr;
-}
-void BasicCore::reset() {
+void Core::destroy() {
     DEBUG_CHECK_CORE(this);
 
     _destructionQueue = nullptr;
     _device = nullptr;
     _physicalDevice = nullptr;
     _instance = nullptr;
+
+    reset();
 }
-BasicCore::State BasicCore::release() {
-    State const temp{
-        _instance.get(),
-        _physicalDevice.get(),
-        _device.get(),
-        _destructionQueue.get(),
+void Core::reset() {
+    _destructionQueue = nullptr;
+    _device = nullptr;
+    _physicalDevice = nullptr;
+    _instance = nullptr;
+}
+Core::State Core::release() {
+    State temp{
+        std::move(_instance),
+        std::move(_physicalDevice),
+        std::move(_device),
+        std::move(_destructionQueue),
     };
 
-    BasicCore::reset();
+    Core::reset();
 
     return temp;
 }
 
 
-Device const* BasicCore::device() const { return _device.get(); }
-VkDevice BasicCore::vkDevice() const { return _device->get(); }
-PhysicalDevice const* BasicCore::physicalDevice() const { return _physicalDevice.get(); }
-VkPhysicalDevice BasicCore::vkPhysicalDevice() const { return _physicalDevice->get(); }
-Instance const* BasicCore::instance() const { return _instance.get(); }
-VkInstance BasicCore::vkInstance() const { return _instance->get(); }
-DestructionQueue* BasicCore::destructionQueue() const { return _destructionQueue.get(); }
+bool Core::created() const { return _device && _instance && _physicalDevice; }
+
+Device const* Core::device() const { return _device.get(); }
+VkDevice Core::vkDevice() const { return _device->get(); }
+PhysicalDevice const* Core::physicalDevice() const { return _physicalDevice.get(); }
+VkPhysicalDevice Core::vkPhysicalDevice() const { return _physicalDevice->get(); }
+Instance const* Core::instance() const { return _instance.get(); }
+VkInstance Core::vkInstance() const { return _instance->get(); }
+DestructionQueue* Core::destructionQueue() const { return _destructionQueue.get(); }
 
 #ifdef CONSTANT_DEBUG_MODE
-void BasicCore::debug_check(cth::not_null<BasicCore const*> core) {
+void Core::debug_check(cth::not_null<Core const*> core) {
     DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(core->_destructionQueue.get());
     DEBUG_CHECK_DEVICE(core->_device.get());
     DEBUG_CHECK_PHYSICAL_DEVICE(core->_physicalDevice.get());
     DEBUG_CHECK_INSTANCE(core->_instance.get());
 }
-void BasicCore::debug_check_leak(BasicCore const* core) {
-    if(core == nullptr) return;
-
-    CTH_WARN(core->device(), "device replaced (potential memory leak)") {}
-    CTH_WARN(core->physicalDevice(), "physical device replaced (potential memory leak)") {}
-    CTH_WARN(core->instance(), "instance replaced (potential memory leak)") {}
-    CTH_WARN(core->_destructionQueue, "destruction-queue replaced (potential memory leak)") {}
-}
 #endif
-}
-
-
-namespace cth::vk {
-Core::Core(Config const& config) { BasicCore::create(config); }
-Core::~Core() { Core::destroy(); }
-
-void Core::wrap(Instance* instance, PhysicalDevice* physical_device, Device* device, DestructionQueue* destruction_queue) {
-    if(BasicCore::device() || BasicCore::physicalDevice() || BasicCore::instance()) Core::destroy();
-    BasicCore::wrap(instance, physical_device, device, destruction_queue);
-}
-void Core::create(Config const& config) {
-    if(BasicCore::device() || BasicCore::physicalDevice() || BasicCore::instance()) Core::destroy();
-    BasicCore::create(config);
-}
-
-void Core::reset() {
-    delete BasicCore::device();
-    delete BasicCore::physicalDevice();
-    delete BasicCore::instance();
-    BasicCore::reset();
-}
-
 }

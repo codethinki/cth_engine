@@ -64,7 +64,7 @@ public:
 
     /**
      * @brief destroys the instance
-     * @note @ref created() required
+     * @note requires @ref created()
      */
     void destroy();
     void optDestroy() { if(created()) destroy(); }

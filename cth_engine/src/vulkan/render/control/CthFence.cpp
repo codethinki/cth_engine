@@ -9,9 +9,9 @@
 
 namespace cth::vk {
 
-cth::vk::Fence::Fence(cth::not_null<BasicCore const*> core) : _core(core) { DEBUG_CHECK_CORE(core); }
-Fence::Fence(cth::not_null<BasicCore const*> core, State const& state) : Fence{core} { wrap(state); }
-Fence::Fence(cth::not_null<BasicCore const*> core, VkFenceCreateFlags flags) : Fence{core} { create(flags); }
+cth::vk::Fence::Fence(cth::not_null<Core const*> core) : _core(core) { DEBUG_CHECK_CORE(core); }
+Fence::Fence(cth::not_null<Core const*> core, State const& state) : Fence{core} { wrap(state); }
+Fence::Fence(cth::not_null<Core const*> core, VkFenceCreateFlags flags) : Fence{core} { create(flags); }
 
 void Fence::wrap(State const& state) {
     optDestroy();

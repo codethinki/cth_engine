@@ -9,9 +9,9 @@
 namespace cth::vk {
 
 
-Semaphore::Semaphore(cth::not_null<BasicCore const*> core) : _core(core) { DEBUG_CHECK_CORE(core); }
-Semaphore::Semaphore(cth::not_null<BasicCore const*> core, State const& state) : Semaphore{core} { wrap(state); }
-Semaphore::Semaphore(cth::not_null<BasicCore const*> core, bool create) : Semaphore{core} { if(create) this->create(); }
+Semaphore::Semaphore(cth::not_null<Core const*> core) : _core(core) { DEBUG_CHECK_CORE(core); }
+Semaphore::Semaphore(cth::not_null<Core const*> core, State const& state) : Semaphore{core} { wrap(state); }
+Semaphore::Semaphore(cth::not_null<Core const*> core, bool create) : Semaphore{core} { if(create) this->create(); }
 
 void Semaphore::wrap(State const& state) {
     optDestroy();

@@ -8,14 +8,14 @@ namespace cth::vk {
 class PrimaryCmdBuffer;
 class AttachmentCollection;
 class Subpass;
-class BasicCore;
+class Core;
 class Framebuffer;
 
 class RenderPass {
 public:
     struct BeginConfig;
 
-    RenderPass(cth::not_null<BasicCore const*> core, std::span<Subpass const* const> subpasses,
+    RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses,
         std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
         bool create = true);
     ~RenderPass();
@@ -32,7 +32,7 @@ public:
     static void destroy(VkDevice vk_device, VkRenderPass vk_render_pass);
 
 private:
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
 
     cth::move_ptr<VkRenderPass_T> _handle;
 

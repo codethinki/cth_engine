@@ -8,9 +8,8 @@
 #include <vector>
 
 
-//TEMP add basic variant without raii
 namespace cth::vk {
-class BasicCore;
+class Core;
 
 //TODO create a ShaderStageCollection class for managing shaders and the descriptor layout
 
@@ -21,13 +20,13 @@ public:
     * @brief creates a DescriptorSetLayout with the copied builder data
     * @throws cth::vk::result_exception data: VkResult of vkCreateDescriptorSetLayout()
     */
-    explicit DescriptorSetLayout(cth::not_null<BasicCore const*> core, Builder const& builder);
+    explicit DescriptorSetLayout(cth::not_null<Core const*> core, Builder const& builder);
     ~DescriptorSetLayout();
 
 private:
     void create();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     move_ptr<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
     std::vector<VkDescriptorSetLayoutBinding> _vkBindings{};
 

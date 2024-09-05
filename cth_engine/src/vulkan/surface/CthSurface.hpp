@@ -36,7 +36,7 @@ public:
      * @brief destroys and resets
      * @note if @ref DestructionQueue is set, pushes to queue
      * @note calls @ref destroy(VkInstance, VkSurfaceKHR)
-     * @note @ref created() required
+     * @note requires @ref created()
      */
     void destroy();
 
@@ -47,7 +47,7 @@ public:
 
     /**
      * @brief releases ownership and resets
-     * @note @ref created() required
+     * @note requires @ref created()
      */
     State release();
 

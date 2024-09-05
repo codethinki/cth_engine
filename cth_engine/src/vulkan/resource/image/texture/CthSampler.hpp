@@ -6,20 +6,20 @@
 #include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 
 class Sampler {
 
 public:
     struct Config;
 
-    explicit Sampler(cth::not_null<BasicCore const*> core, Config const& config);
+    explicit Sampler(cth::not_null<Core const*> core, Config const& config);
     ~Sampler();
 
 private:
     void create(Config const& config);
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     move_ptr<VkSampler_T> _handle = VK_NULL_HANDLE;
 
 public:

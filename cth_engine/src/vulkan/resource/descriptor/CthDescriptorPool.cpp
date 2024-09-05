@@ -11,7 +11,7 @@
 
 namespace cth::vk {
 
-DescriptorPool::DescriptorPool(cth::not_null<BasicCore const*> device, Builder const& builder) : _core(device) {
+DescriptorPool::DescriptorPool(cth::not_null<Core const*> device, Builder const& builder) : _core(device) {
     initSetEntries(builder);
     create();
     allocSets();

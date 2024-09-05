@@ -10,7 +10,7 @@
 
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 class Device;
 class DestructionQueue;
 
@@ -25,13 +25,13 @@ public:
     /**
      * @param core must be valid
      */
-    Memory(cth::not_null<BasicCore const*> core, VkMemoryPropertyFlags vk_properties);
+    Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags vk_properties);
 
     /**
      * @param core must not be nullptr
      * @note calls @ref alloc();
      */
-    Memory(cth::not_null<BasicCore const*> core, VkMemoryPropertyFlags properties, VkMemoryRequirements const& vk_requirements);
+    Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags properties, VkMemoryRequirements const& vk_requirements);
     ~Memory();
 
     /**
@@ -71,7 +71,7 @@ public:
 private:
     void reset();
 
-    cth::not_null<BasicCore const*> _core;
+    cth::not_null<Core const*> _core;
     VkMemoryPropertyFlags _vkProperties;
     size_t _size = 0;
     move_ptr<VkDeviceMemory_T> _handle = VK_NULL_HANDLE;

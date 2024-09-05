@@ -7,7 +7,7 @@
 namespace cth::vk {
 
 
-Texture::Texture(cth::not_null<BasicCore const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+Texture::Texture(cth::not_null<Core const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
     std::span<char const> staging_data) : Image{core, imageConfig(extent, config), extent} {
 
     Buffer<char> buffer{core, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -17,7 +17,7 @@ Texture::Texture(cth::not_null<BasicCore const*> core, VkExtent2D extent, Config
 
     init(cmd_buffer, buffer);
 }
-Texture::Texture(cth::not_null<BasicCore const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+Texture::Texture(cth::not_null<Core const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
     BaseBuffer const& staging_buffer, size_t buffer_offset) : Image{core, imageConfig(extent, config),
     extent} { init(cmd_buffer, staging_buffer, buffer_offset); }
 

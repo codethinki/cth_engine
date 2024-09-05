@@ -58,7 +58,7 @@ public:
 
     /**
      * @brief destroys and resets
-     * @note @ref created() required
+     * @note requires @ref created()
      * @throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      */
     void destroy();
@@ -73,7 +73,7 @@ public:
 
     /**
      * @brief releases ownership, returns state and resets
-     * @note @ref created() required
+     * @note requires @ref created()
      */
     State release();
 

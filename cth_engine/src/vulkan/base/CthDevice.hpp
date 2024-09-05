@@ -13,7 +13,7 @@
 
 
 namespace cth::vk {
-class BasicCore;
+class Core;
 class Surface;
 class Instance;
 class PhysicalDevice;
@@ -23,12 +23,78 @@ class Queue;
 
 class Device {
 public:
-    explicit Device(Instance const* instance, PhysicalDevice const* physical_device, std::span<Queue> queues);
+    struct State;
+
+    /**
+     * @brief base constructor
+     * @param instance @ref Instance::created() required
+     * @param physical_device @ref PhysicalDevice::created() required
+     */
+    explicit Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device);
+
+    /**
+     * @brief constructs and wraps
+     * @note calls @ref Device(cth::not_null<Instance const*>, cth::not_null<PhysicalDevice const*>)
+     * @note calls @ref wrap(State)
+     */
+    explicit Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, State const& state);
+
+    /**
+     * @brief constructs and creates
+     * @note calls @ref Device(cth::not_null<Instance const*>, cth::not_null<PhysicalDevice const*>)
+     * @note calls @ref create(std::span<Queue>)
+     */
+    explicit Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, std::span<Queue> queues);
+    /**
+     * @note calls @ref optDestroy()
+     */
     ~Device();
 
+    /**
+     * @brief wraps @ref State
+     * @note calls @ref optDestroy()
+     */
+    void wrap(State const& state);
+
+    /**
+     * @brief creates device and queues
+     * @param[in, out] queues calls @ref Queue::wrap(VkQueue, uint32_t)
+     * @note calls @ref optDestroy()
+     */
+    void create(std::span<Queue> queues);
+
+    /**
+     * @brief destroys and resets
+     * @attention requires @ref created()
+     * @note calls @ref destroy(VkDevice)
+     */
+    void destroy();
+    /**
+     * @brief if @ref created() calls @ref destroy()
+     */
+    void optDestroy() { if(created()) destroy(); }
+
+    /**
+     * @brief releases ownership and resets
+     * @attention requires @ref created()
+     */
+    State release();
+
+
+    /**
+     * @brief blocks until all vkQueueSubmit operations finished
+     */
     void waitIdle() const;
 
+    /**
+     * @brief destroys the device
+     * @param vk_device should not be VK_NULL_HANDLE
+     */
+    static void destroy(VkDevice vk_device);
+
 private:
+    void reset();
+
     /**
      * @brief sets the unique family indices
      * @return the queue family indices
@@ -41,18 +107,18 @@ private:
     void wrapQueues(std::span<uint32_t const> family_indices, std::span<Queue> queues) const;
 
 
-    Instance const* _instance;
-    PhysicalDevice const* _physicalDevice;
+    cth::not_null<Instance const*> _instance;
+    cth::not_null<PhysicalDevice const*> _physicalDevice;
 
     move_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
 
     //TODO replace this with a better system
-    std::vector<uint32_t> _familyIndices; //present, graphicsPhase
+    std::vector<uint32_t> _uniqueFamilyIndices; //present, graphicsPhase
 
 
 public:
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
-    [[nodiscard]] auto familyIndices() const { return _familyIndices; }
+    [[nodiscard]] auto familyIndices() const { return _uniqueFamilyIndices; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
 
     Device(Device const& other) = delete;
@@ -71,3 +137,10 @@ public:
 #endif
 };
 } // namespace cth
+
+namespace cth::vk {
+struct Device::State {
+    vk::not_null<VkDevice> handle;
+    std::vector<uint32_t> familyIndices;
+};
+}

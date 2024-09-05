@@ -10,11 +10,11 @@
 
 
 namespace cth::vk {
-ImageView::ImageView(cth::not_null<BasicCore const*> core, Config const& config) : _core(core), _config{config} {
+ImageView::ImageView(cth::not_null<Core const*> core, Config const& config) : _core(core), _config{config} {
     DEBUG_CHECK_CORE(core);
 }
-ImageView::ImageView(cth::not_null<BasicCore const*> core, Config const& config, Image const* image) : ImageView{core, config} { create(image); }
-ImageView::ImageView(cth::not_null<BasicCore const*> core, Config const& config, State const& state) : ImageView{core, config} { wrap(state); }
+ImageView::ImageView(cth::not_null<Core const*> core, Config const& config, Image const* image) : ImageView{core, config} { create(image); }
+ImageView::ImageView(cth::not_null<Core const*> core, Config const& config, State const& state) : ImageView{core, config} { wrap(state); }
 
 ImageView::~ImageView() {
     optDestroy();

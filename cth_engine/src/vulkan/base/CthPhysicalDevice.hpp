@@ -54,7 +54,8 @@ public:
 
     /**
      * @brief creates if requirements are met
-     * @return if @ref suitable() with @param queues returns instance, else nullopt
+     * @param queues passed to @ref suitable()
+     * @return if @ref suitable() returns instance, else nullopt
      */
     static std::optional<PhysicalDevice> Create(cth::not_null<Instance const*> instance, Surface const& surface, std::span<Queue const> queues,
         std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features,

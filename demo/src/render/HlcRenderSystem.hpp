@@ -35,7 +35,7 @@ inline constexpr std::string_view TEXTURE_DIR = R"(res\img\texture\)";
 
 class RenderSystem {
 public:
-    RenderSystem(vk::BasicCore const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer, vk::RenderPass const* render_pass,
+    RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer, vk::RenderPass const* render_pass,
         VkSampleCountFlagBits msaa_samples);
     ~RenderSystem() = default;
 
@@ -57,7 +57,7 @@ private:
     //TEMP replace this with actual model loading
     void createDefaultTriangle(vk::CmdBuffer const& cmd_buffer);
 
-    vk::BasicCore const* _core;
+    vk::Core const* _core;
     std::unique_ptr<vk::PipelineLayout> _pipelineLayout;
     std::unique_ptr<vk::Pipeline> _pipeline;
 
