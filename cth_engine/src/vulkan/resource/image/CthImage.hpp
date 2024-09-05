@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-//TEMP edit state to not expose the raw VkMemory handle
+//TEMP edit state to not expose the raw VkMemory vkQueue
 namespace cth::vk {
 class BaseBuffer;
 class ImageBarrier;

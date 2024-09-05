@@ -36,17 +36,17 @@ DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_devi
 DestructionQueue::~DestructionQueue() { clear(); }
 void DestructionQueue::push(destructible_handle_t handle) {
     CTH_WARN(std::visit(var::visitor{[](auto handle) { return handle == VK_NULL_HANDLE; }}, handle),
-        "handle should not be VK_NULL_HANDLE or nullptr") {}
+        "vkQueue should not be VK_NULL_HANDLE or nullptr") {}
 
     _queue[_cycleSubIndex].emplace_back(handle);
 }
 void DestructionQueue::push(dependent_handle_t handle, destructible_handle_t dependency) {
     bool const validHandle = std::visit(var::visitor{[](auto temp_handle) { return temp_handle != VK_NULL_HANDLE; }}, handle);
     bool const validDependency = std::visit(var::visitor{[](auto temp_dependency) { return temp_dependency == VK_NULL_HANDLE; }}, dependency);
-    CTH_WARN(!validHandle, "handle should not be VK_NULL_HANDLE or nullptr") {}
+    CTH_WARN(!validHandle, "vkQueue should not be VK_NULL_HANDLE or nullptr") {}
     CTH_WARN(!validDependency, "dependency should not be VK_NULL_HANDLE or nullptr") {}
 
-    CTH_ERR(validHandle ^ validDependency, "handle and dependency must both be valid or invalid") throw details->exception();
+    CTH_ERR(validHandle ^ validDependency, "vkQueue and dependency must both be valid or invalid") throw details->exception();
 
     _queue[_cycleSubIndex].emplace_back(handle, dependency);
 }

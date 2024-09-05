@@ -102,7 +102,7 @@ void ImageView::debug_check(ImageView const* image_view) {
     DEBUG_CHECK_IMAGE_VIEW_HANDLE(image_view->get());
 }
 void ImageView::debug_check_handle(VkImageView vk_image_view) {
-    CTH_ERR(vk_image_view == VK_NULL_HANDLE, "image view handle must not be invalid (VK_NULL_HANDLE)")
+    CTH_ERR(vk_image_view == VK_NULL_HANDLE, "image view vkQueue must not be invalid (VK_NULL_HANDLE)")
         throw details->exception();
 }
 #endif

@@ -20,13 +20,20 @@ Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDe
 Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, std::span<Queue> queues) : Device{
     instance, physical_device} { create(queues); }
 Device::~Device() { optDestroy(); }
+
 void Device::wrap(State const& state) {
+    optDestroy();
+
     _handle = state.handle.get();
-    _uniqueFamilyIndices = state.familyIndices;
+    _queueFamilyQueues = state.queueFamilyQueues;
 }
 void Device::create(std::span<Queue> queues) {
-    createLogicalDevice();
+    optDestroy();
+
     auto const familyIndices = setUniqueFamilyIndices(queues);
+
+    createLogicalDevice();
+
     wrapQueues(familyIndices, queues);
 }
 void Device::destroy() {
@@ -39,36 +46,39 @@ void Device::destroy() {
 vector<uint32_t> Device::setUniqueFamilyIndices(span<Queue const> queues) {
     auto const& queueFamilyIndices = _physicalDevice->queueFamilyIndices(queues);
 
-    _uniqueFamilyIndices = queueFamilyIndices | std::ranges::to<std::unordered_set<uint32_t>>() | std::ranges::to<vector<uint32_t>>();
+    for(auto const& familyIndex : queueFamilyIndices) ++_queueFamilyQueues[familyIndex];
+
 
     return queueFamilyIndices;
 }
 
 void Device::createLogicalDevice() {
-    vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    CTH_ERR(_queueFamilyQueues.empty(), "queue family queue count must be queried first") throw details->exception();
+    CTH_ERR(created(), "device was already created") throw details->exception();
 
-    float queuePriority = 1.0f;
-    std::ranges::for_each(_uniqueFamilyIndices, [&queueCreateInfos, queuePriority](uint32_t queue_family) {
-        VkDeviceQueueCreateInfo queueCreateInfo = {};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = queue_family;
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
-        queueCreateInfos.push_back(queueCreateInfo);
-    });
+    vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
+    queueCreateInfos.reserve(_queueFamilyQueues.size());
+
+    constexpr float queuePriority = 1.0f;
+    for(auto const [queueFamily, queueCount] : _queueFamilyQueues)
+        queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .queueFamilyIndex = queueFamily,
+            .queueCount = queueCount,
+            .pQueuePriorities = &queuePriority,
+        });
 
     auto const requiredExtensions = utils::to_c_str_vector(_physicalDevice->requiredExtensions());
 
-    VkDeviceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pNext = _physicalDevice->requiredFeatures().get();
-    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-    createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(constants::REQUIRED_DEVICE_EXTENSIONS.size());
-    createInfo.ppEnabledExtensionNames = requiredExtensions.data();
-
+    VkDeviceCreateInfo const createInfo{
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pNext = _physicalDevice->requiredFeatures().get(),
+        .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+        .pQueueCreateInfos = queueCreateInfos.data(),
+        .enabledExtensionCount = static_cast<uint32_t>(constants::REQUIRED_DEVICE_EXTENSIONS.size()),
+        .ppEnabledExtensionNames = requiredExtensions.data(),
+    };
     VkDevice ptr = VK_NULL_HANDLE;
 
     VkResult const createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &ptr);
@@ -78,23 +88,31 @@ void Device::createLogicalDevice() {
     _handle = ptr;
 }
 void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues) const {
-    auto queueCounts = family_indices | std::views::transform([](uint32_t index) { return std::pair{index, 0}; }) | std::ranges::to<
-        std::unordered_map<uint32_t, uint32_t>>();
+    CTH_ERR(family_indices.size() != queues.size(), "there must be a family index for every queue") throw details->exception();
 
-    for(auto [index, queue] : std::views::zip(family_indices, queues)) {
+    std::unordered_map<uint32_t, uint32_t> queueCounts{};
+    for(auto& index : family_indices) queueCounts[index] = 0;
+
+    for(auto [familyIndex, queue] : std::views::zip(family_indices, queues)) {
         VkQueue ptr = VK_NULL_HANDLE;
-        vkGetDeviceQueue(_handle.get(), index, queueCounts[index], &ptr);
+        vkGetDeviceQueue(_handle.get(), familyIndex, queueCounts[familyIndex], &ptr);
 
-        queue.wrap(index, queueCounts[index], ptr);
+        CTH_STABLE_ERR(ptr == VK_NULL_HANDLE, "failed to get device queue") throw details->exception();
+
+        queue.wrap({ptr, familyIndex, queueCounts[familyIndex]++});
     }
 
 }
 Device::State Device::release() {
-    State state{_handle.release(), std::move(_uniqueFamilyIndices)};
+    DEBUG_CHECK_DEVICE(this);
+
+    State state{_handle.release(), std::move(_queueFamilyQueues)};
     reset();
     return state;
 }
 void Device::waitIdle() const {
+    DEBUG_CHECK_DEVICE(this);
+
     auto const result = vkDeviceWaitIdle(_handle.get());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for device") throw vk::result_exception{result, details->exception()};
@@ -106,7 +124,7 @@ void Device::destroy(VkDevice vk_device) {
 }
 void Device::reset() {
     _handle = nullptr;
-    _uniqueFamilyIndices.clear();
+    _queueFamilyQueues.clear();
 }
 
 

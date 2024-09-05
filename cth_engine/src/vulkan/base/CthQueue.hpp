@@ -25,7 +25,7 @@ class PrimaryCmdBuffer;
 
 class Queue {
 public:
-    struct Config;
+    struct State;
     struct SubmitInfo;
     struct TimelineSubmitInfo;
     struct PresentInfo;
@@ -38,8 +38,18 @@ public:
      * @brief wraps the vulkan queue
      * @note normally called by the device, not the user
      */
-    void wrap(uint32_t family_index, uint32_t queue_index, VkQueue vk_queue);
+    void wrap(State const& state);
 
+    /**
+     * @brief resets
+     */
+    void destroy();
+
+    /**
+     * @brief releases handle and resets
+     * @attention requires @ref created()
+     */
+    State release();
 
     /**
      * @brief advances and submits the submit_info
@@ -82,18 +92,20 @@ public:
     void const_skip(PresentInfo const& present_info) const;
 
 private:
+    void reset();
+
     void submit(VkSubmitInfo const* submit_info, VkFence fence = nullptr) const;
 
 
     QueueFamilyProperties _familyProperties;
 
+    cth::move_ptr<VkQueue_T> _handle = VK_NULL_HANDLE;
     uint32_t _familyIndex = 0;
     uint32_t _queueIndex = 0;
-    VkQueue _handle = VK_NULL_HANDLE;
 
 public:
-    [[nodiscard]] auto valid() const { return _handle != VK_NULL_HANDLE; }
-    [[nodiscard]] auto get() const { return _handle; }
+    [[nodiscard]] auto created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] auto get() const { return _handle.get(); }
     [[nodiscard]] auto index() const { return _queueIndex; }
 
     [[nodiscard]] auto familyIndex() const { return _familyIndex; }
@@ -119,9 +131,24 @@ public:
 #define DEBUG_CHECK_QUEUE_HANDLE(vk_queue) ((void)0)
 #endif
 };
+}
 
-inline size_t submitInfoId = 0; //TEMP remove the id
+//State
 
+namespace cth::vk {
+struct Queue::State {
+    vk::not_null<VkQueue> vkQueue;
+    uint32_t familyIndex;
+    /**
+     * @brief index in the family
+     */
+    uint32_t queueIndex;
+};
+}
+
+//SubmitInfo
+
+namespace cth::vk {
 /**
  * @brief encapsulates the submit info for reuse
  * @note must be destroyed before any of the vulkan structures it references
@@ -165,8 +192,6 @@ private:
 
     Fence const* _fence = nullptr;
 
-
-    size_t _id = submitInfoId++; //TEMP remove this
 public:
     [[nodiscard]] VkSubmitInfo const* get() const { return &_submitInfo; }
     [[nodiscard]] VkSubmitInfo const* skip() const { return &_skipSubmitInfo; }
@@ -175,7 +200,11 @@ public:
         return _fence->get();
     }
 };
+}
 
+//PresentInfo
+
+namespace cth::vk {
 struct Queue::PresentInfo {
     /**
      * @param swapchain must not be recreated

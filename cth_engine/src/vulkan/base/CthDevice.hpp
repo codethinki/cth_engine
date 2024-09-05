@@ -3,7 +3,6 @@
 #include "vulkan/utility/utility/cth_vk_types.hpp"
 
 #include<cth/pointers.hpp>
-
 #include <vulkan/vulkan.h>
 
 
@@ -19,7 +18,6 @@ class Instance;
 class PhysicalDevice;
 class Queue;
 
-//TEMP add create, wrap, constructors, release optDestroy, destroy 
 
 class Device {
 public:
@@ -45,6 +43,7 @@ public:
      * @note calls @ref create(std::span<Queue>)
      */
     explicit Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, std::span<Queue> queues);
+
     /**
      * @note calls @ref optDestroy()
      */
@@ -83,6 +82,7 @@ public:
 
     /**
      * @brief blocks until all vkQueueSubmit operations finished
+     * @attention requires @ref created()
      */
     void waitIdle() const;
 
@@ -104,6 +104,11 @@ private:
     * @throws cth::vk::result_exception result of @ref vkCreateDevice()
     */
     void createLogicalDevice();
+    /**
+     * @brief retrieves the queues from the device
+     * @param family_indices family index of each queue
+     * @note calls @ref Queue::wrap(Queue::State const&)
+     */
     void wrapQueues(std::span<uint32_t const> family_indices, std::span<Queue> queues) const;
 
 
@@ -113,12 +118,12 @@ private:
     move_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
 
     //TODO replace this with a better system
-    std::vector<uint32_t> _uniqueFamilyIndices; //present, graphicsPhase
+    std::unordered_map<uint32_t, uint32_t> _queueFamilyQueues;
 
 
 public:
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
-    [[nodiscard]] auto familyIndices() const { return _uniqueFamilyIndices; }
+    [[nodiscard]] auto familyIndices() const { return _queueFamilyQueues; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
 
     Device(Device const& other) = delete;
@@ -141,6 +146,6 @@ public:
 namespace cth::vk {
 struct Device::State {
     vk::not_null<VkDevice> handle;
-    std::vector<uint32_t> familyIndices;
+    std::unordered_map<uint32_t, uint32_t> queueFamilyQueues;
 };
 }

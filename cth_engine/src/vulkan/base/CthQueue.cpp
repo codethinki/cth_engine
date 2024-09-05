@@ -15,18 +15,34 @@ class TimelineSemaphore;
 
 using std::vector;
 
-void Queue::wrap(uint32_t  family_index, uint32_t  queue_index, VkQueue vk_queue) {
-    _familyIndex = family_index;
-    _queueIndex = queue_index;
-    _handle = vk_queue;
+void Queue::wrap(State const& state) {
+    destroy();
+
+    _handle = state.vkQueue.get();
+    _familyIndex = state.familyIndex;
+    _queueIndex = state.queueIndex;
 }
+void Queue::destroy() {
+    reset();
+}
+Queue::State Queue::release() {
+    DEBUG_CHECK_QUEUE(this);
+    State const state{
+        _handle.release(),
+        _familyIndex,
+        _queueIndex,
+    };
+    reset();
+    return state;
+}
+
 void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
 void Queue::const_submit(SubmitInfo const& submit_info) const { submit(submit_info.get(), submit_info.fence()); }
 void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next()); }
 void Queue::const_skip(SubmitInfo const& submit_info) const { submit(submit_info.skip(), submit_info.fence()); }
 
 
-VkResult Queue::present(uint32_t  image_index, PresentInfo& present_info) const {
+VkResult Queue::present(uint32_t image_index, PresentInfo& present_info) const {
 
     auto const result = vkQueuePresentKHR(get(), present_info.create(image_index));
 
@@ -41,9 +57,14 @@ void Queue::const_skip(PresentInfo const& present_info) const {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-present")
         throw cth::vk::result_exception{result, details->exception()};
 }
+void Queue::reset() {
+    _handle = VK_NULL_HANDLE;
+    _familyIndex = 0;
+    _queueIndex = 0;
+}
 
 void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
-    auto const result = vkQueueSubmit(_handle, 1, submit_info, fence);
+    auto const result = vkQueueSubmit(_handle.get(), 1, submit_info, fence);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
         throw cth::vk::result_exception{result, details->exception()};
 }
@@ -51,7 +72,7 @@ void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
 
 #ifdef CONSTANT_DEBUG_MODE
 void Queue::debug_check(cth::not_null<Queue const*> queue) {
-    CTH_ERR(!queue->valid(), "queue must be created") throw details->exception();
+    CTH_ERR(!queue->created(), "queue must be created") throw details->exception();
 }
 void Queue::debug_check_present_queue(cth::not_null<Queue const*> queue) {
     DEBUG_CHECK_QUEUE(queue);
