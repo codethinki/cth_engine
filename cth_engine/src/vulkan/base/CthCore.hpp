@@ -2,7 +2,7 @@
 #include "CthQueue.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
-#include<cth/cth_pointer.hpp>
+#include<cth/pointers.hpp>
 #include <vulkan/vulkan.h>
 
 #include <span>

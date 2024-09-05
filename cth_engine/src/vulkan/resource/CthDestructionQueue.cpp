@@ -25,7 +25,7 @@
 #include "vulkan/surface/CthOSWindow.hpp"
 #include "vulkan/surface/CthSurface.hpp"
 
-#include<cth/cth_variant.hpp>
+#include<cth/variant.hpp>
 
 
 namespace cth::vk {

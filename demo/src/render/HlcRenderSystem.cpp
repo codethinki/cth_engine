@@ -12,7 +12,7 @@
 #include "vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
 #include "vulkan/resource/image/texture/CthTexture.hpp"
 
-#include <cth/cth_image.hpp>
+#include <cth/image.hpp>
 
 
 namespace cth {

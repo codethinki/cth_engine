@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <span>
 #include <vector>
-#include<cth/cth_pointer.hpp>
+#include<cth/pointers.hpp>
 
 #include <vulkan/vulkan.h>
 

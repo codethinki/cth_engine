@@ -2,8 +2,8 @@
 
 #include "vulkan/utility/cth_constants.hpp"
 
-#include<cth/cth_pointer.hpp>
-#include <cth/io/cth_log.hpp>
+#include<cth/pointers.hpp>
+#include<cth/io/log.hpp>
 
 #include <vulkan/vulkan.h>
 

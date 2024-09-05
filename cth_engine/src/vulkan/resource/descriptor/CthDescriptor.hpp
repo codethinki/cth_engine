@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cth/io/cth_log.hpp>
+#include<cth/io/log.hpp>
 
 #include <vulkan/vulkan.h>
 

@@ -2,7 +2,7 @@
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/utility/cth_vk_types.hpp"
 
-#include<cth/cth_pointer.hpp>
+#include<cth/pointers.hpp>
 
 #include <vulkan/vulkan.h>
 

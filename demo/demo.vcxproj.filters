@@ -4,11 +4,14 @@
     <ClInclude Include="src\render\HlcFrameInfo.hpp" />
     <ClInclude Include="src\render\HlcRenderSystem.hpp" />
     <ClInclude Include="src\HlcApp.hpp" />
+    <ClInclude Include="src\pch\pch.hpp" />
+    <ClInclude Include="src\pch\glob\std.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\render\HlcRenderSystem.cpp" />
     <ClCompile Include="src\HlcApp.cpp" />
     <ClCompile Include="src\demo_main.cpp" />
+    <ClCompile Include="src\pch\pch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\img\texture\first_texture.png" />

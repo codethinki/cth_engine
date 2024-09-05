@@ -1,7 +1,7 @@
 #pragma once
 #include "cth_vk_format.hpp"
 
-#include <cth/cth_exception.hpp>
+#include<cth/exception.hpp>
 #include <vulkan/vulkan.h>
 
 

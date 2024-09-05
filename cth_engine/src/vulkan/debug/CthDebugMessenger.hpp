@@ -1,7 +1,7 @@
 #pragma once
 #include "vulkan/utility/cth_constants.hpp"
 
-#include<cth/cth_pointer.hpp>
+#include<cth/pointers.hpp>
 
 #include <gsl/pointers>
 #include <vulkan/vulkan.h>

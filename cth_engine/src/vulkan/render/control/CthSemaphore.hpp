@@ -4,7 +4,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include<cth/cth_pointer.hpp>
+#include<cth/pointers.hpp>
 
 namespace cth::vk {
 class BasicCore;

@@ -65,10 +65,8 @@
     <ClInclude Include="src\vulkan\render\pass\CthRenderPass.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_debug_macros.hpp" />
-    <ClInclude Include="src\pch\group\std_pch.hpp" />
+    <ClInclude Include="src\pch\glob\std.hpp" />
     <ClInclude Include="src\pch\pch.hpp" />
-    <ClInclude Include="src\pch\util\macro.hpp" />
-    <ClInclude Include="src\pch\util\definition.hpp" />
     <ClInclude Include="src\vulkan\utility\constant\cth_device_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
@@ -79,6 +77,8 @@
     <ClInclude Include="src\vulkan\render\pass\CthAttachmentCollection.hpp" />
     <ClInclude Include="src\vulkan\utility\utility\cth_vk_types.hpp" />
     <ClInclude Include="src\vulkan\utility\utility\cth_vk_exceptions.hpp" />
+    <ClInclude Include="src\pch\glob\glm.hpp" />
+    <ClInclude Include="src\pch\glob\glfw.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -128,7 +128,7 @@
     <ClCompile Include="src\vulkan\render\control\CthPipelineWaitStage.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthRenderPass.cpp" />
     <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.cpp" />
-    <ClCompile Include="src\pch\util\pch.cpp" />
+    <ClCompile Include="src\pch\pch.cpp" />
     <ClCompile Include="src\vulkan\utility\device\PhysicalDeviceFeatures.cpp" />
     <ClCompile Include="src\vulkan\resource\image\Framebuffer.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthSubpass.cpp" />
