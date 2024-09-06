@@ -119,7 +119,7 @@ private:
     cth::not_null<Core const*> _core;
     std::unique_ptr<OSWindow> _osWindow = nullptr;
     std::unique_ptr<Surface> _surface = nullptr;
-    std::unique_ptr<BasicSwapchain> _swapchain = nullptr; //TODO change to Swapchain ptr once implemented
+    std::unique_ptr<BasicSwapchain> _swapchain = nullptr; //TEMP change to Swapchain ptr once implemented
 
 public:
     [[nodiscard]] bool created() const { return _osWindow || _surface || _swapchain; }

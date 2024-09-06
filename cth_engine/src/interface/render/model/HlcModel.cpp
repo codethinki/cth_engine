@@ -1,7 +1,7 @@
 #include "HlcModel.hpp"
 
 
-
+//TEMP old code
 //namespace cth::vk {
 
 //Model::Model(ModelManager* manager, const string& name, const uint32_t id, const string& filepath, const string& mtl_base_dir) : name(name), id(id),
@@ -21,7 +21,6 @@
 //
 //	for(const auto& shape : shapes) {
 //		if(shape.mesh.num_face_vertices.size() != shape.mesh.indices.size() / 3) throw runtime_error("load: faces have to be triangles");
-//		//TEMP for testing
 //
 //		int indexOffset = 0;
 //

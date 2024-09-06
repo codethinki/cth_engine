@@ -127,7 +127,7 @@ struct Core::Config {
     std::string_view appName;
     std::string_view engineName;
     std::span<Queue> queues;
-    std::span<std::string const> requiredExtensions; //TEMP
+    std::span<std::string const> requiredExtensions; //TODO replace this with better extension handling
 
     /**
      * @brief if true, creates a DestructionQueue

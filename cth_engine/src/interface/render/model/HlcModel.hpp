@@ -3,7 +3,7 @@
 
 #include <string>
 
-
+//TEMP old code
 namespace cth::vk {
 
 class ModelManager;
@@ -23,7 +23,7 @@ public:
 
 
 
-    void render(uint32_t first_instance, uint32_t instances, FrameInfo const& frame_info); //IMPLEMENT render function
+    void render(uint32_t first_instance, uint32_t instances, FrameInfo const& frame_info);
 
     std::string const name; /*model name (unique)*/
     uint32_t const id; /*model id in manager list*/

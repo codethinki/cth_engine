@@ -109,10 +109,6 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
           .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores());
     return config;
 }
-//Renderer::Config::Config(const Core* core, DestructionQueue* destruction_queue) : _core{core}, _destructionQueue{destruction_queue} {
-//    DEBUG_CHECK_CORE(core);
-//    DEBUG_CHECK_DESTRUCTION_QUEUE(destruction_queue);
-//}
 
 
 
@@ -166,7 +162,6 @@ std::array<Queue const*, Renderer::PHASES_SIZE> Renderer::Config::queues() const
 //    std::shared_ptr oldSwapchain = std::move(_swapchain);
 //    _swapchain = std::make_unique<BasicSwapchain>(_core, _destructionQueue, *_window->surface(), windowExtent, oldSwapchain);
 //
-//    //TODO i dont understand why the formats cant change?
 //    const bool change = oldSwapchain->compareSwapFormats(*_swapchain);
 //
 //    CTH_STABLE_ERR(change, "depth or image format changed")

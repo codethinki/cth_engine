@@ -54,7 +54,7 @@ protected:
 };
 
 inline RenderObject::~RenderObject() {}
-
+//TEMP old code
 //class MemoryManager;
 //struct MemoryChunkStorageInfo;
 //struct MemoryChunkAllocInfo;
@@ -83,5 +83,5 @@ inline RenderObject::~RenderObject() {}
 //
 //    /*PushConstants pushConstant{};*/ //old stuff
 
-//TODO cleanup this file
+//
 }

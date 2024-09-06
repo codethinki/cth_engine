@@ -28,8 +28,6 @@ struct Vertex {
 
     constexpr Vertex(Vertex const& other) = default;
     constexpr Vertex& operator=(Vertex const& other) = default;
-
-    //IMPLEMENT the per instance data field
 };
 inline constexpr std::array<VkVertexInputBindingDescription, 1> VERTEX_BINDING_DESCRIPTIONS{{
     {0, static_cast<uint32_t>(sizeof(Vertex)), VK_VERTEX_INPUT_RATE_VERTEX}

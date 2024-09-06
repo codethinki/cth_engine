@@ -166,8 +166,8 @@ void BasicSwapchain::skipPresent(Cycle const& cycle) {
 
 void BasicSwapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
     CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) {
+    //TEMP test this function
     std::unordered_map<Image*, ImageBarrier::Info> const images{
-        //TEMP review this, this should be moved
         {_resolveAttachments->image(image_index), ImageBarrier::Info::QueueTransition(0, release_queue, 0, acquire_queue)}
     };
 
