@@ -26,8 +26,8 @@ public:
 
     gsl::owner<VkRenderPass> release();
 
-    void begin(PrimaryCmdBuffer const* cmd_buffer, uint32_t config_index, Framebuffer const* framebuffer);
-    void end(PrimaryCmdBuffer const* cmd_buffer);
+    void begin(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer, uint32_t config_index, cth::not_null<Framebuffer const*> framebuffer);
+    void end(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer);
 
     static void destroy(VkDevice vk_device, VkRenderPass vk_render_pass);
 

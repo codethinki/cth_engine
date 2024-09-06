@@ -233,7 +233,7 @@ public:
 
 namespace cth::vk {
 struct BaseBuffer::State {
-    not_null<VkBuffer> vkBuffer;
+    vk::not_null<VkBuffer> vkBuffer;
     /**
      * @note may be nullptr if not @ref bound
      */

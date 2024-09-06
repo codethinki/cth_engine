@@ -98,7 +98,6 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
 }
 
 
-//TEMP left off here complete this function and add the required required_extensions / features to be used by the logical device
 auto PhysicalDevice::AutoPick(cth::not_null<Instance const*> instance, std::span<Queue const> queues, span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features) -> unique_ptr<PhysicalDevice> {
     DEBUG_CHECK_INSTANCE(instance);

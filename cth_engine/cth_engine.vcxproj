@@ -97,7 +97,6 @@
     <ClInclude Include="src\vulkan\resource\image\texture\CthSampler.hpp" />
     <ClInclude Include="src\vulkan\resource\image\texture\CthTexture.hpp" />
     <ClInclude Include="src\interface\render\CthRenderer.hpp" />
-    <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
     <ClInclude Include="src\vulkan\surface\swapchain\CthBasicSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />

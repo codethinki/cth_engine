@@ -47,8 +47,7 @@ void CmdBuffer::begin( VkCommandBufferBeginInfo const& info) const {
         throw vk::result_exception{result, details->exception()}; }
 
 #ifdef CONSTANT_DEBUG_MODE
-void CmdBuffer::debug_check(CmdBuffer const* cmd_buffer) {
-    CTH_ERR(cmd_buffer == nullptr, "cmd_buffer is invalid (nullptr)") throw details->exception();
+void CmdBuffer::debug_check(cth::not_null<CmdBuffer const*> cmd_buffer) {
     CTH_ERR(cmd_buffer->_handle == VK_NULL_HANDLE, "cmd_buffer handle is invalid (VK_NULL_HANDLE)") throw details->exception();
 }
 

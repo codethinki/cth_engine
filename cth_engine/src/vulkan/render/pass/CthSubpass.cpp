@@ -32,7 +32,6 @@ Subpass::Subpass(
     std::ranges::copy(attachments, std::back_inserter(_attachments));
     _attachments.emplace_back(depth_attachment);
 
-    //TEMP left off here create the render pass class
 }
 VkSubpassDescription Subpass::create() const {
     return {

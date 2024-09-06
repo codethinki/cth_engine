@@ -20,36 +20,34 @@ Image::Image(cth::not_null<Core const*> core, Config const& config) : _core{core
     _levelLayouts.resize(_config.mipLevels);
     std::ranges::fill(_levelLayouts, _config.initialLayout);
 }
-Image::Image(cth::not_null<Core const*> core, Config const& config, VkExtent2D  extent) : Image{core, config} { create(extent); }
-Image::Image(cth::not_null<Core const*> core, Config const& config, State const& state) : Image{core, config} { wrap(state); }
+Image::Image(cth::not_null<Core const*> core, Config const& config, VkExtent2D extent) : Image{core, config} { create(extent); }
+Image::Image(cth::not_null<Core const*> core, Config const& config, State state) : Image{core, config} { wrap(std::move(state)); }
 
 
-Image::~Image() { if(created()) destroy(); }
+Image::~Image() { optDestroy(); }
 
-void Image::wrap(State const& state) {
+void Image::wrap(State state) {
     DEBUG_CHECK_IMAGE_HANDLE(state.vkImage);
 
+    optDestroy();
 
-    if(created()) destroy();
 
-
-    _handle = state.vkImage;
+    _handle = state.vkImage.get();
 
     _levelLayouts = state.levelLayouts;
     while(_levelLayouts.size() != _config.mipLevels) _levelLayouts.push_back(_config.initialLayout);
 
+    if(state.bound && state.memory == nullptr) return;
 
-    if(state.bound && state.memoryState.vkMemory == VK_NULL_HANDLE) return;
-
-    if(state.memoryState.vkMemory != VK_NULL_HANDLE) _memory->wrap(state.memoryState);
+    if(state.memory != nullptr) _memory = std::move(state.memory);
     else alloc();
     if(!state.bound) bind();
 
 
 }
 
-void Image::create(VkExtent2D  extent) {
-    if(created()) destroy();
+void Image::create(VkExtent2D extent) {
+    optDestroy();
 
     _extent = extent;
 
@@ -79,9 +77,9 @@ Image::State Image::release() {
     State state{
         _extent,
         _handle.get(),
-        _levelLayouts,
         true,
-        _memory->created() ? _memory->release() : Memory::State{VK_NULL_HANDLE, 0},
+        std::move(_memory),
+        std::move(_levelLayouts),
     };
 
     reset();
@@ -89,7 +87,7 @@ Image::State Image::release() {
     return state;
 }
 
-Image::TransitionConfig Image::TransitionConfig::Create(VkImageLayout  current_layout, VkImageLayout new_layout) {
+Image::TransitionConfig Image::TransitionConfig::Create(VkImageLayout current_layout, VkImageLayout new_layout) {
     if(current_layout == VK_IMAGE_LAYOUT_UNDEFINED && new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
         return {0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
     if(current_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
@@ -108,7 +106,7 @@ Image::TransitionConfig Image::TransitionConfig::Create(VkImageLayout  current_l
 
 
 
-void Image::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src_buffer, size_t  src_offset, uint32_t mip_level) const {
+void Image::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src_buffer, size_t src_offset, uint32_t mip_level) const {
     DEBUG_CHECK_IMAGE(this);
 
     CTH_WARN(_levelLayouts[mip_level] != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -131,7 +129,7 @@ void Image::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src_buffer, size
     vkCmdCopyBufferToImage(cmd_buffer.get(), src_buffer.get(), _handle.get(), _levelLayouts[mip_level], 1, &region);
 }
 
-void Image::transitionLayout(CmdBuffer const& cmd_buffer, VkImageLayout  new_layout, uint32_t first_mip_level,
+void Image::transitionLayout(CmdBuffer const& cmd_buffer, VkImageLayout new_layout, uint32_t first_mip_level,
     uint32_t mip_levels) {
     auto [srcAccess, dstAccess, srcStage, dstStage] = TransitionConfig::Create(_levelLayouts[first_mip_level], new_layout);
 
@@ -141,18 +139,20 @@ void Image::transitionLayout(CmdBuffer const& cmd_buffer, VkImageLayout  new_lay
 
     barrier.execute(cmd_buffer);
 }
-void Image::transitionLayout(ImageBarrier& barrier, VkImageLayout  new_layout, VkAccessFlags src_access,
-    VkAccessFlags dst_access, uint32_t  first_mip_level, uint32_t mip_levels) {
+void Image::transitionLayout(ImageBarrier& barrier, VkImageLayout new_layout, VkAccessFlags src_access,
+    VkAccessFlags dst_access, uint32_t first_mip_level, uint32_t mip_levels) {
     DEBUG_CHECK_IMAGE(this);
 
     auto const oldLayout = _levelLayouts[first_mip_level];
-    CTH_ERR(any_of(_levelLayouts.begin() + first_mip_level, mip_levels == constants::ALL ? _levelLayouts.end() : _levelLayouts.begin() + first_mip_level + mip_levels,
-        [oldLayout](VkImageLayout  layout) { return oldLayout != layout; }), "all transitioned layouts must be the same")
+    CTH_ERR(
+        any_of(_levelLayouts.begin() + first_mip_level, mip_levels == constants::ALL ? _levelLayouts.end() : _levelLayouts.begin() + first_mip_level +
+            mip_levels,
+            [oldLayout](VkImageLayout layout) { return oldLayout != layout; }), "all transitioned layouts must be the same")
         throw details->exception();
 
     barrier.add(this, ImageBarrier::Info::LayoutTransition(new_layout, src_access, dst_access, first_mip_level, mip_levels));
 }
-uint32_t Image::evalMipLevelCount(VkExtent2D  extent) {
+uint32_t Image::evalMipLevelCount(VkExtent2D extent) {
     return static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height))) + 1);
 }
 
@@ -209,10 +209,7 @@ void Image::debug_check(cth::not_null<Image const*> image) {
     CTH_ERR(!image->created(), "image must be created") throw details->exception();
     DEBUG_CHECK_IMAGE_HANDLE(image->get());
 }
-void Image::debug_check_handle(VkImage vk_image) {
-    CTH_ERR(vk_image == VK_NULL_HANDLE, "image handle must not be invalid (VK_NULL_HANDLE)")
-        throw details->exception();
-}
+void Image::debug_check_handle([[maybe_unused]] vk::not_null<VkImage> vk_image) {}
 
 #endif
 

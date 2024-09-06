@@ -1,10 +1,15 @@
 #pragma once
+
+
 #include "vulkan/resource/image/CthImage.hpp"
 #include "vulkan/resource/image/CthImageView.hpp"
 
+
 #include <gsl/pointers>
+#include<vector>
 
 namespace cth::vk {
+class ImageView;
 
 struct AttachmentDescription {
     VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
@@ -18,6 +23,9 @@ struct AttachmentDescription {
 
     [[nodiscard]] VkAttachmentDescription create(VkFormat format, VkImageLayout initial_layout) const;
 };
+}
+
+namespace cth::vk {
 /**
  * @brief wraps a collection of attachments of the same image for a render pass
  */
@@ -40,7 +48,7 @@ public:
      * @note calls @ref wrap()
      */
     AttachmentCollection(cth::not_null<Core const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
-        AttachmentDescription const& description, State const& state);
+        AttachmentDescription const& description, State state);
 
 
     ~AttachmentCollection();
@@ -57,7 +65,7 @@ public:
      * @note @ref State::views can be empty -> views will be created
      * @note calls @ref destroy() if @ref created()
      */
-    void wrap(State const& state);
+    void wrap(State state);
 
     /**
      * @brief destroys the images, memory handles and views
@@ -91,8 +99,8 @@ private:
     AttachmentDescription _description;
 
     VkExtent2D _extent{};
-    std::vector<Image> _images;
-    std::vector<ImageView> _views;
+    std::vector<std::unique_ptr<Image>> _images;
+    std::vector<std::unique_ptr<ImageView>> _views;
 
 public:
     /**
@@ -101,8 +109,8 @@ public:
     [[nodiscard]] bool created() const { return !_images.empty(); }
     [[nodiscard]] size_t size() const { return _size; }
     [[nodiscard]] uint32_t index() const { return _renderPassIndex; }
-    [[nodiscard]] ImageView const* view(size_t index) const { return &_views[index]; }
-    [[nodiscard]] Image* image(size_t index) { return &_images[index]; }
+    [[nodiscard]] ImageView const* view(size_t index) const;
+    [[nodiscard]] Image* image(size_t index) const { return _images[index].get(); }
     [[nodiscard]] VkAttachmentDescription description() const { return _description.create(_config.format, _config.initialLayout); }
     [[nodiscard]] VkAttachmentReference reference() const {
         return VkAttachmentReference{.attachment = _renderPassIndex, .layout = _description.referenceLayout};
@@ -114,7 +122,7 @@ public:
     AttachmentCollection& operator=(AttachmentCollection&& other) noexcept = default;
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(AttachmentCollection const* collection);
+    static void debug_check(cth::not_null<AttachmentCollection const*> collection);
 
 #define DEBUG_CHECK_ATTACHMENT_COLLECTION(collection_ptr) AttachmentCollection::debug_check(collection_ptr)
 #else
@@ -128,19 +136,31 @@ public:
 
 namespace cth::vk {
 struct AttachmentCollection::State {
-    VkExtent2D extent; //extent of @ref vkImages
-    std::vector<gsl::owner<VkImage>> vkImages; ///VkImage handles bound to @ref vkMemoryHandles
+    // ReSharper disable once CppNonExplicitConvertingConstructor
+    State(VkExtent2D extent, std::vector<unique_not_null<ImageView>> views = {}, std::vector<unique_not_null<Image>> images = {}) :
+        extent{extent}, views{std::move(views)}, images{std::move(images)} {}
 
-    size_t byteSize; //size of @ref vkMemoryHandles
     /**
-     * @brief VkDeviceMemory handles bound to @ref vkImages
-     * @note empty -> bound but unknown memory
+     * @brief attachment extent
      */
-    std::vector<gsl::owner<VkDeviceMemory>> vkMemoryHandles;
+    VkExtent2D extent;
+
     /**
-     * @brief VkImageView handles bound to @ref vkImages
-     * @note empty -> views will be created
+     * @brief may be empty
+     * @attention requires @ref ImageView::image() at [index] == @ref images [index] get_val()
+     * @attention requires @ref ImageView::created()
      */
-    std::vector<gsl::owner<VkImageView>> vkImageViews;
+    std::vector<unique_not_null<ImageView>> views{};
+
+    /**
+     * @attention requires @ref Image::created()
+     */
+    std::vector<unique_not_null<Image>> images{};
+
+    ~State() = default;
+    State(State const& other) = delete;
+    State(State&& other) noexcept = default;
+    State& operator=(State const& other) = delete;
+    State& operator=(State&& other) noexcept = default;
 };
 }

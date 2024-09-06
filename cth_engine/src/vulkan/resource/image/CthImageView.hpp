@@ -1,7 +1,6 @@
 #pragma once
 #include "vulkan/utility/cth_constants.hpp"
-
-#include <gsl/pointers>
+#include "vulkan/utility/utility/cth_vk_types.hpp"
 
 #include <vulkan/vulkan.h>
 
@@ -26,7 +25,7 @@ public:
      * @note calls @ref create()
      * @note calls @ref ImageView(cth::not_null<Core const*>, Config const&)
      */
-    ImageView(cth::not_null<Core const*> core, Config const& config, Image const* image);
+    ImageView(cth::not_null<Core const*> core, Config const& config, cth::not_null<Image const*> image);
 
     /**
      * @brief constructs and wraps state
@@ -43,7 +42,7 @@ public:
 
     /**
      * @brief creates the image view
-     * @param image must be created
+     * @param image requires Image::created()
      * @note calls @ref optDestroy()
      */
     void create(cth::not_null<Image const*> image);
@@ -129,7 +128,7 @@ public:
 
 namespace cth::vk {
 struct ImageView::State {
-    gsl::owner<VkImageView> vkImageView; // NOLINT(cppcoreguidelines-owning-memory)
-    Image const* image;
+    vk::not_null<VkImageView> vkImageView; // NOLINT(cppcoreguidelines-owning-memory)
+    cth::not_null<Image const*> image;
 };
 }

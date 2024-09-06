@@ -15,17 +15,18 @@ using std::span;
 
 Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device) :
     _instance{instance}, _physicalDevice{physical_device} {}
-Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, State const& state) : Device{instance,
-    physical_device} { wrap(state); }
-Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, std::span<Queue> queues) : Device{
-    instance, physical_device} { create(queues); }
+Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, State const& state) :
+    Device{instance, physical_device} { wrap(state); }
+Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, std::span<Queue> queues) :
+    Device{instance, physical_device} { create(queues); }
+
 Device::~Device() { optDestroy(); }
 
 void Device::wrap(State const& state) {
     optDestroy();
 
     _handle = state.handle.get();
-    _queueFamilyQueues = state.queueFamilyQueues;
+    _queueFamiliesQueueCounts = state.queueFamiliesQueueCounts;
 }
 void Device::create(std::span<Queue> queues) {
     optDestroy();
@@ -46,21 +47,21 @@ void Device::destroy() {
 vector<uint32_t> Device::setUniqueFamilyIndices(span<Queue const> queues) {
     auto const& queueFamilyIndices = _physicalDevice->queueFamilyIndices(queues);
 
-    for(auto const& familyIndex : queueFamilyIndices) ++_queueFamilyQueues[familyIndex];
+    for(auto const& familyIndex : queueFamilyIndices) ++_queueFamiliesQueueCounts[familyIndex];
 
 
     return queueFamilyIndices;
 }
 
 void Device::createLogicalDevice() {
-    CTH_ERR(_queueFamilyQueues.empty(), "queue family queue count must be queried first") throw details->exception();
+    CTH_ERR(_queueFamiliesQueueCounts.empty(), "queue family queue count must be queried first") throw details->exception();
     CTH_ERR(created(), "device was already created") throw details->exception();
 
     vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
-    queueCreateInfos.reserve(_queueFamilyQueues.size());
+    queueCreateInfos.reserve(_queueFamiliesQueueCounts.size());
 
     constexpr float queuePriority = 1.0f;
-    for(auto const [queueFamily, queueCount] : _queueFamilyQueues)
+    for(auto const [queueFamily, queueCount] : _queueFamiliesQueueCounts)
         queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
             .queueFamilyIndex = queueFamily,
@@ -99,14 +100,14 @@ void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues)
 
         CTH_STABLE_ERR(ptr == VK_NULL_HANDLE, "failed to get device queue") throw details->exception();
 
-        queue.wrap({ptr, familyIndex, queueCounts[familyIndex]++});
+        queue.wrap(Queue::State{ptr, familyIndex, queueCounts[familyIndex]++});
     }
 
 }
 Device::State Device::release() {
     DEBUG_CHECK_DEVICE(this);
 
-    State state{_handle.release(), std::move(_queueFamilyQueues)};
+    State state{_handle.release(), std::move(_queueFamiliesQueueCounts)};
     reset();
     return state;
 }
@@ -124,7 +125,7 @@ void Device::destroy(VkDevice vk_device) {
 }
 void Device::reset() {
     _handle = nullptr;
-    _queueFamilyQueues.clear();
+    _queueFamiliesQueueCounts.clear();
 }
 
 

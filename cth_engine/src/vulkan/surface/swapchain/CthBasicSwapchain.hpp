@@ -103,11 +103,11 @@ private:
     [[nodiscard]] Image::Config createColorImageConfig(VkSampleCountFlagBits samples) const;
     [[nodiscard]] Image::Config createDepthImageConfig() const;
 
-    [[nodiscard]] std::vector<VkImage> getSwapchainImages();
+    [[nodiscard]] std::vector<std::unique_ptr<Image>> getSwapchainImages();
     void findDepthFormat();
 
 
-    void createResolveAttachments(std::vector<VkImage> swapchain_images);
+    void createResolveAttachments(std::vector<std::unique_ptr<Image>> swapchain_images);
     void createMsaaAttachments();
     void createDepthAttachments();
 
@@ -157,8 +157,8 @@ private:
 
 
     size_t _imageCount = 0;
-    VkFormat _imageFormat{};
-    VkFormat _depthFormat{};
+    VkFormat _imageFormat = VK_FORMAT_UNDEFINED;
+    VkFormat _depthFormat = VK_FORMAT_UNDEFINED;
 
     std::unique_ptr<AttachmentCollection> _resolveAttachments;
     std::unique_ptr<AttachmentCollection> _msaaAttachments; //TEMP this should not be here
@@ -221,14 +221,3 @@ public:
 };
 
 }
-
-
-
-//TEMP old code
-//
-//
-///**
-// * @return result of @ref vkQueueSubmit() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
-// * @note calls presentQueue->present()
-// */
-//VkResult submitCommandBuffer(DestructionQueue* destruction_queue, const PrimaryCmdBuffer* cmd_buffer, uint32_t image_index);

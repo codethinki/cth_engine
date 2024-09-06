@@ -21,7 +21,7 @@ Memory::~Memory() { if(created()) Memory::destroy(); }
 void Memory::wrap(State const& state) {
     if(created()) destroy();
 
-    _handle = state.vkMemory;
+    _handle = state.vkMemory.get();
     _size = state.size;
 }
 
