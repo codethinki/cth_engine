@@ -116,16 +116,16 @@ gsl::owner<VkRenderPass> RenderPass::release() {
     _handle = nullptr;
     return handle;
 }
-void RenderPass::begin(PrimaryCmdBuffer const* cmd_buffer, uint32_t config_index, Framebuffer const* framebuffer) {
+void RenderPass::begin(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer, uint32_t config_index, cth::not_null<Framebuffer const*> framebuffer) {
     DEBUG_CHECK_CMD_BUFFER(cmd_buffer);
-    //TEMP DEBUG_CHECK_FRAMEBUFFER(framebuffer);
+    DEBUG_CHECK_FRAMEBUFFER(framebuffer);
     CTH_ERR(config_index >= _beginInfos.size(), "config_index out of range") throw details->exception();
 
     _beginInfos[config_index].framebuffer = framebuffer->get();
 
     vkCmdBeginRenderPass(cmd_buffer->get(), &_beginInfos[config_index], _contents[config_index]);
 }
-void RenderPass::end(PrimaryCmdBuffer const* cmd_buffer) { vkCmdEndRenderPass(cmd_buffer->get()); }
+void RenderPass::end(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer) { vkCmdEndRenderPass(cmd_buffer->get()); }
 
 void RenderPass::destroy(VkDevice vk_device, VkRenderPass vk_render_pass) {
     DEBUG_CHECK_DEVICE_HANDLE(vk_device);

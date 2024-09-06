@@ -53,7 +53,7 @@ public:
 
 
 #ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(CmdBuffer const* cmd_buffer);
+    static void debug_check(cth::not_null<CmdBuffer const*> cmd_buffer);
 
 #define DEBUG_CHECK_CMD_BUFFER(cmd_buffer_ptr) CmdBuffer::debug_check(cmd_buffer_ptr)
 #else

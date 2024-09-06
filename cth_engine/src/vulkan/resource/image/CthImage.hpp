@@ -2,10 +2,10 @@
 #include "../memory/CthMemory.hpp"
 
 #include "vulkan/utility/cth_constants.hpp"
+#include "vulkan/utility/utility/cth_vk_types.hpp"
 
 #include <vulkan/vulkan.h>
 
-//TEMP edit state to not expose the raw VkMemory vkQueue
 namespace cth::vk {
 class BaseBuffer;
 class ImageBarrier;
@@ -37,7 +37,7 @@ public:
      * @note calls @ref Image::Image()
      * @note calls @ref wrap()
      */
-    Image(cth::not_null<Core const*> core, Config const& config, State const& state);
+    Image(cth::not_null<Core const*> core, Config const& config, State state);
 
     virtual ~Image();
 
@@ -45,7 +45,7 @@ public:
      * @brief wraps @ref State
      * @note calls @ref optDestroy()
      */
-    void wrap(State const& state);
+    void wrap(State state);
 
     /**
      * @brief allocates the image memory & binds it
@@ -62,9 +62,9 @@ public:
     void destroy();
 
     /**
-     * @brief calls @ref destroy() if @ref created()
+     * @brief if @ref created() calls @ref destroy()
      */
-    void optDestroy();
+    void optDestroy() { if(created()) destroy(); }
 
     /**
      * @brief releases the ownership of image & memory
@@ -90,7 +90,7 @@ public:
     void transitionLayout(ImageBarrier& barrier, VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access,
         uint32_t first_mip_level = 0, uint32_t mip_levels = constants::ALL);
 
-    static uint32_t evalMipLevelCount(VkExtent2D  extent);
+    static uint32_t evalMipLevelCount(VkExtent2D extent);
 
 
     static void destroy(VkDevice vk_device, VkImage vk_image);
@@ -107,6 +107,7 @@ public:
 
         [[nodiscard]] VkImageCreateInfo createInfo() const;
     };
+
 protected:
     std::vector<VkImageLayout> _levelLayouts;
 
@@ -142,19 +143,19 @@ public:
     [[nodiscard]] VkFormat format() const { return _config.format; }
     [[nodiscard]] VkExtent2D extent() const { return _extent; }
     [[nodiscard]] uint32_t mipLevels() const { return _config.mipLevels; }
-    [[nodiscard]] VkImageLayout layout(uint32_t  mip_level) const { return _levelLayouts[mip_level]; }
+    [[nodiscard]] VkImageLayout layout(uint32_t mip_level) const { return _levelLayouts[mip_level]; }
     [[nodiscard]] std::span<VkImageLayout const> layouts() const { return _levelLayouts; }
     [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return _config.aspectMask; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] Config config() const { return _config; }
 
     Image(Image const& other) = delete;
-    Image(Image&& other) noexcept = default;
     Image& operator=(Image const& other) = delete;
+    Image(Image&& other) noexcept = default;
     Image& operator=(Image&& other) noexcept = default;
 
     static void debug_check(cth::not_null<Image const*> image);
-    static void debug_check_handle(VkImage vk_image);
+    static void debug_check_handle(vk::not_null<VkImage> vk_image);
 
 #ifdef CONSTANT_DEBUG_MODE
 #define DEBUG_CHECK_IMAGE(image_ptr) Image::debug_check(image_ptr)
@@ -170,13 +171,28 @@ public:
 //State
 namespace cth::vk {
 struct Image::State {
-    VkExtent2D extent;
-    gsl::owner<VkImage> vkImage = VK_NULL_HANDLE; // NOLINT(cppcoreguidelines-owning-memory)
-    std::vector<VkImageLayout> levelLayouts{}; // levelLayouts.size() < mipLevels => remaining levels are config.initialLayout
-    bool bound = false;
+    State(VkExtent2D extent, vk::not_null<VkImage> vk_image, bool const bound, std::unique_ptr<Memory> memory,
+        std::vector<VkImageLayout> level_layouts = {}) : extent{extent}, vkImage{vk_image},
+        bound{bound}, memory{std::move(memory)}, levelLayouts{std::move(level_layouts)} {}
 
-    Memory::State memoryState{};
-    static State Default() { return State{}; }
+    VkExtent2D extent;
+    vk::not_null<VkImage> vkImage;
+      /**
+     * @brief if true and @ref memory == nullptr -> memory unknown
+     */
+    bool bound;
+
+    /**
+     * @brief may be nullptr
+     */
+    std::unique_ptr<Memory> memory;
+    std::vector<VkImageLayout> levelLayouts{}; // levelLayouts.size() < mipLevels => remaining levels are config.initialLayout
+
+    ~State() = default;
+    State(State const& other) = delete;
+    State& operator=(State const& other) = delete;
+    State(State&& other) noexcept = default;
+    State& operator=(State&& other) noexcept = default;
 };
 }
 

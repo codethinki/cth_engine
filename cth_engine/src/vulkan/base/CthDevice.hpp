@@ -117,13 +117,11 @@ private:
 
     move_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
 
-    //TODO replace this with a better system
-    std::unordered_map<uint32_t, uint32_t> _queueFamilyQueues;
-
+    std::unordered_map<uint32_t, uint32_t> _queueFamiliesQueueCounts;
 
 public:
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
-    [[nodiscard]] auto familyIndices() const { return _queueFamilyQueues; }
+    [[nodiscard]] auto queueFamiliesQueueCounts() const { return _queueFamiliesQueueCounts; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
 
     Device(Device const& other) = delete;
@@ -146,6 +144,6 @@ public:
 namespace cth::vk {
 struct Device::State {
     vk::not_null<VkDevice> handle;
-    std::unordered_map<uint32_t, uint32_t> queueFamilyQueues;
+    std::unordered_map<uint32_t, uint32_t> queueFamiliesQueueCounts;
 };
 }

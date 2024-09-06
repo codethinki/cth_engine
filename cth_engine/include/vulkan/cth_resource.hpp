@@ -5,10 +5,11 @@
 #include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 #include "vulkan/resource/buffer/CthBuffer.hpp"
 
-//vk_image
+//image
 #include "vulkan/resource/image/CthImage.hpp"
 #include "vulkan/resource/image/CthImageView.hpp"
-//vk_image/texture
+#include "vulkan/resource/image/Framebuffer.hpp"
+//image/texture
 #include "vulkan/resource/image/texture/CthSampler.hpp"
 #include "vulkan/resource/image/texture/CthTexture.hpp"
 

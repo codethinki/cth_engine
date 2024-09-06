@@ -1,5 +1,6 @@
 #pragma once
 #include "vulkan/utility/cth_constants.hpp"
+#include "vulkan/utility/utility/cth_vk_types.hpp"
 
 #include<cth/pointers.hpp>
 
@@ -105,8 +106,8 @@ public:
 
 namespace cth::vk {
 struct Memory::State {
-    gsl::owner<VkDeviceMemory> vkMemory = VK_NULL_HANDLE; // NOLINT(cppcoreguidelines-owning-memory)
-    size_t size = 0; //in bytes
+    vk::not_null<VkDeviceMemory> vkMemory; // NOLINT(cppcoreguidelines-owning-memory)
+    size_t size; //in bytes
 };
 
 }

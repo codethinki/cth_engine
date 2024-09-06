@@ -29,7 +29,6 @@
     <ClInclude Include="src\interface\render\model\HlcModel.hpp" />
     <ClInclude Include="src\interface\render\model\HlcModelManager.hpp" />
     <ClInclude Include="src\interface\render\model\CthVertex.hpp" />
-    <ClInclude Include="src\vulkan\render\pass\cth_render_pass_utils.hpp" />
     <ClInclude Include="src\interface\render\CthRenderer.hpp" />
     <ClInclude Include="src\vulkan\surface\swapchain\CthBasicSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />

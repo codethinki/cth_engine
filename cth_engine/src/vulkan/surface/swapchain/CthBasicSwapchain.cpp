@@ -318,6 +318,9 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
 
 
 Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits samples) const {
+    CTH_ERR(_imageFormat == VK_FORMAT_UNDEFINED, "image format must not be VK_FORMAT_UNDEFINED")
+        throw details->exception();
+
     return Image::Config{
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .format = _imageFormat,
@@ -327,6 +330,9 @@ Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits sampl
     };
 }
 Image::Config BasicSwapchain::createDepthImageConfig() const {
+    CTH_ERR(_depthFormat == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED")
+        throw details->exception();
+
     return Image::Config{
         .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
         .format = _depthFormat,
@@ -335,7 +341,7 @@ Image::Config BasicSwapchain::createDepthImageConfig() const {
         .samples = _msaaSamples,
     };
 }
-std::vector<VkImage> BasicSwapchain::getSwapchainImages() {
+std::vector<std::unique_ptr<Image>> BasicSwapchain::getSwapchainImages() {
     uint32_t imageCount; //only min specified, might be higher
     auto const countResult = vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, nullptr);
 
@@ -344,11 +350,19 @@ std::vector<VkImage> BasicSwapchain::getSwapchainImages() {
 
     _imageCount = imageCount;
 
-    std::vector<VkImage> images{imageCount};
-    auto const getResult = vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, images.data());
+    std::vector<VkImage> vkImages{imageCount};
+    auto const getResult = vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, vkImages.data());
 
     CTH_STABLE_ERR(getResult != VK_SUCCESS, "failed to get swapchain images")
         throw cth::vk::result_exception{getResult, details->exception()};
+
+
+    std::vector<std::unique_ptr<Image>> images{};
+    images.reserve(imageCount);
+
+    auto const imageConfig = createColorImageConfig(VK_SAMPLE_COUNT_1_BIT);
+    for(auto const& vkImage : vkImages)
+        images.emplace_back(std::make_unique<Image>(_core, imageConfig, Image::State{_extent, vkImage, true, nullptr}));
 
     return images;
 }
@@ -385,33 +399,28 @@ void BasicSwapchain::createDepthAttachments() {
     _depthAttachments = std::make_unique<AttachmentCollection>(_core, imageCount(), 1, imageConfig, description, _extent);
 }
 
-void BasicSwapchain::createResolveAttachments(std::vector<VkImage> swapchain_images) {
-    auto const imageConfig = createColorImageConfig(VK_SAMPLE_COUNT_1_BIT);
-
+void BasicSwapchain::createResolveAttachments(std::vector<std::unique_ptr<Image>> swapchain_images) {
     AttachmentDescription description{
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         .referenceLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     };
 
-    AttachmentCollection::State state{
-        .extent = _extent,
-        .vkImages = std::move(swapchain_images),
-        .byteSize = 0,
-        .vkMemoryHandles = {},
-        .vkImageViews = {},
-    };
+    AttachmentCollection::State state{_extent};
 
-    _resolveAttachments = std::make_unique<AttachmentCollection>(_core, imageCount(), 2, imageConfig, description, state);
+    for(auto& image : swapchain_images) state.images.emplace_back(std::move(image));
+
+
+    _resolveAttachments = std::make_unique<AttachmentCollection>(_core, imageCount(), 2, state.images[0]->config(), description, std::move(state));
 }
 
 void BasicSwapchain::createAttachments() {
     findDepthFormat();
-    auto const swapchainImages = getSwapchainImages();
+    auto swapchainImages = getSwapchainImages();
 
     createMsaaAttachments();
     createDepthAttachments();
-    createResolveAttachments(swapchainImages);
+    createResolveAttachments(std::move(swapchainImages));
 
 }
 
@@ -468,7 +477,7 @@ void BasicSwapchain::createFramebuffers() {
     for(size_t i = 0; i < imageCount(); i++) {
         std::array attachments = {_msaaAttachments->view(i), _depthAttachments->view(i), _resolveAttachments->view(i)};
 
-        _swapchainFramebuffers.emplace_back(_core, _renderPass.get(), _extent, attachments);
+        _swapchainFramebuffers.emplace_back(_core, _renderPass.get(), attachments, _extent);
     }
 }
 
@@ -495,9 +504,11 @@ void BasicSwapchain::destroyResources() {
     destroyRenderConstructs();
 
 
-    [[maybe_unused]] auto const resolveAttachmentState = _resolveAttachments->release();
-    for(auto& view : resolveAttachmentState.vkImageViews)
-        _core->destructionQueue()->push(view);
+    auto resolveAttachmentState = _resolveAttachments->release();
+    for(auto const& image : resolveAttachmentState.images)
+        [[maybe_unused]] auto const result = image->release();
+    resolveAttachmentState.views.clear();
+
 
     _resolveAttachments = nullptr;
     _depthAttachments = nullptr;

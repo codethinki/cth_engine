@@ -8,7 +8,9 @@
 #include "vulkan/render/control/CthPipelineBarrier.hpp"
 
 //pass
-#include "vulkan/render/pass/cth_render_pass_utils.hpp"
+#include "vulkan/render/pass/CthAttachmentCollection.hpp"
+#include "vulkan/render/pass/CthRenderPass.hpp"
+#include "vulkan/render/pass/CthSubpass.hpp"
 
 //pipeline
 #include "vulkan/render/pipeline/CthPipeline.hpp"
