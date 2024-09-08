@@ -1,7 +1,7 @@
 #include "PhysicalDeviceFeatures.hpp"
 
 // ReSharper disable once CppUnusedIncludeDirective
-#include "../utility/cth_vk_format.hpp"
+#include "../cth_vk_format.hpp"
 
 #include "vulkan/base/CthPhysicalDevice.hpp"
 

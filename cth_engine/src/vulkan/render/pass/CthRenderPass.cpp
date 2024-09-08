@@ -9,7 +9,7 @@
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/resource/image/Framebuffer.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 namespace cth::vk {
 RenderPass::RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses,

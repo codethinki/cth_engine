@@ -2,7 +2,7 @@
 
 #include "vulkan/resource/image/CthImage.hpp"
 #include "vulkan/resource/image/CthImageView.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {

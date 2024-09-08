@@ -4,7 +4,7 @@
 
 
 #include "vulkan/utility/device/PhysicalDeviceFeatures.hpp"
-#include "vulkan/utility/utility/cth_vk_types.hpp"
+#include "vulkan/utility/cth_vk_types.hpp"
 
 #include<cth/pointers.hpp>
 #include <vulkan/vulkan.h>
@@ -133,15 +133,15 @@ public:
     /**
      * @throws cth::vk::result_exception result of @ref vkGetPhysicalDeviceProperties()
      */
-    static [[nodiscard]] std::vector<std::string> getExtensions(vk::not_null<VkPhysicalDevice> vk_device);
+   [[nodiscard]] static std::vector<std::string> getExtensions(vk::not_null<VkPhysicalDevice> vk_device);
 
-    static [[nodiscard]] VkPhysicalDeviceProperties getProperties(vk::not_null<VkPhysicalDevice> vk_device);
+   [[nodiscard]] static VkPhysicalDeviceProperties getProperties(vk::not_null<VkPhysicalDevice> vk_device);
 
-    static [[nodiscard]] VkPhysicalDeviceMemoryProperties getMemoryProperties(vk::not_null<VkPhysicalDevice> vk_device);
+   [[nodiscard]] static VkPhysicalDeviceMemoryProperties getMemoryProperties(vk::not_null<VkPhysicalDevice> vk_device);
 
-    static [[nodiscard]] std::vector<QueueFamily> getQueueFamilies(Surface const& surface, vk::not_null<VkPhysicalDevice> vk_device);
+   [[nodiscard]] static std::vector<QueueFamily> getQueueFamilies(Surface const& surface, vk::not_null<VkPhysicalDevice> vk_device);
 
-    static [[nodiscard]] VkSampleCountFlagBits evalMaxSampleCount(VkPhysicalDeviceProperties const& properties);
+   [[nodiscard]] static VkSampleCountFlagBits evalMaxSampleCount(VkPhysicalDeviceProperties const& properties);
 
 private:
     Instance const* _instance;

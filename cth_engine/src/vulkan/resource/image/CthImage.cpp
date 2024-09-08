@@ -7,7 +7,7 @@
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/render/control/CthPipelineBarrier.hpp"
 #include "vulkan/resource/CthDestructionQueue.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {

@@ -14,8 +14,9 @@
 #include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/resource/image/Framebuffer.hpp"
 #include "vulkan/surface/CthSurface.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
 
+#include <vulkan/utility/cth_vk_overloads.hpp>
+#include <vulkan/utility/cth_vk_exceptions.hpp>
 
 
 namespace cth::vk {
@@ -206,29 +207,32 @@ void BasicSwapchain::createSyncObjects() {
         _imageAvailableFences.emplace_back(_core, VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
-VkSurfaceFormatKHR BasicSwapchain::chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> const& available_formats) {
-    auto const it = std::ranges::find_if(available_formats, [](VkSurfaceFormatKHR const& available_format) {
-        return available_format.format == VK_FORMAT_B8G8R8A8_SRGB && available_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-    });
+VkSurfaceFormatKHR BasicSwapchain::chooseSwapSurfaceFormat(std::span<VkSurfaceFormatKHR const> available_formats,
+    std::span<VkSurfaceFormatKHR const> allowed_formats) {
+    for(auto const& format : allowed_formats)
+        if(std::ranges::contains(available_formats, format)) return format;
 
-    CTH_STABLE_WARN(it == available_formats.end(), "no suitable format found, choosing [0]") return available_formats[0];
 
-    return *it;
+    CTH_STABLE_WARN(true, "no suitable format found, choosing first available") {
+        details->add("available: {}", available_formats);
+        details->add("allowed: {}", allowed_formats);
+        details->add("chosen: {}", available_formats[0]);
+        return available_formats[0];
+    }
 }
-VkPresentModeKHR BasicSwapchain::chooseSwapPresentMode(std::vector<VkPresentModeKHR> const& available_present_modes) {
-    auto const it = std::ranges::find(available_present_modes, VK_PRESENT_MODE_MAILBOX_KHR);
+VkPresentModeKHR BasicSwapchain::chooseSwapPresentMode(std::span<VkPresentModeKHR const> available_present_modes,
+    std::span<VkPresentModeKHR const> allowed_present_modes) {
+    for(auto const mode : allowed_present_modes)
+        if(std::ranges::contains(available_present_modes, mode)) {
+            cth::log::msg<except::INFO>("present mode: ", mode);
+            return mode;
+        }
 
-    /* if(it != available_present_modes.end()) {
-        cth::log::msg<except::INFO>("present mode: MAILBOX");
-        return VK_PRESENT_MODE_MAILBOX_KHR;
-    }*/
-
-    //VK_PRESENT_MODE_IMMEDIATE_KHR
-
-
-    cth::log::msg<except::INFO>("present mode: FIFO (V-Sync)");
+    CTH_STABLE_WARN(true, "none of the allowed present modes were available, falling back to FIFO") {
+        details->add("available: {}", available_present_modes);
+        details->add("allowed: {}", allowed_present_modes);
+    }
     return VK_PRESENT_MODE_FIFO_KHR;
-
 }
 VkExtent2D BasicSwapchain::chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities) {
     if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) return capabilities.currentExtent;
@@ -294,8 +298,11 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
     auto const presentModes = _surface->presentModes(*_core->physicalDevice());
     auto const capabilities = _surface->capabilities(*_core->physicalDevice());
 
-    VkSurfaceFormatKHR const surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats);
-    VkPresentModeKHR const presentMode = chooseSwapPresentMode(presentModes);
+    auto const allowedSurfaceFormats = std::vector<VkSurfaceFormatKHR>{{VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}};
+    auto const allowedPresentModes = std::vector{VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR};
+
+    VkSurfaceFormatKHR const surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats, allowedSurfaceFormats);
+    VkPresentModeKHR const presentMode = chooseSwapPresentMode(presentModes, allowedPresentModes);
     VkExtent2D const extent = chooseSwapExtent(window_extent, capabilities);
 
     uint32_t const imageCount = evalMinImageCount(capabilities.minImageCount, capabilities.maxImageCount);

@@ -32,7 +32,6 @@
     <ClInclude Include="src\interface\render\CthRenderer.hpp" />
     <ClInclude Include="src\vulkan\surface\swapchain\CthBasicSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
-    <ClInclude Include="src\vulkan\utility\cth_vk_utils.hpp" />
     <ClInclude Include="src\vulkan\render\pipeline\layout\CthPipelineLayout.hpp" />
     <ClInclude Include="src\CthEngine.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthImage.hpp" />
@@ -69,15 +68,18 @@
     <ClInclude Include="src\vulkan\utility\constant\cth_device_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
-    <ClInclude Include="src\vulkan\utility\utility\cth_vk_format.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_vk_format.hpp" />
     <ClInclude Include="src\interface\render\CthRenderCycle.hpp" />
     <ClInclude Include="src\vulkan\resource\image\Framebuffer.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthSubpass.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthAttachmentCollection.hpp" />
-    <ClInclude Include="src\vulkan\utility\utility\cth_vk_types.hpp" />
-    <ClInclude Include="src\vulkan\utility\utility\cth_vk_exceptions.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_vk_types.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_vk_exceptions.hpp" />
     <ClInclude Include="src\pch\glob\glm.hpp" />
     <ClInclude Include="src\pch\glob\glfw.hpp" />
+    <ClInclude Include="src\vulkan\utility\cth_vk_overloads.hpp" />
+    <ClInclude Include="src\vulkan\utility\format\cth_vk_to_string.hpp" />
+    <ClInclude Include="src\vulkan\utility\format\cth_vk_format_string.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />
@@ -85,6 +87,7 @@
     <None Include="doc\tinygltf.md" />
     <None Include="src\vulkan\resource\buffer\CthBuffer.inl" />
     <None Include="src\interface\render\CthRenderer.inl" />
+    <None Include="src\vulkan\utility\format\cth_vk_to_string.inl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\interface\object\HlcStandardObject.cpp" />

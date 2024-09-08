@@ -1,7 +1,7 @@
 #include "CthSampler.hpp"
 
 #include "vulkan/base/CthCore.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 //Sampler

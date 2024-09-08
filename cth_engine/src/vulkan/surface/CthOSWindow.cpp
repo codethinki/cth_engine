@@ -4,7 +4,7 @@
 #include "interface/user/HlcInputController.hpp"
 #include "vulkan/base/CthInstance.hpp"
 #include "vulkan/resource/CthDestructionQueue.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 #include <vulkan/vulkan_win32.h>

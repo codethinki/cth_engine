@@ -4,7 +4,7 @@
 #include "CthDescriptorPool.hpp"
 #include "vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
 // ReSharper disable once CppUnusedIncludeDirective
-#include "vulkan/utility/utility/cth_vk_format.hpp"
+#include "vulkan/utility/cth_vk_format.hpp"
 
 
 //DescriptorSet

@@ -3,7 +3,7 @@
 #include "CthQueue.hpp"
 #include "vulkan/base/CthInstance.hpp"
 #include "vulkan/surface/CthSurface.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {
@@ -171,7 +171,7 @@ auto PhysicalDevice::findSupportedFormat(span<VkFormat const> candidates, VkImag
 auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vector<uint32_t> {
     DEBUG_CHECK_PHYSICAL_DEVICE(this);
 
-    vector<vector<uint32_t>> queueIndices(queues.size());
+    vector<vector<uint32_t>> queueIndices{queues.size()};
 
     for(auto [queue, indices] : std::views::zip(queues, queueIndices)) {
         auto const requiredProperties = queue.familyProperties();
@@ -180,11 +180,12 @@ auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vecto
             if(support) indices.push_back(index);
         }
     }
+    std::vector<size_t> familiesMaxQueues(_queueFamilies.size());
 
-    auto const familiesMaxQueues = _queueFamilies | std::views::transform([](QueueFamily const& family) { return family.vkProperties.queueCount; }) |
-        std::ranges::to<vector<size_t>>();
+    for(auto [src, dst] : std::views::zip(_queueFamilies, familiesMaxQueues))
+        dst = src.vkProperties.queueCount;
 
-    auto const result = algorithm::assign(queueIndices, familiesMaxQueues);
+    auto const result = cth::algorithm::assign(queueIndices, familiesMaxQueues);
     return result;
 }
 bool PhysicalDevice::supportsQueueSet(span<Queue const> queues) const {

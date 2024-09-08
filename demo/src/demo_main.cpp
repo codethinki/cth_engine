@@ -3,6 +3,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include "cth_engine/src/vulkan/utility/cth_vk_format.hpp"
+
 
 
 using namespace std;

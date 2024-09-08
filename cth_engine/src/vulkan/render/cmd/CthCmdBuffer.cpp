@@ -2,7 +2,7 @@
 
 #include "CthCmdPool.hpp"
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {

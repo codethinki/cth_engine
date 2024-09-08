@@ -2,7 +2,7 @@
 
 #include "vulkan/base/CthQueue.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 #include<cth/io/log.hpp>
 

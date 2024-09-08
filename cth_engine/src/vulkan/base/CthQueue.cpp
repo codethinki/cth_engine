@@ -5,7 +5,7 @@
 #include "vulkan/render/control/CthSemaphore.hpp"
 #include "vulkan/render/control/CthTimelineSemaphore.hpp"
 #include "vulkan/surface/swapchain/CthBasicSwapchain.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 

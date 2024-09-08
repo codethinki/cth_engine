@@ -1,6 +1,6 @@
 #pragma once
 #include "../cth_constants.hpp"
-#include "../utility/cth_vk_types.hpp"
+#include "../cth_vk_types.hpp"
 
 #include <gsl/pointers>
 

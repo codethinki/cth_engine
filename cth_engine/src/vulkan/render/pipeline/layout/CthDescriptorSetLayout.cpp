@@ -2,7 +2,7 @@
 
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/resource/descriptor/CthDescriptor.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {

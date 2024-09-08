@@ -90,8 +90,8 @@ private:
     void createSyncObjects();
 
     //createSwapchain
-    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<VkSurfaceFormatKHR> const& available_formats);
-    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(std::vector<VkPresentModeKHR> const& available_present_modes);
+    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::span<VkSurfaceFormatKHR const> available_formats, std::span<VkSurfaceFormatKHR const> allowed_formats);
+    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(std::span<VkPresentModeKHR const> available_present_modes, std::span<VkPresentModeKHR const> allowed_present_modes);
     [[nodiscard]] static VkExtent2D chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities);
     [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
     [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(VkSurfaceKHR surface,

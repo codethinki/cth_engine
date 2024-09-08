@@ -26,7 +26,7 @@ public:
     void reset(VkCommandBufferResetFlags flags = 0) const;
     virtual void begin() const = 0;
 
-    [[nodiscard]] void end() const;
+   void end() const;
 
     static void free(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers);
     static void free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buffer);

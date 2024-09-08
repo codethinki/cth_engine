@@ -108,7 +108,7 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
           .addWaitSets<PHASE_GRAPHICS>(sync_config->imageAvailableSemaphores(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)
           .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores());
     return config;
-}
+} 
 
 
 

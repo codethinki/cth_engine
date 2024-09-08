@@ -5,7 +5,7 @@
 #include "CthInstance.hpp"
 #include "CthPhysicalDevice.hpp"
 #include "CthQueue.hpp"
-#include "vulkan/utility/cth_vk_utils.hpp"
+#include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {
@@ -69,7 +69,7 @@ void Device::createLogicalDevice() {
             .pQueuePriorities = &queuePriority,
         });
 
-    auto const requiredExtensions = utils::to_c_str_vector(_physicalDevice->requiredExtensions());
+    auto const requiredExtensions = str::to_c_str_vector(_physicalDevice->requiredExtensions());
 
 
     VkDeviceCreateInfo const createInfo{
