@@ -15,8 +15,8 @@
 #include "vulkan/resource/image/Framebuffer.hpp"
 #include "vulkan/surface/CthSurface.hpp"
 
-#include <vulkan/utility/cth_vk_overloads.hpp>
 #include <vulkan/utility/cth_vk_exceptions.hpp>
+#include <vulkan/utility/cth_vk_overloads.hpp>
 
 
 namespace cth::vk {
@@ -224,7 +224,7 @@ VkPresentModeKHR BasicSwapchain::chooseSwapPresentMode(std::span<VkPresentModeKH
     std::span<VkPresentModeKHR const> allowed_present_modes) {
     for(auto const mode : allowed_present_modes)
         if(std::ranges::contains(available_present_modes, mode)) {
-            cth::log::msg<except::INFO>("present mode: ", mode);
+            cth::log::msg<except::INFO>("present mode: {}", mode);
             return mode;
         }
 
@@ -299,7 +299,7 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
     auto const capabilities = _surface->capabilities(*_core->physicalDevice());
 
     auto const allowedSurfaceFormats = std::vector<VkSurfaceFormatKHR>{{VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}};
-    auto const allowedPresentModes = std::vector{VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR};
+    std::vector<VkPresentModeKHR> const allowedPresentModes{VK_PRESENT_MODE_FIFO_KHR}; //TEMP change to always FIFO {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR};
 
     VkSurfaceFormatKHR const surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats, allowedSurfaceFormats);
     VkPresentModeKHR const presentMode = chooseSwapPresentMode(presentModes, allowedPresentModes);

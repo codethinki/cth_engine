@@ -5,6 +5,8 @@
 
 #include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 
+//TEMP modernize
+
 namespace cth::vk {
 class Core;
 
@@ -12,34 +14,55 @@ class Sampler {
 
 public:
     struct Config;
+    struct State;
+
 
     explicit Sampler(cth::not_null<Core const*> core, Config const& config);
     ~Sampler();
 
-private:
+    void wrap(State const& state);
     void create(Config const& config);
 
+    void destroy();
+    void optDestroy() { if(created()) destroy(); }
+
+    static void destroy(vk::not_null<VkDevice> device, VkSampler sampler);
+
+private:
+    void reset();
+
     cth::not_null<Core const*> _core;
+
     move_ptr<VkSampler_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] VkSampler get() const { return _handle.get(); }
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+
 
     Sampler(Sampler const& other) = delete;
-    Sampler(Sampler&& other) = delete;
     Sampler& operator=(Sampler const& other) = delete;
-    Sampler& operator=(Sampler&& other) = delete;
+    Sampler(Sampler&& other) noexcept = default;
+    Sampler& operator=(Sampler&& other) noexcept = default;
+
+#ifdef CONSTANT_DEBUG_MODE
+    static void debug_check(cth::not_null<Sampler*> sampler);
+    static void debug_check_handle(vk::not_null<VkSampler> sampler);
+
+#define DEBUG_CHECK_SAMPLER(sampler) Sampler::debug_check(sampler)
+#define DEBUG_CHECK_SAMPLER_HANDLE(vk_sampler) Sampler::debug_check_handle(vk_sampler)
+#else
+#define DEBUG_CHECK_SAMPLER(sampler) ((void)0)
+#define DEBUG_CHECK_SAMPLER_HANDLE(vk_sampler) ((void)0)
+#endif
+
 };
 }
 
 //Config
+
 namespace cth::vk {
-
-
 struct Sampler::Config {
-    Config() = default;
-    //explicit Config(const VkSamplerCreateInfo& create_info);
-
     std::array<VkFilter, 2> filters{VK_FILTER_LINEAR, VK_FILTER_LINEAR}; //minFilter, magFilter
     std::array<VkSamplerAddressMode, 3> addressModes{VK_SAMPLER_ADDRESS_MODE_REPEAT}; //u, v, w
 
@@ -56,23 +79,16 @@ struct Sampler::Config {
 
     [[nodiscard]] VkSamplerCreateInfo createInfo() const;
 
-    [[nodiscard]] static Config Default();
-
     friend Sampler;
 };
+} // namespace cth
 
-inline Sampler::Config Sampler::Config::Default() {
-    Config defaultConfig;
-    defaultConfig.filters = {VK_FILTER_LINEAR, VK_FILTER_LINEAR};
-    defaultConfig.addressModes = {VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
-    defaultConfig.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    defaultConfig.lodBias = 0.0f;
-    defaultConfig.lod = {0.0f, VK_LOD_CLAMP_NONE};
-    defaultConfig.maxAnisotropy = 16;
-    defaultConfig.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    defaultConfig.compareOp = VK_COMPARE_OP_NEVER;
-    defaultConfig.unnormalizedCoordinates = VK_FALSE;
-    return defaultConfig;
+//State
+
+namespace cth::vk {
+struct Sampler::State {
+    vk::not_null<VkSampler> vkSampler;
+};
+
 }
 
-} // namespace cth

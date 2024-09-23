@@ -3,6 +3,8 @@
 
 #include "vulkan/resource/image/CthImage.hpp"
 
+//TEMP modernize
+
 namespace cth::vk {
 
 class Texture : public Image {
@@ -39,7 +41,7 @@ private:
      * @param first first - 1 => src level
      * @note src must be transfer src optimal
      */
-    void blitMipLevels(CmdBuffer const& cmd_buffer, int32_t first = 1, int32_t levels = 0);
+    void blitMipLevels(CmdBuffer const& cmd_buffer, uint32_t first = 1, uint32_t levels = 0);
 
     [[nodiscard]] static Image::Config imageConfig(VkExtent2D extent, Config const& config);
 };

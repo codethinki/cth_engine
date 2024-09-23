@@ -5,7 +5,6 @@ layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
 layout(location = 2) in vec2 uv;
 
-layout(location = 0)  out vec4 outColor;
 layout(location = 1) out vec3 fragNomal;
 layout(location = 2) out vec2 fragUV;
 
@@ -18,7 +17,6 @@ void main(){
 	//gl_Position =  ubo.viewMatrix * positionW;
 	//outColor = push.color;
 	gl_Position = vec4(position, 1);
-	outColor = vec4(normal.x + uv.x, normal.y + uv.y, 1, 1);
 	fragNomal = normal;
 	fragUV = uv;
 }

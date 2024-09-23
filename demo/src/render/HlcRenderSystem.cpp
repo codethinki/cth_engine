@@ -95,7 +95,7 @@ void RenderSystem::loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer) {
 
 
 void RenderSystem::createDescriptorSets() {
-    _textureSampler = std::make_unique<vk::Sampler>(_core, vk::Sampler::Config::Default());
+    _textureSampler = std::make_unique<vk::Sampler>(_core, vk::Sampler::Config{});
 
 
     _textureView = std::make_unique<vk::ImageView>(_core, vk::ImageView::Config::Default(), _texture.get());

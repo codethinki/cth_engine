@@ -23,7 +23,7 @@ class DestructionQueue {
 public:
     using destructible_handle_t = std::variant<
         VkDeviceMemory, VkBuffer, VkImage,
-        VkImageView,
+        VkImageView, VkSampler,
         VkSemaphore, VkFence,
         VkCommandPool,
         VkRenderPass,

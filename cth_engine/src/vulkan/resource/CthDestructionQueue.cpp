@@ -18,6 +18,7 @@
 
 
 #include "image/CthImageView.hpp"
+#include "image/texture/CthSampler.hpp"
 
 #include "interface/render/CthRenderer.hpp"
 
@@ -65,6 +66,7 @@ void DestructionQueue::clear(size_t  cycle_sub_index) {
                     [this](VkBuffer vk_buffer) { BaseBuffer::destroy(_device->get(), vk_buffer); },
                     [this](VkImage vk_image) { Image::destroy(_device->get(), vk_image); },
                     [this](VkImageView vk_image_view) { ImageView::destroy(_device->get(), vk_image_view); },
+                    [this](VkSampler vk_sampler) { Sampler::destroy(_device->get(), vk_sampler); },
                     [this](VkSemaphore vk_semaphore) { Semaphore::destroy(_device->get(), vk_semaphore); },
                     [this](VkFence vk_fence) { Fence::destroy(_device->get(), vk_fence); },
                     [this](VkCommandPool vk_cmd_pool) { CmdPool::destroy(_device->get(), vk_cmd_pool); },

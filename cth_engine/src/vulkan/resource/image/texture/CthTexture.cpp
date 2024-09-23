@@ -21,7 +21,6 @@ Texture::Texture(cth::not_null<Core const*> core, VkExtent2D extent, Config cons
     BaseBuffer const& staging_buffer, size_t buffer_offset) : Image{core, imageConfig(extent, config),
     extent} { init(cmd_buffer, staging_buffer, buffer_offset); }
 
-
 void Texture::init(CmdBuffer const& cmd_buffer, BaseBuffer const& buffer, size_t offset) {
     CTH_ERR(_levelLayouts[0] == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, "already initialized")
         throw details->exception();
@@ -48,22 +47,23 @@ Image::Config Texture::imageConfig(VkExtent2D extent, Config const& config) {
     };
 }
 
-void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, int32_t first, int32_t levels) {
+void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, uint32_t first, uint32_t levels) {
     if(levels == 0) levels = mipLevels() - first;
 
     CTH_ERR(_levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal")
         throw details->exception();
-    CTH_ERR(std::ranges::any_of(_levelLayouts.begin() + first, _levelLayouts.begin() + first + levels, [](const VkImageLayout layout){\
+    CTH_ERR(std::ranges::any_of(_levelLayouts.begin() + first, _levelLayouts.begin() + first + levels, [](VkImageLayout const layout){\
         return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }), "image layouts not transfer dst optimal")
         throw details->exception();
 
     ImageBarrier toSrcBarrier{VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
     ImageBarrier shaderBarrier{VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT};
 
-    auto width = static_cast<int32_t>(extent().width);
-    auto height = static_cast<int32_t>(extent().height);
+    auto const extent = this->extent();
+    auto width = static_cast<int32_t>(extent.width);
+    auto height = static_cast<int32_t>(extent.height);
 
-    for(int32_t i = first; i < first + levels; i++) {
+    for(uint32_t i = first; i < first + levels; i++) {
         if(i != first) {
             transitionLayout(toSrcBarrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, i - 1, 1);
 
@@ -71,25 +71,30 @@ void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, int32_t first, int32_t 
             toSrcBarrier.remove(this);
         }
 
-        VkImageBlit blit{};
-        blit.srcOffsets[0] = {0, 0, 0};
-        blit.srcOffsets[1] = {(width >> (i - 1)), (height >> (i - 1)), 1};
-        blit.srcSubresource.aspectMask = aspectMask();
-        blit.srcSubresource.mipLevel = i - 1;
-        blit.srcSubresource.baseArrayLayer = 0;
-        blit.srcSubresource.layerCount = 1;
-        blit.dstOffsets[0] = {0, 0, 0};
-        blit.dstOffsets[1] = {width > 1 ? width / 2 : 1, height > 1 ? height / 2 : 1, 1};
-        blit.dstSubresource.aspectMask = aspectMask();
-        blit.dstSubresource.mipLevel = i;
-        blit.dstSubresource.baseArrayLayer = 0;
-        blit.dstSubresource.layerCount = 1;
+        auto const hWidth = width > 1 ? width / 2 : 1;
+        auto const hHeight = height > 1 ? height / 2 : 1;
 
+        VkImageBlit blit{
+            .srcSubresource{
+                .aspectMask = static_cast<VkImageAspectFlags>(aspectMask()),
+                .mipLevel = i - 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .srcOffsets = {{0, 0, 0}, {width, height, 1}},
+            .dstSubresource{
+                .aspectMask = static_cast<VkImageAspectFlags>(aspectMask()),
+                .mipLevel = i,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .dstOffsets = {{0, 0, 0}, {hWidth, hHeight, 1}},
+        };
         vkCmdBlitImage(cmd_buffer.get(), get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
             VK_FILTER_LINEAR);
 
-        if(width > 1) width >>= 1;
-        if(height > 1) height >>= 1;
+        width = hWidth;
+        height = hHeight;
 
         if(i == first) continue;
 
