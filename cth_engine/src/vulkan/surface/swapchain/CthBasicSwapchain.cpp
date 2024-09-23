@@ -299,7 +299,8 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
     auto const capabilities = _surface->capabilities(*_core->physicalDevice());
 
     auto const allowedSurfaceFormats = std::vector<VkSurfaceFormatKHR>{{VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}};
-    std::vector<VkPresentModeKHR> const allowedPresentModes{VK_PRESENT_MODE_FIFO_KHR}; //TEMP change to always FIFO {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR};
+    std::vector<VkPresentModeKHR> const allowedPresentModes{VK_PRESENT_MODE_FIFO_KHR};
+    //TEMP change to always FIFO {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR};
 
     VkSurfaceFormatKHR const surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats, allowedSurfaceFormats);
     VkPresentModeKHR const presentMode = chooseSwapPresentMode(presentModes, allowedPresentModes);
@@ -523,10 +524,14 @@ void BasicSwapchain::destroyResources() {
 }
 
 void BasicSwapchain::destroySwapchain() {
+    auto const lambda = [device = _core->vkDevice(), swapchain = _handle.get()]() { destroy(device, swapchain); };
+
     auto const& queue = _core->destructionQueue();
 
-    if(queue) queue->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
+    if(queue) queue->push(lambda);
+    else lambda();
+
+    reset();
 }
 
 void BasicSwapchain::destroySyncObjects(DestructionQueue* destruction_queue) {

@@ -3,6 +3,7 @@
 #include "CthImageView.hpp"
 #include "../CthDestructionQueue.hpp"
 #include "vulkan/base/CthCore.hpp"
+#include "vulkan/base/CthDevice.hpp"
 #include "vulkan/render/pass/CthAttachmentCollection.hpp"
 #include "vulkan/render/pass/CthRenderPass.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
@@ -58,12 +59,14 @@ void Framebuffer::create(VkExtent2D extent) {
 }
 void Framebuffer::destroy() {
     DEBUG_CHECK_FRAMEBUFFER(this);
-    // ReSharper disable once CppTooWideScope
+    auto const lambda = [vk_device = _core->vkDevice(), vk_framebuffer = _handle.get()]() { destroy(vk_device, vk_framebuffer); };
+
     auto const queue = _core->destructionQueue();
 
-    if(queue) queue->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
+    if(queue) queue->push(lambda);
+    else lambda();
 
+    //TEMP use reset();
     _handle = nullptr;
 }
 Framebuffer::State Framebuffer::release() {

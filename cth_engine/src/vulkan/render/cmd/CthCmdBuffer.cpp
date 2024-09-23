@@ -30,15 +30,12 @@ void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, std::span<VkCommand
 
     vkFreeCommandBuffers(device, vk_pool, static_cast<uint32_t>(buffers.size()), buffers.data());
 }
-void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buffer) {
-    DEBUG_CHECK_DEVICE_HANDLE(device);
-    bool const valid = buffer != VK_NULL_HANDLE;
-    CTH_WARN(!valid, "vk_buffer is invalid (VK_NULL_HANDLE)") {}
-    CTH_ERR(valid && vk_pool != VK_NULL_HANDLE, "vk_pool is invalid (VK_NULL_HANDLE)")
-        throw details->exception();
+void CmdBuffer::free(vk::not_null<VkDevice> device, vk::not_null<VkCommandPool> vk_pool, VkCommandBuffer buffer) {
+
+    CTH_WARN(buffer == VK_NULL_HANDLE, "vk_buffer is invalid (VK_NULL_HANDLE)") {}
 
 
-    vkFreeCommandBuffers(device, vk_pool, 1, &buffer);
+    vkFreeCommandBuffers(device.get(), vk_pool.get(), 1, &buffer);
 }
 void CmdBuffer::begin( VkCommandBufferBeginInfo const& info) const {
     auto const result = vkBeginCommandBuffer(_handle.get(), &info);

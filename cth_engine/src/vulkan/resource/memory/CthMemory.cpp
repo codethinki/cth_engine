@@ -79,11 +79,13 @@ void Memory::unmap() const { vkUnmapMemory(_core->vkDevice(), _handle.get()); }
 void Memory::destroy() {
     DEBUG_CHECK_MEMORY(this);
 
+    auto const lambda = [vk_device = _core->vkDevice(), handle = _handle.get()] { destroy(vk_device, handle); };
+
     auto const queue = _core->destructionQueue();
+    if(queue) queue->push(lambda);
+    else lambda();
 
-    if(queue) queue->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
-
+    //TEMP call reset
     _handle = VK_NULL_HANDLE;
     _size = 0;
 }

@@ -25,10 +25,11 @@ void Semaphore::create() {
 void Semaphore::destroy() {
     DEBUG_CHECK_SEMAPHORE(this);
 
-    auto const queue = _core->destructionQueue();
+    auto const lambda = [vk_device = _core->vkDevice(), vk_semaphore = _handle.get()]() { destroy(vk_device, vk_semaphore); };
 
-    if(queue) queue->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
+    auto const queue = _core->destructionQueue();
+    if(queue) queue->push(lambda);
+    else lambda();
 
     reset();
 }

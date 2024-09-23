@@ -28,14 +28,17 @@ OSWindow::~OSWindow() {
         Surface::destroy(_instance->get(), _surface.get());
         _surface = nullptr;
     }
-    if(_handle) destroy();
+    if(_handle) destroy(); //TEMP use created() instead
 }
 void OSWindow::destroy(DestructionQueue* destruction_queue) {
     if(destruction_queue) _destructionQueue = destruction_queue;
 
-    if(_destructionQueue) _destructionQueue->push(_handle.get());
-    else destroy(_handle.get());
+    auto const lambda = [handle = _handle.get()] { destroy(handle); };
 
+    if(_destructionQueue) _destructionQueue->push(lambda);
+    else lambda();
+
+    //TEMP call reset
     _handle = nullptr;
 }
 

@@ -17,7 +17,7 @@ class CmdBuffer;
 class PrimaryCmdBuffer;
 class SecondaryCmdBuffer;
 
-
+//TEMP modernize
 class CmdPool {
 public:
     struct Config;

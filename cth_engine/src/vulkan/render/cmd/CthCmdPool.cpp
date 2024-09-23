@@ -23,23 +23,22 @@ CmdPool::~CmdPool() { destroy(); }
 void CmdPool::destroy(DestructionQueue* destruction_queue) {
     DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(destruction_queue);
     CTH_ERR(_primaryBuffers.size() != _config.maxPrimaryBuffers, "all primary cmd buffers must be destroyed prior to the pool")
-        throw details->exception();
+        throw details->exception(); //TEMP debug check buffers returned
     CTH_ERR(_secondaryBuffers.size() != _config.maxSecondaryBuffers, "all secondary cmd buffers must be destroyed prior to the pool")
-        throw details->exception();
+        throw details->exception(); //TEMP debug check buffers returned
 
-    if(destruction_queue) {
-        for(auto& primary : _primaryBuffers) destruction_queue->push(primary, _handle.get());
-        for(auto& secondary : _secondaryBuffers) destruction_queue->push(secondary, _handle.get());
-        destruction_queue->push(_handle.get());
 
-        return;
-    }
-    if(_config.maxPrimaryBuffers > 0) CmdBuffer::free(_core->vkDevice(), _handle.get(), _primaryBuffers);
-    if(_config.maxSecondaryBuffers > 0) CmdBuffer::free(_core->vkDevice(), _handle.get(), _secondaryBuffers);
+    std::vector const buffers{std::from_range, ranges::views::concat(_primaryBuffers, _secondaryBuffers)};
+    std::array<DestructionQueue::function_t, 2> const lambdas{
+        [vk_device = _core->vkDevice(), vk_pool = _handle.get(), buffers] { CmdBuffer::free(vk_device, vk_pool, buffers); },
+        [vk_device = _core->vkDevice(), vk_pool = _handle.get()] { destroy(vk_device, vk_pool); },
+    };
 
-    destroy(_core->vkDevice(), _handle.get());
 
-    _handle = VK_NULL_HANDLE;
+    if(destruction_queue) destruction_queue->push(lambdas);
+    else for(auto& lambda : lambdas) lambda();
+
+    _handle = VK_NULL_HANDLE; //TEMP call reset here
 }
 
 void CmdPool::newCmdBuffer(PrimaryCmdBuffer* buffer) {
@@ -131,7 +130,7 @@ void CmdPool::alloc() {
 //Config
 
 namespace cth::vk {
-CmdPool::Config CmdPool::Config::Default(Queue const& queue, uint32_t  max_primary_buffers, uint32_t  max_secondary_buffers) {
+CmdPool::Config CmdPool::Config::Default(Queue const& queue, uint32_t max_primary_buffers, uint32_t max_secondary_buffers) {
     return Config{max_primary_buffers, max_secondary_buffers, queue.familyIndex()};
 }
 

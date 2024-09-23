@@ -1,75 +1,36 @@
 #pragma once
-#include "vulkan/base/CthDevice.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
-#include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
-
 #include <array>
-#include <variant>
 #include <vector>
 
 
-namespace cth::vk {
-struct Cycle;
-}
 
 namespace cth::vk {
-class Instance;
-class Device;
-class PhysicalDevice;
-
 class DestructionQueue {
 public:
-    using destructible_handle_t = std::variant<
-        VkDeviceMemory, VkBuffer, VkImage,
-        VkImageView, VkSampler,
-        VkSemaphore, VkFence,
-        VkCommandPool,
-        VkRenderPass,
-        VkFramebuffer,
-        VkSwapchainKHR,
-        VkSurfaceKHR,
-        GLFWwindow*>;
+    using function_t = std::function<void()>;
 
-    using dependent_handle_t = std::variant<
-        VkCommandBuffer
-    >;
-
-    explicit DestructionQueue(Device* device, PhysicalDevice* physical_device, Instance* instance);
+    explicit DestructionQueue() = default;
     ~DestructionQueue();
 
-    void push(destructible_handle_t handle);
-    void push(dependent_handle_t handle, destructible_handle_t dependency);
-
+    void push(function_t const& function);
+    void push(std::span<function_t const> functions);
 
     void clear();
     void clear(size_t cycle_sub_index);
 
 private:
-    using handle_t = std::variant<
-        destructible_handle_t,
-        dependent_handle_t
-    >;
-    struct destructible {
-        handle_t handle;
-        destructible_handle_t dependency;
-    };
-
     static constexpr size_t QUEUES = constants::FRAMES_IN_FLIGHT;
 
     size_t _cycleSubIndex = 0;
 
-    Device* _device;
-    PhysicalDevice* _physicalDevice;
-    Instance* _instance;
-
-    std::array<std::vector<destructible>, QUEUES> _queue;
+    std::array<std::vector<function_t>, QUEUES> _queue;
 
 public:
     DestructionQueue(DestructionQueue const& other) = delete;
-    DestructionQueue(DestructionQueue&& other) noexcept = default;
     DestructionQueue& operator=(DestructionQueue const& other) = delete;
+    DestructionQueue(DestructionQueue&& other) noexcept = default;
     DestructionQueue& operator=(DestructionQueue&& other) noexcept = default;
 
 #ifdef CONSTANT_DEBUG_MODE

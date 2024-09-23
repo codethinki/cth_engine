@@ -34,10 +34,12 @@ void Fence::create(VkFenceCreateFlags flags) {
 }
 void Fence::destroy() {
     DEBUG_CHECK_FENCE(this);
+    auto const lambda = [vk_device = _core->vkDevice(), vk_fence = _handle.get()] { destroy(vk_device, vk_fence); };
+
 
     auto const queue = _core->destructionQueue();
-    if(queue) queue->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
+    if(queue) queue->push(lambda);
+    else lambda();
 
 
     resetState();

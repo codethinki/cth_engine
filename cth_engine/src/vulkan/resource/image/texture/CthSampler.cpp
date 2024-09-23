@@ -37,9 +37,11 @@ void Sampler::create(Config const& config) {
 void Sampler::destroy() {
     DEBUG_CHECK_SAMPLER(this);
 
+    auto const lambda = [device = _core->vkDevice(), sampler = _handle.get()] { Sampler::destroy(device, sampler); };
+
     auto const queue = _core->destructionQueue();
-    if(queue) queue->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
+    if(queue) queue->push(lambda);
+    else lambda();
 
     reset();
 }

@@ -18,7 +18,7 @@ namespace cth::vk {
 class Instance;
 class Surface;
 //TODO implement DEBUG_CHECK_OS_WINDOW
-
+//TEMP modernize
 class OSWindow {
 public:
     OSWindow(Instance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent);

@@ -29,7 +29,7 @@ public:
    void end() const;
 
     static void free(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers);
-    static void free(VkDevice device, VkCommandPool vk_pool, VkCommandBuffer buffer);
+    static void free(not_null<VkDevice_T*> device, not_null<VkCommandPool_T*> vk_pool, VkCommandBuffer buffer);
 
 protected:
     void begin(VkCommandBufferBeginInfo const& info) const;

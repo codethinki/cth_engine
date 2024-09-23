@@ -31,8 +31,8 @@ void Core::create(Config const& config) {
     _instance = std::make_unique<Instance>(config.appName, config.requiredExtensions, std::nullopt);
     _physicalDevice = PhysicalDevice::AutoPick(_instance.get(), config.queues, {}, {});
     _device = std::make_unique<Device>(_instance.get(), _physicalDevice.get(), config.queues);
-    if(config.destructionQueue)
-        _destructionQueue = std::make_unique<DestructionQueue>(_device.get(), _physicalDevice.get(), _instance.get());
+
+    if(config.destructionQueue) _destructionQueue = std::make_unique<DestructionQueue>();
 }
 void Core::destroy() {
     DEBUG_CHECK_CORE(this);

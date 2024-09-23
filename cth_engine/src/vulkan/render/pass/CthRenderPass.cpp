@@ -100,13 +100,15 @@ void RenderPass::create() {
     _handle = ptr;
 }
 void RenderPass::destroy() {
-    CTH_ERR(!valid(), "render pass was already destroyed") throw details->exception();
-    if(!valid()) [[unlikely]] return;
+    DEBUG_CHECK_RENDER_PASS(this);
 
+    auto const lambda = [vk_device = _core->vkDevice(), handle = _handle.get()] { destroy(vk_device, handle); };
 
-    if(_core->destructionQueue()) _core->destructionQueue()->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
+    auto const queue = _core->destructionQueue();
+    if(queue) queue->push(lambda);
+    else lambda();
 
+    //TEMP use reset
     _handle = nullptr;
 }
 

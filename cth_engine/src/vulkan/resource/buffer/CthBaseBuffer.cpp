@@ -49,10 +49,11 @@ void BaseBuffer::create(VkMemoryPropertyFlags vk_memory_flags) {
 
 
 void BaseBuffer::destroy() {
-    auto const queue = _core->destructionQueue();
+    auto const lambda = [device = _core->vkDevice(), buffer = _handle.get()] { BaseBuffer::destroy(device, buffer); };
 
-    if(queue) queue->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
+    auto const queue = _core->destructionQueue();
+    if(queue) queue->push(lambda);
+    else lambda();
 
     reset();
 }

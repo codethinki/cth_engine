@@ -5,6 +5,7 @@
 #include "../CthDestructionQueue.hpp"
 
 #include "vulkan/base/CthCore.hpp"
+#include "vulkan/base/CthDevice.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
@@ -43,11 +44,12 @@ void ImageView::wrap(State const& state) {
 }
 void ImageView::destroy() {
     DEBUG_CHECK_IMAGE_VIEW(this);
+    auto const lambda = [vk_device = _core->vkDevice(), vk_image_view = _handle.get()]() { destroy(vk_device, vk_image_view); };
 
     auto const queue = _core->destructionQueue();
 
-    if(queue != nullptr) queue->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
+    if(queue) queue->push(lambda);
+    else lambda();
 
     reset();
 }

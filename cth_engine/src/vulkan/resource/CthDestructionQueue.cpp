@@ -31,64 +31,21 @@
 
 namespace cth::vk {
 
-DestructionQueue::DestructionQueue(Device* device, PhysicalDevice* physical_device, Instance* instance) : _device{device},
-    _physicalDevice{physical_device},
-    _instance{instance} {}
+
 DestructionQueue::~DestructionQueue() { clear(); }
-void DestructionQueue::push(destructible_handle_t handle) {
-    CTH_WARN(std::visit(var::visitor{[](auto handle) { return handle == VK_NULL_HANDLE; }}, handle),
-        "vkQueue should not be VK_NULL_HANDLE or nullptr") {}
 
-    _queue[_cycleSubIndex].emplace_back(handle);
+void DestructionQueue::push(function_t const& function) {
+    _queue[_cycleSubIndex].emplace_back(function);
 }
-void DestructionQueue::push(dependent_handle_t handle, destructible_handle_t dependency) {
-    bool const validHandle = std::visit(var::visitor{[](auto temp_handle) { return temp_handle != VK_NULL_HANDLE; }}, handle);
-    bool const validDependency = std::visit(var::visitor{[](auto temp_dependency) { return temp_dependency == VK_NULL_HANDLE; }}, dependency);
-    CTH_WARN(!validHandle, "vkQueue should not be VK_NULL_HANDLE or nullptr") {}
-    CTH_WARN(!validDependency, "dependency should not be VK_NULL_HANDLE or nullptr") {}
-
-    CTH_ERR(validHandle ^ validDependency, "vkQueue and dependency must both be valid or invalid") throw details->exception();
-
-    _queue[_cycleSubIndex].emplace_back(handle, dependency);
+void DestructionQueue::push(std::span<function_t const> functions) {
+    for(auto& function : functions) push(function);
 }
 
 
 
 void DestructionQueue::clear(size_t  cycle_sub_index) {
-
     auto& deletables = _queue[cycle_sub_index];
-    for(auto [deletable, dependency] : deletables) {
-        std::visit(cth::var::overload{
-            [this](destructible_handle_t handle) {
-                std::visit(cth::var::overload{
-                    //device destructible
-                    [this](VkDeviceMemory vk_memory) { Memory::destroy(_device->get(), vk_memory); },
-                    [this](VkBuffer vk_buffer) { BaseBuffer::destroy(_device->get(), vk_buffer); },
-                    [this](VkImage vk_image) { Image::destroy(_device->get(), vk_image); },
-                    [this](VkImageView vk_image_view) { ImageView::destroy(_device->get(), vk_image_view); },
-                    [this](VkSampler vk_sampler) { Sampler::destroy(_device->get(), vk_sampler); },
-                    [this](VkSemaphore vk_semaphore) { Semaphore::destroy(_device->get(), vk_semaphore); },
-                    [this](VkFence vk_fence) { Fence::destroy(_device->get(), vk_fence); },
-                    [this](VkCommandPool vk_cmd_pool) { CmdPool::destroy(_device->get(), vk_cmd_pool); },
-                    [this](VkRenderPass vk_render_pass) { RenderPass::destroy(_device->get(), vk_render_pass); },
-                    [this](VkFramebuffer vk_framebuffer) { Framebuffer::destroy(_device->get(), vk_framebuffer); },
-                    [this](VkSwapchainKHR vk_swapchain) { BasicSwapchain::destroy(_device->get(), vk_swapchain); },
-
-                    //instance destructible
-                    [this](VkSurfaceKHR vk_surface) { Surface::destroy(_instance->get(), vk_surface); },
-                    [](GLFWwindow* glfw_window) { OSWindow::destroy(glfw_window); },
-                }, handle);
-            },
-
-            [this, dependency](dependent_handle_t dependent) {
-                std::visit(cth::var::overload{
-                    [this, dependency](VkCommandBuffer vk_cmd_buffer) {
-                        CmdBuffer::free(_device->get(), std::get<VkCommandPool>(dependency), vk_cmd_buffer);
-                    },
-                }, dependent);
-            },
-        }, deletable);
-    }
+    for(auto& deletable : deletables) deletable();
     deletables.clear();
 }
 void DestructionQueue::clear() {

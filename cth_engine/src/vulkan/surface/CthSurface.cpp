@@ -26,10 +26,15 @@ void Surface::wrap(State const& state) {
     _handle = state.vkSurface.get();
 }
 void Surface::destroy() {
+    DEBUG_CHECK_SURFACE(this);
 
-    if(_destructionQueue) _destructionQueue->push(_handle.get());
-    else destroy(_instance->get(), _handle.get());
+    auto const lambda = [vk_instance = _instance->get(), vk_surface = _handle.get()]() { destroy(vk_instance, vk_surface); };
 
+
+    if(_destructionQueue) _destructionQueue->push(lambda);
+    else lambda();
+
+    //TEMP use reset()
     _handle = VK_NULL_HANDLE;
 }
 Surface::State Surface::release() {

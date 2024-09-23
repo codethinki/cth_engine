@@ -62,12 +62,14 @@ void Image::create(VkExtent2D extent) {
 void Image::destroy() {
     DEBUG_CHECK_IMAGE(this);
 
+    auto const lambda = [vk_device = _core->vkDevice(), vk_image = _handle.get()] { destroy(vk_device, vk_image); };
+
     auto const queue = _core->destructionQueue();
 
     if(_memory->created()) _memory->destroy();
 
-    if(queue) queue->push(_handle.get());
-    else destroy(_core->vkDevice(), _handle.get());
+    if(queue) queue->push(lambda);
+    else lambda();
 
     reset();
 }
