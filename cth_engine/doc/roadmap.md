@@ -11,5 +11,6 @@
 	- convert CthDestructionQueue mechanism to lambdas which catch their dependencies handles by value (use std::function) 
 	- think about move semantics for every vulkan object (maybe enable them)
 	- Move functions that are not about presenting from the swapchain to the renderer
+	- move all debug checks to the hpp file and remove the preprocessor macros
 
 ## 4. implement dear imgui support

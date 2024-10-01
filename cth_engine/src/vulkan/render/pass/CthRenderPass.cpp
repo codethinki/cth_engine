@@ -119,9 +119,9 @@ gsl::owner<VkRenderPass> RenderPass::release() {
     return handle;
 }
 void RenderPass::begin(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer, uint32_t config_index, cth::not_null<Framebuffer const*> framebuffer) {
-    DEBUG_CHECK_CMD_BUFFER(cmd_buffer);
+    CmdBuffer::debug_check(cmd_buffer);
     DEBUG_CHECK_FRAMEBUFFER(framebuffer);
-    CTH_ERR(config_index >= _beginInfos.size(), "config_index out of range") throw details->exception();
+    CTH_CRITICAL(config_index >= _beginInfos.size(), "config_index out of range") {}
 
     _beginInfos[config_index].framebuffer = framebuffer->get();
 

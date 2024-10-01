@@ -98,7 +98,7 @@ Queue::SubmitInfo::SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffe
     _cmdBuffers.resize(cmd_buffers.size());
 
     std::ranges::transform(cmd_buffers, _cmdBuffers.begin(), [](PrimaryCmdBuffer const* cmd_buffer) {
-        DEBUG_CHECK_CMD_BUFFER(cmd_buffer);
+        CmdBuffer::debug_check(cmd_buffer);
         return cmd_buffer->get();
     });
 

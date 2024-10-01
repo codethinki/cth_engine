@@ -28,7 +28,7 @@ struct std::formatter<T> : std::formatter<int> {
     constexpr auto parse(format_parse_context& ctx) { return std::formatter<int>::parse(ctx); }
 
     template<typename FormatContext>
-    auto format(T const& obj, FormatContext& ctx) const { return format_to(ctx.out(), "[{}]", cth::vk::fmt::to_string(obj)); }
+    auto format(T const& obj, FormatContext& ctx) const { return std::format_to(ctx.out(), "{{{}}}", cth::vk::fmt::to_string(obj)); }
 };
 
 //formattable_type
@@ -41,7 +41,7 @@ struct std::formatter<T> : std::formatter<int> {
     template<typename FormatContext>
     auto format(T const& obj, FormatContext& ctx) const {
         auto tuple = boost::pfr::structure_to_tuple(obj);
-        return std::apply([&ctx]<typename... U>(U&&... args) { return format_to(ctx.out(), std::string_view{fmt_base}, std::forward<U>(args)...); },
+        return std::apply([&ctx]<typename... U>(U&&... args) { return std::format_to(ctx.out(), std::string_view{fmt_base}, std::forward<U>(args)...); },
             tuple);
     }
 };
