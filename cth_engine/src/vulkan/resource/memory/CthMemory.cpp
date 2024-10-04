@@ -12,7 +12,7 @@ namespace cth::vk {
 
 
 Memory::Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags vk_properties) : _core(core), _vkProperties(vk_properties) {
-    DEBUG_CHECK_CORE(_core);
+    Core::debug_check(_core);
 }
 Memory::Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags properties,
     VkMemoryRequirements const& vk_requirements) : Memory{core, properties} { create(vk_requirements); }

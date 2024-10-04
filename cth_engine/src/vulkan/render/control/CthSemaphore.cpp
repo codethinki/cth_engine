@@ -9,7 +9,7 @@
 namespace cth::vk {
 
 
-Semaphore::Semaphore(cth::not_null<Core const*> core) : _core(core) { DEBUG_CHECK_CORE(core); }
+Semaphore::Semaphore(cth::not_null<Core const*> core) : _core(core) { Core::debug_check(core); }
 Semaphore::Semaphore(cth::not_null<Core const*> core, State const& state) : Semaphore{core} { wrap(state); }
 Semaphore::Semaphore(cth::not_null<Core const*> core, bool create) : Semaphore{core} { if(create) this->create(); }
 
@@ -23,7 +23,7 @@ void Semaphore::create() {
 }
 
 void Semaphore::destroy() {
-    DEBUG_CHECK_SEMAPHORE(this);
+    debug_check(this);
 
     auto const lambda = [vk_device = _core->vkDevice(), vk_semaphore = _handle.get()]() { destroy(vk_device, vk_semaphore); };
 
@@ -36,15 +36,17 @@ void Semaphore::destroy() {
 
 
 Semaphore::State Semaphore::release() {
+    debug_check(this);
+
     State const state{_handle.get()};
     reset();
     return state;
 }
-void Semaphore::destroy(VkDevice vk_device, VkSemaphore vk_semaphore) {
+void Semaphore::destroy(vk::not_null<VkDevice> vk_device, VkSemaphore vk_semaphore) {
     CTH_WARN(vk_semaphore == VK_NULL_HANDLE, "vk_semaphore invalid") {}
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
+    Device::debug_check_handle(vk_device);
 
-    vkDestroySemaphore(vk_device, vk_semaphore, nullptr);
+    vkDestroySemaphore(vk_device.get(), vk_semaphore, nullptr);
 }
 
 VkSemaphoreCreateInfo Semaphore::createInfo() {
@@ -58,6 +60,7 @@ VkSemaphoreCreateInfo Semaphore::createInfo() {
 void Semaphore::createHandle(VkSemaphoreCreateInfo const& info) {
     VkSemaphore ptr = VK_NULL_HANDLE;
     auto const createResult = vkCreateSemaphore(_core->vkDevice(), &info, nullptr, &ptr);
+
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create semaphore") {
         reset();
         throw cth::vk::result_exception{createResult, details->exception()};
@@ -66,13 +69,4 @@ void Semaphore::createHandle(VkSemaphoreCreateInfo const& info) {
 }
 void Semaphore::reset() { _handle = nullptr; }
 
-
-
-#ifdef CONSTANT_DEBUG_MODE
-void Semaphore::debug_check(cth::not_null<Semaphore const*> semaphore) {
-    CTH_ERR(!semaphore->created(), "semaphore must be created") throw details->exception();
 }
-
-#endif
-
-} //namespace cth

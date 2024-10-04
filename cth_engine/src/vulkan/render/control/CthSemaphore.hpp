@@ -20,15 +20,13 @@ public:
     explicit Semaphore(cth::not_null<Core const*> core);
 
     /**
-     * @brief constructs and wraps
-     * @note calls @ref wrap()
+     * @brief constructs and calls @ref wrap(State const&)
      * @note calls @ref Semaphore::Semaphore(not_null<Core const*>)
      */
     Semaphore(cth::not_null<Core const*> core, State const& state);
 
     /**
-     * @brief constructs and creates
-     * @note might call @ref create()
+     * @brief constructs and calls @ref create()
      * @note calls @ref Semaphore::Semaphore(not_null<Core const*>)
      */
     explicit Semaphore(cth::not_null<Core const*> core, bool create);
@@ -55,6 +53,10 @@ public:
      * @note calls @ref destroy(VkDevice, VkSemaphore)
      */
     void destroy();
+
+    /**
+     * @brief if @ref created() calls @ref destroy()
+     */
     void optDestroy() { if(created()) destroy(); }
 
     /**
@@ -65,10 +67,13 @@ public:
     State release();
 
 
-    static void destroy(VkDevice vk_device, VkSemaphore vk_semaphore);
+    static void destroy(vk::not_null<VkDevice> vk_device, VkSemaphore vk_semaphore);
 
 protected:
     virtual VkSemaphoreCreateInfo createInfo();
+    /**
+     * @throws cth::vk::result_exception result of vkCreateSemaphore()
+     */
     virtual void createHandle(VkSemaphoreCreateInfo const& info);
     virtual void reset();
 
@@ -86,20 +91,23 @@ public:
     Semaphore& operator=(Semaphore const& other) = default;
     Semaphore& operator=(Semaphore&& other) = default;
 
-#ifdef CONSTANT_DEBUG_MODE
+
     static void debug_check(cth::not_null<Semaphore const*> semaphore);
-
-#define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) Semaphore::debug_check(semaphore_ptr)
-#else
-#define DEBUG_CHECK_SEMAPHORE(semaphore_ptr) ((void)0)
-#endif
-
 };
 
-} //namespace cth
+}
 
 namespace cth::vk {
 struct Semaphore::State {
     vk::not_null<VkSemaphore> vkSemaphore;
 };
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void Semaphore::debug_check(cth::not_null<Semaphore const*> semaphore) {
+    CTH_CRITICAL(!semaphore->created(), "semaphore must be created") {}
+}
+
 }

@@ -64,14 +64,6 @@ Subpass Subpass::Graphics(uint32_t index,
     };
 }
 
-#ifdef CONSTANT_DEBUG_MODE
-void Subpass::debug_check(Subpass const* subpass) {
-    CTH_ERR(subpass == nullptr, "subpass must not be invalid (nullptr)") throw details->exception();
-}
-void Subpass::debug_check(std::span<Subpass const* const> subpasses) {
-    for(auto const* subpass : subpasses)
-        DEBUG_CHECK_SUBPASS(subpass);
-}
-#endif
+
 
 }

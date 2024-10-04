@@ -5,8 +5,8 @@
 #include "vulkan/resource/image/CthImageView.hpp"
 
 
-#include <gsl/pointers>
 #include<vector>
+
 
 namespace cth::vk {
 class ImageView;
@@ -33,6 +33,9 @@ class AttachmentCollection {
 public:
     struct State;
 
+    /**
+     * @brief base constructor
+     */
     AttachmentCollection(cth::not_null<Core const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description);
 
@@ -56,23 +59,29 @@ public:
 
     /**
      * @brief creates the attachment images and views
-     *
+     * @note calls @ref Image::create() and @ref ImageView::create()
+     * @note calls optDestroy()
      */
     void create(VkExtent2D extent);
 
     /**
      * @brief wraps an existing state
      * @note @ref State::views can be empty -> views will be created
-     * @note calls @ref destroy() if @ref created()
+     * @note calls @ref optDestroy()
      */
     void wrap(State state);
 
     /**
      * @brief destroys the images, memory handles and views
+     * @attention requires @ref created()
      * @note uses @ref Core::destructionQueue() if available
-     * @note requires @ref created()
      */
     void destroy();
+
+    /**
+     * @brief if @ref created() calls @ref destroy()
+     */
+    void optDestroy() { if(created()) destroy(); }
 
     /**
      * @brief releases the ownership of the images, memory handles and views
@@ -80,12 +89,6 @@ public:
      * @note requires @ref created()
      */
     [[nodiscard]] State release();
-
-    /**
-     * @brief destroys if @ref created()
-     * @note may call @ref destroy()
-     */
-    void optDestroy() { if(created()) destroy(); }
 
 private:
     void reset();
@@ -121,13 +124,7 @@ public:
     AttachmentCollection& operator=(AttachmentCollection const& other) = delete;
     AttachmentCollection& operator=(AttachmentCollection&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<AttachmentCollection const*> collection);
-
-#define DEBUG_CHECK_ATTACHMENT_COLLECTION(collection_ptr) AttachmentCollection::debug_check(collection_ptr)
-#else
-#define DEBUG_CHECK_ATTACHMENT_COLLECTION(collection_ptr) ((void)0)
-#endif
 };
 
 }
@@ -163,4 +160,12 @@ struct AttachmentCollection::State {
     State& operator=(State const& other) = delete;
     State& operator=(State&& other) noexcept = default;
 };
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void AttachmentCollection::debug_check(cth::not_null<AttachmentCollection const*> collection) {
+    CTH_CRITICAL(!collection->created(), "collection must have been created") throw details->exception();
+}
 }

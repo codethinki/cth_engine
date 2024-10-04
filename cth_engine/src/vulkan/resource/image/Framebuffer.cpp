@@ -58,7 +58,7 @@ void Framebuffer::create(VkExtent2D extent) {
     _handle = ptr;
 }
 void Framebuffer::destroy() {
-    DEBUG_CHECK_FRAMEBUFFER(this);
+    debug_check(this);
     auto const lambda = [vk_device = _core->vkDevice(), vk_framebuffer = _handle.get()]() { destroy(vk_device, vk_framebuffer); };
 
     auto const queue = _core->destructionQueue();
@@ -70,7 +70,7 @@ void Framebuffer::destroy() {
     _handle = nullptr;
 }
 Framebuffer::State Framebuffer::release() {
-    DEBUG_CHECK_FRAMEBUFFER(this);
+    debug_check(this);
 
     State const state{
         _handle.release(),
@@ -89,11 +89,5 @@ void Framebuffer::reset() {
     _handle = VK_NULL_HANDLE;
     _extent = {};
 }
-
-void Framebuffer::debug_check(cth::not_null<Framebuffer const*> framebuffer) {
-    CTH_ERR(!framebuffer->created(), "framebuffer must be created") throw details->exception();
-    DEBUG_CHECK_FRAMEBUFFER_HANDLE(framebuffer->get());
-}
-void Framebuffer::debug_check_handle(vk::not_null<VkFramebuffer> vk_framebuffer) {}
 
 }

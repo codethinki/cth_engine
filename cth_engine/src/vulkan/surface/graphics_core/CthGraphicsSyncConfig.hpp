@@ -94,16 +94,8 @@ public:
     GraphicsSyncConfig(GraphicsSyncConfig&& other) noexcept = default;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<GraphicsSyncConfig const*> config);
     static void debug_check_state(State const& state);
-#define DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(config) GraphicsSyncConfig::debug_check(config)
-
-#define DEBUG_CHECK_GRAPHICS_SYNC_CONFIG_STATE(state) 
-#else
-#define DEBUG_CHECK_SYNC_CONFIG_NOT_NULL(config) ((void)0)
-#define DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(config) ((void)0)
-#endif
 };
 }
 
@@ -120,4 +112,18 @@ struct GraphicsSyncConfig::State {
      */
     std::array<std::unique_ptr<Semaphore>, constants::FRAMES_IN_FLIGHT> renderFinishedSemaphores;
 };
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void GraphicsSyncConfig::debug_check(cth::not_null<GraphicsSyncConfig const*> config) {
+    CTH_CRITICAL(!config->created(), "config not created"){}
+}
+inline void GraphicsSyncConfig::debug_check_state(State const& state) {
+    for(auto& semaphore : state.imageAvailableSemaphores)
+        Semaphore::debug_check(semaphore.get());
+    for(auto& semaphore : state.renderFinishedSemaphores)
+        Semaphore::debug_check(semaphore.get());
+}
 }

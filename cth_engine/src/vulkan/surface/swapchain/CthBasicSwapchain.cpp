@@ -24,10 +24,10 @@ namespace cth::vk {
 BasicSwapchain::BasicSwapchain(cth::not_null<Core const*> core, cth::not_null<Queue const*> present_queue,
     cth::not_null<GraphicsSyncConfig const*> sync_config, cth::not_null<Surface const*> surface) :
     _core(core), _presentQueue(present_queue), _surface{surface}, _syncConfig(sync_config) {
-    DEBUG_CHECK_CORE(core.get());
+    Core::debug_check(core.get());
     DEBUG_CHECK_SURFACE(surface);
-    DEBUG_CHECK_PRESENT_QUEUE(present_queue);
-    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(sync_config);
+    Queue::debug_check_present(present_queue);
+    GraphicsSyncConfig::debug_check(sync_config);
     createSyncObjects();
     _imageIndices.fill(NO_IMAGE_INDEX);
 }
@@ -475,7 +475,7 @@ void BasicSwapchain::createRenderPass() {
         .extent = _extent,
     };
 
-    _renderPass = std::make_unique<RenderPass>(_core, std::vector{_subpass.get()}, std::vector{subpassDependency}, std::vector{beginConfig});
+    _renderPass = std::make_unique<RenderPass>(_core, std::vector{_subpass.get()}, std::vector{subpassDependency}, std::vector{beginConfig}, true);
 }
 
 

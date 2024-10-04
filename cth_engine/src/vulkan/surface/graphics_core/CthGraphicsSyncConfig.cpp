@@ -7,14 +7,10 @@
 
 namespace cth::vk {
 
-GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<Core const*> core, State state) : GraphicsSyncConfig{core} {
-    wrap(std::move(state));
-}
-GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<Core const*> core, bool create) : GraphicsSyncConfig{core} {
-    if(create) this->create();
-}
+GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<Core const*> core, State state) : GraphicsSyncConfig{core} { wrap(std::move(state)); }
+GraphicsSyncConfig::GraphicsSyncConfig(cth::not_null<Core const*> core, bool create) : GraphicsSyncConfig{core} { if(create) this->create(); }
 void GraphicsSyncConfig::wrap(State state) {
-    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG_STATE(state);
+    debug_check_state(state);
     optDestroy();
 
     _renderFinishedSemaphores = std::move(state.renderFinishedSemaphores);
@@ -29,13 +25,13 @@ void GraphicsSyncConfig::create() {
         uniquePtr = std::make_unique<Semaphore>(_core, true);
 }
 void GraphicsSyncConfig::destroy() {
-    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
+    debug_check(this);
 
     for(auto& semaphore : _renderFinishedSemaphores) semaphore = nullptr;
     for(auto& semaphore : _imageAvailableSemaphores) semaphore = nullptr;
 }
 GraphicsSyncConfig::State GraphicsSyncConfig::release() {
-    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
+    debug_check(this);
 
     return State{
         .imageAvailableSemaphores = std::move(_imageAvailableSemaphores),
@@ -43,7 +39,7 @@ GraphicsSyncConfig::State GraphicsSyncConfig::release() {
     };
 }
 std::array<Semaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::renderFinishedSemaphores() const {
-    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
+    debug_check(this);
 
 
     std::array<Semaphore*, SET_SIZE> semaphores{};
@@ -51,24 +47,11 @@ std::array<Semaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::renderF
     return semaphores;
 }
 std::array<Semaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::imageAvailableSemaphores() const {
-    DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(this);
+    debug_check(this);
 
     std::array<Semaphore*, SET_SIZE> semaphores{};
     for(auto [src, dst] : std::views::zip(_imageAvailableSemaphores, semaphores)) dst = src.get();
     return semaphores;
 }
 
-
-
-#ifdef CONSTANT_DEBUG_MODE
-void GraphicsSyncConfig::debug_check(cth::not_null<GraphicsSyncConfig const*> config) {
-    CTH_ERR(!config->created(), "config not created") throw details->exception();
 }
-void GraphicsSyncConfig::debug_check_state(State const& state) {
-    for(auto& semaphore : state.imageAvailableSemaphores)
-        DEBUG_CHECK_SEMAPHORE(semaphore.get());
-    for(auto& semaphore : state.renderFinishedSemaphores)
-        DEBUG_CHECK_SEMAPHORE(semaphore.get());
-}
-#endif
-} //namespace cth

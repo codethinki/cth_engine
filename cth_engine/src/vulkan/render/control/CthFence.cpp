@@ -9,7 +9,7 @@
 
 namespace cth::vk {
 
-cth::vk::Fence::Fence(cth::not_null<Core const*> core) : _core(core) { DEBUG_CHECK_CORE(core); }
+cth::vk::Fence::Fence(cth::not_null<Core const*> core) : _core(core) { Core::debug_check(core); }
 Fence::Fence(cth::not_null<Core const*> core, State const& state) : Fence{core} { wrap(state); }
 Fence::Fence(cth::not_null<Core const*> core, VkFenceCreateFlags flags) : Fence{core} { create(flags); }
 
@@ -33,7 +33,7 @@ void Fence::create(VkFenceCreateFlags flags) {
     _handle = ptr;
 }
 void Fence::destroy() {
-    DEBUG_CHECK_FENCE(this);
+    debug_check(this);
     auto const lambda = [vk_device = _core->vkDevice(), vk_fence = _handle.get()] { destroy(vk_device, vk_fence); };
 
 
@@ -45,7 +45,7 @@ void Fence::destroy() {
     resetState();
 }
 VkResult Fence::status() const {
-    DEBUG_CHECK_FENCE(this);
+    debug_check(this);
 
     auto const result = vkGetFenceStatus(_core->vkDevice(), _handle.get());
 
@@ -55,7 +55,7 @@ VkResult Fence::status() const {
     return result;
 }
 void Fence::reset() const {
-    DEBUG_CHECK_FENCE(this);
+    debug_check(this);
     std::array<VkFence, 1> const fences = {_handle.get()};
     auto const result = vkResetFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data());
 
@@ -65,7 +65,7 @@ void Fence::reset() const {
 
 
 VkResult Fence::wait(uint64_t timeout) const {
-    DEBUG_CHECK_FENCE(this);
+    debug_check(this);
 
     std::array<VkFence, 1> const fences = {_handle.get()};
 
@@ -101,18 +101,6 @@ VkFenceCreateInfo Fence::createInfo(VkFenceCreateFlags flags) {
         .pNext = nullptr,
         .flags = flags,
     };
-}
-
-
-void Fence::debug_check(Fence const* fence) {
-    CTH_ERR(fence == nullptr, "fence must not be nullptr") throw details->exception();
-    DEBUG_CHECK_FENCE_HANDLE(fence->_handle.get());
-}
-void Fence::debug_check_leak(Fence const* fence) {
-    CTH_WARN(fence->_handle != VK_NULL_HANDLE, "fence replaced (potential memory leak)") {}
-}
-void Fence::debug_check_handle(VkFence vk_fence) {
-    CTH_ERR(vk_fence == VK_NULL_HANDLE, "vk_fence handle must not be invalid (VK_NULL_HANDLE)") throw details->exception();
 }
 
 }

@@ -54,15 +54,15 @@ void AttachmentCollection::wrap(State state) {
     auto& views = state.views;
 
 
-    CTH_ERR(images.size() != _size, "size() image_handles required, image_handles: ({})", images.size()) throw details->exception();
-    CTH_ERR(views.size() != _size && !views.empty(), "0 or size() image view_handles required, image view_handles: ({})",
-        views.size()) throw details->exception();
+    CTH_CRITICAL(images.size() != _size, "size() image_handles required, image_handles: ({})", images.size()) {}
+    CTH_CRITICAL(views.size() != _size && !views.empty(), "0 or size() image view_handles required, image view_handles: ({})",
+        views.size()) {}
 
-    for(auto const& image : images)
-        DEBUG_CHECK_IMAGE(image.get());
+    for(auto const& image : images) Image::debug_check(image.get());
+
     for(auto const [view, image] : std::views::zip(views, images)) {
-        DEBUG_CHECK_IMAGE_VIEW(view.get());
-        CTH_ERR(view->image() != image.get(), "image and view mismatch") throw details->exception();
+        ImageView::debug_check(view.get());
+        CTH_CRITICAL(view->image() != image.get(), "image and view mismatch") {}
     }
 
     for(auto [src, dst] : std::views::zip(images, _images))
@@ -74,13 +74,13 @@ void AttachmentCollection::wrap(State state) {
             dst = src.release_val();
 }
 void AttachmentCollection::destroy() {
-    DEBUG_CHECK_ATTACHMENT_COLLECTION(this);
+    debug_check(this);
 
     std::ranges::fill(_images, nullptr);
     std::ranges::fill(_views, nullptr);
 }
 AttachmentCollection::State AttachmentCollection::release() {
-    DEBUG_CHECK_ATTACHMENT_COLLECTION(this);
+    debug_check(this);
 
     State state{_extent};
     state.images.reserve(_size);
@@ -101,16 +101,10 @@ void AttachmentCollection::reset() {
 void AttachmentCollection::createImages() { for(size_t i = 0; i < _size; ++i) _images[i] = std::make_unique<Image>(_core, _config, _extent); }
 void AttachmentCollection::createImageViews() {
     for(size_t i = 0; i < _size; ++i) {
-        DEBUG_CHECK_IMAGE(_images[i].get());
+        Image::debug_check(_images[i].get());
         _views[i] = std::make_unique<ImageView>(_core, ImageView::Config{}, _images[i].get());
     }
 }
 
 ImageView const* AttachmentCollection::view(size_t index) const {  return _views[index].get();  }
-#ifdef CONSTANT_DEBUG_MODE
-void AttachmentCollection::debug_check(cth::not_null<AttachmentCollection const*> collection) {
-    CTH_ERR(!collection->created(), "collection must have been created") throw details->exception();
-}
-#endif
-
 }

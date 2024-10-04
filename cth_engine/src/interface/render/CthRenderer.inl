@@ -140,7 +140,7 @@ Renderer::Config& Renderer::Config::removeWaitSets(std::span<VkPipelineStageFlag
 
 template<Renderer::Phase P>
 auto Renderer::Config::addQueue(Queue const* queue) -> Config& {
-    DEBUG_CHECK_QUEUE(queue);
+    Queue::debug_check(queue);
     DEBUG_CHECK_RENDERER_PHASE(P);
 
     _queues[P] = queue;
@@ -149,7 +149,7 @@ auto Renderer::Config::addQueue(Queue const* queue) -> Config& {
 
 template<Renderer::Phase P>
 auto Renderer::Config::removeQueue(Queue const* queue) -> Config& {
-    DEBUG_CHECK_QUEUE(queue);
+    Queue::debug_check(queue);
     DEBUG_CHECK_RENDERER_PHASE(P);
 
     _queues[P] = nullptr;

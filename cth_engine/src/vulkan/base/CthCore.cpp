@@ -35,7 +35,7 @@ void Core::create(Config const& config) {
     if(config.destructionQueue) _destructionQueue = std::make_unique<DestructionQueue>();
 }
 void Core::destroy() {
-    DEBUG_CHECK_CORE(this);
+    debug_check(this);
 
     _destructionQueue = nullptr;
     _device = nullptr;
@@ -74,12 +74,4 @@ Instance const* Core::instance() const { return _instance.get(); }
 VkInstance Core::vkInstance() const { return _instance->get(); }
 DestructionQueue* Core::destructionQueue() const { return _destructionQueue.get(); }
 
-#ifdef CONSTANT_DEBUG_MODE
-void Core::debug_check(cth::not_null<Core const*> core) {
-    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(core->_destructionQueue.get());
-    DEBUG_CHECK_DEVICE(core->_device.get());
-    DEBUG_CHECK_PHYSICAL_DEVICE(core->_physicalDevice.get());
-    DEBUG_CHECK_INSTANCE(core->_instance.get());
-}
-#endif
 }

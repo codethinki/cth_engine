@@ -20,15 +20,13 @@ public:
      */
     explicit Fence(cth::not_null<Core const*> core);
     /**
-     * @brief constructs and wraps
-     * @note calls @ref wrap()
+     * @brief constructs and calls @ref wrap()
      * @note calls @ref Fence(cth::not_null<Core const*>)
      */
     explicit Fence(cth::not_null<Core const*> core, State const& state);
 
     /**
-     * @brief constructs and creates
-     * @note calls @ref create()
+     * @brief constructs and calls @ref create()
      * @note calls @ref Fence(cth::not_null<Core const*>)
      */
     explicit Fence(cth::not_null<Core const*> core, VkFenceCreateFlags flags);
@@ -115,19 +113,8 @@ public:
     Fence& operator=(Fence const& other) = default;
     Fence& operator=(Fence&& other) = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(Fence const* fence);
-    static void debug_check_leak(Fence const* fence);
     static void debug_check_handle(VkFence vk_fence);
-    template<class Rng>
-    static void debug_check_handles(Rng const& rng) { for(auto const& fence : rng) Fence::debug_check_handle(fence); }
-#define DEBUG_CHECK_FENCE(fence_ptr) Fence::debug_check(fence_ptr)
-#define DEBUG_CHECK_FENCE_HANDLE(vk_fence) Fence::debug_check_handle(vk_fence)
-#define DEBUG_CHECK_FENCE_HANDLES(vk_fences) Fence::debug_check_handles(vk_fences)
-#else
-#define DEBUG_CHECK_FENCE(fence_ptr) ((void)0)
-#define DEBUG_CHECK_FENCE_HANDLE(vk_fence) ((void)0)
-#endif
 };
 }
 
@@ -137,4 +124,16 @@ namespace cth::vk {
 struct Fence::State {
     vk::not_null<VkFence> vkFence;
 };
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void Fence::debug_check(Fence const* fence) {
+    CTH_ERR(fence == nullptr, "fence must not be nullptr") throw details->exception();
+    debug_check_handle(fence->_handle.get());
+}
+inline void Fence::debug_check_handle(VkFence vk_fence) {
+    CTH_ERR(vk_fence == VK_NULL_HANDLE, "vk_fence handle must not be invalid (VK_NULL_HANDLE)") throw details->exception();
+}
 }

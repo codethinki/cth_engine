@@ -27,11 +27,9 @@ Pipeline::~Pipeline() {
 void Pipeline::bind(CmdBuffer const* cmd_buffer) const { vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline); }
 
 void Pipeline::create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout, Pipeline const* parent) {
-    CTH_ERR(pipeline_layout != nullptr && parent != nullptr, "something went wrong, cannot inherit and specify layout")
-        throw details->exception();
+    CTH_CRITICAL(pipeline_layout != nullptr && parent != nullptr, "something went wrong, cannot inherit and specify layout"){}
 
-    CTH_ERR(pipeline_layout == nullptr && parent == nullptr, "pipeline layout or parent invalid")
-        throw details->exception();
+    CTH_CRITICAL(pipeline_layout == nullptr && parent == nullptr, "pipeline layout or parent invalid") {}
 
     CTH_STABLE_ERR(config_info.renderPass == VK_NULL_HANDLE && parent == nullptr, "renderPass missing in config_info")
         throw details->exception();

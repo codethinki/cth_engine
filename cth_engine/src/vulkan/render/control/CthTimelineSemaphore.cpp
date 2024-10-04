@@ -40,7 +40,8 @@ void TimelineSemaphore::signal() {
         throw vk::result_exception{result, details->exception()};
 }
 VkResult TimelineSemaphore::wait(uint64_t nanoseconds) const {
-    DEBUG_CHECK_SEMAPHORE(this);
+    debug_check(this);
+
     auto const handle = get();
 
     auto const info = waitInfo(_value, handle);

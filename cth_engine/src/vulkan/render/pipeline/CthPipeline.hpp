@@ -6,6 +6,8 @@
 
 //TODO add support for more types of pipelines
 
+//TEMP modernize this
+
 namespace cth::vk {
 class Core;
 

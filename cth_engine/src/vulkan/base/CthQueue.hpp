@@ -41,12 +41,13 @@ public:
     void wrap(State const& state);
 
     /**
-     * @brief resets
+     * @brief destroys and resets
+     * @attention @ref created() required
      */
     void destroy();
 
     /**
-     * @brief releases handle and resets
+     * @brief releases ownership and resets
      * @attention requires @ref created()
      */
     State release();
@@ -116,20 +117,9 @@ public:
     Queue& operator=(Queue const& other) = default;
     Queue& operator=(Queue&& other) = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<Queue const*> queue);
-    static void debug_check_present_queue(cth::not_null<Queue const*> queue);
-    static void debug_check_queue_handle(VkQueue vk_queue);
-
-#define DEBUG_CHECK_QUEUE(queue_ptr) Queue::debug_check(queue_ptr)
-#define DEBUG_CHECK_PRESENT_QUEUE(queue_ptr) Queue::debug_check_present_queue(queue_ptr)
-#define DEBUG_CHECK_QUEUE_HANDLE(vk_queue) Queue::debug_check_queue_handle(vk_queue)
-
-#else
-#define DEBUG_CHECK_QUEUE(queue_ptr) ((void)0)
-#define DEBUG_CHECK_PRESENT_QUEUE(queue_ptr) ((void)0)
-#define DEBUG_CHECK_QUEUE_HANDLE(vk_queue) ((void)0)
-#endif
+    static void debug_check_present(cth::not_null<Queue const*> queue);
+    static void debug_check_handle(VkQueue vk_queue);
 };
 }
 
@@ -226,5 +216,22 @@ public:
     [[nodiscard]] VkPresentInfoKHR const* create(uint32_t const& image_index);
     [[nodiscard]] VkSubmitInfo const* skip() const { return &_skipInfo; }
 };
+
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void Queue::debug_check(cth::not_null<Queue const*> queue) {
+    CTH_CRITICAL(!queue->created(), "queue must be created") {}
+}
+inline void Queue::debug_check_present(cth::not_null<Queue const*> queue) {
+    debug_check(queue);
+    CTH_CRITICAL(!(queue->familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT), "queue is not a present queue") {}
+}
+inline void Queue::debug_check_handle(VkQueue vk_queue) {
+    CTH_CRITICAL(vk_queue == VK_NULL_HANDLE, "vk_queue handle must not be invalid (VK_NULL_HANDLE)") {}
+}
+
 
 }

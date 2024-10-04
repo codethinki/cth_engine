@@ -11,14 +11,14 @@
 
 
 namespace cth::vk {
-ImageView::ImageView(cth::not_null<Core const*> core, Config const& config) : _core(core), _config{config} { DEBUG_CHECK_CORE(core); }
+ImageView::ImageView(cth::not_null<Core const*> core, Config const& config) : _core(core), _config{config} { Core::debug_check(core); }
 ImageView::ImageView(cth::not_null<Core const*> core, Config const& config, cth::not_null<Image const*> image) : ImageView{core, config} { create(image); }
 ImageView::ImageView(cth::not_null<Core const*> core, Config const& config, State const& state) : ImageView{core, config} { wrap(state); }
 
 ImageView::~ImageView() { optDestroy(); }
 
 void ImageView::create(cth::not_null<Image const*> image) {
-    DEBUG_CHECK_IMAGE(image);
+    Image::debug_check(image);
     optDestroy();
 
     _image = image.get();

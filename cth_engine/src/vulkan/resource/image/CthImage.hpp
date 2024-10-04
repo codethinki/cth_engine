@@ -23,41 +23,51 @@ public:
     struct State;
 
 
+    /**
+     * @brief base constructor
+     */
     explicit Image(cth::not_null<Core const*> core, Config const& config);
 
     /**
-     * @brief creates the image with extent
-     * @note calls @ref Image::Image()
-     * @note calls @ref create() 
+     * @brief constructs and calls @ref create()
+     * @note calls @ref Image::Image(cth::not_null<Core const*>, Config const&)
      */
     Image(cth::not_null<Core const*> core, Config const& config, VkExtent2D extent);
 
     /**
-     * @brief wraps an image with state
-     * @note calls @ref Image::Image()
-     * @note calls @ref wrap()
+     * @brief constructs and calls @ref wrap(State const&)
+     * @note calls @ref Image::Image(cth::not_null<Core const*>, Config const&)
      */
     Image(cth::not_null<Core const*> core, Config const& config, State state);
 
+    /**
+     * @brief calls @ref optDestroy()
+     */
     virtual ~Image();
 
     /**
      * @brief wraps @ref State
      * @note calls @ref optDestroy()
+     * @throws cth::vk::result_exception result of vkBindImageMemory if not bound
+     * @note if not bound and not allocated calls @ref Memory::alloc()
      */
     void wrap(State state);
 
     /**
      * @brief allocates the image memory & binds it
-     * @note if(@ref created()) -> calls @ref destroy()
+     * @throws cth::vk::result_exception result of vkCreateImage
+     * @throws cth::vk:.result_exception result of vkBindImageMemory
+     * @note calls @ref Memory::alloc()
+     * @note calls @ref optDestroy()
      */
     void create(VkExtent2D extent);
 
 
     /**
     * @brief destroys and resets the object
+    * @attention requires @ref created()
     * @note calls @ref Memory::destroy()
-    * @note pushes to destruction queue if(@ref Core::destructionQueue())
+    * @note pushes to @ref Core::destructionQueue() if available
     */
     void destroy();
 
@@ -67,7 +77,8 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases the ownership of image & memory
+     * @brief releases the ownership and resets
+     * @attention requires @ref created()
      */
     State release();
 
@@ -93,7 +104,7 @@ public:
     static uint32_t evalMipLevelCount(VkExtent2D extent);
 
 
-    static void destroy(VkDevice vk_device, VkImage vk_image);
+    static void destroy(vk::not_null<VkDevice> vk_device, VkImage vk_image);
 
     struct Config {
         VkImageAspectFlagBits aspectMask;
@@ -112,8 +123,19 @@ protected:
     std::vector<VkImageLayout> _levelLayouts;
 
 private:
+    /**
+     * @throws cth::vk::result_exception result of vkCreateImage
+     */
     void createHandle();
+
+    /**
+     * @note calls @ref Memory::alloc()
+     */
     void alloc() const;
+
+    /**
+     * @throws cth::vk::result_exception result of vkBindImageMemory
+     */
     void bind() const;
 
     void reset();
@@ -156,14 +178,6 @@ public:
 
     static void debug_check(cth::not_null<Image const*> image);
     static void debug_check_handle(vk::not_null<VkImage> vk_image);
-
-#ifdef CONSTANT_DEBUG_MODE
-#define DEBUG_CHECK_IMAGE(image_ptr) Image::debug_check(image_ptr)
-#define DEBUG_CHECK_IMAGE_HANDLE(vk_image) Image::debug_check_handle(vk_image)
-#else
-#define DEBUG_CHECK_IMAGE(image_ptr) ((void)0)
-#define DEBUG_CHECK_IMAGE_HANDLE(vk_image) ((void)0)
-#endif
 };
 
 } // namespace cth
@@ -196,6 +210,17 @@ struct Image::State {
 };
 }
 
+//debug checks
+
+namespace cth::vk {
+inline void Image::debug_check(cth::not_null<Image const*> image) {
+    CTH_CRITICAL(!image->created(), "image must be created") {}
+    debug_check_handle(image->get());
+}
+inline void Image::debug_check_handle([[maybe_unused]] vk::not_null<VkImage> vk_image) {}
+}
+
 //TODO implement multidimensional image support
 //void write(const DefaultBuffer* buffer, size_t offset = 0, uint32_t mip_level = 0, VkImageAspectFlagBits aspect_mask = VK_IMAGE_ASPECT_NONE) const;
 //transitionLayout(VkImageLayout new_layout, uint32_t first_mip_level = 0, uint32_t mip_levels = Constants::WHOLE_SIZE, VkImageAspectFlagBits aspect_mask = VK_IMAGE_ASPECT_NONE);
+

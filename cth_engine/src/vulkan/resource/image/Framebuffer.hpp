@@ -85,7 +85,7 @@ private:
     uint32_t _layers;
 
     cth::move_ptr<VkFramebuffer_T> _handle = VK_NULL_HANDLE;
-    VkExtent2D _extent;
+    VkExtent2D _extent{};
 
 public:
     [[nodiscard]] VkFramebuffer get() const { return _handle.get(); }
@@ -96,15 +96,8 @@ public:
     Framebuffer& operator=(Framebuffer const& other) = delete;
     Framebuffer& operator=(Framebuffer&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<Framebuffer const*> framebuffer);
     static void debug_check_handle(vk::not_null<VkFramebuffer> vk_framebuffer);
-#define DEBUG_CHECK_FRAMEBUFFER(framebuffer_ptr) Framebuffer::debug_check(framebuffer_ptr)
-#define DEBUG_CHECK_FRAMEBUFFER_HANDLE(vk_framebuffer) Framebuffer::debug_check_handle(vk_framebuffer)
-#else
-#define DEBUG_CHECK_FRAMEBUFFER(framebuffer_ptr) ((void)0)
-#define DEBUG_CHECK_FRAMEBUFFER_HANDLE(vk_framebuffer) ((void)0)
-#endif
 
 };
 }
@@ -116,4 +109,15 @@ struct Framebuffer::State {
     vk::not_null<VkFramebuffer> vkFramebuffer;
     VkExtent2D extent;
 };
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void Framebuffer::debug_check(cth::not_null<Framebuffer const*> framebuffer) {
+    CTH_ERR(!framebuffer->created(), "framebuffer must be created") throw details->exception();
+    debug_check_handle(framebuffer->get());
+}
+inline void Framebuffer::debug_check_handle([[maybe_unused]] vk::not_null<VkFramebuffer> vk_framebuffer) {}
+
 }

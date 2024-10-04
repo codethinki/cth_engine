@@ -23,10 +23,11 @@ void Queue::wrap(State const& state) {
     _queueIndex = state.queueIndex;
 }
 void Queue::destroy() {
+    debug_check(this);
     reset();
 }
 Queue::State Queue::release() {
-    DEBUG_CHECK_QUEUE(this);
+    debug_check(this);
     State const state{
         _handle.release(),
         _familyIndex,
@@ -68,22 +69,6 @@ void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
         throw cth::vk::result_exception{result, details->exception()};
 }
-
-
-#ifdef CONSTANT_DEBUG_MODE
-void Queue::debug_check(cth::not_null<Queue const*> queue) {
-    CTH_ERR(!queue->created(), "queue must be created") throw details->exception();
-}
-void Queue::debug_check_present_queue(cth::not_null<Queue const*> queue) {
-    DEBUG_CHECK_QUEUE(queue);
-    CTH_ERR(!(queue->familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT), "queue is not a present queue") throw details->exception();
-}
-void Queue::debug_check_queue_handle(VkQueue vk_queue) {
-    CTH_ERR(vk_queue == VK_NULL_HANDLE, "vk_queue handle must not be invalid (VK_NULL_HANDLE)") throw details->exception();
-}
-
-#endif
-
 
 } //namespace cth
 
@@ -173,7 +158,7 @@ void Queue::SubmitInfo::initWait(std::span<PipelineWaitStage const> wait_stages)
     stages.reserve(wait_stages.size());
 
     for(auto& waitStage : wait_stages) {
-        DEBUG_CHECK_SEMAPHORE(waitStage.semaphore);
+        Semaphore::debug_check(waitStage.semaphore);
         auto semaphore = dynamic_cast<TimelineSemaphore const*>(waitStage.semaphore);
         if(semaphore == nullptr) stages.push_back(waitStage);
         else {
@@ -199,7 +184,7 @@ void Queue::SubmitInfo::initSignal(std::span<Semaphore* const> signal_semaphores
     semaphores.reserve(signal_semaphores.size());
 
     for(auto& signalSemaphore : signal_semaphores) {
-        DEBUG_CHECK_SEMAPHORE(signalSemaphore);
+        Semaphore::debug_check(signalSemaphore);
         auto semaphore = dynamic_cast<TimelineSemaphore*>(signalSemaphore);
         if(!semaphore) semaphores.push_back(signalSemaphore->get());
         else {

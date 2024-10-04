@@ -1,5 +1,9 @@
 #pragma once
+#include "CthDevice.hpp"
+#include "CthInstance.hpp"
+#include "CthPhysicalDevice.hpp"
 #include "CthQueue.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
 #include<cth/pointers.hpp>
@@ -8,11 +12,6 @@
 #include <span>
 
 namespace cth::vk {
-class Instance;
-class PhysicalDevice;
-class Device;
-class Queue;
-
 class Core {
 public:
     struct Config;
@@ -83,12 +82,7 @@ public:
     Core& operator=(Core const& other) = delete;
     Core& operator=(Core&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<Core const*> core);
-#define DEBUG_CHECK_CORE(core_ptr) Core::debug_check(core_ptr)
-#else
-#define DEBUG_CHECK_CORE(core_ptr) ((void)0)
-#endif
 };
 
 
@@ -119,7 +113,6 @@ struct Core::State {
 }
 
 
-
 //Config
 
 namespace cth::vk {
@@ -137,4 +130,17 @@ struct Core::Config {
     static Config Default(std::string_view app_name, std::string_view engine_name, std::span<Queue> queues,
         std::span<std::string const> required_extensions) { return Config{app_name, engine_name, queues, required_extensions, true}; }
 };
+}
+
+
+//debug check
+
+namespace cth::vk {
+
+inline void Core::debug_check(cth::not_null<Core const*> core) {
+    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(core->_destructionQueue.get());
+    DEBUG_CHECK_DEVICE(core->_device.get());
+    DEBUG_CHECK_PHYSICAL_DEVICE(core->_physicalDevice.get());
+    DEBUG_CHECK_INSTANCE(core->_instance.get());
+}
 }
