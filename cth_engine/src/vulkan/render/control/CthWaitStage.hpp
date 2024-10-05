@@ -11,13 +11,16 @@ struct PipelineWaitStage {
     VkPipelineStageFlags stage;
     Semaphore const* semaphore;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(PipelineWaitStage wait_stage);
-#define DEBUG_CHECK_PIPELINE_WAIT_STAGE(wait_stage) PipelineWaitStage::debug_check(wait_stage)
-#else
-#define DEBUG_CHECK_PIPELINE_WAIT_STAGE(wait_stage) ((void)0)
-#endif
-
 };
 
-} //namespace cth
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void PipelineWaitStage::debug_check(PipelineWaitStage wait_stage) {
+    CTH_CRITICAL(wait_stage.stage != 0, "stage must not be 0") {}
+    CTH_CRITICAL(wait_stage.semaphore == nullptr, "semaphore must not be nullptr") {}
+}
+}

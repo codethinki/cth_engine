@@ -10,7 +10,7 @@
 #include <iostream>
 #include <iterator>
 #include <limits>
-#include<memory>
+#include <memory>
 #include <optional>
 #include <print>
 #include <queue>

@@ -31,7 +31,3 @@
 ### material
 	- low binding frequency (per scene)
 	- the push constant should contain the material index
-
-
-
-

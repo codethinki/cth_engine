@@ -1,7 +1,8 @@
 #pragma once
 #include "CthRenderCycle.hpp"
 
-#include "vulkan/base/CthQueue.hpp"
+#include "vulkan/base/queue/CthQueue.hpp"
+#include "vulkan/base/queue/CthSubmitInfo.hpp"
 #include "vulkan/render/control/CthTimelineSemaphore.hpp"
 #include "vulkan/render/control/CthWaitStage.hpp"
 
@@ -97,7 +98,7 @@ private:
     std::array<Queue const*, PHASES_SIZE> _queues{};
     std::array<std::unique_ptr<PrimaryCmdBuffer>, PHASES_SIZE * constants::FRAMES_IN_FLIGHT> _cmdBuffers;
     std::array<std::unique_ptr<CmdPool>, PHASES_SIZE> _cmdPools;
-    std::vector<Queue::SubmitInfo> _submitInfos;
+    std::vector<SubmitInfo> _submitInfos;
 
     std::array<size_t, constants::FRAMES_IN_FLIGHT> _stateCounters{};
     std::array<std::unique_ptr<TimelineSemaphore>, constants::FRAMES_IN_FLIGHT> _semaphores{};
@@ -109,8 +110,8 @@ private:
     [[nodiscard]] TimelineSemaphore* semaphore() const { return _semaphores[_cycle.subIndex].get(); }
     template<Phase P> [[nodiscard]] Queue const* queue() const;
     template<Phase P> [[nodiscard]] PrimaryCmdBuffer* cmdBuffer() const;
-    template<Phase P> [[nodiscard]] Queue::SubmitInfo& submitInfo() {
-        return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _cycle.subIndex]; //TODO change this to frame major instead of phase major
+    template<Phase P> [[nodiscard]] SubmitInfo& submitInfo() {
+        return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _cycle.subIndex];
     }
 
 
@@ -234,7 +235,7 @@ private:
      * @return vector(SET_SIZE)
      */
     template<Phase P>
-    [[nodiscard]] std::vector<Queue::SubmitInfo> createPhaseSubmitInfos(
+    [[nodiscard]] std::vector<SubmitInfo> createPhaseSubmitInfos(
         std::span<PrimaryCmdBuffer const* const> phase_buffers) const;
 
     /**
@@ -242,7 +243,7 @@ private:
      * @param cmd_buffers span[phase][frame]
      * @return vector[phase][frame] -> SubmitInfo
      */
-    [[nodiscard]] std::vector<Queue::SubmitInfo> createSubmitInfos(
+    [[nodiscard]] std::vector<SubmitInfo> createSubmitInfos(
         std::span<PrimaryCmdBuffer const* const> cmd_buffers) const;
 
 

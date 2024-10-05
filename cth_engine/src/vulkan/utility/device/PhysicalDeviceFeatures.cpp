@@ -5,7 +5,7 @@
 
 #include "vulkan/base/CthPhysicalDevice.hpp"
 
-#include<gsl/pointers>
+#include <gsl/pointers>
 
 
 namespace cth::vk::utils {

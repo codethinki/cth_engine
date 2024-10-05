@@ -2,7 +2,8 @@
 
 #include "interface/render/CthRenderCycle.hpp"
 
-#include "vulkan/base/CthQueue.hpp"
+#include "vulkan/base/queue/CthQueue.hpp"
+#include "vulkan/base/queue/CthPresentInfo.hpp"
 #include "vulkan/resource/image/CthImage.hpp"
 
 
@@ -15,6 +16,7 @@
 
 
 namespace cth::vk {
+struct PresentInfo;
 class Fence;
 class Subpass;
 class RenderPass;
@@ -40,6 +42,7 @@ public:
 
     //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
     virtual void create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE);
+
     /**
      * @brief destroys the swapchain
      * @note calls destroyResources()
@@ -90,8 +93,10 @@ private:
     void createSyncObjects();
 
     //createSwapchain
-    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::span<VkSurfaceFormatKHR const> available_formats, std::span<VkSurfaceFormatKHR const> allowed_formats);
-    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(std::span<VkPresentModeKHR const> available_present_modes, std::span<VkPresentModeKHR const> allowed_present_modes);
+    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::span<VkSurfaceFormatKHR const> available_formats,
+        std::span<VkSurfaceFormatKHR const> allowed_formats);
+    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(std::span<VkPresentModeKHR const> available_present_modes,
+        std::span<VkPresentModeKHR const> allowed_present_modes);
     [[nodiscard]] static VkExtent2D chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities);
     [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
     [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(VkSurfaceKHR surface,
@@ -173,7 +178,7 @@ private:
 
     std::vector<Fence> _imageAvailableFences;
 
-    std::vector<Queue::PresentInfo> _presentInfos;
+    std::vector<PresentInfo> _presentInfos;
 
 
     std::array<uint32_t, constants::FRAMES_IN_FLIGHT> _imageIndices{};

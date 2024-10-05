@@ -83,6 +83,8 @@ public:
 private:
     void reset();
 
+    void initAttachments();
+
     cth::not_null<Core const*> _core;
 
     cth::move_ptr<VkRenderPass_T> _handle;

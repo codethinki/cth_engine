@@ -1,6 +1,6 @@
 #include "CthPhysicalDevice.hpp"
 
-#include "CthQueue.hpp"
+#include "queue/CthQueue.hpp"
 #include "vulkan/base/CthInstance.hpp"
 #include "vulkan/surface/CthSurface.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"

@@ -3,11 +3,11 @@
 #include "CthCmdBuffer.hpp"
 #include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
-#include "vulkan/base/CthQueue.hpp"
+#include "vulkan/base/queue/CthQueue.hpp"
 #include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
-#include<range/v3/view/concat.hpp>
+#include <range/v3/view/concat.hpp>
 
 
 namespace cth::vk {

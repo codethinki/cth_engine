@@ -1,7 +1,7 @@
 #pragma once
 #include "CthSemaphore.hpp"
 
-#include<span>
+#include <span>
 
 namespace cth::vk {
 class TimelineSemaphore : public Semaphore {

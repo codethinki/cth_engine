@@ -40,8 +40,11 @@
     <ClInclude Include="include\vulkan\cth_resource.hpp" />
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
     <ClInclude Include="src\interface\render\CthRenderCycle.hpp" />
+    <ClInclude Include="src\interface\render\CthPhase.hpp" />
     <ClInclude Include="src\pch\glob\glfw.hpp" />
     <ClInclude Include="src\pch\glob\glm.hpp" />
+    <ClInclude Include="src\vulkan\base\queue\CthSubmitInfo.hpp" />
+    <ClInclude Include="src\vulkan\base\queue\CthPresentInfo.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthAttachmentCollection.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthSubpass.hpp" />
     <ClInclude Include="src\vulkan\resource\image\Framebuffer.hpp" />
@@ -59,8 +62,8 @@
     <ClInclude Include="src\vulkan\base\CthDevice.hpp" />
     <ClInclude Include="src\vulkan\base\CthInstance.hpp" />
     <ClInclude Include="src\vulkan\base\CthPhysicalDevice.hpp" />
-    <ClInclude Include="src\vulkan\base\CthQueue.hpp" />
-    <ClInclude Include="src\vulkan\base\CthQueueFamily.hpp" />
+    <ClInclude Include="src\vulkan\base\queue\CthQueue.hpp" />
+    <ClInclude Include="src\vulkan\base\queue\CthQueueFamily.hpp" />
     <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthFence.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthPipelineBarrier.hpp" />
@@ -117,6 +120,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="engine_main.cpp" />
+    <ClCompile Include="src\interface\render\CthPhase.cpp" />
+    <ClCompile Include="src\vulkan\base\queue\CthSubmitInfo.cpp" />
+    <ClCompile Include="src\vulkan\base\queue\CthPresentInfo.cpp" />
     <ClCompile Include="src\vulkan\render\pass\AttachmentCollection.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthSubpass.cpp" />
     <ClCompile Include="src\vulkan\resource\image\Framebuffer.cpp" />
@@ -149,7 +155,7 @@
     <ClCompile Include="src\vulkan\base\CthDevice.cpp" />
     <ClCompile Include="src\vulkan\base\CthInstance.cpp" />
     <ClCompile Include="src\vulkan\base\CthPhysicalDevice.cpp" />
-    <ClCompile Include="src\vulkan\base\CthQueue.cpp" />
+    <ClCompile Include="src\vulkan\base\queue\CthQueue.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthFence.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthPipelineWaitStage.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />

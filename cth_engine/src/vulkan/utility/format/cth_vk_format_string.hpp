@@ -1,6 +1,6 @@
 #pragma once
-#include<string_view>
-#include<boost/pfr.hpp>
+#include <string_view>
+#include <boost/pfr.hpp>
 
 namespace cth::vk::fmt {
 

@@ -3,7 +3,7 @@
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_types.hpp"
 
-#include<cth/pointers.hpp>
+#include <cth/pointers.hpp>
 
 #include <vulkan/vulkan.h>
 
@@ -23,23 +23,20 @@ public:
 
     /**
      * @brief base constructor
-     * @param buffer_size in bytes
      */
-    BaseBuffer(cth::not_null<Core const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags);
+    BaseBuffer(cth::not_null<Core const*> core, size_t byte_size, VkBufferUsageFlags usage_flags);
 
     /**
-     * @brief constructs and wraps
-     * @param state passed to @ref wrap()
+     * @brief constructs and calls @ref wrap(State)
      * @note calls @ref BaseBuffer(cth::not_null<Core const*>, size_t, VkBufferUsageFlags)
      */
-    BaseBuffer(cth::not_null<Core const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, State state);
+    BaseBuffer(cth::not_null<Core const*> core, size_t byte_size, VkBufferUsageFlags usage_flags, State state);
 
     /**
-     * @brief constructs and creates
-     * @note calls @ref create()
+     * @brief constructs and calls @ref create()
      * @note calls @ref BaseBuffer(cth::not_null<Core const*>, size_t, VkBufferUsageFlags)
      */
-    BaseBuffer(cth::not_null<Core const*> core, size_t buffer_size, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags vk_memory_flags);
+    BaseBuffer(cth::not_null<Core const*> core, size_t bytes_size, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags vk_memory_flags);
 
 
     /**
@@ -55,7 +52,7 @@ public:
     * @note calls @ref optDestroy()
     * @note calls @ref Memory::Memory(cth::not_null<Core const*>, VkMemoryPropertyFlags, VkMemoryRequirements const&)
     * @throws cth::vk::result_exception result of @ref vkCreateBuffer()
-    * @throws cth::vk:.result_exception result of @ref vkBindBufferMemory()
+    * @throws cth::vk::result_exception result of @ref vkBindBufferMemory()
     */
     virtual void create(VkMemoryPropertyFlags vk_memory_flags);
 
@@ -122,7 +119,6 @@ public:
     /**
     * @param size in elements
     * @param offset in elements
-    * @return result of @ref vkInvalidateMappedMemoryRanges()
     * @attention requires @ref created()
     * @note calls Memory::invalidate(size_t, size_t)
     */
@@ -131,7 +127,6 @@ public:
 
     /**
     * @brief copies buffer data to gpu
-    * @param cmd_buffer
     * @param copy_size in bytes (Constants::WHOLE_SIZE => whole buffer)
     * @param src_offset in bytes
     * @param dst_offset in bytes

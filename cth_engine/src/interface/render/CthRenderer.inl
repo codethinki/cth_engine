@@ -1,10 +1,10 @@
 #pragma once
 
-#include "vulkan/base/CthQueue.hpp"
+#include "vulkan/base/queue/CthQueue.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
-#include<cth/io/log.hpp>
+#include <cth/io/log.hpp>
 
 #include <ranges>
 #include <vector>
@@ -177,7 +177,7 @@ auto Renderer::Config::addSets(std::span<Semaphore* const> signal_semaphore_sets
 
 template<Renderer::Phase P>
 auto Renderer::Config::createPhaseSubmitInfos(
-    std::span<PrimaryCmdBuffer const* const> phase_buffers) const -> std::vector<Queue::SubmitInfo> {
+    std::span<PrimaryCmdBuffer const* const> phase_buffers) const -> std::vector<SubmitInfo> {
 
     DEBUG_CHECK_RENDERER_PHASE(P);
 
@@ -185,7 +185,7 @@ auto Renderer::Config::createPhaseSubmitInfos(
     auto const& waitSets = _phaseWaitSets[P];
 
 
-    std::vector<Queue::SubmitInfo> submitInfos{};
+    std::vector<SubmitInfo> submitInfos{};
     submitInfos.reserve(SET_SIZE);
 
     for(size_t i = 0; i < SET_SIZE; i++) {

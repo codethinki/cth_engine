@@ -6,6 +6,7 @@
 #include "vulkan/base/CthDevice.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "vulkan/render/control/CthFence.hpp"
 #include "vulkan/render/control/CthPipelineBarrier.hpp"
 #include "vulkan/render/control/CthSemaphore.hpp"
 #include "vulkan/render/pass/CthAttachmentCollection.hpp"
@@ -108,36 +109,24 @@ void BasicSwapchain::skipAcquire(Cycle const& cycle) const {
         throw cth::vk::result_exception{result, details->exception()};
 }
 void BasicSwapchain::beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const* cmd_buffer) const {
+    _renderPass->begin(cmd_buffer, 0, &_swapchainFramebuffers[_imageIndices[cycle.subIndex]]);
 
-    //TEMP move part of this to the framebuffer & render pass abstractions
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = _renderPass->get();
-    renderPassInfo.framebuffer = _swapchainFramebuffers[_imageIndices[cycle.subIndex]].get();
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = _extent;
-
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0, 0, 0, 1}}; // NOLINT(cppcoreguidelines-pro-type-union-access)
-    clearValues[1].depthStencil = {1.0f, 0}; // NOLINT(cppcoreguidelines-pro-type-union-access)
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-
-    vkCmdBeginRenderPass(cmd_buffer->get(), &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    VkViewport viewport;
-    viewport.x = 0;
-    viewport.y = 0;
-    viewport.width = static_cast<float>(_extent.width);
-    viewport.height = static_cast<float>(_extent.height);
-    viewport.minDepth = 0;
-    viewport.maxDepth = 1.0f;
-    VkRect2D const scissor{{0, 0}, _extent};
+    VkViewport const viewport{
+        .x = 0,
+        .y = 0,
+        .width = static_cast<float>(_extent.width),
+        .height = static_cast<float>(_extent.height),
+        .minDepth = 0,
+        .maxDepth = 1.0f,
+    };
+    VkRect2D const scissor{
+        .offset = {0, 0},
+        .extent = _extent
+    };
     vkCmdSetViewport(cmd_buffer->get(), 0, 1, &viewport);
     vkCmdSetScissor(cmd_buffer->get(), 0, 1, &scissor);
 }
-void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const* cmd_buffer) { vkCmdEndRenderPass(cmd_buffer->get()); }
+void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const* cmd_buffer) { _renderPass->end(cmd_buffer); }
 
 VkResult BasicSwapchain::present(Cycle const& cycle) {
     size_t subIndex = cycle.subIndex;

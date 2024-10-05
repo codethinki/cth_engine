@@ -1,17 +1,19 @@
 #pragma once
-#include "CthDevice.hpp"
-#include "CthInstance.hpp"
-#include "CthPhysicalDevice.hpp"
-#include "CthQueue.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
+#include "vulkan/base/queue/CthQueue.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
-#include<cth/pointers.hpp>
+#include <cth/pointers.hpp>
 #include <vulkan/vulkan.h>
 
 #include <span>
 
 namespace cth::vk {
+class DestructionQueue;
+class Queue;
+class Device;
+class PhysicalDevice;
+class Instance;
+
 class Core {
 public:
     struct Config;
@@ -67,7 +69,7 @@ private:
     std::unique_ptr<DestructionQueue> _destructionQueue;
 
 public:
-    [[nodiscard]] bool created() const;
+    [[nodiscard]] bool created() const { return _device != nullptr && _physicalDevice != nullptr && _instance != nullptr; }
 
     [[nodiscard]] Device const* device() const;
     [[nodiscard]] VkDevice vkDevice() const;
@@ -138,9 +140,6 @@ struct Core::Config {
 namespace cth::vk {
 
 inline void Core::debug_check(cth::not_null<Core const*> core) {
-    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(core->_destructionQueue.get());
-    DEBUG_CHECK_DEVICE(core->_device.get());
-    DEBUG_CHECK_PHYSICAL_DEVICE(core->_physicalDevice.get());
-    DEBUG_CHECK_INSTANCE(core->_instance.get());
+    CTH_CRITICAL(!core->created(), "core must be created") {}
 }
 }

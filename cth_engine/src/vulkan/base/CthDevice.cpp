@@ -4,7 +4,7 @@
 #include "CthCore.hpp"
 #include "CthInstance.hpp"
 #include "CthPhysicalDevice.hpp"
-#include "CthQueue.hpp"
+#include "queue/CthQueue.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
 

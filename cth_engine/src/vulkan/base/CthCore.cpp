@@ -64,7 +64,7 @@ Core::State Core::release() {
 }
 
 
-bool Core::created() const { return _device && _instance && _physicalDevice; }
+
 
 Device const* Core::device() const { return _device.get(); }
 VkDevice Core::vkDevice() const { return _device->get(); }

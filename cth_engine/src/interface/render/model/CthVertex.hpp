@@ -1,5 +1,5 @@
 #pragma once
-#include<cth/algorithm.hpp>
+#include <cth/algorithm.hpp>
 
 
 

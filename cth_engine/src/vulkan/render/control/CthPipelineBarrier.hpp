@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "vulkan/base/CthQueue.hpp"
+#include "vulkan/base/queue/CthQueue.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
 

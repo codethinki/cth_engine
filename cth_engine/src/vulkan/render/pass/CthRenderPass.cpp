@@ -12,22 +12,8 @@
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
 namespace cth::vk {
-void debug_check_attachments(std::span<AttachmentCollection const* const> attachments) {
-    CTH_CRITICAL(std::ranges::any_of(attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*>const& pair){
-        return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->index();}), "invalid attachments or indices submitted in subpasses") {
-        uint32_t i = 0;
-        std::vector<uint32_t> missingIndices{};
-        for(auto const* attachment : attachments) {
-            if(attachment->index() != i) {
-                missingIndices.push_back(i);
-                i = attachment->index();
-            }
-            ++i;
-        }
-        details->add("missing indices: {}", missingIndices);
-        throw details->exception();
-    }
-}
+
+
 
 RenderPass::RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
     std::span<BeginConfig const> begin_configs) : _core{core}, _subpasses{std::from_range, subpasses},
@@ -36,23 +22,14 @@ RenderPass::RenderPass(cth::not_null<Core const*> core, std::span<Subpass const*
     Core::debug_check(core);
     Subpass::debug_check(_subpasses);
 
-    _attachments = subpasses | std::views::transform([](Subpass const* subpass) { return subpass->attachments(); })
-        | std::views::join | std::ranges::to<std::vector<AttachmentCollection const*>>();
-
-    std::ranges::sort(_attachments, [](AttachmentCollection const* a, AttachmentCollection const* b) { return a->index() < b->index(); });
-    auto const duplicates = std::ranges::unique(_attachments);
-
-
-    _attachments.erase(std::ranges::begin(duplicates), std::ranges::end(duplicates));
-
-    debug_check_attachments(_attachments);
+    initAttachments();
 
     for(auto [clearValues, extent, subpassContents, offset] : begin_configs) {
         _clearValues.insert_range(_clearValues.end(), clearValues);
         _contents.push_back(subpassContents);
 
         _beginInfos.emplace_back(
-            VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             nullptr,
             _handle.get(),
             VK_NULL_HANDLE,
@@ -107,6 +84,8 @@ void RenderPass::create() {
         throw cth::vk::result_exception{result, details->exception()};
 
     _handle = ptr;
+
+    for(auto& beginInfo : _beginInfos) beginInfo.renderPass = _handle.get();
 }
 void RenderPass::destroy() {
     debug_check(this);
@@ -148,6 +127,41 @@ void RenderPass::destroy(vk::not_null<VkDevice> vk_device, VkRenderPass vk_rende
     vkDestroyRenderPass(vk_device.get(), vk_render_pass, nullptr);
 }
 
-void RenderPass::reset() { _handle = nullptr; }
+void RenderPass::reset() {
+    _handle = nullptr;
+    for(auto& beginInfo : _beginInfos) beginInfo.renderPass = VK_NULL_HANDLE;
+}
+
+void debug_check_attachments(std::span<AttachmentCollection const* const> attachments) {
+    CTH_CRITICAL(std::ranges::any_of(attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*>const& pair){
+        return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->index();}), "invalid attachments or indices submitted in subpasses") {
+        uint32_t i = 0;
+        std::vector<uint32_t> missingIndices{};
+        for(auto const* attachment : attachments) {
+            if(attachment->index() != i) {
+                missingIndices.push_back(i);
+                i = attachment->index();
+            }
+            ++i;
+        }
+        details->add("missing indices: {}", missingIndices);
+        throw details->exception();
+    }
+}
+
+void RenderPass::initAttachments() {
+    _attachments = _subpasses | std::views::transform([](Subpass const* subpass) { return subpass->attachments(); })
+        | std::views::join | std::ranges::to<std::vector<AttachmentCollection const*>>();
+
+    std::ranges::sort(_attachments, [](AttachmentCollection const* a, AttachmentCollection const* b) { return a->index() < b->index(); });
+    auto const duplicates = std::ranges::unique(_attachments);
+
+
+    _attachments.erase(std::ranges::begin(duplicates), std::ranges::end(duplicates));
+
+    debug_check_attachments(_attachments);
+}
+
+
 
 }

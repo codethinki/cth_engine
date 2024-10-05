@@ -113,7 +113,7 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
 
 
 auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const> cmd_buffers) const
-    -> std::vector<Queue::SubmitInfo> {
+    -> std::vector<SubmitInfo> {
     DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(cmd_buffers);
 
     auto phaseBuffers = cmd_buffers | std::views::chunk(SET_SIZE);
@@ -128,7 +128,7 @@ auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const
 
     auto view = phaseSubmitInfos | std::views::join;
 
-    std::vector<Queue::SubmitInfo> result{};
+    std::vector<SubmitInfo> result{};
     std::ranges::move(view, std::back_inserter(result));
     return result;
 }

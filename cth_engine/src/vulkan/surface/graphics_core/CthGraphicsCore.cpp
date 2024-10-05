@@ -4,6 +4,7 @@
 #include "../CthSurface.hpp"
 #include "../swapchain/CthBasicSwapchain.hpp"
 #include "vulkan/base/CthCore.hpp"
+#include "vulkan/render/pass/CthRenderPass.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
 namespace cth::vk {

@@ -228,7 +228,7 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <BrowseInformation>true</BrowseInformation>
+      <BrowseInformation>false</BrowseInformation>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
       <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles);</ForcedIncludeFiles>

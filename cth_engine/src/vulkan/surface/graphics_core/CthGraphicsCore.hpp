@@ -2,7 +2,7 @@
 #include "CthGraphicsSyncConfig.hpp"
 
 #include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthQueue.hpp"
+#include "vulkan/base/queue/CthQueue.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_debug_macros.hpp"
 
