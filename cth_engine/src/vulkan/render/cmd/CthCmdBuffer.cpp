@@ -19,15 +19,21 @@ void CmdBuffer::destroy(this auto&& self) {
 
 
 
-void CmdBuffer::reset(VkCommandBufferResetFlags flags) const {
+void CmdBuffer::reset(VkCommandBufferResetFlags flags) {
     auto const result = vkResetCommandBuffer(_handle.get(), flags);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset command buffer")
         throw vk::result_exception{result, details->exception()};
+
+    _recording = false;
 }
-void CmdBuffer::end() const {
+void CmdBuffer::end() {
+    CTH_CRITICAL(!recording(), "cmd buffer must be in recording state"){}
+
     auto const result = vkEndCommandBuffer(_handle.get());
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset end buffer")
         throw vk::result_exception{result, details->exception()};
+
+    _recording = false;
 }
 
 void CmdBuffer::destroy(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers) {
@@ -54,11 +60,13 @@ void CmdBuffer::create(this auto&& self, cth::not_null<CmdPool*> pool) {
     self._handle = self._pool->template newCmdBuffer<type::pure_t<decltype(self)>>();
 }
 
-void CmdBuffer::begin(VkCommandBufferBeginInfo const& info) const {
+void CmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
     auto const result = vkBeginCommandBuffer(_handle.get(), &info);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to begin command buffer")
         throw vk::result_exception{result, details->exception()};
+
+    _recording = true;
 }
 
 void CmdBuffer::reset() {
@@ -69,6 +77,7 @@ void CmdBuffer::reset() {
 
 }
 
+
 //PrimaryCmdBuffer
 
 namespace cth::vk {
@@ -76,7 +85,7 @@ namespace cth::vk {
 PrimaryCmdBuffer::PrimaryCmdBuffer(cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{usage} { create(cmd_pool); }
 
 PrimaryCmdBuffer::~PrimaryCmdBuffer() { destroy(); }
-void PrimaryCmdBuffer::begin() const {
+void PrimaryCmdBuffer::begin() {
     VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,
@@ -89,6 +98,7 @@ void PrimaryCmdBuffer::begin() const {
 
 }
 
+
 //SecondaryCmdBuffer
 
 namespace cth::vk {
@@ -97,7 +107,7 @@ SecondaryCmdBuffer::SecondaryCmdBuffer(Config const& config, VkCommandBufferUsag
 SecondaryCmdBuffer::SecondaryCmdBuffer(cth::not_null<PrimaryCmdBuffer*> primary, Config const& config,
     VkCommandBufferUsageFlags usage) : SecondaryCmdBuffer{config, usage} { create(primary); }
 
-void SecondaryCmdBuffer::begin() const {
+void SecondaryCmdBuffer::begin() {
     VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,

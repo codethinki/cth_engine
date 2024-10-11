@@ -22,8 +22,6 @@ template<class T>
 concept cmd_buffer_t = type::is_any_of<T, PrimaryCmdBuffer, SecondaryCmdBuffer>;
 
 
-
-//TEMP modernize
 class CmdPool {
     enum BufferType : size_t { BUFFER_TYPE_PRIMARY, BUFFER_TYPE_SECONDARY, BUFFER_TYPES };
 

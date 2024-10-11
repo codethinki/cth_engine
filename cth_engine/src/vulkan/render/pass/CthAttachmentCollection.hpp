@@ -25,6 +25,7 @@ struct AttachmentDescription {
 };
 }
 
+
 namespace cth::vk {
 /**
  * @brief wraps a collection of attachments of the same image for a render pass
@@ -129,6 +130,7 @@ public:
 
 }
 
+
 //State
 
 namespace cth::vk {
@@ -161,6 +163,7 @@ struct AttachmentCollection::State {
     State& operator=(State&& other) noexcept = default;
 };
 }
+
 
 //debug checks
 

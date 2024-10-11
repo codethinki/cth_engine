@@ -1,11 +1,11 @@
 #pragma once
-#include "vulkan/render/control/CthSemaphore.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 
 #include <vector>
 
 
 namespace cth::vk {
+class Semaphore;
 class Core;
 
 
@@ -17,7 +17,7 @@ public:
     /**
      * @brief base constructor
      */
-    explicit GraphicsSyncConfig(cth::not_null<Core const*> core) : _core{core} {}
+    explicit GraphicsSyncConfig(cth::not_null<Core const*> core);
 
     /**
      * @brief constructs and wraps
@@ -34,7 +34,7 @@ public:
     /**
      * @note calls @ref optDestroy()
      */
-    ~GraphicsSyncConfig() { optDestroy(); }
+    ~GraphicsSyncConfig();
 
     /**
      * @brief wraps @ref State
@@ -44,16 +44,17 @@ public:
     /**
      * @brief creates the semaphores
      * @note calls @ref optDestroy()
-     * @note calls @ref Semaphore::Semaphore(Core*, bool) i.e. create constructor
+     * @note calls @ref Semaphore::Semaphore(cth::not_null<Core const*>, bool) i.e. create constructor
      */
     void create();
 
     /**
      * @brief destroys and resets
+     * @attention @ref created() required
      * @note calls @ref Semaphore::~Semaphore()
-     * @note requires @ref created()
      */
     void destroy();
+
     /**
      * @brief if @ref created() calls @ref destroy()
      */
@@ -61,7 +62,7 @@ public:
 
     /**
      * @brief releases ownership and resets
-     * @note requires @ref created()
+     * @attention @ref created() required
      */
     State release();
 
@@ -85,9 +86,12 @@ private:
     std::array<std::unique_ptr<Semaphore>, SET_SIZE> _renderFinishedSemaphores;
 
 public:
-    [[nodiscard]] bool created() const { return _imageAvailableSemaphores[0] && _renderFinishedSemaphores[0]; }
-    [[nodiscard]] Semaphore* renderFinishedSemaphore(size_t index) const { return _renderFinishedSemaphores[index].get(); }
-    [[nodiscard]] Semaphore* imageAvailableSemaphore(size_t index) const { return _imageAvailableSemaphores[index].get(); }
+    [[nodiscard]] bool created() const {
+        return std::ranges::none_of(_imageAvailableSemaphores, [](auto const& ptr) { return ptr == nullptr; })
+            && std::ranges::none_of(_imageAvailableSemaphores, [](auto const& ptr) { return ptr == nullptr; });
+    }
+    [[nodiscard]] Semaphore* renderFinishedSemaphore(size_t index) const;
+    [[nodiscard]] Semaphore* imageAvailableSemaphore(size_t index) const;
 
     GraphicsSyncConfig(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig const& other) = delete;
@@ -95,9 +99,9 @@ public:
     GraphicsSyncConfig& operator=(GraphicsSyncConfig&& other) noexcept = default;
 
     static void debug_check(cth::not_null<GraphicsSyncConfig const*> config);
-    static void debug_check_state(State const& state);
 };
 }
+
 
 //State
 
@@ -111,19 +115,19 @@ struct GraphicsSyncConfig::State {
      * @attention must not be nullptr
      */
     std::array<std::unique_ptr<Semaphore>, constants::FRAMES_IN_FLIGHT> renderFinishedSemaphores;
+
+private:
+    static void debug_check(State const& state);
+
+    friend GraphicsSyncConfig;
 };
 }
+
 
 //debug checks
 
 namespace cth::vk {
 inline void GraphicsSyncConfig::debug_check(cth::not_null<GraphicsSyncConfig const*> config) {
     CTH_CRITICAL(!config->created(), "config not created"){}
-}
-inline void GraphicsSyncConfig::debug_check_state(State const& state) {
-    for(auto& semaphore : state.imageAvailableSemaphores)
-        Semaphore::debug_check(semaphore.get());
-    for(auto& semaphore : state.renderFinishedSemaphores)
-        Semaphore::debug_check(semaphore.get());
 }
 }

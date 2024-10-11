@@ -114,7 +114,7 @@ Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
 
 auto Renderer::Config::createSubmitInfos(std::span<PrimaryCmdBuffer const* const> cmd_buffers) const
     -> std::vector<SubmitInfo> {
-    DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(cmd_buffers);
+    Config::debug_check_sets_size(cmd_buffers);
 
     auto phaseBuffers = cmd_buffers | std::views::chunk(SET_SIZE);
 

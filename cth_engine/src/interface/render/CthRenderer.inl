@@ -24,8 +24,7 @@ template<Renderer::Phase P>
 void Renderer::end() {
     DEBUG_CHECK_RENDERER_PHASE_CHANGE(this, P);
 
-    PrimaryCmdBuffer const* buffer = cmdBuffer<P>();
-
+    PrimaryCmdBuffer* buffer = cmdBuffer<P>();
     buffer->end();
 
     submit<P>();
@@ -208,7 +207,7 @@ auto Renderer::Config::createPhaseSubmitInfos(
 template<Renderer::Phase P, class T>
 auto Renderer::Config::add(std::span<T const> sets, collection_t<T>& to) -> void {
     DEBUG_CHECK_RENDERER_PHASE(P);
-    DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(sets);
+    Config::debug_check_sets_size(sets);
 
 
     auto& phase = to[P];
@@ -220,7 +219,7 @@ auto Renderer::Config::add(std::span<T const> sets, collection_t<T>& to) -> void
 template<Renderer::Phase P, class T>
 auto Renderer::Config::remove(std::span<T const> sets, collection_t<T>& from) -> void {
     DEBUG_CHECK_RENDERER_PHASE(P);
-    DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(sets);
+    Config::debug_check_sets_size(sets);
 
     auto& phase = from[P];
     for(auto& set : sets | std::views::chunk(SET_SIZE)) {
@@ -231,12 +230,7 @@ auto Renderer::Config::remove(std::span<T const> sets, collection_t<T>& from) ->
     }
 }
 
-#ifdef CONSTANT_DEBUG_MODE
-template<class Rng>
-void Renderer::Config::debug_check_sets_size(Rng const& rng) {
-    CTH_ERR((std::ranges::size(rng) % SET_SIZE) != 0, "size must be a multiple of SET_SIZE") throw details->exception();
-}
-#endif
+
 
 
 }

@@ -7,6 +7,7 @@
 
 #include <span>
 
+
 namespace cth::vk {
 class DestructionQueue;
 class Queue;
@@ -89,6 +90,7 @@ public:
 
 
 }
+
 
 //State
 

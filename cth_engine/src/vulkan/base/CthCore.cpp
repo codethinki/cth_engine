@@ -12,8 +12,8 @@ Core::Core(Config const& config) { create(config); }
 Core::~Core() { optDestroy(); }
 
 void Core::wrap(State state) {
-    DEBUG_CHECK_INSTANCE(state.instance.get());
-    DEBUG_CHECK_PHYSICAL_DEVICE(state.physicalDevice.get());
+    Instance::debug_check(state.instance.get());
+    PhysicalDevice::debug_check(state.physicalDevice.get());
     DEBUG_CHECK_DEVICE(state.device.get());
     DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(state.destructionQueue);
 

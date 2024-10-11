@@ -23,8 +23,8 @@
 namespace cth::vk {
 
 BasicSwapchain::BasicSwapchain(cth::not_null<Core const*> core, cth::not_null<Queue const*> present_queue,
-    cth::not_null<GraphicsSyncConfig const*> sync_config, cth::not_null<Surface const*> surface) :
-    _core(core), _presentQueue(present_queue), _surface{surface}, _syncConfig(sync_config) {
+    cth::not_null<GraphicsSyncConfig const*> sync_config, cth::not_null<Surface const*> surface) : _core(core), _presentQueue(present_queue),
+    _surface{surface}, _syncConfig(sync_config) {
     Core::debug_check(core.get());
     DEBUG_CHECK_SURFACE(surface);
     Queue::debug_check_present(present_queue);
@@ -202,11 +202,10 @@ VkSurfaceFormatKHR BasicSwapchain::chooseSwapSurfaceFormat(std::span<VkSurfaceFo
         if(std::ranges::contains(available_formats, format)) return format;
 
 
-    CTH_STABLE_WARN(true, "no suitable format found, choosing first available") {
+    CTH_STABLE_ERR(true, "no suitable format found") {
         details->add("available: {}", available_formats);
         details->add("allowed: {}", allowed_formats);
-        details->add("chosen: {}", available_formats[0]);
-        return available_formats[0];
+        throw details->exception();
     }
 }
 VkPresentModeKHR BasicSwapchain::chooseSwapPresentMode(std::span<VkPresentModeKHR const> available_present_modes,
@@ -217,11 +216,11 @@ VkPresentModeKHR BasicSwapchain::chooseSwapPresentMode(std::span<VkPresentModeKH
             return mode;
         }
 
-    CTH_STABLE_WARN(true, "none of the allowed present modes were available, falling back to FIFO") {
+    CTH_STABLE_ERR(true, "none of the allowed present modes were available") {
         details->add("available: {}", available_present_modes);
         details->add("allowed: {}", allowed_present_modes);
+        throw details->exception();
     }
-    return VK_PRESENT_MODE_FIFO_KHR;
 }
 VkExtent2D BasicSwapchain::chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities) {
     if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) return capabilities.currentExtent;

@@ -7,6 +7,7 @@
 #include "vulkan/render/pass/CthRenderPass.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
+
 namespace cth::vk {
 GraphicsCore::GraphicsCore(cth::not_null<Core const*> core) : _core{core} {}
 GraphicsCore::GraphicsCore(cth::not_null<Core const*> core, State state) : GraphicsCore{core} { wrap(std::move(state)); }
@@ -20,7 +21,7 @@ GraphicsCore::~GraphicsCore() { optDestroy(); }
 
 void GraphicsCore::wrap(State state) {
     optDestroy();
-    DEBUG_CHECK_GRAPHICS_CORE_STATE(state);
+    State::debug_check(state);
 
     _swapchain = state.swapchain.release_val();
     _surface = state.surface.release_val();
@@ -39,6 +40,8 @@ void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, cth::
     _swapchain->create(_osWindow->extent()); //TEMP replace this with swapchain create constructor
 }
 void GraphicsCore::destroy() {
+    debug_check(this);
+
     _swapchain->destroy(); //TEMP replace this once non basic swapchain is ready
     _swapchain = nullptr;
     _surface = nullptr;
@@ -46,7 +49,7 @@ void GraphicsCore::destroy() {
     reset();
 }
 auto GraphicsCore::release() -> State {
-    DEBUG_CHECK_GRAPHICS_CORE(this);
+    debug_check(this);
 
     State temp{
         std::move(_osWindow),
@@ -71,28 +74,28 @@ void GraphicsCore::minimized() const {
 
 
 void GraphicsCore::acquireFrame(Cycle const& cycle) const {
-    DEBUG_CHECK_GRAPHICS_CORE(this);
+    debug_check(this);
     auto const result = _swapchain->acquireNextImage(cycle);
 
-    CTH_WARN(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR, "suboptimal / out of date swapchain discovered on image acquire") {}
+    CTH_WARN(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR, "swapchain image aquire result != VK_SUCCESS ({})", result) {}
 }
 void GraphicsCore::skipAcquire(Cycle const& cycle) const {
-    DEBUG_CHECK_GRAPHICS_CORE(this);
+    debug_check(this);
     _swapchain->skipAcquire(cycle);
 }
 
 void GraphicsCore::beginWindowPass(Cycle const& cycle, PrimaryCmdBuffer const* render_cmd_buffer) const {
-    DEBUG_CHECK_GRAPHICS_CORE(this);
+    debug_check(this);
     _swapchain->beginRenderPass(cycle, render_cmd_buffer);
 }
 void GraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const {
-    DEBUG_CHECK_GRAPHICS_CORE(this);
+    debug_check(this);
     _swapchain->endRenderPass(render_cmd_buffer);
 }
 
 
 void GraphicsCore::presentFrame(Cycle const& cycle) const {
-    DEBUG_CHECK_GRAPHICS_CORE(this);
+    debug_check(this);
     auto const result = _swapchain->present(cycle);
     if(result != VK_SUCCESS) [[unlikely]] {
         minimized();
@@ -100,7 +103,7 @@ void GraphicsCore::presentFrame(Cycle const& cycle) const {
     }
 }
 void GraphicsCore::skipPresent(Cycle const& cycle) const {
-    DEBUG_CHECK_GRAPHICS_CORE(this);
+    debug_check(this);
     _swapchain->skipPresent(cycle);
 }
 
@@ -110,20 +113,13 @@ void GraphicsCore::reset() {
     _swapchain = nullptr;
 }
 
+void GraphicsCore::State::debug_check(State const& state) {
+    OSWindow::debug_check(state.osWindow.get());
+    Surface::debug_check(state.surface.get());
+    BasicSwapchain::debug_check(state.swapchain.get());
+}
+
 
 RenderPass const* GraphicsCore::swapchainRenderPass() const { return _swapchain->renderPass(); }
 VkSampleCountFlagBits GraphicsCore::msaaSamples() const { return _swapchain->msaaSamples(); }
-
-
-#ifdef CONSTANT_DEBUG_MODE
-void GraphicsCore::debug_check(cth::not_null<GraphicsCore const*> graphics_core) {
-    CTH_ERR(!graphics_core->created(), "graphics core must be created") throw details->exception();
-}
-void GraphicsCore::debug_check_state(State const& state) {
-    DEBUG_CHECK_OS_WINDOW(state.osWindow.get());
-    DEBUG_CHECK_SURFACE(state.surface.get());
-    DEBUG_CHECK_SWAPCHAIN(state.swapchain.get());
-}
-#endif
-
 } //namespace cth

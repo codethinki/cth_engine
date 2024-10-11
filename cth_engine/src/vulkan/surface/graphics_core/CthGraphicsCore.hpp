@@ -2,7 +2,6 @@
 #include "CthGraphicsSyncConfig.hpp"
 
 #include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/queue/CthQueue.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_debug_macros.hpp"
 
@@ -66,6 +65,7 @@ public:
 
     /**
      * @brief destroys and resets
+     * @attention @ref created() required
      * @note calls @ref reset()
      */
     void destroy();
@@ -117,9 +117,9 @@ private:
     void reset();
 
     cth::not_null<Core const*> _core;
-    std::unique_ptr<OSWindow> _osWindow = nullptr;
-    std::unique_ptr<Surface> _surface = nullptr;
-    std::unique_ptr<BasicSwapchain> _swapchain = nullptr; //TEMP change to Swapchain ptr once implemented
+    std::unique_ptr<OSWindow> _osWindow;
+    std::unique_ptr<Surface> _surface;
+    std::unique_ptr<BasicSwapchain> _swapchain; //TEMP change to Swapchain ptr once implemented
 
 public:
     [[nodiscard]] bool created() const { return _osWindow || _surface || _swapchain; }
@@ -133,20 +133,11 @@ public:
     GraphicsCore(GraphicsCore&& other) noexcept = default;
     GraphicsCore& operator=(GraphicsCore const& other) = delete;
     GraphicsCore& operator=(GraphicsCore&& other) noexcept = default;
-#ifdef CONSTANT_DEBUG_MODE
+
     static void debug_check(cth::not_null<GraphicsCore const*> graphics_core);
-    static void debug_check_state(State const& state);
-
-#define DEBUG_CHECK_GRAPHICS_CORE_STATE(state)
-#define DEBUG_CHECK_GRAPHICS_CORE(graphics_core_ptr)
-
-#else
-#define DEBUG_CHECK_GRAPHICS_CORE_STATE(state) ((void)0)
-#define DEBUG_CHECK_GRAPHICS_CORE(graphics_core_ptr) ((void)0)
-
-#endif
 };
 }
+
 
 //State
 
@@ -155,5 +146,19 @@ struct GraphicsCore::State {
     unique_not_null<OSWindow> osWindow;
     unique_not_null<Surface> surface;
     unique_not_null<BasicSwapchain> swapchain;
+
+private:
+    static void debug_check(State const& state);
+
+    friend GraphicsCore;
 };
+}
+
+
+//debug check
+
+namespace cth::vk {
+inline void GraphicsCore::debug_check(cth::not_null<GraphicsCore const*> graphics_core) {
+    CTH_CRITICAL(!graphics_core->created(), "graphics core must be created") {}
+}
 }

@@ -40,7 +40,9 @@
     <ClInclude Include="include\vulkan\cth_resource.hpp" />
     <ClInclude Include="include\vulkan\cth_utility.hpp" />
     <ClInclude Include="src\interface\render\CthRenderCycle.hpp" />
-    <ClInclude Include="src\interface\render\CthPhase.hpp" />
+    <ClInclude Include="src\interface\render\CthStage.hpp" />
+    <ClInclude Include="src\interface\render\CthRenderer2.hpp" />
+    <ClInclude Include="src\interface\render\Phase.hpp" />
     <ClInclude Include="src\pch\glob\glfw.hpp" />
     <ClInclude Include="src\pch\glob\glm.hpp" />
     <ClInclude Include="src\vulkan\base\queue\CthSubmitInfo.hpp" />
@@ -120,7 +122,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="engine_main.cpp" />
-    <ClCompile Include="src\interface\render\CthPhase.cpp" />
+    <ClCompile Include="src\interface\render\CthStage.cpp" />
+    <ClCompile Include="src\interface\render\CthRenderer2.cpp" />
+    <ClCompile Include="src\interface\render\Phase.cpp" />
     <ClCompile Include="src\vulkan\base\queue\CthSubmitInfo.cpp" />
     <ClCompile Include="src\vulkan\base\queue\CthPresentInfo.cpp" />
     <ClCompile Include="src\vulkan\render\pass\AttachmentCollection.cpp" />

@@ -36,11 +36,11 @@ public:
      */
     void optDestroy(this auto&& self) { if(self.created()) self.destroy(); }
 
-    virtual void begin() const = 0;
+    virtual void begin() = 0;
 
-    void end() const;
+    void end();
 
-    void reset(VkCommandBufferResetFlags flags) const;
+    void reset(VkCommandBufferResetFlags flags);
 
 
 
@@ -51,7 +51,7 @@ protected:
     void create(this auto&& self, cth::not_null<CmdPool*> pool);
 
 
-    void begin(VkCommandBufferBeginInfo const& info) const;
+    void begin(VkCommandBufferBeginInfo const& info);
     VkCommandBufferUsageFlags _bufferUsage;
 
 private:
@@ -59,15 +59,16 @@ private:
 
     CmdPool* _pool = nullptr;
     move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
-
+    bool _recording = false;
 
     friend CmdPool;
 
 public:
-    [[nodiscard]] VkBufferUsageFlags usageFlags() const { return _bufferUsage; }
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkCommandBuffer get() const { return _handle.get(); }
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool recording() const { return _recording; }
     [[nodiscard]] CmdPool* pool() const { return _pool; }
+    [[nodiscard]] VkBufferUsageFlags usageFlags() const { return _bufferUsage; }
 
     CmdBuffer(CmdBuffer const& other) = delete;
     CmdBuffer& operator=(CmdBuffer const& other) = delete;
@@ -96,7 +97,7 @@ public:
 
     ~PrimaryCmdBuffer() override;
 
-    void begin() const override;
+    void begin() override;
     void create(cth::not_null<CmdPool*> pool) { CmdBuffer::create(pool); }
 
     PrimaryCmdBuffer(PrimaryCmdBuffer const& other) = delete;
@@ -118,7 +119,7 @@ public:
 
     ~SecondaryCmdBuffer() override { destroy(); }
 
-    void begin() const override;
+    void begin() override;
 
     void create(cth::not_null<PrimaryCmdBuffer*> primary);
 

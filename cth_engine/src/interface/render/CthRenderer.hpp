@@ -9,8 +9,6 @@
 #include <vulkan/vulkan.h>
 
 #include <array>
-#include <cstdint>
-#include <mdspan>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -110,9 +108,7 @@ private:
     [[nodiscard]] TimelineSemaphore* semaphore() const { return _semaphores[_cycle.subIndex].get(); }
     template<Phase P> [[nodiscard]] Queue const* queue() const;
     template<Phase P> [[nodiscard]] PrimaryCmdBuffer* cmdBuffer() const;
-    template<Phase P> [[nodiscard]] SubmitInfo& submitInfo() {
-        return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _cycle.subIndex];
-    }
+    template<Phase P> [[nodiscard]] SubmitInfo& submitInfo() { return _submitInfos[P * constants::FRAMES_IN_FLIGHT + _cycle.subIndex]; }
 
 
     //[[nodiscard]] size_t to_signal(const State state) const { return _frameStateCounter + state; }
@@ -272,31 +268,18 @@ private:
     [[nodiscard]] std::array<Queue const*, PHASES_SIZE> queues() const;
 
 public:
-#ifdef CONSTANT_DEBUG_MODE
     template<class Rng>
     static void debug_check_sets_size(Rng const& rng); //asserts: rng.size() % SET_SIZE == 0
-#define DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(rng) Config::debug_check_sets_size(rng)
-#else
-#define DEBUG_CHECK_RENDERER_CONFIG_SET_SIZE(rng) ((void)0)
-#endif
-
-
-
 };
 }
+
 
 #include "CthRenderer.inl"
 
 
-
-//TEMP old code
-///**
-// * @throws cth::vk::result_exception result of @ref  Swapchain::acquireNextImage()
-// * @throws cth::vk::result_exception result of @ref vkBeginCommandBuffer()
-// */
-//const PrimaryCmdBuffer* beginFrame();
-///**
-// * @throws cth::vk::result_exception result of @ref Swapchain::submitCommandBuffers()
-// * @throws cth::vk::result_exception result of @ref vkEndCommandBuffer()
-// */
-//void endFrame();
+namespace cth::vk {
+template<class Rng>
+void Renderer::Config::debug_check_sets_size(Rng const& rng) {
+    CTH_CRITICAL((std::ranges::size(rng) % SET_SIZE) != 0, "size must be a multiple of SET_SIZE") {}
+}
+}
