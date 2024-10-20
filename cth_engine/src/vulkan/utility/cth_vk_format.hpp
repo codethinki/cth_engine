@@ -4,7 +4,7 @@
 #include "format/cth_vk_to_string.hpp"
 
 #include <boost/pfr.hpp>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 namespace cth::vk::fmt {
 template<class T>

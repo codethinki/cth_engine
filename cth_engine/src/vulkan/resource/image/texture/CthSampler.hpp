@@ -1,7 +1,7 @@
 #pragma once
 
 #include <array>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 

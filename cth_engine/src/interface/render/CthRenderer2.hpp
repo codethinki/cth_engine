@@ -9,7 +9,7 @@
 #include "vulkan/render/control/CthTimelineSemaphore.hpp"
 #include "vulkan/render/control/CthWaitStage.hpp"
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <array>
 #include <memory>

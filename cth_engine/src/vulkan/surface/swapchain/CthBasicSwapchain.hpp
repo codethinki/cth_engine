@@ -7,7 +7,7 @@
 #include "vulkan/resource/image/CthImage.hpp"
 
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 
 #include <memory>

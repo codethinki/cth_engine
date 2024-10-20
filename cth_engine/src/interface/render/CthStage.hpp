@@ -1,7 +1,7 @@
 #pragma once
 #include "vulkan/utility/cth_constants.hpp"
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 
 namespace cth::vk {
@@ -74,7 +74,7 @@ private:
     std::vector<Semaphore*> _signalSemaphores;
     std::vector<PipelineWaitStage> _waitStages;
 
-    VkExtent2D _extent{};
+     VkExtent2D _extent{};
     std::vector<SubmitInfo> _submitInfos;
     std::unique_ptr<CmdPool> _cmdPool;
     std::vector<PrimaryCmdBuffer> _cmdBuffers;

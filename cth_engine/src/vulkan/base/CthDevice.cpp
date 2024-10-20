@@ -15,18 +15,22 @@ using std::span;
 
 Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device) :
     _instance{instance}, _physicalDevice{physical_device} {}
-Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, State const& state) :
-    Device{instance, physical_device} { wrap(state); }
+Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, State state) :
+    Device{instance, physical_device} { wrap(std::move(state)); }
 Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, std::span<Queue> queues) :
     Device{instance, physical_device} { create(queues); }
 
 Device::~Device() { optDestroy(); }
 
-void Device::wrap(State const& state) {
+void Device::wrap(State state) {
     optDestroy();
 
-    _handle = state.handle.get();
+    _handle = state.vkDevice.get();
     _queueFamiliesQueueCounts = state.queueFamiliesQueueCounts;
+
+    _functionTable = std::move(state.functionTable);
+    if(_functionTable == nullptr) createFunctionTable();
+
 }
 void Device::create(std::span<Queue> queues) {
     optDestroy();
@@ -34,6 +38,7 @@ void Device::create(std::span<Queue> queues) {
     auto const familyIndices = setUniqueFamilyIndices(queues);
 
     createLogicalDevice();
+    createFunctionTable();
 
     wrapQueues(familyIndices, queues);
 }
@@ -54,8 +59,8 @@ vector<uint32_t> Device::setUniqueFamilyIndices(span<Queue const> queues) {
 }
 
 void Device::createLogicalDevice() {
-    CTH_ERR(_queueFamiliesQueueCounts.empty(), "queue family queue count must be queried first") throw details->exception();
-    CTH_ERR(created(), "device was already created") throw details->exception();
+    CTH_CRITICAL(_queueFamiliesQueueCounts.empty(), "queue family queue count must be queried first") {}
+    CTH_CRITICAL(created(), "device was already created") {}
 
     vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
     queueCreateInfos.reserve(_queueFamiliesQueueCounts.size());
@@ -83,20 +88,29 @@ void Device::createLogicalDevice() {
     VkDevice ptr = VK_NULL_HANDLE;
 
     VkResult const createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &ptr);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create logical device")
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create logical device"){
+        reset();
         throw cth::vk::result_exception{createResult, details->exception()};
-
+    }
     _handle = ptr;
 }
+void Device::createFunctionTable() {
+    CTH_CRITICAL(_functionTable != nullptr, "function table must be nullptr") {}
+
+    _functionTable = std::make_unique<VolkDeviceTable>();
+    volkLoadDeviceTable(_functionTable.get(), get());
+
+}
+
 void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues) const {
-    CTH_ERR(family_indices.size() != queues.size(), "there must be a family index for every queue") throw details->exception();
+    CTH_CRITICAL(family_indices.size() != queues.size(), "there must be a family index for every queue") {}
 
     std::unordered_map<uint32_t, uint32_t> queueCounts{};
     for(auto& index : family_indices) queueCounts[index] = 0;
 
     for(auto [familyIndex, queue] : std::views::zip(family_indices, queues)) {
         VkQueue ptr = VK_NULL_HANDLE;
-        vkGetDeviceQueue(_handle.get(), familyIndex, queueCounts[familyIndex], &ptr);
+        table()->vkGetDeviceQueue(_handle.get(), familyIndex, queueCounts[familyIndex], &ptr);
 
         CTH_STABLE_ERR(ptr == VK_NULL_HANDLE, "failed to get device queue") throw details->exception();
 
@@ -114,7 +128,7 @@ Device::State Device::release() {
 void Device::waitIdle() const {
     DEBUG_CHECK_DEVICE(this);
 
-    auto const result = vkDeviceWaitIdle(_handle.get());
+    auto const result = table()->vkDeviceWaitIdle(_handle.get());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for device") throw vk::result_exception{result, details->exception()};
 }
@@ -126,6 +140,7 @@ void Device::destroy(VkDevice vk_device) {
 void Device::reset() {
     _handle = nullptr;
     _queueFamiliesQueueCounts.clear();
+    _functionTable = {};
 }
 
 

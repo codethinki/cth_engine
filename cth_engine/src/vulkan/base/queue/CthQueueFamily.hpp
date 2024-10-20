@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 namespace cth::vk {
 enum QueueFamilyPropertyFlagBits : uint32_t {

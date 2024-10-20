@@ -16,8 +16,9 @@ using std::vector;
 using std::span;
 
 
-Instance::Instance(string_view app_name, span<string const> required_extensions) : _name(app_name),
-    _availableExt(getAvailableInstanceExtensions()) {
+Instance::Instance(string_view app_name, span<string const> required_extensions) : _name(app_name) {
+    _availableExt = getAvailableInstanceExtensions();
+
     _requiredExt.reserve(required_extensions.size() + REQUIRED_INSTANCE_EXTENSIONS.size());
     _requiredExt.insert(_requiredExt.end(), required_extensions.begin(), required_extensions.end());
     _requiredExt.insert(_requiredExt.end(), REQUIRED_INSTANCE_EXTENSIONS.begin(), REQUIRED_INSTANCE_EXTENSIONS.end());
@@ -49,10 +50,10 @@ void Instance::wrap(State state) {
 void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
     optDestroy();
 
-#ifdef CONSTANT_DEBUG_MODE
-    if(messenger_config == std::nullopt)
-        messenger_config = DebugMessenger::Config::Default();
-#endif
+    if constexpr(COMPILATION_MODE == CompilationMode::DEBUG) {
+        if(messenger_config == std::nullopt)
+            messenger_config = DebugMessenger::Config::Default();
+    }
 
     vector<char const*> requiredExtVec(_requiredExt.size());
     std::ranges::copy(_requiredExt | std::views::transform([](auto const& str) { return str.data(); }), requiredExtVec.begin());
@@ -85,10 +86,8 @@ void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
         reset();
         throw cth::vk::result_exception{createInstanceResult, details->exception()};
     }
-
-
     _handle = ptr;
-
+    addInstance(get());
 
     if(messenger_config != std::nullopt) _debugMessenger = std::make_unique<DebugMessenger>(*messenger_config, this);
 }
@@ -174,6 +173,11 @@ void Instance::reset() {
     _handle = VK_NULL_HANDLE;
 }
 
+void Instance::addInstance(cth::vk::not_null<VkInstance> vk_instance) {
+    if(volkGetLoadedInstance() == VK_NULL_HANDLE) volkLoadInstanceOnly(vk_instance.get());
+}
+
+//TEMP move to inline
 #ifdef CONSTANT_DEBUG_MODE
 void Instance::debug_check(cth::not_null<Instance const*> instance) { debug_check_handle(instance->get()); }
 void Instance::debug_check_handle([[maybe_unused]] vk::not_null<VkInstance> vk_instance) {}

@@ -45,6 +45,8 @@
     <ClInclude Include="src\interface\render\Phase.hpp" />
     <ClInclude Include="src\pch\glob\glfw.hpp" />
     <ClInclude Include="src\pch\glob\glm.hpp" />
+    <ClInclude Include="src\pch\glob\volk.hpp" />
+    <ClInclude Include="src\pch\glob\windows.hpp" />
     <ClInclude Include="src\vulkan\base\queue\CthSubmitInfo.hpp" />
     <ClInclude Include="src\vulkan\base\queue\CthPresentInfo.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthAttachmentCollection.hpp" />
@@ -447,7 +449,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_WIN32_WINNT_WIN10 0x0A00</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
@@ -455,6 +457,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
       <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <AdditionalModuleDependencies>volk.c;%(AdditionalModuleDependencies)</AdditionalModuleDependencies>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

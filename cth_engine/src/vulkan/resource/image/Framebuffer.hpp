@@ -3,7 +3,7 @@
 #include "vulkan/utility/cth_vk_types.hpp"
 
 #include <gsl/pointers>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 namespace cth::vk {
 class Core;

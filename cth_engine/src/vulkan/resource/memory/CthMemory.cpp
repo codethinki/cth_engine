@@ -117,8 +117,7 @@ void Memory::debug_check(Memory const* memory) {
     DEBUG_CHECK_MEMORY_HANDLE(memory->get());
 }
 void Memory::debug_check_handle(VkDeviceMemory vk_memory) {
-    CTH_ERR(vk_memory == VK_NULL_HANDLE, "memory handle should not be invalid (VK_NULL_HANDLE)")
-        throw details->exception();
+    CTH_CRITICAL(vk_memory == VK_NULL_HANDLE, "memory handle should not be invalid (VK_NULL_HANDLE)"){}
 }
 #endif
-} // namespace cth
+}

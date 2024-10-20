@@ -1,7 +1,7 @@
 #pragma once
 #include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <string>
 #include <vector>

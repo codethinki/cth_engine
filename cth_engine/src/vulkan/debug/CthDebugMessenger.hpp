@@ -3,8 +3,10 @@
 
 #include <cth/pointers.hpp>
 
+#include <volk.h>
 #include <gsl/pointers>
-#include <vulkan/vulkan.h>
+
+
 
 #include <functional>
 
@@ -69,11 +71,11 @@ public:
      */
     void optDestroy() { if(created()) destroy(); }
 
-    static void destroy(VkInstance instance, VkDebugUtilsMessengerEXT vk_messenger);
+    static void destroy(not_null<VkInstance_T*> vk_instance, VkDebugUtilsMessengerEXT vk_messenger);
 
     /**
      * @brief releases ownership, returns state and resets
-     * @note requires @ref created()
+     * @note @ref created() required
      */
     State release();
 

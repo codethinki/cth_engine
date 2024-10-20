@@ -19,16 +19,10 @@ void DebugMessenger::create(cth::not_null<Instance const*> instance) {
 
     VkDebugUtilsMessengerCreateInfoEXT const info = _config.createInfo();
 
-    auto const func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(_instance->get(), "vkCreateDebugUtilsMessengerEXT"));
 
-    CTH_STABLE_ERR(func == nullptr, "vkGetInstanceProcAddr returned nullptr") {
-        reset();
-        throw details->exception();
-    }
     VkDebugUtilsMessengerEXT ptr = VK_NULL_HANDLE;
 
-    VkResult const createResult = func(_instance->get(), &info, nullptr, &ptr);
+    VkResult const createResult = vkCreateDebugUtilsMessengerEXT(_instance->get(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to set up debug messenger") {
         reset();
@@ -46,16 +40,11 @@ void DebugMessenger::destroy() {
 }
 
 
-void DebugMessenger::destroy(VkInstance instance, VkDebugUtilsMessengerEXT vk_messenger) {
+void DebugMessenger::destroy(vk::not_null<VkInstance> vk_instance, VkDebugUtilsMessengerEXT vk_messenger) {
+    Instance::debug_check_handle(vk_instance.get());
     CTH_WARN(vk_messenger == VK_NULL_HANDLE, "messenger invalid") {}
-    DEBUG_CHECK_INSTANCE_HANDLE(instance);
 
-    auto const func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
-
-    CTH_STABLE_ERR(func == nullptr, "vkGetInstanceProcAddr returned nullptr") throw details->exception();
-
-    func(instance, vk_messenger, nullptr);
+    vkDestroyDebugUtilsMessengerEXT(vk_instance.get(), vk_messenger, nullptr);
 }
 DebugMessenger::State DebugMessenger::release() {
     State const state{_instance, _handle.get()};

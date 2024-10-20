@@ -6,9 +6,7 @@
 #include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
-
-#include <vulkan/vulkan_win32.h>
-
+#include <volk.h>
 
 namespace cth::vk {
 OSWindow::OSWindow(Instance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent) :
@@ -22,7 +20,7 @@ OSWindow::OSWindow(Instance const* instance, DestructionQueue* destruction_queue
 }
 OSWindow::~OSWindow() {
     CTH_STABLE_ERR(_surface != nullptr, "surface must be retrieved (i have to swap glfw with native windows impl, this is crap")
-        throw details->exception(); // NOLINT(clang-diagnostic-exceptions)
+        std::terminate(); // NOLINT(clang-diagnostic-exceptions)
 
     if(_surface) {
         Surface::destroy(_instance->get(), _surface.get());
@@ -152,7 +150,7 @@ VkSurfaceKHR OSWindow::tempSurface(cth::not_null<Instance const*> instance) {
     CTH_STABLE_ERR(hwnd == nullptr, "failed to create temp window")
         throw details->exception();
 
-
+    
     // Create the Vulkan surface
     VkWin32SurfaceCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;

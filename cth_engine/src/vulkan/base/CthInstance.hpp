@@ -5,7 +5,7 @@
 #include "vulkan/utility/cth_vk_types.hpp"
 
 #include <cth/pointers.hpp>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <array>
 #include <optional>
@@ -96,6 +96,8 @@ private:
     std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
     move_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
 
+    static void addInstance(cth::vk::not_null<VkInstance> vk_instance);
+
 public:
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkInstance get() const { return _handle.get(); }
@@ -128,7 +130,10 @@ public:
 #define DEBUG_CHECK_INSTANCE_LEAK(instance_ptr) ((void)0)
 #endif
 };
+
+
 }
+
 
 //State
 

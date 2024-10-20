@@ -85,6 +85,8 @@
     <ClInclude Include="src\vulkan\base\queue\CthPresentInfo.hpp" />
     <ClInclude Include="src\interface\render\CthRenderer2.hpp" />
     <ClInclude Include="src\interface\render\Phase.hpp" />
+    <ClInclude Include="src\pch\glob\volk.hpp" />
+    <ClInclude Include="src\pch\glob\windows.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />

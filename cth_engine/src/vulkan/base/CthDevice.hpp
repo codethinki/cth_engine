@@ -2,8 +2,8 @@
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_types.hpp"
 
+#include <volk.h>
 #include <cth/pointers.hpp>
-#include <vulkan/vulkan.h>
 
 
 #include <span>
@@ -35,7 +35,7 @@ public:
      * @note calls @ref Device(cth::not_null<Instance const*>, cth::not_null<PhysicalDevice const*>)
      * @note calls @ref wrap(State)
      */
-    explicit Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, State const& state);
+    explicit Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, State state);
 
     /**
      * @brief constructs and creates
@@ -53,7 +53,7 @@ public:
      * @brief wraps @ref State
      * @note calls @ref optDestroy()
      */
-    void wrap(State const& state);
+    void wrap(State state);
 
     /**
      * @brief creates device and queues
@@ -104,6 +104,9 @@ private:
     * @throws cth::vk::result_exception result of @ref vkCreateDevice()
     */
     void createLogicalDevice();
+
+    void createFunctionTable();
+
     /**
      * @brief retrieves the queues from the device
      * @param family_indices family index of each queue
@@ -116,10 +119,12 @@ private:
     cth::not_null<PhysicalDevice const*> _physicalDevice;
 
     move_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
+    std::unique_ptr<VolkDeviceTable> _functionTable;
 
     std::unordered_map<uint32_t, uint32_t> _queueFamiliesQueueCounts;
 
 public:
+    [[nodiscard]] VolkDeviceTable const* table() const { return _functionTable.get(); }
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
     [[nodiscard]] auto queueFamiliesQueueCounts() const { return _queueFamiliesQueueCounts; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
@@ -143,7 +148,13 @@ public:
 
 namespace cth::vk {
 struct Device::State {
-    vk::not_null<VkDevice> handle;
+    vk::not_null<VkDevice> vkDevice;
     std::unordered_map<uint32_t, uint32_t> queueFamiliesQueueCounts;
+    /**
+     * @brief volk function table of @ref vkDevice
+     * @attention must be loaded if not nullptr
+     * @note may be nullptr
+     */
+    std::unique_ptr<VolkDeviceTable> functionTable;
 };
 }
