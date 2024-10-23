@@ -2,6 +2,15 @@
 
 #include "vulkan/render/control/CthTimelineSemaphore.hpp"
 #include "vulkan/surface/swapchain/CthBasicSwapchain.hpp"
+#include <vulkan/render/control/CthSemaphore.hpp>
+
+#include <volk.h>
+#include <cth/io/log.hpp>
+
+#include <algorithm>
+#include <cstdint>
+#include <ranges>
+#include <span>
 
 
 namespace cth::vk {
@@ -10,8 +19,7 @@ PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<Semaphore co
 
     for(auto [dst, src] : std::views::zip(_waitSemaphores, wait_semaphores)) {
         dst = src->get();
-        CTH_ERR(dynamic_cast<TimelineSemaphore const*>(src) != nullptr, "semaphores in present info must not be timeline semaphores")
-            throw details->exception();
+        CTH_CRITICAL(dynamic_cast<TimelineSemaphore const*>(src) != nullptr, "semaphores in present info must not be timeline semaphores");
     }
 
     createInfo();

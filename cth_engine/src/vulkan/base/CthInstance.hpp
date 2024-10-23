@@ -96,7 +96,7 @@ private:
     std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
     move_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
 
-    static void addInstance(cth::vk::not_null<VkInstance> vk_instance);
+    static void loadInstance(cth::vk::not_null<VkInstance> vk_instance);
 
 public:
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }

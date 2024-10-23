@@ -43,7 +43,7 @@ public:
      * @return phases cmd buffers
      * @throws cth::vk::result_exception result of @ref vkBeginCommandBuffer()
      */
-    [[nodiscard]] std::vector<PrimaryCmdBuffer> begin() const;
+    [[nodiscard]] std::vector<Stage*> begin() const;
 
     /**
      * @brief ends the recording for the phase

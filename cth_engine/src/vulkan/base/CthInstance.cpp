@@ -87,7 +87,7 @@ void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
         throw cth::vk::result_exception{createInstanceResult, details->exception()};
     }
     _handle = ptr;
-    addInstance(get());
+    loadInstance(get());
 
     if(messenger_config != std::nullopt) _debugMessenger = std::make_unique<DebugMessenger>(*messenger_config, this);
 }
@@ -173,8 +173,9 @@ void Instance::reset() {
     _handle = VK_NULL_HANDLE;
 }
 
-void Instance::addInstance(cth::vk::not_null<VkInstance> vk_instance) {
-    if(volkGetLoadedInstance() == VK_NULL_HANDLE) volkLoadInstanceOnly(vk_instance.get());
+void Instance::loadInstance(cth::vk::not_null<VkInstance> vk_instance) {
+    if(volkGetLoadedInstance() == VK_NULL_HANDLE) 
+        volkLoadInstanceOnly(vk_instance.get());
 }
 
 //TEMP move to inline

@@ -1,4 +1,11 @@
 #pragma once
+#include <volk.h>
+#include <vulkan/vulkan_core.h>
+
+#include <memory>
+#include <span>
+#include <vector>
+
 namespace cth::vk {
 class Fence;
 struct PipelineWaitStage;

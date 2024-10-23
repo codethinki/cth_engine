@@ -17,7 +17,7 @@ void Engine::terminateVolk() {
     volkFinalize();
 }
 void Engine::initVolk() {
-
+    
     auto const result = volkInitialize();
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to load vulkan")
         throw result_exception{result, details->exception()};
