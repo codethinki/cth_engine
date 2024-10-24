@@ -49,7 +49,7 @@ void Stage::createCmdBuffers() {
     CTH_CRITICAL(_cmdPool != nullptr, "CmdPool required") {}
 
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; ++i)
-        _cmdBuffers.emplace_back(_cmdPool.get());
+        _cmdBuffers.emplace_back(_core, _cmdPool.get());
 }
 
 void Stage::createSubmitInfos() {

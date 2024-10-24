@@ -25,7 +25,7 @@ void Fence::create(VkFenceCreateFlags flags) {
     auto const info = createInfo(flags);
 
     VkFence ptr = VK_NULL_HANDLE;
-    auto const result = vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = _core->deviceTable()->vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create fence")
         throw cth::vk::result_exception{result, details->exception()};

@@ -9,6 +9,7 @@
 
 
 namespace cth::vk {
+class Core;
 
 class Device;
 class PrimaryCmdBuffer;
@@ -22,7 +23,7 @@ public:
     /**
      * @brief base constructor
      */
-    explicit CmdBuffer(VkCommandBufferUsageFlags usage = 0);
+    explicit CmdBuffer(cth::not_null<Core const*> core, VkCommandBufferUsageFlags usage = 0);
     virtual ~CmdBuffer() = default;
 
     /**
@@ -52,10 +53,11 @@ protected:
 
 
     void begin(VkCommandBufferBeginInfo const& info);
-    VkCommandBufferUsageFlags _bufferUsage;
-
 private:
     void reset();
+
+    cth::not_null<Core const*> _core;
+    VkCommandBufferUsageFlags _bufferUsage;
 
     CmdPool* _pool = nullptr;
     move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
@@ -92,8 +94,8 @@ inline void CmdBuffer::debug_check_handle([[maybe_unused]] vk::not_null<VkComman
 namespace cth::vk {
 class PrimaryCmdBuffer : public CmdBuffer {
 public:
-    explicit PrimaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
-    explicit PrimaryCmdBuffer(cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage = 0);
+    explicit PrimaryCmdBuffer(cth::not_null<Core const*> core, VkCommandBufferUsageFlags usage = 0) : CmdBuffer{core,usage} {}
+    explicit PrimaryCmdBuffer(cth::not_null<Core const*> core, cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage = 0);
 
     ~PrimaryCmdBuffer() override;
 

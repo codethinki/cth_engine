@@ -141,7 +141,7 @@ private:
 
     void destroySwapchain();
 
-    void destroySyncObjects(DestructionQueue* destruction_queue);
+    void destroySyncObjects();
     //TEMP left off here check swapchain destruction and then try to make it compile
 
     void resizeReset();

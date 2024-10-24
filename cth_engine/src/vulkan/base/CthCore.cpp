@@ -67,6 +67,7 @@ Core::State Core::release() {
 
 
 Device const* Core::device() const { return _device.get(); }
+VolkDeviceTable const* Core::deviceTable() const { return _device->table(); }
 VkDevice Core::vkDevice() const { return _device->get(); }
 PhysicalDevice const* Core::physicalDevice() const { return _physicalDevice.get(); }
 VkPhysicalDevice Core::vkPhysicalDevice() const { return _physicalDevice->get(); }

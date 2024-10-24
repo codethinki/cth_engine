@@ -64,10 +64,11 @@ public:
 
     /**
      * @brief destroys and resets
-     * @attention requires @ref created()
+     * @attention @ref created() required
      * @note calls @ref destroy(VkDevice)
      */
     void destroy();
+
     /**
      * @brief if @ref created() calls @ref destroy()
      */

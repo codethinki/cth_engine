@@ -6,7 +6,7 @@
 
 
 namespace cth::vk {
-CmdBuffer::CmdBuffer(VkCommandBufferUsageFlags usage) : _bufferUsage{usage} {}
+CmdBuffer::CmdBuffer(cth::not_null<Core const*> core, VkCommandBufferUsageFlags usage) : _core{core}, _bufferUsage{usage} {}
 
 void CmdBuffer::destroy(this auto&& self) {
     self.reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
@@ -82,14 +82,14 @@ void CmdBuffer::reset() {
 
 namespace cth::vk {
 
-PrimaryCmdBuffer::PrimaryCmdBuffer(cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{usage} { create(cmd_pool); }
+PrimaryCmdBuffer::PrimaryCmdBuffer(cth::not_null<Core const*> core, cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{core, usage} { create(cmd_pool); }
 
 PrimaryCmdBuffer::~PrimaryCmdBuffer() { destroy(); }
 void PrimaryCmdBuffer::begin() {
     VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,
-        _bufferUsage,
+        usageFlags(),
         nullptr,
     };
     CmdBuffer::begin(info);

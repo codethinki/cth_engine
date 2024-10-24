@@ -147,5 +147,6 @@
     <ClCompile Include="src\vulkan\base\queue\CthPresentInfo.cpp" />
     <ClCompile Include="src\interface\render\CthRenderer2.cpp" />
     <ClCompile Include="src\interface\render\Phase.cpp" />
+    <ClCompile Include="src\pch\lib\volk\volk.cpp" />
   </ItemGroup>
 </Project>

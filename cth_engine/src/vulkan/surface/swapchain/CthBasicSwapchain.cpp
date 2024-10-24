@@ -32,7 +32,7 @@ BasicSwapchain::BasicSwapchain(cth::not_null<Core const*> core, cth::not_null<Qu
 }
 BasicSwapchain::~BasicSwapchain() {
     DEBUG_CHECK_SWAPCHAIN_LEAK(this);
-    destroySyncObjects(_core->destructionQueue());
+    destroySyncObjects();
 }
 
 void BasicSwapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
@@ -276,7 +276,7 @@ VkSwapchainCreateInfoKHR BasicSwapchain::createInfo(VkSurfaceKHR surface,
 
 void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
     DEBUG_CHECK_SWAPCHAIN_LEAK(this);
-    DEBUG_CHECK_SWAPCHAIN_WINDOW_EXTENT(window_extent);
+    DEBUG_CHECK_SWAPCHAIN_WINDOW_EXTENT(window_extent){}
 
     _windowExtent = window_extent;
 
@@ -298,7 +298,7 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
 
 
     VkSwapchainKHR ptr = nullptr;
-    VkResult const createResult = vkCreateSwapchainKHR(_core->vkDevice(), &info, nullptr, &ptr);
+    VkResult const createResult = _core->deviceTable()->vkCreateSwapchainKHR(_core->vkDevice(), &info, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create swapchain")
         throw cth::vk::result_exception{createResult, details->exception()};
 
@@ -337,7 +337,7 @@ Image::Config BasicSwapchain::createDepthImageConfig() const {
 }
 std::vector<std::unique_ptr<Image>> BasicSwapchain::getSwapchainImages() {
     uint32_t imageCount; //only min specified, might be higher
-    auto const countResult = vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, nullptr);
+    auto const countResult = _core->deviceTable()->vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, nullptr);
 
     CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to get swapchain image count")
         throw cth::vk::result_exception{countResult, details->exception()};
@@ -345,7 +345,7 @@ std::vector<std::unique_ptr<Image>> BasicSwapchain::getSwapchainImages() {
     _imageCount = imageCount;
 
     std::vector<VkImage> vkImages{imageCount};
-    auto const getResult = vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, vkImages.data());
+    auto const getResult = _core->deviceTable()->vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, vkImages.data());
 
     CTH_STABLE_ERR(getResult != VK_SUCCESS, "failed to get swapchain images")
         throw cth::vk::result_exception{getResult, details->exception()};
@@ -520,7 +520,7 @@ void BasicSwapchain::destroySwapchain() {
     reset();
 }
 
-void BasicSwapchain::destroySyncObjects(DestructionQueue* destruction_queue) {
+void BasicSwapchain::destroySyncObjects() {
     for(auto& fence : _imageAvailableFences) fence.destroy();
     _imageAvailableFences.clear();
 }

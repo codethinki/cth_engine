@@ -59,7 +59,7 @@ VkSemaphoreCreateInfo Semaphore::createInfo() {
 }
 void Semaphore::createHandle(VkSemaphoreCreateInfo const& info) {
     VkSemaphore ptr = VK_NULL_HANDLE;
-    auto const createResult = vkCreateSemaphore(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const createResult = _core->deviceTable()->vkCreateSemaphore(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create semaphore") {
         reset();
