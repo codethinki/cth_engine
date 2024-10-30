@@ -1,5 +1,6 @@
 #include "CthPipelineBarrier.hpp"
 
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "vulkan/resource/buffer/CthBaseBuffer.hpp"
 #include "vulkan/resource/image/CthImage.hpp"
@@ -8,14 +9,11 @@
 
 namespace cth::vk {
 
-ImageBarrier::ImageBarrier(PipelineStages stages, std::unordered_map<Image*, ImageBarrier::Info> const& images) : PipelineStages(stages) {
-    init(images);
-}
-ImageBarrier::ImageBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-    std::unordered_map<Image*, ImageBarrier::Info> const& images) : PipelineStages{src_stage, dst_stage} { init(images); }
+ImageBarrier::ImageBarrier(cth::not_null<Core const*> core, PipelineStages stages,
+    std::unordered_map<Image*, Info> const& images) : ImageBarrier{core, stages} { init(images); }
 
 void ImageBarrier::add(Image* image, Info const& info) {
-    CTH_ERR(contains(image), "image already added, consider grouping") throw details->exception();
+    CTH_CRITICAL(contains(image), "image already added, consider grouping") {}
 
 
     _imageBarriers.emplace_back(info.createBarrier(*image));
@@ -61,7 +59,7 @@ void ImageBarrier::remove(Image const* image) {
     removeChange(index);
 }
 void ImageBarrier::execute(CmdBuffer const& cmd_buffer) {
-    vkCmdPipelineBarrier(cmd_buffer.get(), srcStage, dstStage, 0, 0, nullptr, 0, nullptr,
+    core()->functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr, 0, nullptr,
         static_cast<uint32_t>(_imageBarriers.size()), _imageBarriers.data());
     applyChanges();
 }
@@ -78,7 +76,6 @@ void ImageBarrier::applyChanges() const {
     }
 }
 
-ImageBarrier::ImageBarrier(std::unordered_map<Image*, ImageBarrier::Info> const& images) { init(images); }
 ptrdiff_t ImageBarrier::find(Image const* image) const {
     auto&& rng = _imageBarriers | std::views::transform([](auto const& barrier) { return barrier.image; });
     return static_cast<size_t>(std::distance(std::ranges::begin(rng), std::ranges::find(rng, image->get())));
@@ -100,11 +97,9 @@ void ImageBarrier::init(std::unordered_map<Image*, ImageBarrier::Info> const& im
 
 namespace cth::vk {
 
-BufferBarrier::BufferBarrier(PipelineStages stages, std::unordered_map<BaseBuffer const*, Info> const& buffers) : PipelineStages(stages) {
+BufferBarrier::BufferBarrier(cth::not_null<Core const*> core, PipelineStages stages, std::unordered_map<BaseBuffer const*, Info> const& buffers) : BufferBarrier{core, stages} {
     init(buffers);
 }
-BufferBarrier::BufferBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-    std::unordered_map<BaseBuffer const*, Info> const& buffers) : PipelineStages{src_stage, dst_stage} { init(buffers); }
 
 void BufferBarrier::add(BaseBuffer const* buffer, Info const& info) {
     CTH_ERR(std::ranges::contains(_buffers, buffer), "image already added, consider grouping") throw details->exception();
@@ -131,10 +126,10 @@ void BufferBarrier::remove(BaseBuffer const* buffer) {
     _buffers.erase(index);
 }
 void BufferBarrier::execute(CmdBuffer const& cmd_buffer) {
-    vkCmdPipelineBarrier(cmd_buffer.get(), srcStage, dstStage, 0, 0, nullptr, static_cast<uint32_t>(_bufferBarriers.size()), _bufferBarriers.data(), 0,
+    core()->functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr, static_cast<uint32_t>(_bufferBarriers.size()), _bufferBarriers.data(),
+        0,
         nullptr);
 }
-BufferBarrier::BufferBarrier(std::unordered_map<BaseBuffer const*, Info> const& buffers) { init(buffers); }
 void BufferBarrier::init(std::unordered_map<BaseBuffer const*, Info> const& buffers) { for(auto [buffer, info] : buffers) add(buffer, info); }
 
 
@@ -145,27 +140,19 @@ void BufferBarrier::init(std::unordered_map<BaseBuffer const*, Info> const& buff
 
 namespace cth::vk {
 
-PipelineBarrier::PipelineBarrier(PipelineStages stages, std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
-    std::unordered_map<Image*, ImageBarrier::Info> const& images) : BufferBarrier(buffers), ImageBarrier(images) {
-    BufferBarrier::srcStage = stages.srcStage;
-    BufferBarrier::dstStage = stages.dstStage;
-}
-PipelineBarrier::PipelineBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage,
-    std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
-    std::unordered_map<Image*, ImageBarrier::Info> const& images) : BufferBarrier(buffers), ImageBarrier(images) {
-    BufferBarrier::srcStage = src_stage;
-    BufferBarrier::dstStage = dst_stage;
-}
+PipelineBarrier::PipelineBarrier(cth::not_null<Core const*> core, PipelineStages stages, std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
+    std::unordered_map<Image*, ImageBarrier::Info> const& images) : BarrierBase{core, stages}, BufferBarrier{core, stages, buffers}, ImageBarrier{core, stages, images}{}
+
 void PipelineBarrier::execute(CmdBuffer const& cmd_buffer) {
-    vkCmdPipelineBarrier(cmd_buffer.get(), BufferBarrier::srcStage, BufferBarrier::dstStage, 0, 0, nullptr,
+
+    core()->functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr,
         static_cast<uint32_t>(_bufferBarriers.size()), _bufferBarriers.data(),
         static_cast<uint32_t>(_imageBarriers.size()), _imageBarriers.data());
 
-    ImageBarrier::applyChanges();
+    applyChanges();
 }
-void PipelineBarrier::initStages(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage) {
-    ImageBarrier::srcStage = src_stage;
-    ImageBarrier::dstStage = dst_stage;
+
+void PipelineBarrier::initStages(PipelineStages stages) {
 }
 
 } // namespace cth

@@ -23,7 +23,7 @@ void Sampler::create(Config const& config) {
     auto const createInfo = config.createInfo();
 
     VkSampler ptr = VK_NULL_HANDLE;
-    VkResult const createResult = vkCreateSampler(_core->vkDevice(), &createInfo, nullptr, &ptr);
+    VkResult const createResult =_core->functions()->vkCreateSampler(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create sampler") {
         reset();
@@ -37,7 +37,7 @@ void Sampler::create(Config const& config) {
 void Sampler::destroy() {
     DEBUG_CHECK_SAMPLER(this);
 
-    auto const lambda = [device = _core->vkDevice(), sampler = _handle.get()] { Sampler::destroy(device, sampler); };
+    auto const lambda = [table = _core->deviceTable(), sampler = _handle.get()] { Sampler::destroy(table, sampler); };
 
     auto const queue = _core->destructionQueue();
     if(queue) queue->push(lambda);
@@ -45,10 +45,10 @@ void Sampler::destroy() {
 
     reset();
 }
-void Sampler::destroy(vk::not_null<VkDevice> device, VkSampler sampler) {
+void Sampler::destroy(DeviceTable table, VkSampler sampler) {
     CTH_WARN(sampler == VK_NULL_HANDLE, "vk_sampler should not be invalid (VK_NULL_HANDLE)") {}
 
-    vkDestroySampler(device.get(), sampler, nullptr);
+   table->vkDestroySampler(table.device(), sampler, nullptr);
 }
 
 

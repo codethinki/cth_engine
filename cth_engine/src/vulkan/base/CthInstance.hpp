@@ -4,8 +4,8 @@
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_types.hpp"
 
-#include <cth/pointers.hpp>
 #include <volk.h>
+#include <cth/pointers.hpp>
 
 #include <array>
 #include <optional>
@@ -25,10 +25,10 @@ public:
     struct State;
 
     /**
-   * @brief base constructor
-   * @throws cth::except::default_exception reason: missing required instance extensions
-   * @throws cth::except::default_exception reason: missing required validation layers
-   */
+     * @brief base constructor
+     * @throws cth::except::default_exception reason: missing required instance extensions
+     * @throws cth::except::default_exception reason: missing required validation layers
+     */
     Instance(std::string_view app_name, std::span<std::string const> required_extensions);
 
     /**
@@ -55,11 +55,11 @@ public:
     void wrap(State state);
 
     /**
-    * @brief creates the instance
-    * @param messenger_config if not std::nullopt creates messenger with config
-    * @note calls @ref optDestroy()
-    * @throws cth::vk::result_exception result of @ref vkCreateInstance()
-    */
+     * @brief creates the instance
+     * @param messenger_config if not std::nullopt creates messenger with config
+     * @note calls @ref optDestroy()
+     * @throws cth::vk::result_exception result of @ref vkCreateInstance()
+     */
     void create(std::optional<DebugMessenger::Config> messenger_config = std::nullopt);
 
     /**
@@ -70,15 +70,18 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
- * @throws cth::except::default_exception reason: required extension not supported
- */
+     * @throws cth::except::default_exception reason: required extension not supported
+     */
     void checkInstanceExtensionSupport();
+
     /**
      * @throws cth::except::default_exception reason: required layers not supported
      */
     void checkValidationLayerSupport();
-    [[nodiscard]] static std::vector<std::string> getAvailableValidationLayers();
 
+    void enableValidationLayers();
+
+    [[nodiscard]] static std::vector<std::string> getAvailableValidationLayers();
     [[nodiscard]] static std::vector<std::string> getAvailableInstanceExtensions();
     [[nodiscard]] VkApplicationInfo appInfo() const;
 
@@ -96,7 +99,7 @@ private:
     std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
     move_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
 
-    static void loadInstance(cth::vk::not_null<VkInstance> vk_instance);
+    static void loadInstanceFunctions(cth::vk::not_null<VkInstance> vk_instance);
 
 public:
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }

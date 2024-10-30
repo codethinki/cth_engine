@@ -67,8 +67,8 @@ void CmdPool::destroy() {
 
     std::vector const buffers{std::from_range, std::views::join(_buffers)};
     std::array<DestructionQueue::function_t, 2> const lambdas{
-        [vk_device = _core->vkDevice(), vk_pool = _handle.get(), buffers] { CmdBuffer::destroy(vk_device, vk_pool, buffers); },
-        [vk_device = _core->vkDevice(), vk_pool = _handle.get()] { destroy(vk_device, vk_pool); },
+        [table = _core->deviceTable(), vk_pool = _handle.get(), buffers] { CmdBuffer::destroy(table, vk_pool, buffers); },
+        [table = _core->deviceTable(), vk_pool = _handle.get()] { destroy(table, vk_pool); },
     };
 
     auto const queue = _core->destructionQueue();
@@ -80,12 +80,10 @@ void CmdPool::destroy() {
 }
 void CmdPool::optDestroy(this auto&& self) { if(self.created()) self.destroy(); }
 
-void CmdPool::destroy(vk::not_null<VkDevice> vk_device, VkCommandPool vk_pool) {
-    Device::debug_check_handle(vk_device);
-
+void CmdPool::destroy(DeviceTable table, VkCommandPool vk_pool) {
     CTH_WARN(vk_pool == VK_NULL_HANDLE, "pool should not be invalid (VK_NULL_HANDLE)") {}
 
-    vkDestroyCommandPool(vk_device.get(), vk_pool, nullptr);
+    table->vkDestroyCommandPool(table.device(), vk_pool, nullptr);
 }
 
 
@@ -137,7 +135,7 @@ void CmdPool::createPool() {
     auto const info = createInfo();
 
     VkCommandPool ptr = VK_NULL_HANDLE;
-    auto const result = vkCreateCommandPool(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = _core->functions()->vkCreateCommandPool(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create command pool")
         throw cth::vk::result_exception{result, details->exception()};
@@ -158,7 +156,7 @@ void CmdPool::alloc() {
         allocInfo.level = to_buffer_level(i);
         allocInfo.commandBufferCount = static_cast<uint32_t>(buffers.size());
 
-        auto const allocResult = vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, buffers.data());
+        auto const allocResult = _core->functions()->vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo, buffers.data());
 
         CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate group({}) command buffers (0 = PRIMARY, 1 = SECONDARY)", static_cast<size_t>(i))
             throw cth::vk::result_exception{allocResult, details->exception()};

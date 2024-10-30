@@ -46,8 +46,8 @@ void RenderSystem::createShaders() {
     std::string const fragmentBinary = std::format("{}shader.frag.spv", SHADER_BINARY_DIR);
 
 #ifndef CONSTANT_DEBUG_MODE
-    vertexShader = make_unique<Shader>(_device, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
-    fragmentShader = make_unique<Shader>(_device, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
+    vertexShader = make_unique<Shader>(_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
+    fragmentShader = make_unique<Shader>(_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
 #else
     _vertexShader = std::make_unique<vk::Shader>(_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
         std::format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
@@ -132,12 +132,12 @@ void RenderSystem::render(FrameInfo const& frame_info) const {
     std::vector<size_t> const offsets(vertexBuffers.size());
     std::vector<VkDescriptorSet> const descriptorSets{_descriptorSet->get()};
 
-    vkCmdBindDescriptorSets(frame_info.commandBuffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout->get(), 0, 1, descriptorSets.data(), 0,
+    _core->functions()->vkCmdBindDescriptorSets(frame_info.commandBuffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout->get(), 0, 1, descriptorSets.data(), 0,
         nullptr);
-    vkCmdBindVertexBuffers(frame_info.commandBuffer->get(), 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data());
+    _core->functions()->vkCmdBindVertexBuffers(frame_info.commandBuffer->get(), 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data());
 
     //TEMP replace this with model drawing
-    vkCmdDraw(frame_info.commandBuffer->get(), static_cast<uint32_t>(_defaultTriangleBuffer->size()), 1, 0, 0);
+    _core->functions()->vkCmdDraw(frame_info.commandBuffer->get(), static_cast<uint32_t>(_defaultTriangleBuffer->size()), 1, 0, 0);
 
 
     //const UniformBuffer uniformBuffer{frame_info.camera.getProjection() * frame_info.camera.getView()};

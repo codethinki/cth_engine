@@ -25,7 +25,7 @@ void Semaphore::create() {
 void Semaphore::destroy() {
     debug_check(this);
 
-    auto const lambda = [vk_device = _core->vkDevice(), vk_semaphore = _handle.get()]() { destroy(vk_device, vk_semaphore); };
+    auto const lambda = [table = _core->deviceTable(), vk_semaphore = _handle.get()]() { destroy(table, vk_semaphore); };
 
     auto const queue = _core->destructionQueue();
     if(queue) queue->push(lambda);
@@ -42,11 +42,10 @@ Semaphore::State Semaphore::release() {
     reset();
     return state;
 }
-void Semaphore::destroy(vk::not_null<VkDevice> vk_device, VkSemaphore vk_semaphore) {
-    CTH_WARN(vk_semaphore == VK_NULL_HANDLE, "vk_semaphore invalid") {}
-    Device::debug_check_handle(vk_device);
+void Semaphore::destroy(DeviceTable table, VkSemaphore vk_semaphore) {
+    CTH_WARN(vk_semaphore == VK_NULL_HANDLE, "vk_semaphore should not be invalid (VK_NULL_HANDLE)") {}
 
-    vkDestroySemaphore(vk_device.get(), vk_semaphore, nullptr);
+    table->vkDestroySemaphore(table.device(), vk_semaphore, nullptr);
 }
 
 VkSemaphoreCreateInfo Semaphore::createInfo() {

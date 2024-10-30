@@ -36,7 +36,7 @@ void Memory::create(VkMemoryRequirements const& vk_requirements) {
 
     VkDeviceMemory ptr = VK_NULL_HANDLE;
 
-    VkResult const allocResult = vkAllocateMemory(_core->device()->get(), &allocInfo, nullptr, &ptr);
+    VkResult const allocResult = _core->functions()->vkAllocateMemory(_core->device()->get(), &allocInfo, nullptr, &ptr);
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate buffer memory")
         throw cth::vk::result_exception{allocResult, details->exception()};
 
@@ -48,7 +48,7 @@ std::span<char> Memory::map(size_t map_size, size_t offset) const {
     DEBUG_CHECK_MEMORY(this);
 
     void* mappedPtr = nullptr;
-    VkResult const mapResult = vkMapMemory(_core->vkDevice(), _handle.get(), offset, _size, 0, &mappedPtr);
+    VkResult const mapResult = _core->functions()->vkMapMemory(_core->vkDevice(), _handle.get(), offset, _size, 0, &mappedPtr);
     CTH_STABLE_ERR(mapResult != VK_SUCCESS, "memory mapping failed")
         throw vk::result_exception{mapResult, details->exception()};
 
@@ -60,7 +60,7 @@ void Memory::flush(size_t size, size_t offset) const {
     mappedRange.memory = _handle.get();
     mappedRange.offset = offset;
     mappedRange.size = size;
-    auto const result = vkFlushMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
+    auto const result = _core->functions()->vkFlushMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to flush mapped memory ranges") throw vk::result_exception{result, details->exception()};
 }
@@ -70,16 +70,16 @@ void Memory::invalidate(size_t size, size_t offset) const {
     mappedRange.memory = _handle.get();
     mappedRange.offset = offset;
     mappedRange.size = size;
-    auto const result = vkInvalidateMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
+    auto const result = _core->functions()->vkInvalidateMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to invalidate mapped memory ranges") throw vk::result_exception{result, details->exception()};
 }
-void Memory::unmap() const { vkUnmapMemory(_core->vkDevice(), _handle.get()); }
+void Memory::unmap() const { _core->functions()->vkUnmapMemory(_core->vkDevice(), _handle.get()); }
 
 void Memory::destroy() {
     DEBUG_CHECK_MEMORY(this);
 
-    auto const lambda = [vk_device = _core->vkDevice(), handle = _handle.get()] { destroy(vk_device, handle); };
+    auto const lambda = [table = _core->deviceTable(), handle = _handle.get()] { destroy(table, handle); };
 
     auto const queue = _core->destructionQueue();
     if(queue) queue->push(lambda);
@@ -91,10 +91,9 @@ void Memory::destroy() {
 }
 
 
-void Memory::destroy(VkDevice vk_device, VkDeviceMemory memory) {
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
+void Memory::destroy(DeviceTable table, VkDeviceMemory memory) {
     CTH_WARN(memory == VK_NULL_HANDLE, "memory handle should not be invalid (VK_NULL_HANDLE)") {}
-    vkFreeMemory(vk_device, memory, nullptr);
+    table->vkFreeMemory(table.device(), memory, nullptr);
 }
 auto Memory::release() -> State {
     DEBUG_CHECK_MEMORY(this);

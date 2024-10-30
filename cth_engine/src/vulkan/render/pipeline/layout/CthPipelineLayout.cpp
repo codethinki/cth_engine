@@ -2,7 +2,9 @@
 
 #include "CthDescriptorSetLayout.hpp"
 #include "vulkan/base/CthCore.hpp"
+#include "vulkan/base/CthDeviceTable.hpp"
 #include "vulkan/base/CthPhysicalDevice.hpp"
+#include "vulkan/resource/CthDestructionQueue.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
@@ -10,11 +12,15 @@
 //PipelineLayout
 
 namespace cth::vk {
-PipelineLayout::PipelineLayout(cth::not_null<Core const*> core, Builder const& builder) : _core(core),
-    _setLayouts(builder.build(core->physicalDevice()->limits().maxBoundDescriptorSets)) { create(); }
-PipelineLayout::~PipelineLayout() {
-    vkDestroyPipelineLayout(_core->vkDevice(), _vkLayout, nullptr);
-    log::msg("destroyed pipeline-layout");
+PipelineLayout::PipelineLayout(cth::not_null<Core const*> core, Builder const& builder) : _core{core},
+    _setLayouts{builder.build(core->physicalDevice()->limits().maxBoundDescriptorSets)} { create(); }
+PipelineLayout::~PipelineLayout() { optDestroy(); }
+void PipelineLayout::destroy(DeviceTable table, VkPipelineLayout vk_layout) {
+    CTH_WARN(vk_layout == VK_NULL_HANDLE, "vk_layout should not be invalid (VK_NULL_HANDLE)") {}
+
+    table->vkDestroyPipelineLayout(table.device(), vk_layout, nullptr);
+
+    log::msg("destroyed pipeline-layout"); //TEMP
 }
 
 void PipelineLayout::create() {
@@ -26,13 +32,26 @@ void PipelineLayout::create() {
     pipelineLayoutInfo.setLayoutCount = static_cast<uint32_t>(vkLayouts.size());
     pipelineLayoutInfo.pSetLayouts = vkLayouts.data();
 
-    VkResult const result = vkCreatePipelineLayout(_core->vkDevice(), &pipelineLayoutInfo, nullptr, &_vkLayout);
+    VkPipelineLayout ptr = VK_NULL_HANDLE;
+    VkResult const result =_core->functions()->vkCreatePipelineLayout(_core->vkDevice(), &pipelineLayoutInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline-layout")
         throw vk::result_exception(result, details->exception());
+    _handle = ptr;
 
     log::msg("created pipeline-layout");
 }
+void PipelineLayout::destroy() {
+    CTH_CRITICAL(!created(), "created() required") {}
+
+    auto const lambda = [table = _core->deviceTable(), handle = _handle.get()] { destroy(table, handle); };
+
+    auto const queue = _core->destructionQueue();
+    if(queue) queue->push(lambda);
+    else lambda();
+    reset();
+}
+void PipelineLayout::reset() { _handle = VK_NULL_HANDLE; }
 
 
 

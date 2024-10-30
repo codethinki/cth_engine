@@ -1,4 +1,5 @@
 #pragma once
+#include "vulkan/base/CthDeviceTable.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_types.hpp"
 
@@ -78,7 +79,7 @@ public:
     void begin(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer, uint32_t config_index, cth::not_null<Framebuffer const*> framebuffer);
     void end(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer);
 
-    static void destroy(vk::not_null<VkDevice> vk_device, VkRenderPass vk_render_pass);
+    static void destroy(DeviceTable table, VkRenderPass vk_render_pass);
 
 private:
     void reset();

@@ -12,19 +12,19 @@
 namespace cth::vk {
 using namespace std;
 
-Pipeline::Pipeline(cth::not_null<Core const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info) : _device{core} {
+Pipeline::Pipeline(cth::not_null<Core const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info) : _core{core} {
     create(config_info, pipeline_layout, nullptr);
 }
-Pipeline::Pipeline(cth::not_null<Core const*> core, Pipeline const* parent, GraphicsConfig const& config_info) : _device(core) {
+Pipeline::Pipeline(cth::not_null<Core const*> core, Pipeline const* parent, GraphicsConfig const& config_info) : _core(core) {
     create(config_info, nullptr, parent);
 }
 
 Pipeline::~Pipeline() {
-    vkDestroyPipeline(_device->vkDevice(), _vkGraphicsPipeline, nullptr);
+   _core->functions()->vkDestroyPipeline(_core->vkDevice(), _vkGraphicsPipeline, nullptr);
     log::msg("destroyed graphics-pipeline ");
 }
 
-void Pipeline::bind(CmdBuffer const* cmd_buffer) const { vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline); }
+void Pipeline::bind(CmdBuffer const* cmd_buffer) const {_core->functions()->vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline); }
 
 void Pipeline::create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout, Pipeline const* parent) {
     CTH_CRITICAL(pipeline_layout != nullptr && parent != nullptr, "something went wrong, cannot inherit and specify layout"){}
@@ -41,7 +41,7 @@ void Pipeline::create(GraphicsConfig const& config_info, PipelineLayout const* p
     else pipelineInfo.basePipelineHandle = parent->_vkGraphicsPipeline;
 
 
-    VkResult const createResult = vkCreateGraphicsPipelines(_device->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+    VkResult const createResult =_core->functions()->vkCreateGraphicsPipelines(_core->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
         &_vkGraphicsPipeline);
 
 

@@ -11,6 +11,7 @@
 
 
 namespace cth::vk {
+class Device;
 struct PresentInfo;
 struct SubmitInfo;
 class TimelineSemaphore;
@@ -104,6 +105,7 @@ private:
     QueueFamilyProperties _familyProperties;
 
     cth::move_ptr<VkQueue_T> _handle = VK_NULL_HANDLE;
+    Device const* _device = nullptr;
     uint32_t _familyIndex = 0;
     uint32_t _queueIndex = 0;
 
@@ -131,6 +133,7 @@ public:
 namespace cth::vk {
 struct Queue::State {
     vk::not_null<VkQueue> vkQueue;
+    cth::not_null<Device const*> device;
     uint32_t familyIndex;
     /**
      * @brief index in the family

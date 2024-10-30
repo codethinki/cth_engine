@@ -19,7 +19,7 @@ PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<Semaphore co
 
     for(auto [dst, src] : std::views::zip(_waitSemaphores, wait_semaphores)) {
         dst = src->get();
-        CTH_CRITICAL(dynamic_cast<TimelineSemaphore const*>(src) != nullptr, "semaphores in present info must not be timeline semaphores");
+        CTH_CRITICAL(dynamic_cast<TimelineSemaphore const*>(src) != nullptr, "semaphores in present info must not be timeline semaphores") {}
     }
 
     createInfo();

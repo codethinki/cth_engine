@@ -1,6 +1,7 @@
 #pragma once
 #include "../memory/CthMemory.hpp"
 
+#include "vulkan/base/CthDeviceTable.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_types.hpp"
 
@@ -104,7 +105,7 @@ public:
     static uint32_t evalMipLevelCount(VkExtent2D extent);
 
 
-    static void destroy(vk::not_null<VkDevice> vk_device, VkImage vk_image);
+    static void destroy(DeviceTable table, VkImage vk_image);
 
     struct Config {
         VkImageAspectFlagBits aspectMask;
@@ -120,6 +121,7 @@ public:
     };
 
 protected:
+    [[nodiscard]] cth::not_null<Core const*> core() const { return _core; }
     std::vector<VkImageLayout> _levelLayouts;
 
 private:

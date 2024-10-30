@@ -66,7 +66,7 @@ void BasicSwapchain::resize(VkExtent2D window_extent) {
     resizeReset();
     create(window_extent, old);
 
-    destroy(_core->vkDevice(), old);
+    destroy(_core->deviceTable(), old);
 }
 
 
@@ -78,7 +78,8 @@ VkResult BasicSwapchain::acquireNextImage(Cycle const& cycle) {
     fence.wait();
     fence.reset();
 
-    VkResult const acquireResult = vkAcquireNextImageKHR(_core->vkDevice(), _handle.get(), std::numeric_limits<uint64_t>::max(), semaphore,
+    VkResult const acquireResult = _core->functions()->vkAcquireNextImageKHR(_core->vkDevice(), _handle.get(), std::numeric_limits<uint64_t>::max(),
+        semaphore,
         fence.get(), &_imageIndices[cycle.subIndex]);
 
     CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR, "failed to acquire vk_image")
@@ -100,8 +101,8 @@ void BasicSwapchain::skipAcquire(Cycle const& cycle) const {
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &semaphore,
     };
-
-    auto const result = vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, fence.get());
+    
+    auto const result = _core->functions()->vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, fence.get()); //TODO this should be done via Queue::skip()
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire an vk_image")
         throw cth::vk::result_exception{result, details->exception()};
@@ -121,8 +122,8 @@ void BasicSwapchain::beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const*
         .offset = {0, 0},
         .extent = _extent
     };
-    vkCmdSetViewport(cmd_buffer->get(), 0, 1, &viewport);
-    vkCmdSetScissor(cmd_buffer->get(), 0, 1, &scissor);
+    _core->functions()->vkCmdSetViewport(cmd_buffer->get(), 0, 1, &viewport);
+    _core->functions()->vkCmdSetScissor(cmd_buffer->get(), 0, 1, &scissor);
 }
 void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const* cmd_buffer) { _renderPass->end(cmd_buffer); }
 
@@ -159,10 +160,10 @@ void BasicSwapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer
         {_resolveAttachments->image(image_index), ImageBarrier::Info::QueueTransition(0, release_queue, 0, acquire_queue)}
     };
 
-    ImageBarrier releaseBarrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, images};
+    ImageBarrier releaseBarrier{core(), {VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT}, images};
     releaseBarrier.execute(release_cmd_buffer);
 
-    ImageBarrier barrier{VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, images};
+    ImageBarrier barrier{core(), {VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT}, images};
     barrier.execute(acquire_cmd_buffer);
 }
 
@@ -170,11 +171,10 @@ ImageView const* BasicSwapchain::imageView(size_t index) const { return _resolve
 Image const* BasicSwapchain::image(size_t index) const { return _resolveAttachments->image(index); }
 
 
-void BasicSwapchain::destroy(VkDevice device, VkSwapchainKHR swapchain) {
-    DEBUG_CHECK_DEVICE_HANDLE(device);
+void BasicSwapchain::destroy(DeviceTable table, VkSwapchainKHR swapchain) {
     CTH_WARN(swapchain == VK_NULL_HANDLE, "swapchain should not be invalid (VK_NULL_HANDLE)") {}
 
-    vkDestroySwapchainKHR(device, swapchain, nullptr);
+    table->vkDestroySwapchainKHR(table.device(), swapchain, nullptr);
 }
 
 
@@ -276,7 +276,7 @@ VkSwapchainCreateInfoKHR BasicSwapchain::createInfo(VkSurfaceKHR surface,
 
 void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
     DEBUG_CHECK_SWAPCHAIN_LEAK(this);
-    DEBUG_CHECK_SWAPCHAIN_WINDOW_EXTENT(window_extent){}
+    DEBUG_CHECK_SWAPCHAIN_WINDOW_EXTENT(window_extent) {}
 
     _windowExtent = window_extent;
 
@@ -510,7 +510,7 @@ void BasicSwapchain::destroyResources() {
 }
 
 void BasicSwapchain::destroySwapchain() {
-    auto const lambda = [device = _core->vkDevice(), swapchain = _handle.get()]() { destroy(device, swapchain); };
+    auto const lambda = [table = _core->deviceTable(), swapchain = _handle.get()]() { destroy(table, swapchain); };
 
     auto const& queue = _core->destructionQueue();
 

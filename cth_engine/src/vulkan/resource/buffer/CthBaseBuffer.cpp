@@ -51,7 +51,9 @@ void BaseBuffer::create(VkMemoryPropertyFlags vk_memory_flags) {
 void BaseBuffer::destroy() {
     debug_check(this);
 
-    auto const lambda = [device = _core->vkDevice(), buffer = _handle.get()] { BaseBuffer::destroy(device, buffer); };
+
+
+    auto const lambda = [table = _core->deviceTable(), buffer = _handle.get()] { BaseBuffer::destroy(table, buffer); };
 
     auto const queue = _core->destructionQueue();
     if(queue) queue->push(lambda);
@@ -127,7 +129,7 @@ void BaseBuffer::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src, size_t
     copyRegion.srcOffset = src_offset;
     copyRegion.dstOffset = dst_offset;
     copyRegion.size = _size;
-    vkCmdCopyBuffer(cmd_buffer.get(), src.get(), _handle.get(), 1, &copyRegion);
+   _core->functions()->vkCmdCopyBuffer(cmd_buffer.get(), src.get(), _handle.get(), 1, &copyRegion);
 }
 
 void BaseBuffer::flush(size_t size, size_t offset) const {
@@ -171,11 +173,10 @@ size_t BaseBuffer::calcAlignedSize(size_t actual_size) {
     return actual_size + (minAlignment - (actual_size % minAlignment));
 }
 
-void BaseBuffer::destroy(VkDevice vk_device, VkBuffer vk_buffer) {
+void BaseBuffer::destroy(DeviceTable table, VkBuffer vk_buffer) {
     CTH_WARN(vk_buffer == VK_NULL_HANDLE, "vk_buffer invalid") {}
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
 
-    vkDestroyBuffer(vk_device, vk_buffer, nullptr);
+   table->vkDestroyBuffer(table.device(), vk_buffer, nullptr);
 }
 
 
@@ -196,7 +197,7 @@ void BaseBuffer::createBuffer() {
 
     VkBuffer ptr = VK_NULL_HANDLE;
 
-    VkResult const createResult = vkCreateBuffer(_core->vkDevice(), &bufferInfo, nullptr, &ptr);
+    VkResult const createResult =_core->functions()->vkCreateBuffer(_core->vkDevice(), &bufferInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create buffer") {
         reset();
         throw result_exception{createResult, details->exception()};
@@ -209,14 +210,14 @@ void BaseBuffer::createMemory(VkMemoryPropertyFlags vk_memory_properties) {
     CTH_CRITICAL(_memory != nullptr, "memory must be empty"){}
 
     VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(_core->vkDevice(), _handle.get(), &memRequirements);
+   _core->functions()->vkGetBufferMemoryRequirements(_core->vkDevice(), _handle.get(), &memRequirements);
     _memory = std::make_unique<Memory>(_core, vk_memory_properties, memRequirements);
 }
 
 void BaseBuffer::bind() {
     CTH_CRITICAL(!_memory->created(), "memory must be allocated") {}
 
-    VkResult const bindResult = vkBindBufferMemory(_core->vkDevice(), _handle.get(), _memory->get(), 0);
+    VkResult const bindResult =_core->functions()->vkBindBufferMemory(_core->vkDevice(), _handle.get(), _memory->get(), 0);
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind buffer memory") {
         destroy();

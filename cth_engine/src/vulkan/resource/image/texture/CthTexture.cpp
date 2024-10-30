@@ -4,6 +4,7 @@
 #include "vulkan/render/control/CthPipelineBarrier.hpp"
 #include "vulkan/resource/buffer/CthBuffer.hpp"
 
+#include<vulkan/vulkan.h>
 namespace cth::vk {
 
 
@@ -56,8 +57,8 @@ void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, uint32_t first, uint32_
         return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }), "image layouts not transfer dst optimal")
         throw details->exception();
 
-    ImageBarrier toSrcBarrier{VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
-    ImageBarrier shaderBarrier{VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT};
+    ImageBarrier toSrcBarrier{core(), {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT}};
+    ImageBarrier shaderBarrier{core(), {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT}};
 
     auto const extent = this->extent();
     auto width = static_cast<int32_t>(extent.width);
@@ -90,7 +91,7 @@ void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, uint32_t first, uint32_
             },
             .dstOffsets = {{0, 0, 0}, {hWidth, hHeight, 1}},
         };
-        vkCmdBlitImage(cmd_buffer.get(), get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
+       core()->functions()->vkCmdBlitImage(cmd_buffer.get(), get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
             VK_FILTER_LINEAR);
 
         width = hWidth;

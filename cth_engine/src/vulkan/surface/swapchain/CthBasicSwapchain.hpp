@@ -79,7 +79,7 @@ public:
     [[nodiscard]] Image const* image(size_t index) const;
 
 
-    static void destroy(VkDevice device, VkSwapchainKHR swapchain);
+    static void destroy(DeviceTable table, VkSwapchainKHR swapchain);
 
 private:
     static constexpr uint32_t NO_IMAGE_INDEX = std::numeric_limits<uint32_t>::max();
@@ -184,6 +184,8 @@ private:
     std::array<uint32_t, constants::FRAMES_IN_FLIGHT> _imageIndices{};
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    [[nodiscard]] cth::not_null<Core const*> core() const { return _core; }
 
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }

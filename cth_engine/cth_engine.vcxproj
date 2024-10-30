@@ -47,6 +47,7 @@
     <ClInclude Include="src\pch\glob\glm.hpp" />
     <ClInclude Include="src\pch\glob\volk.hpp" />
     <ClInclude Include="src\pch\glob\windows.hpp" />
+    <ClInclude Include="src\vulkan\base\CthDeviceTable.hpp" />
     <ClInclude Include="src\vulkan\base\queue\CthSubmitInfo.hpp" />
     <ClInclude Include="src\vulkan\base\queue\CthPresentInfo.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthAttachmentCollection.hpp" />

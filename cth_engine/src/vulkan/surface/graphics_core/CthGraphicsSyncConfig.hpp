@@ -9,7 +9,7 @@ class Semaphore;
 class Core;
 
 
-class GraphicsSyncConfig {
+class  GraphicsSyncConfig {
 public:
     static constexpr auto SET_SIZE = constants::FRAMES_IN_FLIGHT;
     struct State;

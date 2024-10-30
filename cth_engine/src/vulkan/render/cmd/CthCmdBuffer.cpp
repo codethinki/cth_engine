@@ -1,12 +1,15 @@
 #include "CthCmdBuffer.hpp"
 
 #include "CthCmdPool.hpp"
+
+#include "vulkan/base/CthCore.hpp"
 #include "vulkan/base/CthDevice.hpp"
+#include "vulkan/base/CthDeviceTable.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {
-CmdBuffer::CmdBuffer(cth::not_null<Core const*> core, VkCommandBufferUsageFlags usage) : _core{core}, _bufferUsage{usage} {}
+CmdBuffer::CmdBuffer(VkCommandBufferUsageFlags usage) : _bufferUsage{usage} {}
 
 void CmdBuffer::destroy(this auto&& self) {
     self.reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
@@ -20,7 +23,7 @@ void CmdBuffer::destroy(this auto&& self) {
 
 
 void CmdBuffer::reset(VkCommandBufferResetFlags flags) {
-    auto const result = vkResetCommandBuffer(_handle.get(), flags);
+    auto const result = _deviceTable->table->vkResetCommandBuffer(_handle.get(), flags);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset command buffer")
         throw vk::result_exception{result, details->exception()};
 
@@ -29,39 +32,37 @@ void CmdBuffer::reset(VkCommandBufferResetFlags flags) {
 void CmdBuffer::end() {
     CTH_CRITICAL(!recording(), "cmd buffer must be in recording state"){}
 
-    auto const result = vkEndCommandBuffer(_handle.get());
+    auto const result = _deviceTable->table->vkEndCommandBuffer(_handle.get());
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset end buffer")
         throw vk::result_exception{result, details->exception()};
 
     _recording = false;
 }
 
-void CmdBuffer::destroy(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers) {
-    DEBUG_CHECK_DEVICE_HANDLE(device);
+void CmdBuffer::destroy(DeviceTable table, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers) {
     bool const valid = std::ranges::all_of(buffers, [](auto buffer) { return static_cast<bool>(buffer); });
     CTH_WARN(!valid, "> 0 vk_buffers invalid (VK_NULL_HANDLE)") {}
     CTH_ERR(valid && vk_pool == VK_NULL_HANDLE, "vk_pool is invalid (VK_NULL_HANDLE)")
         throw details->exception();
 
-    vkFreeCommandBuffers(device, vk_pool, static_cast<uint32_t>(buffers.size()), buffers.data());
+    table->vkFreeCommandBuffers(table.device(), vk_pool, static_cast<uint32_t>(buffers.size()), buffers.data());
 }
-void CmdBuffer::destroy(vk::not_null<VkDevice> device, vk::not_null<VkCommandPool> vk_pool, VkCommandBuffer buffer) {
-
+void CmdBuffer::destroy(DeviceTable table, vk::not_null<VkCommandPool> vk_pool, VkCommandBuffer buffer) {
     CTH_WARN(buffer == VK_NULL_HANDLE, "vk_buffer is invalid (VK_NULL_HANDLE)") {}
 
 
-    vkFreeCommandBuffers(device.get(), vk_pool.get(), 1, &buffer);
+    table->vkFreeCommandBuffers(table.device(), vk_pool.get(), 1, &buffer);
 }
 
 void CmdBuffer::create(this auto&& self, cth::not_null<CmdPool*> pool) {
     self.optDestroy();
-
     self._pool = pool.get();
+    self._deviceTable = pool->core()->deviceTable();
     self._handle = self._pool->template newCmdBuffer<type::pure_t<decltype(self)>>();
 }
 
 void CmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
-    auto const result = vkBeginCommandBuffer(_handle.get(), &info);
+    auto const result = _pool->core()->deviceTable()->vkBeginCommandBuffer(_handle.get(), &info);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to begin command buffer")
         throw vk::result_exception{result, details->exception()};
@@ -70,6 +71,7 @@ void CmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
 }
 
 void CmdBuffer::reset() {
+    _deviceTable = std::nullopt;
     _pool = nullptr;
     _handle = VK_NULL_HANDLE;
 
@@ -82,7 +84,7 @@ void CmdBuffer::reset() {
 
 namespace cth::vk {
 
-PrimaryCmdBuffer::PrimaryCmdBuffer(cth::not_null<Core const*> core, cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{core, usage} { create(cmd_pool); }
+PrimaryCmdBuffer::PrimaryCmdBuffer(cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{usage} { create(cmd_pool); }
 
 PrimaryCmdBuffer::~PrimaryCmdBuffer() { destroy(); }
 void PrimaryCmdBuffer::begin() {

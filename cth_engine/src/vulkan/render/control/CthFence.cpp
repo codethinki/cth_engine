@@ -25,7 +25,7 @@ void Fence::create(VkFenceCreateFlags flags) {
     auto const info = createInfo(flags);
 
     VkFence ptr = VK_NULL_HANDLE;
-    auto const result = _core->deviceTable()->vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = _core->functions()->vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create fence")
         throw cth::vk::result_exception{result, details->exception()};
@@ -34,7 +34,7 @@ void Fence::create(VkFenceCreateFlags flags) {
 }
 void Fence::destroy() {
     debug_check(this);
-    auto const lambda = [vk_device = _core->vkDevice(), vk_fence = _handle.get()] { destroy(vk_device, vk_fence); };
+    auto const lambda = [table = _core->deviceTable(), vk_fence = _handle.get()] { destroy(table, vk_fence); };
 
 
     auto const queue = _core->destructionQueue();
@@ -47,7 +47,7 @@ void Fence::destroy() {
 VkResult Fence::status() const {
     debug_check(this);
 
-    auto const result = vkGetFenceStatus(_core->vkDevice(), _handle.get());
+    auto const result = _core->functions()->vkGetFenceStatus(_core->vkDevice(), _handle.get());
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_NOT_READY, "failed to get fence status")
         throw vk::result_exception{result, details->exception()};
@@ -57,7 +57,7 @@ VkResult Fence::status() const {
 void Fence::reset() const {
     debug_check(this);
     std::array<VkFence, 1> const fences = {_handle.get()};
-    auto const result = vkResetFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data());
+    auto const result = _core->functions()->vkResetFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset fence")
         throw cth::vk::result_exception{result, details->exception()};
@@ -70,7 +70,7 @@ VkResult Fence::wait(uint64_t timeout) const {
     std::array<VkFence, 1> const fences = {_handle.get()};
 
 
-    VkResult const result = vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, timeout);
+    VkResult const result = _core->functions()->vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, timeout);
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
         throw cth::vk::result_exception{result, details->exception()};
@@ -83,12 +83,11 @@ void Fence::wait() const {
 }
 
 
-void Fence::destroy(vk::not_null<VkDevice> vk_device, VkFence vk_fence) {
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
+void Fence::destroy(DeviceTable table, VkFence vk_fence) {
     CTH_WARN(vk_fence == VK_NULL_HANDLE, "vk_fence should not be invalid (VK_NULL_HANDLE)") {}
 
 
-    vkDestroyFence(vk_device.get(), vk_fence, nullptr);
+    table->vkDestroyFence(table.device(), vk_fence, nullptr);
 }
 
 

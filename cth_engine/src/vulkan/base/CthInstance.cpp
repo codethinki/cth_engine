@@ -16,22 +16,15 @@ using std::vector;
 using std::span;
 
 
-Instance::Instance(string_view app_name, span<string const> required_extensions) : _name(app_name) {
-    _availableExt = getAvailableInstanceExtensions();
-
+Instance::Instance(string_view app_name, span<string const> required_extensions) : _name(app_name), _availableExt{getAvailableInstanceExtensions()} {
     _requiredExt.reserve(required_extensions.size() + REQUIRED_INSTANCE_EXTENSIONS.size());
-    _requiredExt.insert(_requiredExt.end(), required_extensions.begin(), required_extensions.end());
-    _requiredExt.insert(_requiredExt.end(), REQUIRED_INSTANCE_EXTENSIONS.begin(), REQUIRED_INSTANCE_EXTENSIONS.end());
+    _requiredExt.append_range(required_extensions);
+    _requiredExt.append_range(REQUIRED_INSTANCE_EXTENSIONS | std::views::transform([](std::string_view const& view) { return std::string{view}; }));
 
     checkInstanceExtensionSupport();
 
 
-    if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
-        _availableLayers = getAvailableValidationLayers();
-        checkValidationLayerSupport();
-
-        _requiredExt.insert(_requiredExt.begin(), VALIDATION_LAYER_EXTENSIONS.begin(), VALIDATION_LAYER_EXTENSIONS.end());
-    }
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS) enableValidationLayers();
 }
 
 Instance::Instance(std::string_view app_name, std::span<std::string const> required_extensions,
@@ -56,21 +49,22 @@ void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
     }
 
     vector<char const*> requiredExtVec(_requiredExt.size());
-    std::ranges::copy(_requiredExt | std::views::transform([](auto const& str) { return str.data(); }), requiredExtVec.begin());
-
-    VkInstanceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    std::ranges::transform(_requiredExt, requiredExtVec.begin(), [](auto const& str) { return str.data(); });
 
     auto const appInfo = this->appInfo();
-    createInfo.pApplicationInfo = &appInfo;
-
-
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtVec.size());
-    createInfo.ppEnabledExtensionNames = requiredExtVec.data();
-    createInfo.enabledLayerCount = 0;
-    createInfo.pNext = nullptr;
-
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+
+    VkInstanceCreateInfo createInfo{
+        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pNext = nullptr,
+        .pApplicationInfo = &appInfo,
+        .enabledLayerCount = 0,
+        .ppEnabledLayerNames = nullptr,
+
+        .enabledExtensionCount = static_cast<uint32_t>(requiredExtVec.size()),
+        .ppEnabledExtensionNames = requiredExtVec.data(),
+    };
+
     if constexpr(constants::ENABLE_VALIDATION_LAYERS)
         if(messenger_config != std::nullopt) {
             createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
@@ -81,13 +75,15 @@ void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
         }
 
     VkInstance ptr = VK_NULL_HANDLE;
-    VkResult const createInstanceResult = vkCreateInstance(&createInfo, nullptr, &ptr);
+    auto const createInstanceResult = vkCreateInstance(&createInfo, nullptr, &ptr);
+
     CTH_STABLE_ERR(createInstanceResult != VK_SUCCESS, "failed to create instance!") {
         reset();
         throw cth::vk::result_exception{createInstanceResult, details->exception()};
     }
+
     _handle = ptr;
-    loadInstance(get());
+    loadInstanceFunctions(ptr);
 
     if(messenger_config != std::nullopt) _debugMessenger = std::make_unique<DebugMessenger>(*messenger_config, this);
 }
@@ -125,6 +121,13 @@ void Instance::checkValidationLayerSupport() {
         }
     }
 }
+void Instance::enableValidationLayers() {
+    _availableLayers = getAvailableValidationLayers();
+    checkValidationLayerSupport();
+
+    _requiredExt.insert(_requiredExt.begin(), VALIDATION_LAYER_EXTENSIONS.begin(), VALIDATION_LAYER_EXTENSIONS.end());
+}
+
 vector<string> Instance::getAvailableValidationLayers() {
     uint32_t layerCount = 0;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -152,14 +155,14 @@ vector<string> Instance::getAvailableInstanceExtensions() {
     return availableExtensionsStr;
 }
 VkApplicationInfo Instance::appInfo() const {
-    VkApplicationInfo appInfo = {};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = _name.c_str();
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = _name.c_str();
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 2, 0);
-    appInfo.apiVersion = VK_MAKE_VERSION(1, 2, 0);
-    return appInfo;
+    return VkApplicationInfo{
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pApplicationName = _name.c_str(),
+        .applicationVersion = 0,
+        .pEngineName = _name.c_str(),
+        .engineVersion = 0,
+        .apiVersion = VK_API_VERSION_1_0,
+    };
 }
 void Instance::destroy(VkInstance vk_instance) {
     CTH_WARN(vk_instance == nullptr, "vk_instance invalid") {}
@@ -173,8 +176,8 @@ void Instance::reset() {
     _handle = VK_NULL_HANDLE;
 }
 
-void Instance::loadInstance(cth::vk::not_null<VkInstance> vk_instance) {
-    if(volkGetLoadedInstance() == VK_NULL_HANDLE) 
+void Instance::loadInstanceFunctions(cth::vk::not_null<VkInstance> vk_instance) {
+    if(volkGetLoadedInstance() == VK_NULL_HANDLE)
         volkLoadInstanceOnly(vk_instance.get());
 }
 

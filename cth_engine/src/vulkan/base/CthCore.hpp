@@ -9,6 +9,10 @@
 
 
 namespace cth::vk {
+struct DeviceTable;
+}
+
+namespace cth::vk {
 class DestructionQueue;
 class Queue;
 class Device;
@@ -73,7 +77,8 @@ public:
     [[nodiscard]] bool created() const { return _device != nullptr && _physicalDevice != nullptr && _instance != nullptr; }
 
     [[nodiscard]] Device const* device() const;
-    [[nodiscard]] VolkDeviceTable const* deviceTable() const;
+    [[nodiscard]] DeviceTable deviceTable() const;
+    [[nodiscard]] VolkDeviceTable const* functions() const;
     [[nodiscard]] VkDevice vkDevice() const;
     [[nodiscard]] PhysicalDevice const* physicalDevice() const;
     [[nodiscard]] VkPhysicalDevice vkPhysicalDevice() const;

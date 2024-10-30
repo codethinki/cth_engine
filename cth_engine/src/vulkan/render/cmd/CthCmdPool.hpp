@@ -89,10 +89,11 @@ public:
     void optDestroy(this auto&& self);
 
 
-    static void destroy(vk::not_null<VkDevice> vk_device, VkCommandPool vk_pool);
+    static void destroy(DeviceTable table, VkCommandPool vk_pool);
 
 private:
     void reset();
+    [[nodiscard]] cth::not_null<Core const*> core() const { return _core; }
 
 
     template<cmd_buffer_t T>

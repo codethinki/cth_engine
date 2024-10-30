@@ -76,6 +76,8 @@ void App::initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer) {
 
 std::vector<std::string> App::getRequiredInstanceExtensions() {
     auto extensions = vk::OSWindow::getGLFWInstanceExtensions();
+
+
     return extensions;
 }
 

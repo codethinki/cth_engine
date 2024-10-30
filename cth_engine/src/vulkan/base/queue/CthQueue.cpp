@@ -2,6 +2,9 @@
 
 #include "CthPresentInfo.hpp"
 #include "CthSubmitInfo.hpp"
+
+#include "../CthDevice.hpp"
+
 #include "vulkan/surface/swapchain/CthBasicSwapchain.hpp"
 #include "vulkan/utility/cth_vk_exceptions.hpp"
 
@@ -14,6 +17,7 @@ void Queue::wrap(State const& state) {
     optDestroy();
 
     _handle = state.vkQueue.get();
+    _device = state.device.get();
     _familyIndex = state.familyIndex;
     _queueIndex = state.queueIndex;
 }
@@ -25,6 +29,7 @@ Queue::State Queue::release() {
     debug_check(this);
     State const state{
         _handle.release(),
+        _device,
         _familyIndex,
         _queueIndex,
     };
@@ -40,7 +45,7 @@ void Queue::const_skip(SubmitInfo const& submit_info) const { submit(submit_info
 
 VkResult Queue::present(uint32_t image_index, PresentInfo& present_info) const {
 
-    auto const result = vkQueuePresentKHR(get(), present_info.create(image_index));
+    auto const result = _device->functions()->vkQueuePresentKHR(get(), present_info.create(image_index));
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR, "failed to present")
         throw cth::vk::result_exception{result, details->exception()};
@@ -48,20 +53,21 @@ VkResult Queue::present(uint32_t image_index, PresentInfo& present_info) const {
     return result;
 }
 void Queue::const_skip(PresentInfo const& present_info) const {
-    auto const result = vkQueueSubmit(get(), 1, present_info.skip(), VK_NULL_HANDLE);
+    auto const result = _device->functions()->vkQueueSubmit(get(), 1, present_info.skip(), VK_NULL_HANDLE);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-present")
         throw cth::vk::result_exception{result, details->exception()};
 }
 void Queue::reset() {
     _handle = VK_NULL_HANDLE;
+    _device = nullptr;
     _familyIndex = 0;
     _queueIndex = 0;
 }
 
 void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
     debug_check(this);
-    auto const result = vkQueueSubmit(_handle.get(), 1, submit_info, fence);
+    auto const result = _device->functions()->vkQueueSubmit(_handle.get(), 1, submit_info, fence);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
         throw cth::vk::result_exception{result, details->exception()};
 }

@@ -42,7 +42,7 @@ private:
     */
     void create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout = nullptr, Pipeline const* parent = nullptr);
 
-    cth::not_null<Core const*> _device;
+    cth::not_null<Core const*> _core;
     VkPipeline _vkGraphicsPipeline{};
 
 public:

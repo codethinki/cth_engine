@@ -152,10 +152,12 @@ VkSurfaceKHR OSWindow::tempSurface(cth::not_null<Instance const*> instance) {
 
     
     // Create the Vulkan surface
-    VkWin32SurfaceCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    createInfo.hinstance = GetModuleHandle(nullptr);
-    createInfo.hwnd = hwnd;
+    VkWin32SurfaceCreateInfoKHR const createInfo{
+        .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+        .hinstance = GetModuleHandle(nullptr),
+        .hwnd = hwnd
+    };
+
 
     auto const result = vkCreateWin32SurfaceKHR(instance->get(), &createInfo, nullptr, &surface);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create temp surface") {

@@ -1,4 +1,6 @@
 #pragma once
+#include "CthDeviceTable.hpp"
+
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_types.hpp"
 
@@ -90,8 +92,9 @@ public:
     /**
      * @brief destroys the device
      * @param vk_device should not be VK_NULL_HANDLE
+     * @param destroy_function
      */
-    static void destroy(VkDevice vk_device);
+    static void destroy(VkDevice vk_device, PFN_vkDestroyDevice destroy_function);
 
 private:
     void reset();
@@ -106,7 +109,7 @@ private:
     */
     void createLogicalDevice();
 
-    void createFunctionTable();
+    void loadFunctionTable() const;
 
     /**
      * @brief retrieves the queues from the device
@@ -120,12 +123,13 @@ private:
     cth::not_null<PhysicalDevice const*> _physicalDevice;
 
     move_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
-    std::unique_ptr<VolkDeviceTable> _functionTable;
+    std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();
 
     std::unordered_map<uint32_t, uint32_t> _queueFamiliesQueueCounts;
 
 public:
-    [[nodiscard]] VolkDeviceTable const* table() const { return _functionTable.get(); }
+    [[nodiscard]] DeviceTable table() const { return DeviceTable{_handle.get(), _functionTable.get()}; }
+    [[nodiscard]] VolkDeviceTable const* functions() const { return _functionTable.get(); }
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
     [[nodiscard]] auto queueFamiliesQueueCounts() const { return _queueFamiliesQueueCounts; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }

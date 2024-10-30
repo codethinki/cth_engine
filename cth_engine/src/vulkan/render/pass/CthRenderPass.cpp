@@ -78,7 +78,7 @@ void RenderPass::create() {
     };
 
     VkRenderPass ptr = VK_NULL_HANDLE;
-    auto const result = vkCreateRenderPass(_core->vkDevice(), &createInfo, nullptr, &ptr);
+    auto const result = _core->functions()->vkCreateRenderPass(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create render pass")
         throw cth::vk::result_exception{result, details->exception()};
@@ -90,7 +90,7 @@ void RenderPass::create() {
 void RenderPass::destroy() {
     debug_check(this);
 
-    auto const lambda = [vk_device = _core->vkDevice(), handle = _handle.get()] { destroy(vk_device, handle); };
+    auto const lambda = [table = _core->deviceTable(), handle = _handle.get()] { destroy(table, handle); };
 
     auto const queue = _core->destructionQueue();
     if(queue) queue->push(lambda);
@@ -117,14 +117,14 @@ void RenderPass::begin(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer, uint32
 
     _beginInfos[config_index].framebuffer = framebuffer->get();
 
-    vkCmdBeginRenderPass(cmd_buffer->get(), &_beginInfos[config_index], _contents[config_index]);
+    _core->functions()->vkCmdBeginRenderPass(cmd_buffer->get(), &_beginInfos[config_index], _contents[config_index]);
 }
-void RenderPass::end(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer) { vkCmdEndRenderPass(cmd_buffer->get()); }
+void RenderPass::end(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer) { _core->functions()->vkCmdEndRenderPass(cmd_buffer->get()); }
 
-void RenderPass::destroy(vk::not_null<VkDevice> vk_device, VkRenderPass vk_render_pass) {
+void RenderPass::destroy(DeviceTable table, VkRenderPass vk_render_pass) {
     CTH_WARN(vk_render_pass == VK_NULL_HANDLE, "vk_render_pass should not be invalid (VK_NULL_HANDLE)") {}
 
-    vkDestroyRenderPass(vk_device.get(), vk_render_pass, nullptr);
+    table->vkDestroyRenderPass(table.device(), vk_render_pass, nullptr);
 }
 
 void RenderPass::reset() {

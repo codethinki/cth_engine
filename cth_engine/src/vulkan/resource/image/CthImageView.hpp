@@ -1,4 +1,5 @@
 #pragma once
+#include "vulkan/base/CthDeviceTable.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_types.hpp"
 
@@ -71,7 +72,7 @@ public:
      */
     State release();
 
-    static void destroy(VkDevice vk_device, VkImageView vk_image_view);
+    static void destroy(DeviceTable table, VkImageView vk_image_view);
 
 
 

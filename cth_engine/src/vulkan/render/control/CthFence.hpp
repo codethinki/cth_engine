@@ -1,4 +1,5 @@
 #pragma once
+#include "vulkan/base/CthDeviceTable.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_types.hpp"
 
@@ -93,7 +94,7 @@ public:
     */
     void wait() const;
 
-    static void destroy(vk::not_null<VkDevice> vk_device, VkFence vk_fence);
+    static void destroy(DeviceTable table, VkFence vk_fence);
 
 private:
     void resetState();

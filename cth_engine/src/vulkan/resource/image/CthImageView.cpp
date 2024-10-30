@@ -26,7 +26,7 @@ void ImageView::create(cth::not_null<Image const*> image) {
     auto const viewInfo = createViewInfo();
 
     VkImageView handle = VK_NULL_HANDLE;
-    auto const result = vkCreateImageView(_core->vkDevice(), &viewInfo, nullptr, &handle);
+    auto const result =_core->functions()->vkCreateImageView(_core->vkDevice(), &viewInfo, nullptr, &handle);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create vk_image-view") {
         reset();
@@ -44,7 +44,7 @@ void ImageView::wrap(State const& state) {
 }
 void ImageView::destroy() {
     DEBUG_CHECK_IMAGE_VIEW(this);
-    auto const lambda = [vk_device = _core->vkDevice(), vk_image_view = _handle.get()]() { destroy(vk_device, vk_image_view); };
+    auto const lambda = [table = _core->deviceTable(), vk_image_view = _handle.get()] { destroy(table, vk_image_view); };
 
     auto const queue = _core->destructionQueue();
 
@@ -62,11 +62,10 @@ ImageView::State ImageView::release() {
     return state;
 }
 
-void ImageView::destroy(VkDevice vk_device, VkImageView vk_image_view) {
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
+void ImageView::destroy(DeviceTable table, VkImageView vk_image_view) {
     CTH_WARN(vk_image_view == VK_NULL_HANDLE, "image view should not be invalid (VK_NULL_HANDLE)") {}
 
-    vkDestroyImageView(vk_device, vk_image_view, nullptr);
+    table->vkDestroyImageView(table.device(), vk_image_view, nullptr);
 }
 
 VkImageViewCreateInfo ImageView::createViewInfo() const {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vulkan/base/CthDeviceTable.hpp"
+
 #include <array>
 #include <volk.h>
 
@@ -26,7 +28,7 @@ public:
     void destroy();
     void optDestroy() { if(created()) destroy(); }
 
-    static void destroy(vk::not_null<VkDevice> device, VkSampler sampler);
+    static void destroy(DeviceTable table, VkSampler sampler);
 
 private:
     void reset();

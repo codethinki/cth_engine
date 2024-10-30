@@ -1,9 +1,10 @@
 #pragma once
+#include "vulkan/base/CthDeviceTable.hpp"
 #include "vulkan/utility/cth_constants.hpp"
 #include "vulkan/utility/cth_vk_types.hpp"
 
-#include <cth/pointers.hpp>
 #include <volk.h>
+#include <cth/pointers.hpp>
 
 #include <span>
 
@@ -23,7 +24,7 @@ public:
     /**
      * @brief base constructor
      */
-    explicit CmdBuffer(cth::not_null<Core const*> core, VkCommandBufferUsageFlags usage = 0);
+    explicit CmdBuffer(VkCommandBufferUsageFlags usage = 0);
     virtual ~CmdBuffer() = default;
 
     /**
@@ -45,20 +46,21 @@ public:
 
 
 
-    static void destroy(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers);
-    static void destroy(not_null<VkDevice_T*> device, not_null<VkCommandPool_T*> vk_pool, VkCommandBuffer buffer);
+    static void destroy(DeviceTable table, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers);
+    static void destroy(DeviceTable table, not_null<VkCommandPool_T*> vk_pool, VkCommandBuffer buffer);
 
 protected:
     void create(this auto&& self, cth::not_null<CmdPool*> pool);
 
 
     void begin(VkCommandBufferBeginInfo const& info);
+
 private:
     void reset();
 
-    cth::not_null<Core const*> _core;
-    VkCommandBufferUsageFlags _bufferUsage;
 
+    VkCommandBufferUsageFlags _bufferUsage;
+    std::optional<DeviceTable> _deviceTable = std::nullopt;
     CmdPool* _pool = nullptr;
     move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
     bool _recording = false;
@@ -94,8 +96,8 @@ inline void CmdBuffer::debug_check_handle([[maybe_unused]] vk::not_null<VkComman
 namespace cth::vk {
 class PrimaryCmdBuffer : public CmdBuffer {
 public:
-    explicit PrimaryCmdBuffer(cth::not_null<Core const*> core, VkCommandBufferUsageFlags usage = 0) : CmdBuffer{core,usage} {}
-    explicit PrimaryCmdBuffer(cth::not_null<Core const*> core, cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage = 0);
+    explicit PrimaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
+    explicit PrimaryCmdBuffer(cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage = 0);
 
     ~PrimaryCmdBuffer() override;
 

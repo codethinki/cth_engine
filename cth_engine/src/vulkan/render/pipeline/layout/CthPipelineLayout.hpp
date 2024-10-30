@@ -6,7 +6,11 @@
 #include <cth/pointers.hpp>
 #include <volk.h>
 
+//TEMP modernize
 
+namespace cth::vk {
+struct DeviceTable;
+}
 
 namespace cth::vk {
 class Core;
@@ -22,15 +26,23 @@ public:
     PipelineLayout(cth::not_null<Core const*> core, Builder const& builder);
     ~PipelineLayout();
 
+
+    static void destroy(DeviceTable table, VkPipelineLayout vk_layout);
+
 private:
     void create();
+    void optDestroy() { if(created()) destroy(); }
+    void destroy();
+    void reset();
+
 
     cth::not_null<Core const*> _core;
-    VkPipelineLayout _vkLayout = VK_NULL_HANDLE;
+    cth::move_ptr<VkPipelineLayout_T> _handle = VK_NULL_HANDLE;
     std::vector<DescriptorSetLayout*> _setLayouts{};
 
 public:
-    [[nodiscard]] VkPipelineLayout get() const { return _vkLayout; }
+    [[nodiscard]] auto created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] VkPipelineLayout get() const { return _handle.get(); }
 
 
 

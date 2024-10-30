@@ -168,7 +168,7 @@ public:
     */
     static size_t calcAlignedSize(size_t actual_size);
 
-    static void destroy(VkDevice vk_device, VkBuffer vk_buffer);
+    static void destroy(DeviceTable table, VkBuffer vk_buffer);
 
 private:
     /**

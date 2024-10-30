@@ -29,7 +29,7 @@ void Device::wrap(State state) {
     _queueFamiliesQueueCounts = state.queueFamiliesQueueCounts;
 
     _functionTable = std::move(state.functionTable);
-    if(_functionTable == nullptr) createFunctionTable();
+    if(_functionTable == nullptr) loadFunctionTable();
 
 }
 void Device::create(std::span<Queue> queues) {
@@ -38,14 +38,14 @@ void Device::create(std::span<Queue> queues) {
     auto const familyIndices = setUniqueFamilyIndices(queues);
 
     createLogicalDevice();
-    createFunctionTable();
+    loadFunctionTable();
 
     wrapQueues(familyIndices, queues);
 }
 void Device::destroy() {
     DEBUG_CHECK_DEVICE(this);
 
-    destroy(_handle.release());
+    destroy(_handle.release(), functions()->vkDestroyDevice);
     reset();
 }
 
@@ -94,12 +94,8 @@ void Device::createLogicalDevice() {
     }
     _handle = ptr;
 }
-void Device::createFunctionTable() {
-    CTH_CRITICAL(_functionTable != nullptr, "function table must be nullptr") {}
-
-    _functionTable = std::make_unique<VolkDeviceTable>();
+void Device::loadFunctionTable() const {
     volkLoadDeviceTable(_functionTable.get(), get());
-
 }
 
 void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues) const {
@@ -114,7 +110,7 @@ void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues)
 
         CTH_STABLE_ERR(ptr == VK_NULL_HANDLE, "failed to get device queue") throw details->exception();
 
-        queue.wrap(Queue::State{ptr, familyIndex, queueCounts[familyIndex]++});
+        queue.wrap(Queue::State{ptr, this, familyIndex, queueCounts[familyIndex]++});
     }
 
 }
@@ -132,18 +128,21 @@ void Device::waitIdle() const {
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for device") throw vk::result_exception{result, details->exception()};
 }
-void Device::destroy(VkDevice vk_device) {
-    vkDestroyDevice(vk_device, nullptr);
+void Device::destroy(VkDevice vk_device, PFN_vkDestroyDevice destroy_function) {
+    CTH_CRITICAL(vk_device == VK_NULL_HANDLE, "vk_device must not be invalid (VK_NULL_HANDLE)"){}
+
+    destroy_function(vk_device, nullptr);
 
     cth::log::msg<except::LOG>("destroyed vk_device");
 }
 void Device::reset() {
     _handle = nullptr;
     _queueFamiliesQueueCounts.clear();
-    _functionTable = {};
+
+    std::memset(_functionTable.get(), 0, sizeof(decltype(*_functionTable)));
 }
 
-
+//TEMP modernize
 #ifdef CONSTANT_DEBUG_MODE
 void Device::debug_check(cth::not_null<Device const*> device) {
     CTH_ERR(!device->created(), "device must be created") throw details->exception();

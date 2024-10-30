@@ -48,7 +48,7 @@ void Framebuffer::create(VkExtent2D extent) {
 
     VkFramebuffer ptr = VK_NULL_HANDLE;
 
-    auto const createResult = vkCreateFramebuffer(_core->vkDevice(), &createInfo, nullptr, &ptr);
+    auto const createResult = _core->functions()->vkCreateFramebuffer(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create framebuffer") {
         reset();
@@ -59,7 +59,7 @@ void Framebuffer::create(VkExtent2D extent) {
 }
 void Framebuffer::destroy() {
     debug_check(this);
-    auto const lambda = [vk_device = _core->vkDevice(), vk_framebuffer = _handle.get()]() { destroy(vk_device, vk_framebuffer); };
+    auto const lambda = [table = _core->deviceTable(), vk_framebuffer = _handle.get()]() { destroy(table, vk_framebuffer); };
 
     auto const queue = _core->destructionQueue();
 
@@ -79,11 +79,10 @@ Framebuffer::State Framebuffer::release() {
     reset();
     return state;
 }
-void Framebuffer::destroy(vk::not_null<VkDevice> vk_device, VkFramebuffer vk_framebuffer) {
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
+void Framebuffer::destroy(DeviceTable table, VkFramebuffer vk_framebuffer) {
     CTH_WARN(vk_framebuffer == VK_NULL_HANDLE, "framebuffer should not be invalid (VK_NULL_HANDLE") {}
 
-    vkDestroyFramebuffer(vk_device.get(), vk_framebuffer, nullptr);
+    table->vkDestroyFramebuffer(table.device(), vk_framebuffer, nullptr);
 }
 void Framebuffer::reset() {
     _handle = VK_NULL_HANDLE;
