@@ -33,7 +33,7 @@ void PipelineLayout::create() {
     pipelineLayoutInfo.pSetLayouts = vkLayouts.data();
 
     VkPipelineLayout ptr = VK_NULL_HANDLE;
-    VkResult const result =_core->functions()->vkCreatePipelineLayout(_core->vkDevice(), &pipelineLayoutInfo, nullptr, &ptr);
+    VkResult const result = _core->functions()->vkCreatePipelineLayout(_core->vkDevice(), &pipelineLayoutInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline-layout")
         throw vk::result_exception(result, details->exception());
