@@ -45,7 +45,7 @@ void Memory::create(VkMemoryRequirements const& vk_requirements) {
     _size = vk_requirements.size;
 }
 std::span<char> Memory::map(size_t map_size, size_t offset) const {
-    DEBUG_CHECK_MEMORY(this);
+    Memory::debug_check(this);
 
     void* mappedPtr = nullptr;
     VkResult const mapResult = _core->functions()->vkMapMemory(_core->vkDevice(), _handle.get(), offset, _size, 0, &mappedPtr);
@@ -77,7 +77,7 @@ void Memory::invalidate(size_t size, size_t offset) const {
 void Memory::unmap() const { _core->functions()->vkUnmapMemory(_core->vkDevice(), _handle.get()); }
 
 void Memory::destroy() {
-    DEBUG_CHECK_MEMORY(this);
+    Memory::debug_check(this);
 
     auto const lambda = [table = _core->deviceTable(), handle = _handle.get()] { destroy(table, handle); };
 
@@ -96,7 +96,7 @@ void Memory::destroy(DeviceTable table, VkDeviceMemory memory) {
     table->vkFreeMemory(table.device(), memory, nullptr);
 }
 auto Memory::release() -> State {
-    DEBUG_CHECK_MEMORY(this);
+    Memory::debug_check(this);
 
     State const state{_handle.get(), _size};
     reset();
@@ -107,16 +107,4 @@ void Memory::reset() {
     _size = 0;
 }
 
-
-#ifdef CONSTANT_DEBUG_MODE
-void Memory::debug_check(Memory const* memory) {
-    CTH_ERR(memory == nullptr, "memory must not be nullptr") throw details->exception();
-    CTH_ERR(!memory->created(), "memory must be created") throw details->exception();
-
-    DEBUG_CHECK_MEMORY_HANDLE(memory->get());
-}
-void Memory::debug_check_handle(VkDeviceMemory vk_memory) {
-    CTH_CRITICAL(vk_memory == VK_NULL_HANDLE, "memory handle should not be invalid (VK_NULL_HANDLE)"){}
-}
-#endif
 }

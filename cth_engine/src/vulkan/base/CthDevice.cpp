@@ -43,7 +43,7 @@ void Device::create(std::span<Queue> queues) {
     wrapQueues(familyIndices, queues);
 }
 void Device::destroy() {
-    DEBUG_CHECK_DEVICE(this);
+    Device::debug_check(this);
 
     destroy(_handle.release(), functions()->vkDestroyDevice);
     reset();
@@ -69,6 +69,7 @@ void Device::createLogicalDevice() {
     for(auto const [queueFamily, queueCount] : _queueFamiliesQueueCounts)
         queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .pNext = nullptr,
             .queueFamilyIndex = queueFamily,
             .queueCount = queueCount,
             .pQueuePriorities = &queuePriority,
@@ -94,9 +95,7 @@ void Device::createLogicalDevice() {
     }
     _handle = ptr;
 }
-void Device::loadFunctionTable() const {
-    volkLoadDeviceTable(_functionTable.get(), get());
-}
+void Device::loadFunctionTable() const { volkLoadDeviceTable(_functionTable.get(), get()); }
 
 void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues) const {
     CTH_CRITICAL(family_indices.size() != queues.size(), "there must be a family index for every queue") {}
@@ -115,14 +114,14 @@ void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues)
 
 }
 Device::State Device::release() {
-    DEBUG_CHECK_DEVICE(this);
+    Device::debug_check(this);
 
     State state{_handle.release(), std::move(_queueFamiliesQueueCounts)};
     reset();
     return state;
 }
 void Device::waitIdle() const {
-    DEBUG_CHECK_DEVICE(this);
+    Device::debug_check(this);
 
     auto const result = table()->vkDeviceWaitIdle(_handle.get());
 
@@ -141,14 +140,5 @@ void Device::reset() {
 
     std::memset(_functionTable.get(), 0, sizeof(decltype(*_functionTable)));
 }
-
-//TEMP modernize
-#ifdef CONSTANT_DEBUG_MODE
-void Device::debug_check(cth::not_null<Device const*> device) {
-    CTH_ERR(!device->created(), "device must be created") throw details->exception();
-    DEBUG_CHECK_DEVICE_HANDLE(device->get());
-}
-void Device::debug_check_handle([[maybe_unused]] vk::not_null<VkDevice> vk_device) {}
-#endif
 
 }

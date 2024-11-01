@@ -24,14 +24,14 @@ BasicSwapchain::BasicSwapchain(cth::not_null<Core const*> core, cth::not_null<Qu
     cth::not_null<GraphicsSyncConfig const*> sync_config, cth::not_null<Surface const*> surface) : _core(core), _presentQueue(present_queue),
     _surface{surface}, _syncConfig(sync_config) {
     Core::debug_check(core.get());
-    DEBUG_CHECK_SURFACE(surface);
+    Surface::debug_check(surface);
     Queue::debug_check_present(present_queue);
     GraphicsSyncConfig::debug_check(sync_config);
     createSyncObjects();
     _imageIndices.fill(NO_IMAGE_INDEX);
 }
 BasicSwapchain::~BasicSwapchain() {
-    DEBUG_CHECK_SWAPCHAIN_LEAK(this);
+    BasicSwapchain::debug_check_leak(this);
     destroySyncObjects();
 }
 
@@ -130,9 +130,8 @@ void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const* cmd_buffer) { _render
 VkResult BasicSwapchain::present(Cycle const& cycle) {
     size_t subIndex = cycle.subIndex;
 
-    CTH_ERR(_imageIndices[subIndex] == NO_IMAGE_INDEX, "no acquired vk_image available") {
+    CTH_CRITICAL(_imageIndices[subIndex] == NO_IMAGE_INDEX, "no acquired vk_image available") {
         details->add("frame: ({})", subIndex);
-        throw details->exception();
     }
 
     auto const result = _presentQueue->present(_imageIndices[subIndex], _presentInfos[subIndex]);
@@ -275,8 +274,7 @@ VkSwapchainCreateInfoKHR BasicSwapchain::createInfo(VkSurfaceKHR surface,
 }
 
 void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
-    DEBUG_CHECK_SWAPCHAIN_LEAK(this);
-    DEBUG_CHECK_SWAPCHAIN_WINDOW_EXTENT(window_extent) {}
+    BasicSwapchain::debug_check_window_extent(window_extent);
 
     _windowExtent = window_extent;
 
@@ -312,8 +310,7 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
 
 
 Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits samples) const {
-    CTH_ERR(_imageFormat == VK_FORMAT_UNDEFINED, "image format must not be VK_FORMAT_UNDEFINED")
-        throw details->exception();
+    CTH_CRITICAL(_imageFormat == VK_FORMAT_UNDEFINED, "image format must not be VK_FORMAT_UNDEFINED") {}
 
     return Image::Config{
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -324,8 +321,7 @@ Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits sampl
     };
 }
 Image::Config BasicSwapchain::createDepthImageConfig() const {
-    CTH_ERR(_depthFormat == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED")
-        throw details->exception();
+    CTH_CRITICAL(_depthFormat == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED") {}
 
     return Image::Config{
         .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
@@ -538,27 +534,6 @@ void BasicSwapchain::reset() {
     _handle = VK_NULL_HANDLE;
     resizeReset();
 }
-
-
-
-#ifdef CONSTANT_DEBUG_MODE
-void BasicSwapchain::debug_check(BasicSwapchain const* swapchain) {
-    CTH_ERR(swapchain == nullptr, "swapchain invalid (nullptr)") throw details->exception();
-    CTH_ERR(swapchain->_handle == VK_NULL_HANDLE, "swapchain handle invalid (VK_NULL_HANDLE)") throw details->exception();
-}
-void BasicSwapchain::debug_check_leak(BasicSwapchain const* swapchain) {
-    CTH_WARN(swapchain->_handle != VK_NULL_HANDLE, "swapchain handle replaced, (potential memory leak)") {}
-}
-void BasicSwapchain::debug_check_window_extent(VkExtent2D window_extent) {
-    CTH_ERR(window_extent.width == 0 || window_extent.height == 0, "window_extent width({0}) or height({0}) invalid (> 0 required",
-        window_extent.width, window_extent.height) throw details->exception();
-}
-void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwapchain const& b) {
-    CTH_ERR(a._core == b._core, "swapchains not compatible (different cores)") throw details->exception();
-}
-#endif
-
-
 
 } // namespace cth
 

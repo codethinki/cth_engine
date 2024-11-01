@@ -205,26 +205,32 @@ public:
     BasicSwapchain& operator=(BasicSwapchain const& other) = delete;
     BasicSwapchain& operator=(BasicSwapchain&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(BasicSwapchain const* swapchain);
     static void debug_check_leak(BasicSwapchain const* swapchain);
 
     static void debug_check_window_extent(VkExtent2D window_extent);
     static void debug_check_compatibility(BasicSwapchain const& a, BasicSwapchain const& b);
-
-#define DEBUG_CHECK_SWAPCHAIN_WINDOW_EXTENT(window_extent) BasicSwapchain::debug_check_window_extent(window_extent);
-#define DEBUG_CHECK_SWAPCHAIN_COMPATIBILITY(a_ptr, b_ptr) BasicSwapchain::debug_check_compatibility(a, b)
-#define DEBUG_CHECK_SWAPCHAIN_LEAK(swapchain_ptr) BasicSwapchain::debug_check_leak(swapchain_ptr)
-#define DEBUG_CHECK_SWAPCHAIN(swapchain_ptr) BasicSwapchain::debug_check(swapchain_ptr)
-#define DEBUG_CHECK_SWAPCHAIN_NULLPTR_ALLOWED(swapchain_ptr) if(swapchain_ptr) BasicSwapchain::debug_check(swapchain_ptr)
-#else
-#define DEBUG_CHECK_SWAPCHAIN_COMPATIBILITY(a_ptr, b_ptr) ((void)0)
-#define DEBUG_CHECK_SWAPCHAIN_LEAK(swapchain_ptr) ((void)0)
-#define DEBUG_CHECK_SWAPCHAIN_WINDOW_EXTENT(window_extent) ((void)0)
-#define DEBUG_CHECK_SWAPCHAIN(swapchain_ptr) ((void)0)
-#define DEBUG_CHECK_SWAPCHAIN_NULLPTR_ALLOWED(swapchain_ptr) ((void)0)
-#endif
-
 };
+
+}
+
+//debug checks
+
+namespace cth::vk {
+
+inline void BasicSwapchain::debug_check(BasicSwapchain const* swapchain) {
+    CTH_CRITICAL(swapchain == nullptr, "swapchain invalid (nullptr)") {}
+    CTH_CRITICAL(swapchain->_handle == VK_NULL_HANDLE, "swapchain handle invalid (VK_NULL_HANDLE)") {}
+}
+inline void BasicSwapchain::debug_check_leak(BasicSwapchain const* swapchain) {
+    CTH_WARN(swapchain->_handle != VK_NULL_HANDLE, "swapchain handle replaced, (potential memory leak)") {}
+}
+inline void BasicSwapchain::debug_check_window_extent(VkExtent2D window_extent) {
+    CTH_CRITICAL(window_extent.width == 0 || window_extent.height == 0, "window_extent width({0}) or height({0}) invalid (> 0 required",
+        window_extent.width, window_extent.height) {}
+}
+inline void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwapchain const& b) {
+    CTH_CRITICAL(a._core == b._core, "swapchains not compatible (different cores)") {}
+}
 
 }

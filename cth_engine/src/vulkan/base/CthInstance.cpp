@@ -181,11 +181,4 @@ void Instance::loadInstanceFunctions(cth::vk::not_null<VkInstance> vk_instance) 
         volkLoadInstanceOnly(vk_instance.get());
 }
 
-//TEMP move to inline
-#ifdef CONSTANT_DEBUG_MODE
-void Instance::debug_check(cth::not_null<Instance const*> instance) { debug_check_handle(instance->get()); }
-void Instance::debug_check_handle([[maybe_unused]] vk::not_null<VkInstance> vk_instance) {}
-#endif
-
-
 }

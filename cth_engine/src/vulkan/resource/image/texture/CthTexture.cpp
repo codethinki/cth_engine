@@ -51,11 +51,9 @@ Image::Config Texture::imageConfig(VkExtent2D extent, Config const& config) {
 void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, uint32_t first, uint32_t levels) {
     if(levels == 0) levels = mipLevels() - first;
 
-    CTH_ERR(_levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal")
-        throw details->exception();
-    CTH_ERR(std::ranges::any_of(_levelLayouts.begin() + first, _levelLayouts.begin() + first + levels, [](VkImageLayout const layout){\
-        return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }), "image layouts not transfer dst optimal")
-        throw details->exception();
+    CTH_CRITICAL(_levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal") {}
+    CTH_CRITICAL(std::ranges::any_of(_levelLayouts.begin() + first, _levelLayouts.begin() + first + levels,
+        [](VkImageLayout const layout){ return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }), "image layouts not transfer dst optimal") {}
 
     ImageBarrier toSrcBarrier{core(), {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT}};
     ImageBarrier shaderBarrier{core(), {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT}};

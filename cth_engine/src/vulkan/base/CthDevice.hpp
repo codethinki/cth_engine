@@ -139,15 +139,8 @@ public:
     Device& operator=(Device const& other) = delete;
     Device& operator=(Device&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<Device const*> device);
     static void debug_check_handle(vk::not_null<VkDevice> vk_device);
-#define DEBUG_CHECK_DEVICE(device_ptr) Device::debug_check(device_ptr)
-#define DEBUG_CHECK_DEVICE_HANDLE(vk_device) Device::debug_check_handle(vk_device)
-#else
-#define DEBUG_CHECK_DEVICE(device_ptr) ((void)0)
-#define DEBUG_CHECK_DEVICE_HANDLE(vk_device) ((void)0)
-#endif
 };
 } // namespace cth
 
@@ -162,4 +155,14 @@ struct Device::State {
      */
     std::unique_ptr<VolkDeviceTable> functionTable;
 };
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void Device::debug_check(cth::not_null<Device const*> device) {
+    CTH_CRITICAL(!device->created(), "device must be created") {}
+    debug_check_handle(device->get());
+}
+inline void Device::debug_check_handle([[maybe_unused]] vk::not_null<VkDevice> vk_device) {}
 }

@@ -47,17 +47,8 @@ public:
     Sampler(Sampler&& other) noexcept = default;
     Sampler& operator=(Sampler&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<Sampler*> sampler);
     static void debug_check_handle(vk::not_null<VkSampler> sampler);
-
-#define DEBUG_CHECK_SAMPLER(sampler) Sampler::debug_check(sampler)
-#define DEBUG_CHECK_SAMPLER_HANDLE(vk_sampler) Sampler::debug_check_handle(vk_sampler)
-#else
-#define DEBUG_CHECK_SAMPLER(sampler) ((void)0)
-#define DEBUG_CHECK_SAMPLER_HANDLE(vk_sampler) ((void)0)
-#endif
-
 };
 }
 
@@ -94,3 +85,14 @@ struct Sampler::State {
 
 }
 
+//debug checks
+
+namespace cth::vk {
+
+inline void Sampler::debug_check(cth::not_null<Sampler*> sampler) {
+    CTH_CRITICAL(!sampler->created(), "sampler must be created") {}
+    Sampler::debug_check_handle(sampler->get());
+}
+inline void Sampler::debug_check_handle(vk::not_null<VkSampler> sampler) {}
+
+}

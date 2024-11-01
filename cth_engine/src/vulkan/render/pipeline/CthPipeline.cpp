@@ -101,9 +101,8 @@ void Pipeline::GraphicsConfig::removeShaderStage(VkShaderStageFlagBits shader_st
 
     if(it != _vkShaderStages.end()) _vkShaderStages.erase(it);
     else
-        CTH_ERR(true, "non present shader stage removed") {
+        CTH_CRITICAL(true, "non present shader stage removed") {
             details->add("stage: {}", static_cast<uint32_t>(shader_stage));
-            throw details->exception();
         }
 }
 

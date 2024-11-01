@@ -88,17 +88,9 @@ public:
     Memory(Memory&& other) = default;
     Memory& operator=(Memory const& other) = default;
     Memory& operator=(Memory&& other) = default;
-#ifdef CONSTANT_DEBUG_MODE
 
     static void debug_check(Memory const* memory);
     static void debug_check_handle(VkDeviceMemory vk_memory);
-#define DEBUG_CHECK_MEMORY(memory_ptr) Memory::debug_check(memory_ptr)
-#define DEBUG_CHECK_MEMORY_HANDLE(vk_memory) Memory::debug_check_handle(vk_memory)
-#else
-#define DEBUG_CHECK_MEMORY(memory_ptr) ((void)0)
-#define DEBUG_CHECK_MEMORY_HANDLE(vk_memory) ((void)0)
-#endif
-
 };
 
 } // namespace cth
@@ -111,4 +103,18 @@ struct Memory::State {
     size_t size; //in bytes
 };
 
+}
+
+//debug check
+
+namespace cth::vk {
+inline void Memory::debug_check(Memory const* memory) {
+    CTH_CRITICAL(memory == nullptr, "memory must not be nullptr") {}
+    CTH_CRITICAL(!memory->created(), "memory must be created") {}
+
+    debug_check_handle(memory->get());
+}
+inline void Memory::debug_check_handle(VkDeviceMemory vk_memory) {
+    CTH_CRITICAL(vk_memory == VK_NULL_HANDLE, "memory handle should not be invalid (VK_NULL_HANDLE)"){}
+}
 }

@@ -61,8 +61,7 @@ DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(uint32
 std::vector<VkDescriptorSetLayoutBinding> DescriptorSetLayout::Builder::bindings() const {
 #ifdef CONSTANT_DEBUG_MODE
     //TODO check this, may be possible
-    CTH_ERR(std::ranges::any_of(_bindings, [](const binding_t& binding){ return binding == std::nullopt;}), "bindings cannot be empty")
-        throw details->exception();
+    CTH_CRITICAL(std::ranges::any_of(_bindings, [](const binding_t& binding){ return binding == std::nullopt;}), "bindings cannot be empty") {}
 
     std::vector<VkDescriptorSetLayoutBinding> vec(_bindings.size());
     std::ranges::transform(_bindings, vec.begin(), [](binding_t const& binding) { return binding.value(); });

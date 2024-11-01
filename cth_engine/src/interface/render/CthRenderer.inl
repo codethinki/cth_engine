@@ -69,7 +69,7 @@ template<Renderer::Phase P> void Renderer::nextState() {
 #ifdef CONSTANT_DEBUG_MODE
 template<Renderer::Phase P> void Renderer::debug_check_current_phase(Renderer const* renderer) {
     DEBUG_CHECK_RENDERER_PHASE(P);
-    CTH_ERR(P != renderer->_state, "phase error, explicitly const_skip phases") throw details->exception();
+    CTH_CRITICAL(P != renderer->_state, "phase error, explicitly const_skip phases") {}
 }
 
 
@@ -86,8 +86,8 @@ template<Renderer::Phase P>
 void Renderer::debug_check_phase_change(Renderer const* renderer) {
     DEBUG_CHECK_RENDERER_PHASE(P);
 
-    CTH_ERR(renderer->_state >= PHASES_SIZE, "phase error, forgot to call cycle?") throw details->exception();
-    CTH_ERR(static_cast<size_t>(P) != static_cast<size_t>(renderer->_state), "phase error, explicitly const_skip phases") throw details->exception();
+    CTH_CRITICAL(renderer->_state >= PHASES_SIZE, "phase error, forgot to call cycle?") {}
+    CTH_CRITICAL(static_cast<size_t>(P) != static_cast<size_t>(renderer->_state), "phase error, explicitly const_skip phases") {}
 
 }
 #endif

@@ -121,17 +121,10 @@ public:
     Instance& operator=(Instance const& other) = delete;
     Instance(Instance&& other) noexcept = default;
     Instance& operator=(Instance&& other) noexcept = default;
-#ifdef CONSTANT_DEBUG_MODE
+
+
     static void debug_check(cth::not_null<Instance const*> instance);
     static void debug_check_handle(vk::not_null<VkInstance> vk_instance);
-
-
-#define DEBUG_CHECK_INSTANCE(instance_ptr) Instance::debug_check(instance_ptr)
-#define DEBUG_CHECK_INSTANCE_HANDLE(instance_ptr) Instance::debug_check_handle(instance_ptr)
-#else
-#define DEBUG_CHECK_INSTANCE(instance_ptr) ((void)0)
-#define DEBUG_CHECK_INSTANCE_LEAK(instance_ptr) ((void)0)
-#endif
 };
 
 
@@ -151,4 +144,12 @@ struct Instance::State {
     std::unique_ptr<DebugMessenger> debugMessenger;
 };
 
+}
+
+//debug checks
+
+namespace cth::vk {
+
+inline void Instance::debug_check(cth::not_null<Instance const*> instance) { debug_check_handle(instance->get()); }
+inline void Instance::debug_check_handle([[maybe_unused]] vk::not_null<VkInstance> vk_instance) {}
 }

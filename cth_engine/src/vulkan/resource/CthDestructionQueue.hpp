@@ -45,3 +45,11 @@ public:
 };
 
 }
+
+//debug checks
+namespace cth::vk {
+inline void DestructionQueue::debug_check(DestructionQueue const* queue) {
+    CTH_ERR(queue == nullptr, "queue must not be nullptr") throw details->exception();
+}
+inline void DestructionQueue::debug_check_null_allowed(DestructionQueue const* queue) { if(queue) debug_check(queue); }
+}

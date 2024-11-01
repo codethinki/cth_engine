@@ -174,18 +174,6 @@ void OSWindow::destroy(GLFWwindow* glfw_window) {
     cth::log::msg("destroyed window");
 }
 
-#ifdef CONSTANT_DEBUG_MODE
-void OSWindow::debug_check_not_null(OSWindow const* os_window) {
-    CTH_ERR(os_window == nullptr, "os_window must not be nullptr")
-        throw details->exception();
-}
-void OSWindow::debug_check(OSWindow const* os_window) {
-    DEBUG_CHECK_OS_WINDOW_NOT_NULL(os_window);
-
-    CTH_ERR(os_window->_handle == nullptr, "os_window must be initialized")
-        throw details->exception();
-}
-#endif
 
 
 

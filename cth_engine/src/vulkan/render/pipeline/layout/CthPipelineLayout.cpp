@@ -74,17 +74,15 @@ PipelineLayout::Builder& PipelineLayout::Builder::addSetLayout(DescriptorSetLayo
 
     auto const keys = _setLayouts | std::views::keys;
     bool const result = std::ranges::any_of(keys, [location](uint32_t key) { return key == location; });
-    CTH_ERR(result, "location already used") {
-        details->add("location: {}", location);
-        throw details->exception();
-    }
+
+    CTH_CRITICAL(result, "location({}) already used", location) {}
 
     _setLayouts.emplace_back(location, layout);
 
     return *this;
 }
 PipelineLayout::Builder& PipelineLayout::Builder::removeSetLayout(uint32_t location) {
-    CTH_ERR(location >= _setLayouts.size(), "location out of range") throw details->exception();
+    CTH_CRITICAL(location >= _setLayouts.size(), "location out of range") {}
 
     if(location == _setLayouts.size() - 1) _setLayouts.pop_back();
 

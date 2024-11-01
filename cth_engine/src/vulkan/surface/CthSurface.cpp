@@ -20,13 +20,13 @@ Surface::~Surface() {
     log::msg("destroyed surface");
 }
 void Surface::wrap(State const& state) {
-    DEBUG_CHECK_SURFACE_HANDLE(state.vkSurface);
+    Surface::debug_check_handle(state.vkSurface);
     optDestroy();
 
     _handle = state.vkSurface.get();
 }
 void Surface::destroy() {
-    DEBUG_CHECK_SURFACE(this);
+    Surface::debug_check(this);
 
     auto const lambda = [vk_instance = _instance->get(), vk_surface = _handle.get()]() { destroy(vk_instance, vk_surface); };
 
@@ -38,7 +38,7 @@ void Surface::destroy() {
     _handle = VK_NULL_HANDLE;
 }
 Surface::State Surface::release() {
-    DEBUG_CHECK_SURFACE(this);
+    Surface::debug_check(this);
     State const state{_handle.get()};
 
     reset();
@@ -101,15 +101,10 @@ Surface Surface::Temp(cth::not_null<Instance const*> instance, DestructionQueue*
 }
 void Surface::destroy(vk::not_null<VkInstance> instance, VkSurfaceKHR surface) {
     CTH_WARN(surface == VK_NULL_HANDLE, "surface invalid (VK_NULL_HANDLE)") {}
-    DEBUG_CHECK_INSTANCE_HANDLE(instance);
+    debug_check_handle(surface);
 
     vkDestroySurfaceKHR(instance.get(), surface, nullptr);
 }
 void Surface::reset() { _handle = VK_NULL_HANDLE; }
-
-void Surface::debug_check(cth::not_null<Surface const*> surface) { DEBUG_CHECK_SURFACE_HANDLE(surface->get()); }
-void Surface::debug_check_handle([[maybe_unused]] vk::not_null<VkSurfaceKHR> surface) {}
-
-
 
 }

@@ -36,6 +36,7 @@ public:
     static VkSurfaceKHR tempSurface(cth::not_null<Instance const*> instance);
 
     static void destroy(GLFWwindow* glfw_window);
+
 private:
     void initWindow();
     void setCallbacks();
@@ -85,7 +86,6 @@ public:
         return handle;
     }
 
-  
 
 
     OSWindow(OSWindow const& other) = delete;
@@ -93,17 +93,20 @@ public:
     OSWindow(OSWindow&& other) = default;
     OSWindow& operator=(OSWindow&& other) = default; // copy/move operations
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check_not_null(OSWindow const* os_window);
     static void debug_check(OSWindow const* os_window);
 
-#define DEBUG_CHECK_OS_WINDOW(os_window_ptr) OSWindow::debug_check(os_window_ptr)
-#define DEBUG_CHECK_OS_WINDOW_NOT_NULL(os_window_ptr) OSWindow::debug_check_not_null(os_window_ptr)
-
-#else
-#define DEBUG_CHECK_OS_WINDOW(os_window_ptr) ((void)0)
-#define DEBUG_CHECK_OS_WINDOW_NOT_NULL(os_window_ptr) ((void)0)
-#endif
-
 };
+}
+
+namespace cth::vk {
+
+inline void OSWindow::debug_check_not_null(OSWindow const* os_window) {
+    CTH_CRITICAL(os_window == nullptr, "os_window must not be nullptr") {}
+}
+inline void OSWindow::debug_check(OSWindow const* os_window) {
+    OSWindow::debug_check_not_null(os_window);
+
+    CTH_CRITICAL(os_window->_handle == nullptr, "os_window must be initialized") {}
+}
 }

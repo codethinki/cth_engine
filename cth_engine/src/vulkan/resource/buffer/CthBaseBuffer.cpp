@@ -32,7 +32,7 @@ void BaseBuffer::wrap(State state) {
 
     _handle = state.vkBuffer.get();
     if(state.memory) {
-        DEBUG_CHECK_MEMORY(state.memory.get());
+        Memory::debug_check(state.memory.get());
         _memory = std::move(state.memory);
     }
 
@@ -164,7 +164,7 @@ VkDescriptorBufferInfo BaseBuffer::descriptorInfo(size_t size, size_t offset) co
 
 
 void BaseBuffer::write(span<char const> data, span<char> mapped_memory) {
-    CTH_ERR(mapped_memory.size() >= data.size(), "mapped region out of bounds") throw details->exception();
+    CTH_CRITICAL(mapped_memory.size() >= data.size(), "mapped region out of bounds") {}
     std::memcpy(mapped_memory.data(), data.data(), data.size());
 }
 

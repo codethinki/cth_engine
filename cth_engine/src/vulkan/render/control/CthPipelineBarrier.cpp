@@ -52,7 +52,7 @@ void ImageBarrier::replace(Image* image, Info const& info) {
 void ImageBarrier::remove(Image const* image) {
     auto const index = find(image);
 
-    CTH_ERR(static_cast<size_t>(index) == _imageBarriers.size(), "image not present in barrier") throw details->exception();
+    CTH_CRITICAL(static_cast<size_t>(index) == _imageBarriers.size(), "image not present in barrier") {}
 
     _imageBarriers.erase(std::ranges::begin(_imageBarriers) + index);
 
@@ -102,7 +102,7 @@ BufferBarrier::BufferBarrier(cth::not_null<Core const*> core, PipelineStages sta
 }
 
 void BufferBarrier::add(BaseBuffer const* buffer, Info const& info) {
-    CTH_ERR(std::ranges::contains(_buffers, buffer), "image already added, consider grouping") throw details->exception();
+    CTH_CRITICAL(std::ranges::contains(_buffers, buffer), "image already added, consider grouping") {}
 
     _bufferBarriers.emplace_back(
         VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
@@ -119,8 +119,7 @@ void BufferBarrier::add(BaseBuffer const* buffer, Info const& info) {
 }
 void BufferBarrier::remove(BaseBuffer const* buffer) {
     auto const index = std::ranges::find(_buffers, buffer);
-    CTH_ERR(index == std::end(_buffers), "buffer not present in barrier")
-        throw details->exception();
+    CTH_CRITICAL(index == std::end(_buffers), "buffer not in barrier") throw details->exception();
 
     _bufferBarriers.erase(_bufferBarriers.begin() + std::distance(_buffers.begin(), index));
     _buffers.erase(index);

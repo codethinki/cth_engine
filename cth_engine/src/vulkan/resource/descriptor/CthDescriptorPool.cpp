@@ -30,8 +30,8 @@ void DescriptorPool::writeSets(std::vector<DescriptorSet*> const& sets) {
     std::vector<VkWriteDescriptorSet> writes{};
 
     std::ranges::for_each(sets, [this, &writes](DescriptorSet* set) {
-        CTH_ERR(set == nullptr, "set ptr invalid") throw details->exception();
-        CTH_ERR(set->written() || (set->_pool != nullptr && set->_pool != this), "set already registered in other pool") throw details->exception();
+        CTH_CRITICAL(set == nullptr, "set ptr invalid") {}
+        CTH_CRITICAL(set->written() || (set->_pool != nullptr && set->_pool != this), "set already registered in other pool") {}
 
         set->alloc(_allocatedSets[set->_layout].newVkSet(), this);
 
@@ -133,7 +133,7 @@ void DescriptorPool::returnSet(DescriptorSet* set) {
 
 namespace cth::vk {
 void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint32_t  alloc_count) {
-    CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
+    CTH_CRITICAL(layout == nullptr, "layout ptr invalid") {}
     CTH_WARN(alloc_count == 0, "alloc_count should be > 0") {}
 
     _maxDescriptorSets[layout] += alloc_count;
@@ -142,9 +142,9 @@ void DescriptorPool::Builder::addLayouts(std::unordered_map<DescriptorSetLayout 
     std::ranges::for_each(set_allocations, [this](auto const& pair) { this->addLayout(pair.first, pair.second); });
 }
 void DescriptorPool::Builder::removeLayout(DescriptorSetLayout const* layout, size_t  amount) {
-    CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
+    CTH_CRITICAL(layout == nullptr, "layout ptr invalid") {}
     CTH_WARN(amount == 0, "alloc_count should be > 0") {}
-    CTH_ERR(!_maxDescriptorSets.contains(layout), "builder does not contain layout") throw details->exception();
+    CTH_CRITICAL(!_maxDescriptorSets.contains(layout), "builder does not contain layout") {}
 
     if(amount >= _maxDescriptorSets[layout]) _maxDescriptorSets.erase(layout);
     else _maxDescriptorSets[layout] -= amount;

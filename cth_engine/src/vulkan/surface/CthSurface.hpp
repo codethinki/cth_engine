@@ -86,15 +86,8 @@ public:
     Surface& operator=(Surface const& other) = default;
     Surface& operator=(Surface&& other) noexcept = delete;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<Surface const*> surface);
     static void debug_check_handle(vk::not_null<VkSurfaceKHR> surface);
-#define DEBUG_CHECK_SURFACE(surface_ptr) Surface::debug_check(surface_ptr)
-#define DEBUG_CHECK_SURFACE_HANDLE(surface) Surface::debug_check_handle(surface)
-#else
-#define DEBUG_CHECK_SURFACE(surface_ptr) ((void)0)
-#define DEBUG_CHECK_SURFACE_HANDLE(surface) ((void)0)
-#endif
 };
 }
 
@@ -104,5 +97,13 @@ namespace cth::vk {
 struct Surface::State {
     vk::not_null<VkSurfaceKHR> vkSurface;
 };
+
+}
+
+//debug check
+
+namespace cth::vk {
+inline void Surface::debug_check(cth::not_null<Surface const*> surface) { debug_check_handle(surface->get()); }
+inline void Surface::debug_check_handle([[maybe_unused]] vk::not_null<VkSurfaceKHR> surface) {}
 
 }

@@ -91,13 +91,7 @@ public:
     PhysicalDeviceFeatures& operator=(PhysicalDeviceFeatures&& other) noexcept = default;
 
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<PhysicalDeviceFeatures const*> features);
-
-#define DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(features) PhysicalDeviceFeatures::debug_check(features)
-#else
-#define DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(features) ((void)0)
-#endif
 };
 
 
@@ -119,3 +113,12 @@ auto PhysicalDeviceFeatures::to_bool_args(T* feature2) {
 
 
 } //namespace cth::vk::utils
+
+
+//debug checks
+
+namespace cth::vk::utils {
+inline void PhysicalDeviceFeatures::debug_check(cth::not_null<PhysicalDeviceFeatures const*> features) {
+    CTH_CRITICAL(!features->created(), "features must be created") {}
+}
+}

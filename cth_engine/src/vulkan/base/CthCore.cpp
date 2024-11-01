@@ -14,7 +14,7 @@ Core::~Core() { optDestroy(); }
 void Core::wrap(State state) {
     Instance::debug_check(state.instance.get());
     PhysicalDevice::debug_check(state.physicalDevice.get());
-    DEBUG_CHECK_DEVICE(state.device.get());
+    Device::debug_check(state.device.get());
     DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(state.destructionQueue);
 
     optDestroy();

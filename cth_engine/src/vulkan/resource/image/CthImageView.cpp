@@ -43,7 +43,7 @@ void ImageView::wrap(State const& state) {
 
 }
 void ImageView::destroy() {
-    DEBUG_CHECK_IMAGE_VIEW(this);
+    ImageView::debug_check(this);
     auto const lambda = [table = _core->deviceTable(), vk_image_view = _handle.get()] { destroy(table, vk_image_view); };
 
     auto const queue = _core->destructionQueue();
@@ -91,18 +91,6 @@ void ImageView::reset() {
     _image = nullptr;
 }
 
-#ifdef CONSTANT_DEBUG_MODE
-void ImageView::debug_check(ImageView const* image_view) {
-    CTH_ERR(image_view == nullptr, "image view must not be invalid (nullptr)") throw details->exception();
-    CTH_ERR(!image_view->created(), "image view must be created") throw details->exception();
-
-    DEBUG_CHECK_IMAGE_VIEW_HANDLE(image_view->get());
-}
-void ImageView::debug_check_handle(VkImageView vk_image_view) {
-    CTH_ERR(vk_image_view == VK_NULL_HANDLE, "image view vkQueue must not be invalid (VK_NULL_HANDLE)")
-        throw details->exception();
-}
-#endif
 } // namespace cth
 
 

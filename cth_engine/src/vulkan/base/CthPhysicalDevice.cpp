@@ -40,7 +40,7 @@ std::optional<PhysicalDevice> PhysicalDevice::Create(cth::not_null<Instance cons
 
 void PhysicalDevice::wrap(State const& state) {
     auto const device = state.vkDevice;
-    DEBUG_CHECK_PHYSICAL_DEVICE_HANDLE(device);
+    PhysicalDevice::debug_check_handle(device);
 
     _handle = device.get();
 
@@ -61,7 +61,7 @@ void PhysicalDevice::wrap(State const& state) {
 
 }
 void PhysicalDevice::create(Surface const& surface, cth::not_null<VkPhysicalDevice> vk_device) {
-    DEBUG_CHECK_PHYSICAL_DEVICE_HANDLE(vk_device);
+    PhysicalDevice::debug_check_handle(vk_device);
 
     _handle = vk_device.get();
     _features = utils::PhysicalDeviceFeatures{vk_device, _requiredFeatures};
@@ -74,14 +74,14 @@ void PhysicalDevice::create(Surface const& surface, cth::not_null<VkPhysicalDevi
 
 
 bool PhysicalDevice::suitable(std::span<Queue const> queues) {
-    DEBUG_CHECK_PHYSICAL_DEVICE(this);
+    PhysicalDevice::debug_check(this);
 
     auto const missingFeatures = supports(_requiredFeatures);
     auto const missingExtensions = supports(_requiredExtensions);
     auto const queueIndices = queueFamilyIndices(queues);
     bool const valid = missingFeatures.empty() && missingExtensions.empty() && !queueIndices.empty();
 
-    CTH_ERR(!valid, "physical device ({}) is missing features", _properties.deviceName) {
+    CTH_WARN(!valid, "physical device ({}) is missing features", _properties.deviceName) {
         if(queueIndices.empty()) details->add("missing queue families");
         for(auto const& missingExtension : missingExtensions) details->add("missing extension: {}", missingExtension);
         for(auto const& missingFeature : missingFeatures)
@@ -89,8 +89,6 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
                 [&details](size_t index) { details->add("missing feature ({})", index); },
                 [&details](VkStructureType s_type) { details->add("missing feature2 extension: ({})", static_cast<uint32_t>(s_type)); }
             }, missingFeature);
-
-        throw details->exception();
     }
 
 
@@ -100,7 +98,7 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
 
 auto PhysicalDevice::AutoPick(cth::not_null<Instance const*> instance, std::span<Queue const> queues, span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features) -> unique_ptr<PhysicalDevice> {
-    DEBUG_CHECK_INSTANCE(instance);
+    Instance::debug_check(instance);
 
     auto const devices = enumerateVkDevices(instance->get());
 
@@ -128,7 +126,7 @@ auto PhysicalDevice::AutoPick(cth::not_null<Instance const*> instance, std::span
 
 
 auto PhysicalDevice::supports(utils::PhysicalDeviceFeatures const& required_features) const -> std::vector<std::variant<size_t, VkStructureType>> {
-    DEBUG_CHECK_PHYSICAL_DEVICE(this);
+    PhysicalDevice::debug_check(this);
 
     return _features.supports(required_features);
 }
@@ -145,7 +143,7 @@ auto PhysicalDevice::supports(std::span<std::string const> required_extensions) 
 }
 
 uint32_t PhysicalDevice::findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags mem_properties) const {
-    DEBUG_CHECK_PHYSICAL_DEVICE(this);
+    PhysicalDevice::debug_check(this);
 
     for(uint32_t i = 0; i < _memProperties.memoryTypeCount; i++)
         if((type_filter & (1 << i)) && (_memProperties.memoryTypes[i].propertyFlags & mem_properties) == mem_properties)
@@ -156,7 +154,7 @@ uint32_t PhysicalDevice::findMemoryType(uint32_t type_filter, VkMemoryPropertyFl
 
 auto PhysicalDevice::findSupportedFormat(span<VkFormat const> candidates, VkImageTiling tiling,
     VkFormatFeatureFlags features) const -> VkFormat {
-    DEBUG_CHECK_PHYSICAL_DEVICE(this);
+    PhysicalDevice::debug_check(this);
 
     for(VkFormat const format : candidates) {
         VkFormatProperties props;
@@ -169,7 +167,7 @@ auto PhysicalDevice::findSupportedFormat(span<VkFormat const> candidates, VkImag
 }
 
 auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vector<uint32_t> {
-    DEBUG_CHECK_PHYSICAL_DEVICE(this);
+    PhysicalDevice::debug_check(this);
 
     vector<vector<uint32_t>> queueIndices{queues.size()};
 
@@ -189,13 +187,13 @@ auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vecto
     return result;
 }
 bool PhysicalDevice::supportsQueueSet(span<Queue const> queues) const {
-    DEBUG_CHECK_PHYSICAL_DEVICE(this);
+    PhysicalDevice::debug_check(this);
 
     return !queueFamilyIndices(queues).empty();
 }
 
 vector<VkPhysicalDevice> PhysicalDevice::enumerateVkDevices(vk::not_null<VkInstance> vk_instance) {
-    DEBUG_CHECK_INSTANCE_HANDLE(vk_instance);
+    Instance::debug_check_handle(vk_instance);
 
     uint32_t deviceCount = 0;
     auto const countResult = vkEnumeratePhysicalDevices(vk_instance.get(), &deviceCount, nullptr);
@@ -273,15 +271,5 @@ VkSampleCountFlagBits PhysicalDevice::evalMaxSampleCount(VkPhysicalDevicePropert
 
     return maxSampleCount;
 }
-
-
-#ifdef CONSTANT_DEBUG_MODE
-void PhysicalDevice::debug_check(cth::not_null<PhysicalDevice const*> device) {
-    CTH_ERR(!device->created(), "physical device must be created") throw details->exception();
-    debug_check_handle(device->get());
-}
-void PhysicalDevice::debug_check_handle([[maybe_unused]] vk::not_null<VkPhysicalDevice> vk_device) {}
-#endif
-
 
 }

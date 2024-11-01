@@ -113,15 +113,7 @@ public:
     DebugMessenger& operator=(DebugMessenger const& other) = delete;
     DebugMessenger& operator=(DebugMessenger&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(cth::not_null<DebugMessenger const*> debug_messenger);
-
-#define DEBUG_CHECK_MESSENGER(messenger_ptr) DebugMessenger::debug_check(messenger_ptr)
-#else
-#define DEBUG_CHECK_MESSENGER(messenger_ptr) ((void)0)
-#endif
-
-
 };
 } // namespace cth
 
@@ -131,4 +123,12 @@ struct DebugMessenger::State {
     gsl::owner<VkDebugUtilsMessengerEXT> vkMessenger; // NOLINT(cppcoreguidelines-owning-memory)
 };
 
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void DebugMessenger::debug_check(cth::not_null<DebugMessenger const*> debug_messenger) {
+    CTH_CRITICAL(!debug_messenger->created(), "debug_messenger not created") {}
+}
 }

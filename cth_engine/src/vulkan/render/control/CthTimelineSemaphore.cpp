@@ -69,9 +69,8 @@ VkSemaphoreSignalInfo TimelineSemaphore::signalInfo(size_t const& value) const {
 
 
 VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(std::span<size_t const> wait_values, std::span<VkSemaphore const> wait_semaphores) {
-    CTH_ERR(wait_values.size() != wait_semaphores.size(), "wait_values size ({0}) must equal wait_semaphores size ({1}) required", wait_values.size(),
-        wait_semaphores.size())
-        throw details->exception();
+    CTH_CRITICAL(wait_values.size() != wait_semaphores.size(), "wait_values size ({0}) must equal wait_semaphores size ({1}) required", 
+        wait_values.size(), wait_semaphores.size()){}
 
 
     VkSemaphoreWaitInfo const waitInfo{

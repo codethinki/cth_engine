@@ -101,11 +101,11 @@ void Shader::reset() { _handle = VK_NULL_HANDLE; }
 
 #ifndef _FINAL
 void Shader::compile(std::string_view glsl_path, std::string_view compiler_path, std::string_view flags) const {
-    CTH_ERR(!std::filesystem::exists(compiler_path), "invalid compiler path") {
+    CTH_STABLE_ERR(!std::filesystem::exists(compiler_path), "invalid compiler path") {
         details->add("path: {0}", compiler_path);
         throw details->exception();
     }
-    CTH_ERR(!std::filesystem::exists(glsl_path), "invalid glsl path") {
+    CTH_STABLE_ERR(!std::filesystem::exists(glsl_path), "invalid glsl path") {
         details->add("path: {0}", glsl_path);
         throw details->exception();
     }

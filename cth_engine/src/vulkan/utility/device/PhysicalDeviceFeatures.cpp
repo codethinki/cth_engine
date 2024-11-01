@@ -24,7 +24,7 @@ PhysicalDeviceFeatures::PhysicalDeviceFeatures(VkPhysicalDeviceFeatures2 const& 
 PhysicalDeviceFeatures::~PhysicalDeviceFeatures() { destroy(); }
 
 auto PhysicalDeviceFeatures::supports(PhysicalDeviceFeatures const& required_features) const -> std::vector<std::variant<size_t, VkStructureType>> {
-    DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(this);
+    PhysicalDeviceFeatures::debug_check(this);
     return support(*_features, required_features.features());
 }
 
@@ -65,7 +65,7 @@ auto PhysicalDeviceFeatures::support(VkPhysicalDeviceFeatures const& available_f
     return missingFeatures;
 }
 void PhysicalDeviceFeatures::merge(PhysicalDeviceFeatures const& other) {
-    DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(this);
+    PhysicalDeviceFeatures::debug_check(this);
 
 
     if(other.empty()) return;
@@ -87,7 +87,7 @@ void PhysicalDeviceFeatures::destroy() {
 }
 
 void PhysicalDeviceFeatures::merge(VkPhysicalDeviceFeatures const& features) {
-    DEBUG_CHECK_PHYSICAL_DEVICE_FEATURES(this);
+    PhysicalDeviceFeatures::debug_check(this);
 
     auto const aFlags = to_span(_features->features);
     auto const bFlags = to_span(features);
@@ -117,8 +117,7 @@ void PhysicalDeviceFeatures::merge2(VkPhysicalDeviceFeatures2 const* features2) 
 
 bool PhysicalDeviceFeatures::checkSupport2(VkBaseOutStructure const* available_feature2,
     VkBaseOutStructure const* required_feature2) {
-    CTH_ERR(available_feature2->sType != required_feature2->sType, "feature types must be equal")
-        throw details->exception();
+    CTH_CRITICAL(available_feature2->sType != required_feature2->sType, "feature types must be equal") {}
 
     auto const availableFlags = to_bool_args(available_feature2);
     auto const requiredFlags = to_bool_args(required_feature2);
@@ -129,8 +128,7 @@ bool PhysicalDeviceFeatures::checkSupport2(VkBaseOutStructure const* available_f
 }
 
 void PhysicalDeviceFeatures::merge2(VkBaseOutStructure const* from, VkBaseOutStructure* to) {
-    CTH_ERR(from->sType != to->sType, "merging different types is not allowed, from({0}), to({1})", from->sType, to->sType)
-        throw details->exception();
+    CTH_CRITICAL(from->sType != to->sType, "merging different types is not allowed, from({0}), to({1})", from->sType, to->sType) {}
 
     auto const fromFlags = to_bool_args(from);
     auto const toFlags = to_bool_args(to);
@@ -181,11 +179,9 @@ size_t PhysicalDeviceFeatures::flagCount2(VkStructureType feature_type) {
         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR:
             return 1;
         default:
-            CTH_ERR(true, "unknown feature structure feature_type: ({})", feature_type) throw details->exception();
+            CTH_CRITICAL(true, "unknown feature structure feature_type: ({})", feature_type) {}
     }
-}
-void PhysicalDeviceFeatures::debug_check(cth::not_null<PhysicalDeviceFeatures const*> features) {
-    CTH_ERR(!features->created(), "features must be created") throw details->exception();
+    return 0;
 }
 
 
