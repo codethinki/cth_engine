@@ -12,14 +12,22 @@ public:
     Phase(cth::not_null<Core const*> core, std::span<Stage::Config> config);
 
 
-    PrimaryCmdBuffer* begin(size_t cycle_sub_index);
-    void end(size_t cycle_sub_index);
+   // PrimaryCmdBuffer* begin(size_t cycle_sub_index); TEMP remove
+   // void end(size_t cycle_sub_index);
+
+    void wait();
+
+    void skip();
+
+
 
 
 
 private:
     std::vector<Stage> _stages;
     std::vector<Semaphore> _semaphores;
+public:
+    std::vector<Stage*> stages();
 };
 }
 

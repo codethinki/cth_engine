@@ -39,34 +39,28 @@ public:
     ~Renderer2();
 
     /**
-     * @brief begins recording for phases
-     * @return phases cmd buffers
-     * @throws cth::vk::result_exception result of @ref vkBeginCommandBuffer()
-     */
-    [[nodiscard]] std::vector<Stage*> begin() const;
-
-    /**
-     * @brief ends the recording for the phase
-     * @throws cth::vk::result_exception result of @ref vkEndCommandBuffer()
-     */
-    void end();
-
-    /**
-     * @brief used to explicitly skip a phase
-     * @tparam P Phase
-     */
-    void skip();
-
-
-    /**
      * @brief must be called at the beginning of each cycle
      * @return cycle struct with info for current cycle
      */
     Cycle cycle();
 
     /**
-     * @brief blocks until the last recorded phase with the same cycle index was executed
-     * @note there is no need to wait for a skipped phase
+     * @brief begins the next phase
+     * @return stages of current phase
+     * @attention all the previous phases stages must have been skipped or ended
+     */
+    [[nodiscard]] std::vector<Stage*> next() const;
+
+
+    /**
+     * @brief used to skip whole phase
+     * @tparam P Phase
+     */
+    void skip();
+
+
+    /**
+     * @brief blocks until the current phase finishes
      */
     void wait() const;
 
@@ -99,10 +93,10 @@ private:
     [[nodiscard]] std::array<PipelineWaitStage, constants::FRAMES_IN_FLIGHT> createWaitSet() const;
     [[nodiscard]] std::array<Semaphore*, constants::FRAMES_IN_FLIGHT> createSignalSet() const;
 
-    static void debug_check_current_phase(Renderer2 const* Renderer2);
+    static void debug_check_current_phase(Renderer2 const* renderer2);
 
     static constexpr void debug_check_phase();
-    static void debug_check_phase_change(Renderer2 const* Renderer2);
+    static void debug_check_phase_change(Renderer2 const* renderer2);
 
 public:
     Renderer2(Renderer2 const&) = delete;
