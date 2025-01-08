@@ -130,21 +130,21 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>$(SolutionDir)../../package_managers/vcpkg/installed/x64-windows/;$(SolutionDir)$(Platform)\$(Configuration)\cth_engine\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)../../package_manager/vcpkg/installed/x64-windows/;$(SolutionDir)../../package_managers/vcpkg/installed/x64-windows/;$(SolutionDir)$(Platform)\$(Configuration)\cth_engine\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">
     <IncludePath>$(SolutionDir);$(ProjectDir)src\;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>$(SolutionDir)../../package_managers/vcpkg/installed/x64-windows/;$(SolutionDir)$(Platform)\$(Configuration)\cth_engine\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)../../package_manager/vcpkg/installed/x64-windows/;$(SolutionDir)../../package_managers/vcpkg/installed/x64-windows/;$(SolutionDir)$(Platform)\$(Configuration)\cth_engine\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir);$(ProjectDir)src\;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>$(SolutionDir)../../package_managers/vcpkg/installed/x64-windows/;$(SolutionDir)$(Platform)\$(Configuration)\cth_engine\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)../../package_manager/vcpkg/installed/x64-windows/;$(SolutionDir)../../package_managers/vcpkg/installed/x64-windows/;$(SolutionDir)$(Platform)\$(Configuration)\cth_engine\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgAutoLink>true</VcpkgAutoLink>
