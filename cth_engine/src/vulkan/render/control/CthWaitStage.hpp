@@ -1,7 +1,9 @@
 #pragma once
-#include <volk.h>
+#include "src/vulkan/utility/cth_constants.hpp"
 
-#include "vulkan/utility/cth_constants.hpp"
+#include <volk.h>
+#include <cth/io/log.hpp>
+
 
 namespace cth::vk {
 class Semaphore;

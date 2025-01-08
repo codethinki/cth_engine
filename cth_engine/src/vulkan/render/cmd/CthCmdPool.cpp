@@ -1,11 +1,11 @@
 #include "CthCmdPool.hpp"
 
 #include "CthCmdBuffer.hpp"
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthDevice.hpp"
-#include "vulkan/base/queue/CthQueue.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/base/CthDevice.hpp"
+#include "src/vulkan/base/queue/CthQueue.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 #include <range/v3/view/concat.hpp>
 

@@ -1,21 +1,21 @@
 #include "CthBasicSwapchain.hpp"
 
 #include "../graphics_core/CthGraphicsSyncConfig.hpp"
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthDevice.hpp"
-#include "vulkan/base/CthPhysicalDevice.hpp"
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/render/control/CthFence.hpp"
-#include "vulkan/render/control/CthPipelineBarrier.hpp"
-#include "vulkan/render/control/CthSemaphore.hpp"
-#include "vulkan/render/pass/CthAttachmentCollection.hpp"
-#include "vulkan/render/pass/CthRenderPass.hpp"
-#include "vulkan/render/pass/CthSubpass.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
-#include "vulkan/resource/image/Framebuffer.hpp"
-#include "vulkan/surface/CthSurface.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
-#include "vulkan/utility/cth_vk_overloads.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/base/CthDevice.hpp"
+#include "src/vulkan/base/CthPhysicalDevice.hpp"
+#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "src/vulkan/render/control/CthFence.hpp"
+#include "src/vulkan/render/control/CthPipelineBarrier.hpp"
+#include "src/vulkan/render/control/CthSemaphore.hpp"
+#include "src/vulkan/render/pass/CthAttachmentCollection.hpp"
+#include "src/vulkan/render/pass/CthRenderPass.hpp"
+#include "src/vulkan/render/pass/CthSubpass.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/resource/image/Framebuffer.hpp"
+#include "src/vulkan/surface/CthSurface.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/utility/cth_vk_overloads.hpp"
 
 
 namespace cth::vk {
@@ -195,7 +195,7 @@ void BasicSwapchain::createSyncObjects() {
 
 VkSurfaceFormatKHR BasicSwapchain::chooseSwapSurfaceFormat(std::span<VkSurfaceFormatKHR const> available_formats,
     std::span<VkSurfaceFormatKHR const> allowed_formats) {
-    for(auto const& format : allowed_formats)
+    for(auto const format : allowed_formats)
         if(std::ranges::contains(available_formats, format)) return format;
 
 
@@ -331,7 +331,7 @@ Image::Config BasicSwapchain::createDepthImageConfig() const {
         .samples = _msaaSamples,
     };
 }
-std::vector<std::unique_ptr<Image>> BasicSwapchain::getSwapchainImages() {
+auto BasicSwapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>> {
     uint32_t imageCount; //only min specified, might be higher
     auto const countResult = _core->deviceTable()->vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, nullptr);
 

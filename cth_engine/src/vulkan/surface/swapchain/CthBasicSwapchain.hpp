@@ -1,10 +1,10 @@
 #pragma once
 
-#include "interface/render/CthRenderCycle.hpp"
+#include "src/interface/render/CthRenderCycle.hpp"
 
-#include "vulkan/base/queue/CthQueue.hpp"
-#include "vulkan/base/queue/CthPresentInfo.hpp"
-#include "vulkan/resource/image/CthImage.hpp"
+#include "src/vulkan/base/queue/CthPresentInfo.hpp"
+#include "src/vulkan/base/queue/CthQueue.hpp"
+#include "src/vulkan/resource/image/CthImage.hpp"
 
 
 #include <volk.h>
@@ -82,7 +82,7 @@ public:
     static void destroy(DeviceTable table, VkSwapchainKHR swapchain);
 
 private:
-    static constexpr uint32_t NO_IMAGE_INDEX = std::numeric_limits<uint32_t>::max();
+    static constexpr uint32_t NO_IMAGE_INDEX = (std::numeric_limits<uint32_t>::max());
 
 
     //setMsaaSampleCount

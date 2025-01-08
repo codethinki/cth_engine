@@ -1,12 +1,15 @@
 #include "CthOSWindow.hpp"
 
 #include "CthSurface.hpp"
-#include "interface/user/HlcInputController.hpp"
-#include "vulkan/base/CthInstance.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/interface/user/HlcInputController.hpp"
+#include "src/vulkan/base/CthInstance.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 #include <volk.h>
+
+
+#include "src/vulkan/utility/os.hpp"
 
 namespace cth::vk {
 OSWindow::OSWindow(Instance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent) :
@@ -150,7 +153,7 @@ VkSurfaceKHR OSWindow::tempSurface(cth::not_null<Instance const*> instance) {
     CTH_STABLE_ERR(hwnd == nullptr, "failed to create temp window")
         throw details->exception();
 
-    
+
     // Create the Vulkan surface
     VkWin32SurfaceCreateInfoKHR const createInfo{
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
@@ -173,7 +176,6 @@ void OSWindow::destroy(GLFWwindow* glfw_window) {
     glfwDestroyWindow(glfw_window);
     cth::log::msg("destroyed window");
 }
-
 
 
 

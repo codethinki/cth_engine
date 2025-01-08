@@ -1,12 +1,15 @@
 #pragma once
 #include "CthCmdBuffer.hpp"
 
+#include "src/vulkan//utility/cth_constants.hpp"
+#include "src/vulkan//utility/cth_vk_types.hpp"
+
+#include <cth/pointers.hpp>
+#include <cth/io/log.hpp>
+
 #include <volk.h>
 
 #include <vector>
-
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
 
 
 namespace cth::vk {

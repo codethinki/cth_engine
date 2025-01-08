@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include "vulkan/resource/image/CthImage.hpp"
-#include "vulkan/resource/image/CthImageView.hpp"
+#include "src/vulkan/resource/image/CthImage.hpp"
+#include "src/vulkan/resource/image/CthImageView.hpp"
 
 
 #include <vector>

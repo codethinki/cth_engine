@@ -3,7 +3,7 @@
 #include "CthDevice.hpp"
 #include "CthInstance.hpp"
 #include "CthPhysicalDevice.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
 
 namespace cth::vk {
 

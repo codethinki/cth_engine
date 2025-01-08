@@ -1,11 +1,11 @@
 #include "CthPipeline.hpp"
 
-#include "interface/render/model/CthVertex.hpp"
+#include "src/interface/render/model/CthVertex.hpp"
 #include "layout/CthPipelineLayout.hpp"
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/render/pipeline/shader/CthShader.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "src/vulkan/render/pipeline/shader/CthShader.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 

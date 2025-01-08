@@ -1,7 +1,9 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
 
 #include <volk.h>
+
+#include <cth/pointer/not_null.hpp>
 
 
 namespace cth::vk {
@@ -19,7 +21,7 @@ class Semaphore;
 class Stage {
 public:
     struct Config;
-    Stage(cth::not_null<Core*> core, Config config);
+    Stage(not_null<Core*> core, Config config);
 
     void create();
     void destroy();

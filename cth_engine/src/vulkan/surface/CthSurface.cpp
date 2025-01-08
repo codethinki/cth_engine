@@ -1,9 +1,9 @@
 #include "CthSurface.hpp"
 
 #include "CthOSWindow.hpp"
-#include "vulkan/base/CthPhysicalDevice.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthPhysicalDevice.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 

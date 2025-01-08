@@ -1,7 +1,7 @@
 #pragma once
 #include <span>
 
-#include "vulkan/resource/image/CthImage.hpp"
+#include "src/vulkan/resource/image/CthImage.hpp"
 
 //TEMP modernize
 

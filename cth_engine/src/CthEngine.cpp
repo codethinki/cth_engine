@@ -1,7 +1,7 @@
 #include "CthEngine.hpp"
 
-#include "vulkan/surface/CthOSWindow.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/surface/CthOSWindow.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {

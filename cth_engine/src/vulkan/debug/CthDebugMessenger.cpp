@@ -1,7 +1,7 @@
 #include "CthDebugMessenger.hpp"
 
-#include "vulkan/base/CthInstance.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthInstance.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 

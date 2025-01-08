@@ -93,6 +93,9 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\test\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\test\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>

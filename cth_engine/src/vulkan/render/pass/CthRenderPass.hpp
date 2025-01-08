@@ -1,9 +1,10 @@
 #pragma once
-#include "vulkan/base/CthDeviceTable.hpp"
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_vk_types.hpp"
 
-#include <gsl/pointers>
+#include <cth/pointer/move_ptr.hpp>
+
 
 
 namespace cth::vk {
@@ -88,7 +89,7 @@ private:
 
     cth::not_null<Core const*> _core;
 
-    cth::move_ptr<VkRenderPass_T> _handle;
+    move_ptr<VkRenderPass_T> _handle;
 
     std::vector<Subpass const*> _subpasses;
     std::vector<AttachmentCollection const*> _attachments;

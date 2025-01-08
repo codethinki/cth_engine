@@ -3,7 +3,7 @@
 // ReSharper disable once CppUnusedIncludeDirective
 #include "../cth_vk_format.hpp"
 
-#include "vulkan/base/CthPhysicalDevice.hpp"
+#include "src/vulkan/base/CthPhysicalDevice.hpp"
 
 #include <gsl/pointers>
 

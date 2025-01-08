@@ -1,10 +1,10 @@
 #include "CthRenderer.hpp"
 
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/render/cmd/CthCmdPool.hpp"
-#include "vulkan/surface/CthOSWindow.hpp"
-#include "vulkan/surface/graphics_core/CthGraphicsSyncConfig.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "src/vulkan/render/cmd/CthCmdPool.hpp"
+#include "src/vulkan/surface/CthOSWindow.hpp"
+#include "src/vulkan/surface/graphics_core/CthGraphicsSyncConfig.hpp"
 
 
 namespace cth::vk {

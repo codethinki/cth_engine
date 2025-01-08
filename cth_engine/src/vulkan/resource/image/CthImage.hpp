@@ -1,9 +1,9 @@
 #pragma once
 #include "../memory/CthMemory.hpp"
 
-#include "vulkan/base/CthDeviceTable.hpp"
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_vk_types.hpp"
 
 #include <volk.h>
 

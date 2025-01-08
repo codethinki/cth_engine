@@ -1,9 +1,14 @@
 #include "CthShader.hpp"
 
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthDeviceTable.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
+
+#include <cth/io/file.hpp>
+#include <cth/windows.hpp>
+
+
 
 //Specialization
 
@@ -116,7 +121,7 @@ void Shader::compile(std::string_view glsl_path, std::string_view compiler_path,
         compiler_path, flags, glsl_path, _spvPath, logFile);
     int const result = cth::win::cmd::hidden(command);
 
-    std::vector<std::string> debugInfo = cth::io::readText(logFile);
+    std::vector<std::string> debugInfo = cth::io::file::chop(logFile);
 
     if(debugInfo.empty()) {
         CTH_STABLE_ERR(result != 0, "compile command failed") {

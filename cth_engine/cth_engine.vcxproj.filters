@@ -1,14 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="cth_engine.hpp" />
-    <ClInclude Include="include\cth_interface.hpp" />
-    <ClInclude Include="include\cth_vulkan.hpp" />
-    <ClInclude Include="include\vulkan\cth_base.hpp" />
-    <ClInclude Include="include\vulkan\cth_debug.hpp" />
-    <ClInclude Include="include\vulkan\cth_resource.hpp" />
-    <ClInclude Include="include\vulkan\cth_render.hpp" />
-    <ClInclude Include="include\vulkan\cth_surface.hpp" />
+    <ClInclude Include="include\cth_engine\cth_engine.hpp" />
+    <ClInclude Include="include\cth_engine\cth_interface.hpp" />
+    <ClInclude Include="include\cth_engine\cth_vulkan.hpp" />
+    <ClInclude Include="include\cth_engine\vulkan\cth_base.hpp" />
+    <ClInclude Include="include\cth_engine\vulkan\cth_debug.hpp" />
+    <ClInclude Include="include\cth_engine\vulkan\cth_resource.hpp" />
+    <ClInclude Include="include\cth_engine\vulkan\cth_render.hpp" />
+    <ClInclude Include="include\cth_engine\vulkan\cth_surface.hpp" />
     <ClInclude Include="src\interface\object\HlcRenderObject.hpp" />
     <ClInclude Include="src\interface\object\HlcStandardObject.hpp" />
     <ClInclude Include="src\interface\user\HlcCamera.hpp" />
@@ -41,9 +41,9 @@
     <ClInclude Include="src\vulkan\resource\descriptor\descriptors\CthBufferDescriptors.hpp" />
     <ClInclude Include="src\vulkan\resource\image\texture\CthTexture.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
-    <ClInclude Include="include\interface\cth_model.hpp" />
-    <ClInclude Include="include\interface\cth_object.hpp" />
-    <ClInclude Include="include\interface\cth_user.hpp" />
+    <ClInclude Include="include\cth_engine\interface\cth_model.hpp" />
+    <ClInclude Include="include\cth_engine\interface\cth_object.hpp" />
+    <ClInclude Include="include\cth_engine\interface\cth_user.hpp" />
     <ClInclude Include="src\vulkan\base\CthPhysicalDevice.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthPipelineBarrier.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdPool.hpp" />
@@ -52,7 +52,7 @@
     <ClInclude Include="src\vulkan\resource\memory\CthMemory.hpp" />
     <ClInclude Include="src\vulkan\base\queue\CthQueue.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_constants.hpp" />
-    <ClInclude Include="include\vulkan\cth_utility.hpp" />
+    <ClInclude Include="include\cth_engine\vulkan\cth_utility.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthSemaphore.hpp" />
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
     <ClInclude Include="src\vulkan\render\control\CthFence.hpp" />
@@ -86,8 +86,11 @@
     <ClInclude Include="src\interface\render\CthRenderer2.hpp" />
     <ClInclude Include="src\interface\render\Phase.hpp" />
     <ClInclude Include="src\pch\glob\volk.hpp" />
-    <ClInclude Include="src\pch\glob\windows.hpp" />
     <ClInclude Include="src\vulkan\base\CthDeviceTable.hpp" />
+    <ClInclude Include="src\pch\glob\cth.hpp" />
+    <ClInclude Include="src\vulkan\utility\os.hpp" />
+    <ClInclude Include="include\cth_engine\interface\render.hpp" />
+    <ClInclude Include="include\cth_engine\utility.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="doc\roadmap.md" />

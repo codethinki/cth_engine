@@ -1,10 +1,12 @@
 #pragma once
 
 #include <span>
-#include <unordered_map>
 #include <vector>
-#include <cth/pointers.hpp>
+
 #include <volk.h>
+#include <cth/pointer/move_ptr.hpp>
+#include <cth/pointer/not_null.hpp>
+
 
 //TEMP modernize
 
@@ -23,7 +25,7 @@ public:
     * @throws cth::vk::result_exception data: VkResult of vkCreatePipelineLayout()
     * @throws cth::except::exception reason: device limits exceeded, too many locations specified
     */
-    PipelineLayout(cth::not_null<Core const*> core, Builder const& builder);
+    PipelineLayout(not_null<Core const*> core, Builder const& builder);
     ~PipelineLayout();
 
 

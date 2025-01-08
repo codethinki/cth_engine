@@ -1,12 +1,13 @@
 #pragma once
-#include "vulkan/base/CthDeviceTable.hpp"
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan//base/CthDeviceTable.hpp"
+#include "src/vulkan//utility/cth_constants.hpp"
+#include "src/vulkan//utility/cth_vk_types.hpp"
+#include <cth/pointer/move_ptr.hpp>
 
 #include <volk.h>
-#include <cth/pointers.hpp>
 
 #include <span>
+
 
 
 namespace cth::vk {
@@ -62,7 +63,7 @@ private:
     VkCommandBufferUsageFlags _bufferUsage;
     std::optional<DeviceTable> _deviceTable = std::nullopt;
     CmdPool* _pool = nullptr;
-    move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
+    cth::move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
     bool _recording = false;
 
     friend CmdPool;

@@ -1,6 +1,7 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
 
+#pragma once
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -8,6 +9,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <cth/io/log.hpp>
+#include <cth/pointer/move_ptr.hpp>
+#include <cth/pointer/not_null.hpp>
 
 
 namespace cth::vk {
@@ -59,7 +64,7 @@ private:
     std::string _windowName;
     int _width, _height;
 
-    move_ptr<GLFWwindow> _handle = nullptr;
+    cth::move_ptr<GLFWwindow> _handle = nullptr;
     cth::move_ptr<VkSurfaceKHR_T> _surface;
 
     static OSWindow* window_ptr(GLFWwindow* glfw_window);

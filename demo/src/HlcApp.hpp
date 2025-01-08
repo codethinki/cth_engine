@@ -2,15 +2,15 @@
 #include "render/HlcRenderSystem.hpp"
 
 //TEMP remove this once the camera and input controller are refactored
-#include "interface/user/HlcCamera.hpp"
-#include "interface/user/HlcInputController.hpp"
+#include "src/interface/user/HlcCamera.hpp"
+#include "src/interface/user/HlcInputController.hpp"
 
-#include <cth_engine/cth_engine.hpp>
+#include <cth_engine/interface/render.hpp>
 
 
 #include <vector>
 
-#include "vulkan/surface/graphics_core/CthGraphicsCore.hpp"
+#include "src/vulkan/surface/graphics_core/CthGraphicsCore.hpp"
 
 
 namespace cth {

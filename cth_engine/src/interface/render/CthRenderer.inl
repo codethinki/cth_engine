@@ -1,8 +1,8 @@
 #pragma once
 
-#include "vulkan/base/queue/CthQueue.hpp"
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/queue/CthQueue.hpp"
+#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 #include <cth/io/log.hpp>
 

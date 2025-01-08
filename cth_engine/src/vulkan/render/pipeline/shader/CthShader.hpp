@@ -1,5 +1,5 @@
 #pragma once
-#include "vulkan/resource/buffer/CthBaseBuffer.hpp"
+#include "src/vulkan/resource/buffer/CthBaseBuffer.hpp"
 
 #include <volk.h>
 

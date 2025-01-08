@@ -3,9 +3,9 @@
 #include "../CthOSWindow.hpp"
 #include "../CthSurface.hpp"
 #include "../swapchain/CthBasicSwapchain.hpp"
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/render/pass/CthRenderPass.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/render/pass/CthRenderPass.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {

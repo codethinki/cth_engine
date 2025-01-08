@@ -1,13 +1,11 @@
 #pragma once
 
+#include "glob/cth.hpp"
 #include "glob/std.hpp"
 
 #include <range/v3/view/concat.hpp>
 
 #include "glob/glm.hpp"
-
-#include "glob/windows.hpp"
-#include <cth/cth.hpp>
 
 #include "glob/volk.hpp"
 

@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+#include <cth/pointer/not_null.hpp>
+
 //TODO add support for more types of pipelines
 
 //TEMP modernize this
@@ -42,7 +44,7 @@ private:
     */
     void create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout = nullptr, Pipeline const* parent = nullptr);
 
-    cth::not_null<Core const*> _core;
+    not_null<Core const*> _core;
     VkPipeline _vkGraphicsPipeline{};
 
 public:

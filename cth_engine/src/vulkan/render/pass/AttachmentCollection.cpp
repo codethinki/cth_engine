@@ -1,8 +1,8 @@
 #include "CthAttachmentCollection.hpp"
 
-#include "vulkan/resource/image/CthImage.hpp"
-#include "vulkan/resource/image/CthImageView.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/resource/image/CthImage.hpp"
+#include "src/vulkan/resource/image/CthImageView.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {

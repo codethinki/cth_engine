@@ -1,9 +1,9 @@
 #include "CthPhysicalDevice.hpp"
 
 #include "queue/CthQueue.hpp"
-#include "vulkan/base/CthInstance.hpp"
-#include "vulkan/surface/CthSurface.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthInstance.hpp"
+#include "src/vulkan/surface/CthSurface.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {

@@ -1,9 +1,9 @@
 #pragma once
 #include "CthGraphicsSyncConfig.hpp"
 
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_debug_macros.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_debug_macros.hpp"
 
 
 

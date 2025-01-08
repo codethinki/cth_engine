@@ -1,8 +1,8 @@
 #include "CthGraphicsSyncConfig.hpp"
 
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/render/control/CthSemaphore.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/render/control/CthSemaphore.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
 
 
 namespace cth::vk {
@@ -40,7 +40,7 @@ GraphicsSyncConfig::State GraphicsSyncConfig::release() {
         .renderFinishedSemaphores = std::move(_renderFinishedSemaphores)
     };
 }
-std::array<Semaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::renderFinishedSemaphores() const {
+auto GraphicsSyncConfig::renderFinishedSemaphores() const -> std::array<Semaphore*, SET_SIZE> {
     debug_check(this);
 
 
@@ -48,7 +48,7 @@ std::array<Semaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::renderF
     for(auto [src, dst] : std::views::zip(_renderFinishedSemaphores, semaphores)) dst = src.get();
     return semaphores;
 }
-std::array<Semaphore*, GraphicsSyncConfig::SET_SIZE> GraphicsSyncConfig::imageAvailableSemaphores() const {
+auto GraphicsSyncConfig::imageAvailableSemaphores() const -> std::array<Semaphore*, SET_SIZE> {
     debug_check(this);
 
     std::array<Semaphore*, SET_SIZE> semaphores{};

@@ -1,10 +1,10 @@
 #pragma once
 #include "CthRenderCycle.hpp"
 
-#include "vulkan/base/queue/CthQueue.hpp"
-#include "vulkan/base/queue/CthSubmitInfo.hpp"
-#include "vulkan/render/control/CthTimelineSemaphore.hpp"
-#include "vulkan/render/control/CthWaitStage.hpp"
+#include "src/vulkan/base/queue/CthQueue.hpp"
+#include "src/vulkan/base/queue/CthSubmitInfo.hpp"
+#include "src/vulkan/render/control/CthTimelineSemaphore.hpp"
+#include "src/vulkan/render/control/CthWaitStage.hpp"
 
 #include <volk.h>
 

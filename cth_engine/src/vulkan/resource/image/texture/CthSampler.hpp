@@ -1,11 +1,11 @@
 #pragma once
 
-#include "vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
 
 #include <array>
 #include <volk.h>
 
-#include "vulkan/resource/buffer/CthBaseBuffer.hpp"
+#include "src/vulkan/resource/buffer/CthBaseBuffer.hpp"
 
 //TEMP modernize
 

@@ -5,8 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "vulkan/base/queue/CthQueue.hpp"
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan//base/queue/CthQueue.hpp"
+#include "src/vulkan//utility/cth_constants.hpp"
 
 
 namespace cth::vk {

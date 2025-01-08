@@ -1,9 +1,11 @@
 #pragma once
-#include "vulkan/base/CthDeviceTable.hpp"
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_vk_types.hpp"
 
 #include <volk.h>
+
+#include <cth/pointer/move_ptr.hpp>
 
 namespace cth::vk {
 class Core;
@@ -97,7 +99,7 @@ private:
 
     cth::not_null<Core const*> _core;
     Image const* _image = nullptr;
-    move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
+    cth::move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
 
     Config _config;
 

@@ -1,9 +1,9 @@
 #pragma once
 #include "../CthDescriptor.hpp"
 
-#include "vulkan/resource/image/CthImage.hpp"
-#include "vulkan/resource/image/CthImageView.hpp"
-#include "vulkan/resource/image/texture/CthSampler.hpp"
+#include "src/vulkan/resource/image/CthImage.hpp"
+#include "src/vulkan/resource/image/CthImageView.hpp"
+#include "src/vulkan/resource/image/texture/CthSampler.hpp"
 
 namespace cth::vk {
 class ImageDescriptor : public Descriptor {

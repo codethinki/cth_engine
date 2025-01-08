@@ -1,10 +1,9 @@
 #include "CthTexture.hpp"
 
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/render/control/CthPipelineBarrier.hpp"
-#include "vulkan/resource/buffer/CthBuffer.hpp"
+#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "src/vulkan/render/control/CthPipelineBarrier.hpp"
+#include "src/vulkan/resource/buffer/CthBuffer.hpp"
 
-#include<vulkan/vulkan.h>
 namespace cth::vk {
 
 

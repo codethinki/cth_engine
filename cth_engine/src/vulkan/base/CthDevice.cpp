@@ -5,7 +5,7 @@
 #include "CthInstance.hpp"
 #include "CthPhysicalDevice.hpp"
 #include "queue/CthQueue.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {

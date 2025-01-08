@@ -1,7 +1,10 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
 
 #include <vector>
+
+#include <cth/io/log.hpp>
+#include <cth/pointer/not_null.hpp>
 
 
 namespace cth::vk {
@@ -127,7 +130,7 @@ private:
 //debug checks
 
 namespace cth::vk {
-inline void GraphicsSyncConfig::debug_check(cth::not_null<GraphicsSyncConfig const*> config) {
+inline void GraphicsSyncConfig::debug_check(not_null<GraphicsSyncConfig const*> config) {
     CTH_CRITICAL(!config->created(), "config not created"){}
 }
 }

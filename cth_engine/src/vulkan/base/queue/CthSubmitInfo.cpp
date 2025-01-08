@@ -1,9 +1,9 @@
 #include "CthSubmitInfo.hpp"
 
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/render/control/CthFence.hpp"
-#include "vulkan/render/control/CthTimelineSemaphore.hpp"
-#include "vulkan/render/control/CthWaitStage.hpp"
+#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "src/vulkan/render/control/CthFence.hpp"
+#include "src/vulkan/render/control/CthTimelineSemaphore.hpp"
+#include "src/vulkan/render/control/CthWaitStage.hpp"
 
 
 namespace cth::vk {
