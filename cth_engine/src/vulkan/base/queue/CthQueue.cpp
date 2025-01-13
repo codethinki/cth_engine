@@ -22,11 +22,11 @@ void Queue::wrap(State const& state) {
     _queueIndex = state.queueIndex;
 }
 void Queue::destroy() {
-    debug_check(this);
+    debug_check(*this);
     reset();
 }
 Queue::State Queue::release() {
-    debug_check(this);
+    debug_check(*this);
     State const state{
         _handle.release(),
         _device,
@@ -66,7 +66,7 @@ void Queue::reset() {
 }
 
 void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
-    debug_check(this);
+    debug_check(*this);
     auto const result = _device->functions()->vkQueueSubmit(_handle.get(), 1, submit_info, fence);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
         throw cth::vk::result_exception{result, details->exception()};

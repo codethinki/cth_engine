@@ -1,4 +1,5 @@
 #pragma once
+#include "src/vulkan/render/control/CthWaitStage.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
 #include <volk.h>
@@ -21,7 +22,7 @@ class Semaphore;
 class Stage {
 public:
     struct Config;
-    Stage(not_null<Core*> core, Config config);
+    Stage(Core const& core, Config config);
 
     void create();
     void destroy();
@@ -55,7 +56,7 @@ public:
 
 private:
     /**
-     * @note calls @ref CmdPool::CmdPool(cth::not_null<Core const*>, CmdPool::Config const&, bool);
+     * @note calls @ref CmdPool::CmdPool(Core const&, CmdPool::Config const&, bool);
      */
     void createCmdPool();
 
@@ -68,7 +69,7 @@ private:
 
 
 
-    cth::not_null<Core*> _core;
+    cth::not_null<Core const*> _core;
 
 
     cth::not_null<Queue const*> _queue;
@@ -76,7 +77,7 @@ private:
     std::vector<Semaphore*> _signalSemaphores;
     std::vector<PipelineWaitStage> _waitStages;
 
-     VkExtent2D _extent{};
+    VkExtent2D _extent{};
     std::vector<SubmitInfo> _submitInfos;
     std::unique_ptr<CmdPool> _cmdPool;
     std::vector<PrimaryCmdBuffer> _cmdBuffers;
@@ -106,7 +107,7 @@ struct Stage::Config {
     static constexpr auto GROUP_SIZE = constants::FRAMES_IN_FLIGHT;
 
 
-    explicit Config(cth::not_null<Queue const*> queue, std::unique_ptr<RenderPass> render_pass, std::span<Semaphore* const> signal_groups = {},
+    explicit Config(Queue const& queue, std::unique_ptr<RenderPass> render_pass, std::span<Semaphore* const> signal_groups = {},
         std::span<PipelineWaitStage> wait_groups = {});
 
 

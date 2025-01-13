@@ -19,10 +19,10 @@ public:
      * @param instance must be created
      * @param destruction_queue nullptr or created
      */
-    Surface(cth::not_null<Instance const*> instance, DestructionQueue* destruction_queue) :
-        _instance(instance), _destructionQueue{destruction_queue} {}
+    Surface(Instance const& instance, DestructionQueue* destruction_queue) :
+        _instance{&instance}, _destructionQueue{destruction_queue} {}
 
-    Surface(cth::not_null<Instance const*> instance, DestructionQueue* destruction_queue, State const& state);
+    Surface(Instance const& instance, DestructionQueue* destruction_queue, State const& state);
 
     ~Surface();
 
@@ -61,7 +61,7 @@ public:
      * @brief creates an invisible surface
      * @note should only be used in temp context
      */
-    static Surface Temp(cth::not_null<Instance const*> instance, DestructionQueue* destruction_queue = nullptr);
+    static Surface Temp(Instance const& instance, DestructionQueue* destruction_queue = nullptr);
 
 
     /**
@@ -86,7 +86,7 @@ public:
     Surface& operator=(Surface const& other) = default;
     Surface& operator=(Surface&& other) noexcept = delete;
 
-    static void debug_check(cth::not_null<Surface const*> surface);
+    static void debug_check(Surface const& surface);
     static void debug_check_handle(vk::not_null<VkSurfaceKHR> surface);
 };
 }
@@ -103,7 +103,6 @@ struct Surface::State {
 //debug check
 
 namespace cth::vk {
-inline void Surface::debug_check(cth::not_null<Surface const*> surface) { debug_check_handle(surface->get()); }
+inline void Surface::debug_check(Surface const& surface) { debug_check_handle(surface.get()); }
 inline void Surface::debug_check_handle([[maybe_unused]] vk::not_null<VkSurfaceKHR> surface) {}
-
 }

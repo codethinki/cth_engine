@@ -138,17 +138,17 @@ Renderer::Config& Renderer::Config::removeWaitSets(std::span<VkPipelineStageFlag
 }
 
 template<Renderer::Phase P>
-auto Renderer::Config::addQueue(Queue const* queue) -> Config& {
+auto Renderer::Config::addQueue(Queue const& queue) -> Config& {
     Queue::debug_check(queue);
     DEBUG_CHECK_RENDERER_PHASE(P);
 
-    _queues[P] = queue;
+    _queues[P] = &queue;
     return *this;
 }
 
 template<Renderer::Phase P>
 auto Renderer::Config::removeQueue(Queue const* queue) -> Config& {
-    Queue::debug_check(queue);
+    Queue::debug_check(*queue);
     DEBUG_CHECK_RENDERER_PHASE(P);
 
     _queues[P] = nullptr;
@@ -158,7 +158,7 @@ auto Renderer::Config::removeQueue(Queue const* queue) -> Config& {
 template<Renderer::Phase P>
 auto Renderer::Config::addPhase(Queue const* queue, std::optional<std::span<Semaphore* const>> signal_semaphore_sets,
     std::optional<std::span<PipelineWaitStage const>> wait_stage_sets) -> Config& {
-    addQueue<P>(queue);
+    addQueue<P>(*queue);
 
     if(wait_stage_sets.has_value()) addSignalSets<P>(*wait_stage_sets);
     if(signal_semaphore_sets.has_value()) addWaitSets<P>(*signal_semaphore_sets);

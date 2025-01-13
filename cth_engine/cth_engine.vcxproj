@@ -287,48 +287,48 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ProjectDir);$(ProjectDir)include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(ProjectDir)include\;$(ProjectDir);$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir);$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ProjectDir);$(ProjectDir)include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(ProjectDir)include\;$(ProjectDir);$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir);$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ProjectDir);$(ProjectDir)include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(ProjectDir)include\;$(ProjectDir);$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir);$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ProjectDir);$(ProjectDir)include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(ProjectDir)include\;$(ProjectDir);$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir);$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='sanitize|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ProjectDir);$(ProjectDir)include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(ProjectDir)include\;$(ProjectDir);$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir);$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ProjectDir);$(ProjectDir)include\;$(ExternalIncludePath)</ExternalIncludePath>
-    <IncludePath>$(ProjectDir)src\;$(IncludePath)</IncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\cth\;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <IncludePath>$(ProjectDir)include\;$(ProjectDir);$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)../../sdk/vulkan/lib;$(LibraryPath)</LibraryPath>
     <PublicIncludeDirectories>$(ProjectDir);$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
   </PropertyGroup>

@@ -24,19 +24,19 @@ public:
     /**
      * @brief base constructor
      */
-    BaseBuffer(cth::not_null<Core const*> core, size_t byte_size, VkBufferUsageFlags usage_flags);
+    BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags);
 
     /**
      * @brief constructs and calls @ref wrap(State)
-     * @note calls @ref BaseBuffer(cth::not_null<Core const*>, size_t, VkBufferUsageFlags)
+     * @note calls @ref BaseBuffer(Core const&, size_t, VkBufferUsageFlags)
      */
-    BaseBuffer(cth::not_null<Core const*> core, size_t byte_size, VkBufferUsageFlags usage_flags, State state);
+    BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags, State state);
 
     /**
      * @brief constructs and calls @ref create()
-     * @note calls @ref BaseBuffer(cth::not_null<Core const*>, size_t, VkBufferUsageFlags)
+     * @note calls @ref BaseBuffer(Core const&, size_t, VkBufferUsageFlags)
      */
-    BaseBuffer(cth::not_null<Core const*> core, size_t bytes_size, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags vk_memory_flags);
+    BaseBuffer(Core const& core, size_t bytes_size, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags vk_memory_flags);
 
 
     /**
@@ -50,7 +50,7 @@ public:
     /**
     * @brief creates the image
     * @note calls @ref optDestroy()
-    * @note calls @ref Memory::Memory(cth::not_null<Core const*>, VkMemoryPropertyFlags, VkMemoryRequirements const&)
+    * @note calls @ref Memory::Memory(Core const&, VkMemoryPropertyFlags, VkMemoryRequirements const&)
     * @throws cth::vk::result_exception result of @ref vkCreateBuffer()
     * @throws cth::vk::result_exception result of @ref vkBindBufferMemory()
     */
@@ -184,7 +184,7 @@ private:
 
     /**
      * @brief creates the memory
-     * @note calls @ref Memory::Memory(cth::not_null<Core const*>, VkMemoryPropertyFlags)
+     * @note calls @ref Memory::Memory(Core const&, VkMemoryPropertyFlags)
      * @note calls @ref Memory::create(VkMemoryRequirements const&)
      */
     void createMemory(VkMemoryPropertyFlags vk_memory_properties);

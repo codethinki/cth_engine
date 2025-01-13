@@ -12,7 +12,6 @@
 
 #include <cth/io/log.hpp>
 #include <cth/pointer/move_ptr.hpp>
-#include <cth/pointer/not_null.hpp>
 
 
 namespace cth::vk {
@@ -26,7 +25,7 @@ class Surface;
 //TEMP modernize
 class OSWindow {
 public:
-    OSWindow(Instance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent);
+    OSWindow(Instance const& instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent);
     ~OSWindow();
 
     void destroy(DestructionQueue* destruction_queue = nullptr);
@@ -38,14 +37,14 @@ public:
     static void init();
     static void terminate();
 
-    static VkSurfaceKHR tempSurface(cth::not_null<Instance const*> instance);
+    static VkSurfaceKHR tempSurface(Instance const& instance);
 
     static void destroy(GLFWwindow* glfw_window);
 
 private:
     void initWindow();
     void setCallbacks();
-    void createSurface(Instance const* instance);
+    void createSurface(Instance const& instance);
 
 
     void keyCallback(int key, int scan_code, int action, int mods);

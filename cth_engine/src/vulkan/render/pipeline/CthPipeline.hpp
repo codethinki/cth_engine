@@ -27,11 +27,11 @@ public:
     /**
     *@throws from private void create()
     */
-    Pipeline(cth::not_null<Core const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info);
+    Pipeline(Core const& core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info);
     /**
     *@throws from private void create()
     */
-    Pipeline(cth::not_null<Core const*> core, Pipeline const* parent, GraphicsConfig const& config_info);
+    Pipeline(Core const& core, Pipeline const* parent, GraphicsConfig const& config_info);
 
     ~Pipeline();
 

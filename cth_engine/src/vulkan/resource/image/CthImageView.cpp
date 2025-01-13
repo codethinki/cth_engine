@@ -11,22 +11,22 @@
 
 
 namespace cth::vk {
-ImageView::ImageView(cth::not_null<Core const*> core, Config const& config) : _core(core), _config{config} { Core::debug_check(core); }
-ImageView::ImageView(cth::not_null<Core const*> core, Config const& config, cth::not_null<Image const*> image) : ImageView{core, config} { create(image); }
-ImageView::ImageView(cth::not_null<Core const*> core, Config const& config, State const& state) : ImageView{core, config} { wrap(state); }
+ImageView::ImageView(Core const& core, Config const& config) : _core{&core}, _config{config} { Core::debug_check(core); }
+ImageView::ImageView(Core const& core, Config const& config, Image const& image) : ImageView{core, config} { create(image); }
+ImageView::ImageView(Core const& core, Config const& config, State const& state) : ImageView{core, config} { wrap(state); }
 
 ImageView::~ImageView() { optDestroy(); }
 
-void ImageView::create(cth::not_null<Image const*> image) {
+void ImageView::create(Image const& image) {
     Image::debug_check(image);
     optDestroy();
 
-    _image = image.get();
+    _image = &image;
 
     auto const viewInfo = createViewInfo();
 
     VkImageView handle = VK_NULL_HANDLE;
-    auto const result =_core->functions()->vkCreateImageView(_core->vkDevice(), &viewInfo, nullptr, &handle);
+    auto const result = _core->functions()->vkCreateImageView(_core->vkDevice(), &viewInfo, nullptr, &handle);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create vk_image-view") {
         reset();

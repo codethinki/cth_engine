@@ -123,7 +123,7 @@ public:
     Instance& operator=(Instance&& other) noexcept = default;
 
 
-    static void debug_check(cth::not_null<Instance const*> instance);
+    static void debug_check(Instance const& instance);
     static void debug_check_handle(vk::not_null<VkInstance> vk_instance);
 };
 
@@ -150,6 +150,6 @@ struct Instance::State {
 
 namespace cth::vk {
 
-inline void Instance::debug_check(cth::not_null<Instance const*> instance) { debug_check_handle(instance->get()); }
+inline void Instance::debug_check(Instance const& instance) { debug_check_handle(instance.get()); }
 inline void Instance::debug_check_handle([[maybe_unused]] vk::not_null<VkInstance> vk_instance) {}
 }

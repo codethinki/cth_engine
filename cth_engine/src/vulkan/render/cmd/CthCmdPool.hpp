@@ -35,22 +35,22 @@ public:
     /**
      * @brief base constructor
      */
-    CmdPool(cth::not_null<Core const*> core, Config const& config);
+    CmdPool(Core const& core, Config const& config);
 
     /**
      * @brief constructs and wraps
      * @param state passed to @ref wrap()
-     * @note calls @ref CmdPool(cth::not_null<Core const*>, Config const&)
+     * @note calls @ref CmdPool(Core const&, Config const&)
      * @note calls @ref create()
      */
-    CmdPool(cth::not_null<Core const*> core, Config const& config, State const& state);
+    CmdPool(Core const& core, Config const& config, State const& state);
 
     /**
      * @brief constructs and may create
-     * @note calls @ref CmdPool(cth::not_null<Core const*>, Config const&)
+     * @note calls @ref CmdPool(Core const&, Config const&)
      * @param create if(true) calls @ref create()
      */
-    CmdPool(cth::not_null<Core const*> core, Config const& config, bool create);
+    CmdPool(Core const& core, Config const& config, bool create);
 
 
     /**
@@ -96,7 +96,7 @@ public:
 
 private:
     void reset();
-    [[nodiscard]] cth::not_null<Core const*> core() const { return _core; }
+    [[nodiscard]] Core const& core() const { return *_core; }
 
 
     template<cmd_buffer_t T>
@@ -150,7 +150,8 @@ public:
      * @return if any buffer depends on this pool -> false 
      */
     [[nodiscard]] bool unused() const {
-        return std::ranges::all_of(std::views::zip(_buffers, _maxBuffers), [](auto const& pair) { return std::get<0>(pair).size() == std::get<1>(pair); });
+        return std::ranges::all_of(std::views::zip(_buffers, _maxBuffers),
+            [](auto const& pair) { return std::get<0>(pair).size() == std::get<1>(pair); });
     }
 
     template<cmd_buffer_t T>
@@ -165,9 +166,9 @@ public:
     CmdPool& operator=(CmdPool&& other) = default;
 
 
-    static void debug_check(cth::not_null<CmdPool*> pool);
+    static void debug_check(CmdPool const& pool);
     static void debug_check_handle(vk::not_null<VkCommandPool> vk_pool);
-    static void debug_check_unused(cth::not_null<CmdPool*> pool);
+    static void debug_check_unused(CmdPool const& pool);
 };
 
 template void CmdPool::returnCmdBuffer<PrimaryCmdBuffer>(VkCommandBuffer buffer);
@@ -211,14 +212,14 @@ struct CmdPool::State {
 //debug_check
 
 namespace cth::vk {
-inline void CmdPool::debug_check(cth::not_null<CmdPool*> pool) {
-    CTH_CRITICAL(!pool->created(), "pool must be created") {}
-    debug_check_handle(pool->_handle.get());
+inline void CmdPool::debug_check(CmdPool const& pool) {
+    CTH_CRITICAL(!pool.created(), "pool must be created") {}
+    debug_check_handle(pool._handle.get());
 }
 inline void CmdPool::debug_check_handle(vk::not_null<VkCommandPool> vk_pool) {}
-inline void CmdPool::debug_check_unused(cth::not_null<CmdPool*> pool) {
-    auto const& buffers = pool->_buffers;
-    auto const& maxBuffers = pool->_maxBuffers;
+inline void CmdPool::debug_check_unused(CmdPool const& pool) {
+    auto const& buffers = pool._buffers;
+    auto const& maxBuffers = pool._maxBuffers;
 
     CTH_CRITICAL(
         std::ranges::fold_left(buffers, 0, [](size_t prev, auto const& vec){ return prev + vec.size(); }) !=

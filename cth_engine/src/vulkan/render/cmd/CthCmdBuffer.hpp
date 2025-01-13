@@ -51,7 +51,7 @@ public:
     static void destroy(DeviceTable table, not_null<VkCommandPool_T*> vk_pool, VkCommandBuffer buffer);
 
 protected:
-    void create(this auto&& self, cth::not_null<CmdPool*> pool);
+    void create(this auto&& self, CmdPool& pool);
 
 
     void begin(VkCommandBufferBeginInfo const& info);
@@ -72,7 +72,7 @@ public:
     [[nodiscard]] VkCommandBuffer get() const { return _handle.get(); }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] bool recording() const { return _recording; }
-    [[nodiscard]] CmdPool* pool() const { return _pool; }
+    [[nodiscard]] CmdPool& pool() const { return *_pool; }
     [[nodiscard]] VkBufferUsageFlags usageFlags() const { return _bufferUsage; }
 
     CmdBuffer(CmdBuffer const& other) = delete;
@@ -81,12 +81,12 @@ public:
     CmdBuffer& operator=(CmdBuffer&& other) = default;
 
 
-    static void debug_check(cth::not_null<CmdBuffer const*> cmd_buffer);
+    static void debug_check(CmdBuffer const& cmd_buffer);
     static void debug_check_handle(vk::not_null<VkCommandBuffer> handle);
 };
 
-inline void CmdBuffer::debug_check(cth::not_null<CmdBuffer const*> cmd_buffer) {
-    CTH_CRITICAL(!cmd_buffer->created(), "cmd_buffer must be created") {}
+inline void CmdBuffer::debug_check(CmdBuffer const& cmd_buffer) {
+    CTH_CRITICAL(!cmd_buffer.created(), "cmd_buffer must be created") {}
 }
 inline void CmdBuffer::debug_check_handle([[maybe_unused]] vk::not_null<VkCommandBuffer> handle) {}
 
@@ -98,12 +98,12 @@ namespace cth::vk {
 class PrimaryCmdBuffer : public CmdBuffer {
 public:
     explicit PrimaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
-    explicit PrimaryCmdBuffer(cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage = 0);
+    explicit PrimaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage = 0);
 
     ~PrimaryCmdBuffer() override;
 
     void begin() override;
-    void create(cth::not_null<CmdPool*> pool) { CmdBuffer::create(pool); }
+    void create(CmdPool& pool) { CmdBuffer::create(pool); }
 
     PrimaryCmdBuffer(PrimaryCmdBuffer const& other) = delete;
     PrimaryCmdBuffer& operator=(PrimaryCmdBuffer const& other) = delete;
@@ -119,14 +119,14 @@ class SecondaryCmdBuffer : public CmdBuffer {
 public:
     struct Config;
     explicit SecondaryCmdBuffer(Config const& config, VkCommandBufferUsageFlags usage = 0);
-    SecondaryCmdBuffer(cth::not_null<PrimaryCmdBuffer*> primary, Config const& config, VkCommandBufferUsageFlags usage = 0);
+    SecondaryCmdBuffer(PrimaryCmdBuffer& primary, Config const& config, VkCommandBufferUsageFlags usage = 0);
 
 
     ~SecondaryCmdBuffer() override { destroy(); }
 
     void begin() override;
 
-    void create(cth::not_null<PrimaryCmdBuffer*> primary);
+    void create(PrimaryCmdBuffer& primary);
 
 private:
     PrimaryCmdBuffer* _primary = nullptr;

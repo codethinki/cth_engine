@@ -22,21 +22,21 @@ public:
     /**
      * @brief base constructor
      */
-    RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses,
+    RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
         std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs);
 
     /**
      * @brief constructs and calls @ref wrap(State const&)
-     * @note calls @ref RenderPass(cth::not_null<Core const*>, std::span<Subpass const* const>, std::span<VkSubpassDependency const>, std::span<BeginConfig const>)
+     * @note calls @ref RenderPass(Core const&, std::span<Subpass const* const>, std::span<VkSubpassDependency const>, std::span<BeginConfig const>)
      */
-    RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses,
+    RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
         std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs, State const& state);
 
     /**
      * @brief constructs and if(create) calls @ref create()
-     * @note calls @ref RenderPass(cth::not_null<Core const*>, std::span<Subpass const* const>, std::span<VkSubpassDependency const>, std::span<BeginConfig const>)
+     * @note calls @ref RenderPass(Core const&, std::span<Subpass const* const>, std::span<VkSubpassDependency const>, std::span<BeginConfig const>)
      */
-    RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses,
+    RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
         std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
         bool create);
 
@@ -77,8 +77,8 @@ public:
      */
     State release();
 
-    void begin(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer, uint32_t config_index, cth::not_null<Framebuffer const*> framebuffer);
-    void end(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer);
+    void begin(PrimaryCmdBuffer const& cmd_buffer, uint32_t config_index, Framebuffer const& framebuffer);
+    void end(PrimaryCmdBuffer const& cmd_buffer);
 
     static void destroy(DeviceTable table, VkRenderPass vk_render_pass);
 

@@ -11,7 +11,7 @@
 
 namespace cth::vk {
 
-DescriptorPool::DescriptorPool(cth::not_null<Core const*> device, Builder const& builder) : _core(device) {
+DescriptorPool::DescriptorPool(Core const& core, Builder const& builder) : _core{&core} {
     initSetEntries(builder);
     create();
     allocSets();
@@ -19,7 +19,7 @@ DescriptorPool::DescriptorPool(cth::not_null<Core const*> device, Builder const&
 
 DescriptorPool::~DescriptorPool() {
     if(_handle == VK_NULL_HANDLE) return;
-   _core->functions()->vkDestroyDescriptorPool(_core->vkDevice(), _handle.get(), nullptr);
+    _core->functions()->vkDestroyDescriptorPool(_core->vkDevice(), _handle.get(), nullptr);
 
     log::msg("destroyed descriptor pool");
 }
@@ -43,11 +43,11 @@ void DescriptorPool::writeSets(std::vector<DescriptorSet*> const& sets) {
     });
 
 
-   _core->functions()->vkUpdateDescriptorSets(_core->vkDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    _core->functions()->vkUpdateDescriptorSets(_core->vkDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void DescriptorPool::reset() {
-    VkResult const resetResult =_core->functions()->vkResetDescriptorPool(_core->vkDevice(), _handle.get(), 0);
+    VkResult const resetResult = _core->functions()->vkResetDescriptorPool(_core->vkDevice(), _handle.get(), 0);
 
 
     std::ranges::for_each(_descriptorSets, [](DescriptorSet* set) { set->deallocate(); });
@@ -92,7 +92,7 @@ void DescriptorPool::create() {
 
     VkDescriptorPool ptr = VK_NULL_HANDLE;
 
-    VkResult const createResult =_core->functions()->vkCreateDescriptorPool(_core->vkDevice(), &createInfo, nullptr, &ptr);
+    VkResult const createResult = _core->functions()->vkCreateDescriptorPool(_core->vkDevice(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "vk: failed to create descriptor pool")
         throw cth::vk::result_exception(createResult, details->exception());
 
@@ -115,7 +115,7 @@ void DescriptorPool::allocSets() {
     allocInfo.descriptorSetCount = static_cast<uint32_t>(_vkSets.size());
     allocInfo.pSetLayouts = vkLayouts.data();
 
-    VkResult const allocResult =_core->functions()->vkAllocateDescriptorSets(_core->vkDevice(), &allocInfo, _vkSets.data());
+    VkResult const allocResult = _core->functions()->vkAllocateDescriptorSets(_core->vkDevice(), &allocInfo, _vkSets.data());
 
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "vk: failed to allocate descriptor sets")
         throw cth::vk::result_exception(allocResult, details->exception());
@@ -132,7 +132,7 @@ void DescriptorPool::returnSet(DescriptorSet* set) {
 //Builder
 
 namespace cth::vk {
-void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint32_t  alloc_count) {
+void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint32_t alloc_count) {
     CTH_CRITICAL(layout == nullptr, "layout ptr invalid") {}
     CTH_WARN(alloc_count == 0, "alloc_count should be > 0") {}
 
@@ -141,7 +141,7 @@ void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint3
 void DescriptorPool::Builder::addLayouts(std::unordered_map<DescriptorSetLayout const*, uint32_t> const& set_allocations) {
     std::ranges::for_each(set_allocations, [this](auto const& pair) { this->addLayout(pair.first, pair.second); });
 }
-void DescriptorPool::Builder::removeLayout(DescriptorSetLayout const* layout, size_t  amount) {
+void DescriptorPool::Builder::removeLayout(DescriptorSetLayout const* layout, size_t amount) {
     CTH_CRITICAL(layout == nullptr, "layout ptr invalid") {}
     CTH_WARN(amount == 0, "alloc_count should be > 0") {}
     CTH_CRITICAL(!_maxDescriptorSets.contains(layout), "builder does not contain layout") {}

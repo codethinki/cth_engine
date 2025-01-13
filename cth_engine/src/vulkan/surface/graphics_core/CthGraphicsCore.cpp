@@ -9,11 +9,11 @@
 
 
 namespace cth::vk {
-GraphicsCore::GraphicsCore(cth::not_null<Core const*> core) : _core{core} {}
-GraphicsCore::GraphicsCore(cth::not_null<Core const*> core, State state) : GraphicsCore{core} { wrap(std::move(state)); }
+GraphicsCore::GraphicsCore(Core const& core) : _core{&core} {}
+GraphicsCore::GraphicsCore(Core const& core, State state) : GraphicsCore{core} { wrap(std::move(state)); }
 
-GraphicsCore::GraphicsCore(cth::not_null<Core const*> core, std::string_view window_name, VkExtent2D extent,
-    cth::not_null<Queue const*> present_queue, cth::not_null<GraphicsSyncConfig const*> sync_config) : GraphicsCore{core} {
+GraphicsCore::GraphicsCore(Core const& core, std::string_view window_name, VkExtent2D extent,
+    Queue const& present_queue, GraphicsSyncConfig const& sync_config) : GraphicsCore{core} {
     create(window_name, extent, present_queue, sync_config);
 }
 
@@ -29,18 +29,18 @@ void GraphicsCore::wrap(State state) {
 }
 
 
-void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
-    cth::not_null<GraphicsSyncConfig const*> sync_config) {
+void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, Queue const& present_queue,
+    GraphicsSyncConfig const& sync_config) {
     optDestroy();
 
 
     _osWindow = std::make_unique<OSWindow>(_core->instance(), _core->destructionQueue(), window_name, extent);
     _surface = std::make_unique<Surface>(_core->instance(), _core->destructionQueue(), Surface::State{_osWindow->releaseSurface()});
-    _swapchain = std::make_unique<BasicSwapchain>(_core, present_queue, sync_config, _surface.get());
+    _swapchain = std::make_unique<BasicSwapchain>(*_core, present_queue, sync_config, *_surface);
     _swapchain->create(_osWindow->extent()); //TEMP replace this with swapchain create constructor
 }
 void GraphicsCore::destroy() {
-    debug_check(this);
+    debug_check(*this);
 
     _swapchain->destroy(); //TEMP replace this once non basic swapchain is ready
     _swapchain = nullptr;
@@ -49,7 +49,7 @@ void GraphicsCore::destroy() {
     reset();
 }
 auto GraphicsCore::release() -> State {
-    debug_check(this);
+    debug_check(*this);
 
     State temp{
         std::move(_osWindow),
@@ -74,28 +74,28 @@ void GraphicsCore::minimized() const {
 
 
 void GraphicsCore::acquireFrame(Cycle const& cycle) const {
-    debug_check(this);
+    debug_check(*this);
     auto const result = _swapchain->acquireNextImage(cycle);
 
     CTH_WARN(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR, "swapchain image aquire result != VK_SUCCESS ({})", result) {}
 }
 void GraphicsCore::skipAcquire(Cycle const& cycle) const {
-    debug_check(this);
+    debug_check(*this);
     _swapchain->skipAcquire(cycle);
 }
 
 void GraphicsCore::beginWindowPass(Cycle const& cycle, PrimaryCmdBuffer const* render_cmd_buffer) const {
-    debug_check(this);
-    _swapchain->beginRenderPass(cycle, render_cmd_buffer);
+    debug_check(*this);
+    _swapchain->beginRenderPass(cycle, *render_cmd_buffer);
 }
 void GraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const {
-    debug_check(this);
-    _swapchain->endRenderPass(render_cmd_buffer);
+    debug_check(*this);
+    _swapchain->endRenderPass(*render_cmd_buffer);
 }
 
 
 void GraphicsCore::presentFrame(Cycle const& cycle) const {
-    debug_check(this);
+    debug_check(*this);
     auto const result = _swapchain->present(cycle);
     if(result != VK_SUCCESS) [[unlikely]] {
         minimized();
@@ -103,7 +103,7 @@ void GraphicsCore::presentFrame(Cycle const& cycle) const {
     }
 }
 void GraphicsCore::skipPresent(Cycle const& cycle) const {
-    debug_check(this);
+    debug_check(*this);
     _swapchain->skipPresent(cycle);
 }
 
@@ -115,7 +115,7 @@ void GraphicsCore::reset() {
 
 void GraphicsCore::State::debug_check(State const& state) {
     OSWindow::debug_check(state.osWindow.get());
-    Surface::debug_check(state.surface.get());
+    Surface::debug_check(*state.surface);
     BasicSwapchain::debug_check(state.swapchain.get());
 }
 

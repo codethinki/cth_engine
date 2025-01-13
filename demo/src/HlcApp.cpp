@@ -19,7 +19,7 @@ void App::run() {
 
         renderFrame();
     }
-    _core->device()->waitIdle();
+    _core->device().waitIdle();
 
     cth::log::msg<except::INFO>("shutting down...");
 

@@ -11,10 +11,8 @@
 namespace cth::vk {
 
 
-Memory::Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags vk_properties) : _core(core), _vkProperties(vk_properties) {
-    Core::debug_check(_core);
-}
-Memory::Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags properties,
+Memory::Memory(Core const& core, VkMemoryPropertyFlags vk_properties) : _core{&core}, _vkProperties(vk_properties) { Core::debug_check(core); }
+Memory::Memory(Core const& core, VkMemoryPropertyFlags properties,
     VkMemoryRequirements const& vk_requirements) : Memory{core, properties} { create(vk_requirements); }
 Memory::~Memory() { if(created()) Memory::destroy(); }
 
@@ -32,11 +30,11 @@ void Memory::create(VkMemoryRequirements const& vk_requirements) {
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = vk_requirements.size;
-    allocInfo.memoryTypeIndex = _core->physicalDevice()->findMemoryType(vk_requirements.memoryTypeBits, _vkProperties);
+    allocInfo.memoryTypeIndex = _core->physicalDevice().findMemoryType(vk_requirements.memoryTypeBits, _vkProperties);
 
     VkDeviceMemory ptr = VK_NULL_HANDLE;
 
-    VkResult const allocResult = _core->functions()->vkAllocateMemory(_core->device()->get(), &allocInfo, nullptr, &ptr);
+    VkResult const allocResult = _core->functions()->vkAllocateMemory(_core->device().get(), &allocInfo, nullptr, &ptr);
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate buffer memory")
         throw cth::vk::result_exception{allocResult, details->exception()};
 

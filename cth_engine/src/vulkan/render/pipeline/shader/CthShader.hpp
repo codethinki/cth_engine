@@ -27,11 +27,11 @@ public:
     /**
      *@throws cth::vk::result_exception result of @ref vkCreateShaderModule()
      */
-    explicit Shader(cth::not_null<Core const*> core, VkShaderStageFlagBits stage, std::string_view spv_path);
+    explicit Shader(Core const& core, VkShaderStageFlagBits stage, std::string_view spv_path);
     /**
      *@throws cth::vk::result_exception result of @ref vkCreateShaderModule()
      */
-    explicit Shader(cth::not_null<Core const*> core, VkShaderStageFlagBits stage, std::span<char const> spv);
+    explicit Shader(Core const& core, VkShaderStageFlagBits stage, std::span<char const> spv);
 
     ~Shader();
 
@@ -61,7 +61,7 @@ public:
     /**
     *@throws cth::vk::result_exception result of @ref vkCreateShaderModule()
     */
-    explicit Shader(cth::not_null<Core const*> core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path,
+    explicit Shader(Core const& core, VkShaderStageFlagBits stages, std::string_view spv_path, std::string_view glsl_path,
         std::string_view compiler_path);
 #endif
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }

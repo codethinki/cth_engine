@@ -12,8 +12,8 @@
 #include "src/vulkan/utility/os.hpp"
 
 namespace cth::vk {
-OSWindow::OSWindow(Instance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent) :
-    _instance{instance}, _destructionQueue{destruction_queue}, _windowName{name},
+OSWindow::OSWindow(Instance const& instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent) :
+    _instance{&instance}, _destructionQueue{destruction_queue}, _windowName{name},
     _width{static_cast<int>(extent.width)}, _height{static_cast<int>(extent.height)} {
     initWindow();
 
@@ -57,9 +57,9 @@ void OSWindow::setCallbacks() {
     glfwSetWindowFocusCallback(_handle.get(), staticFocusCallback);
     //glfwSetCursorPosCallback(hlcWindow, staticMovementCallback);
 }
-void OSWindow::createSurface(Instance const* instance) {
+void OSWindow::createSurface(Instance const& instance) {
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
-    auto const result = glfwCreateWindowSurface(instance->get(), window(), nullptr, &vkSurface);
+    auto const result = glfwCreateWindowSurface(instance.get(), window(), nullptr, &vkSurface);
 
     _surface = vkSurface;
 
@@ -135,7 +135,7 @@ void OSWindow::terminate() {
     glfwTerminate();
     log::msg("terminated window");
 }
-VkSurfaceKHR OSWindow::tempSurface(cth::not_null<Instance const*> instance) {
+VkSurfaceKHR OSWindow::tempSurface(Instance const& instance) {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     // Create a hidden window for the surface
@@ -162,7 +162,7 @@ VkSurfaceKHR OSWindow::tempSurface(cth::not_null<Instance const*> instance) {
     };
 
 
-    auto const result = vkCreateWin32SurfaceKHR(instance->get(), &createInfo, nullptr, &surface);
+    auto const result = vkCreateWin32SurfaceKHR(instance.get(), &createInfo, nullptr, &surface);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create temp surface") {
         DestroyWindow(hwnd);
         throw vk::result_exception{result, details->exception()};

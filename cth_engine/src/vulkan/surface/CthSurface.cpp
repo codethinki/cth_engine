@@ -10,7 +10,7 @@
 namespace cth::vk {
 using std::vector;
 
-Surface::Surface(cth::not_null<Instance const*> instance, DestructionQueue* destruction_queue, State const& state) : Surface{instance, destruction_queue} {
+Surface::Surface(Instance const& instance, DestructionQueue* destruction_queue, State const& state) : Surface{instance, destruction_queue} {
     wrap(state);
 }
 
@@ -26,7 +26,7 @@ void Surface::wrap(State const& state) {
     _handle = state.vkSurface.get();
 }
 void Surface::destroy() {
-    Surface::debug_check(this);
+    Surface::debug_check(*this);
 
     auto const lambda = [vk_instance = _instance->get(), vk_surface = _handle.get()]() { destroy(vk_instance, vk_surface); };
 
@@ -38,7 +38,7 @@ void Surface::destroy() {
     _handle = VK_NULL_HANDLE;
 }
 Surface::State Surface::release() {
-    Surface::debug_check(this);
+    Surface::debug_check(*this);
     State const state{_handle.get()};
 
     reset();
@@ -96,7 +96,7 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physical_de
 
     return capabilities;
 }
-Surface Surface::Temp(cth::not_null<Instance const*> instance, DestructionQueue* destruction_queue) {
+Surface Surface::Temp(Instance const& instance, DestructionQueue* destruction_queue) {
     return Surface{instance, destruction_queue, State{OSWindow::tempSurface(instance)}};
 }
 void Surface::destroy(vk::not_null<VkInstance> instance, VkSurfaceKHR surface) {

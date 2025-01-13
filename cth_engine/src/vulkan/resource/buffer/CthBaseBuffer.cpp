@@ -14,11 +14,11 @@ using std::span;
 
 
 
-BaseBuffer::BaseBuffer(cth::not_null<Core const*> core, size_t byte_size, VkBufferUsageFlags usage_flags) :
-    _core{core}, _size{byte_size}, _usage{usage_flags} { Core::debug_check(_core); }
-BaseBuffer::BaseBuffer(cth::not_null<Core const*> core, size_t byte_size, VkBufferUsageFlags usage_flags, State state) :
+BaseBuffer::BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags) :
+    _core{&core}, _size{byte_size}, _usage{usage_flags} { Core::debug_check(core); }
+BaseBuffer::BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags, State state) :
     BaseBuffer{core, byte_size, usage_flags} { BaseBuffer::wrap(std::move(state)); }
-BaseBuffer::BaseBuffer(cth::not_null<Core const*> core, size_t bytes_size, VkBufferUsageFlags usage_flags,
+BaseBuffer::BaseBuffer(Core const& core, size_t bytes_size, VkBufferUsageFlags usage_flags,
     VkMemoryPropertyFlags vk_memory_flags) :
     BaseBuffer{core, bytes_size, usage_flags} { BaseBuffer::create(vk_memory_flags); }
 
@@ -50,7 +50,6 @@ void BaseBuffer::create(VkMemoryPropertyFlags vk_memory_flags) {
 
 void BaseBuffer::destroy() {
     debug_check(this);
-
 
 
     auto const lambda = [table = _core->deviceTable(), buffer = _handle.get()] { BaseBuffer::destroy(table, buffer); };
@@ -104,7 +103,7 @@ void BaseBuffer::write(span<char const> data, size_t buffer_offset) const {
 }
 
 void BaseBuffer::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src, size_t copy_size, size_t src_offset, size_t dst_offset) const {
-    CmdBuffer::debug_check(&cmd_buffer);
+    CmdBuffer::debug_check(cmd_buffer);
     debug_check(this);
     debug_check(&src);
 
@@ -129,7 +128,7 @@ void BaseBuffer::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src, size_t
     copyRegion.srcOffset = src_offset;
     copyRegion.dstOffset = dst_offset;
     copyRegion.size = _size;
-   _core->functions()->vkCmdCopyBuffer(cmd_buffer.get(), src.get(), _handle.get(), 1, &copyRegion);
+    _core->functions()->vkCmdCopyBuffer(cmd_buffer.get(), src.get(), _handle.get(), 1, &copyRegion);
 }
 
 void BaseBuffer::flush(size_t size, size_t offset) const {
@@ -176,7 +175,7 @@ size_t BaseBuffer::calcAlignedSize(size_t actual_size) {
 void BaseBuffer::destroy(DeviceTable table, VkBuffer vk_buffer) {
     CTH_WARN(vk_buffer == VK_NULL_HANDLE, "vk_buffer invalid") {}
 
-   table->vkDestroyBuffer(table.device(), vk_buffer, nullptr);
+    table->vkDestroyBuffer(table.device(), vk_buffer, nullptr);
 }
 
 
@@ -197,7 +196,7 @@ void BaseBuffer::createBuffer() {
 
     VkBuffer ptr = VK_NULL_HANDLE;
 
-    VkResult const createResult =_core->functions()->vkCreateBuffer(_core->vkDevice(), &bufferInfo, nullptr, &ptr);
+    VkResult const createResult = _core->functions()->vkCreateBuffer(_core->vkDevice(), &bufferInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create buffer") {
         reset();
         throw result_exception{createResult, details->exception()};
@@ -210,14 +209,14 @@ void BaseBuffer::createMemory(VkMemoryPropertyFlags vk_memory_properties) {
     CTH_CRITICAL(_memory != nullptr, "memory must be empty"){}
 
     VkMemoryRequirements memRequirements;
-   _core->functions()->vkGetBufferMemoryRequirements(_core->vkDevice(), _handle.get(), &memRequirements);
-    _memory = std::make_unique<Memory>(_core, vk_memory_properties, memRequirements);
+    _core->functions()->vkGetBufferMemoryRequirements(_core->vkDevice(), _handle.get(), &memRequirements);
+    _memory = std::make_unique<Memory>(*_core, vk_memory_properties, memRequirements);
 }
 
 void BaseBuffer::bind() {
     CTH_CRITICAL(!_memory->created(), "memory must be allocated") {}
 
-    VkResult const bindResult =_core->functions()->vkBindBufferMemory(_core->vkDevice(), _handle.get(), _memory->get(), 0);
+    VkResult const bindResult = _core->functions()->vkBindBufferMemory(_core->vkDevice(), _handle.get(), _memory->get(), 0);
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind buffer memory") {
         destroy();

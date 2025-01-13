@@ -122,8 +122,8 @@ public:
     Queue& operator=(Queue const& other) = default;
     Queue& operator=(Queue&& other) = default;
 
-    static void debug_check(cth::not_null<Queue const*> queue);
-    static void debug_check_present(cth::not_null<Queue const*> queue);
+    static void debug_check(Queue const& queue);
+    static void debug_check_present(Queue const& queue);
     static void debug_check_handle(VkQueue vk_queue);
 };
 }
@@ -145,12 +145,12 @@ struct Queue::State {
 //debug checks
 
 namespace cth::vk {
-inline void Queue::debug_check(cth::not_null<Queue const*> queue) {
-    CTH_CRITICAL(!queue->created(), "queue must be created") {}
+inline void Queue::debug_check(Queue const& queue) {
+    CTH_CRITICAL(!queue.created(), "queue must be created") {}
 }
-inline void Queue::debug_check_present(cth::not_null<Queue const*> queue) {
+inline void Queue::debug_check_present(Queue const& queue) {
     debug_check(queue);
-    CTH_CRITICAL(!(queue->familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT), "queue is not a present queue") {}
+    CTH_CRITICAL(!(queue.familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT), "queue is not a present queue") {}
 }
 inline void Queue::debug_check_handle(VkQueue vk_queue) {
     CTH_CRITICAL(vk_queue == VK_NULL_HANDLE, "vk_queue handle must not be invalid (VK_NULL_HANDLE)") {}

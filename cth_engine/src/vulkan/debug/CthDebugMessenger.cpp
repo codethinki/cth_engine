@@ -8,13 +8,13 @@
 namespace cth::vk {
 
 DebugMessenger::DebugMessenger(Config config): _config{std::move(config)} {}
-void DebugMessenger::create(cth::not_null<Instance const*> instance) {
+void DebugMessenger::create(Instance const& instance) {
     Instance::debug_check(instance);
 
 
     optDestroy();
 
-    _instance = instance.get();
+    _instance = &instance;
 
 
     VkDebugUtilsMessengerCreateInfoEXT const info = _config.createInfo();
@@ -32,7 +32,7 @@ void DebugMessenger::create(cth::not_null<Instance const*> instance) {
     _handle = ptr;
 }
 void DebugMessenger::destroy() {
-    DebugMessenger::debug_check(this);
+    DebugMessenger::debug_check(*this);
 
     destroy(_instance->get(), _handle.get());
 

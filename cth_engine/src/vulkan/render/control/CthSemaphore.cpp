@@ -9,9 +9,9 @@
 namespace cth::vk {
 
 
-Semaphore::Semaphore(cth::not_null<Core const*> core) : _core(core) { Core::debug_check(core); }
-Semaphore::Semaphore(cth::not_null<Core const*> core, State const& state) : Semaphore{core} { wrap(state); }
-Semaphore::Semaphore(cth::not_null<Core const*> core, bool create) : Semaphore{core} { if(create) this->create(); }
+Semaphore::Semaphore(Core const& core) : _core{&core} { Core::debug_check(core); }
+Semaphore::Semaphore(Core const& core, State const& state) : Semaphore{core} { wrap(state); }
+Semaphore::Semaphore(Core const& core, bool create) : Semaphore{core} { if(create) this->create(); }
 
 void Semaphore::wrap(State const& state) {
     optDestroy();
@@ -23,7 +23,7 @@ void Semaphore::create() {
 }
 
 void Semaphore::destroy() {
-    debug_check(this);
+    debug_check(*this);
 
     auto const lambda = [table = _core->deviceTable(), vk_semaphore = _handle.get()]() { destroy(table, vk_semaphore); };
 
@@ -36,7 +36,7 @@ void Semaphore::destroy() {
 
 
 Semaphore::State Semaphore::release() {
-    debug_check(this);
+    debug_check(*this);
 
     State const state{_handle.get()};
     reset();

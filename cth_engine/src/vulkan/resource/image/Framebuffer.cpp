@@ -10,11 +10,11 @@
 
 namespace cth::vk {
 
-Framebuffer::Framebuffer(cth::not_null<Core const*> core, cth::not_null<RenderPass const*> render_pass, std::span<ImageView const* const> attachments,
-    uint32_t layers) : _core{core}, _renderPass{render_pass}, _attachments{std::from_range, attachments}, _layers{layers} {}
-Framebuffer::Framebuffer(cth::not_null<Core const*> core, cth::not_null<RenderPass const*> render_pass, std::span<ImageView const* const> attachments,
+Framebuffer::Framebuffer(Core const& core, RenderPass const& render_pass, std::span<ImageView const* const> attachments,
+    uint32_t layers) : _core{&core}, _renderPass{&render_pass}, _attachments{std::from_range, attachments}, _layers{layers} {}
+Framebuffer::Framebuffer(Core const& core, RenderPass const& render_pass, std::span<ImageView const* const> attachments,
     State const& state, uint32_t layers) : Framebuffer{core, render_pass, attachments, layers} { wrap(state); }
-Framebuffer::Framebuffer(cth::not_null<Core const*> core, cth::not_null<RenderPass const*> render_pass, std::span<ImageView const* const> attachments,
+Framebuffer::Framebuffer(Core const& core, RenderPass const& render_pass, std::span<ImageView const* const> attachments,
     VkExtent2D extent, uint32_t layers) : Framebuffer{core, render_pass, attachments, layers} { create(extent); }
 
 
@@ -58,7 +58,7 @@ void Framebuffer::create(VkExtent2D extent) {
     _handle = ptr;
 }
 void Framebuffer::destroy() {
-    debug_check(this);
+    debug_check(*this);
     auto const lambda = [table = _core->deviceTable(), vk_framebuffer = _handle.get()]() { destroy(table, vk_framebuffer); };
 
     auto const queue = _core->destructionQueue();
@@ -70,7 +70,7 @@ void Framebuffer::destroy() {
     _handle = nullptr;
 }
 Framebuffer::State Framebuffer::release() {
-    debug_check(this);
+    debug_check(*this);
 
     State const state{
         _handle.release(),

@@ -20,7 +20,7 @@ public:
     * @brief creates a DescriptorSetLayout with the copied builder data
     * @throws cth::vk::result_exception data: VkResult of @ref vkCreateDescriptorSetLayout()
     */
-    explicit DescriptorSetLayout(cth::not_null<Core const*> core, Builder const& builder);
+    explicit DescriptorSetLayout(Core const& core, Builder const& builder);
     ~DescriptorSetLayout();
 
 private:

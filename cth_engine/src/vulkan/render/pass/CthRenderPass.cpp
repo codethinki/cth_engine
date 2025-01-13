@@ -15,8 +15,8 @@ namespace cth::vk {
 
 
 
-RenderPass::RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
-    std::span<BeginConfig const> begin_configs) : _core{core}, _subpasses{std::from_range, subpasses},
+RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
+    std::span<BeginConfig const> begin_configs) : _core{&core}, _subpasses{std::from_range, subpasses},
     _dependencies{std::from_range, dependencies} {
 
     Core::debug_check(core);
@@ -40,10 +40,10 @@ RenderPass::RenderPass(cth::not_null<Core const*> core, std::span<Subpass const*
     }
 
 }
-RenderPass::RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
+RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
     std::span<BeginConfig const> begin_configs, State const& state) : RenderPass{core, subpasses, dependencies, begin_configs} { wrap(state); }
 
-RenderPass::RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses,
+RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
     std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
     bool create) : RenderPass{core, subpasses, dependencies, begin_configs} { if(create) this->create(); }
 
@@ -110,16 +110,16 @@ RenderPass::State RenderPass::release() {
     reset();
     return state;
 }
-void RenderPass::begin(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer, uint32_t config_index, cth::not_null<Framebuffer const*> framebuffer) {
+void RenderPass::begin(PrimaryCmdBuffer const& cmd_buffer, uint32_t config_index, Framebuffer const& framebuffer) {
     CmdBuffer::debug_check(cmd_buffer);
     Framebuffer::debug_check(framebuffer);
     CTH_CRITICAL(config_index >= _beginInfos.size(), "config_index out of range") {}
 
-    _beginInfos[config_index].framebuffer = framebuffer->get();
+    _beginInfos[config_index].framebuffer = framebuffer.get();
 
-    _core->functions()->vkCmdBeginRenderPass(cmd_buffer->get(), &_beginInfos[config_index], _contents[config_index]);
+    _core->functions()->vkCmdBeginRenderPass(cmd_buffer.get(), &_beginInfos[config_index], _contents[config_index]);
 }
-void RenderPass::end(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer) { _core->functions()->vkCmdEndRenderPass(cmd_buffer->get()); }
+void RenderPass::end(PrimaryCmdBuffer const& cmd_buffer) { _core->functions()->vkCmdEndRenderPass(cmd_buffer.get()); }
 
 void RenderPass::destroy(DeviceTable table, VkRenderPass vk_render_pass) {
     CTH_WARN(vk_render_pass == VK_NULL_HANDLE, "vk_render_pass should not be invalid (VK_NULL_HANDLE)") {}

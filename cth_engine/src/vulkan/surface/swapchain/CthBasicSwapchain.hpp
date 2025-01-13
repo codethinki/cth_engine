@@ -36,8 +36,8 @@ class Core;
 
 class BasicSwapchain {
 public:
-    BasicSwapchain(cth::not_null<Core const*> core, cth::not_null<Queue const*> present_queue, cth::not_null<GraphicsSyncConfig const*> sync_config,
-        cth::not_null<Surface const*> surface);
+    BasicSwapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config,
+        Surface const& surface);
     virtual ~BasicSwapchain();
 
     //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
@@ -64,9 +64,9 @@ public:
     VkResult acquireNextImage(Cycle const& cycle);
     void skipAcquire(Cycle const& cycle) const;
 
-    void beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const* cmd_buffer) const;
+    void beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const& cmd_buffer) const;
 
-    void endRenderPass(PrimaryCmdBuffer const* cmd_buffer);
+    void endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const;
 
 
     [[nodiscard]] VkResult present(Cycle const& cycle); //TEMP remove deletion queue from here
@@ -185,7 +185,7 @@ private:
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    [[nodiscard]] cth::not_null<Core const*> core() const { return _core; }
+    [[nodiscard]] Core const& core() const { return *_core; }
 
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }

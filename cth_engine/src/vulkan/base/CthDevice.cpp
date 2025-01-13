@@ -13,11 +13,12 @@ using std::vector;
 using std::string_view;
 using std::span;
 
-Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device) :
-    _instance{instance}, _physicalDevice{physical_device} {}
-Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, State state) :
+Device::Device(Instance const& instance, PhysicalDevice const& physical_device) :
+    _instance{&instance}, _physicalDevice{&physical_device} {
+}
+Device::Device(Instance const& instance, PhysicalDevice const& physical_device, State state) :
     Device{instance, physical_device} { wrap(std::move(state)); }
-Device::Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, std::span<Queue> queues) :
+Device::Device(Instance const& instance, PhysicalDevice const& physical_device, std::span<Queue> queues) :
     Device{instance, physical_device} { create(queues); }
 
 Device::~Device() { optDestroy(); }
@@ -43,7 +44,7 @@ void Device::create(std::span<Queue> queues) {
     wrapQueues(familyIndices, queues);
 }
 void Device::destroy() {
-    Device::debug_check(this);
+    Device::debug_check(*this);
 
     destroy(_handle.release(), functions()->vkDestroyDevice);
     reset();
@@ -114,14 +115,14 @@ void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues)
 
 }
 Device::State Device::release() {
-    Device::debug_check(this);
+    Device::debug_check(*this);
 
     State state{_handle.release(), std::move(_queueFamiliesQueueCounts)};
     reset();
     return state;
 }
 void Device::waitIdle() const {
-    Device::debug_check(this);
+    Device::debug_check(*this);
 
     auto const result = table()->vkDeviceWaitIdle(_handle.get());
 

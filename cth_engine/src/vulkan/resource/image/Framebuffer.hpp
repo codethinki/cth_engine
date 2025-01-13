@@ -23,23 +23,23 @@ public:
      * @brief base constructor
      * @param render_pass requires RenderPass::created()
      */
-    Framebuffer(cth::not_null<Core const*> core, cth::not_null<RenderPass const*> render_pass,
+    Framebuffer(Core const& core, RenderPass const& render_pass,
         std::span<ImageView const* const> attachments, uint32_t layers = DEFAULT_LAYERS);
 
     /**
      * @brief constructs and wraps
      * @param state passed to @ref wrap()
-     * @note calls @ref Framebuffer(cth::not_null<Core const*>, cth::not_null<RenderPass const*>, std::span<ImageView const* const>, uint32_t)
+     * @note calls @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
      */
-    Framebuffer(cth::not_null<Core const*> core, cth::not_null<RenderPass const*> render_pass,
+    Framebuffer(Core const& core, RenderPass const& render_pass,
         std::span<ImageView const* const> attachments, State const& state, uint32_t layers = DEFAULT_LAYERS);
 
     /**
      * @brief constructs and creates
      * @param extent passed to @ref create()
-     * @note calls @ref Framebuffer(cth::not_null<Core const*>, cth::not_null<RenderPass const*>, std::span<ImageView const* const>, uint32_t)
+     * @note calls @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
      */
-    Framebuffer(cth::not_null<Core const*> core, cth::not_null<RenderPass const*> render_pass,
+    Framebuffer(Core const& core, RenderPass const& render_pass,
         std::span<ImageView const* const> attachments, VkExtent2D extent, uint32_t layers = DEFAULT_LAYERS);
 
     ~Framebuffer();
@@ -97,7 +97,7 @@ public:
     Framebuffer& operator=(Framebuffer const& other) = delete;
     Framebuffer& operator=(Framebuffer&& other) noexcept = default;
 
-    static void debug_check(cth::not_null<Framebuffer const*> framebuffer);
+    static void debug_check(Framebuffer const& framebuffer);
     static void debug_check_handle(vk::not_null<VkFramebuffer> vk_framebuffer);
 
 };
@@ -115,9 +115,9 @@ struct Framebuffer::State {
 //debug checks
 
 namespace cth::vk {
-inline void Framebuffer::debug_check(cth::not_null<Framebuffer const*> framebuffer) {
-    CTH_ERR(!framebuffer->created(), "framebuffer must be created") throw details->exception();
-    debug_check_handle(framebuffer->get());
+inline void Framebuffer::debug_check(Framebuffer const& framebuffer) {
+    CTH_ERR(!framebuffer.created(), "framebuffer must be created") throw details->exception();
+    debug_check_handle(framebuffer.get());
 }
 inline void Framebuffer::debug_check_handle([[maybe_unused]] vk::not_null<VkFramebuffer> vk_framebuffer) {}
 

@@ -19,7 +19,7 @@ public:
     struct State;
 
 
-    explicit Sampler(cth::not_null<Core const*> core, Config const& config);
+    explicit Sampler(Core const& core, Config const& config);
     ~Sampler();
 
     void wrap(State const& state);
@@ -47,7 +47,7 @@ public:
     Sampler(Sampler&& other) noexcept = default;
     Sampler& operator=(Sampler&& other) noexcept = default;
 
-    static void debug_check(cth::not_null<Sampler*> sampler);
+    static void debug_check(Sampler& sampler);
     static void debug_check_handle(vk::not_null<VkSampler> sampler);
 };
 }
@@ -89,9 +89,9 @@ struct Sampler::State {
 
 namespace cth::vk {
 
-inline void Sampler::debug_check(cth::not_null<Sampler*> sampler) {
-    CTH_CRITICAL(!sampler->created(), "sampler must be created") {}
-    Sampler::debug_check_handle(sampler->get());
+inline void Sampler::debug_check(Sampler& sampler) {
+    CTH_CRITICAL(!sampler.created(), "sampler must be created") {}
+    Sampler::debug_check_handle(sampler.get());
 }
 inline void Sampler::debug_check_handle(vk::not_null<VkSampler> sampler) {}
 

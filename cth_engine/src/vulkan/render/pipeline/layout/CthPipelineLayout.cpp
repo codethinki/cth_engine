@@ -12,8 +12,8 @@
 //PipelineLayout
 
 namespace cth::vk {
-PipelineLayout::PipelineLayout(cth::not_null<Core const*> core, Builder const& builder) : _core{core},
-    _setLayouts{builder.build(core->physicalDevice()->limits().maxBoundDescriptorSets)} { create(); }
+PipelineLayout::PipelineLayout(Core const& core, Builder const& builder) : _core{&core},
+    _setLayouts{builder.build(core.physicalDevice().limits().maxBoundDescriptorSets)} { create(); }
 PipelineLayout::~PipelineLayout() { optDestroy(); }
 void PipelineLayout::destroy(DeviceTable table, VkPipelineLayout vk_layout) {
     CTH_WARN(vk_layout == VK_NULL_HANDLE, "vk_layout should not be invalid (VK_NULL_HANDLE)") {}

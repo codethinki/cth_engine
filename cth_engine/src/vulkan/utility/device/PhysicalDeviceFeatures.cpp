@@ -24,7 +24,7 @@ PhysicalDeviceFeatures::PhysicalDeviceFeatures(VkPhysicalDeviceFeatures2 const& 
 PhysicalDeviceFeatures::~PhysicalDeviceFeatures() { destroy(); }
 
 auto PhysicalDeviceFeatures::supports(PhysicalDeviceFeatures const& required_features) const -> std::vector<std::variant<size_t, VkStructureType>> {
-    PhysicalDeviceFeatures::debug_check(this);
+    PhysicalDeviceFeatures::debug_check(*this);
     return support(*_features, required_features.features());
 }
 
@@ -65,7 +65,7 @@ auto PhysicalDeviceFeatures::support(VkPhysicalDeviceFeatures const& available_f
     return missingFeatures;
 }
 void PhysicalDeviceFeatures::merge(PhysicalDeviceFeatures const& other) {
-    PhysicalDeviceFeatures::debug_check(this);
+    PhysicalDeviceFeatures::debug_check(*this);
 
 
     if(other.empty()) return;
@@ -87,7 +87,7 @@ void PhysicalDeviceFeatures::destroy() {
 }
 
 void PhysicalDeviceFeatures::merge(VkPhysicalDeviceFeatures const& features) {
-    PhysicalDeviceFeatures::debug_check(this);
+    PhysicalDeviceFeatures::debug_check(*this);
 
     auto const aFlags = to_span(_features->features);
     auto const bFlags = to_span(features);

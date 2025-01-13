@@ -22,9 +22,7 @@ void Stage::create() {
 }
 void Stage::destroy() {}
 void Stage::submit() { _queue->submit(current(_submitInfos)); }
-void Stage::skip() {
-    _queue->skip(current(_submitInfos));
-}
+void Stage::skip() { _queue->skip(current(_submitInfos)); }
 PrimaryCmdBuffer* Stage::begin() {
     auto const buffer = &current(_cmdBuffers);
     buffer->begin();
@@ -33,7 +31,7 @@ PrimaryCmdBuffer* Stage::begin() {
 void Stage::end() { current(_cmdBuffers).end(); }
 
 
-Stage::Stage(cth::not_null<Core*> core, Config config) : _core{core},
+Stage::Stage(Core const& core, Config config) : _core{&core},
     _queue{std::move(config._queue)},
     _renderPass{std::move(config._renderPass)},
     _signalSemaphores{std::move(config._signalSemaphores)},
@@ -43,13 +41,13 @@ Stage::Stage(cth::not_null<Core*> core, Config config) : _core{core},
 }
 
 void Stage::createCmdPool() {
-    _cmdPool = std::make_unique<CmdPool>(_core, CmdPool::Config::Default(_queue->familyIndex(), constants::FRAMES_IN_FLIGHT, 0));
+    _cmdPool = std::make_unique<CmdPool>(*_core, CmdPool::Config::Default(_queue->familyIndex(), constants::FRAMES_IN_FLIGHT, 0));
 }
 void Stage::createCmdBuffers() {
     CTH_CRITICAL(_cmdPool != nullptr, "CmdPool required") {}
 
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; ++i)
-        _cmdBuffers.emplace_back(_cmdPool.get());
+        _cmdBuffers.emplace_back(*_cmdPool);
 }
 
 void Stage::createSubmitInfos() {
@@ -73,9 +71,9 @@ bool Stage::recording() const { return current(_cmdBuffers).recording(); }
 
 
 namespace cth::vk {
-Stage::Config::Config(cth::not_null<Queue const*> queue,
+Stage::Config::Config(Queue const& queue,
     std::unique_ptr<RenderPass> render_pass, std::span<Semaphore* const> signal_groups,
-    std::span<PipelineWaitStage> wait_groups) : _queue{queue}, _renderPass{std::move(render_pass)} {
+    std::span<PipelineWaitStage> wait_groups) : _queue{&queue}, _renderPass{std::move(render_pass)} {
 
     addSignalGroups(signal_groups);
     addWaitGroups(wait_groups);
@@ -85,7 +83,7 @@ Stage::Config& Stage::Config::addSignalGroup(this Config& self, std::span<Semaph
     CTH_CRITICAL(signal_group.size() == Config::GROUP_SIZE, "signal_group size ({0}) == Config::GROUP_SIZE ({1}) required",
         signal_group.size(), Config::GROUP_SIZE){}
 
-    for(auto const semaphore : signal_group) Semaphore::debug_check(semaphore);
+    for(auto const semaphore : signal_group) Semaphore::debug_check(*semaphore);
 
     self._signalSemaphores.append_range(signal_group);
     return self;

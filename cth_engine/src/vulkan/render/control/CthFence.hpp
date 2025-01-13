@@ -19,18 +19,18 @@ public:
     /**
      * @brief base constructor 
      */
-    explicit Fence(cth::not_null<Core const*> core);
+    explicit Fence(Core const& core);
     /**
      * @brief constructs and calls @ref wrap()
-     * @note calls @ref Fence(cth::not_null<Core const*>)
+     * @note calls @ref Fence(Core const&)
      */
-    explicit Fence(cth::not_null<Core const*> core, State const& state);
+    explicit Fence(Core const& core, State const& state);
 
     /**
      * @brief constructs and calls @ref create()
-     * @note calls @ref Fence(cth::not_null<Core const*>)
+     * @note calls @ref Fence(Core const&)
      */
-    explicit Fence(cth::not_null<Core const*> core, VkFenceCreateFlags flags);
+    explicit Fence(Core const& core, VkFenceCreateFlags flags);
 
 
     /**

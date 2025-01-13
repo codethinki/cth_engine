@@ -24,14 +24,14 @@ public:
     /**
      * @param core must be created
      */
-    explicit GraphicsCore(cth::not_null<Core const*> core);
+    explicit GraphicsCore(Core const& core);
 
     /**
      * @brief wraps the state
-     * @note calls @ref GraphicsCore(cth::not_null<Core const*>)
+     * @note calls @ref GraphicsCore(Core const&)
      * @note calls @ref wrap()
      */
-    GraphicsCore(cth::not_null<Core const*> core, State state);
+    GraphicsCore(Core const& core, State state);
 
 
     /**
@@ -39,10 +39,10 @@ public:
      * @param present_queue must be valid
      * @param sync_config must be valid
      * @note calls @ref create()
-     * @note calls @ref GraphicsCore(cth::not_null<Core const*>)
+     * @note calls @ref GraphicsCore(Core const&)
      */
-    GraphicsCore(cth::not_null<Core const*> core, std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
-        cth::not_null<GraphicsSyncConfig const*> sync_config);
+    GraphicsCore(Core const& core, std::string_view window_name, VkExtent2D extent, Queue const& present_queue,
+        GraphicsSyncConfig const& sync_config);
 
     /**
      * @note calls @ref optDestroy()
@@ -54,8 +54,8 @@ public:
      * @brief constructs osWindow, surface and swapchain
      * @note calls @ref optDestroy()
      */
-    void create(std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
-        cth::not_null<GraphicsSyncConfig const*> sync_config);
+    void create(std::string_view window_name, VkExtent2D extent, Queue const& present_queue,
+        GraphicsSyncConfig const& sync_config);
 
     /**
      * @brief wraps the state
@@ -134,7 +134,7 @@ public:
     GraphicsCore& operator=(GraphicsCore const& other) = delete;
     GraphicsCore& operator=(GraphicsCore&& other) noexcept = default;
 
-    static void debug_check(cth::not_null<GraphicsCore const*> graphics_core);
+    static void debug_check(GraphicsCore const& graphics_core);
 };
 }
 
@@ -158,7 +158,7 @@ private:
 //debug check
 
 namespace cth::vk {
-inline void GraphicsCore::debug_check(cth::not_null<GraphicsCore const*> graphics_core) {
-    CTH_CRITICAL(!graphics_core->created(), "graphics core must be created") {}
+inline void GraphicsCore::debug_check(GraphicsCore const& graphics_core) {
+    CTH_CRITICAL(!graphics_core.created(), "graphics core must be created") {}
 }
 }

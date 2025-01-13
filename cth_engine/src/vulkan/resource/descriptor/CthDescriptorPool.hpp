@@ -31,7 +31,7 @@ public:
     * @param builder [layout, count] pairs -> limit for allocated sets per layout
     * @throws cth::vk::result_exception data: VkResult of vkCreateDescriptorPool()
     */
-    DescriptorPool(cth::not_null<Core const*> device, Builder const& builder);
+    DescriptorPool(Core const& core, Builder const& builder);
     ~DescriptorPool();
     /**
      * @note descriptor sets are not required to stay valid

@@ -76,13 +76,13 @@ private:
 public:
     [[nodiscard]] bool created() const { return _device != nullptr && _physicalDevice != nullptr && _instance != nullptr; }
 
-    [[nodiscard]] Device const* device() const;
+    [[nodiscard]] Device const& device() const;
     [[nodiscard]] DeviceTable deviceTable() const;
     [[nodiscard]] VolkDeviceTable const* functions() const;
     [[nodiscard]] VkDevice vkDevice() const;
-    [[nodiscard]] PhysicalDevice const* physicalDevice() const;
+    [[nodiscard]] PhysicalDevice const& physicalDevice() const;
     [[nodiscard]] VkPhysicalDevice vkPhysicalDevice() const;
-    [[nodiscard]] Instance const* instance() const;
+    [[nodiscard]] Instance const& instance() const;
     [[nodiscard]] VkInstance vkInstance() const;
     [[nodiscard]] DestructionQueue* destructionQueue() const;
 
@@ -91,7 +91,7 @@ public:
     Core& operator=(Core const& other) = delete;
     Core& operator=(Core&& other) noexcept = default;
 
-    static void debug_check(cth::not_null<Core const*> core);
+    static void debug_check(Core const& core);
 };
 
 
@@ -147,7 +147,7 @@ struct Core::Config {
 
 namespace cth::vk {
 
-inline void Core::debug_check(cth::not_null<Core const*> core) {
-    CTH_CRITICAL(!core->created(), "core must be created") {}
+inline void Core::debug_check(Core const& core) {
+    CTH_CRITICAL(!core.created(), "core must be created") {}
 }
 }

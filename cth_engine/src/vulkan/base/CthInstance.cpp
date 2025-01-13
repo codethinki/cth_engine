@@ -85,7 +85,7 @@ void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
     _handle = ptr;
     loadInstanceFunctions(ptr);
 
-    if(messenger_config != std::nullopt) _debugMessenger = std::make_unique<DebugMessenger>(*messenger_config, this);
+    if(messenger_config != std::nullopt) _debugMessenger = std::make_unique<DebugMessenger>(*messenger_config, *this);
 }
 void Instance::destroy() {
     if(_debugMessenger) _debugMessenger = nullptr;

@@ -37,21 +37,21 @@ public:
     /**
      * @brief base constructor
      */
-    AttachmentCollection(cth::not_null<Core const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
+    AttachmentCollection(Core const& core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description);
 
     /**
      * @brief initializes the collection and creates it
      * @note calls @ref create()
      */
-    AttachmentCollection(cth::not_null<Core const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
+    AttachmentCollection(Core const& core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description, VkExtent2D extent);
 
     /**
      * @brief initializes the collection and wraps the state
      * @note calls @ref wrap()
      */
-    AttachmentCollection(cth::not_null<Core const*> core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
+    AttachmentCollection(Core const& core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
         AttachmentDescription const& description, State state);
 
 
@@ -125,7 +125,7 @@ public:
     AttachmentCollection& operator=(AttachmentCollection const& other) = delete;
     AttachmentCollection& operator=(AttachmentCollection&& other) noexcept = default;
 
-    static void debug_check(cth::not_null<AttachmentCollection const*> collection);
+    static void debug_check(AttachmentCollection const& collection);
 };
 
 }
@@ -168,7 +168,7 @@ struct AttachmentCollection::State {
 //debug checks
 
 namespace cth::vk {
-inline void AttachmentCollection::debug_check(cth::not_null<AttachmentCollection const*> collection) {
-    CTH_CRITICAL(!collection->created(), "collection must have been created") throw details->exception();
+inline void AttachmentCollection::debug_check(AttachmentCollection const& collection) {
+    CTH_CRITICAL(!collection.created(), "collection must have been created") throw details->exception();
 }
 }

@@ -27,13 +27,13 @@ public:
     /**
      * @param core must be valid
      */
-    Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags vk_properties);
+    Memory(Core const& core, VkMemoryPropertyFlags vk_properties);
 
     /**
      * @param core must not be nullptr
      * @note calls @ref alloc();
      */
-    Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags properties, VkMemoryRequirements const& vk_requirements);
+    Memory(Core const& core, VkMemoryPropertyFlags properties, VkMemoryRequirements const& vk_requirements);
     ~Memory();
 
     /**

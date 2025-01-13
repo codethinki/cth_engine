@@ -9,7 +9,7 @@ class Semaphore;
 class Phase {
 public:
     struct Config;
-    Phase(cth::not_null<Core const*> core, std::span<Stage::Config> config);
+    Phase(Core const& core, std::span<Stage::Config> config);
 
 
    // PrimaryCmdBuffer* begin(size_t cycle_sub_index); TEMP remove

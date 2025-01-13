@@ -14,21 +14,21 @@ using std::unique_ptr;
 
 
 
-PhysicalDevice::PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures required_features,
+PhysicalDevice::PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures required_features,
     std::span<std::string const> required_extensions) :
-    _instance{(instance.get())}, _requiredFeatures{std::move(required_features)},
+    _instance{&instance}, _requiredFeatures{std::move(required_features)},
     _requiredExtensions{std::from_range, required_extensions} {}
 
-PhysicalDevice::PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+PhysicalDevice::PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures const& required_features,
     std::span<std::string const> required_extensions, Surface const& surface, vk::not_null<VkPhysicalDevice> vk_device) : PhysicalDevice{instance,
     required_features, required_extensions} { create(surface, vk_device); }
 
-PhysicalDevice::PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+PhysicalDevice::PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures const& required_features,
     std::span<std::string const> required_extensions, State const& state) : PhysicalDevice{instance, required_features,
     required_extensions} { wrap(state); }
 
 
-std::optional<PhysicalDevice> PhysicalDevice::Create(cth::not_null<Instance const*> instance, Surface const& surface,
+std::optional<PhysicalDevice> PhysicalDevice::Create(Instance const& instance, Surface const& surface,
     std::span<Queue const> queues, std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features,
     vk::not_null<VkPhysicalDevice> vk_device) {
 
@@ -60,7 +60,7 @@ void PhysicalDevice::wrap(State const& state) {
     _queueFamilies = state.queueFamilies;
 
 }
-void PhysicalDevice::create(Surface const& surface, cth::not_null<VkPhysicalDevice> vk_device) {
+void PhysicalDevice::create(Surface const& surface, not_null<VkPhysicalDevice> vk_device) {
     PhysicalDevice::debug_check_handle(vk_device);
 
     _handle = vk_device.get();
@@ -74,7 +74,7 @@ void PhysicalDevice::create(Surface const& surface, cth::not_null<VkPhysicalDevi
 
 
 bool PhysicalDevice::suitable(std::span<Queue const> queues) {
-    PhysicalDevice::debug_check(this);
+    PhysicalDevice::debug_check(*this);
 
     auto const missingFeatures = supports(_requiredFeatures);
     auto const missingExtensions = supports(_requiredExtensions);
@@ -96,11 +96,11 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
 }
 
 
-auto PhysicalDevice::AutoPick(cth::not_null<Instance const*> instance, std::span<Queue const> queues, span<std::string const> required_extensions,
+auto PhysicalDevice::AutoPick(Instance const& instance, std::span<Queue const> queues, span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features) -> unique_ptr<PhysicalDevice> {
     Instance::debug_check(instance);
 
-    auto const devices = enumerateVkDevices(instance->get());
+    auto const devices = enumerateVkDevices(instance.get());
 
     auto joinView = ranges::views::concat(required_extensions, constants::REQUIRED_DEVICE_EXTENSIONS);
     vector<std::string> requiredExtensions{std::ranges::begin(joinView), std::ranges::end(joinView)};
@@ -126,7 +126,7 @@ auto PhysicalDevice::AutoPick(cth::not_null<Instance const*> instance, std::span
 
 
 auto PhysicalDevice::supports(utils::PhysicalDeviceFeatures const& required_features) const -> std::vector<std::variant<size_t, VkStructureType>> {
-    PhysicalDevice::debug_check(this);
+    PhysicalDevice::debug_check(*this);
 
     return _features.supports(required_features);
 }
@@ -143,7 +143,7 @@ auto PhysicalDevice::supports(std::span<std::string const> required_extensions) 
 }
 
 uint32_t PhysicalDevice::findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags mem_properties) const {
-    PhysicalDevice::debug_check(this);
+    PhysicalDevice::debug_check(*this);
 
     for(uint32_t i = 0; i < _memProperties.memoryTypeCount; i++)
         if((type_filter & (1 << i)) && (_memProperties.memoryTypes[i].propertyFlags & mem_properties) == mem_properties)
@@ -154,7 +154,7 @@ uint32_t PhysicalDevice::findMemoryType(uint32_t type_filter, VkMemoryPropertyFl
 
 auto PhysicalDevice::findSupportedFormat(span<VkFormat const> candidates, VkImageTiling tiling,
     VkFormatFeatureFlags features) const -> VkFormat {
-    PhysicalDevice::debug_check(this);
+    PhysicalDevice::debug_check(*this);
 
     for(VkFormat const format : candidates) {
         VkFormatProperties props;
@@ -167,7 +167,7 @@ auto PhysicalDevice::findSupportedFormat(span<VkFormat const> candidates, VkImag
 }
 
 auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vector<uint32_t> {
-    PhysicalDevice::debug_check(this);
+    PhysicalDevice::debug_check(*this);
 
     vector<vector<uint32_t>> queueIndices{queues.size()};
 
@@ -187,7 +187,7 @@ auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vecto
     return result;
 }
 bool PhysicalDevice::supportsQueueSet(span<Queue const> queues) const {
-    PhysicalDevice::debug_check(this);
+    PhysicalDevice::debug_check(*this);
 
     return !queueFamilyIndices(queues).empty();
 }

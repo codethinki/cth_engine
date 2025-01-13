@@ -21,21 +21,21 @@ public:
      * @brief base constructor
      * @param core must be created
      */
-    ImageView(cth::not_null<Core const*> core, Config const& config);
+    ImageView(Core const& core, Config const& config);
 
     /**
      * @brief constructs and creates
      * @note calls @ref create()
-     * @note calls @ref ImageView(cth::not_null<Core const*>, Config const&)
+     * @note calls @ref ImageView(Core const&, Config const&)
      */
-    ImageView(cth::not_null<Core const*> core, Config const& config, cth::not_null<Image const*> image);
+    ImageView(Core const& core, Config const& config, Image const& image);
 
     /**
      * @brief constructs and wraps state
      * @note calls @ref wrap();
-     * @note calls @ref ImageView(cth::not_null<Core const*>, Config const&)
+     * @note calls @ref ImageView(Core const&, Config const&)
      */
-    ImageView(cth::not_null<Core const*> core, Config const& config, State const& state);
+    ImageView(Core const& core, Config const& config, State const& state);
 
     /**
      * @note calls @ref optDestroy()
@@ -48,7 +48,7 @@ public:
      * @param image requires Image::created()
      * @note calls @ref optDestroy()
      */
-    void create(cth::not_null<Image const*> image);
+    void create(Image const& image);
 
     /**
      * @brief wraps the state with object

@@ -20,19 +20,19 @@ public:
     /**
      * @brief base constructor
      */
-    explicit GraphicsSyncConfig(cth::not_null<Core const*> core);
+    explicit GraphicsSyncConfig(Core const& core);
 
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
      */
-    GraphicsSyncConfig(cth::not_null<Core const*> core, State state);
+    GraphicsSyncConfig(Core const& core, State state);
 
     /**
      * @brief constructs and creates if create
     * @note may call @ref create()
      */
-    GraphicsSyncConfig(cth::not_null<Core const*> core, bool create);
+    GraphicsSyncConfig(Core const& core, bool create);
 
     /**
      * @note calls @ref optDestroy()
@@ -47,7 +47,7 @@ public:
     /**
      * @brief creates the semaphores
      * @note calls @ref optDestroy()
-     * @note calls @ref Semaphore::Semaphore(cth::not_null<Core const*>, bool) i.e. create constructor
+     * @note calls @ref Semaphore::Semaphore(Core const&, bool) i.e. create constructor
      */
     void create();
 
@@ -101,7 +101,7 @@ public:
     GraphicsSyncConfig(GraphicsSyncConfig&& other) noexcept = default;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig&& other) noexcept = default;
 
-    static void debug_check(cth::not_null<GraphicsSyncConfig const*> config);
+    static void debug_check(GraphicsSyncConfig const& config);
 };
 }
 
@@ -130,7 +130,7 @@ private:
 //debug checks
 
 namespace cth::vk {
-inline void GraphicsSyncConfig::debug_check(not_null<GraphicsSyncConfig const*> config) {
-    CTH_CRITICAL(!config->created(), "config not created"){}
+inline void GraphicsSyncConfig::debug_check(GraphicsSyncConfig const& config) {
+    CTH_CRITICAL(!config.created(), "config not created"){}
 }
 }

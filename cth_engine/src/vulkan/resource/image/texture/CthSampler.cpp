@@ -9,7 +9,7 @@
 
 namespace cth::vk {
 
-Sampler::Sampler(cth::not_null<Core const*> core, Config const& config) : _core(core) { create(config); }
+Sampler::Sampler(Core const& core, Config const& config) : _core{&core} { create(config); }
 Sampler::~Sampler() { optDestroy(); }
 void Sampler::wrap(State const& state) {
     optDestroy();
@@ -35,7 +35,7 @@ void Sampler::create(Config const& config) {
 
 
 void Sampler::destroy() {
-    Sampler::debug_check(this);
+    Sampler::debug_check(*this);
 
     auto const lambda = [table = _core->deviceTable(), sampler = _handle.get()] { Sampler::destroy(table, sampler); };
 

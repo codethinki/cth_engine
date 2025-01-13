@@ -13,7 +13,7 @@ SubmitInfo::SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffers, std
     _cmdBuffers.resize(cmd_buffers.size());
 
     std::ranges::transform(cmd_buffers, _cmdBuffers.begin(), [](PrimaryCmdBuffer const* cmd_buffer) {
-        CmdBuffer::debug_check(cmd_buffer);
+        CmdBuffer::debug_check(*cmd_buffer);
         return cmd_buffer->get();
     });
 
@@ -86,7 +86,7 @@ void SubmitInfo::initWait(std::span<PipelineWaitStage const> wait_stages) {
     stages.reserve(wait_stages.size());
 
     for(auto& waitStage : wait_stages) {
-        Semaphore::debug_check(waitStage.semaphore);
+        Semaphore::debug_check(*waitStage.semaphore);
         auto semaphore = dynamic_cast<TimelineSemaphore const*>(waitStage.semaphore);
         if(semaphore == nullptr) stages.push_back(waitStage);
         else {
@@ -112,7 +112,7 @@ void SubmitInfo::initSignal(std::span<Semaphore* const> signal_semaphores) {
     semaphores.reserve(signal_semaphores.size());
 
     for(auto& signalSemaphore : signal_semaphores) {
-        Semaphore::debug_check(signalSemaphore);
+        Semaphore::debug_check(*signalSemaphore);
         auto semaphore = dynamic_cast<TimelineSemaphore*>(signalSemaphore);
         if(!semaphore) semaphores.push_back(signalSemaphore->get());
         else {

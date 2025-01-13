@@ -27,19 +27,19 @@ public:
     /**
      * @brief base constructor
      */
-    explicit Image(cth::not_null<Core const*> core, Config const& config);
+    explicit Image(Core const& core, Config const& config);
 
     /**
      * @brief constructs and calls @ref create()
-     * @note calls @ref Image::Image(cth::not_null<Core const*>, Config const&)
+     * @note calls @ref Image::Image(Core const&, Config const&)
      */
-    Image(cth::not_null<Core const*> core, Config const& config, VkExtent2D extent);
+    Image(Core const& core, Config const& config, VkExtent2D extent);
 
     /**
      * @brief constructs and calls @ref wrap(State const&)
-     * @note calls @ref Image::Image(cth::not_null<Core const*>, Config const&)
+     * @note calls @ref Image::Image(Core const&, Config const&)
      */
-    Image(cth::not_null<Core const*> core, Config const& config, State state);
+    Image(Core const& core, Config const& config, State state);
 
     /**
      * @brief calls @ref optDestroy()
@@ -121,7 +121,7 @@ public:
     };
 
 protected:
-    [[nodiscard]] cth::not_null<Core const*> core() const { return _core; }
+    [[nodiscard]] Core const& core() const { return *_core; }
     std::vector<VkImageLayout> _levelLayouts;
 
 private:
@@ -178,7 +178,7 @@ public:
     Image(Image&& other) noexcept = default;
     Image& operator=(Image&& other) noexcept = default;
 
-    static void debug_check(cth::not_null<Image const*> image);
+    static void debug_check(Image const& image);
     static void debug_check_handle(vk::not_null<VkImage> vk_image);
 };
 
@@ -215,9 +215,9 @@ struct Image::State {
 //debug checks
 
 namespace cth::vk {
-inline void Image::debug_check(cth::not_null<Image const*> image) {
-    CTH_CRITICAL(!image->created(), "image must be created") {}
-    debug_check_handle(image->get());
+inline void Image::debug_check(Image const& image) {
+    CTH_CRITICAL(!image.created(), "image must be created") {}
+    debug_check_handle(image.get());
 }
 inline void Image::debug_check_handle([[maybe_unused]] vk::not_null<VkImage> vk_image) {}
 }

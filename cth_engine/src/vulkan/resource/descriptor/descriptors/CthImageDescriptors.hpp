@@ -30,16 +30,16 @@ class StorageImageDescriptor : public ImageDescriptor {
 public:
     static constexpr VkDescriptorType TYPE = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
-    explicit StorageImageDescriptor(ImageView const* image_view) : ImageDescriptor(TYPE,
-        VkDescriptorImageInfo{VK_NULL_HANDLE, image_view->get(), image_view->image()->layout(0)}) {}
+    explicit StorageImageDescriptor(ImageView const& image_view) : ImageDescriptor(TYPE,
+        VkDescriptorImageInfo{VK_NULL_HANDLE, image_view.get(), image_view.image()->layout(0)}) {}
 };
 
 class TextureDescriptor : public ImageDescriptor {
 public:
     static constexpr VkDescriptorType TYPE = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
-    explicit TextureDescriptor(ImageView const* image_view, Sampler const* sampler) : ImageDescriptor(TYPE,
-        VkDescriptorImageInfo{sampler->get(), image_view->get(), image_view->image()->layout(0)}) {}
+    explicit TextureDescriptor(ImageView const& image_view, Sampler const& sampler) : ImageDescriptor(TYPE,
+        VkDescriptorImageInfo{sampler.get(), image_view.get(), image_view.image()->layout(0)}) {}
 };
 
 

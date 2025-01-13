@@ -31,7 +31,7 @@ public:
      * @brief base constructor
      * @param instance @ref Instance::created() required
      */
-    explicit PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures required_features,
+    explicit PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures required_features,
         std::span<std::string const> required_extensions);
 
     /**
@@ -39,7 +39,7 @@ public:
      * @note calls @ref PhysicalDevice(Instance*, utils::PhysicalDeviceFeatures, std::span<std::string const>, Surface const&)
      * @note calls @ref create()
      */
-    explicit PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+    explicit PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures const& required_features,
         std::span<std::string const> required_extensions, Surface const& surface, vk::not_null<VkPhysicalDevice> vk_device);
 
     /**
@@ -47,7 +47,7 @@ public:
      * @note calls @ref PhysicalDevice(Instance*, utils::PhysicalDeviceFeatures, std::span<std::string const>, Surface const&)
      * @note calls @ref wrap(State const&)
      */
-    explicit PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+    explicit PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures const& required_features,
         std::span<std::string const> required_extensions, State const& state);
 
 
@@ -57,7 +57,7 @@ public:
      * @param queues passed to @ref suitable()
      * @return if @ref suitable() returns instance, else nullopt
      */
-    static std::optional<PhysicalDevice> Create(cth::not_null<Instance const*> instance, Surface const& surface, std::span<Queue const> queues,
+    static std::optional<PhysicalDevice> Create(Instance const& instance, Surface const& surface, std::span<Queue const> queues,
         std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features,
         vk::not_null<VkPhysicalDevice> vk_device);
 
@@ -77,7 +77,7 @@ public:
      * @note calls @ref getMemoryProperties()
      * @note calls @ref getQueueFamilyProperties()
      */
-    void create(Surface const& surface, cth::not_null<VkPhysicalDevice> vk_device);
+    void create(Surface const& surface, not_null<VkPhysicalDevice> vk_device);
 
     /**
      * @brief enumerates all available devices and picks one that fits the requirements
@@ -88,7 +88,7 @@ public:
      * @link cth::vk::constants::REQUIRED_DEVICE_FEATURES
      * @link cth::vk::constants::REQUIRED_DEVICE_EXTENSIONS
      */
-    [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(cth::not_null<Instance const*> instance, std::span<Queue const> queues,
+    [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(Instance const& instance, std::span<Queue const> queues,
         std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features);
 
 
@@ -177,7 +177,7 @@ public:
     PhysicalDevice& operator=(PhysicalDevice const& other) = delete;
     PhysicalDevice& operator=(PhysicalDevice&& other) noexcept = default;
 
-    static void debug_check(cth::not_null<PhysicalDevice const*> device);
+    static void debug_check(PhysicalDevice const& device);
     static void debug_check_handle(vk::not_null<VkPhysicalDevice> vk_device);
 };
 }
@@ -206,9 +206,9 @@ struct PhysicalDevice::State {
 //debug checks
 
 namespace cth::vk {
-inline void PhysicalDevice::debug_check(cth::not_null<PhysicalDevice const*> device) {
-    CTH_CRITICAL(!device->created(), "physical device must be created") {}
-    debug_check_handle(device->get());
+inline void PhysicalDevice::debug_check(PhysicalDevice const& device) {
+    CTH_CRITICAL(!device.created(), "physical device must be created") {}
+    debug_check_handle(device.get());
 }
 inline void PhysicalDevice::debug_check_handle([[maybe_unused]] vk::not_null<VkPhysicalDevice> vk_device) {}
 

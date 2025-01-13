@@ -10,7 +10,7 @@
 namespace cth::vk {
 using std::vector;
 
-Renderer::Renderer(cth::not_null<Core const*> core, Config const& config) : _core(core),
+Renderer::Renderer(Core const& core, Config const& config) : _core{&core},
     _queues(config.queues()) { init(config); }
 Renderer::~Renderer() {
 
@@ -46,16 +46,16 @@ void Renderer::init(Config const& config) {
 
 void Renderer::createCmdPools() {
     for(size_t i = PHASES_FIRST; i < PHASES_SIZE; ++i)
-        _cmdPools[i] = std::make_unique<CmdPool>(_core, CmdPool::Config::Default(_queues[i]->familyIndex(), constants::FRAMES_IN_FLIGHT + 1, 0), true);
+        _cmdPools[i] = std::make_unique<CmdPool>(*_core, CmdPool::Config::Default(_queues[i]->familyIndex(), constants::FRAMES_IN_FLIGHT + 1, 0), true);
 }
 void Renderer::createPrimaryCmdBuffers() {
     for(size_t i = PHASES_FIRST; i < PHASES_SIZE; ++i)
         for(size_t j = 0; j < constants::FRAMES_IN_FLIGHT; ++j)
-            _cmdBuffers[i * PHASES_SIZE + j] = std::make_unique<PrimaryCmdBuffer>(_cmdPools[i].get());
+            _cmdBuffers[i * PHASES_SIZE + j] = std::make_unique<PrimaryCmdBuffer>(*_cmdPools[i]);
 }
 void Renderer::createSyncObjects() {
     for(auto& semaphore : _semaphores)
-        semaphore = std::make_unique<TimelineSemaphore>(_core, true);
+        semaphore = std::make_unique<TimelineSemaphore>(*_core, true);
 }
 
 
@@ -100,13 +100,12 @@ void Renderer::createSubmitInfos(Config config) {
 //Config
 
 namespace cth::vk {
-Renderer::Config Renderer::Config::Render(Queue const* graphics_queue,
-    GraphicsSyncConfig const* sync_config) {
+Renderer::Config Renderer::Config::Render(Queue const& graphics_queue, GraphicsSyncConfig const& sync_config) {
     Config config{};
     config.addQueue<PHASE_TRANSFER>(graphics_queue)
           .addQueue<PHASE_GRAPHICS>(graphics_queue)
-          .addWaitSets<PHASE_GRAPHICS>(sync_config->imageAvailableSemaphores(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)
-          .addSignalSets<PHASES_LAST>(sync_config->renderFinishedSemaphores());
+          .addWaitSets<PHASE_GRAPHICS>(sync_config.imageAvailableSemaphores(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)
+          .addSignalSets<PHASES_LAST>(sync_config.renderFinishedSemaphores());
     return config;
 } 
 

@@ -9,7 +9,7 @@
 
 namespace cth::vk {
 
-ImageBarrier::ImageBarrier(cth::not_null<Core const*> core, PipelineStages stages,
+ImageBarrier::ImageBarrier(Core const& core, PipelineStages stages,
     std::unordered_map<Image*, Info> const& images) : ImageBarrier{core, stages} { init(images); }
 
 void ImageBarrier::add(Image* image, Info const& info) {
@@ -59,7 +59,7 @@ void ImageBarrier::remove(Image const* image) {
     removeChange(index);
 }
 void ImageBarrier::execute(CmdBuffer const& cmd_buffer) {
-    core()->functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr, 0, nullptr,
+    core().functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr, 0, nullptr,
         static_cast<uint32_t>(_imageBarriers.size()), _imageBarriers.data());
     applyChanges();
 }
@@ -97,7 +97,7 @@ void ImageBarrier::init(std::unordered_map<Image*, ImageBarrier::Info> const& im
 
 namespace cth::vk {
 
-BufferBarrier::BufferBarrier(cth::not_null<Core const*> core, PipelineStages stages, std::unordered_map<BaseBuffer const*, Info> const& buffers) : BufferBarrier{core, stages} {
+BufferBarrier::BufferBarrier(Core const& core, PipelineStages stages, std::unordered_map<BaseBuffer const*, Info> const& buffers) : BufferBarrier{core, stages} {
     init(buffers);
 }
 
@@ -125,7 +125,7 @@ void BufferBarrier::remove(BaseBuffer const* buffer) {
     _buffers.erase(index);
 }
 void BufferBarrier::execute(CmdBuffer const& cmd_buffer) {
-    core()->functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr, static_cast<uint32_t>(_bufferBarriers.size()), _bufferBarriers.data(),
+    core().functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr, static_cast<uint32_t>(_bufferBarriers.size()), _bufferBarriers.data(),
         0,
         nullptr);
 }
@@ -139,12 +139,12 @@ void BufferBarrier::init(std::unordered_map<BaseBuffer const*, Info> const& buff
 
 namespace cth::vk {
 
-PipelineBarrier::PipelineBarrier(cth::not_null<Core const*> core, PipelineStages stages, std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
+PipelineBarrier::PipelineBarrier(Core const& core, PipelineStages stages, std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
     std::unordered_map<Image*, ImageBarrier::Info> const& images) : BarrierBase{core, stages}, BufferBarrier{core, stages, buffers}, ImageBarrier{core, stages, images}{}
 
 void PipelineBarrier::execute(CmdBuffer const& cmd_buffer) {
 
-    core()->functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr,
+    core().functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr,
         static_cast<uint32_t>(_bufferBarriers.size()), _bufferBarriers.data(),
         static_cast<uint32_t>(_imageBarriers.size()), _imageBarriers.data());
 

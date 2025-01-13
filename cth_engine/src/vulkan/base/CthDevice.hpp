@@ -30,21 +30,21 @@ public:
      * @param instance @ref Instance::created() required
      * @param physical_device @ref PhysicalDevice::created() required
      */
-    explicit Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device);
+    explicit Device(Instance const& instance, PhysicalDevice const& physical_device);
 
     /**
      * @brief constructs and wraps
-     * @note calls @ref Device(cth::not_null<Instance const*>, cth::not_null<PhysicalDevice const*>)
+     * @note calls @ref Device(Instance const&, PhysicalDevice const&)
      * @note calls @ref wrap(State)
      */
-    explicit Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, State state);
+    explicit Device(Instance const& instance, PhysicalDevice const& physical_device, State state);
 
     /**
      * @brief constructs and creates
-     * @note calls @ref Device(cth::not_null<Instance const*>, cth::not_null<PhysicalDevice const*>)
+     * @note calls @ref Device(Instance const&, PhysicalDevice const&)
      * @note calls @ref create(std::span<Queue>)
      */
-    explicit Device(cth::not_null<Instance const*> instance, cth::not_null<PhysicalDevice const*> physical_device, std::span<Queue> queues);
+    explicit Device(Instance const& instance, PhysicalDevice const& physical_device, std::span<Queue> queues);
 
     /**
      * @note calls @ref optDestroy()
@@ -139,7 +139,7 @@ public:
     Device& operator=(Device const& other) = delete;
     Device& operator=(Device&& other) noexcept = default;
 
-    static void debug_check(cth::not_null<Device const*> device);
+    static void debug_check(Device const& device);
     static void debug_check_handle(vk::not_null<VkDevice> vk_device);
 };
 } // namespace cth
@@ -160,9 +160,9 @@ struct Device::State {
 //debug checks
 
 namespace cth::vk {
-inline void Device::debug_check(cth::not_null<Device const*> device) {
-    CTH_CRITICAL(!device->created(), "device must be created") {}
-    debug_check_handle(device->get());
+inline void Device::debug_check(Device const& device) {
+    CTH_CRITICAL(!device.created(), "device must be created") {}
+    debug_check_handle(device.get());
 }
 inline void Device::debug_check_handle([[maybe_unused]] vk::not_null<VkDevice> vk_device) {}
 }

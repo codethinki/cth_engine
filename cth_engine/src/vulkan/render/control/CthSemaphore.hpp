@@ -18,19 +18,19 @@ public:
     /**
      * @brief base constructor
      */
-    explicit Semaphore(cth::not_null<Core const*> core);
+    explicit Semaphore(Core const& core);
 
     /**
      * @brief constructs and calls @ref wrap(State const&)
      * @note calls @ref Semaphore::Semaphore(not_null<Core const*>)
      */
-    Semaphore(cth::not_null<Core const*> core, State const& state);
+    Semaphore(Core const& core, State const& state);
 
     /**
      * @brief constructs and calls @ref create()
      * @note calls @ref Semaphore::Semaphore(not_null<Core const*>)
      */
-    explicit Semaphore(cth::not_null<Core const*> core, bool create);
+    explicit Semaphore(Core const& core, bool create);
 
     virtual ~Semaphore() { optDestroy(); }
 
@@ -93,7 +93,7 @@ public:
     Semaphore& operator=(Semaphore&& other) = default;
 
 
-    static void debug_check(cth::not_null<Semaphore const*> semaphore);
+    static void debug_check(Semaphore const& semaphore);
 };
 
 }
@@ -107,8 +107,8 @@ struct Semaphore::State {
 //debug checks
 
 namespace cth::vk {
-inline void Semaphore::debug_check(cth::not_null<Semaphore const*> semaphore) {
-    CTH_CRITICAL(!semaphore->created(), "semaphore must be created") {}
+inline void Semaphore::debug_check(Semaphore const& semaphore) {
+    CTH_CRITICAL(!semaphore.created(), "semaphore must be created") {}
 }
 
 }

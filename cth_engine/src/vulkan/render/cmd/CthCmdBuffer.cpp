@@ -54,15 +54,15 @@ void CmdBuffer::destroy(DeviceTable table, vk::not_null<VkCommandPool> vk_pool, 
     table->vkFreeCommandBuffers(table.device(), vk_pool.get(), 1, &buffer);
 }
 
-void CmdBuffer::create(this auto&& self, cth::not_null<CmdPool*> pool) {
+void CmdBuffer::create(this auto&& self, CmdPool& pool) {
     self.optDestroy();
-    self._pool = pool.get();
-    self._deviceTable = pool->core()->deviceTable();
+    self._pool = &pool;
+    self._deviceTable = pool.core().deviceTable();
     self._handle = self._pool->template newCmdBuffer<type::pure_t<decltype(self)>>();
 }
 
 void CmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
-    auto const result = _pool->core()->deviceTable()->vkBeginCommandBuffer(_handle.get(), &info);
+    auto const result = _pool->core().deviceTable()->vkBeginCommandBuffer(_handle.get(), &info);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to begin command buffer")
         throw vk::result_exception{result, details->exception()};
@@ -84,7 +84,7 @@ void CmdBuffer::reset() {
 
 namespace cth::vk {
 
-PrimaryCmdBuffer::PrimaryCmdBuffer(cth::not_null<CmdPool*> cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{usage} { create(cmd_pool); }
+PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{usage} { create(cmd_pool); }
 
 PrimaryCmdBuffer::~PrimaryCmdBuffer() { destroy(); }
 void PrimaryCmdBuffer::begin() {
@@ -106,7 +106,7 @@ void PrimaryCmdBuffer::begin() {
 namespace cth::vk {
 SecondaryCmdBuffer::SecondaryCmdBuffer(Config const& config, VkCommandBufferUsageFlags usage) : CmdBuffer{usage},
     _inheritanceInfo{config.inheritanceInfo()} {}
-SecondaryCmdBuffer::SecondaryCmdBuffer(cth::not_null<PrimaryCmdBuffer*> primary, Config const& config,
+SecondaryCmdBuffer::SecondaryCmdBuffer(PrimaryCmdBuffer& primary, Config const& config,
     VkCommandBufferUsageFlags usage) : SecondaryCmdBuffer{config, usage} { create(primary); }
 
 void SecondaryCmdBuffer::begin() {
@@ -118,9 +118,9 @@ void SecondaryCmdBuffer::begin() {
     };
     CmdBuffer::begin(info);
 }
-void SecondaryCmdBuffer::create(cth::not_null<PrimaryCmdBuffer*> primary) {
-    _primary = primary.get();
-    CmdBuffer::create(primary->pool());
+void SecondaryCmdBuffer::create(PrimaryCmdBuffer& primary) {
+    _primary = &primary;
+    CmdBuffer::create(primary.pool());
 }
 
 

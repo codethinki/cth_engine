@@ -5,9 +5,9 @@
 
 
 namespace cth::vk {
-TimelineSemaphore::TimelineSemaphore(cth::not_null<Core const*> core) : Semaphore{core} {}
-TimelineSemaphore::TimelineSemaphore(cth::not_null<Core const*> core, State const& state) : TimelineSemaphore{core} { wrap(state); }
-TimelineSemaphore::TimelineSemaphore(cth::not_null<Core const*> core, bool create) : TimelineSemaphore{core} {
+TimelineSemaphore::TimelineSemaphore(Core const& core) : Semaphore{core} {}
+TimelineSemaphore::TimelineSemaphore(Core const& core, State const& state) : TimelineSemaphore{core} { wrap(state); }
+TimelineSemaphore::TimelineSemaphore(Core const& core, bool create) : TimelineSemaphore{core} {
     if(create) Semaphore::createHandle(TimelineSemaphore::createInfo());
 }
 
@@ -40,7 +40,7 @@ void TimelineSemaphore::signal() {
         throw vk::result_exception{result, details->exception()};
 }
 VkResult TimelineSemaphore::wait(uint64_t nanoseconds) const {
-    debug_check(this);
+    debug_check(*this);
 
     auto const handle = get();
 

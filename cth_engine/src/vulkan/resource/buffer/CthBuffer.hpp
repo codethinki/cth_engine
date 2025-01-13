@@ -10,23 +10,23 @@ public:
     /**
      * @brief base constructor
      * @param element_count of T
-     * @note calls @ref BaseBuffer(cth::not_null<Core const*>, size_t, VkBufferUsageFlags)
+     * @note calls @ref BaseBuffer(Core const&, size_t, VkBufferUsageFlags)
      */
-    Buffer(cth::not_null<Core const*> core, size_t element_count, VkBufferUsageFlags usage_flags);
+    Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags);
 
     /**
      * @brief constructs and wraps
-     * @note calls @ref Buffer(cth::not_null<Core const*>, size_t, VkBufferUsageFlags)
+     * @note calls @ref Buffer(Core const&, size_t, VkBufferUsageFlags)
      * @note calls @ref BaseBuffer::wrap()
      */
-    Buffer(cth::not_null<Core const*> core, size_t element_count, VkBufferUsageFlags usage_flags, State state);
+    Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags, State state);
 
     /**
      * @brief constructs and creates
-     * @note calls @ref Buffer(cth::not_null<Core const*>, size_t, VkBufferUsageFlags)
+     * @note calls @ref Buffer(Core const&, size_t, VkBufferUsageFlags)
      * @note calls @ref BaseBuffer::create()
      */
-    Buffer(cth::not_null<Core const*> core, size_t element_count, VkBufferUsageFlags usage_flags,
+    Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags,
         VkMemoryPropertyFlags memory_property_flags);
 
 

@@ -12,17 +12,17 @@
 
 namespace cth::vk {
 
-CmdPool::CmdPool(cth::not_null<Core const*> core, Config const& config) : _core{core}, _flags{config.flags},
+CmdPool::CmdPool(Core const& core, Config const& config) : _core{&core}, _flags{config.flags},
     _queueFamilyIndex{config.queueFamilyIndex} {
-    Core::debug_check(_core);
+    Core::debug_check(core);
 
     _maxBuffers[BUFFER_TYPE_PRIMARY] = config.maxPrimaryBuffers;
     _maxBuffers[BUFFER_TYPE_SECONDARY] = config.maxSecondaryBuffers;
 
     for(size_t i = 0; i < _maxBuffers.size(); i++) _buffers[i].resize(_maxBuffers[i]);
 }
-CmdPool::CmdPool(cth::not_null<Core const*> core, Config const& config, State const& state) : CmdPool{core, config} { wrap(state); }
-CmdPool::CmdPool(cth::not_null<Core const*> core, Config const& config, bool create) : CmdPool{core, config} { if(create) this->create(); }
+CmdPool::CmdPool(Core const& core, Config const& config, State const& state) : CmdPool{core, config} { wrap(state); }
+CmdPool::CmdPool(Core const& core, Config const& config, bool create) : CmdPool{core, config} { if(create) this->create(); }
 
 
 CmdPool::~CmdPool() { optDestroy(); }
@@ -49,7 +49,7 @@ void CmdPool::create() {
     alloc();
 }
 CmdPool::State CmdPool::release() {
-    debug_check(this);
+    debug_check(*this);
 
     State state{
         .vkPool = _handle.get(),
@@ -63,7 +63,7 @@ CmdPool::State CmdPool::release() {
 
 
 void CmdPool::destroy() {
-    debug_check(this);
+    debug_check(*this);
 
     std::vector const buffers{std::from_range, std::views::join(_buffers)};
     std::array<DestructionQueue::function_t, 2> const lambdas{

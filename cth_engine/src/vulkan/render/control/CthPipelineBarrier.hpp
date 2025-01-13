@@ -34,7 +34,7 @@ struct PipelineAccess {
 namespace cth::vk {
 class BarrierBase {
 public:
-    BarrierBase(cth::not_null<Core const*> core, PipelineStages stages) : _core{core}, _stages{stages} {}
+    BarrierBase(Core const& core, PipelineStages stages) : _core{&core}, _stages{stages} {}
 
 private:
     cth::not_null<Core const*> _core;
@@ -43,7 +43,7 @@ private:
 public:
     [[nodiscard]] VkPipelineStageFlags srcStage() const { return _stages.src; }
     [[nodiscard]] VkPipelineStageFlags dstStage() const { return _stages.dst; }
-    [[nodiscard]] cth::not_null<Core const*> core() const { return _core; }
+    [[nodiscard]] Core const& core() const { return *_core; }
     [[nodiscard]] PipelineStages stages() const { return _stages; }
 
 };
@@ -55,8 +55,8 @@ namespace cth::vk {
 class ImageBarrier : virtual protected BarrierBase {
 public:
     struct Info;
-    ImageBarrier(cth::not_null<Core const*> core, PipelineStages stages) : BarrierBase(core, stages) {}
-    ImageBarrier(cth::not_null<Core const*> core, PipelineStages stages, std::unordered_map<Image*, Info> const& images);
+    ImageBarrier(Core const& core, PipelineStages stages) : BarrierBase(core, stages) {}
+    ImageBarrier(Core const& core, PipelineStages stages, std::unordered_map<Image*, Info> const& images);
     virtual ~ImageBarrier() = default;
 
     void add(Image* image, Info const& info);
@@ -97,8 +97,8 @@ namespace cth::vk {
 class BufferBarrier : virtual protected BarrierBase {
 public:
     struct Info;
-    BufferBarrier(cth::not_null<Core const*> core, PipelineStages stages) : BarrierBase{core, stages} {}
-    BufferBarrier(cth::not_null<Core const*> core, PipelineStages stages, std::unordered_map<BaseBuffer const*, Info> const& buffers);
+    BufferBarrier(Core const& core, PipelineStages stages) : BarrierBase{core, stages} {}
+    BufferBarrier(Core const& core, PipelineStages stages, std::unordered_map<BaseBuffer const*, Info> const& buffers);
 
     virtual ~BufferBarrier() = default;
 
@@ -128,11 +128,11 @@ namespace cth::vk {
 
 class PipelineBarrier : public BufferBarrier, public ImageBarrier {
 public:
-    explicit PipelineBarrier(cth::not_null<Core const*> core, PipelineStages stages) : BarrierBase{core, stages},
+    explicit PipelineBarrier(Core const& core, PipelineStages stages) : BarrierBase{core, stages},
         BufferBarrier{core, stages}, ImageBarrier{core, stages} {}
 
 
-    PipelineBarrier(cth::not_null<Core const*> core, PipelineStages stages, std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
+    PipelineBarrier(Core const& core, PipelineStages stages, std::unordered_map<BaseBuffer const*, BufferBarrier::Info> const& buffers,
         std::unordered_map<Image*, ImageBarrier::Info> const& images);
 
     void execute(CmdBuffer const& cmd_buffer) override;

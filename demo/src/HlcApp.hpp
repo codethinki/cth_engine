@@ -47,15 +47,15 @@ private:
 
     cth::move_ptr<vk::DestructionQueue> _destructionQueue = _core->destructionQueue();
 
-    std::unique_ptr<vk::GraphicsSyncConfig> _syncConfig = std::make_unique<vk::GraphicsSyncConfig>(_core.get(), _destructionQueue.get());
+    std::unique_ptr<vk::GraphicsSyncConfig> _syncConfig = std::make_unique<vk::GraphicsSyncConfig>(*_core, _destructionQueue.get());
 
-    std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(_core.get(), WINDOW_NAME,
-        VkExtent2D{WIDTH, HEIGHT}, &_queues[0], _syncConfig.get());
+    std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(*_core, WINDOW_NAME,
+        VkExtent2D{WIDTH, HEIGHT}, _queues[0], *_syncConfig);
 
 
 
-    std::unique_ptr<vk::Renderer> _renderer = std::make_unique<vk::Renderer>(_core.get(),
-        vk::Renderer::Config::Render(&_queues[0], _syncConfig.get()));
+    std::unique_ptr<vk::Renderer> _renderer = std::make_unique<vk::Renderer>(*_core,
+        vk::Renderer::Config::Render(_queues[0], *_syncConfig));
     vk::InputController _inputController{};
     vk::Camera _camera{};
 

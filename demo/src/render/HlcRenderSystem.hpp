@@ -58,7 +58,7 @@ private:
     //TEMP replace this with actual model loading
     void createDefaultTriangle(vk::CmdBuffer const& cmd_buffer);
 
-    vk::Core const* _core;
+    cth::not_null<vk::Core const*> _core;
     std::unique_ptr<vk::PipelineLayout> _pipelineLayout;
     std::unique_ptr<vk::Pipeline> _pipeline;
 

@@ -13,11 +13,8 @@ void Engine::terminate() {
     log::msg<except::INFO>("engine terminated");
     _initialized = false;
 }
-void Engine::terminateVolk() {
-    volkFinalize();
-}
+void Engine::terminateVolk() { volkFinalize(); }
 void Engine::initVolk() {
-    
     auto const result = volkInitialize();
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to load vulkan")
         throw result_exception{result, details->exception()};

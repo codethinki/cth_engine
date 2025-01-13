@@ -35,7 +35,7 @@ public:
     struct Config;
     static constexpr size_t PHASES_SIZE = 2;
 
-    explicit Renderer2(cth::not_null<Core const*> core, std::span<Phase::Config> phases);
+    explicit Renderer2(Core const& core, std::span<Phase::Config> phases);
     ~Renderer2();
 
     /**

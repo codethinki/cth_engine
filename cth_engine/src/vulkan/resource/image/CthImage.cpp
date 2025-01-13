@@ -14,14 +14,14 @@ namespace cth::vk {
 using namespace std;
 
 
-Image::Image(cth::not_null<Core const*> core, Config const& config) : _core{core}, _config{config},
-    _memory{make_unique<Memory>(_core, _config.memoryProperties)} {
+Image::Image(Core const& core, Config const& config) : _core{&core}, _config{config},
+    _memory{make_unique<Memory>(*_core, _config.memoryProperties)} {
     Core::debug_check(core);
     _levelLayouts.resize(_config.mipLevels);
     std::ranges::fill(_levelLayouts, _config.initialLayout);
 }
-Image::Image(cth::not_null<Core const*> core, Config const& config, VkExtent2D extent) : Image{core, config} { create(extent); }
-Image::Image(cth::not_null<Core const*> core, Config const& config, State state) : Image{core, config} { wrap(std::move(state)); }
+Image::Image(Core const& core, Config const& config, VkExtent2D extent) : Image{core, config} { create(extent); }
+Image::Image(Core const& core, Config const& config, State state) : Image{core, config} { wrap(std::move(state)); }
 
 
 Image::~Image() { optDestroy(); }
@@ -60,7 +60,7 @@ void Image::create(VkExtent2D extent) {
 
 
 void Image::destroy() {
-    debug_check(this);
+    debug_check(*this);
 
     auto const lambda = [table = _core->deviceTable(), vk_image = _handle.get()] { destroy(table, vk_image); };
 
@@ -74,7 +74,7 @@ void Image::destroy() {
     reset();
 }
 Image::State Image::release() {
-    debug_check(this);
+    debug_check(*this);
 
     State state{
         _extent,
@@ -108,7 +108,7 @@ Image::TransitionConfig Image::TransitionConfig::Create(VkImageLayout current_la
 
 
 void Image::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src_buffer, size_t src_offset, uint32_t mip_level) const {
-    debug_check(this);
+    debug_check(*this);
 
     CTH_WARN(_levelLayouts[mip_level] != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         "PERFORMANCE: image layout is not transfer dst optional") {}
@@ -142,7 +142,7 @@ void Image::transitionLayout(CmdBuffer const& cmd_buffer, VkImageLayout new_layo
 }
 void Image::transitionLayout(ImageBarrier& barrier, VkImageLayout new_layout, VkAccessFlags src_access,
     VkAccessFlags dst_access, uint32_t first_mip_level, uint32_t mip_levels) {
-    debug_check(this);
+    debug_check(*this);
 
     auto const oldLayout = _levelLayouts[first_mip_level];
     CTH_CRITICAL(
@@ -192,7 +192,7 @@ void Image::bind() const {
         throw vk::result_exception{bindResult, details->exception()};
 }
 void Image::reset() {
-    debug_check(this);
+    debug_check(*this);
 
     _handle = VK_NULL_HANDLE;
     _extent = {0, 0};

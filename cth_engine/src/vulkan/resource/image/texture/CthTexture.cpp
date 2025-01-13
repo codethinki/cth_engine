@@ -7,7 +7,7 @@
 namespace cth::vk {
 
 
-Texture::Texture(cth::not_null<Core const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+Texture::Texture(Core const& core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
     std::span<char const> staging_data) : Image{core, imageConfig(extent, config), extent} {
 
     Buffer<char> buffer{core, staging_data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -17,7 +17,7 @@ Texture::Texture(cth::not_null<Core const*> core, VkExtent2D extent, Config cons
 
     init(cmd_buffer, buffer);
 }
-Texture::Texture(cth::not_null<Core const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+Texture::Texture(Core const& core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
     BaseBuffer const& staging_buffer, size_t buffer_offset) : Image{core, imageConfig(extent, config),
     extent} { init(cmd_buffer, staging_buffer, buffer_offset); }
 
@@ -51,8 +51,16 @@ void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, uint32_t first, uint32_
     if(levels == 0) levels = mipLevels() - first;
 
     CTH_CRITICAL(_levelLayouts[first - 1] != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "src layout not transfer src optimal") {}
-    CTH_CRITICAL(std::ranges::any_of(_levelLayouts.begin() + first, _levelLayouts.begin() + first + levels,
-        [](VkImageLayout const layout){ return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; }), "image layouts not transfer dst optimal") {}
+    CTH_CRITICAL(
+        std::ranges::any_of(
+            _levelLayouts.begin() + first,
+            _levelLayouts.begin() + first + levels,
+            [](VkImageLayout const layout) {
+            return layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            }
+        ),
+        "image layouts not transfer dst optimal"
+    ){}
 
     ImageBarrier toSrcBarrier{core(), {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT}};
     ImageBarrier shaderBarrier{core(), {VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT}};
@@ -88,8 +96,16 @@ void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, uint32_t first, uint32_
             },
             .dstOffsets = {{0, 0, 0}, {hWidth, hHeight, 1}},
         };
-       core()->functions()->vkCmdBlitImage(cmd_buffer.get(), get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit,
-            VK_FILTER_LINEAR);
+        core().functions()->
+               vkCmdBlitImage(
+                   cmd_buffer.get(),
+                   get(),
+                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   get(),
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   1, &blit,
+                   VK_FILTER_LINEAR
+               );
 
         width = hWidth;
         height = hHeight;

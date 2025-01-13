@@ -39,7 +39,7 @@ public:
         PHASES_SIZE
     };
 
-    explicit Renderer(cth::not_null<Core const*> core, Config const& config);
+    explicit Renderer(Core const& core, Config const& config);
     ~Renderer();
 
     /**
@@ -156,7 +156,7 @@ namespace cth::vk {
 struct Renderer::Config {
     static constexpr size_t SET_SIZE = constants::FRAMES_IN_FLIGHT;
 
-    static Config Render(Queue const* graphics_queue, GraphicsSyncConfig const* sync_config);
+    static Config Render(Queue const& graphics_queue, GraphicsSyncConfig const& sync_config);
 
     Config() = default;
     //Config(const Core* core, DestructionQueue* destruction_queue);
@@ -201,7 +201,7 @@ struct Renderer::Config {
      * @note every phase needs exactly one queue to proceed
      */
     template<Phase P>
-    Config& addQueue(Queue const* queue);
+    Config& addQueue(Queue const& queue);
 
 
     /**

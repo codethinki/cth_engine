@@ -20,10 +20,10 @@
 
 namespace cth::vk {
 
-BasicSwapchain::BasicSwapchain(cth::not_null<Core const*> core, cth::not_null<Queue const*> present_queue,
-    cth::not_null<GraphicsSyncConfig const*> sync_config, cth::not_null<Surface const*> surface) : _core(core), _presentQueue(present_queue),
-    _surface{surface}, _syncConfig(sync_config) {
-    Core::debug_check(core.get());
+BasicSwapchain::BasicSwapchain(Core const& core, Queue const& present_queue,
+    GraphicsSyncConfig const& sync_config, Surface const& surface) : _core(&core), _presentQueue(&present_queue),
+    _surface{&surface}, _syncConfig(&sync_config) {
+    Core::debug_check(core);
     Surface::debug_check(surface);
     Queue::debug_check_present(present_queue);
     GraphicsSyncConfig::debug_check(sync_config);
@@ -107,8 +107,8 @@ void BasicSwapchain::skipAcquire(Cycle const& cycle) const {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire an vk_image")
         throw cth::vk::result_exception{result, details->exception()};
 }
-void BasicSwapchain::beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const* cmd_buffer) const {
-    _renderPass->begin(cmd_buffer, 0, &_swapchainFramebuffers[_imageIndices[cycle.subIndex]]);
+void BasicSwapchain::beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const& cmd_buffer) const {
+    _renderPass->begin(cmd_buffer, 0, _swapchainFramebuffers[_imageIndices[cycle.subIndex]]);
 
     VkViewport const viewport{
         .x = 0,
@@ -122,10 +122,10 @@ void BasicSwapchain::beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const*
         .offset = {0, 0},
         .extent = _extent
     };
-    _core->functions()->vkCmdSetViewport(cmd_buffer->get(), 0, 1, &viewport);
-    _core->functions()->vkCmdSetScissor(cmd_buffer->get(), 0, 1, &scissor);
+    _core->functions()->vkCmdSetViewport(cmd_buffer.get(), 0, 1, &viewport);
+    _core->functions()->vkCmdSetScissor(cmd_buffer.get(), 0, 1, &scissor);
 }
-void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const* cmd_buffer) { _renderPass->end(cmd_buffer); }
+void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const { _renderPass->end(cmd_buffer); }
 
 VkResult BasicSwapchain::present(Cycle const& cycle) {
     size_t subIndex = cycle.subIndex;
@@ -179,7 +179,7 @@ void BasicSwapchain::destroy(DeviceTable table, VkSwapchainKHR swapchain) {
 
 
 VkSampleCountFlagBits BasicSwapchain::evalMsaaSampleCount() const {
-    uint32_t const maxSamples = _core->physicalDevice()->maxSampleCount() / 2; //TODO add proper max_sample_count selection
+    uint32_t const maxSamples = _core->physicalDevice().maxSampleCount() / 2; //TODO add proper max_sample_count selection
 
     uint32_t samples = 1;
     while(samples < maxSamples && samples < constants::MAX_MSAA_SAMPLES) samples *= 2;
@@ -190,7 +190,7 @@ VkSampleCountFlagBits BasicSwapchain::evalMsaaSampleCount() const {
 void BasicSwapchain::createSyncObjects() {
     _imageAvailableFences.reserve(constants::FRAMES_IN_FLIGHT);
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
-        _imageAvailableFences.emplace_back(_core, VK_FENCE_CREATE_SIGNALED_BIT);
+        _imageAvailableFences.emplace_back(*_core, VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
 VkSurfaceFormatKHR BasicSwapchain::chooseSwapSurfaceFormat(std::span<VkSurfaceFormatKHR const> available_formats,
@@ -278,9 +278,9 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
 
     _windowExtent = window_extent;
 
-    auto const surfaceFormats = _surface->formats(*_core->physicalDevice());
-    auto const presentModes = _surface->presentModes(*_core->physicalDevice());
-    auto const capabilities = _surface->capabilities(*_core->physicalDevice());
+    auto const surfaceFormats = _surface->formats(_core->physicalDevice());
+    auto const presentModes = _surface->presentModes(_core->physicalDevice());
+    auto const capabilities = _surface->capabilities(_core->physicalDevice());
 
     auto const allowedSurfaceFormats = std::vector<VkSurfaceFormatKHR>{{VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}};
     std::vector<VkPresentModeKHR> const allowedPresentModes{VK_PRESENT_MODE_FIFO_KHR};
@@ -352,7 +352,7 @@ auto BasicSwapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>>
 
     auto const imageConfig = createColorImageConfig(VK_SAMPLE_COUNT_1_BIT);
     for(auto const& vkImage : vkImages)
-        images.emplace_back(std::make_unique<Image>(_core, imageConfig, Image::State{_extent, vkImage, true, nullptr}));
+        images.emplace_back(std::make_unique<Image>(*_core, imageConfig, Image::State{_extent, vkImage, true, nullptr}));
 
     return images;
 }
@@ -369,10 +369,10 @@ void BasicSwapchain::createMsaaAttachments() {
 
     auto const imageConfig = createColorImageConfig(_msaaSamples);
 
-    _msaaAttachments = std::make_unique<AttachmentCollection>(_core, imageCount(), 0, imageConfig, description, _extent);
+    _msaaAttachments = std::make_unique<AttachmentCollection>(*_core, imageCount(), 0, imageConfig, description, _extent);
 }
 void BasicSwapchain::findDepthFormat() {
-    _depthFormat = _core->physicalDevice()->findSupportedFormat(
+    _depthFormat = _core->physicalDevice().findSupportedFormat(
         std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
@@ -386,7 +386,7 @@ void BasicSwapchain::createDepthAttachments() {
 
     auto const imageConfig = createDepthImageConfig();
 
-    _depthAttachments = std::make_unique<AttachmentCollection>(_core, imageCount(), 1, imageConfig, description, _extent);
+    _depthAttachments = std::make_unique<AttachmentCollection>(*_core, imageCount(), 1, imageConfig, description, _extent);
 }
 
 void BasicSwapchain::createResolveAttachments(std::vector<std::unique_ptr<Image>> swapchain_images) {
@@ -401,7 +401,7 @@ void BasicSwapchain::createResolveAttachments(std::vector<std::unique_ptr<Image>
     for(auto& image : swapchain_images) state.images.emplace_back(std::move(image));
 
 
-    _resolveAttachments = std::make_unique<AttachmentCollection>(_core, imageCount(), 2, state.images[0]->config(), description, std::move(state));
+    _resolveAttachments = std::make_unique<AttachmentCollection>(*_core, imageCount(), 2, state.images[0]->config(), description, std::move(state));
 }
 
 void BasicSwapchain::createAttachments() {
@@ -457,7 +457,7 @@ void BasicSwapchain::createRenderPass() {
         .extent = _extent,
     };
 
-    _renderPass = std::make_unique<RenderPass>(_core, std::vector{_subpass.get()}, std::vector{subpassDependency}, std::vector{beginConfig}, true);
+    _renderPass = std::make_unique<RenderPass>(*_core, std::vector{_subpass.get()}, std::vector{subpassDependency}, std::vector{beginConfig}, true);
 }
 
 
@@ -467,7 +467,7 @@ void BasicSwapchain::createFramebuffers() {
     for(size_t i = 0; i < imageCount(); i++) {
         std::array attachments = {_msaaAttachments->view(i), _depthAttachments->view(i), _resolveAttachments->view(i)};
 
-        _swapchainFramebuffers.emplace_back(_core, _renderPass.get(), attachments, _extent);
+        _swapchainFramebuffers.emplace_back(*_core, *_renderPass, attachments, _extent);
     }
 }
 
