@@ -12,7 +12,7 @@
 #include "src/vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
 #include "src/vulkan/resource/image/texture/CthTexture.hpp"
 
-#include <cth/image.hpp>
+#include <cth/utility/image.hpp>
 
 
 namespace cth {
@@ -87,9 +87,11 @@ void RenderSystem::createDescriptorPool() {
 void RenderSystem::loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer) {
     cth::img::stb_image const image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
-    _texture = std::make_unique<vk::Texture>(*_core, VkExtent2D{image.width(), image.height()},
+    _texture = std::make_unique<vk::Texture>(
+        *_core, 
+        VkExtent2D{static_cast<uint32_t>(image.width()), static_cast<uint32_t>(image.height())},
         vk::Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
-        init_cmd_buffer, image.raw());
+        init_cmd_buffer, image.view());
 }
 
 

@@ -22,11 +22,30 @@ class Semaphore;
 class Stage {
 public:
     struct Config;
+    /**
+     * @brief create constructor
+     * @details calls: @ref create()
+     */
     Stage(Core const& core, Config config);
+    /**
+     * @details calls @ref optDestroy()
+     */
+    ~Stage();
 
+    /**
+     * @details calls: @ref optDestroy()
+     */
     void create();
+    /**
+     * @brief destroys the objects state
+     */
     void destroy();
 
+    /**
+     * @brief destroys if created
+     * @details calls if @ref created() @ref destroy()
+     */
+    void optDestroy() { if(created()) destroy(); }
 
 
     /**
@@ -56,12 +75,12 @@ public:
 
 private:
     /**
-     * @note calls @ref CmdPool::CmdPool(Core const&, CmdPool::Config const&, bool);
+     * @details calls @ref CmdPool::CmdPool(Core const&, CmdPool::Config const&, bool);
      */
     void createCmdPool();
 
     /**
-     * @note calls @ref PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool*, VkCommandBufferUsageFlags);
+     * @details calls @ref PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool*, VkCommandBufferUsageFlags);
      */
     void createCmdBuffers();
 
@@ -94,6 +113,7 @@ private:
     [[nodiscard]] auto& current(auto& rng) { return rng[_subIndex]; }
 
 public:
+    [[nodiscard]] bool created() const { return _renderPass != nullptr && !_signalSemaphores.empty() && !_waitStages.empty(); }
     [[nodiscard]] bool recording() const;
 };
 
@@ -107,15 +127,50 @@ struct Stage::Config {
     static constexpr auto GROUP_SIZE = constants::FRAMES_IN_FLIGHT;
 
 
+    /**
+     * @brief default constructor
+     * @param queue queue to render to
+     * @param render_pass pass to render in
+     * @param signal_groups optional signal groups to add
+     * @param wait_groups optional wait groups to add
+     */
     explicit Config(Queue const& queue, std::unique_ptr<RenderPass> render_pass, std::span<Semaphore* const> signal_groups = {},
-        std::span<PipelineWaitStage> wait_groups = {});
+        std::span<PipelineWaitStage const> wait_groups = {});
+    ~Config();
 
 
+    /**
+     * @brief adds a group of semaphores to signal once the stage finished rendering
+     * @param self self
+     * @param signal_group group of semaphores (size == @ref GROUP_SIZE and created required)
+     * @return self
+     */
     Config& addSignalGroup(this Config& self, std::span<Semaphore* const> signal_group);
+
+    /**
+     * @brief adds a group of semaphores to wait on before rendering the stage
+     * @param self self
+     * @param wait_group group of semaphores to wait on (size == @ref GROUP_SIZE and created required) 
+     * @return self
+     */
     Config& addWaitGroup(this Config& self, std::span<PipelineWaitStage const> wait_group);
 
+    /**
+     * @brief adds multiple signal groups
+     * @param self self
+     * @param signal_groups n signal groups to add
+     * @return self
+     * @note calls @ref addSignalGroup(this Config& self, std::span<Semaphore* const>)
+     */
     Config& addSignalGroups(this Config& self, std::span<Semaphore* const> signal_groups);
-    Config& addWaitGroups(this Config& self, std::span<PipelineWaitStage> wait_groups);
+    /**
+     * @brief adds multiple signal groups
+     * @param self self
+     * @param wait_groups n wait groups to add
+     * @return self
+     * @note calls @ref addWaitGroup(this Config& self, std::span<PipelineWaitStage const>)
+     */
+    Config& addWaitGroups(this Config& self, std::span<PipelineWaitStage const> wait_groups);
 
 private:
     cth::not_null<Queue const*> _queue;
@@ -125,5 +180,4 @@ private:
 
     friend class Stage;
 };
-
 }

@@ -3,9 +3,9 @@
 
 
 
+#include <volk.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
-#include <volk.h>
 
 #include <array>
 #include <functional>

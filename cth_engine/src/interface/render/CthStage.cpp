@@ -37,8 +37,9 @@ Stage::Stage(Core const& core, Config config) : _core{&core},
     _signalSemaphores{std::move(config._signalSemaphores)},
     _waitStages{std::move(config._waitStages)} {
     Core::debug_check(core);
-    createSubmitInfos();
+    create();
 }
+Stage::~Stage() { optDestroy(); }
 
 void Stage::createCmdPool() {
     _cmdPool = std::make_unique<CmdPool>(*_core, CmdPool::Config::Default(_queue->familyIndex(), constants::FRAMES_IN_FLIGHT, 0));
@@ -57,7 +58,7 @@ void Stage::createSubmitInfos() {
             std::vector{std::from_range, _waitStages | std::views::drop(i) | std::views::stride(constants::FRAMES_IN_FLIGHT)},
             std::vector{std::from_range, _signalSemaphores | std::views::drop(i) | std::views::stride(constants::FRAMES_IN_FLIGHT)},
             nullptr
-            );
+        );
     }
 }
 
@@ -73,11 +74,12 @@ bool Stage::recording() const { return current(_cmdBuffers).recording(); }
 namespace cth::vk {
 Stage::Config::Config(Queue const& queue,
     std::unique_ptr<RenderPass> render_pass, std::span<Semaphore* const> signal_groups,
-    std::span<PipelineWaitStage> wait_groups) : _queue{&queue}, _renderPass{std::move(render_pass)} {
+    std::span<PipelineWaitStage const> wait_groups) : _queue{&queue}, _renderPass{std::move(render_pass)} {
 
     addSignalGroups(signal_groups);
     addWaitGroups(wait_groups);
 }
+Stage::Config::~Config() {  }
 
 Stage::Config& Stage::Config::addSignalGroup(this Config& self, std::span<Semaphore* const> signal_group) {
     CTH_CRITICAL(signal_group.size() == Config::GROUP_SIZE, "signal_group size ({0}) == Config::GROUP_SIZE ({1}) required",
@@ -98,17 +100,17 @@ Stage::Config& Stage::Config::addWaitGroup(this Config& self, std::span<Pipeline
     return self;
 }
 Stage::Config& Stage::Config::addSignalGroups(this Config& self, std::span<Semaphore* const> signal_groups) {
-    CTH_CRITICAL(signal_groups.size() % GROUP_SIZE == 0, "signal_groups.size() ({0}) % Config::GroupSize ({1}) == 0 required", signal_groups.size(),
-        Config::GROUP_SIZE) {}
+    CTH_CRITICAL(signal_groups.size() % GROUP_SIZE == 0, "signal_groups.size() ({0}) % Config::GroupSize ({1}) == 0 required", 
+        signal_groups.size(), Config::GROUP_SIZE) {}
     auto const view = signal_groups | std::views::chunk(GROUP_SIZE);
 
 
     for(auto const signalGroup : view) self.addSignalGroup(signalGroup);
     return self;
 }
-Stage::Config& Stage::Config::addWaitGroups(this Config& self, std::span<PipelineWaitStage> wait_groups) {
-    CTH_CRITICAL(wait_groups.size() % GROUP_SIZE == 0, "signal_groups.size() ({0}) % Config::GroupSize ({1}) == 0 required", wait_groups.size(),
-        Config::GROUP_SIZE) {}
+Stage::Config& Stage::Config::addWaitGroups(this Config& self, std::span<PipelineWaitStage const> wait_groups) {
+    CTH_CRITICAL(wait_groups.size() % GROUP_SIZE == 0, "signal_groups.size() ({0}) % Config::GroupSize ({1}) == 0 required",
+        wait_groups.size(), Config::GROUP_SIZE) {}
     auto const view = wait_groups | std::views::chunk(GROUP_SIZE);
 
 

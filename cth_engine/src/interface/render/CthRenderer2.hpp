@@ -1,19 +1,14 @@
 #pragma once
-#pragma once
 #include "CthRenderCycle.hpp"
 #include "CthStage.hpp"
 #include "Phase.hpp"
 
-#include "src/vulkan/base/queue/CthQueue.hpp"
 #include "src/vulkan/base/queue/CthSubmitInfo.hpp"
 #include "src/vulkan/render/control/CthTimelineSemaphore.hpp"
 #include "src/vulkan/render/control/CthWaitStage.hpp"
 
-#include <volk.h>
-
 #include <array>
 #include <memory>
-#include <optional>
 #include <vector>
 
 
@@ -54,7 +49,6 @@ public:
 
     /**
      * @brief used to skip whole phase
-     * @tparam P Phase
      */
     void skip();
 
@@ -99,8 +93,10 @@ private:
     static void debug_check_phase_change(Renderer2 const* renderer2);
 
 public:
-    Renderer2(Renderer2 const&) = delete;
-    Renderer2& operator=(Renderer2 const&) = delete;
+    Renderer2(Renderer2 const& other) = delete;
+    Renderer2(Renderer2&& other) noexcept = default;
+    Renderer2& operator=(Renderer2 const& other) = delete;
+    Renderer2& operator=(Renderer2&& other) noexcept = default;
 };
 
 

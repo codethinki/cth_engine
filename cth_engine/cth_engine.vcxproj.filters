@@ -91,11 +91,9 @@
     <ClInclude Include="src\vulkan\utility\os.hpp" />
     <ClInclude Include="include\cth_engine\interface\render.hpp" />
     <ClInclude Include="include\cth_engine\utility.hpp" />
+    <ClInclude Include="src\interface\render\renderer3\Renderer3.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="doc\roadmap.md" />
-    <None Include="doc\scene.md" />
-    <None Include="doc\tinygltf.md" />
     <None Include="src\vulkan\resource\buffer\CthBuffer.inl" />
     <None Include="src\interface\render\CthRenderer.inl" />
     <None Include="src\vulkan\utility\format\cth_vk_to_string.inl" />
@@ -152,5 +150,6 @@
     <ClCompile Include="src\interface\render\CthRenderer2.cpp" />
     <ClCompile Include="src\interface\render\Phase.cpp" />
     <ClCompile Include="src\pch\lib\volk\volk.cpp" />
+    <ClCompile Include="src\interface\render\renderer3\Renderer3.cpp" />
   </ItemGroup>
 </Project>

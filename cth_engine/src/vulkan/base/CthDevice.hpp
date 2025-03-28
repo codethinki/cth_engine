@@ -30,21 +30,21 @@ public:
      * @param instance @ref Instance::created() required
      * @param physical_device @ref PhysicalDevice::created() required
      */
-    explicit Device(Instance const& instance, PhysicalDevice const& physical_device);
+    Device(Instance const& instance, PhysicalDevice const& physical_device);
 
     /**
      * @brief constructs and wraps
      * @note calls @ref Device(Instance const&, PhysicalDevice const&)
      * @note calls @ref wrap(State)
      */
-    explicit Device(Instance const& instance, PhysicalDevice const& physical_device, State state);
+    Device(Instance const& instance, PhysicalDevice const& physical_device, State state);
 
     /**
      * @brief constructs and creates
      * @note calls @ref Device(Instance const&, PhysicalDevice const&)
      * @note calls @ref create(std::span<Queue>)
      */
-    explicit Device(Instance const& instance, PhysicalDevice const& physical_device, std::span<Queue> queues);
+    Device(Instance const& instance, PhysicalDevice const& physical_device, std::span<Queue> queues);
 
     /**
      * @note calls @ref optDestroy()

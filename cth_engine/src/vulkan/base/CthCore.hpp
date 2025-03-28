@@ -28,16 +28,21 @@ public:
 
     /**
      * @brief constructs and wraps
-     * @note calls @ref optDestroy()
+     * @details
+     * calls: @ref optDestroy()
      */
     explicit Core(State state);
+
     /**
      * @brief constructs and creates
+     * @details
+     * calls: @ref create(Config const&)
      */
     explicit Core(Config const& config);
 
     /**
-     * @note calls @ref optDestroy()
+     * @details
+     * calls: @ref optDestroy()
      */
     ~Core();
 
@@ -49,22 +54,36 @@ public:
 
     /**
      * @brief creates the components
-     * @note calls @ref Instance::Instance(std::string_view, std::span<std::string const>, std::optional<PFN_vkDebugUtilsMessengerCallbackEXT>)
-     * @note calls @ref PhysicalDevice::AutoPick(Instance*, std::span<Queue>, std::span<std::string const>, std::span<std::string const>)
-     * @note calls @ref Device::Device(Instance*, PhysicalDevice*, std::span<Queue>)
-     * @note may calls @ref DestructionQueue::DestructionQueue(Device*, PhysicalDevice*, Instance*)
+     * @details
+     * calls:
+     * - @ref Instance::Instance(std::string_view, std::span<std::string const>, std::optional<DebugMessenger::Config> const&)
+     * - @ref PhysicalDevice::AutoPick(Instance const&, std::span<Queue const>, std::span<std::string const>, utils::PhysicalDeviceFeatures const&)
+     * - @ref Device::Device(Instance const&, PhysicalDevice const&, std::span<Queue>)
+     * - if @ref Config::destructionQueue -> @ref DestructionQueue::DestructionQueue()
      */
     void create(Config const& config);
 
+    /**
+     * @brief destroys the objects state
+     */
     void destroy();
+
+    /** @brief destroys if @ref created() */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief sets all components to nullptr
-     * @note does not delete
+     * @brief resets
+     * @details calls: @ref optDestroy()
      */
     void reset();
 
+    /**
+     * @brief releases the state
+     * @return internal state
+     * @details calls: @ref reset()
+     *
+     * @note does destroy state
+     */
     State release();
 
 private:

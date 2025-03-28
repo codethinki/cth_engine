@@ -5,7 +5,7 @@
 
 
 #include <volk.h>
-#include <cth/format.hpp>
+#include <cth/string/format.hpp>
 
 
 namespace cth::vk::fmt {
