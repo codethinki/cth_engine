@@ -3,7 +3,7 @@
 #include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "src/vulkan/render/control/CthFence.hpp"
 #include "src/vulkan/render/control/CthTimelineSemaphore.hpp"
-#include "src/vulkan/render/control/CthWaitStage.hpp"
+#include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 
 
 namespace cth::vk {

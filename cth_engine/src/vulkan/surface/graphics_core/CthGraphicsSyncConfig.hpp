@@ -32,7 +32,7 @@ public:
      * @brief constructs and creates if create
     * @note may call @ref create()
      */
-    GraphicsSyncConfig(Core const& core, bool create);
+    GraphicsSyncConfig(Core const& core, create_t);
 
     /**
      * @note calls @ref optDestroy()
@@ -46,8 +46,9 @@ public:
     void wrap(State state);
     /**
      * @brief creates the semaphores
-     * @note calls @ref optDestroy()
-     * @note calls @ref Semaphore::Semaphore(Core const&, bool) i.e. create constructor
+     * @details calls:
+            @ref optDestroy()
+            @ref Semaphore::Semaphore(Core const&, create_t)
      */
     void create();
 

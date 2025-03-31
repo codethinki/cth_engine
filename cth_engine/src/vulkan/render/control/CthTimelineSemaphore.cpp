@@ -7,8 +7,8 @@
 namespace cth::vk {
 TimelineSemaphore::TimelineSemaphore(Core const& core) : Semaphore{core} {}
 TimelineSemaphore::TimelineSemaphore(Core const& core, State const& state) : TimelineSemaphore{core} { wrap(state); }
-TimelineSemaphore::TimelineSemaphore(Core const& core, bool create) : TimelineSemaphore{core} {
-    if(create) Semaphore::createHandle(TimelineSemaphore::createInfo());
+TimelineSemaphore::TimelineSemaphore(Core const& core, create_t) : TimelineSemaphore{core} {
+    Semaphore::createHandle(TimelineSemaphore::createInfo());
 }
 
 void TimelineSemaphore::wrap(State const& state) {

@@ -22,9 +22,9 @@ public:
 
     /**
      * @brief constructs and may create
-     * @param create if true calls @ref create()
+     * @details calls @ref create()
      */
-    explicit TimelineSemaphore(Core const& core, bool create);
+    explicit TimelineSemaphore(Core const& core, create_t);
 
 
     /**

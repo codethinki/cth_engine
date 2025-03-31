@@ -36,7 +36,7 @@ RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpass
             VkRect2D{offset, extent},
             static_cast<uint32_t>(clearValues.size()),
             &_clearValues[_clearValues.size() - clearValues.size()]
-            );
+        );
     }
 
 }
@@ -45,7 +45,7 @@ RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpass
 
 RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
     std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
-    bool create) : RenderPass{core, subpasses, dependencies, begin_configs} { if(create) this->create(); }
+    create_t) : RenderPass{core, subpasses, dependencies, begin_configs} { create(); }
 
 RenderPass::~RenderPass() { optDestroy(); }
 

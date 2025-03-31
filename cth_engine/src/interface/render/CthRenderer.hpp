@@ -4,7 +4,7 @@
 #include "src/vulkan/base/queue/CthQueue.hpp"
 #include "src/vulkan/base/queue/CthSubmitInfo.hpp"
 #include "src/vulkan/render/control/CthTimelineSemaphore.hpp"
-#include "src/vulkan/render/control/CthWaitStage.hpp"
+#include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 
 #include <volk.h>
 

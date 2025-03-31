@@ -1,5 +1,5 @@
 #pragma once
-#include "src/vulkan/render/control/CthWaitStage.hpp"
+#include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
 #include <volk.h>

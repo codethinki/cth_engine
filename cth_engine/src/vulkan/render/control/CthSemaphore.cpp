@@ -11,7 +11,7 @@ namespace cth::vk {
 
 Semaphore::Semaphore(Core const& core) : _core{&core} { Core::debug_check(core); }
 Semaphore::Semaphore(Core const& core, State const& state) : Semaphore{core} { wrap(state); }
-Semaphore::Semaphore(Core const& core, bool create) : Semaphore{core} { if(create) this->create(); }
+Semaphore::Semaphore(Core const& core, create_t) : Semaphore{core} { create(); }
 
 void Semaphore::wrap(State const& state) {
     optDestroy();

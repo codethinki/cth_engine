@@ -40,17 +40,18 @@ public:
     /**
      * @brief constructs and wraps
      * @param state passed to @ref wrap()
-     * @note calls @ref CmdPool(Core const&, Config const&)
-     * @note calls @ref create()
+     * @details calls:
+           @ref CmdPool(Core const&, Config const&)
+           @ref create()
      */
     CmdPool(Core const& core, Config const& config, State const& state);
 
     /**
      * @brief constructs and may create
      * @note calls @ref CmdPool(Core const&, Config const&)
-     * @param create if(true) calls @ref create()
+     * @details calls @ref create()
      */
-    CmdPool(Core const& core, Config const& config, bool create);
+    CmdPool(Core const& core, Config const& config, create_t);
 
 
     /**
@@ -67,9 +68,9 @@ public:
     /**
      * @brief creates the vk resources
      * @note calls @ref optDestroy()
-    * @throws cth::vk::result_exception VkResult of vkCreateCommandPool()
-    * @throws cth::vk::result_exception VkResult of vkAllocateCommandBuffers()
-    */
+     * @throws cth::vk::result_exception VkResult of vkCreateCommandPool()
+     * @throws cth::vk::result_exception VkResult of vkAllocateCommandBuffers()
+     */
     void create();
 
     /**

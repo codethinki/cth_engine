@@ -1,4 +1,4 @@
-#include "CthWaitStage.hpp"
+#include "CthPipelineWaitStage.hpp"
 
 #include "CthSemaphore.hpp"
 

@@ -88,10 +88,12 @@ void RenderSystem::loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer) {
     cth::img::stb_image const image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
     _texture = std::make_unique<vk::Texture>(
-        *_core, 
+        *_core,
         VkExtent2D{static_cast<uint32_t>(image.width()), static_cast<uint32_t>(image.height())},
         vk::Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
-        init_cmd_buffer, image.view());
+        init_cmd_buffer,
+        std::span{image.raw(), image.size()}
+    );
 }
 
 
@@ -134,9 +136,11 @@ void RenderSystem::render(FrameInfo const& frame_info) const {
     std::vector<size_t> const offsets(vertexBuffers.size());
     std::vector<VkDescriptorSet> const descriptorSets{_descriptorSet->get()};
 
-    _core->functions()->vkCmdBindDescriptorSets(frame_info.commandBuffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout->get(), 0, 1, descriptorSets.data(), 0,
+    _core->functions()->vkCmdBindDescriptorSets(frame_info.commandBuffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout->get(), 0, 1,
+        descriptorSets.data(), 0,
         nullptr);
-    _core->functions()->vkCmdBindVertexBuffers(frame_info.commandBuffer->get(), 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data());
+    _core->functions()->vkCmdBindVertexBuffers(frame_info.commandBuffer->get(), 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(),
+        offsets.data());
 
     //TEMP replace this with model drawing
     _core->functions()->vkCmdDraw(frame_info.commandBuffer->get(), static_cast<uint32_t>(_defaultTriangleBuffer->size()), 1, 0, 0);

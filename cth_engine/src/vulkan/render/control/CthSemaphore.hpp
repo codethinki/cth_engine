@@ -30,7 +30,7 @@ public:
      * @brief constructs and calls @ref create()
      * @note calls @ref Semaphore::Semaphore(not_null<Core const*>)
      */
-    explicit Semaphore(Core const& core, bool create);
+    explicit Semaphore(Core const& core, create_t);
 
     virtual ~Semaphore() { optDestroy(); }
 

@@ -9,7 +9,7 @@ namespace cth::vk {
 
 GraphicsSyncConfig::GraphicsSyncConfig(Core const& core) : _core{&core} {}
 GraphicsSyncConfig::GraphicsSyncConfig(Core const& core, State state) : GraphicsSyncConfig{core} { wrap(std::move(state)); }
-GraphicsSyncConfig::GraphicsSyncConfig(Core const& core, bool create) : GraphicsSyncConfig{core} { if(create) this->create(); }
+GraphicsSyncConfig::GraphicsSyncConfig(Core const& core, create_t) : GraphicsSyncConfig{core} { create(); }
 GraphicsSyncConfig::~GraphicsSyncConfig() { optDestroy(); }
 void GraphicsSyncConfig::wrap(State state) {
     State::debug_check(state);
@@ -22,9 +22,9 @@ void GraphicsSyncConfig::create() {
     optDestroy();
 
     for(auto& uniquePtr : _renderFinishedSemaphores)
-        uniquePtr = std::make_unique<Semaphore>(*_core, true);
+        uniquePtr = std::make_unique<Semaphore>(*_core, vk::create);
     for(auto& uniquePtr : _imageAvailableSemaphores)
-        uniquePtr = std::make_unique<Semaphore>(*_core, true);
+        uniquePtr = std::make_unique<Semaphore>(*_core, vk::create);
 }
 void GraphicsSyncConfig::destroy() {
     debug_check(*this);

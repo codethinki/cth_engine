@@ -9,7 +9,10 @@
 #include <cstdint>
 #include <limits>
 
-
+namespace cth::vk {
+struct create_t {};
+static constexpr create_t create{};
+}
 
 namespace cth::vk::constants {
 

@@ -10,6 +10,8 @@ class Semaphore;
 
 
 struct PipelineWaitStage {
+    using stage_t = VkPipelineStageFlags;
+
     VkPipelineStageFlags stage;
     Semaphore const* semaphore;
 

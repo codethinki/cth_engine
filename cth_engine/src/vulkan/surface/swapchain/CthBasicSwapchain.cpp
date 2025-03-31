@@ -101,8 +101,9 @@ void BasicSwapchain::skipAcquire(Cycle const& cycle) const {
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &semaphore,
     };
-    
-    auto const result = _core->functions()->vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, fence.get()); //TODO this should be done via Queue::skip()
+
+    auto const result = _core->functions()->vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, fence.get());
+    //TODO this should be done via Queue::skip()
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire an vk_image")
         throw cth::vk::result_exception{result, details->exception()};
@@ -130,9 +131,7 @@ void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const { _
 VkResult BasicSwapchain::present(Cycle const& cycle) {
     size_t subIndex = cycle.subIndex;
 
-    CTH_CRITICAL(_imageIndices[subIndex] == NO_IMAGE_INDEX, "no acquired vk_image available") {
-        details->add("frame: ({})", subIndex);
-    }
+    CTH_CRITICAL(_imageIndices[subIndex] == NO_IMAGE_INDEX, "no acquired vk_image available") { details->add("frame: ({})", subIndex); }
 
     auto const result = _presentQueue->present(_imageIndices[subIndex], _presentInfos[subIndex]);
 
@@ -425,7 +424,7 @@ void BasicSwapchain::createSubpass() {
         std::vector{_resolveAttachments.get()},
         _depthAttachments.get(),
         std::vector<AttachmentCollection*>{}
-        );
+    );
 }
 VkSubpassDependency BasicSwapchain::createSubpassDependency() const {
     return VkSubpassDependency{
@@ -457,7 +456,8 @@ void BasicSwapchain::createRenderPass() {
         .extent = _extent,
     };
 
-    _renderPass = std::make_unique<RenderPass>(*_core, std::vector{_subpass.get()}, std::vector{subpassDependency}, std::vector{beginConfig}, true);
+    _renderPass = std::make_unique<RenderPass>(*_core, std::vector{_subpass.get()}, std::vector{subpassDependency}, std::vector{beginConfig},
+        vk::create);
 }
 
 

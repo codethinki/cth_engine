@@ -22,7 +22,7 @@ CmdPool::CmdPool(Core const& core, Config const& config) : _core{&core}, _flags{
     for(size_t i = 0; i < _maxBuffers.size(); i++) _buffers[i].resize(_maxBuffers[i]);
 }
 CmdPool::CmdPool(Core const& core, Config const& config, State const& state) : CmdPool{core, config} { wrap(state); }
-CmdPool::CmdPool(Core const& core, Config const& config, bool create) : CmdPool{core, config} { if(create) this->create(); }
+CmdPool::CmdPool(Core const& core, Config const& config, create_t) : CmdPool{core, config} { create(); }
 
 
 CmdPool::~CmdPool() { optDestroy(); }

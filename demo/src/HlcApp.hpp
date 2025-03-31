@@ -47,7 +47,7 @@ private:
 
     cth::move_ptr<vk::DestructionQueue> _destructionQueue = _core->destructionQueue();
 
-    std::unique_ptr<vk::GraphicsSyncConfig> _syncConfig = std::make_unique<vk::GraphicsSyncConfig>(*_core, _destructionQueue.get());
+    std::unique_ptr<vk::GraphicsSyncConfig> _syncConfig = std::make_unique<vk::GraphicsSyncConfig>(*_core, vk::create);
 
     std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(*_core, WINDOW_NAME,
         VkExtent2D{WIDTH, HEIGHT}, _queues[0], *_syncConfig);

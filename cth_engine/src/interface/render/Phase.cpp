@@ -23,7 +23,7 @@ void Phase::createSignalSemaphores() {
     _semaphores.reserve(semaphores);
 
     for(size_t i = 0; i < semaphores; ++i)
-        _semaphores.emplace_back(*_core, true);
+        _semaphores.emplace_back(*_core, vk::create);
 }
 std::vector<Stage*> Phase::stages() {
     std::vector<Stage*> stages(_stages.size());

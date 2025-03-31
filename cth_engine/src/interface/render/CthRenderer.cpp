@@ -46,7 +46,11 @@ void Renderer::init(Config const& config) {
 
 void Renderer::createCmdPools() {
     for(size_t i = PHASES_FIRST; i < PHASES_SIZE; ++i)
-        _cmdPools[i] = std::make_unique<CmdPool>(*_core, CmdPool::Config::Default(_queues[i]->familyIndex(), constants::FRAMES_IN_FLIGHT + 1, 0), true);
+        _cmdPools[i] = std::make_unique<CmdPool>(
+            *_core,
+            CmdPool::Config::Default(_queues[i]->familyIndex(), constants::FRAMES_IN_FLIGHT + 1, 0),
+            vk::create
+        );
 }
 void Renderer::createPrimaryCmdBuffers() {
     for(size_t i = PHASES_FIRST; i < PHASES_SIZE; ++i)
@@ -55,7 +59,7 @@ void Renderer::createPrimaryCmdBuffers() {
 }
 void Renderer::createSyncObjects() {
     for(auto& semaphore : _semaphores)
-        semaphore = std::make_unique<TimelineSemaphore>(*_core, true);
+        semaphore = std::make_unique<TimelineSemaphore>(*_core, vk::create);
 }
 
 
@@ -107,7 +111,7 @@ Renderer::Config Renderer::Config::Render(Queue const& graphics_queue, GraphicsS
           .addWaitSets<PHASE_GRAPHICS>(sync_config.imageAvailableSemaphores(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT)
           .addSignalSets<PHASES_LAST>(sync_config.renderFinishedSemaphores());
     return config;
-} 
+}
 
 
 

@@ -9,7 +9,7 @@
 #include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "src/vulkan/render/cmd/CthCmdPool.hpp"
 #include "src/vulkan/render/control/CthSemaphore.hpp"
-#include "src/vulkan/render/control/CthWaitStage.hpp"
+#include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
 
 
@@ -19,6 +19,7 @@ void Stage::create() {
     createCmdPool();
     createCmdBuffers();
     createSubmitInfos();
+
 }
 void Stage::destroy() {}
 void Stage::submit() { _queue->submit(current(_submitInfos)); }

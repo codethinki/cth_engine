@@ -33,12 +33,12 @@ public:
         std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs, State const& state);
 
     /**
-     * @brief constructs and if(create) calls @ref create()
+     * @brief constructs
      * @note calls @ref RenderPass(Core const&, std::span<Subpass const* const>, std::span<VkSubpassDependency const>, std::span<BeginConfig const>)
      */
     RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
         std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
-        bool create);
+        create_t);
 
 
     /**
