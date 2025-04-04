@@ -2,9 +2,13 @@
 
 #include "CthCmdPool.hpp"
 
+#include "../pass/CthRenderPass.hpp"
+#include "../pass/CthSubpass.hpp"
+
 #include "src/vulkan/base/CthCore.hpp"
 #include "src/vulkan/base/CthDevice.hpp"
 #include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/resource/image/Framebuffer.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
@@ -86,7 +90,6 @@ namespace cth::vk {
 
 PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{usage} { create(cmd_pool); }
 
-PrimaryCmdBuffer::~PrimaryCmdBuffer() { destroy(); }
 void PrimaryCmdBuffer::begin() {
     VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -104,12 +107,13 @@ void PrimaryCmdBuffer::begin() {
 //SecondaryCmdBuffer
 
 namespace cth::vk {
-SecondaryCmdBuffer::SecondaryCmdBuffer(Config const& config, VkCommandBufferUsageFlags usage) : CmdBuffer{usage},
-    _inheritanceInfo{config.inheritanceInfo()} {}
-SecondaryCmdBuffer::SecondaryCmdBuffer(PrimaryCmdBuffer& primary, Config const& config,
-    VkCommandBufferUsageFlags usage) : SecondaryCmdBuffer{config, usage} { create(primary); }
+SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage) : SecondaryCmdBuffer{usage} { create(cmd_pool); }
 
-void SecondaryCmdBuffer::begin() {
+void SecondaryCmdBuffer::begin(RenderPass const& render_pass, Subpass const& subpass, Framebuffer const* framebuffer) {
+    _inheritanceInfo.renderPass = render_pass.get();
+    _inheritanceInfo.subpass = subpass.index();
+    _inheritanceInfo.framebuffer = framebuffer != nullptr ? framebuffer->get() : VK_NULL_HANDLE;
+
     VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,
@@ -118,11 +122,6 @@ void SecondaryCmdBuffer::begin() {
     };
     CmdBuffer::begin(info);
 }
-void SecondaryCmdBuffer::create(PrimaryCmdBuffer& primary) {
-    _primary = &primary;
-    CmdBuffer::create(primary.pool());
-}
-
 
 
 } // namespace cth

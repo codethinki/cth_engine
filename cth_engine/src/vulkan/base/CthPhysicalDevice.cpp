@@ -183,7 +183,7 @@ auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vecto
     for(auto [src, dst] : std::views::zip(_queueFamilies, familiesMaxQueues))
         dst = src.vkProperties.queueCount;
 
-    auto const result = cth::algorithm::assign(queueIndices, familiesMaxQueues);
+    auto const result = cth::alg::assign(queueIndices, familiesMaxQueues);
     return result;
 }
 bool PhysicalDevice::supportsQueueSet(span<Queue const> queues) const {

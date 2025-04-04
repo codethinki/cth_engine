@@ -11,6 +11,9 @@
 
 
 namespace cth::vk {
+class Framebuffer;
+class Subpass;
+class RenderPass;
 class Core;
 
 class Device;
@@ -28,6 +31,8 @@ public:
     explicit CmdBuffer(VkCommandBufferUsageFlags usage = 0);
     virtual ~CmdBuffer() = default;
 
+    void create(this auto&& self, CmdPool& pool);
+
     /**
      * @brief returns the command buffer to pool
      * @attention @ref created() required
@@ -39,8 +44,6 @@ public:
      */
     void optDestroy(this auto&& self) { if(self.created()) self.destroy(); }
 
-    virtual void begin() = 0;
-
     void end();
 
     void reset(VkCommandBufferResetFlags flags);
@@ -51,9 +54,6 @@ public:
     static void destroy(DeviceTable table, not_null<VkCommandPool_T*> vk_pool, VkCommandBuffer buffer);
 
 protected:
-    void create(this auto&& self, CmdPool& pool);
-
-
     void begin(VkCommandBufferBeginInfo const& info);
 
 private:
@@ -100,10 +100,9 @@ public:
     explicit PrimaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
     explicit PrimaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage = 0);
 
-    ~PrimaryCmdBuffer() override;
+    ~PrimaryCmdBuffer() override { destroy(); }
 
-    void begin() override;
-    void create(CmdPool& pool) { CmdBuffer::create(pool); }
+    void begin();
 
     PrimaryCmdBuffer(PrimaryCmdBuffer const& other) = delete;
     PrimaryCmdBuffer& operator=(PrimaryCmdBuffer const& other) = delete;
@@ -117,64 +116,21 @@ public:
 namespace cth::vk {
 class SecondaryCmdBuffer : public CmdBuffer {
 public:
-    struct Config;
-    explicit SecondaryCmdBuffer(Config const& config, VkCommandBufferUsageFlags usage = 0);
-    SecondaryCmdBuffer(PrimaryCmdBuffer& primary, Config const& config, VkCommandBufferUsageFlags usage = 0);
-
+    explicit SecondaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
+    explicit SecondaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage = 0);
 
     ~SecondaryCmdBuffer() override { destroy(); }
 
-    void begin() override;
 
-    void create(PrimaryCmdBuffer& primary);
+    void begin(RenderPass const& render_pass, Subpass const& subpass, Framebuffer const* framebuffer);
 
 private:
-    PrimaryCmdBuffer* _primary = nullptr;
-    VkCommandBufferInheritanceInfo _inheritanceInfo;
+    VkCommandBufferInheritanceInfo _inheritanceInfo{};
 
 public:
-    [[nodiscard]] auto primary() const { return _primary; }
-
     SecondaryCmdBuffer(SecondaryCmdBuffer const& other) = delete;
     SecondaryCmdBuffer& operator=(SecondaryCmdBuffer const& other) = delete;
     SecondaryCmdBuffer(SecondaryCmdBuffer&& other) noexcept = default;
     SecondaryCmdBuffer& operator=(SecondaryCmdBuffer&& other) noexcept = default;
-};
-}
-
-//SecondaryCmdBuffer::Config
-
-namespace cth::vk {
-struct SecondaryCmdBuffer::Config {
-    VkRenderPass renderPass = VK_NULL_HANDLE;
-    uint32_t subpassIndex = 0;
-    VkFramebuffer framebuffer = VK_NULL_HANDLE;
-
-
-    VkBool32 occlusionQueryEnable = VK_FALSE;
-    VkQueryControlFlags queryFlags = 0;
-    VkQueryPipelineStatisticFlags pipelineStatistics = 0;
-
-
-    static auto Default(VkRenderPass render_pass, uint32_t subpass_index, VkFramebuffer framebuffer) {
-        return Config{render_pass, subpass_index, framebuffer};
-    }
-
-private:
-    [[nodiscard]] auto inheritanceInfo() const {
-        return VkCommandBufferInheritanceInfo{
-            VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-            nullptr,
-            renderPass,
-            subpassIndex,
-            framebuffer,
-
-            occlusionQueryEnable,
-            queryFlags,
-            pipelineStatistics
-        };
-    }
-
-    friend SecondaryCmdBuffer;
 };
 }

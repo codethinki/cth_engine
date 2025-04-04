@@ -94,6 +94,7 @@
     <ClInclude Include="src\interface\render\renderer3\Renderer3.hpp" />
     <ClInclude Include="src\interface\render\renderer3\RenderStage.hpp" />
     <ClInclude Include="src\interface\render\renderer3\dag.hpp" />
+    <ClInclude Include="src\interface\render\renderer3\RenderStageConfig.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\vulkan\resource\buffer\CthBuffer.inl" />

@@ -67,7 +67,7 @@ void Fence::reset() const {
 VkResult Fence::wait(uint64_t timeout) const {
     debug_check(this);
 
-    std::array<VkFence, 1> const fences = {_handle.get()};
+    std::array const fences = {_handle.get()};
 
 
     VkResult const result = _core->functions()->vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, timeout);
@@ -78,8 +78,7 @@ VkResult Fence::wait(uint64_t timeout) const {
     return result;
 }
 void Fence::wait() const {
-    // ReSharper disable once CppExpressionWithoutSideEffects
-    wait(std::numeric_limits<uint64_t>::max());
+    [[maybe_unused]] auto const result = wait(std::numeric_limits<uint64_t>::max());
 }
 
 

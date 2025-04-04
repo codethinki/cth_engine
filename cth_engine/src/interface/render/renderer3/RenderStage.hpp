@@ -1,35 +1,16 @@
 #pragma once
+#include "RenderStageConfig.hpp"
 #include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
 
 
 namespace cth::vk {
-class CmdPool;
+class Fence;
 }
 
 namespace cth::vk {
-class Renderer3;
-}
-
-namespace cth::vk {
-class Queue;
-struct PipelineWaitStage;
-class Semaphore;
-
-struct RenderStageConfig {
-    static constexpr auto GROUP_SIZE = constants::FRAMES_IN_FLIGHT;
-    using id_t = size_t;
-
-
-    cth::not_null<Queue const*> queue;
-    /**
-     * @attention must match the @ref queue family
-     */
-    cth::not_null<CmdPool*> cmdPool;
-    std::vector<Semaphore*> signalSemaphores{};
-    std::vector<PipelineWaitStage> waitStages{};
-};
+class SecondaryCmdBuffer;
 }
 
 namespace cth::vk {
@@ -45,10 +26,17 @@ class Queue;
 class RenderPass;
 class Semaphore;
 
+struct RenderStageCmdBuffers {
+    PrimaryCmdBuffer* cmdBuffer;
+    std::vector<SecondaryCmdBuffer*> secondaryCmdBuffers;
+};
+
 class RenderStage {
 public:
-    using Config = RenderStageConfig;
+    constexpr static uint32_t GROUP_SIZE = constants::FRAMES_IN_FLIGHT;
 
+    using Config = RenderStageConfig;
+    //TEMP left off here implement this
     RenderStage(Core const& core, Config config);
 
     /**
@@ -80,21 +68,25 @@ public:
 
     /**
      * @brief calls @ref PrimaryCmdBuffer::begin()
-     * @return cmd buffer in recording state
+     * @return cmd buffers
      */
-    PrimaryCmdBuffer* begin();
+    RenderStageCmdBuffers begin();
 
     /**
      * @brief calls @ref PrimaryCmdBuffer::end()
+     * @attention requires @ref recording()
      */
     void end();
+    void optEnd() { if(recording()) end(); }
 
     /**
      * @brief submits the stage to the queue
-     * @attention requires @ref recording() == true or @ref end() called
-     * @note calls @ref Queue::submit(SubmitInfo const&);
+     * @details calls:
+        - @ref optEnd()
+        - @ref Queue::submit(SubmitInfo const&);
      */
     void submit();
+
 
 
     /**
@@ -103,44 +95,63 @@ public:
      */
     void skip();
 
-private:
     /**
-     * @details calls @ref CmdPool::CmdPool(Core const&, CmdPool::Config const&, bool);
+     * @brief waits or times out
+     * @param timeout in nanoseconds
+     * @return @ref Fence::wait(size_t)
      */
-    void createCmdPool();
+    [[nodiscard]] VkResult wait(size_t timeout) const;
 
     /**
-     * @details calls @ref PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool*, VkCommandBufferUsageFlags);
+     * @brief calls @ref wait(size_t) with UINT64_MAX
+     */
+    void wait() const;
+
+private:
+    void initCmdPools();
+    void initCmdBuffers();
+    void initFences();
+    void initSubmitInfos();
+
+    void createPrimaryCmdBuffers();
+    void createSecondaryCmdBuffers();
+
+    /**
+     * @details calls:
+        - @ref PrimaryCmdBuffer::create(CmdPool&);
+        - @ref SecondaryCmdBuffer::create(CmdPool&);
      */
     void createCmdBuffers();
 
     void createSubmitInfos();
 
-
-
     cth::not_null<Core const*> _core;
 
-
-    cth::not_null<Queue const*> _queue;
-    std::vector<Semaphore*> _signalSemaphores;
-    std::vector<PipelineWaitStage> _waitStages;
+    Config _config;
 
     VkExtent2D _extent{};
+    std::vector<CmdPool> _cmdPools;
+    std::vector<PrimaryCmdBuffer> _primaryCmdBuffers;
+    std::vector<SecondaryCmdBuffer> _secondaryCmdBuffers;
+    std::vector<Fence> _fences;
     std::vector<SubmitInfo> _submitInfos;
-    std::vector<PrimaryCmdBuffer> _cmdBuffers;
 
 
     size_t _subIndex = 0;
 
     [[nodiscard]] size_t subIndex() const { return _subIndex; }
-    [[nodiscard]] PrimaryCmdBuffer& cmdBuffer();
-    [[nodiscard]] SubmitInfo& submitInfo();
+    [[nodiscard]] size_t secondaryChunkSize() const;
+    [[nodiscard]] PrimaryCmdBuffer& primaryCmdBuffer();
+    [[nodiscard]] std::vector<SecondaryCmdBuffer*> secondaryCmdBuffers();
 
-    [[nodiscard]] auto const& current(auto const& rng) const { return rng[_subIndex]; }
-    [[nodiscard]] auto& current(auto& rng) { return rng[_subIndex]; }
+
+
+    [[nodiscard]] auto& queue() const { return *_config.queue; }
+    [[nodiscard]] SubmitInfo& submitInfo();
+    [[nodiscard]] Fence const& fence() const;
 
 public:
-    [[nodiscard]] bool created() const { return !_signalSemaphores.empty() && !_waitStages.empty(); }
+    [[nodiscard]] bool created() const;
     [[nodiscard]] bool recording() const;
 
     RenderStage(RenderStage const& other) = delete;
