@@ -5,7 +5,7 @@
 #include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 
 #include <map>
-
+//IMPLEMENT release and state
 namespace cth::vk {
 class RenderStage;
 class CmdPool;
@@ -111,6 +111,7 @@ private:
     std::map<id_t, RenderStage> _renderStages;
 
 public:
+    [[nodiscard]] std::map<id_t, RenderStage*> renderStages();
     [[nodiscard]] bool created() const;
 
     static void debugCheck(Renderer3 const&);
@@ -129,7 +130,7 @@ inline void Renderer3Config::debugCheck(Renderer3Config const& config) {
         ),
         "the dependency graph must contain all config id's"
     ) {
-        auto const view = config.stages
+        auto  view = config.stages
             | std::views::keys
             | std::views::filter([&dag = config.stageDependencies](auto const id) { return !dag.contains(id); });
 

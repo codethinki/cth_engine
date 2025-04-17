@@ -1,18 +1,10 @@
 #pragma once
 #include "RenderStageConfig.hpp"
+#include "src/vulkan/render/control/CthFence.hpp"
 #include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
-
-
-namespace cth::vk {
-class Fence;
-}
-
-namespace cth::vk {
-class SecondaryCmdBuffer;
-}
-
+//IMPLEMENT release and state
 namespace cth::vk {
 
 struct Cycle;
@@ -22,6 +14,8 @@ struct SubmitInfo;
 class CmdPool;
 class Core;
 class PrimaryCmdBuffer;
+class SecondaryCmdBuffer;
+
 class Queue;
 class RenderPass;
 class Semaphore;
@@ -33,7 +27,7 @@ struct RenderStageCmdBuffers {
 
 class RenderStage {
 public:
-    constexpr static uint32_t GROUP_SIZE = constants::FRAMES_IN_FLIGHT;
+    cxpr static uint32_t GROUP_SIZE = constants::FRAMES_IN_FLIGHT;
 
     using Config = RenderStageConfig;
     //TEMP left off here implement this
@@ -108,11 +102,15 @@ public:
     void wait() const;
 
 private:
+    void initFences();
     void initCmdPools();
     void initCmdBuffers();
-    void initFences();
     void initSubmitInfos();
 
+    void init();
+
+    void createFences();
+    void createCmdPools();
     void createPrimaryCmdBuffers();
     void createSecondaryCmdBuffers();
 
@@ -129,11 +127,10 @@ private:
 
     Config _config;
 
-    VkExtent2D _extent{};
+    std::vector<Fence> _fences;
     std::vector<CmdPool> _cmdPools;
     std::vector<PrimaryCmdBuffer> _primaryCmdBuffers;
     std::vector<SecondaryCmdBuffer> _secondaryCmdBuffers;
-    std::vector<Fence> _fences;
     std::vector<SubmitInfo> _submitInfos;
 
 
@@ -142,6 +139,7 @@ private:
     [[nodiscard]] size_t subIndex() const { return _subIndex; }
     [[nodiscard]] size_t secondaryChunkSize() const;
     [[nodiscard]] PrimaryCmdBuffer& primaryCmdBuffer();
+    [[nodiscard]] PrimaryCmdBuffer const& primaryCmdBuffer() const;
     [[nodiscard]] std::vector<SecondaryCmdBuffer*> secondaryCmdBuffers();
 
 
@@ -149,6 +147,8 @@ private:
     [[nodiscard]] auto& queue() const { return *_config.queue; }
     [[nodiscard]] SubmitInfo& submitInfo();
     [[nodiscard]] Fence const& fence() const;
+
+    void next();
 
 public:
     [[nodiscard]] bool created() const;

@@ -4,7 +4,6 @@
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
 #include <cth/pointers.hpp>
-
 #include <volk.h>
 
 namespace cth::vk {
@@ -15,7 +14,6 @@ class DestructionQueue;
 class Fence {
 public:
     struct State;
-
     /**
      * @brief base constructor 
      */

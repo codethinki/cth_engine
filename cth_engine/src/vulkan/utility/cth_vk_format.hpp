@@ -9,6 +9,17 @@
 
 
 namespace cth::vk::fmt {
+template<class T>
+std::string structure_to_string(T&& to_tuple) {
+    constexpr static auto fmt_base = cth::vk::fmt::format_string<T>();
+
+    auto tuple = boost::pfr::structure_to_tuple(std::forward<T>(to_tuple));
+
+    return std::apply(
+        []<typename... U>(U&&... args) { return std::format(std::string_view{fmt_base}, std::forward<U>(args)...); },
+        tuple
+    );
+}
 
 template<class T>
 concept formattable_type = cth::type::is_any_of<type::pure_t<T>,

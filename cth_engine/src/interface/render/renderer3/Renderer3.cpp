@@ -134,5 +134,8 @@ void Renderer3::createSemaphores() {
 }
 void Renderer3::createStages() { for(auto& stage : _renderStages | std::views::values) stage.create(); }
 
+auto Renderer3::renderStages() -> std::map<id_t, RenderStage*> {
+    return std::map{std::from_range, _renderStages | std::views::transform([](auto& pair) { return std::pair{pair.first, &pair.second}; })};
+}
 bool Renderer3::created() const { return _frameSemaphores[0].created(); }
 }
