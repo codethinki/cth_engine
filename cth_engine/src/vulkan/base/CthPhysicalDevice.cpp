@@ -5,6 +5,7 @@
 #include "src/vulkan/surface/CthSurface.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
+#include <range/v3/view/concat.hpp>
 
 namespace cth::vk {
 using std::vector;
@@ -102,7 +103,7 @@ auto PhysicalDevice::AutoPick(Instance const& instance, std::span<Queue const> q
 
     auto const devices = enumerateVkDevices(instance.get());
 
-    auto joinView = ranges::views::concat(required_extensions, constants::REQUIRED_DEVICE_EXTENSIONS);
+    auto joinView = ::ranges::views::concat(required_extensions, constants::REQUIRED_DEVICE_EXTENSIONS);
     vector<std::string> requiredExtensions{std::ranges::begin(joinView), std::ranges::end(joinView)};
 
 

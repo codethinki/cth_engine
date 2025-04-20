@@ -1,5 +1,6 @@
 #include "Renderer3.hpp"
 
+#include "RenderPulse.hpp"
 #include "RenderStage.hpp"
 
 #include "src/vulkan/base/CthCore.hpp"
@@ -15,16 +16,14 @@ void Renderer3Config::removeUnusedDependencies() {
     for(auto const& id : stages | std::views::keys) unusedIds.erase(id);
     for(auto const& id : unusedIds) stageDependencies.erase(id);
 }
-
 }
 
 namespace cth::vk {
-Renderer3::Renderer3(Core const& core, Config config) : _core{&core} {
+Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config config) : _pulse{&pulse}, _core{&core} {
+    config.removeUnusedDependencies();
     Config::debugCheck(config);
 
     auto& [stages, stageDependencies] = config;
-    config.removeUnusedDependencies();
-
     initFrameSemaphores();
     initDependencySemaphores(stageDependencies.edgeCount());
 
@@ -33,14 +32,16 @@ Renderer3::Renderer3(Core const& core, Config config) : _core{&core} {
     initRenderStages(stages);
 }
 
-Renderer3::Renderer3(Core const& core, Config const& config, create_t) : Renderer3{core, config} { create(); }
+Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config const& config, create_t) : Renderer3{core, pulse, config} { create(); }
 
-void Renderer3::create() {
+auto Renderer3::create() -> std::map<id_t, RenderStage*> {
     Core::debug_check(*_core);
     optDestroy();
 
     createSemaphores();
     createStages();
+
+    return stages();
 }
 
 void Renderer3::destroy() {
@@ -54,7 +55,7 @@ void Renderer3::initFrameSemaphores() {
         _frameSemaphores.emplace_back(*_core);
 }
 void Renderer3::initDependencySemaphores(size_t edges) {
-    size_t const semaphores = edges * RenderStageConfig::GROUP_SIZE;
+    size_t const semaphores = edges * StageConfig::GROUP_SIZE;
     _stageSemaphores.reserve(semaphores);
 
     for(size_t i = 0; i < semaphores; ++i) _stageSemaphores.emplace_back(*_core);
@@ -123,7 +124,7 @@ void Renderer3::linkStages(Config::stage_map_t stages, Config::dependencies_t co
 
 void Renderer3::initRenderStages(Config::stage_map_t const& stage_configs) {
     for(auto& [id, config] : stage_configs)
-        _renderStages.emplace(id, RenderStage{*_core, config});
+        _renderStages.emplace(id, RenderStage{*_core, *_pulse, config});
 }
 void Renderer3::createSemaphores() {
     for(auto& semaphore : _frameSemaphores) semaphore.create();
@@ -134,8 +135,16 @@ void Renderer3::createSemaphores() {
 }
 void Renderer3::createStages() { for(auto& stage : _renderStages | std::views::values) stage.create(); }
 
-auto Renderer3::renderStages() -> std::map<id_t, RenderStage*> {
+
+bool Renderer3::created() const { return _frameSemaphores[0].created(); }
+
+RenderStage& Renderer3::stage(id_t id) {
+    CTH_CRITICAL(!_renderStages.contains(id), "stage id must be present, missing: {}", id) {}
+    return _renderStages.at(id);
+}
+
+auto Renderer3::stages() -> std::map<id_t, RenderStage*> {
     return std::map{std::from_range, _renderStages | std::views::transform([](auto& pair) { return std::pair{pair.first, &pair.second}; })};
 }
-bool Renderer3::created() const { return _frameSemaphores[0].created(); }
+
 }

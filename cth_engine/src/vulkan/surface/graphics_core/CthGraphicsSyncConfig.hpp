@@ -1,18 +1,19 @@
 #pragma once
+#include "src/interface/render/renderer3/RenderPulse.hpp"
+#include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
-
-#include <vector>
 
 #include <cth/io/log.hpp>
 #include <cth/pointer/not_null.hpp>
 
+#include <vector>
 
 namespace cth::vk {
 class Semaphore;
 class Core;
 
 
-class  GraphicsSyncConfig {
+class GraphicsSyncConfig {
 public:
     static constexpr auto SET_SIZE = constants::FRAMES_IN_FLIGHT;
     struct State;
@@ -70,12 +71,22 @@ public:
      */
     State release();
 
+    /**
+     * @brief next pulse
+     * @details calls RenderPulse::next()
+     */
+    void next() { _pulse.next(); }
+
+
 
     [[nodiscard]] std::array<Semaphore*, SET_SIZE> renderFinishedSemaphores() const;
     [[nodiscard]] std::array<Semaphore*, SET_SIZE> imageAvailableSemaphores() const;
+    [[nodiscard]] std::vector<PipelineWaitStage> imageAvailableWaitStages() const;
 
 private:
     cth::not_null<Core const*> _core;
+
+    RenderPulse _pulse{};
 
     /**
      * semaphores[currentFrame] will be signaled once the vk_image is clear to render on
@@ -91,11 +102,14 @@ private:
 
 public:
     [[nodiscard]] bool created() const {
-        return std::ranges::none_of(_imageAvailableSemaphores, [](auto const& ptr) { return ptr == nullptr; })
+        return std::ranges::none_of(_imageAvailableSemaphores, [](auto const& ptr) { return ptr == nullptr; }) //TODO make this faster
             && std::ranges::none_of(_imageAvailableSemaphores, [](auto const& ptr) { return ptr == nullptr; });
     }
     [[nodiscard]] Semaphore* renderFinishedSemaphore(size_t index) const;
     [[nodiscard]] Semaphore* imageAvailableSemaphore(size_t index) const;
+
+    [[nodiscard]] RenderPulse const& pulse() const { return _pulse; }
+    [[nodiscard]] dclauto pulseVal() const { return _pulse.get(); }
 
     GraphicsSyncConfig(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig const& other) = delete;
@@ -111,6 +125,7 @@ public:
 
 namespace cth::vk {
 struct GraphicsSyncConfig::State {
+    RenderPulse pulse;
     /**
      * @attention must not be nullptr
      */

@@ -43,7 +43,7 @@ void SubmitInfo::createTimelineInfo() {
         VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO, nullptr,
         static_cast<uint32_t>(_waitValues.size()), _waitValues.data(),
         static_cast<uint32_t>(_signalValues.size()), _signalValues.data()
-        );
+    );
 }
 
 

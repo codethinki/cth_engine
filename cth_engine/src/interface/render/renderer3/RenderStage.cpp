@@ -1,19 +1,21 @@
 #include "RenderStage.hpp"
 
-#include <utility>
-
+#include "RenderPulse.hpp"
 #include "src/vulkan/base/queue/CthQueue.hpp"
 #include "src/vulkan/base/queue/CthSubmitInfo.hpp"
 #include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "src/vulkan/render/cmd/CthCmdPool.hpp"
 #include "src/vulkan/render/control/CthFence.hpp"
 
+#include <utility>
+
+
 namespace cth::vk {
 
-RenderStage::RenderStage(Core const& core, Config config): _core{&core}, _config{std::move(config)} {
+RenderStage::RenderStage(Core const& core, RenderPulse const& pulse, Config config): _core{&core}, _pulse{&pulse}, _config{std::move(config)} {
     init();
 }
-RenderStage::RenderStage(Core const& core, Config config, create_t) : RenderStage{core, std::move(config)} {
+RenderStage::RenderStage(Core const& core, RenderPulse const& pulse, Config config, create_t) : RenderStage{core, pulse, std::move(config)} {
     create();
 }
 RenderStage::~RenderStage() { optDestroy(); }
@@ -21,6 +23,7 @@ void RenderStage::create() {
     optDestroy();
 
     createFences();
+    createCmdPools();
     createCmdBuffers();
     createSubmitInfos();
 }
@@ -31,6 +34,8 @@ void RenderStage::destroy() {
     for(auto& pool : _cmdPools) pool.destroy();
 }
 RenderStageCmdBuffers RenderStage::begin() {
+    wait();
+
     auto& primary = primaryCmdBuffer();
     primary.begin();
     return RenderStageCmdBuffers{
@@ -39,20 +44,28 @@ RenderStageCmdBuffers RenderStage::begin() {
     };
 }
 void RenderStage::end() {
+    CTH_CRITICAL(!recording(), "stage must be recording to end") {}
     primaryCmdBuffer().end();
 }
 void RenderStage::submit() {
     optEnd();
+    reset();
     queue().submit(submitInfo());
-
-    next();
 }
 void RenderStage::skip() {
+    CTH_WARN(recording(), "stage should not be recording when skipping a submit") {}
+
+    wait();
+    fence().reset();
     queue().skip(submitInfo());
-    next();
 }
 VkResult RenderStage::wait(size_t timeout) const { return fence().wait(timeout); }
 void RenderStage::wait() const { fence().wait(); }
+
+
+void RenderStage::reset() const { fence().reset(); }
+
+
 
 void RenderStage::initFences() { for(size_t i = 0; i < GROUP_SIZE; i++) _fences.emplace_back(*_core); }
 void RenderStage::initCmdPools() {
@@ -85,12 +98,9 @@ void RenderStage::init() {
     initCmdBuffers();
     initSubmitInfos();
 }
-void RenderStage::createFences() {
-    for(auto& fence : _fences) fence.create(VK_FENCE_CREATE_SIGNALED_BIT);
-}
-void RenderStage::createCmdPools() {
-    for(auto& pool : _cmdPools) pool.create();
-}
+
+void RenderStage::createFences() { for(auto& fence : _fences) fence.create(VK_FENCE_CREATE_SIGNALED_BIT); }
+void RenderStage::createCmdPools() { for(auto& pool : _cmdPools) pool.create(); }
 
 
 void RenderStage::createPrimaryCmdBuffers() {
@@ -101,6 +111,8 @@ void RenderStage::createPrimaryCmdBuffers() {
     }
 }
 void RenderStage::createSecondaryCmdBuffers() {
+    if(_secondaryCmdBuffers.empty()) return;
+
     if(_cmdPools.size() == 1) {
         for(auto& buffer : _secondaryCmdBuffers) buffer.create(_cmdPools.front());
         return;
@@ -137,23 +149,18 @@ void RenderStage::createSubmitInfos() {
 }
 size_t RenderStage::secondaryChunkSize() const { return _secondaryCmdBuffers.size() / GROUP_SIZE; }
 
-PrimaryCmdBuffer& RenderStage::primaryCmdBuffer() { return _primaryCmdBuffers[_subIndex]; }
-PrimaryCmdBuffer const& RenderStage::primaryCmdBuffer() const {
-    return _primaryCmdBuffers[_subIndex];
-}
+PrimaryCmdBuffer& RenderStage::primaryCmdBuffer() { return _primaryCmdBuffers[subIndex()]; }
+PrimaryCmdBuffer const& RenderStage::primaryCmdBuffer() const { return _primaryCmdBuffers[subIndex()]; }
 
 std::vector<SecondaryCmdBuffer*> RenderStage::secondaryCmdBuffers() {
+    if(_secondaryCmdBuffers.empty()) return {};
     auto chunks = _secondaryCmdBuffers | cth::views::split_into(GROUP_SIZE);
-    return {std::from_range, chunks[static_cast<ptrdiff_t>(_subIndex)] | cth::views::to_ptr_range};
+    return {std::from_range, chunks[static_cast<ptrdiff_t>(subIndex())] | cth::views::to_ptr_range};
 }
-SubmitInfo& RenderStage::submitInfo() { return _submitInfos[_subIndex]; }
-Fence const& RenderStage::fence() const { return _fences[_subIndex]; }
-void RenderStage::next() { ++_subIndex %= GROUP_SIZE; }
-bool RenderStage::created() const {
-    return _cmdPools[0].created();
-}
-bool RenderStage::recording() const {
-    return primaryCmdBuffer().recording();
-}
+SubmitInfo& RenderStage::submitInfo() { return _submitInfos[subIndex()]; }
+Fence const& RenderStage::fence() const { return _fences[subIndex()]; }
+size_t RenderStage::subIndex() const { return _pulse->get(); }
+bool RenderStage::created() const { return !_cmdPools.empty() && _cmdPools[0].created(); }
+bool RenderStage::recording() const { return primaryCmdBuffer().recording(); }
 
 }

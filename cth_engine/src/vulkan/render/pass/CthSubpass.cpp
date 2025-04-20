@@ -28,7 +28,7 @@ Subpass::Subpass(
     _depthAttachment = depth_attachment->reference();
     _preserveAttachments = {preserveAttachments.begin(), preserveAttachments.end()};
 
-    auto attachments = ranges::concat_view(input_attachments, color_attachments, resolve_attachments);
+    auto attachments = ::ranges::views::concat(input_attachments, color_attachments, resolve_attachments);
     std::ranges::copy(attachments, std::back_inserter(_attachments));
     _attachments.emplace_back(depth_attachment);
 

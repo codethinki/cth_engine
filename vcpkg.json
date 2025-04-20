@@ -1,12 +1,12 @@
 {
   "dependencies": [
+    "boost-pfr",
     "glfw3",
     "glm",
     "gtest",
     "ms-gsl",
     "range-v3",
     "stb",
-    "volk",
-    "boost-pfr"
+    "volk"
   ]
 }

@@ -98,6 +98,8 @@ void CmdPool::reset() {
 
 template<cmd_buffer_t T>
 VkCommandBuffer CmdPool::newCmdBuffer() {
+    debug_check(*this);
+
     auto const index = to_enum<T>();
     auto& buffers = _buffers[index];
 
@@ -111,6 +113,8 @@ VkCommandBuffer CmdPool::newCmdBuffer() {
 
 template<cmd_buffer_t T>
 void CmdPool::returnCmdBuffer(VkCommandBuffer vk_buffer) {
+    debug_check(*this);
+
     auto const index = to_enum<T>();
     auto& buffers = _buffers[index];
     auto const maxBuffers = _maxBuffers[index];

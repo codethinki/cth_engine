@@ -6,10 +6,11 @@ class Queue;
 struct PipelineWaitStage;
 class Semaphore;
 
-enum RenderStageFlags : size_t {
+enum RenderStageFlag : size_t {
     RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING = 1 << 0,
     RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING = 1 << 1
 };
+using RenderStageFlags = std::underlying_type_t<RenderStageFlag>;
 struct RenderSubStageConfig {};
 
 struct RenderStageConfig {
@@ -22,7 +23,7 @@ struct RenderStageConfig {
     std::vector<PipelineWaitStage> waitStages{};
     RenderStageFlags flags = RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING;
 
-    [[nodiscard]] bool parallelFrameInFlightRecording() const { return flags & RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING; }
-    [[nodiscard]] bool parallelSubStageRecording() const { return flags & RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING; }
+    [[nodiscard]] cxpr bool parallelFrameInFlightRecording() const { return flags & RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING; }
+    [[nodiscard]] cxpr bool parallelSubStageRecording() const { return flags & RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING; }
 };
 }

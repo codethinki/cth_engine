@@ -1,11 +1,14 @@
 #pragma once
 #include "dag.hpp"
+#include "RenderPulse.hpp"
 #include "RenderStageConfig.hpp"
 
 #include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 
 #include <map>
+
 //IMPLEMENT release and state
+
 namespace cth::vk {
 class RenderStage;
 class CmdPool;
@@ -16,7 +19,7 @@ class Semaphore;
 }
 
 namespace cth::vk {
-
+//TEMP left off here implement the Cycle in here so it can be used by the graphics sync
 struct Renderer3Config {
     using StageConfig = RenderStageConfig;
     using id_t = size_t;
@@ -35,7 +38,6 @@ struct Renderer3Config {
 }
 
 namespace cth::vk {
-
 class Renderer3 {
 public:
     using Config = Renderer3Config;
@@ -58,20 +60,20 @@ public:
      * @brief creates
      * @param config to use
      */
-    Renderer3(Core const& core, Config config);
+    Renderer3(Core const& core, RenderPulse const& pulse, Config config);
     /**
      * @brief constructs and creates
      * @param core requires @ref Core::created()
      * @param config to use
      * @details calls: Renderer::Render(Core const&, Config)
      */
-    Renderer3(Core const& core, Config const& config, create_t);
+    Renderer3(Core const& core, RenderPulse const& pulse, Config const& config, create_t);
 
     /**
      * @brief creates the renderer
      * @attention requires @ref Core::created()
      */
-    void create();
+    std::map<id_t, RenderStage*> create();
 
     /**
      * @brief destroys the renderer
@@ -104,6 +106,7 @@ private:
     void createSemaphores();
     void createStages();
 
+    cth::not_null<RenderPulse const*> _pulse;
     cth::not_null<Core const*> _core;
 
     std::vector<Semaphore> _frameSemaphores;
@@ -111,18 +114,23 @@ private:
     std::map<id_t, RenderStage> _renderStages;
 
 public:
-    [[nodiscard]] std::map<id_t, RenderStage*> renderStages();
     [[nodiscard]] bool created() const;
+    [[nodiscard]] RenderStage& stage(id_t id);
+    [[nodiscard]] std::map<id_t, RenderStage*> stages();
+    [[nodiscard]] RenderPulse const& pulse() const { return *_pulse; }
 
     static void debugCheck(Renderer3 const&);
 };
+
 
 
 }
 
 namespace cth::vk {
 inline void Renderer3Config::debugCheck(Renderer3Config const& config) {
-    CTH_CRITICAL(!config.stageDependencies.valid(), "stage dependency dag invalid, cyclic nodes: {}", config.stageDependencies.cyclics()) {}
+    CTH_CRITICAL(config.stageDependencies.cyclic(), "stage dependency dag invalid, cyclic nodes: {}", config.stageDependencies.cyclics()) {}
+
+
     CTH_CRITICAL(
         std::ranges::any_of(
             config.stages | std::views::keys,
@@ -130,7 +138,7 @@ inline void Renderer3Config::debugCheck(Renderer3Config const& config) {
         ),
         "the dependency graph must contain all config id's"
     ) {
-        auto  view = config.stages
+        auto view = config.stages
             | std::views::keys
             | std::views::filter([&dag = config.stageDependencies](auto const id) { return !dag.contains(id); });
 

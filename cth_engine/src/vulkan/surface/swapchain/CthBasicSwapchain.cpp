@@ -71,25 +71,28 @@ void BasicSwapchain::resize(VkExtent2D window_extent) {
 
 
 
-VkResult BasicSwapchain::acquireNextImage(Cycle const& cycle) {
-    auto const& fence = _imageAvailableFences[cycle.subIndex];
-    auto const semaphore = _syncConfig->imageAvailableSemaphore(cycle.subIndex)->get();
+VkResult BasicSwapchain::acquireNextImage() {
+    auto const pulse = _syncConfig->pulseVal();
+
+    auto const& fence = _imageAvailableFences[pulse];
+    auto const semaphore = _syncConfig->imageAvailableSemaphore(pulse)->get();
 
     fence.wait();
     fence.reset();
 
     VkResult const acquireResult = _core->functions()->vkAcquireNextImageKHR(_core->vkDevice(), _handle.get(), std::numeric_limits<uint64_t>::max(),
         semaphore,
-        fence.get(), &_imageIndices[cycle.subIndex]);
+        fence.get(), &_imageIndices[pulse]);
 
     CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR, "failed to acquire vk_image")
         throw cth::vk::result_exception{acquireResult, details->exception()};
 
     return acquireResult;
 }
-void BasicSwapchain::skipAcquire(Cycle const& cycle) const {
-    auto const semaphore = _syncConfig->imageAvailableSemaphore(cycle.subIndex)->get();
-    auto const& fence = _imageAvailableFences[cycle.subIndex];
+void BasicSwapchain::skipAcquire() const {
+    auto const pulse = _syncConfig->pulseVal();
+    auto const semaphore = _syncConfig->imageAvailableSemaphore(pulse)->get();
+    auto const& fence = _imageAvailableFences[pulse];
 
     fence.wait();
     fence.reset();
@@ -108,8 +111,10 @@ void BasicSwapchain::skipAcquire(Cycle const& cycle) const {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire an vk_image")
         throw cth::vk::result_exception{result, details->exception()};
 }
-void BasicSwapchain::beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const& cmd_buffer) const {
-    _renderPass->begin(cmd_buffer, 0, _swapchainFramebuffers[_imageIndices[cycle.subIndex]]);
+void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const& cmd_buffer) const {
+    auto const pulse = _syncConfig->pulseVal();
+
+    _renderPass->begin(cmd_buffer, 0, _swapchainFramebuffers[_imageIndices[pulse]]);
 
     VkViewport const viewport{
         .x = 0,
@@ -128,25 +133,25 @@ void BasicSwapchain::beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const&
 }
 void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const { _renderPass->end(cmd_buffer); }
 
-VkResult BasicSwapchain::present(Cycle const& cycle) {
-    size_t subIndex = cycle.subIndex;
+VkResult BasicSwapchain::present() {
+    size_t const pulse = _syncConfig->pulseVal();
 
-    CTH_CRITICAL(_imageIndices[subIndex] == NO_IMAGE_INDEX, "no acquired vk_image available") { details->add("frame: ({})", subIndex); }
+    CTH_CRITICAL(_imageIndices[pulse] == NO_IMAGE_INDEX, "no acquired vk_image available") { details->add("frame: ({})", pulse); }
 
-    auto const result = _presentQueue->present(_imageIndices[subIndex], _presentInfos[subIndex]);
+    auto const result = _presentQueue->present(_imageIndices[pulse], _presentInfos[pulse]);
 
-    _imageIndices[subIndex] = NO_IMAGE_INDEX;
+    _imageIndices[pulse] = NO_IMAGE_INDEX;
 
     return result;
 }
-void BasicSwapchain::skipPresent(Cycle const& cycle) {
-    auto const& subIndex = cycle.subIndex;
+void BasicSwapchain::skipPresent() {
+    auto const pulse = _syncConfig->pulseVal();
 
-    auto& imageIndex = _imageIndices[subIndex];
+    auto& imageIndex = _imageIndices[pulse];
 
     CTH_WARN(imageIndex != NO_IMAGE_INDEX, "skip presenting an acquired vk_image, it will be discarded") {}
 
-    _presentQueue->const_skip(_presentInfos[subIndex]);
+    _presentQueue->const_skip(_presentInfos[pulse]);
 
     imageIndex = NO_IMAGE_INDEX;
 }

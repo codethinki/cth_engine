@@ -64,22 +64,32 @@ void Fence::reset() const {
 }
 
 
-VkResult Fence::wait(uint64_t timeout) const {
+VkResult Fence::wait(wait_t timeout) const {
     debug_check(this);
 
     std::array const fences = {_handle.get()};
 
 
-    VkResult const result = _core->functions()->vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, timeout);
+    VkResult const result = _core->functions()->vkWaitForFences(_core->vkDevice(), static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE,
+        timeout);
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
         throw cth::vk::result_exception{result, details->exception()};
 
     return result;
 }
-void Fence::wait() const {
-    [[maybe_unused]] auto const result = wait(std::numeric_limits<uint64_t>::max());
+void Fence::waitReset() const {
+    wait();
+    reset();
 }
+VkResult Fence::waitReset(wait_t timeout) const {
+    auto const result = wait(timeout);
+    if(result == VK_TIMEOUT) return VK_TIMEOUT;
+
+    reset();
+    return result;
+}
+void Fence::wait() const { [[maybe_unused]] auto const result = wait(std::numeric_limits<uint64_t>::max()); }
 
 
 void Fence::destroy(DeviceTable table, VkFence vk_fence) {

@@ -47,6 +47,7 @@
     <ClInclude Include="src\interface\render\CthStage.hpp" />
     <ClInclude Include="src\interface\render\CthRenderer2.hpp" />
     <ClInclude Include="src\interface\render\Phase.hpp" />
+    <ClInclude Include="src\interface\render\renderer3\RenderPulse.hpp" />
     <ClInclude Include="src\interface\render\renderer3\RenderStage.hpp" />
     <ClInclude Include="src\interface\render\renderer3\RenderStageConfig.hpp" />
     <ClInclude Include="src\pch\glob\cth.hpp" />

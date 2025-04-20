@@ -3,8 +3,8 @@
 #include "src/vulkan/utility/cth_constants.hpp"
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
-#include <cth/pointers.hpp>
 #include <volk.h>
+#include <cth/pointers.hpp>
 
 namespace cth::vk {
 class Core;
@@ -13,6 +13,8 @@ class DestructionQueue;
 
 class Fence {
 public:
+    using wait_t = uint64_t;
+
     struct State;
     /**
      * @brief base constructor 
@@ -34,7 +36,7 @@ public:
     /**
      * @note calls @ref optDestroy()
      */
-    ~Fence() { optDestroy(); };
+    ~Fence() { optDestroy(); }
 
     /**
      * @brief wraps @ref State
@@ -63,7 +65,7 @@ public:
 
     /**
      * @brief queries the status of the fence
-     * @attention requires @ref created()
+     * @attention requires @ref created() const
      * @return VkResult of vkGetFenceStatus() [VK_SUCCESS, VK_NOT_READY]
      * @throws cth::vk::result_exception result of @ref vkGetFenceStatus()
      */
@@ -83,7 +85,27 @@ public:
      * @return VkResult of vkWaitForFences() [VK_SUCCESS, VK_TIMEOUT]
      * @throws cth::vk::result_exception result of @ref vkWaitForFences()
      */
-    VkResult wait(uint64_t timeout) const; //NOLINT(modernize-use-nodiscard)
+    [[nodiscard]] VkResult wait(wait_t timeout) const;
+
+    /**
+     * @brief waits and resets
+     * @details calls:
+            - @ref wait() const
+            - @ref reset() const
+     */
+    void waitReset() const;
+
+
+    /**
+     * @brief waits [0, timeout) and resets
+     * @param timeout in nanoseconds
+     * @return VkResult of @ref wait(wait_t) const
+     * @details calls:
+            - @ref wait(wait_t) const
+            - @ref reset() const
+     */
+    [[nodiscard]] VkResult waitReset(wait_t timeout) const;
+
 
     /**
     * @brief blocks cpu until fence is signaled

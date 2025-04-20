@@ -6,6 +6,8 @@
 #include <set>
 #include <vector>
 
+namespace cth {
+//TEMP left off here somehow the dag is not creating edges implicitly i.e 1 depends on 0 and 0 not inserted
 template<class Rng, class Edge>
 concept dag_edge_range = cth::type::range_over_cpt<Rng, CPT(std::convertible_to<Edge>)>;
 
@@ -19,6 +21,11 @@ concept dag_node_range = cth::type::range_over<Rng, Node>;
  */
 template<class T, class U>
 struct dag {
+private:
+    using tag_t = struct {};
+    cxpr static tag_t TAG{};
+
+public:
     using node_t = T;
     using annotation_t = U;
     using edge_t = struct {
@@ -27,6 +34,13 @@ struct dag {
         annotation_t annotation;
     };
     using edge_init_list_t = std::initializer_list<edge_t>;
+
+    dag() = default;
+
+    template<dag_edge_range<edge_t> Rng>
+    explicit dag(Rng const& edges, tag_t = TAG) : dag{} { insert(edges); }
+    explicit dag(edge_init_list_t const& edges) : dag(edges, TAG) {}
+
 
     void insert(node_t node) { _connections[node]; }
 
@@ -38,9 +52,7 @@ struct dag {
 
     void insert(edge_init_list_t const& edges) { insert<edge_init_list_t>(edges); }
 
-    void insert(edge_t const& edge) {
-        insert(edge.source, edge.target, edge.annotation);
-    }
+    void insert(edge_t const& edge) { insert(edge.source, edge.target, edge.annotation); }
 
     void insert(node_t source, node_t target, annotation_t annotation) {
         auto& targets = getEdges(source);
@@ -126,9 +138,9 @@ struct dag {
     }
 
     /**
-     * @brief checks if the graph is a valid DAG (no cyclic nodes)
+     * @brief checks if the graph is cyclic DAG (no cyclic nodes)
      */
-    [[nodiscard]] bool valid() const { return cyclics().empty(); }
+    [[nodiscard]] bool cyclic() const { return !cyclics().empty(); }
 
     [[nodiscard]] std::set<node_t> roots() const {
         std::set<node_t> roots{};
@@ -177,3 +189,4 @@ public:
     }
 
 };
+}

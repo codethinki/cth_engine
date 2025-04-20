@@ -1,13 +1,10 @@
 #pragma once
-#include "CthGraphicsSyncConfig.hpp"
-
 #include "src/vulkan/base/CthCore.hpp"
-#include "src/vulkan/utility/cth_constants.hpp"
-#include "src/vulkan/utility/cth_debug_macros.hpp"
-
+#include "src/vulkan/surface/graphics_core/CthGraphicsSyncConfig.hpp"
 
 
 namespace cth::vk {
+class GraphicsSyncConfig;
 class Surface;
 class OSWindow;
 struct Cycle;
@@ -37,12 +34,10 @@ public:
     /**
      * @brief constructs and creates
      * @param present_queue must be valid
-     * @param sync_config must be valid
      * @note calls @ref create()
      * @note calls @ref GraphicsCore(Core const&)
      */
-    GraphicsCore(Core const& core, std::string_view window_name, VkExtent2D extent, Queue const& present_queue,
-        GraphicsSyncConfig const& sync_config);
+    GraphicsCore(Core const& core, std::string_view window_name, VkExtent2D extent, Queue const& present_queue);
 
     /**
      * @note calls @ref optDestroy()
@@ -54,8 +49,7 @@ public:
      * @brief constructs osWindow, surface and swapchain
      * @note calls @ref optDestroy()
      */
-    void create(std::string_view window_name, VkExtent2D extent, Queue const& present_queue,
-        GraphicsSyncConfig const& sync_config);
+    void create(std::string_view window_name, VkExtent2D extent, Queue const& present_queue);
 
     /**
      * @brief wraps the state
@@ -89,14 +83,14 @@ public:
      * @brief acquires frame from swapchain
      * @note calls @ref BasicSwapchain::acquireNextImage()
      */
-    void acquireFrame(Cycle const& cycle) const;
+    void acquireFrame() const;
     /**
      * @brief skips the acquire
      * @note calls @ref BasicSwapchain::skipAcquire()
      */
-    void skipAcquire(Cycle const& cycle) const;
+    void skipAcquire() const;
 
-    void beginWindowPass(Cycle const& cycle, PrimaryCmdBuffer const* render_cmd_buffer) const;
+    void beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
     void endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
 
     /**
@@ -105,8 +99,8 @@ public:
      * @note may call @ref BasicSwapchain::resize()
      * @note may call @ref minimized()
      */
-    void presentFrame(Cycle const& cycle) const;
-    void skipPresent(Cycle const& cycle) const;
+    void presentFrame() const;
+    void skipPresent() const;
 
     /**
      * @brief destroys if @ref created()
@@ -117,6 +111,7 @@ private:
     void reset();
 
     cth::not_null<Core const*> _core;
+    std::unique_ptr<GraphicsSyncConfig> _syncConfig;
     std::unique_ptr<OSWindow> _osWindow;
     std::unique_ptr<Surface> _surface;
     std::unique_ptr<BasicSwapchain> _swapchain; //TEMP change to Swapchain ptr once implemented
@@ -125,9 +120,15 @@ public:
     [[nodiscard]] bool created() const { return _osWindow || _surface || _swapchain; }
     [[nodiscard]] OSWindow const* osWindow() const { return _osWindow.get(); }
     [[nodiscard]] Surface const* surface() const { return _surface.get(); }
+    [[nodiscard]] GraphicsSyncConfig const* syncConfig() const { return _syncConfig.get(); }
     [[nodiscard]] BasicSwapchain const* swapchain() const { return _swapchain.get(); }
     [[nodiscard]] RenderPass const* swapchainRenderPass() const;
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const;
+
+    [[nodiscard]] dclauto imageAvailableWaitStages() const { return _syncConfig->imageAvailableWaitStages(); }
+    [[nodiscard]] dclauto renderFinishedSemaphores() const { return _syncConfig->renderFinishedSemaphores(); }
+    [[nodiscard]] dclauto renderPulse() const { return _syncConfig->pulse(); }
+    [[nodiscard]] dclauto pulseVal() const { return _syncConfig->pulseVal(); }
 
     GraphicsCore(GraphicsCore const& other) = delete;
     GraphicsCore(GraphicsCore&& other) noexcept = default;
@@ -145,6 +146,7 @@ namespace cth::vk {
 struct GraphicsCore::State {
     unique_not_null<OSWindow> osWindow;
     unique_not_null<Surface> surface;
+    unique_not_null<GraphicsSyncConfig> syncConfig;
     unique_not_null<BasicSwapchain> swapchain;
 
 private:

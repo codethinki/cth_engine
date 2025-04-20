@@ -61,16 +61,16 @@ public:
      * @note the semaphore must not be signaled
      * @note the fence must be signaled
      */
-    VkResult acquireNextImage(Cycle const& cycle);
-    void skipAcquire(Cycle const& cycle) const;
+    VkResult acquireNextImage();
+    void skipAcquire() const;
 
-    void beginRenderPass(Cycle const& cycle, PrimaryCmdBuffer const& cmd_buffer) const;
+    void beginRenderPass(PrimaryCmdBuffer const& cmd_buffer) const;
 
     void endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const;
 
 
-    [[nodiscard]] VkResult present(Cycle const& cycle); //TEMP remove deletion queue from here
-    void skipPresent(Cycle const& cycle);
+    [[nodiscard]] VkResult present(); //TEMP remove deletion queue from here
+    void skipPresent();
 
     void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
         CmdBuffer const& acquire_cmd_buffer, uint32_t image_index);

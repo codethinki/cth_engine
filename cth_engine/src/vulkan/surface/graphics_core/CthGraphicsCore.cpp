@@ -1,5 +1,7 @@
 #include "CthGraphicsCore.hpp"
 
+#include "CthGraphicsSyncConfig.hpp"
+
 #include "../CthOSWindow.hpp"
 #include "../CthSurface.hpp"
 #include "../swapchain/CthBasicSwapchain.hpp"
@@ -13,9 +15,7 @@ GraphicsCore::GraphicsCore(Core const& core) : _core{&core} {}
 GraphicsCore::GraphicsCore(Core const& core, State state) : GraphicsCore{core} { wrap(std::move(state)); }
 
 GraphicsCore::GraphicsCore(Core const& core, std::string_view window_name, VkExtent2D extent,
-    Queue const& present_queue, GraphicsSyncConfig const& sync_config) : GraphicsCore{core} {
-    create(window_name, extent, present_queue, sync_config);
-}
+    Queue const& present_queue) : GraphicsCore{core} { create(window_name, extent, present_queue); }
 
 GraphicsCore::~GraphicsCore() { optDestroy(); }
 
@@ -23,20 +23,21 @@ void GraphicsCore::wrap(State state) {
     optDestroy();
     State::debug_check(state);
 
-    _swapchain = state.swapchain.release_val();
-    _surface = state.surface.release_val();
     _osWindow = state.osWindow.release_val();
+    _surface = state.surface.release_val();
+    _syncConfig = state.syncConfig.release_val();
+    _swapchain = state.swapchain.release_val();
 }
 
 
-void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, Queue const& present_queue,
-    GraphicsSyncConfig const& sync_config) {
+void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, Queue const& present_queue) {
     optDestroy();
 
 
     _osWindow = std::make_unique<OSWindow>(_core->instance(), _core->destructionQueue(), window_name, extent);
     _surface = std::make_unique<Surface>(_core->instance(), _core->destructionQueue(), Surface::State{_osWindow->releaseSurface()});
-    _swapchain = std::make_unique<BasicSwapchain>(*_core, present_queue, sync_config, *_surface);
+    _syncConfig = std::make_unique<GraphicsSyncConfig>(*_core, vk::create);
+    _swapchain = std::make_unique<BasicSwapchain>(*_core, present_queue, *_syncConfig, *_surface);
     _swapchain->create(_osWindow->extent()); //TEMP replace this with swapchain create constructor
 }
 void GraphicsCore::destroy() {
@@ -44,6 +45,7 @@ void GraphicsCore::destroy() {
 
     _swapchain->destroy(); //TEMP replace this once non basic swapchain is ready
     _swapchain = nullptr;
+    _syncConfig = nullptr;
     _surface = nullptr;
     _osWindow = nullptr;
     reset();
@@ -54,7 +56,9 @@ auto GraphicsCore::release() -> State {
     State temp{
         std::move(_osWindow),
         std::move(_surface),
+        std::move(_syncConfig),
         std::move(_swapchain)
+
     };
     reset();
     return temp;
@@ -73,20 +77,20 @@ void GraphicsCore::minimized() const {
 
 
 
-void GraphicsCore::acquireFrame(Cycle const& cycle) const {
+void GraphicsCore::acquireFrame() const {
     debug_check(*this);
-    auto const result = _swapchain->acquireNextImage(cycle);
+    auto const result = _swapchain->acquireNextImage();
 
-    CTH_WARN(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR, "swapchain image aquire result != VK_SUCCESS ({})", result) {}
+    CTH_WARN(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR, "swapchain image acquire result != VK_SUCCESS ({})", result) {}
 }
-void GraphicsCore::skipAcquire(Cycle const& cycle) const {
+void GraphicsCore::skipAcquire() const {
     debug_check(*this);
-    _swapchain->skipAcquire(cycle);
+    _swapchain->skipAcquire();
 }
 
-void GraphicsCore::beginWindowPass(Cycle const& cycle, PrimaryCmdBuffer const* render_cmd_buffer) const {
+void GraphicsCore::beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const {
     debug_check(*this);
-    _swapchain->beginRenderPass(cycle, *render_cmd_buffer);
+    _swapchain->beginRenderPass(*render_cmd_buffer);
 }
 void GraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const {
     debug_check(*this);
@@ -94,23 +98,26 @@ void GraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) cons
 }
 
 
-void GraphicsCore::presentFrame(Cycle const& cycle) const {
+void GraphicsCore::presentFrame() const {
     debug_check(*this);
-    auto const result = _swapchain->present(cycle);
+    auto const result = _swapchain->present();
     if(result != VK_SUCCESS) [[unlikely]] {
         minimized();
         _swapchain->resize(_osWindow->extent());
     }
+    _syncConfig->next();
 }
-void GraphicsCore::skipPresent(Cycle const& cycle) const {
+void GraphicsCore::skipPresent() const {
     debug_check(*this);
-    _swapchain->skipPresent(cycle);
+    _swapchain->skipPresent();
+    _syncConfig->next();
 }
 
 void GraphicsCore::reset() {
-    _osWindow = nullptr;
-    _surface = nullptr;
     _swapchain = nullptr;
+    _syncConfig = nullptr;
+    _surface = nullptr;
+    _osWindow = nullptr;
 }
 
 void GraphicsCore::State::debug_check(State const& state) {

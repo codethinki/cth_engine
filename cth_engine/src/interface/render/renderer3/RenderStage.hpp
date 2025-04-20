@@ -4,8 +4,10 @@
 #include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
+
 //IMPLEMENT release and state
 namespace cth::vk {
+class RenderPulse;
 
 struct Cycle;
 struct PipelineWaitStage;
@@ -31,13 +33,13 @@ public:
 
     using Config = RenderStageConfig;
     //TEMP left off here implement this
-    RenderStage(Core const& core, Config config);
+    RenderStage(Core const& core, RenderPulse const& pulse, Config config);
 
     /**
      * @brief create constructor
      * @details calls: @ref create()
      */
-    RenderStage(Core const& core, Config config, create_t);
+    RenderStage(Core const& core, RenderPulse const& pulse, Config config, create_t);
 
     /**
      * @details calls @ref optDestroy()
@@ -61,10 +63,13 @@ public:
 
 
     /**
-     * @brief calls @ref PrimaryCmdBuffer::begin()
+     * @brief begins this stage and begins the primary cmd buffer, may block
+     * @details calls:
+            - @ref wait() const
+            - @ref PrimaryCmdBuffer::begin()
      * @return cmd buffers
      */
-    RenderStageCmdBuffers begin();
+    [[nodiscard]] RenderStageCmdBuffers begin();
 
     /**
      * @brief calls @ref PrimaryCmdBuffer::end()
@@ -75,33 +80,42 @@ public:
 
     /**
      * @brief submits the stage to the queue
+     * @attention does NOT call @ref wait() const
      * @details calls:
-        - @ref optEnd()
-        - @ref Queue::submit(SubmitInfo const&);
+        - @ref optEnd() 
+        - @ref Fence::reset() const
+        - @ref Queue::submit(SubmitInfo const&)
      */
     void submit();
 
 
 
     /**
-     * @brief skip submits the stage
-     * @note triggers sync primitives
+     * @brief skip submits the stage, may block
+     * @details calls:
+            - @ref wait() const;
+            - @ref Fence::reset() const
+            - @ref Queue::skip(SubmitInfo&) const
+     * @note advances sync primitives
      */
     void skip();
 
     /**
-     * @brief waits or times out
+     * @brief waits for stage completion or times out
      * @param timeout in nanoseconds
-     * @return @ref Fence::wait(size_t)
+     * @return @ref Fence::wait(size_t) const
      */
     [[nodiscard]] VkResult wait(size_t timeout) const;
 
     /**
-     * @brief calls @ref wait(size_t) with UINT64_MAX
+     * @brief waits for stage completion
+     * @details calls @ref Fence::wait() const
      */
     void wait() const;
 
 private:
+    void reset() const;
+
     void initFences();
     void initCmdPools();
     void initCmdBuffers();
@@ -124,6 +138,7 @@ private:
     void createSubmitInfos();
 
     cth::not_null<Core const*> _core;
+    cth::not_null<RenderPulse const*> _pulse;
 
     Config _config;
 
@@ -134,9 +149,7 @@ private:
     std::vector<SubmitInfo> _submitInfos;
 
 
-    size_t _subIndex = 0;
 
-    [[nodiscard]] size_t subIndex() const { return _subIndex; }
     [[nodiscard]] size_t secondaryChunkSize() const;
     [[nodiscard]] PrimaryCmdBuffer& primaryCmdBuffer();
     [[nodiscard]] PrimaryCmdBuffer const& primaryCmdBuffer() const;
@@ -147,8 +160,7 @@ private:
     [[nodiscard]] auto& queue() const { return *_config.queue; }
     [[nodiscard]] SubmitInfo& submitInfo();
     [[nodiscard]] Fence const& fence() const;
-
-    void next();
+    [[nodiscard]] size_t subIndex() const;
 
 public:
     [[nodiscard]] bool created() const;

@@ -1,6 +1,4 @@
 #pragma once
-#include "src/vulkan/utility/cth_constants.hpp"
-
 #include <volk.h>
 #include <cth/io/log.hpp>
 
