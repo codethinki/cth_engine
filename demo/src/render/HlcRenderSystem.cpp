@@ -1,6 +1,6 @@
 #include "HlcRenderSystem.hpp"
 
-#include "src/interface/render/CthRenderer.hpp"
+#include "src/interface/render/Renderer3.hpp"
 #include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
 #include "src/vulkan/render/pipeline/CthPipeline.hpp"

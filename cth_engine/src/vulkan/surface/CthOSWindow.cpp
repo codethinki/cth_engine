@@ -139,7 +139,7 @@ VkSurfaceKHR OSWindow::tempSurface(Instance const& instance) {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     // Create a hidden window for the surface
-    constexpr std::wstring name = L"TempHiddenWindow";
+    std::wstring const name = L"TempHiddenWindow";
     WNDCLASSEX const wc{
         .cbSize = sizeof(wc),
         .lpfnWndProc = DefWindowProc,

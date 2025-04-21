@@ -37,6 +37,9 @@ public:
     // ReSharper disable once CppHidingFunction
     State release();
 
+
+    void signal();
+
     [[nodiscard]] size_t value() const { return _value; }
     [[nodiscard]] size_t next() { return ++_value; }
 
