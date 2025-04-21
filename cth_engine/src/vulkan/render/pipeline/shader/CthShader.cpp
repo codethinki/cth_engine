@@ -151,7 +151,7 @@ Shader::Shader(Core const& core, VkShaderStageFlagBits stages, std::string_view 
     std::string_view compiler_path) : _core{&core}, _vkStage{stages},
     _spvPath{spv_path} {
 #ifndef _DEBUG
-    CTH_STABLE_WARN(true, "compiling shaders on startup, only use this on debug");
+    CTH_STABLE_WARN(true, "compiling shaders on startup, only use this on debug") {}
 #endif
 
     compile(glsl_path, compiler_path);
