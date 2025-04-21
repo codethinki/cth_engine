@@ -20,10 +20,10 @@ public:
 
 
     [[nodiscard]] virtual VkDescriptorBufferInfo bufferInfo() const {
-        CTH_ERR(true, "invalid function call, no buffer info present") throw details->exception();
+        CTH_ERR(true, "invalid function call, no buffer info present") throw details->exception(); //TEMP change this
     }
     [[nodiscard]] virtual VkDescriptorImageInfo imageInfo() const {
-        CTH_ERR(true, "invalid function call, no image info present") throw details->exception();
+        CTH_ERR(true, "invalid function call, no image info present") throw details->exception(); //TEMP change this
     }
 
 private:
