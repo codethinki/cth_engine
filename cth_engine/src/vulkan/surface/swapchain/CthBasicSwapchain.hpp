@@ -139,7 +139,7 @@ private:
 
 
 
-    void destroySwapchain();
+    void destroySwapchain(VkSwapchainKHR swapchain);
 
     void destroySyncObjects();
     //TEMP left off here check swapchain destruction and then try to make it compile
@@ -186,6 +186,8 @@ private:
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
     [[nodiscard]] Core const& core() const { return *_core; }
+
+    
 
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }

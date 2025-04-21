@@ -61,7 +61,7 @@ auto GraphicsSyncConfig::imageAvailableSemaphores() const -> std::array<Semaphor
     return semaphores;
 }
 auto GraphicsSyncConfig::imageAvailableWaitStages() const -> std::vector<PipelineWaitStage> {
-    auto const semaphores = renderFinishedSemaphores();
+    auto const semaphores = imageAvailableSemaphores();
     return {
         std::from_range,
         semaphores | std::views::transform([](Semaphore const* ptr) { return PipelineWaitStage{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, ptr}; })

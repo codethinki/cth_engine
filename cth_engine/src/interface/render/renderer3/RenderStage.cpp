@@ -29,8 +29,8 @@ void RenderStage::create() {
 }
 void RenderStage::destroy() {
     _submitInfos.clear();
-    for(auto& buffer : _primaryCmdBuffers) buffer.destroy();
     for(auto& buffer : _secondaryCmdBuffers) buffer.destroy();
+    for(auto& buffer : _primaryCmdBuffers) buffer.destroy();
     for(auto& pool : _cmdPools) pool.destroy();
 }
 RenderStageCmdBuffers RenderStage::begin() {

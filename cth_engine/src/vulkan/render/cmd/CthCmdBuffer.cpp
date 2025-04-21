@@ -15,11 +15,12 @@
 namespace cth::vk {
 CmdBuffer::CmdBuffer(VkCommandBufferUsageFlags usage) : _bufferUsage{usage} {}
 
-void CmdBuffer::destroy(this auto&& self) {
+template<class Me>
+void CmdBuffer::destroy(this Me&& self) {
     self.reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-    static_assert(type::is_any_of<type::pure_t<decltype(self)>, PrimaryCmdBuffer, SecondaryCmdBuffer>);
+    static_assert(type::is_any_of<type::pure_t<Me>, PrimaryCmdBuffer, SecondaryCmdBuffer>);
 
-    self._pool->template returnCmdBuffer<type::pure_t<decltype(self)>>(self._handle.get());
+    self._pool->template returnCmdBuffer<type::pure_t<Me>>(self._handle.get());
 
     self.reset();
 }

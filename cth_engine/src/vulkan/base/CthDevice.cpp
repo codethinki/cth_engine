@@ -66,16 +66,19 @@ void Device::createLogicalDevice() {
     vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
     queueCreateInfos.reserve(_queueFamiliesQueueCounts.size());
 
-    constexpr float queuePriority = 1.0f;
-    for(auto const [queueFamily, queueCount] : _queueFamiliesQueueCounts)
+    std::vector<std::vector<float>> queuePriorities{};
+
+    for(auto const [queueFamily, queueCount] : _queueFamiliesQueueCounts){
+        queuePriorities.emplace_back(queueCount, 1.0f);
+
         queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
             .pNext = nullptr,
             .queueFamilyIndex = queueFamily,
             .queueCount = queueCount,
-            .pQueuePriorities = &queuePriority,
+            .pQueuePriorities = queuePriorities.back().data()
         });
-
+    }
     auto const requiredExtensions = str::to_c_str_vector(_physicalDevice->requiredExtensions());
 
 

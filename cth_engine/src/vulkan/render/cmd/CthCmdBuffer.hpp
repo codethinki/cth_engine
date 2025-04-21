@@ -37,7 +37,8 @@ public:
      * @brief returns the command buffer to pool
      * @attention @ref created() required
      */
-    void destroy(this auto&& self);
+    template<class Me>
+    void destroy(this Me&& self);
 
     /**
      * @brief if @ref created() calls @ref destroy()
@@ -100,7 +101,7 @@ public:
     explicit PrimaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
     explicit PrimaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage = 0);
 
-    ~PrimaryCmdBuffer() override { destroy(); }
+    ~PrimaryCmdBuffer() override { optDestroy(); }
 
     void begin();
 
@@ -119,7 +120,7 @@ public:
     explicit SecondaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
     explicit SecondaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage = 0);
 
-    ~SecondaryCmdBuffer() override { destroy(); }
+    ~SecondaryCmdBuffer() override { optDestroy(); }
 
 
     void begin(RenderPass const& render_pass, Subpass const& subpass, Framebuffer const* framebuffer);

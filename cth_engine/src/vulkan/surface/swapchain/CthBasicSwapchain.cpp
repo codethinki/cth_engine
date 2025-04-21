@@ -52,7 +52,7 @@ void BasicSwapchain::destroy() {
 
     destroyResources();
 
-    destroySwapchain();
+    destroySwapchain(_handle.get());
 
     reset();
 }
@@ -66,12 +66,14 @@ void BasicSwapchain::resize(VkExtent2D window_extent) {
     resizeReset();
     create(window_extent, old);
 
-    destroy(_core->deviceTable(), old);
+
+    destroySwapchain(old);
 }
 
 
 
 VkResult BasicSwapchain::acquireNextImage() {
+    //TODO add timeout
     auto const pulse = _syncConfig->pulseVal();
 
     auto const& fence = _imageAvailableFences[pulse];
@@ -80,9 +82,14 @@ VkResult BasicSwapchain::acquireNextImage() {
     fence.wait();
     fence.reset();
 
-    VkResult const acquireResult = _core->functions()->vkAcquireNextImageKHR(_core->vkDevice(), _handle.get(), std::numeric_limits<uint64_t>::max(),
+    VkResult const acquireResult = _core->functions()->vkAcquireNextImageKHR(
+        _core->vkDevice(),
+        _handle.get(),
+        std::numeric_limits<uint64_t>::max(),
         semaphore,
-        fence.get(), &_imageIndices[pulse]);
+        fence.get(),
+        &_imageIndices[pulse]
+    );
 
     CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR, "failed to acquire vk_image")
         throw cth::vk::result_exception{acquireResult, details->exception()};
@@ -91,24 +98,24 @@ VkResult BasicSwapchain::acquireNextImage() {
 }
 void BasicSwapchain::skipAcquire() const {
     auto const pulse = _syncConfig->pulseVal();
-    auto const semaphore = _syncConfig->imageAvailableSemaphore(pulse)->get();
     auto const& fence = _imageAvailableFences[pulse];
-
     fence.wait();
     fence.reset();
+
+    auto const semaphore = _syncConfig->imageAvailableSemaphore(pulse)->get();
 
 
     auto const submitInfo = VkSubmitInfo{
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .commandBufferCount = 0,
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &semaphore,
+        .pSignalSemaphores = &semaphore
     };
 
     auto const result = _core->functions()->vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, fence.get());
     //TODO this should be done via Queue::skip()
 
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire an vk_image")
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire a vk_image")
         throw cth::vk::result_exception{result, details->exception()};
 }
 void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const& cmd_buffer) const {
@@ -136,11 +143,13 @@ void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const { _
 VkResult BasicSwapchain::present() {
     size_t const pulse = _syncConfig->pulseVal();
 
-    CTH_CRITICAL(_imageIndices[pulse] == NO_IMAGE_INDEX, "no acquired vk_image available") { details->add("frame: ({})", pulse); }
+    auto& imageIndex = _imageIndices[pulse];
 
-    auto const result = _presentQueue->present(_imageIndices[pulse], _presentInfos[pulse]);
+    CTH_CRITICAL(imageIndex == NO_IMAGE_INDEX, "no acquired vk_image available") { details->add("frame: ({})", pulse); }
 
-    _imageIndices[pulse] = NO_IMAGE_INDEX;
+    auto const result = _presentQueue->present(imageIndex, _presentInfos[pulse]);
+
+    imageIndex = NO_IMAGE_INDEX;
 
     return result;
 }
@@ -246,8 +255,9 @@ uint32_t BasicSwapchain::evalMinImageCount(uint32_t min, uint32_t max) {
 }
 
 VkSwapchainCreateInfoKHR BasicSwapchain::createInfo(VkSurfaceKHR surface,
-    VkSurfaceFormatKHR surface_format, VkSurfaceCapabilitiesKHR const& capabilities, VkPresentModeKHR present_mode, VkExtent2D extent,
-    uint32_t image_count, VkSwapchainKHR old_swapchain) {
+    VkSurfaceFormatKHR surface_format, VkSurfaceCapabilitiesKHR const& capabilities,
+    VkPresentModeKHR present_mode, VkExtent2D extent, uint32_t image_count,
+    VkSwapchainKHR old_swapchain) {
 
     VkSwapchainCreateInfoKHR const createInfo{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -324,6 +334,7 @@ Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits sampl
         .samples = samples,
     };
 }
+
 Image::Config BasicSwapchain::createDepthImageConfig() const {
     CTH_CRITICAL(_depthFormat == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED") {}
 
@@ -335,6 +346,7 @@ Image::Config BasicSwapchain::createDepthImageConfig() const {
         .samples = _msaaSamples,
     };
 }
+
 auto BasicSwapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>> {
     uint32_t imageCount; //only min specified, might be higher
     auto const countResult = _core->deviceTable()->vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, nullptr);
@@ -461,8 +473,13 @@ void BasicSwapchain::createRenderPass() {
         .extent = _extent,
     };
 
-    _renderPass = std::make_unique<RenderPass>(*_core, std::vector{_subpass.get()}, std::vector{subpassDependency}, std::vector{beginConfig},
-        vk::create);
+    _renderPass = std::make_unique<RenderPass>(
+        *_core,
+        std::vector{_subpass.get()},
+        std::vector{subpassDependency},
+        std::vector{beginConfig},
+        vk::create
+    );
 }
 
 
@@ -510,15 +527,13 @@ void BasicSwapchain::destroyResources() {
     _msaaAttachments = nullptr;
 }
 
-void BasicSwapchain::destroySwapchain() {
-    auto const lambda = [table = _core->deviceTable(), swapchain = _handle.get()]() { destroy(table, swapchain); };
+void BasicSwapchain::destroySwapchain(VkSwapchainKHR swapchain) {
+    auto const lambda = [table = _core->deviceTable(), swapchain]() { destroy(table, swapchain); };
 
     auto const& queue = _core->destructionQueue();
 
     if(queue) queue->push(lambda);
     else lambda();
-
-    reset();
 }
 
 void BasicSwapchain::destroySyncObjects() {

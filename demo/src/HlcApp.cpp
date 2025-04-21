@@ -35,8 +35,7 @@ void App::createRenderer3() {
             {
                 0,
                 vk::RenderStageConfig{
-                    .queue = &transferQueue(),
-                    .waitStages{_syncConfig->imageAvailableWaitStages()},
+                    .queue = &transferQueue()
                 }
             },
             {
@@ -44,7 +43,8 @@ void App::createRenderer3() {
                 vk::RenderStageConfig{
                     .queue = &renderQueue(),
                     .subStages = 3,
-                    .signalSemaphores{std::from_range, _syncConfig->renderFinishedSemaphores()},
+                    .signalSemaphores{std::from_range, _graphicsCore->renderFinishedSemaphores()},
+                    .waitStages{std::from_range, _graphicsCore->imageAvailableWaitStages()},
                     .flags = vk::RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING | vk::RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING
                 }
             }
@@ -75,7 +75,7 @@ void App::initFrame() {
 }
 
 void App::renderFrame() const {
-    _destructionQueue->clear(_graphicsCore->pulseVal());
+    _destructionQueue->next();
 
     _graphicsCore->acquireFrame();
 
@@ -90,7 +90,7 @@ void App::graphicsPhase() const {
 
     _graphicsCore->beginWindowPass(cmdBuffer);
 
-    auto const info = FrameInfo{_syncConfig->pulseVal(), 0.f, cmdBuffer};
+    auto const info = FrameInfo{_graphicsCore->pulseVal(), 0.f, cmdBuffer};
     _renderSystem->render(info);
 
     _graphicsCore->endWindowPass(cmdBuffer);

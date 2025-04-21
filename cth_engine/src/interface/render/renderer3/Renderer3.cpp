@@ -24,10 +24,9 @@ Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config config) 
     Config::debugCheck(config);
 
     auto& [stages, stageDependencies] = config;
-    initFrameSemaphores();
     initDependencySemaphores(stageDependencies.edgeCount());
 
-    linkStages(stages, stageDependencies);
+    linkDependencies(stages, stageDependencies);
 
     initRenderStages(stages);
 }
@@ -41,19 +40,18 @@ auto Renderer3::create() -> std::map<id_t, RenderStage*> {
     createSemaphores();
     createStages();
 
+    _created = true;
+
     return stages();
 }
 
 void Renderer3::destroy() {
     for(auto& stage : _renderStages | std::views::values) stage.destroy();
     for(auto& semaphore : _stageSemaphores) semaphore.destroy();
-    for(auto& semaphore : _frameSemaphores) semaphore.destroy();
+
+    _created = false;
 }
 
-void Renderer3::initFrameSemaphores() {
-    for(size_t i = 0; i < 2 * GROUP_SIZE; i++)
-        _frameSemaphores.emplace_back(*_core);
-}
 void Renderer3::initDependencySemaphores(size_t edges) {
     size_t const semaphores = edges * StageConfig::GROUP_SIZE;
     _stageSemaphores.reserve(semaphores);
@@ -62,8 +60,8 @@ void Renderer3::initDependencySemaphores(size_t edges) {
 
 }
 
-void Renderer3::linkStageDependencies(
-    Config::stage_map_t& stages, Config::dependencies_t const& dag, id_t source_id, std::span<Semaphore*> stage_semaphores) {
+void Renderer3::linkStageDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag, id_t source_id, 
+    std::span<Semaphore*> stage_semaphores) {
 
     CTH_CRITICAL(!stages.contains(source_id), "stages must contain the source id"){}
 
@@ -74,34 +72,14 @@ void Renderer3::linkStageDependencies(
         auto& targetStage = stages.at(dependencyId);
 
         targetStage.signalSemaphores.append_range(dependencySemaphores);
-        for(auto semaphore : dependencySemaphores)
+        for(auto& semaphore : dependencySemaphores)
             stages.at(source_id).waitStages.emplace_back(dag.annotation(source_id, dependencyId), semaphore);
     }
 }
 
-void Renderer3::linkRoot(StageConfig& stage_config) {
-    for(size_t i = 0; i < GROUP_SIZE; i++)
-        stage_config.waitStages.emplace_back(FRAME_BEGIN_STAGE, &_frameSemaphores[i]);
-}
 
-
-void Renderer3::linkDestination(StageConfig& stage_config) {
-    for(size_t i = 0; i < GROUP_SIZE; i++)
-        stage_config.signalSemaphores.emplace_back(&_frameSemaphores[i]);
-}
-
-
-void Renderer3::linkFrameBounds(Config::stage_map_t& stages, Config::dependencies_t const& dag) {
-    auto const roots = dag.roots();
-    auto const destinations = dag.destinations();
-
-    for(auto& [id, config] : stages) {
-        if(roots.contains(id)) linkRoot(config);
-        if(destinations.contains(id)) linkDestination(config);
-    }
-}
 void Renderer3::linkDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag) {
-    std::vector semaphores{std::from_range, std::views::transform(_stageSemaphores, [](auto& semaphore) { return &semaphore; })};
+    std::vector semaphores{std::from_range, _stageSemaphores | views::to_ptr_range};
 
     size_t semaphoreCounter = 0;
 
@@ -117,26 +95,16 @@ void Renderer3::linkDependencies(Config::stage_map_t& stages, Config::dependenci
     }
 
 }
-void Renderer3::linkStages(Config::stage_map_t stages, Config::dependencies_t const& dag) {
-    linkFrameBounds(stages, dag);
-    linkDependencies(stages, dag);
-}
 
 void Renderer3::initRenderStages(Config::stage_map_t const& stage_configs) {
     for(auto& [id, config] : stage_configs)
         _renderStages.emplace(id, RenderStage{*_core, *_pulse, config});
 }
 void Renderer3::createSemaphores() {
-    for(auto& semaphore : _frameSemaphores) semaphore.create();
-
-    //BUG check if the semaphores need to be signaled at the beginning
-
     for(auto& semaphore : _stageSemaphores) semaphore.create();
 }
 void Renderer3::createStages() { for(auto& stage : _renderStages | std::views::values) stage.create(); }
 
-
-bool Renderer3::created() const { return _frameSemaphores[0].created(); }
 
 RenderStage& Renderer3::stage(id_t id) {
     CTH_CRITICAL(!_renderStages.contains(id), "stage id must be present, missing: {}", id) {}

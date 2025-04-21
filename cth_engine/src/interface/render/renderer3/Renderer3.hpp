@@ -87,18 +87,13 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
 private:
-    void initFrameSemaphores();
     void initDependencySemaphores(size_t edges);
 
     static void linkStageDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag, id_t source_id,
         std::span<Semaphore*> stage_semaphores);
 
-    void linkRoot(StageConfig& stage_config);
-    void linkDestination(StageConfig& stage_config);
 
-    void linkFrameBounds(Config::stage_map_t& stages, Config::dependencies_t const& dag);
     void linkDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag);
-    void linkStages(Config::stage_map_t stages, Config::dependencies_t const& dag);
 
     void initRenderStages(Config::stage_map_t const& stage_configs);
 
@@ -106,15 +101,16 @@ private:
     void createSemaphores();
     void createStages();
 
-    cth::not_null<RenderPulse const*> _pulse;
-    cth::not_null<Core const*> _core;
+    bool _created = false;
 
-    std::vector<Semaphore> _frameSemaphores;
+    cth::not_null<Core const*> _core;
+    cth::not_null<RenderPulse const*> _pulse;
+
     std::vector<Semaphore> _stageSemaphores;
     std::map<id_t, RenderStage> _renderStages;
 
 public:
-    [[nodiscard]] bool created() const;
+    [[nodiscard]] bool created() const { return _created; }
     [[nodiscard]] RenderStage& stage(id_t id);
     [[nodiscard]] std::map<id_t, RenderStage*> stages();
     [[nodiscard]] RenderPulse const& pulse() const { return *_pulse; }

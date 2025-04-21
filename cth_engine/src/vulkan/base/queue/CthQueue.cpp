@@ -38,7 +38,9 @@ Queue::State Queue::release() {
 }
 
 void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
-void Queue::const_submit(SubmitInfo const& submit_info) const { submit(submit_info.get(), submit_info.fence()); }
+void Queue::const_submit(SubmitInfo const& submit_info) const {
+    submit(submit_info.get(), submit_info.fence());
+}
 void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next()); }
 void Queue::const_skip(SubmitInfo const& submit_info) const { submit(submit_info.skip(), submit_info.fence()); }
 

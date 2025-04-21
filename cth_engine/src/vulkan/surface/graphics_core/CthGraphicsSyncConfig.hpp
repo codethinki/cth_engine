@@ -77,6 +77,11 @@ public:
      */
     void next() { _pulse.next(); }
 
+    /**
+     * @brief signals the render-finished semaphores
+     * @details calls @ref Semaphore::signal() 
+     */
+    void signal();
 
 
     [[nodiscard]] std::array<Semaphore*, SET_SIZE> renderFinishedSemaphores() const;

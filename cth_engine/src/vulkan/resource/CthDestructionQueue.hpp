@@ -20,10 +20,12 @@ public:
     void push(std::span<function_t const> functions);
 
     void clear();
-    void clear(size_t cycle_sub_index);
+    void next();
 
 private:
-    static constexpr size_t QUEUES = constants::FRAMES_IN_FLIGHT;
+    void clearQueue();
+
+    static constexpr size_t QUEUES = constants::FRAMES_IN_FLIGHT * 2;
 
     size_t _cycleSubIndex = 0;
 
