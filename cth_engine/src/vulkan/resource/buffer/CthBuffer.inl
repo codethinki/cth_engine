@@ -1,20 +1,20 @@
 #pragma once
 #include "../CthDestructionQueue.hpp"
-#include "vulkan/base/CthCore.hpp"
+#include "src/vulkan/base/CthCore.hpp"
 
 
 namespace cth::vk {
 
 template<class T>
-Buffer<T>::Buffer(cth::not_null<Core const*> core, size_t element_count, VkBufferUsageFlags usage_flags) :
+Buffer<T>::Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags) :
     BaseBuffer{core, element_count * sizeof(T), usage_flags}, _elements(element_count) {}
 
 template<class T>
-Buffer<T>::Buffer(cth::not_null<Core const*> core, size_t element_count, VkBufferUsageFlags usage_flags, State state) :
+Buffer<T>::Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags, State state) :
     Buffer{core, element_count, usage_flags} { BaseBuffer::wrap(std::move(state)); }
 
 template<class T>
-Buffer<T>::Buffer(cth::not_null<Core const*> core, size_t element_count, VkBufferUsageFlags usage_flags,
+Buffer<T>::Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags,
     VkMemoryPropertyFlags memory_property_flags) : Buffer{core, element_count * sizeof(T), usage_flags} {
     BaseBuffer::create(memory_property_flags);
 }

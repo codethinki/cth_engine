@@ -1,96 +1,131 @@
 #include "CthCmdBuffer.hpp"
 
 #include "CthCmdPool.hpp"
-#include "vulkan/base/CthDevice.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+
+#include "../pass/CthRenderPass.hpp"
+#include "../pass/CthSubpass.hpp"
+
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/base/CthDevice.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/resource/image/Framebuffer.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {
-CmdBuffer::CmdBuffer(CmdPool* pool, VkCommandBufferUsageFlags  usage) : _pool(pool), _bufferUsage(usage) {}
+CmdBuffer::CmdBuffer(VkCommandBufferUsageFlags usage) : _bufferUsage{usage} {}
+
+template<class Me>
+void CmdBuffer::destroy(this Me&& self) {
+    self.reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+    static_assert(type::is_any_of<type::pure_t<Me>, PrimaryCmdBuffer, SecondaryCmdBuffer>);
+
+    self._pool->template returnCmdBuffer<type::pure_t<Me>>(self._handle.get());
+
+    self.reset();
+}
 
 
 
-void CmdBuffer::reset(VkCommandBufferResetFlags  flags) const {
-    auto const result = vkResetCommandBuffer(_handle.get(), flags);
+void CmdBuffer::reset(VkCommandBufferResetFlags flags) {
+    auto const result = _deviceTable->table->vkResetCommandBuffer(_handle.get(), flags);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset command buffer")
         throw vk::result_exception{result, details->exception()};
+
+    _recording = false;
 }
-void CmdBuffer::end() const {
-    auto const result = vkEndCommandBuffer(_handle.get());
-     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset end buffer")
+void CmdBuffer::end() {
+    CTH_CRITICAL(!recording(), "cmd buffer must be in recording state"){}
+
+    auto const result = _deviceTable->table->vkEndCommandBuffer(_handle.get());
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset end buffer")
         throw vk::result_exception{result, details->exception()};
+
+    _recording = false;
 }
 
-void CmdBuffer::free(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers) {
-    DEBUG_CHECK_DEVICE_HANDLE(device);
+void CmdBuffer::destroy(DeviceTable table, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers) {
     bool const valid = std::ranges::all_of(buffers, [](auto buffer) { return static_cast<bool>(buffer); });
     CTH_WARN(!valid, "> 0 vk_buffers invalid (VK_NULL_HANDLE)") {}
     CTH_ERR(valid && vk_pool == VK_NULL_HANDLE, "vk_pool is invalid (VK_NULL_HANDLE)")
         throw details->exception();
 
-    vkFreeCommandBuffers(device, vk_pool, static_cast<uint32_t>(buffers.size()), buffers.data());
+    table->vkFreeCommandBuffers(table.device(), vk_pool, static_cast<uint32_t>(buffers.size()), buffers.data());
 }
-void CmdBuffer::free(vk::not_null<VkDevice> device, vk::not_null<VkCommandPool> vk_pool, VkCommandBuffer buffer) {
-
+void CmdBuffer::destroy(DeviceTable table, vk::not_null<VkCommandPool> vk_pool, VkCommandBuffer buffer) {
     CTH_WARN(buffer == VK_NULL_HANDLE, "vk_buffer is invalid (VK_NULL_HANDLE)") {}
 
 
-    vkFreeCommandBuffers(device.get(), vk_pool.get(), 1, &buffer);
+    table->vkFreeCommandBuffers(table.device(), vk_pool.get(), 1, &buffer);
 }
-void CmdBuffer::begin( VkCommandBufferBeginInfo const& info) const {
-    auto const result = vkBeginCommandBuffer(_handle.get(), &info);
+
+void CmdBuffer::create(this auto&& self, CmdPool& pool) {
+    self.optDestroy();
+    self._pool = &pool;
+    self._deviceTable = pool.core().deviceTable();
+    auto const handle = self._pool->template newCmdBuffer<type::pure_t<decltype(self)>>();
+    CTH_CRITICAL(handle == VK_NULL_HANDLE, "failed to create cmd buffer") {}
+
+    self._handle = handle;
+}
+
+void CmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
+    auto const result = _pool->core().deviceTable()->vkBeginCommandBuffer(_handle.get(), &info);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to begin command buffer")
-        throw vk::result_exception{result, details->exception()}; }
+        throw vk::result_exception{result, details->exception()};
 
-#ifdef CONSTANT_DEBUG_MODE
-void CmdBuffer::debug_check(cth::not_null<CmdBuffer const*> cmd_buffer) {
-    CTH_ERR(cmd_buffer->_handle == VK_NULL_HANDLE, "cmd_buffer handle is invalid (VK_NULL_HANDLE)") throw details->exception();
+    _recording = true;
 }
 
-#endif
-
+void CmdBuffer::reset() {
+    _deviceTable = std::nullopt;
+    _pool = nullptr;
+    _handle = VK_NULL_HANDLE;
 
 }
+
+}
+
 
 //PrimaryCmdBuffer
 
 namespace cth::vk {
 
-PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool* cmd_pool, VkCommandBufferUsageFlags  usage) : CmdBuffer(cmd_pool, usage) { create(); }
-PrimaryCmdBuffer::~PrimaryCmdBuffer() { _pool->returnCmdBuffer(this); }
-void PrimaryCmdBuffer::begin() const {
+PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{usage} { create(cmd_pool); }
+
+void PrimaryCmdBuffer::begin() {
     VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,
-        _bufferUsage,
+        usageFlags(),
         nullptr,
     };
     CmdBuffer::begin(info);
 }
 
-void PrimaryCmdBuffer::create() { _pool->newCmdBuffer(this); }
 
 }
+
 
 //SecondaryCmdBuffer
 
 namespace cth::vk {
-SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool* cmd_pool, PrimaryCmdBuffer* primary, Config const& config, VkCommandBufferUsageFlags  usage) :
-    CmdBuffer(cmd_pool, usage), _primary(primary), _inheritanceInfo(config.inheritanceInfo()) { create(); }
-SecondaryCmdBuffer::~SecondaryCmdBuffer() { _pool->returnCmdBuffer(this); }
+SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage) : SecondaryCmdBuffer{usage} { create(cmd_pool); }
 
-void SecondaryCmdBuffer::begin() const {
+void SecondaryCmdBuffer::begin(RenderPass const& render_pass, Subpass const& subpass, Framebuffer const* framebuffer) {
+    _inheritanceInfo.renderPass = render_pass.get();
+    _inheritanceInfo.subpass = subpass.index();
+    _inheritanceInfo.framebuffer = framebuffer != nullptr ? framebuffer->get() : VK_NULL_HANDLE;
+
     VkCommandBufferBeginInfo const info{
         VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         nullptr,
-        _bufferUsage,
+        usageFlags(),
         &_inheritanceInfo,
     };
     CmdBuffer::begin(info);
 }
-
-void SecondaryCmdBuffer::create() { _pool->newCmdBuffer(this); }
 
 
 } // namespace cth

@@ -1,17 +1,23 @@
 #pragma once
-#include "CthQueue.hpp"
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/base/queue/CthQueue.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
 
-#include<cth/pointers.hpp>
-#include <vulkan/vulkan.h>
+#include <volk.h>
+#include <cth/pointers.hpp>
 
 #include <span>
 
+
 namespace cth::vk {
-class Instance;
-class PhysicalDevice;
-class Device;
+struct DeviceTable;
+}
+
+namespace cth::vk {
+class DestructionQueue;
 class Queue;
+class Device;
+class PhysicalDevice;
+class Instance;
 
 class Core {
 public:
@@ -22,16 +28,21 @@ public:
 
     /**
      * @brief constructs and wraps
-     * @note calls @ref optDestroy()
+     * @details
+     * calls: @ref optDestroy()
      */
     explicit Core(State state);
+
     /**
      * @brief constructs and creates
+     * @details
+     * calls: @ref create(Config const&)
      */
     explicit Core(Config const& config);
 
     /**
-     * @note calls @ref optDestroy()
+     * @details
+     * calls: @ref optDestroy()
      */
     ~Core();
 
@@ -43,22 +54,36 @@ public:
 
     /**
      * @brief creates the components
-     * @note calls @ref Instance::Instance(std::string_view, std::span<std::string const>, std::optional<PFN_vkDebugUtilsMessengerCallbackEXT>)
-     * @note calls @ref PhysicalDevice::AutoPick(Instance*, std::span<Queue>, std::span<std::string const>, std::span<std::string const>)
-     * @note calls @ref Device::Device(Instance*, PhysicalDevice*, std::span<Queue>)
-     * @note may calls @ref DestructionQueue::DestructionQueue(Device*, PhysicalDevice*, Instance*)
+     * @details
+     * calls:
+     * - @ref Instance::Instance(std::string_view, std::span<std::string const>, std::optional<DebugMessenger::Config> const&)
+     * - @ref PhysicalDevice::AutoPick(Instance const&, std::span<Queue const>, std::span<std::string const>, utils::PhysicalDeviceFeatures const&)
+     * - @ref Device::Device(Instance const&, PhysicalDevice const&, std::span<Queue>)
+     * - if @ref Config::destructionQueue -> @ref DestructionQueue::DestructionQueue()
      */
     void create(Config const& config);
 
+    /**
+     * @brief destroys the objects state
+     */
     void destroy();
+
+    /** @brief destroys if @ref created() */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief sets all components to nullptr
-     * @note does not delete
+     * @brief resets
+     * @details calls: @ref optDestroy()
      */
     void reset();
 
+    /**
+     * @brief releases the state
+     * @return internal state
+     * @details calls: @ref reset()
+     *
+     * @note does destroy state
+     */
     State release();
 
 private:
@@ -68,13 +93,15 @@ private:
     std::unique_ptr<DestructionQueue> _destructionQueue;
 
 public:
-    [[nodiscard]] bool created() const;
+    [[nodiscard]] bool created() const { return _device != nullptr && _physicalDevice != nullptr && _instance != nullptr; }
 
-    [[nodiscard]] Device const* device() const;
+    [[nodiscard]] Device const& device() const;
+    [[nodiscard]] DeviceTable deviceTable() const;
+    [[nodiscard]] VolkDeviceTable const* functions() const;
     [[nodiscard]] VkDevice vkDevice() const;
-    [[nodiscard]] PhysicalDevice const* physicalDevice() const;
+    [[nodiscard]] PhysicalDevice const& physicalDevice() const;
     [[nodiscard]] VkPhysicalDevice vkPhysicalDevice() const;
-    [[nodiscard]] Instance const* instance() const;
+    [[nodiscard]] Instance const& instance() const;
     [[nodiscard]] VkInstance vkInstance() const;
     [[nodiscard]] DestructionQueue* destructionQueue() const;
 
@@ -83,16 +110,12 @@ public:
     Core& operator=(Core const& other) = delete;
     Core& operator=(Core&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<Core const*> core);
-#define DEBUG_CHECK_CORE(core_ptr) Core::debug_check(core_ptr)
-#else
-#define DEBUG_CHECK_CORE(core_ptr) ((void)0)
-#endif
+    static void debug_check(Core const& core);
 };
 
 
 }
+
 
 //State
 
@@ -119,7 +142,6 @@ struct Core::State {
 }
 
 
-
 //Config
 
 namespace cth::vk {
@@ -137,4 +159,14 @@ struct Core::Config {
     static Config Default(std::string_view app_name, std::string_view engine_name, std::span<Queue> queues,
         std::span<std::string const> required_extensions) { return Config{app_name, engine_name, queues, required_extensions, true}; }
 };
+}
+
+
+//debug check
+
+namespace cth::vk {
+
+inline void Core::debug_check(Core const& core) {
+    CTH_CRITICAL(!core.created(), "core must be created") {}
+}
 }

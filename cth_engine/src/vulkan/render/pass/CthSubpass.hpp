@@ -1,5 +1,7 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+
+#include <cth/io/log.hpp>
 
 
 namespace cth::vk {
@@ -12,7 +14,7 @@ public:
         std::span<AttachmentCollection* const> resolve_attachments = {},
         AttachmentCollection const* depth_attachment = nullptr,
         std::span<AttachmentCollection* const> preserve_attachments = {}
-        );
+    );
 
     [[nodiscard]] VkSubpassDescription create() const;
 
@@ -41,19 +43,18 @@ public:
         std::span<AttachmentCollection* const> resolve_attachments = {},
         AttachmentCollection const* depth_attachment = nullptr,
         std::span<AttachmentCollection* const> preserve_attachments = {}
-        );
+    );
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(Subpass const* subpass);
     static void debug_check(std::span<Subpass const* const> subpasses);
-#define DEBUG_CHECK_SUBPASS(subpass) Subpass::debug_check(subpass)
-#define DEBUG_CHECK_SUBPASSES(subpasses) Subpass::debug_check(subpasses)
-#else
-#define DEBUG_CHECK_SUBPASS(subpass) ((void)0)
-#define DEBUG_CHECK_SUBPASSES(subpass) ((void)0)
-#endif
-
 };
 
+}
 
+
+namespace cth::vk {
+inline void Subpass::debug_check(Subpass const* subpass) {
+    CTH_ERR(subpass == nullptr, "subpass must not be invalid (nullptr)") throw details->exception();
+}
+inline void Subpass::debug_check(std::span<Subpass const* const> subpasses) { for(auto const* subpass : subpasses) debug_check(subpass); }
 }

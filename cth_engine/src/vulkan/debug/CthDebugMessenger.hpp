@@ -1,10 +1,14 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
 
-#include<cth/pointers.hpp>
+#include "src/vulkan/utility/cth_vk_types.hpp"
 
+#include <cth/pointers.hpp>
+
+#include <volk.h>
 #include <gsl/pointers>
-#include <vulkan/vulkan.h>
+
+
 
 #include <functional>
 
@@ -22,7 +26,7 @@ class DebugMessenger {
 public:
     struct Config;
     struct State;
-    using callback_t = VkBool32(VkDebugUtilsMessageSeverityFlagBitsEXT const, VkDebugUtilsMessageTypeFlagsEXT const,
+    using callback_t = VkBool32(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
         VkDebugUtilsMessengerCallbackDataEXT const*,
         void*);
 
@@ -38,7 +42,7 @@ public:
      * @note calls @ref DebugMessenger(Config)
      * @note calls @ref create()
      */
-    explicit DebugMessenger(Config const& config, cth::not_null<Instance const*> instance) : DebugMessenger{config} { create(instance); }
+    explicit DebugMessenger(Config const& config, Instance const& instance) : DebugMessenger{config} { create(instance); }
 
 
     /**
@@ -53,7 +57,7 @@ public:
      * @throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      * @throws cth::vk::result_exception result of @ref vkCreateDebugUtilsMessengerEXT()
      */
-    void create(cth::not_null<Instance const*> instance);
+    void create(Instance const& instance);
 
 
     /**
@@ -69,11 +73,11 @@ public:
      */
     void optDestroy() { if(created()) destroy(); }
 
-    static void destroy(VkInstance instance, VkDebugUtilsMessengerEXT vk_messenger);
+    static void destroy(not_null<VkInstance> vk_instance, VkDebugUtilsMessengerEXT vk_messenger);
 
     /**
      * @brief releases ownership, returns state and resets
-     * @note requires @ref created()
+     * @note @ref created() required
      */
     State release();
 
@@ -111,15 +115,7 @@ public:
     DebugMessenger& operator=(DebugMessenger const& other) = delete;
     DebugMessenger& operator=(DebugMessenger&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<DebugMessenger const*> debug_messenger);
-
-#define DEBUG_CHECK_MESSENGER(messenger_ptr) DebugMessenger::debug_check(messenger_ptr)
-#else
-#define DEBUG_CHECK_MESSENGER(messenger_ptr) ((void)0)
-#endif
-
-
+    static void debug_check(DebugMessenger const& debug_messenger);
 };
 } // namespace cth
 
@@ -129,4 +125,12 @@ struct DebugMessenger::State {
     gsl::owner<VkDebugUtilsMessengerEXT> vkMessenger; // NOLINT(cppcoreguidelines-owning-memory)
 };
 
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void DebugMessenger::debug_check(DebugMessenger const& debug_messenger) {
+    CTH_CRITICAL(!debug_messenger.created(), "debug_messenger not created") {}
+}
 }

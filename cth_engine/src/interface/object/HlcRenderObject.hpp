@@ -49,8 +49,7 @@ public:
     RenderObject(RenderObject&&) = default;
     RenderObject& operator=(RenderObject&&) = default; //copy/move constructors
 
-protected:
-    //virtual void setChunkInfos() = 0; /*used to set chunkAllocInfos and chunk count*/
+//virtual void setChunkInfos() = 0; /*used to set chunkAllocInfos and chunk count*/
 };
 
 inline RenderObject::~RenderObject() {}

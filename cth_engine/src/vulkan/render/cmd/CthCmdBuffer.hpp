@@ -1,50 +1,80 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan//base/CthDeviceTable.hpp"
+#include "src/vulkan//utility/cth_constants.hpp"
+#include "src/vulkan//utility/cth_vk_types.hpp"
+#include <cth/pointer/move_ptr.hpp>
 
-#include<cth/pointers.hpp>
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <span>
-#include <type_traits>
+
 
 
 namespace cth::vk {
+class Framebuffer;
+class Subpass;
+class RenderPass;
+class Core;
 
 class Device;
 class PrimaryCmdBuffer;
 class SecondaryCmdBuffer;
-template<typename T>
-concept cmd_buffer_t = std::_Is_any_of_v<std::decay_t<T>, PrimaryCmdBuffer, SecondaryCmdBuffer>;
 
 class CmdPool;
 
+
 class CmdBuffer {
 public:
-    explicit CmdBuffer(CmdPool* pool, VkCommandBufferUsageFlags usage = 0);
-    virtual ~CmdBuffer() = 0;
+    /**
+     * @brief base constructor
+     */
+    explicit CmdBuffer(VkCommandBufferUsageFlags usage = 0);
+    virtual ~CmdBuffer() = default;
 
-    void reset(VkCommandBufferResetFlags flags = 0) const;
-    virtual void begin() const = 0;
+    void create(this auto&& self, CmdPool& pool);
 
-   void end() const;
+    /**
+     * @brief returns the command buffer to pool
+     * @attention @ref created() required
+     */
+    template<class Me>
+    void destroy(this Me&& self);
 
-    static void free(VkDevice device, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers);
-    static void free(not_null<VkDevice_T*> device, not_null<VkCommandPool_T*> vk_pool, VkCommandBuffer buffer);
+    /**
+     * @brief if @ref created() calls @ref destroy()
+     */
+    void optDestroy(this auto&& self) { if(self.created()) self.destroy(); }
+
+    void end();
+
+    void reset(VkCommandBufferResetFlags flags);
+
+
+
+    static void destroy(DeviceTable table, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers);
+    static void destroy(DeviceTable table, not_null<VkCommandPool_T*> vk_pool, VkCommandBuffer buffer);
 
 protected:
-    void begin(VkCommandBufferBeginInfo const& info) const;
-
-    move_ptr<CmdPool> _pool;
-
-    move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
-
-    VkCommandBufferUsageFlags _bufferUsage;
+    void begin(VkCommandBufferBeginInfo const& info);
 
 private:
+    void reset();
+
+
+    VkCommandBufferUsageFlags _bufferUsage;
+    std::optional<DeviceTable> _deviceTable = std::nullopt;
+    CmdPool* _pool = nullptr;
+    cth::move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
+    bool _recording = false;
+
     friend CmdPool;
 
 public:
     [[nodiscard]] VkCommandBuffer get() const { return _handle.get(); }
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool recording() const { return _recording; }
+    [[nodiscard]] CmdPool& pool() const { return *_pool; }
+    [[nodiscard]] VkBufferUsageFlags usageFlags() const { return _bufferUsage; }
 
     CmdBuffer(CmdBuffer const& other) = delete;
     CmdBuffer& operator=(CmdBuffer const& other) = delete;
@@ -52,16 +82,14 @@ public:
     CmdBuffer& operator=(CmdBuffer&& other) = default;
 
 
-#ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<CmdBuffer const*> cmd_buffer);
-
-#define DEBUG_CHECK_CMD_BUFFER(cmd_buffer_ptr) CmdBuffer::debug_check(cmd_buffer_ptr)
-#else
-#define DEBUG_CHECK_CMD_BUFFER(cmd_buffer_ptr) ((void)0)
-#endif
-
+    static void debug_check(CmdBuffer const& cmd_buffer);
+    static void debug_check_handle(vk::not_null<VkCommandBuffer> handle);
 };
-inline CmdBuffer::~CmdBuffer() = default;
+
+inline void CmdBuffer::debug_check(CmdBuffer const& cmd_buffer) {
+    CTH_CRITICAL(!cmd_buffer.created(), "cmd_buffer must be created") {}
+}
+inline void CmdBuffer::debug_check_handle([[maybe_unused]] vk::not_null<VkCommandBuffer> handle) {}
 
 }
 
@@ -70,12 +98,17 @@ inline CmdBuffer::~CmdBuffer() = default;
 namespace cth::vk {
 class PrimaryCmdBuffer : public CmdBuffer {
 public:
-    explicit PrimaryCmdBuffer(CmdPool* cmd_pool, VkCommandBufferUsageFlags usage = 0);
-    ~PrimaryCmdBuffer() override;
-   void begin() const override;
+    explicit PrimaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
+    explicit PrimaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage = 0);
 
-private:
-    void create();
+    ~PrimaryCmdBuffer() override { optDestroy(); }
+
+    void begin();
+
+    PrimaryCmdBuffer(PrimaryCmdBuffer const& other) = delete;
+    PrimaryCmdBuffer& operator=(PrimaryCmdBuffer const& other) = delete;
+    PrimaryCmdBuffer(PrimaryCmdBuffer&& other) noexcept = default;
+    PrimaryCmdBuffer& operator=(PrimaryCmdBuffer&& other) noexcept = default;
 };
 }
 
@@ -84,50 +117,21 @@ private:
 namespace cth::vk {
 class SecondaryCmdBuffer : public CmdBuffer {
 public:
-    struct Config;
-    SecondaryCmdBuffer(CmdPool* cmd_pool, PrimaryCmdBuffer* primary, Config const& config, VkCommandBufferUsageFlags usage = 0);
-    ~SecondaryCmdBuffer() override;
+    explicit SecondaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
+    explicit SecondaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage = 0);
 
-    void begin() const override;
+    ~SecondaryCmdBuffer() override { optDestroy(); }
+
+
+    void begin(RenderPass const& render_pass, Subpass const& subpass, Framebuffer const* framebuffer);
 
 private:
-    void create();
-
-    PrimaryCmdBuffer* _primary;
-    VkCommandBufferInheritanceInfo _inheritanceInfo;
+    VkCommandBufferInheritanceInfo _inheritanceInfo{};
 
 public:
-    struct Config {
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-        uint32_t subpassIndex = 0;
-        VkFramebuffer framebuffer = VK_NULL_HANDLE;
-
-
-        VkBool32 occlusionQueryEnable = VK_FALSE;
-        VkQueryControlFlags queryFlags = 0;
-        VkQueryPipelineStatisticFlags pipelineStatistics = 0;
-
-
-        static auto Default(VkRenderPass render_pass, uint32_t  subpass_index, VkFramebuffer framebuffer) {
-            return Config{render_pass, subpass_index, framebuffer};
-        }
-
-    private:
-        [[nodiscard]] auto inheritanceInfo() const {
-            return VkCommandBufferInheritanceInfo{
-                VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-                nullptr,
-                renderPass,
-                subpassIndex,
-                framebuffer,
-
-                occlusionQueryEnable,
-                queryFlags,
-                pipelineStatistics
-            };
-        }
-
-        friend SecondaryCmdBuffer;
-    };
+    SecondaryCmdBuffer(SecondaryCmdBuffer const& other) = delete;
+    SecondaryCmdBuffer& operator=(SecondaryCmdBuffer const& other) = delete;
+    SecondaryCmdBuffer(SecondaryCmdBuffer&& other) noexcept = default;
+    SecondaryCmdBuffer& operator=(SecondaryCmdBuffer&& other) noexcept = default;
 };
 }

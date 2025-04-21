@@ -363,4 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /compileData.scor
 /compileData.scor.t0000
-/vcpkg_installed
+
+#vcpkg
+vcpkg_installed/

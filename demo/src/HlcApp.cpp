@@ -2,10 +2,17 @@
 
 #include "render/HlcFrameInfo.hpp"
 
+#include <cth_engine/vulkan/cth_base.hpp>
+#include <cth_engine/vulkan/cth_surface.hpp>
+
+
 
 namespace cth {
 
-App::App() { initFrame(); }
+App::App() {
+    createRenderer3();
+    initFrame();
+}
 
 void App::run() {
     cth::log::msg<except::INFO>("starting...");
@@ -15,55 +22,81 @@ void App::run() {
 
         renderFrame();
     }
-    _core->device()->waitIdle();
+    _core->device().waitIdle();
 
     cth::log::msg<except::INFO>("shutting down...");
 
     //OldModel::clearModels();
 }
 
+void App::createRenderer3() {
+    vk::Renderer3::Config config{
+        .stages{
+            {
+                0,
+                vk::RenderStageConfig{
+                    .queue = &transferQueue()
+                }
+            },
+            {
+                1,
+                vk::RenderStageConfig{
+                    .queue = &renderQueue(),
+                    .subStages = 3,
+                    .signalSemaphores{std::from_range, _graphicsCore->renderFinishedSemaphores()},
+                    .waitStages{std::from_range, _graphicsCore->imageAvailableWaitStages()},
+                    .flags = vk::RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING | vk::RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING
+                }
+            }
+        },
+        .stageDependencies = vk::Renderer3::Config::dependencies_t{
+            {{1, 0, VK_PIPELINE_STAGE_TRANSFER_BIT}}
+        }
+
+    };
+
+
+    _renderer3 = std::make_unique<vk::Renderer3>(*_core, _graphicsCore->renderPulse(), config, vk::create);
+
+    _transferStage = &_renderer3->stage(0);
+    _graphicsStage = &_renderer3->stage(1);
+}
 void App::initFrame() {
-    auto const& cycle = _renderer->cycle();
 
-    _graphicsCore->skipAcquire(cycle);
+    _graphicsCore->skipAcquire();
 
-    auto* initCmdBuffer = _renderer->begin<vk::Renderer::PHASE_TRANSFER>();
-
+    auto [initCmdBuffer, _] = _transferStage->begin();
     initRenderSystem(*initCmdBuffer);
 
-    _renderer->end<vk::Renderer::PHASE_TRANSFER>();
+    _transferStage->submit();
+    _graphicsStage->skip();
 
-    _renderer->skip<vk::Renderer::PHASE_GRAPHICS>();
-
-    _graphicsCore->skipPresent(cycle);
-
+    _graphicsCore->skipPresent();
 }
 
 void App::renderFrame() const {
-    auto const& cycle = _renderer->cycle();
+    _graphicsStage->wait();
+    _destructionQueue->next();
 
-    _destructionQueue->clear(cycle.subIndex);
+    _graphicsCore->acquireFrame();
 
-    _graphicsCore->acquireFrame(cycle);
+    _transferStage->skip();
 
-    _renderer->skip<vk::Renderer::PHASE_TRANSFER>();
+    graphicsPhase();
 
-    graphicsPhase(cycle);
-
-    _graphicsCore->presentFrame(cycle);
+    _graphicsCore->presentFrame();
 }
-void App::graphicsPhase(vk::Cycle const& cycle) const {
-    auto const* cmdBuffer = _renderer->begin<vk::Renderer::PHASE_GRAPHICS>();
+void App::graphicsPhase() const {
+    auto [cmdBuffer, _] = _graphicsStage->begin();
 
-    _graphicsCore->beginWindowPass(cycle, cmdBuffer);
+    _graphicsCore->beginWindowPass(cmdBuffer);
 
-    auto const info = FrameInfo{cycle.index, 0.f, cmdBuffer};
+    auto const info = FrameInfo{_graphicsCore->pulseVal(), 0.f, cmdBuffer};
     _renderSystem->render(info);
 
     _graphicsCore->endWindowPass(cmdBuffer);
 
-
-    _renderer->end<vk::Renderer::PHASE_GRAPHICS>();
+    _graphicsStage->submit();
 }
 
 
@@ -76,8 +109,13 @@ void App::initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer) {
 
 std::vector<std::string> App::getRequiredInstanceExtensions() {
     auto extensions = vk::OSWindow::getGLFWInstanceExtensions();
+
+
     return extensions;
 }
+vk::Queue& App::transferQueue() { return _queues[0]; }
+vk::Queue& App::renderQueue() { return _queues[1]; }
+vk::Queue& App::presentQueue() { return _queues[2]; }
 
 }
 

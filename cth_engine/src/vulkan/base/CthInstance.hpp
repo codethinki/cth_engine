@@ -1,11 +1,11 @@
 #pragma once
 
-#include "vulkan/debug/CthDebugMessenger.hpp"
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan/debug/CthDebugMessenger.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_vk_types.hpp"
 
-#include<cth/pointers.hpp>
-#include <vulkan/vulkan.h>
+#include <volk.h>
+#include <cth/pointers.hpp>
 
 #include <array>
 #include <optional>
@@ -25,10 +25,10 @@ public:
     struct State;
 
     /**
-   * @brief base constructor
-   * @throws cth::except::default_exception reason: missing required instance extensions
-   * @throws cth::except::default_exception reason: missing required validation layers
-   */
+     * @brief base constructor
+     * @throws cth::except::default_exception reason: missing required instance extensions
+     * @throws cth::except::default_exception reason: missing required validation layers
+     */
     Instance(std::string_view app_name, std::span<std::string const> required_extensions);
 
     /**
@@ -55,11 +55,11 @@ public:
     void wrap(State state);
 
     /**
-    * @brief creates the instance
-    * @param messenger_config if not std::nullopt creates messenger with config
-    * @note calls @ref optDestroy()
-    * @throws cth::vk::result_exception result of @ref vkCreateInstance()
-    */
+     * @brief creates the instance
+     * @param messenger_config if not std::nullopt creates messenger with config
+     * @note calls @ref optDestroy()
+     * @throws cth::vk::result_exception result of @ref vkCreateInstance()
+     */
     void create(std::optional<DebugMessenger::Config> messenger_config = std::nullopt);
 
     /**
@@ -70,15 +70,18 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
- * @throws cth::except::default_exception reason: required extension not supported
- */
+     * @throws cth::except::default_exception reason: required extension not supported
+     */
     void checkInstanceExtensionSupport();
+
     /**
      * @throws cth::except::default_exception reason: required layers not supported
      */
     void checkValidationLayerSupport();
-    [[nodiscard]] static std::vector<std::string> getAvailableValidationLayers();
 
+    void enableValidationLayers();
+
+    [[nodiscard]] static std::vector<std::string> getAvailableValidationLayers();
     [[nodiscard]] static std::vector<std::string> getAvailableInstanceExtensions();
     [[nodiscard]] VkApplicationInfo appInfo() const;
 
@@ -95,6 +98,8 @@ private:
 
     std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
     move_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
+
+    static void loadInstanceFunctions(cth::vk::not_null<VkInstance> vk_instance);
 
 public:
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
@@ -116,19 +121,15 @@ public:
     Instance& operator=(Instance const& other) = delete;
     Instance(Instance&& other) noexcept = default;
     Instance& operator=(Instance&& other) noexcept = default;
-#ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<Instance const*> instance);
+
+
+    static void debug_check(Instance const& instance);
     static void debug_check_handle(vk::not_null<VkInstance> vk_instance);
-
-
-#define DEBUG_CHECK_INSTANCE(instance_ptr) Instance::debug_check(instance_ptr)
-#define DEBUG_CHECK_INSTANCE_HANDLE(instance_ptr) Instance::debug_check_handle(instance_ptr)
-#else
-#define DEBUG_CHECK_INSTANCE(instance_ptr) ((void)0)
-#define DEBUG_CHECK_INSTANCE_LEAK(instance_ptr) ((void)0)
-#endif
 };
+
+
 }
+
 
 //State
 
@@ -143,4 +144,12 @@ struct Instance::State {
     std::unique_ptr<DebugMessenger> debugMessenger;
 };
 
+}
+
+//debug checks
+
+namespace cth::vk {
+
+inline void Instance::debug_check(Instance const& instance) { debug_check_handle(instance.get()); }
+inline void Instance::debug_check_handle([[maybe_unused]] vk::not_null<VkInstance> vk_instance) {}
 }

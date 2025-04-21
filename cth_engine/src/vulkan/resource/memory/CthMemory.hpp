@@ -1,12 +1,13 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_vk_types.hpp"
 
-#include<cth/pointers.hpp>
+#include <cth/pointers.hpp>
 
 #include <gsl/pointers>
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 
 
@@ -26,13 +27,13 @@ public:
     /**
      * @param core must be valid
      */
-    Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags vk_properties);
+    Memory(Core const& core, VkMemoryPropertyFlags vk_properties);
 
     /**
      * @param core must not be nullptr
      * @note calls @ref alloc();
      */
-    Memory(cth::not_null<Core const*> core, VkMemoryPropertyFlags properties, VkMemoryRequirements const& vk_requirements);
+    Memory(Core const& core, VkMemoryPropertyFlags properties, VkMemoryRequirements const& vk_requirements);
     ~Memory();
 
     /**
@@ -61,7 +62,7 @@ public:
     void destroy();
 
 
-    static void destroy(VkDevice vk_device, VkDeviceMemory memory);
+    static void destroy(DeviceTable table, VkDeviceMemory memory);
 
     /**
      * @brief releases the handle and resets the object
@@ -87,17 +88,9 @@ public:
     Memory(Memory&& other) = default;
     Memory& operator=(Memory const& other) = default;
     Memory& operator=(Memory&& other) = default;
-#ifdef CONSTANT_DEBUG_MODE
 
     static void debug_check(Memory const* memory);
     static void debug_check_handle(VkDeviceMemory vk_memory);
-#define DEBUG_CHECK_MEMORY(memory_ptr) Memory::debug_check(memory_ptr)
-#define DEBUG_CHECK_MEMORY_HANDLE(vk_memory) Memory::debug_check_handle(vk_memory)
-#else
-#define DEBUG_CHECK_MEMORY(memory_ptr) ((void)0)
-#define DEBUG_CHECK_MEMORY_HANDLE(vk_memory) ((void)0)
-#endif
-
 };
 
 } // namespace cth
@@ -110,4 +103,18 @@ struct Memory::State {
     size_t size; //in bytes
 };
 
+}
+
+//debug check
+
+namespace cth::vk {
+inline void Memory::debug_check(Memory const* memory) {
+    CTH_CRITICAL(memory == nullptr, "memory must not be nullptr") {}
+    CTH_CRITICAL(!memory->created(), "memory must be created") {}
+
+    debug_check_handle(memory->get());
+}
+inline void Memory::debug_check_handle(VkDeviceMemory vk_memory) {
+    CTH_CRITICAL(vk_memory == VK_NULL_HANDLE, "memory handle should not be invalid (VK_NULL_HANDLE)"){}
+}
 }

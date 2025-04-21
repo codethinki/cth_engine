@@ -1,7 +1,7 @@
 #pragma once
 #include "CthSemaphore.hpp"
 
-#include<span>
+#include <span>
 
 namespace cth::vk {
 class TimelineSemaphore : public Semaphore {
@@ -10,21 +10,21 @@ public:
 
     /**
      * @brief base constructor
-     * @note calls @ref Semaphore::Semaphore(cth::not_null<Core const*>)
+     * @note calls @ref Semaphore::Semaphore(Core const&)
      */
-    explicit TimelineSemaphore(cth::not_null<Core const*> core);
+    explicit TimelineSemaphore(Core const& core);
 
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
      */
-    TimelineSemaphore(cth::not_null<Core const*> core, State const& state);
+    TimelineSemaphore(Core const& core, State const& state);
 
     /**
      * @brief constructs and may create
-     * @param create if true calls @ref create()
+     * @details calls @ref create()
      */
-    explicit TimelineSemaphore(cth::not_null<Core const*> core, bool create);
+    explicit TimelineSemaphore(Core const& core, create_t);
 
 
     /**
@@ -41,7 +41,6 @@ public:
     [[nodiscard]] size_t next() { return ++_value; }
 
     [[nodiscard]] size_t gpuValue() const;
-    void signal();
     [[nodiscard]] VkResult wait(uint64_t nanoseconds = UINT64_MAX) const;
 
 protected:

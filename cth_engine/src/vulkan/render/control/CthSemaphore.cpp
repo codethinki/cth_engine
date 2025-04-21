@@ -1,17 +1,17 @@
 #include "CthSemaphore.hpp"
 
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthDevice.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/base/CthDevice.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {
 
 
-Semaphore::Semaphore(cth::not_null<Core const*> core) : _core(core) { DEBUG_CHECK_CORE(core); }
-Semaphore::Semaphore(cth::not_null<Core const*> core, State const& state) : Semaphore{core} { wrap(state); }
-Semaphore::Semaphore(cth::not_null<Core const*> core, bool create) : Semaphore{core} { if(create) this->create(); }
+Semaphore::Semaphore(Core const& core) : _core{&core} { Core::debug_check(core); }
+Semaphore::Semaphore(Core const& core, State const& state) : Semaphore{core} { wrap(state); }
+Semaphore::Semaphore(Core const& core, create_t) : Semaphore{core} { create(); }
 
 void Semaphore::wrap(State const& state) {
     optDestroy();
@@ -23,9 +23,9 @@ void Semaphore::create() {
 }
 
 void Semaphore::destroy() {
-    DEBUG_CHECK_SEMAPHORE(this);
+    debug_check(*this);
 
-    auto const lambda = [vk_device = _core->vkDevice(), vk_semaphore = _handle.get()]() { destroy(vk_device, vk_semaphore); };
+    auto const lambda = [table = _core->deviceTable(), vk_semaphore = _handle.get()]() { destroy(table, vk_semaphore); };
 
     auto const queue = _core->destructionQueue();
     if(queue) queue->push(lambda);
@@ -36,15 +36,16 @@ void Semaphore::destroy() {
 
 
 Semaphore::State Semaphore::release() {
+    debug_check(*this);
+
     State const state{_handle.get()};
     reset();
     return state;
 }
-void Semaphore::destroy(VkDevice vk_device, VkSemaphore vk_semaphore) {
-    CTH_WARN(vk_semaphore == VK_NULL_HANDLE, "vk_semaphore invalid") {}
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
+void Semaphore::destroy(DeviceTable table, VkSemaphore vk_semaphore) {
+    CTH_WARN(vk_semaphore == VK_NULL_HANDLE, "vk_semaphore should not be invalid (VK_NULL_HANDLE)") {}
 
-    vkDestroySemaphore(vk_device, vk_semaphore, nullptr);
+    table->vkDestroySemaphore(table.device(), vk_semaphore, nullptr);
 }
 
 VkSemaphoreCreateInfo Semaphore::createInfo() {
@@ -57,7 +58,8 @@ VkSemaphoreCreateInfo Semaphore::createInfo() {
 }
 void Semaphore::createHandle(VkSemaphoreCreateInfo const& info) {
     VkSemaphore ptr = VK_NULL_HANDLE;
-    auto const createResult = vkCreateSemaphore(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const createResult = _core->deviceTable()->vkCreateSemaphore(_core->vkDevice(), &info, nullptr, &ptr);
+
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create semaphore") {
         reset();
         throw cth::vk::result_exception{createResult, details->exception()};
@@ -66,13 +68,4 @@ void Semaphore::createHandle(VkSemaphoreCreateInfo const& info) {
 }
 void Semaphore::reset() { _handle = nullptr; }
 
-
-
-#ifdef CONSTANT_DEBUG_MODE
-void Semaphore::debug_check(cth::not_null<Semaphore const*> semaphore) {
-    CTH_ERR(!semaphore->created(), "semaphore must be created") throw details->exception();
 }
-
-#endif
-
-} //namespace cth

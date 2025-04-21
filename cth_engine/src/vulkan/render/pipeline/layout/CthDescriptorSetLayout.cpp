@@ -1,15 +1,15 @@
 #include "CthDescriptorSetLayout.hpp"
 
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/resource/descriptor/CthDescriptor.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/resource/descriptor/CthDescriptor.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {
 
-DescriptorSetLayout::DescriptorSetLayout(cth::not_null<Core const*> core, Builder const& builder) : _core(core), _vkBindings(builder.bindings()) { create(); }
+DescriptorSetLayout::DescriptorSetLayout(Core const& core, Builder const& builder) : _core{&core}, _vkBindings(builder.bindings()) { create(); }
 DescriptorSetLayout::~DescriptorSetLayout() {
-    vkDestroyDescriptorSetLayout(_core->vkDevice(), _handle.get(), nullptr);
+    _core->functions()->vkDestroyDescriptorSetLayout(_core->vkDevice(), _handle.get(), nullptr);
     log::msg("destroyed descriptor set layout");
 }
 
@@ -20,7 +20,7 @@ void DescriptorSetLayout::create() {
     descriptorSetLayoutInfo.pBindings = _vkBindings.data();
 
     VkDescriptorSetLayout ptr = VK_NULL_HANDLE;
-    VkResult const result = vkCreateDescriptorSetLayout(_core->vkDevice(), &descriptorSetLayoutInfo, nullptr, &ptr);
+    VkResult const result = _core->functions()->vkCreateDescriptorSetLayout(_core->vkDevice(), &descriptorSetLayoutInfo, nullptr, &ptr);
     CTH_STABLE_ERR(result != VK_SUCCESS, "Vk: failed to create descriptor set layout")
         throw cth::vk::result_exception(result, details->exception());
 
@@ -61,8 +61,7 @@ DescriptorSetLayout::Builder& DescriptorSetLayout::Builder::removeBinding(uint32
 std::vector<VkDescriptorSetLayoutBinding> DescriptorSetLayout::Builder::bindings() const {
 #ifdef CONSTANT_DEBUG_MODE
     //TODO check this, may be possible
-    CTH_ERR(std::ranges::any_of(_bindings, [](const binding_t& binding){ return binding == std::nullopt;}), "bindings cannot be empty")
-        throw details->exception();
+    CTH_CRITICAL(std::ranges::any_of(_bindings, [](const binding_t& binding){ return binding == std::nullopt;}), "bindings cannot be empty") {}
 
     std::vector<VkDescriptorSetLayoutBinding> vec(_bindings.size());
     std::ranges::transform(_bindings, vec.begin(), [](binding_t const& binding) { return binding.value(); });

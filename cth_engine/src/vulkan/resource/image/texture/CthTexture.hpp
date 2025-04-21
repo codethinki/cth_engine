@@ -1,7 +1,7 @@
 #pragma once
 #include <span>
 
-#include "vulkan/resource/image/CthImage.hpp"
+#include "src/vulkan/resource/image/CthImage.hpp"
 
 //TEMP modernize
 
@@ -16,7 +16,7 @@ public:
      * @param staging_data copied to texture via a staging buffer
      * @note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
-    Texture(cth::not_null<Core const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+    Texture(Core const& core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
         std::span<char const> staging_data);
 
     /**
@@ -24,7 +24,7 @@ public:
      * @param staging_buffer staging buffer with image data
      * @note the texture layout will be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
      */
-    Texture(cth::not_null<Core const*> core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
+    Texture(Core const& core, VkExtent2D extent, Config const& config, CmdBuffer const& cmd_buffer,
         BaseBuffer const& staging_buffer, size_t buffer_offset = 0);
 
     ~Texture() override = default;

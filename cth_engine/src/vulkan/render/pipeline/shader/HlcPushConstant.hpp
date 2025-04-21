@@ -1,8 +1,5 @@
 #pragma once
-
-#include <vulkan/vulkan_core.h>
-
-#include<glm/glm.hpp>
+#include <glm/glm.hpp>
 
 
 
@@ -27,8 +24,8 @@ struct PushConstants {
 
 
 namespace push_info {
-constexpr uint32_t RANGE_COUNT = 1;
-constexpr VkPushConstantRange RANGE_INFO{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants)};
+    constexpr uint32_t RANGE_COUNT = 1;
+    constexpr VkPushConstantRange RANGE_INFO{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstants)};
 }
 
 }

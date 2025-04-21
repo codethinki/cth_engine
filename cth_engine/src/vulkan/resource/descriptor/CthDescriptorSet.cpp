@@ -2,9 +2,9 @@
 
 #include "CthDescriptor.hpp"
 #include "CthDescriptorPool.hpp"
-#include "vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
+#include "src/vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
 // ReSharper disable once CppUnusedIncludeDirective
-#include "vulkan/utility/cth_vk_format.hpp"
+#include "src/vulkan/utility/cth_vk_format.hpp"
 
 
 //DescriptorSet
@@ -82,10 +82,9 @@ void DescriptorSet::copyInfos() {
             details->add("binding: {}", binding);
 
 
-        CTH_ERR(type == InfoType::NONE, "descriptor with no info not implemented") {
+        CTH_CRITICAL(type == InfoType::NONE, "descriptor with no info not implemented") {
             details->add("binding: {}", binding);
             details->add("descriptor type: {}", vkType);
-            throw details->exception();
         }
 
 
@@ -148,14 +147,12 @@ DescriptorSet::Builder::Builder(DescriptorSetLayout const* layout, std::span<Des
 
 DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descriptor, uint32_t binding, uint32_t arr_index) {
 
-    CTH_ERR(descriptor != nullptr && (descriptor->type() != _layout->bindingType(binding)), "descriptor and layout type at binding dont match") {
+    CTH_CRITICAL(descriptor != nullptr && (descriptor->type() != _layout->bindingType(binding)), "matching descriptor and layout type required") {
         details->add("binding: {}", binding);
         details->add("descriptor type: {}", descriptor->type());
         details->add("layout type at binding: {}", _layout->bindingType(binding));
-
-        throw cth::except::data_exception{_layout->bindingType(binding), details->exception()};
     }
-    CTH_WARN(_descriptors[binding][arr_index] != nullptr, "overwriting already added descriptor") {
+    CTH_CRITICAL(_descriptors[binding][arr_index] != nullptr, "overwriting already added descriptor") {
         details->add("binding: {}", binding);
         details->add("array index: {}", arr_index);
     }
@@ -170,10 +167,9 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descri
 }
 DescriptorSet::Builder&
 DescriptorSet::Builder::addDescriptors(std::span<Descriptor* const> binding_descriptors, uint32_t binding, uint32_t arr_first) {
-    CTH_ERR(_descriptors.size() + arr_first > _descriptors.size(), "out of range for layout size at binding") {
+    CTH_CRITICAL(_descriptors.size() + arr_first > _descriptors.size(), "out of range for layout size at binding") {
         details->add("binding: {0}, layout size: {1}", binding, _descriptors[binding].size());
         details->add("binding descriptors: {0}, arr_first: {1}", binding_descriptors.size(), arr_first);
-        throw details->exception();
     }
     CTH_INFORM(std::ranges::any_of(binding_descriptors, [](Descriptor const* descriptor) { return !descriptor; }),
         "adding empty descriptors, consider using removeDescriptors() instead") {
@@ -190,10 +186,9 @@ DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptor(uint32_t bindin
     return *this;
 }
 DescriptorSet::Builder& DescriptorSet::Builder::removeDescriptors(uint32_t binding, uint32_t arr_first, uint32_t count) {
-    CTH_ERR(arr_first + count > _descriptors[binding].size(), "out of ranger for layout size at binding") {
+    CTH_CRITICAL(arr_first + count > _descriptors[binding].size(), "out of ranger for layout size at binding") {
         details->add("binding: {0}, layout size: {1}", binding, _descriptors[binding].size());
         details->add("arr_first: {0}, count: {1}", arr_first, count);
-        throw details->exception();
     }
     std::ranges::fill_n(_descriptors[binding].begin() + arr_first, count, nullptr);
     return *this;

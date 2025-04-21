@@ -1,8 +1,11 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_vk_types.hpp"
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
+
+#include <cth/pointer/move_ptr.hpp>
 
 namespace cth::vk {
 class Core;
@@ -18,21 +21,21 @@ public:
      * @brief base constructor
      * @param core must be created
      */
-    ImageView(cth::not_null<Core const*> core, Config const& config);
+    ImageView(Core const& core, Config const& config);
 
     /**
      * @brief constructs and creates
      * @note calls @ref create()
-     * @note calls @ref ImageView(cth::not_null<Core const*>, Config const&)
+     * @note calls @ref ImageView(Core const&, Config const&)
      */
-    ImageView(cth::not_null<Core const*> core, Config const& config, cth::not_null<Image const*> image);
+    ImageView(Core const& core, Config const& config, Image const& image);
 
     /**
      * @brief constructs and wraps state
      * @note calls @ref wrap();
-     * @note calls @ref ImageView(cth::not_null<Core const*>, Config const&)
+     * @note calls @ref ImageView(Core const&, Config const&)
      */
-    ImageView(cth::not_null<Core const*> core, Config const& config, State const& state);
+    ImageView(Core const& core, Config const& config, State const& state);
 
     /**
      * @note calls @ref optDestroy()
@@ -45,7 +48,7 @@ public:
      * @param image requires Image::created()
      * @note calls @ref optDestroy()
      */
-    void create(cth::not_null<Image const*> image);
+    void create(Image const& image);
 
     /**
      * @brief wraps the state with object
@@ -71,7 +74,7 @@ public:
      */
     State release();
 
-    static void destroy(VkDevice vk_device, VkImageView vk_image_view);
+    static void destroy(DeviceTable table, VkImageView vk_image_view);
 
 
 
@@ -96,7 +99,7 @@ private:
 
     cth::not_null<Core const*> _core;
     Image const* _image = nullptr;
-    move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
+    cth::move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
 
     Config _config;
 
@@ -110,17 +113,8 @@ public:
     ImageView& operator=(ImageView const& other) = delete;
     ImageView& operator=(ImageView&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check(ImageView const* image_view);
     static void debug_check_handle(VkImageView vk_image_view);
-
-#define DEBUG_CHECK_IMAGE_VIEW(image_view) ImageView::debug_check(image_view)
-#define DEBUG_CHECK_IMAGE_VIEW_HANDLE(vk_image_view) ImageView::debug_check_handle(vk_image_view)
-#else
-#define DEBUG_CHECK_IMAGE_VIEW(image_view) ((void)0)
-#define DEBUG_CHECK_IMAGE_VIEW_HANDLE(vk_image_view) ((void)0)
-#endif
-
 };
 } // namespace cth
 
@@ -131,4 +125,21 @@ struct ImageView::State {
     vk::not_null<VkImageView> vkImageView; // NOLINT(cppcoreguidelines-owning-memory)
     cth::not_null<Image const*> image;
 };
+}
+
+//debug checks
+
+namespace cth::vk {
+
+inline void ImageView::debug_check(ImageView const* image_view) {
+    CTH_CRITICAL(image_view == nullptr, "image view must not be invalid (nullptr)") {}
+    CTH_CRITICAL(!image_view->created(), "image view must be created") {}
+
+    ImageView::debug_check_handle(image_view->get());
+}
+inline void ImageView::debug_check_handle(VkImageView vk_image_view) {
+    CTH_CRITICAL(vk_image_view == VK_NULL_HANDLE, "image view vkQueue must not be invalid (VK_NULL_HANDLE)"){}
+}
+
+
 }

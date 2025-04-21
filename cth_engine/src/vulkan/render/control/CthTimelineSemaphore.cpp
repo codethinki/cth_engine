@@ -1,14 +1,14 @@
 #include "CthTimelineSemaphore.hpp"
 
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 namespace cth::vk {
-TimelineSemaphore::TimelineSemaphore(cth::not_null<Core const*> core) : Semaphore{core} {}
-TimelineSemaphore::TimelineSemaphore(cth::not_null<Core const*> core, State const& state) : TimelineSemaphore{core} { wrap(state); }
-TimelineSemaphore::TimelineSemaphore(cth::not_null<Core const*> core, bool create) : TimelineSemaphore{core} {
-    if(create) Semaphore::createHandle(TimelineSemaphore::createInfo());
+TimelineSemaphore::TimelineSemaphore(Core const& core) : Semaphore{core} {}
+TimelineSemaphore::TimelineSemaphore(Core const& core, State const& state) : TimelineSemaphore{core} { wrap(state); }
+TimelineSemaphore::TimelineSemaphore(Core const& core, create_t) : TimelineSemaphore{core} {
+    Semaphore::createHandle(TimelineSemaphore::createInfo());
 }
 
 void TimelineSemaphore::wrap(State const& state) {
@@ -26,7 +26,7 @@ TimelineSemaphore::State TimelineSemaphore::release() {
 
 size_t TimelineSemaphore::gpuValue() const {
     size_t value = 0;
-    auto const result = vkGetSemaphoreCounterValue(_core->vkDevice(), get(), &value);
+    auto const result = _core->functions()->vkGetSemaphoreCounterValue(_core->vkDevice(), get(), &value);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to get semaphore counter value")
         throw vk::result_exception{result, details->exception()};
 
@@ -35,17 +35,18 @@ size_t TimelineSemaphore::gpuValue() const {
 void TimelineSemaphore::signal() {
     auto const info = signalInfo(++_value);
 
-    auto const result = vkSignalSemaphore(_core->vkDevice(), &info);
+    auto const result = _core->functions()->vkSignalSemaphore(_core->vkDevice(), &info);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to signal semaphore")
         throw vk::result_exception{result, details->exception()};
 }
 VkResult TimelineSemaphore::wait(uint64_t nanoseconds) const {
-    DEBUG_CHECK_SEMAPHORE(this);
+    debug_check(*this);
+
     auto const handle = get();
 
     auto const info = waitInfo(_value, handle);
 
-    auto const result = vkWaitSemaphores(_core->vkDevice(), &info, nanoseconds);
+    auto const result = _core->functions()->vkWaitSemaphoresKHR(_core->vkDevice(), &info, nanoseconds);
 
     return result;
 }
@@ -68,9 +69,8 @@ VkSemaphoreSignalInfo TimelineSemaphore::signalInfo(size_t const& value) const {
 
 
 VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(std::span<size_t const> wait_values, std::span<VkSemaphore const> wait_semaphores) {
-    CTH_ERR(wait_values.size() != wait_semaphores.size(), "wait_values size ({0}) must equal wait_semaphores size ({1}) required", wait_values.size(),
-        wait_semaphores.size())
-        throw details->exception();
+    CTH_CRITICAL(wait_values.size() != wait_semaphores.size(), "wait_values size ({0}) must equal wait_semaphores size ({1}) required", 
+        wait_values.size(), wait_semaphores.size()){}
 
 
     VkSemaphoreWaitInfo const waitInfo{

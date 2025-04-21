@@ -1,9 +1,9 @@
 #include "CthDescriptorPool.hpp"
 
 #include "CthDescriptorSet.hpp"
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 
@@ -11,7 +11,7 @@
 
 namespace cth::vk {
 
-DescriptorPool::DescriptorPool(cth::not_null<Core const*> device, Builder const& builder) : _core(device) {
+DescriptorPool::DescriptorPool(Core const& core, Builder const& builder) : _core{&core} {
     initSetEntries(builder);
     create();
     allocSets();
@@ -19,7 +19,7 @@ DescriptorPool::DescriptorPool(cth::not_null<Core const*> device, Builder const&
 
 DescriptorPool::~DescriptorPool() {
     if(_handle == VK_NULL_HANDLE) return;
-    vkDestroyDescriptorPool(_core->vkDevice(), _handle.get(), nullptr);
+    _core->functions()->vkDestroyDescriptorPool(_core->vkDevice(), _handle.get(), nullptr);
 
     log::msg("destroyed descriptor pool");
 }
@@ -30,8 +30,8 @@ void DescriptorPool::writeSets(std::vector<DescriptorSet*> const& sets) {
     std::vector<VkWriteDescriptorSet> writes{};
 
     std::ranges::for_each(sets, [this, &writes](DescriptorSet* set) {
-        CTH_ERR(set == nullptr, "set ptr invalid") throw details->exception();
-        CTH_ERR(set->written() || (set->_pool != nullptr && set->_pool != this), "set already registered in other pool") throw details->exception();
+        CTH_CRITICAL(set == nullptr, "set ptr invalid") {}
+        CTH_CRITICAL(set->written() || (set->_pool != nullptr && set->_pool != this), "set already registered in other pool") {}
 
         set->alloc(_allocatedSets[set->_layout].newVkSet(), this);
 
@@ -43,11 +43,11 @@ void DescriptorPool::writeSets(std::vector<DescriptorSet*> const& sets) {
     });
 
 
-    vkUpdateDescriptorSets(_core->vkDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+    _core->functions()->vkUpdateDescriptorSets(_core->vkDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
 void DescriptorPool::reset() {
-    VkResult const resetResult = vkResetDescriptorPool(_core->vkDevice(), _handle.get(), 0);
+    VkResult const resetResult = _core->functions()->vkResetDescriptorPool(_core->vkDevice(), _handle.get(), 0);
 
 
     std::ranges::for_each(_descriptorSets, [](DescriptorSet* set) { set->deallocate(); });
@@ -82,7 +82,7 @@ void DescriptorPool::initSetEntries(Builder const& builder) {
 }
 
 void DescriptorPool::create() {
-    std::vector<VkDescriptorPoolSize> poolSizes = calcPoolSizes();
+   auto const poolSizes = calcPoolSizes();
 
     VkDescriptorPoolCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -92,7 +92,7 @@ void DescriptorPool::create() {
 
     VkDescriptorPool ptr = VK_NULL_HANDLE;
 
-    VkResult const createResult = vkCreateDescriptorPool(_core->vkDevice(), &createInfo, nullptr, &ptr);
+    VkResult const createResult = _core->functions()->vkCreateDescriptorPool(_core->vkDevice(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "vk: failed to create descriptor pool")
         throw cth::vk::result_exception(createResult, details->exception());
 
@@ -115,7 +115,7 @@ void DescriptorPool::allocSets() {
     allocInfo.descriptorSetCount = static_cast<uint32_t>(_vkSets.size());
     allocInfo.pSetLayouts = vkLayouts.data();
 
-    VkResult const allocResult = vkAllocateDescriptorSets(_core->vkDevice(), &allocInfo, _vkSets.data());
+    VkResult const allocResult = _core->functions()->vkAllocateDescriptorSets(_core->vkDevice(), &allocInfo, _vkSets.data());
 
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "vk: failed to allocate descriptor sets")
         throw cth::vk::result_exception(allocResult, details->exception());
@@ -132,8 +132,8 @@ void DescriptorPool::returnSet(DescriptorSet* set) {
 //Builder
 
 namespace cth::vk {
-void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint32_t  alloc_count) {
-    CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
+void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint32_t alloc_count) {
+    CTH_CRITICAL(layout == nullptr, "layout ptr invalid") {}
     CTH_WARN(alloc_count == 0, "alloc_count should be > 0") {}
 
     _maxDescriptorSets[layout] += alloc_count;
@@ -141,10 +141,10 @@ void DescriptorPool::Builder::addLayout(DescriptorSetLayout const* layout, uint3
 void DescriptorPool::Builder::addLayouts(std::unordered_map<DescriptorSetLayout const*, uint32_t> const& set_allocations) {
     std::ranges::for_each(set_allocations, [this](auto const& pair) { this->addLayout(pair.first, pair.second); });
 }
-void DescriptorPool::Builder::removeLayout(DescriptorSetLayout const* layout, size_t  amount) {
-    CTH_ERR(layout == nullptr, "layout ptr invalid") throw details->exception();
+void DescriptorPool::Builder::removeLayout(DescriptorSetLayout const* layout, size_t amount) {
+    CTH_CRITICAL(layout == nullptr, "layout ptr invalid") {}
     CTH_WARN(amount == 0, "alloc_count should be > 0") {}
-    CTH_ERR(!_maxDescriptorSets.contains(layout), "builder does not contain layout") throw details->exception();
+    CTH_CRITICAL(!_maxDescriptorSets.contains(layout), "builder does not contain layout") {}
 
     if(amount >= _maxDescriptorSets[layout]) _maxDescriptorSets.erase(layout);
     else _maxDescriptorSets[layout] -= amount;

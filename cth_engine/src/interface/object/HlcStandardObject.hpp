@@ -23,8 +23,8 @@ struct Transform {
 
 class StandardObject {
 public:
-    StandardObject() { _id = currentId++; };
-    explicit StandardObject(Transform const& transform) : _transform{transform} { _id = currentId++; };
+    StandardObject() { _id = currentId++; }
+    explicit StandardObject(Transform const& transform) : _transform{transform} { _id = currentId++; }
     virtual ~StandardObject() = 0;
 
     [[nodiscard]] uint32_t getId() const { return _id; }

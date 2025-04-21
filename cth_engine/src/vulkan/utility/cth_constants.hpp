@@ -4,12 +4,15 @@
 #include "constant/cth_device_constants.hpp"
 // ReSharper restore CppUnusedIncludeDirective
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <cstdint>
 #include <limits>
 
-
+namespace cth::vk {
+struct create_t {};
+static constexpr create_t create{};
+}
 
 namespace cth::vk::constants {
 

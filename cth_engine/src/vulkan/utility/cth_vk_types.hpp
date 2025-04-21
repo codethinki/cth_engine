@@ -1,7 +1,7 @@
 #pragma once
+#include <volk.h>
+#include <cth/pointer/not_null.hpp>
 #include <gsl/pointers>
-
-#include <vulkan/vulkan.h>
 
 namespace cth::vk {
 template<typename T>

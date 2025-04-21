@@ -1,11 +1,11 @@
 #pragma once
-#include<cth/algorithm.hpp>
+#include <cth/algorithm.hpp>
 
 
 
+#include <volk.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
-#include <vulkan/vulkan.h>
 
 #include <array>
 #include <functional>
@@ -48,9 +48,9 @@ concept render_type = is_render_type_v<T>;
 
 template<>
 struct std::hash<cth::vk::Vertex> {
-    size_t operator()(cth::vk::Vertex const& vertex) const {
+    size_t operator()(cth::vk::Vertex const& vertex) const noexcept {
         size_t seed = 0;
-        cth::algorithm::hash::combine(seed, vertex.position, vertex.normal, vertex.uv);
+        cth::alg::hash::combine(seed, vertex.position, vertex.normal, vertex.uv);
         return seed;
     }
 };

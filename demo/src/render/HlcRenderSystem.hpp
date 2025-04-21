@@ -3,9 +3,10 @@
 
 //TEMP for compile time speedup only include necessary headers
 //TEMP replace this with #include <cth_engine/cth_engine.hpp>
-#include <interface/render/model/CthVertex.hpp>
-#include "vulkan/resource/buffer/CthBuffer.hpp"
-#include "vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
+#include <cth_engine/interface/cth_model.hpp>
+#include <cth_engine/vulkan/cth_render.hpp>
+#include <cth_engine/vulkan/cth_resource.hpp>
+
 
 #include <memory>
 
@@ -57,7 +58,7 @@ private:
     //TEMP replace this with actual model loading
     void createDefaultTriangle(vk::CmdBuffer const& cmd_buffer);
 
-    vk::Core const* _core;
+    cth::not_null<vk::Core const*> _core;
     std::unique_ptr<vk::PipelineLayout> _pipelineLayout;
     std::unique_ptr<vk::Pipeline> _pipeline;
 

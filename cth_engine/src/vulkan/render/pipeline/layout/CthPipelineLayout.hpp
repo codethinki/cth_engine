@@ -1,12 +1,18 @@
 #pragma once
 
 #include <span>
-#include <unordered_map>
 #include <vector>
-#include<cth/pointers.hpp>
-#include <vulkan/vulkan.h>
+
+#include <volk.h>
+#include <cth/pointer/move_ptr.hpp>
+#include <cth/pointer/not_null.hpp>
 
 
+//TEMP modernize
+
+namespace cth::vk {
+struct DeviceTable;
+}
 
 namespace cth::vk {
 class Core;
@@ -19,18 +25,26 @@ public:
     * @throws cth::vk::result_exception data: VkResult of vkCreatePipelineLayout()
     * @throws cth::except::exception reason: device limits exceeded, too many locations specified
     */
-    PipelineLayout(cth::not_null<Core const*> core, Builder const& builder);
+    PipelineLayout(Core const& core, Builder const& builder);
     ~PipelineLayout();
+
+
+    static void destroy(DeviceTable table, VkPipelineLayout vk_layout);
 
 private:
     void create();
+    void optDestroy() { if(created()) destroy(); }
+    void destroy();
+    void reset();
+
 
     cth::not_null<Core const*> _core;
-    VkPipelineLayout _vkLayout = VK_NULL_HANDLE;
+    cth::move_ptr<VkPipelineLayout_T> _handle = VK_NULL_HANDLE;
     std::vector<DescriptorSetLayout*> _setLayouts{};
 
 public:
-    [[nodiscard]] VkPipelineLayout get() const { return _vkLayout; }
+    [[nodiscard]] auto created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] VkPipelineLayout get() const { return _handle.get(); }
 
 
 

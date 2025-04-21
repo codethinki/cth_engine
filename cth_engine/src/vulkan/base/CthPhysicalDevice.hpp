@@ -1,13 +1,10 @@
 #pragma once
-#include "CthQueueFamily.hpp"
-#include "vulkan/utility/cth_constants.hpp"
+#include "queue/CthQueueFamily.hpp"
+#include "src/vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan/utility/device/PhysicalDeviceFeatures.hpp"
 
-
-#include "vulkan/utility/device/PhysicalDeviceFeatures.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
-
-#include<cth/pointers.hpp>
-#include <vulkan/vulkan.h>
+#include <volk.h>
+#include <cth/pointers.hpp>
 
 #include <memory>
 #include <span>
@@ -31,7 +28,7 @@ public:
      * @brief base constructor
      * @param instance @ref Instance::created() required
      */
-    explicit PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures required_features,
+    explicit PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures required_features,
         std::span<std::string const> required_extensions);
 
     /**
@@ -39,7 +36,7 @@ public:
      * @note calls @ref PhysicalDevice(Instance*, utils::PhysicalDeviceFeatures, std::span<std::string const>, Surface const&)
      * @note calls @ref create()
      */
-    explicit PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+    explicit PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures const& required_features,
         std::span<std::string const> required_extensions, Surface const& surface, vk::not_null<VkPhysicalDevice> vk_device);
 
     /**
@@ -47,7 +44,7 @@ public:
      * @note calls @ref PhysicalDevice(Instance*, utils::PhysicalDeviceFeatures, std::span<std::string const>, Surface const&)
      * @note calls @ref wrap(State const&)
      */
-    explicit PhysicalDevice(cth::not_null<Instance const*> instance, utils::PhysicalDeviceFeatures const& required_features,
+    explicit PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures const& required_features,
         std::span<std::string const> required_extensions, State const& state);
 
 
@@ -57,7 +54,7 @@ public:
      * @param queues passed to @ref suitable()
      * @return if @ref suitable() returns instance, else nullopt
      */
-    static std::optional<PhysicalDevice> Create(cth::not_null<Instance const*> instance, Surface const& surface, std::span<Queue const> queues,
+    static std::optional<PhysicalDevice> Create(Instance const& instance, Surface const& surface, std::span<Queue const> queues,
         std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features,
         vk::not_null<VkPhysicalDevice> vk_device);
 
@@ -77,7 +74,7 @@ public:
      * @note calls @ref getMemoryProperties()
      * @note calls @ref getQueueFamilyProperties()
      */
-    void create(Surface const& surface, cth::not_null<VkPhysicalDevice> vk_device);
+    void create(Surface const& surface, not_null<VkPhysicalDevice> vk_device);
 
     /**
      * @brief enumerates all available devices and picks one that fits the requirements
@@ -85,10 +82,10 @@ public:
      * @return valid physical device
      * @throws cth::except::default_exception if no device is found
      * @note engine required features and extensions are added to the requirements
-     * @link cth::vk::constants::REQUIRED_DEVICE_FEATURES
-     * @link cth::vk::constants::REQUIRED_DEVICE_EXTENSIONS
+     * @ref cth::vk::constants::REQUIRED_DEVICE_FEATURES
+     * @ref cth::vk::constants::REQUIRED_DEVICE_EXTENSIONS
      */
-    [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(cth::not_null<Instance const*> instance, std::span<Queue const> queues,
+    [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(Instance const& instance, std::span<Queue const> queues,
         std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features);
 
 
@@ -133,15 +130,15 @@ public:
     /**
      * @throws cth::vk::result_exception result of @ref vkGetPhysicalDeviceProperties()
      */
-   [[nodiscard]] static std::vector<std::string> getExtensions(vk::not_null<VkPhysicalDevice> vk_device);
+    [[nodiscard]] static std::vector<std::string> getExtensions(vk::not_null<VkPhysicalDevice> vk_device);
 
-   [[nodiscard]] static VkPhysicalDeviceProperties getProperties(vk::not_null<VkPhysicalDevice> vk_device);
+    [[nodiscard]] static VkPhysicalDeviceProperties getProperties(vk::not_null<VkPhysicalDevice> vk_device);
 
-   [[nodiscard]] static VkPhysicalDeviceMemoryProperties getMemoryProperties(vk::not_null<VkPhysicalDevice> vk_device);
+    [[nodiscard]] static VkPhysicalDeviceMemoryProperties getMemoryProperties(vk::not_null<VkPhysicalDevice> vk_device);
 
-   [[nodiscard]] static std::vector<QueueFamily> getQueueFamilies(Surface const& surface, vk::not_null<VkPhysicalDevice> vk_device);
+    [[nodiscard]] static std::vector<QueueFamily> getQueueFamilies(Surface const& surface, vk::not_null<VkPhysicalDevice> vk_device);
 
-   [[nodiscard]] static VkSampleCountFlagBits evalMaxSampleCount(VkPhysicalDeviceProperties const& properties);
+    [[nodiscard]] static VkSampleCountFlagBits evalMaxSampleCount(VkPhysicalDeviceProperties const& properties);
 
 private:
     Instance const* _instance;
@@ -157,8 +154,6 @@ private:
 
     VkPhysicalDeviceMemoryProperties _memProperties{};
     std::vector<QueueFamily> _queueFamilies{};
-
-
 
 public:
     [[nodiscard]] bool created() const { return _handle != nullptr; }
@@ -179,16 +174,8 @@ public:
     PhysicalDevice& operator=(PhysicalDevice const& other) = delete;
     PhysicalDevice& operator=(PhysicalDevice&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<PhysicalDevice const*> device);
+    static void debug_check(PhysicalDevice const& device);
     static void debug_check_handle(vk::not_null<VkPhysicalDevice> vk_device);
-#define DEBUG_CHECK_PHYSICAL_DEVICE_HANDLE(vk_device) PhysicalDevice::debug_check_handle(vk_device)
-#define DEBUG_CHECK_PHYSICAL_DEVICE(device_ptr) PhysicalDevice::debug_check(device_ptr)
-#else
-#define DEBUG_CHECK_PHYSICAL_DEVICE_HANDLE(vk_device) ((void)0)
-#define DEBUG_CHECK_PHYSICAL_DEVICE(device_ptr) ((void)0)
-#endif
-
 };
 }
 
@@ -211,4 +198,15 @@ struct PhysicalDevice::State {
     VkSampleCountFlagBits maxSampleCount = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
     std::optional<VkPhysicalDeviceMemoryProperties> memProperties = std::nullopt;
 };
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void PhysicalDevice::debug_check(PhysicalDevice const& device) {
+    CTH_CRITICAL(!device.created(), "physical device must be created") {}
+    debug_check_handle(device.get());
+}
+inline void PhysicalDevice::debug_check_handle([[maybe_unused]] vk::not_null<VkPhysicalDevice> vk_device) {}
+
 }

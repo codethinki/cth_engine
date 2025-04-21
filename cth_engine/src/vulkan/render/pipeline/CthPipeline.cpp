@@ -1,37 +1,37 @@
 #include "CthPipeline.hpp"
 
-#include "interface/render/model/CthVertex.hpp"
 #include "layout/CthPipelineLayout.hpp"
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "vulkan/render/pipeline/shader/CthShader.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/interface/render/model/CthVertex.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
+#include "src/vulkan/render/pipeline/shader/CthShader.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 
 namespace cth::vk {
 using namespace std;
 
-Pipeline::Pipeline(cth::not_null<Core const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info) : _device{core} {
+Pipeline::Pipeline(Core const& core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info) : _core{&core} {
     create(config_info, pipeline_layout, nullptr);
 }
-Pipeline::Pipeline(cth::not_null<Core const*> core, Pipeline const* parent, GraphicsConfig const& config_info) : _device(core) {
+Pipeline::Pipeline(Core const& core, Pipeline const* parent, GraphicsConfig const& config_info) : _core{&core} {
     create(config_info, nullptr, parent);
 }
 
 Pipeline::~Pipeline() {
-    vkDestroyPipeline(_device->vkDevice(), _vkGraphicsPipeline, nullptr);
+    _core->functions()->vkDestroyPipeline(_core->vkDevice(), _vkGraphicsPipeline, nullptr);
     log::msg("destroyed graphics-pipeline ");
 }
 
-void Pipeline::bind(CmdBuffer const* cmd_buffer) const { vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline); }
+void Pipeline::bind(CmdBuffer const* cmd_buffer) const {
+    _core->functions()->vkCmdBindPipeline(cmd_buffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _vkGraphicsPipeline);
+}
 
 void Pipeline::create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout, Pipeline const* parent) {
-    CTH_ERR(pipeline_layout != nullptr && parent != nullptr, "something went wrong, cannot inherit and specify layout")
-        throw details->exception();
+    CTH_CRITICAL(pipeline_layout != nullptr && parent != nullptr, "something went wrong, cannot inherit and specify layout"){}
 
-    CTH_ERR(pipeline_layout == nullptr && parent == nullptr, "pipeline layout or parent invalid")
-        throw details->exception();
+    CTH_CRITICAL(pipeline_layout == nullptr && parent == nullptr, "pipeline layout or parent invalid") {}
 
     CTH_STABLE_ERR(config_info.renderPass == VK_NULL_HANDLE && parent == nullptr, "renderPass missing in config_info")
         throw details->exception();
@@ -43,7 +43,7 @@ void Pipeline::create(GraphicsConfig const& config_info, PipelineLayout const* p
     else pipelineInfo.basePipelineHandle = parent->_vkGraphicsPipeline;
 
 
-    VkResult const createResult = vkCreateGraphicsPipelines(_device->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+    VkResult const createResult = _core->functions()->vkCreateGraphicsPipelines(_core->vkDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
         &_vkGraphicsPipeline);
 
 
@@ -103,10 +103,7 @@ void Pipeline::GraphicsConfig::removeShaderStage(VkShaderStageFlagBits shader_st
 
     if(it != _vkShaderStages.end()) _vkShaderStages.erase(it);
     else
-        CTH_ERR(true, "non present shader stage removed") {
-            details->add("stage: {}", static_cast<uint32_t>(shader_stage));
-            throw details->exception();
-        }
+        CTH_CRITICAL(true, "non present shader stage removed") { details->add("stage: {}", static_cast<uint32_t>(shader_stage)); }
 }
 
 

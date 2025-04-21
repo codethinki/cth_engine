@@ -1,8 +1,10 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
 
 #include <array>
 #include <vector>
+
+#include <cth/io/log.hpp>
 
 
 
@@ -18,10 +20,12 @@ public:
     void push(std::span<function_t const> functions);
 
     void clear();
-    void clear(size_t cycle_sub_index);
+    void next();
 
 private:
-    static constexpr size_t QUEUES = constants::FRAMES_IN_FLIGHT;
+    void clearQueue();
+
+    static constexpr size_t QUEUES = constants::FRAMES_IN_FLIGHT * 2;
 
     size_t _cycleSubIndex = 0;
 
@@ -44,4 +48,12 @@ public:
 #endif
 };
 
+}
+
+//debug checks
+namespace cth::vk {
+inline void DestructionQueue::debug_check(DestructionQueue const* queue) {
+    CTH_ERR(queue == nullptr, "queue must not be nullptr") throw details->exception();
+}
+inline void DestructionQueue::debug_check_null_allowed(DestructionQueue const* queue) { if(queue) debug_check(queue); }
 }

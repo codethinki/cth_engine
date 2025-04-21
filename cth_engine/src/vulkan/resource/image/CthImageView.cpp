@@ -4,29 +4,29 @@
 
 #include "../CthDestructionQueue.hpp"
 
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthDevice.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/base/CthDevice.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 
 namespace cth::vk {
-ImageView::ImageView(cth::not_null<Core const*> core, Config const& config) : _core(core), _config{config} { DEBUG_CHECK_CORE(core); }
-ImageView::ImageView(cth::not_null<Core const*> core, Config const& config, cth::not_null<Image const*> image) : ImageView{core, config} { create(image); }
-ImageView::ImageView(cth::not_null<Core const*> core, Config const& config, State const& state) : ImageView{core, config} { wrap(state); }
+ImageView::ImageView(Core const& core, Config const& config) : _core{&core}, _config{config} { Core::debug_check(core); }
+ImageView::ImageView(Core const& core, Config const& config, Image const& image) : ImageView{core, config} { create(image); }
+ImageView::ImageView(Core const& core, Config const& config, State const& state) : ImageView{core, config} { wrap(state); }
 
 ImageView::~ImageView() { optDestroy(); }
 
-void ImageView::create(cth::not_null<Image const*> image) {
-    DEBUG_CHECK_IMAGE(image);
+void ImageView::create(Image const& image) {
+    Image::debug_check(image);
     optDestroy();
 
-    _image = image.get();
+    _image = &image;
 
     auto const viewInfo = createViewInfo();
 
     VkImageView handle = VK_NULL_HANDLE;
-    auto const result = vkCreateImageView(_core->vkDevice(), &viewInfo, nullptr, &handle);
+    auto const result = _core->functions()->vkCreateImageView(_core->vkDevice(), &viewInfo, nullptr, &handle);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create vk_image-view") {
         reset();
@@ -43,8 +43,8 @@ void ImageView::wrap(State const& state) {
 
 }
 void ImageView::destroy() {
-    DEBUG_CHECK_IMAGE_VIEW(this);
-    auto const lambda = [vk_device = _core->vkDevice(), vk_image_view = _handle.get()]() { destroy(vk_device, vk_image_view); };
+    ImageView::debug_check(this);
+    auto const lambda = [table = _core->deviceTable(), vk_image_view = _handle.get()] { destroy(table, vk_image_view); };
 
     auto const queue = _core->destructionQueue();
 
@@ -62,11 +62,10 @@ ImageView::State ImageView::release() {
     return state;
 }
 
-void ImageView::destroy(VkDevice vk_device, VkImageView vk_image_view) {
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
+void ImageView::destroy(DeviceTable table, VkImageView vk_image_view) {
     CTH_WARN(vk_image_view == VK_NULL_HANDLE, "image view should not be invalid (VK_NULL_HANDLE)") {}
 
-    vkDestroyImageView(vk_device, vk_image_view, nullptr);
+    table->vkDestroyImageView(table.device(), vk_image_view, nullptr);
 }
 
 VkImageViewCreateInfo ImageView::createViewInfo() const {
@@ -92,18 +91,6 @@ void ImageView::reset() {
     _image = nullptr;
 }
 
-#ifdef CONSTANT_DEBUG_MODE
-void ImageView::debug_check(ImageView const* image_view) {
-    CTH_ERR(image_view == nullptr, "image view must not be invalid (nullptr)") throw details->exception();
-    CTH_ERR(!image_view->created(), "image view must be created") throw details->exception();
-
-    DEBUG_CHECK_IMAGE_VIEW_HANDLE(image_view->get());
-}
-void ImageView::debug_check_handle(VkImageView vk_image_view) {
-    CTH_ERR(vk_image_view == VK_NULL_HANDLE, "image view vkQueue must not be invalid (VK_NULL_HANDLE)")
-        throw details->exception();
-}
-#endif
 } // namespace cth
 
 

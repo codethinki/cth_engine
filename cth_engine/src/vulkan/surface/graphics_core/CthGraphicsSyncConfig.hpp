@@ -1,11 +1,15 @@
 #pragma once
-#include "vulkan/render/control/CthSemaphore.hpp"
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/interface/render/RenderPulse.hpp"
+#include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+
+#include <cth/io/log.hpp>
+#include <cth/pointer/not_null.hpp>
 
 #include <vector>
 
-
 namespace cth::vk {
+class Semaphore;
 class Core;
 
 
@@ -17,24 +21,24 @@ public:
     /**
      * @brief base constructor
      */
-    explicit GraphicsSyncConfig(cth::not_null<Core const*> core) : _core{core} {}
+    explicit GraphicsSyncConfig(Core const& core);
 
     /**
      * @brief constructs and wraps
      * @note calls @ref wrap()
      */
-    GraphicsSyncConfig(cth::not_null<Core const*> core, State state);
+    GraphicsSyncConfig(Core const& core, State state);
 
     /**
      * @brief constructs and creates if create
     * @note may call @ref create()
      */
-    GraphicsSyncConfig(cth::not_null<Core const*> core, bool create);
+    GraphicsSyncConfig(Core const& core, create_t);
 
     /**
      * @note calls @ref optDestroy()
      */
-    ~GraphicsSyncConfig() { optDestroy(); }
+    ~GraphicsSyncConfig();
 
     /**
      * @brief wraps @ref State
@@ -43,17 +47,19 @@ public:
     void wrap(State state);
     /**
      * @brief creates the semaphores
-     * @note calls @ref optDestroy()
-     * @note calls @ref Semaphore::Semaphore(Core*, bool) i.e. create constructor
+     * @details calls:
+            @ref optDestroy()
+            @ref Semaphore::Semaphore(Core const&, create_t)
      */
     void create();
 
     /**
      * @brief destroys and resets
+     * @attention @ref created() required
      * @note calls @ref Semaphore::~Semaphore()
-     * @note requires @ref created()
      */
     void destroy();
+
     /**
      * @brief if @ref created() calls @ref destroy()
      */
@@ -61,16 +67,25 @@ public:
 
     /**
      * @brief releases ownership and resets
-     * @note requires @ref created()
+     * @attention @ref created() required
      */
     State release();
+
+    /**
+     * @brief next pulse
+     * @details calls RenderPulse::next()
+     */
+    void next() { _pulse.next(); }
 
 
     [[nodiscard]] std::array<Semaphore*, SET_SIZE> renderFinishedSemaphores() const;
     [[nodiscard]] std::array<Semaphore*, SET_SIZE> imageAvailableSemaphores() const;
+    [[nodiscard]] std::vector<PipelineWaitStage> imageAvailableWaitStages() const;
 
 private:
     cth::not_null<Core const*> _core;
+
+    RenderPulse _pulse{};
 
     /**
      * semaphores[currentFrame] will be signaled once the vk_image is clear to render on
@@ -85,32 +100,31 @@ private:
     std::array<std::unique_ptr<Semaphore>, SET_SIZE> _renderFinishedSemaphores;
 
 public:
-    [[nodiscard]] bool created() const { return _imageAvailableSemaphores[0] && _renderFinishedSemaphores[0]; }
-    [[nodiscard]] Semaphore* renderFinishedSemaphore(size_t index) const { return _renderFinishedSemaphores[index].get(); }
-    [[nodiscard]] Semaphore* imageAvailableSemaphore(size_t index) const { return _imageAvailableSemaphores[index].get(); }
+    [[nodiscard]] bool created() const {
+        return std::ranges::none_of(_imageAvailableSemaphores, [](auto const& ptr) { return ptr == nullptr; }) //TODO make this faster
+            && std::ranges::none_of(_imageAvailableSemaphores, [](auto const& ptr) { return ptr == nullptr; });
+    }
+    [[nodiscard]] Semaphore* renderFinishedSemaphore(size_t index) const;
+    [[nodiscard]] Semaphore* imageAvailableSemaphore(size_t index) const;
+
+    [[nodiscard]] RenderPulse const& pulse() const { return _pulse; }
+    [[nodiscard]] dclauto pulseVal() const { return _pulse.get(); }
 
     GraphicsSyncConfig(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig(GraphicsSyncConfig&& other) noexcept = default;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<GraphicsSyncConfig const*> config);
-    static void debug_check_state(State const& state);
-#define DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(config) GraphicsSyncConfig::debug_check(config)
-
-#define DEBUG_CHECK_GRAPHICS_SYNC_CONFIG_STATE(state) 
-#else
-#define DEBUG_CHECK_SYNC_CONFIG_NOT_NULL(config) ((void)0)
-#define DEBUG_CHECK_GRAPHICS_SYNC_CONFIG(config) ((void)0)
-#endif
+    static void debug_check(GraphicsSyncConfig const& config);
 };
 }
+
 
 //State
 
 namespace cth::vk {
 struct GraphicsSyncConfig::State {
+    RenderPulse pulse;
     /**
      * @attention must not be nullptr
      */
@@ -119,5 +133,19 @@ struct GraphicsSyncConfig::State {
      * @attention must not be nullptr
      */
     std::array<std::unique_ptr<Semaphore>, constants::FRAMES_IN_FLIGHT> renderFinishedSemaphores;
+
+private:
+    static void debug_check(State const& state);
+
+    friend GraphicsSyncConfig;
 };
+}
+
+
+//debug checks
+
+namespace cth::vk {
+inline void GraphicsSyncConfig::debug_check(GraphicsSyncConfig const& config) {
+    CTH_CRITICAL(!config.created(), "config not created"){}
+}
 }

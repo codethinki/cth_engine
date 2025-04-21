@@ -1,9 +1,10 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_vk_types.hpp"
 
+#include <volk.h>
 #include <gsl/pointers>
-#include<vulkan/vulkan.h>
 
 namespace cth::vk {
 class Core;
@@ -22,23 +23,23 @@ public:
      * @brief base constructor
      * @param render_pass requires RenderPass::created()
      */
-    Framebuffer(cth::not_null<Core const*> core, cth::not_null<RenderPass const*> render_pass,
+    Framebuffer(Core const& core, RenderPass const& render_pass,
         std::span<ImageView const* const> attachments, uint32_t layers = DEFAULT_LAYERS);
 
     /**
      * @brief constructs and wraps
      * @param state passed to @ref wrap()
-     * @note calls @ref Framebuffer(cth::not_null<Core const*>, cth::not_null<RenderPass const*>, std::span<ImageView const* const>, uint32_t)
+     * @note calls @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
      */
-    Framebuffer(cth::not_null<Core const*> core, cth::not_null<RenderPass const*> render_pass,
+    Framebuffer(Core const& core, RenderPass const& render_pass,
         std::span<ImageView const* const> attachments, State const& state, uint32_t layers = DEFAULT_LAYERS);
 
     /**
      * @brief constructs and creates
      * @param extent passed to @ref create()
-     * @note calls @ref Framebuffer(cth::not_null<Core const*>, cth::not_null<RenderPass const*>, std::span<ImageView const* const>, uint32_t)
+     * @note calls @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
      */
-    Framebuffer(cth::not_null<Core const*> core, cth::not_null<RenderPass const*> render_pass,
+    Framebuffer(Core const& core, RenderPass const& render_pass,
         std::span<ImageView const* const> attachments, VkExtent2D extent, uint32_t layers = DEFAULT_LAYERS);
 
     ~Framebuffer();
@@ -74,7 +75,7 @@ public:
      */
     State release();
 
-    static void destroy(vk::not_null<VkDevice> vk_device, VkFramebuffer vk_framebuffer);
+    static void destroy(DeviceTable table, VkFramebuffer vk_framebuffer);
 
 private:
     void reset();
@@ -85,7 +86,7 @@ private:
     uint32_t _layers;
 
     cth::move_ptr<VkFramebuffer_T> _handle = VK_NULL_HANDLE;
-    VkExtent2D _extent;
+    VkExtent2D _extent{};
 
 public:
     [[nodiscard]] VkFramebuffer get() const { return _handle.get(); }
@@ -96,15 +97,8 @@ public:
     Framebuffer& operator=(Framebuffer const& other) = delete;
     Framebuffer& operator=(Framebuffer&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<Framebuffer const*> framebuffer);
+    static void debug_check(Framebuffer const& framebuffer);
     static void debug_check_handle(vk::not_null<VkFramebuffer> vk_framebuffer);
-#define DEBUG_CHECK_FRAMEBUFFER(framebuffer_ptr) Framebuffer::debug_check(framebuffer_ptr)
-#define DEBUG_CHECK_FRAMEBUFFER_HANDLE(vk_framebuffer) Framebuffer::debug_check_handle(vk_framebuffer)
-#else
-#define DEBUG_CHECK_FRAMEBUFFER(framebuffer_ptr) ((void)0)
-#define DEBUG_CHECK_FRAMEBUFFER_HANDLE(vk_framebuffer) ((void)0)
-#endif
 
 };
 }
@@ -116,4 +110,15 @@ struct Framebuffer::State {
     vk::not_null<VkFramebuffer> vkFramebuffer;
     VkExtent2D extent;
 };
+}
+
+//debug checks
+
+namespace cth::vk {
+inline void Framebuffer::debug_check(Framebuffer const& framebuffer) {
+    CTH_ERR(!framebuffer.created(), "framebuffer must be created") throw details->exception();
+    debug_check_handle(framebuffer.get());
+}
+inline void Framebuffer::debug_check_handle([[maybe_unused]] vk::not_null<VkFramebuffer> vk_framebuffer) {}
+
 }

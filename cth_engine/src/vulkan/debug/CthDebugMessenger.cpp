@@ -1,34 +1,28 @@
 #include "CthDebugMessenger.hpp"
 
-#include "vulkan/base/CthInstance.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthInstance.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 
 
 namespace cth::vk {
 
 DebugMessenger::DebugMessenger(Config config): _config{std::move(config)} {}
-void DebugMessenger::create(cth::not_null<Instance const*> instance) {
-    DEBUG_CHECK_INSTANCE(instance);
+void DebugMessenger::create(Instance const& instance) {
+    Instance::debug_check(instance);
 
 
     optDestroy();
 
-    _instance = instance.get();
+    _instance = &instance;
 
 
     VkDebugUtilsMessengerCreateInfoEXT const info = _config.createInfo();
 
-    auto const func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(_instance->get(), "vkCreateDebugUtilsMessengerEXT"));
 
-    CTH_STABLE_ERR(func == nullptr, "vkGetInstanceProcAddr returned nullptr") {
-        reset();
-        throw details->exception();
-    }
     VkDebugUtilsMessengerEXT ptr = VK_NULL_HANDLE;
 
-    VkResult const createResult = func(_instance->get(), &info, nullptr, &ptr);
+    VkResult const createResult = vkCreateDebugUtilsMessengerEXT(_instance->get(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to set up debug messenger") {
         reset();
@@ -38,7 +32,7 @@ void DebugMessenger::create(cth::not_null<Instance const*> instance) {
     _handle = ptr;
 }
 void DebugMessenger::destroy() {
-    DEBUG_CHECK_MESSENGER(this);
+    DebugMessenger::debug_check(*this);
 
     destroy(_instance->get(), _handle.get());
 
@@ -46,16 +40,11 @@ void DebugMessenger::destroy() {
 }
 
 
-void DebugMessenger::destroy(VkInstance instance, VkDebugUtilsMessengerEXT vk_messenger) {
+void DebugMessenger::destroy(vk::not_null<VkInstance> vk_instance, VkDebugUtilsMessengerEXT vk_messenger) {
+    Instance::debug_check_handle(vk_instance.get());
     CTH_WARN(vk_messenger == VK_NULL_HANDLE, "messenger invalid") {}
-    DEBUG_CHECK_INSTANCE_HANDLE(instance);
 
-    auto const func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
-
-    CTH_STABLE_ERR(func == nullptr, "vkGetInstanceProcAddr returned nullptr") throw details->exception();
-
-    func(instance, vk_messenger, nullptr);
+    vkDestroyDebugUtilsMessengerEXT(vk_instance.get(), vk_messenger, nullptr);
 }
 DebugMessenger::State DebugMessenger::release() {
     State const state{_instance, _handle.get()};
@@ -63,12 +52,6 @@ DebugMessenger::State DebugMessenger::release() {
     return state;
 }
 
-#ifdef CONSTANT_DEBUG_MODE
-void DebugMessenger::debug_check(cth::not_null<DebugMessenger const*> debug_messenger) {
-    CTH_ERR(!debug_messenger->created(), "debug_messenger not created") throw details->exception();
-    CTH_ERR(debug_messenger->get() == VK_NULL_HANDLE, "debug_messenger invalid") throw details->exception();
-}
-#endif
 } // namespace cth
 
 //Config
@@ -78,13 +61,9 @@ VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::Config::createInfo() const {
     VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageSeverity = messageSeverities;
 
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.messageType = messageTypes;
 
     createInfo.pfnUserCallback = *callback.target<callback_t*>();
     createInfo.pUserData = nullptr; // Optional
@@ -102,6 +81,22 @@ void DebugMessenger::reset() {
 
 
 namespace cth::dev {
+struct component_info {
+    std::string name;
+    VkObjectType objectType;
+    uint64_t handle;
+
+    static auto to_string(component_info const& info) {
+        return std::format("name: {0}, type: {1}, handle: {2:#x}", info.name, info.objectType, info.handle);
+    }
+};
+}
+
+CTH_FORMAT_TYPE(cth::dev::component_info, cth::dev::component_info::to_string);
+
+
+namespace cth::dev {
+
 VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
     [[maybe_unused]] void* user_data) {
@@ -118,9 +113,30 @@ VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityF
     if(message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) type = "PERFORMANCE";
 
 
-    cth::log::msg(severity, "VALIDATION LAYER: {0} {1}:\n   NAME: {2}\n\t (CODE: {3})\n{4}", type, except::to_string(severity),
+    size_t const objectCount = callback_data->objectCount;
+    std::vector<component_info> objects{};
+    objects.reserve(objectCount);
+
+    for(size_t i = 0; i < objectCount; i++) {
+        auto const& object = callback_data->pObjects[i];
+        auto namePtr = object.pObjectName;
+        objects.emplace_back(
+            namePtr == nullptr ? "UNKNOWN" : namePtr,
+            object.objectType,
+            object.objectHandle
+        );
+    }
+
+    cth::log::msg(
+        severity,
+        "VALIDATION LAYER: {0} {1}:\n   NAME: {2}\n\t (CODE: {3})\n{4}\n   OBJECTS: {5}\n",
+        type,
+        to_string(severity),
         callback_data->pMessageIdName,
-        callback_data->messageIdNumber, callback_data->pMessage);
+        callback_data->messageIdNumber,
+        callback_data->pMessage,
+        objects
+    );
 
 
     return VK_FALSE;

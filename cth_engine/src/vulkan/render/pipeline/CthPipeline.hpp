@@ -1,10 +1,14 @@
 #pragma once
-#include <vulkan/vulkan.h>
+#include <volk.h>
 
 #include <memory>
 #include <vector>
 
+#include <cth/pointer/not_null.hpp>
+
 //TODO add support for more types of pipelines
+
+//TEMP modernize this
 
 namespace cth::vk {
 class Core;
@@ -23,11 +27,11 @@ public:
     /**
     *@throws from private void create()
     */
-    Pipeline(cth::not_null<Core const*> core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info);
+    Pipeline(Core const& core, PipelineLayout const* pipeline_layout, GraphicsConfig const& config_info);
     /**
     *@throws from private void create()
     */
-    Pipeline(cth::not_null<Core const*> core, Pipeline const* parent, GraphicsConfig const& config_info);
+    Pipeline(Core const& core, Pipeline const* parent, GraphicsConfig const& config_info);
 
     ~Pipeline();
 
@@ -40,7 +44,7 @@ private:
     */
     void create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout = nullptr, Pipeline const* parent = nullptr);
 
-    cth::not_null<Core const*> _device;
+    not_null<Core const*> _core;
     VkPipeline _vkGraphicsPipeline{};
 
 public:

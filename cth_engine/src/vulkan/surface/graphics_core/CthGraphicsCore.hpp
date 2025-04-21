@@ -1,14 +1,10 @@
 #pragma once
-#include "CthGraphicsSyncConfig.hpp"
-
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthQueue.hpp"
-#include "vulkan/utility/cth_constants.hpp"
-#include "vulkan/utility/cth_debug_macros.hpp"
-
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/surface/graphics_core/CthGraphicsSyncConfig.hpp"
 
 
 namespace cth::vk {
+class GraphicsSyncConfig;
 class Surface;
 class OSWindow;
 struct Cycle;
@@ -25,25 +21,23 @@ public:
     /**
      * @param core must be created
      */
-    explicit GraphicsCore(cth::not_null<Core const*> core);
+    explicit GraphicsCore(Core const& core);
 
     /**
      * @brief wraps the state
-     * @note calls @ref GraphicsCore(cth::not_null<Core const*>)
+     * @note calls @ref GraphicsCore(Core const&)
      * @note calls @ref wrap()
      */
-    GraphicsCore(cth::not_null<Core const*> core, State state);
+    GraphicsCore(Core const& core, State state);
 
 
     /**
      * @brief constructs and creates
      * @param present_queue must be valid
-     * @param sync_config must be valid
      * @note calls @ref create()
-     * @note calls @ref GraphicsCore(cth::not_null<Core const*>)
+     * @note calls @ref GraphicsCore(Core const&)
      */
-    GraphicsCore(cth::not_null<Core const*> core, std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
-        cth::not_null<GraphicsSyncConfig const*> sync_config);
+    GraphicsCore(Core const& core, std::string_view window_name, VkExtent2D extent, Queue const& present_queue);
 
     /**
      * @note calls @ref optDestroy()
@@ -55,8 +49,7 @@ public:
      * @brief constructs osWindow, surface and swapchain
      * @note calls @ref optDestroy()
      */
-    void create(std::string_view window_name, VkExtent2D extent, cth::not_null<Queue const*> present_queue,
-        cth::not_null<GraphicsSyncConfig const*> sync_config);
+    void create(std::string_view window_name, VkExtent2D extent, Queue const& present_queue);
 
     /**
      * @brief wraps the state
@@ -66,6 +59,7 @@ public:
 
     /**
      * @brief destroys and resets
+     * @attention @ref created() required
      * @note calls @ref reset()
      */
     void destroy();
@@ -89,14 +83,14 @@ public:
      * @brief acquires frame from swapchain
      * @note calls @ref BasicSwapchain::acquireNextImage()
      */
-    void acquireFrame(Cycle const& cycle) const;
+    void acquireFrame() const;
     /**
      * @brief skips the acquire
      * @note calls @ref BasicSwapchain::skipAcquire()
      */
-    void skipAcquire(Cycle const& cycle) const;
+    void skipAcquire() const;
 
-    void beginWindowPass(Cycle const& cycle, PrimaryCmdBuffer const* render_cmd_buffer) const;
+    void beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
     void endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
 
     /**
@@ -105,8 +99,8 @@ public:
      * @note may call @ref BasicSwapchain::resize()
      * @note may call @ref minimized()
      */
-    void presentFrame(Cycle const& cycle) const;
-    void skipPresent(Cycle const& cycle) const;
+    void presentFrame() const;
+    void skipPresent() const;
 
     /**
      * @brief destroys if @ref created()
@@ -117,36 +111,34 @@ private:
     void reset();
 
     cth::not_null<Core const*> _core;
-    std::unique_ptr<OSWindow> _osWindow = nullptr;
-    std::unique_ptr<Surface> _surface = nullptr;
-    std::unique_ptr<BasicSwapchain> _swapchain = nullptr; //TEMP change to Swapchain ptr once implemented
+    std::unique_ptr<GraphicsSyncConfig> _syncConfig;
+    std::unique_ptr<OSWindow> _osWindow;
+    std::unique_ptr<Surface> _surface;
+    std::unique_ptr<BasicSwapchain> _swapchain; //TEMP change to Swapchain ptr once implemented
 
 public:
     [[nodiscard]] bool created() const { return _osWindow || _surface || _swapchain; }
     [[nodiscard]] OSWindow const* osWindow() const { return _osWindow.get(); }
     [[nodiscard]] Surface const* surface() const { return _surface.get(); }
+    [[nodiscard]] GraphicsSyncConfig const* syncConfig() const { return _syncConfig.get(); }
     [[nodiscard]] BasicSwapchain const* swapchain() const { return _swapchain.get(); }
     [[nodiscard]] RenderPass const* swapchainRenderPass() const;
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const;
 
+    [[nodiscard]] dclauto imageAvailableWaitStages() const { return _syncConfig->imageAvailableWaitStages(); }
+    [[nodiscard]] dclauto renderFinishedSemaphores() const { return _syncConfig->renderFinishedSemaphores(); }
+    [[nodiscard]] dclauto renderPulse() const { return _syncConfig->pulse(); }
+    [[nodiscard]] dclauto pulseVal() const { return _syncConfig->pulseVal(); }
+
     GraphicsCore(GraphicsCore const& other) = delete;
-    GraphicsCore(GraphicsCore&& other) noexcept = default;
     GraphicsCore& operator=(GraphicsCore const& other) = delete;
+    GraphicsCore(GraphicsCore&& other) noexcept = default;
     GraphicsCore& operator=(GraphicsCore&& other) noexcept = default;
-#ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<GraphicsCore const*> graphics_core);
-    static void debug_check_state(State const& state);
 
-#define DEBUG_CHECK_GRAPHICS_CORE_STATE(state)
-#define DEBUG_CHECK_GRAPHICS_CORE(graphics_core_ptr)
-
-#else
-#define DEBUG_CHECK_GRAPHICS_CORE_STATE(state) ((void)0)
-#define DEBUG_CHECK_GRAPHICS_CORE(graphics_core_ptr) ((void)0)
-
-#endif
+    static void debug_check(GraphicsCore const& graphics_core);
 };
 }
+
 
 //State
 
@@ -154,6 +146,21 @@ namespace cth::vk {
 struct GraphicsCore::State {
     unique_not_null<OSWindow> osWindow;
     unique_not_null<Surface> surface;
+    unique_not_null<GraphicsSyncConfig> syncConfig;
     unique_not_null<BasicSwapchain> swapchain;
+
+private:
+    static void debug_check(State const& state);
+
+    friend GraphicsCore;
 };
+}
+
+
+//debug check
+
+namespace cth::vk {
+inline void GraphicsCore::debug_check(GraphicsCore const& graphics_core) {
+    CTH_CRITICAL(!graphics_core.created(), "graphics core must be created") {}
+}
 }

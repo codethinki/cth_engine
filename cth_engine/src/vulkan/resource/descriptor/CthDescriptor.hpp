@@ -1,8 +1,9 @@
 #pragma once
 
-#include<cth/io/log.hpp>
+#include <cth/io/log.hpp>
 
-#include <vulkan/vulkan.h>
+#include <volk.h>
+
 
 namespace cth::vk {
 
@@ -14,17 +15,15 @@ class DescriptedResource;
 
 class Descriptor {
 public:
-    explicit Descriptor(VkDescriptorType  type) : _vkType(type) {}
+    explicit Descriptor(VkDescriptorType type) : _vkType(type) {}
     virtual ~Descriptor() = 0;
 
 
     [[nodiscard]] virtual VkDescriptorBufferInfo bufferInfo() const {
-        CTH_ERR(true, "invalid function call, no buffer info present")
-            throw details->exception();
+        CTH_ERR(true, "invalid function call, no buffer info present") throw details->exception();
     }
     [[nodiscard]] virtual VkDescriptorImageInfo imageInfo() const {
-        CTH_ERR(true, "invalid function call, no image info present")
-            throw details->exception();
+        CTH_ERR(true, "invalid function call, no image info present") throw details->exception();
     }
 
 private:

@@ -28,7 +28,7 @@ Subpass::Subpass(
     _depthAttachment = depth_attachment->reference();
     _preserveAttachments = {preserveAttachments.begin(), preserveAttachments.end()};
 
-    auto attachments = ranges::concat_view(input_attachments, color_attachments, resolve_attachments);
+    auto attachments = ::ranges::views::concat(input_attachments, color_attachments, resolve_attachments);
     std::ranges::copy(attachments, std::back_inserter(_attachments));
     _attachments.emplace_back(depth_attachment);
 
@@ -52,7 +52,7 @@ Subpass Subpass::Graphics(uint32_t index,
     std::span<AttachmentCollection* const> resolve_attachments,
     AttachmentCollection const* depth_attachment,
     std::span<AttachmentCollection* const> const preserve_attachments
-    ) {
+) {
     return Subpass{
         index,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -64,14 +64,6 @@ Subpass Subpass::Graphics(uint32_t index,
     };
 }
 
-#ifdef CONSTANT_DEBUG_MODE
-void Subpass::debug_check(Subpass const* subpass) {
-    CTH_ERR(subpass == nullptr, "subpass must not be invalid (nullptr)") throw details->exception();
-}
-void Subpass::debug_check(std::span<Subpass const* const> subpasses) {
-    for(auto const* subpass : subpasses)
-        DEBUG_CHECK_SUBPASS(subpass);
-}
-#endif
+
 
 }

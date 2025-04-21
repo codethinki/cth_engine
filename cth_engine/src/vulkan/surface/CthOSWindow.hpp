@@ -1,6 +1,7 @@
 #pragma once
-#include "vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
 
+#pragma once
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -8,6 +9,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+#include <cth/io/log.hpp>
+#include <cth/pointer/move_ptr.hpp>
 
 
 namespace cth::vk {
@@ -21,7 +25,7 @@ class Surface;
 //TEMP modernize
 class OSWindow {
 public:
-    OSWindow(Instance const* instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent);
+    OSWindow(Instance const& instance, DestructionQueue* destruction_queue, std::string_view name, VkExtent2D extent);
     ~OSWindow();
 
     void destroy(DestructionQueue* destruction_queue = nullptr);
@@ -33,13 +37,14 @@ public:
     static void init();
     static void terminate();
 
-    static VkSurfaceKHR tempSurface(cth::not_null<Instance const*> instance);
+    static VkSurfaceKHR tempSurface(Instance const& instance);
 
     static void destroy(GLFWwindow* glfw_window);
+
 private:
     void initWindow();
     void setCallbacks();
-    void createSurface(Instance const* instance);
+    void createSurface(Instance const& instance);
 
 
     void keyCallback(int key, int scan_code, int action, int mods);
@@ -58,7 +63,7 @@ private:
     std::string _windowName;
     int _width, _height;
 
-    move_ptr<GLFWwindow> _handle = nullptr;
+    cth::move_ptr<GLFWwindow> _handle = nullptr;
     cth::move_ptr<VkSurfaceKHR_T> _surface;
 
     static OSWindow* window_ptr(GLFWwindow* glfw_window);
@@ -85,7 +90,6 @@ public:
         return handle;
     }
 
-  
 
 
     OSWindow(OSWindow const& other) = delete;
@@ -93,17 +97,20 @@ public:
     OSWindow(OSWindow&& other) = default;
     OSWindow& operator=(OSWindow&& other) = default; // copy/move operations
 
-#ifdef CONSTANT_DEBUG_MODE
     static void debug_check_not_null(OSWindow const* os_window);
     static void debug_check(OSWindow const* os_window);
 
-#define DEBUG_CHECK_OS_WINDOW(os_window_ptr) OSWindow::debug_check(os_window_ptr)
-#define DEBUG_CHECK_OS_WINDOW_NOT_NULL(os_window_ptr) OSWindow::debug_check_not_null(os_window_ptr)
-
-#else
-#define DEBUG_CHECK_OS_WINDOW(os_window_ptr) ((void)0)
-#define DEBUG_CHECK_OS_WINDOW_NOT_NULL(os_window_ptr) ((void)0)
-#endif
-
 };
+}
+
+namespace cth::vk {
+
+inline void OSWindow::debug_check_not_null(OSWindow const* os_window) {
+    CTH_CRITICAL(os_window == nullptr, "os_window must not be nullptr") {}
+}
+inline void OSWindow::debug_check(OSWindow const* os_window) {
+    OSWindow::debug_check_not_null(os_window);
+
+    CTH_CRITICAL(os_window->_handle == nullptr, "os_window must be initialized") {}
+}
 }

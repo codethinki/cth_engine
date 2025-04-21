@@ -5,71 +5,57 @@
 
 #include "../cmd/CthCmdBuffer.hpp"
 
-#include "vulkan/base/CthCore.hpp"
-#include "vulkan/base/CthDevice.hpp"
-#include "vulkan/resource/CthDestructionQueue.hpp"
-#include "vulkan/resource/image/Framebuffer.hpp"
-#include "vulkan/utility/cth_vk_exceptions.hpp"
+#include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/base/CthDevice.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/resource/image/Framebuffer.hpp"
+#include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 namespace cth::vk {
-RenderPass::RenderPass(cth::not_null<Core const*> core, std::span<Subpass const* const> subpasses,
-    std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
-    bool create) : _core{core}, _subpasses{std::from_range, subpasses},
+
+
+
+RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
+    std::span<BeginConfig const> begin_configs) : _core{&core}, _subpasses{std::from_range, subpasses},
     _dependencies{std::from_range, dependencies} {
-    DEBUG_CHECK_CORE(core);
 
-    DEBUG_CHECK_SUBPASSES(_subpasses);
+    Core::debug_check(core);
+    Subpass::debug_check(_subpasses);
 
-    _attachments = subpasses | std::views::transform([](Subpass const* subpass) { return subpass->attachments(); })
-        | std::views::join | std::ranges::to<std::vector<AttachmentCollection const*>>();
-
-    std::ranges::sort(_attachments, [](AttachmentCollection const* a, AttachmentCollection const* b) { return a->index() < b->index(); });
-    auto const duplicates = std::ranges::unique(_attachments);
-
-
-    _attachments.erase(std::ranges::begin(duplicates), std::ranges::end(duplicates));
-
-    CTH_ERR(std::ranges::any_of(_attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*>const& pair){
-        return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->index();}), "invalid attachments or indices submitted in subpasses") {
-        uint32_t i = 0;
-        std::vector<uint32_t> missingIndices{};
-        for(auto const* attachment : _attachments) {
-            if(attachment->index() != i) {
-                missingIndices.push_back(i);
-                i = attachment->index();
-            }
-            ++i;
-        }
-        details->add("missing indices: {}", missingIndices);
-        throw details->exception();
-    }
+    initAttachments();
 
     for(auto [clearValues, extent, subpassContents, offset] : begin_configs) {
         _clearValues.insert_range(_clearValues.end(), clearValues);
         _contents.push_back(subpassContents);
 
         _beginInfos.emplace_back(
-            VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             nullptr,
             _handle.get(),
             VK_NULL_HANDLE,
             VkRect2D{offset, extent},
             static_cast<uint32_t>(clearValues.size()),
             &_clearValues[_clearValues.size() - clearValues.size()]
-            );
+        );
     }
 
-
-    if(create) this->create();
 }
-RenderPass::~RenderPass() { if(valid()) destroy(); }
-void RenderPass::wrap(gsl::owner<VkRenderPass> render_pass) {
-    if(valid()) destroy();
+RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
+    std::span<BeginConfig const> begin_configs, State const& state) : RenderPass{core, subpasses, dependencies, begin_configs} { wrap(state); }
 
-    _handle = render_pass;
+RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
+    std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
+    create_t) : RenderPass{core, subpasses, dependencies, begin_configs} { create(); }
+
+RenderPass::~RenderPass() { optDestroy(); }
+
+void RenderPass::wrap(State const& state) {
+    optDestroy();
+
+    _handle = state.vkRenderPass.get();
 }
 void RenderPass::create() {
-    if(valid()) destroy();
+    optDestroy();
 
 
     std::vector<VkSubpassDescription> subpasses{_subpasses.size()};
@@ -92,59 +78,90 @@ void RenderPass::create() {
     };
 
     VkRenderPass ptr = VK_NULL_HANDLE;
-    auto const result = vkCreateRenderPass(_core->vkDevice(), &createInfo, nullptr, &ptr);
+    auto const result = _core->functions()->vkCreateRenderPass(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create render pass")
         throw cth::vk::result_exception{result, details->exception()};
 
     _handle = ptr;
+
+    for(auto& beginInfo : _beginInfos) beginInfo.renderPass = _handle.get();
 }
 void RenderPass::destroy() {
-    DEBUG_CHECK_RENDER_PASS(this);
+    debug_check(this);
 
-    auto const lambda = [vk_device = _core->vkDevice(), handle = _handle.get()] { destroy(vk_device, handle); };
+    auto const lambda = [table = _core->deviceTable(), handle = _handle.get()] { destroy(table, handle); };
 
     auto const queue = _core->destructionQueue();
     if(queue) queue->push(lambda);
     else lambda();
 
-    //TEMP use reset
-    _handle = nullptr;
+    reset();
 }
 
 
-gsl::owner<VkRenderPass> RenderPass::release() {
-    auto const handle = _handle.get();
-    _handle = nullptr;
-    return handle;
+RenderPass::State RenderPass::release() {
+    debug_check(this);
+
+    State const state{
+        .vkRenderPass = _handle.get()
+    };
+
+    reset();
+    return state;
 }
-void RenderPass::begin(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer, uint32_t config_index, cth::not_null<Framebuffer const*> framebuffer) {
-    DEBUG_CHECK_CMD_BUFFER(cmd_buffer);
-    DEBUG_CHECK_FRAMEBUFFER(framebuffer);
-    CTH_ERR(config_index >= _beginInfos.size(), "config_index out of range") throw details->exception();
+void RenderPass::begin(PrimaryCmdBuffer const& cmd_buffer, uint32_t config_index, Framebuffer const& framebuffer) {
+    CmdBuffer::debug_check(cmd_buffer);
+    Framebuffer::debug_check(framebuffer);
+    CTH_CRITICAL(config_index >= _beginInfos.size(), "config_index out of range") {}
 
-    _beginInfos[config_index].framebuffer = framebuffer->get();
+    _beginInfos[config_index].framebuffer = framebuffer.get();
 
-    vkCmdBeginRenderPass(cmd_buffer->get(), &_beginInfos[config_index], _contents[config_index]);
+    _core->functions()->vkCmdBeginRenderPass(cmd_buffer.get(), &_beginInfos[config_index], _contents[config_index]);
 }
-void RenderPass::end(cth::not_null<PrimaryCmdBuffer const*> cmd_buffer) { vkCmdEndRenderPass(cmd_buffer->get()); }
+void RenderPass::end(PrimaryCmdBuffer const& cmd_buffer) { _core->functions()->vkCmdEndRenderPass(cmd_buffer.get()); }
 
-void RenderPass::destroy(VkDevice vk_device, VkRenderPass vk_render_pass) {
-    DEBUG_CHECK_DEVICE_HANDLE(vk_device);
+void RenderPass::destroy(DeviceTable table, VkRenderPass vk_render_pass) {
     CTH_WARN(vk_render_pass == VK_NULL_HANDLE, "vk_render_pass should not be invalid (VK_NULL_HANDLE)") {}
 
-    vkDestroyRenderPass(vk_device, vk_render_pass, nullptr);
+    table->vkDestroyRenderPass(table.device(), vk_render_pass, nullptr);
+}
+
+void RenderPass::reset() {
+    _handle = nullptr;
+    for(auto& beginInfo : _beginInfos) beginInfo.renderPass = VK_NULL_HANDLE;
+}
+
+void debug_check_attachments(std::span<AttachmentCollection const* const> attachments) {
+    CTH_CRITICAL(std::ranges::any_of(attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*>const& pair){
+        return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->index();}), "invalid attachments or indices submitted in subpasses") {
+        uint32_t i = 0;
+        std::vector<uint32_t> missingIndices{};
+        for(auto const* attachment : attachments) {
+            if(attachment->index() != i) {
+                missingIndices.push_back(i);
+                i = attachment->index();
+            }
+            ++i;
+        }
+        details->add("missing indices: {}", missingIndices);
+        throw details->exception();
+    }
+}
+
+void RenderPass::initAttachments() {
+    _attachments = _subpasses | std::views::transform([](Subpass const* subpass) { return subpass->attachments(); })
+        | std::views::join | std::ranges::to<std::vector<AttachmentCollection const*>>();
+
+    std::ranges::sort(_attachments, [](AttachmentCollection const* a, AttachmentCollection const* b) { return a->index() < b->index(); });
+    auto const duplicates = std::ranges::unique(_attachments);
+
+
+    _attachments.erase(std::ranges::begin(duplicates), std::ranges::end(duplicates));
+
+    debug_check_attachments(_attachments);
 }
 
 
-#ifdef CONSTANT_DEBUG_MODE
-void RenderPass::debug_check(RenderPass const* render_pass) {
-    CTH_ERR(render_pass == nullptr, "render pass must not be invalid (nullptr)") throw details->exception();
-    DEBUG_CHECK_RENDER_PASS_HANDLE(render_pass->get());
-}
-void RenderPass::debug_check_handle(VkRenderPass vk_render_pass) {
-    CTH_ERR(vk_render_pass == VK_NULL_HANDLE, "vk_render_pass must not be invalid (VK_NULL_HANDLE)") throw details->exception();
-}
-#endif
 
 }

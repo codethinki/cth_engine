@@ -1,9 +1,11 @@
 #pragma once
 
-#include <array>
-#include <vulkan/vulkan.h>
+#include "src/vulkan/base/CthDeviceTable.hpp"
 
-#include "vulkan/resource/buffer/CthBaseBuffer.hpp"
+#include <array>
+#include <volk.h>
+
+#include "src/vulkan/resource/buffer/CthBaseBuffer.hpp"
 
 //TEMP modernize
 
@@ -17,7 +19,7 @@ public:
     struct State;
 
 
-    explicit Sampler(cth::not_null<Core const*> core, Config const& config);
+    explicit Sampler(Core const& core, Config const& config);
     ~Sampler();
 
     void wrap(State const& state);
@@ -26,7 +28,7 @@ public:
     void destroy();
     void optDestroy() { if(created()) destroy(); }
 
-    static void destroy(vk::not_null<VkDevice> device, VkSampler sampler);
+    static void destroy(DeviceTable table, VkSampler sampler);
 
 private:
     void reset();
@@ -45,17 +47,8 @@ public:
     Sampler(Sampler&& other) noexcept = default;
     Sampler& operator=(Sampler&& other) noexcept = default;
 
-#ifdef CONSTANT_DEBUG_MODE
-    static void debug_check(cth::not_null<Sampler*> sampler);
+    static void debug_check(Sampler const& sampler);
     static void debug_check_handle(vk::not_null<VkSampler> sampler);
-
-#define DEBUG_CHECK_SAMPLER(sampler) Sampler::debug_check(sampler)
-#define DEBUG_CHECK_SAMPLER_HANDLE(vk_sampler) Sampler::debug_check_handle(vk_sampler)
-#else
-#define DEBUG_CHECK_SAMPLER(sampler) ((void)0)
-#define DEBUG_CHECK_SAMPLER_HANDLE(vk_sampler) ((void)0)
-#endif
-
 };
 }
 
@@ -92,3 +85,14 @@ struct Sampler::State {
 
 }
 
+//debug checks
+
+namespace cth::vk {
+
+inline void Sampler::debug_check(Sampler const& sampler) {
+    CTH_CRITICAL(!sampler.created(), "sampler must be created") {}
+    Sampler::debug_check_handle(sampler.get());
+}
+inline void Sampler::debug_check_handle(vk::not_null<VkSampler> sampler) {}
+
+}
