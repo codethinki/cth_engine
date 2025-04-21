@@ -75,6 +75,7 @@ void App::initFrame() {
 }
 
 void App::renderFrame() const {
+    _graphicsStage->wait();
     _destructionQueue->next();
 
     _graphicsCore->acquireFrame();

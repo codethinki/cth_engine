@@ -104,9 +104,6 @@ void GraphicsCore::presentFrame() const {
     if(result != VK_SUCCESS) [[unlikely]] {
         minimized();
         _swapchain->resize(_osWindow->extent());
-        if(result == VK_ERROR_OUT_OF_DATE_KHR) {
-            std::println("fuck"); //TEMP
-        }
     }
     _syncConfig->next();
 }

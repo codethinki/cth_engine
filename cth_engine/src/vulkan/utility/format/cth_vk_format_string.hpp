@@ -37,5 +37,6 @@ constexpr auto generate_format_string(char const (&type_name)[SvSize]) {
 template<class T>
 [[nodiscard]] constexpr auto format_string() {
     if constexpr(std::same_as<T, VkSurfaceFormatKHR>) return generate_format_string<T>("VkSurfaceFormatKHR");
+    else static_assert(false, "fuck");
 }
 }

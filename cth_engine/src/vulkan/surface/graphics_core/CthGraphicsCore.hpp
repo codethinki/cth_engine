@@ -131,8 +131,8 @@ public:
     [[nodiscard]] dclauto pulseVal() const { return _syncConfig->pulseVal(); }
 
     GraphicsCore(GraphicsCore const& other) = delete;
-    GraphicsCore(GraphicsCore&& other) noexcept = default;
     GraphicsCore& operator=(GraphicsCore const& other) = delete;
+    GraphicsCore(GraphicsCore&& other) noexcept = default;
     GraphicsCore& operator=(GraphicsCore&& other) noexcept = default;
 
     static void debug_check(GraphicsCore const& graphics_core);

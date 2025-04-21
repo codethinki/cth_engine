@@ -81,6 +81,22 @@ void DebugMessenger::reset() {
 
 
 namespace cth::dev {
+struct component_info {
+    std::string name;
+    VkObjectType objectType;
+    uint64_t handle;
+
+    static auto to_string(component_info const& info) {
+        return std::format("name: {0}, type: {1}, handle: {2:#x}", info.name, info.objectType, info.handle);
+    }
+};
+}
+
+CTH_FORMAT_TYPE(cth::dev::component_info, cth::dev::component_info::to_string);
+
+
+namespace cth::dev {
+
 VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
     [[maybe_unused]] void* user_data) {
@@ -97,14 +113,29 @@ VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityF
     if(message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) type = "PERFORMANCE";
 
 
+    size_t const objectCount = callback_data->objectCount;
+    std::vector<component_info> objects{};
+    objects.reserve(objectCount);
+
+    for(size_t i = 0; i < objectCount; i++) {
+        auto const& object = callback_data->pObjects[i];
+        auto namePtr = object.pObjectName;
+        objects.emplace_back(
+            namePtr == nullptr ? "UNKNOWN" : namePtr,
+            object.objectType,
+            object.objectHandle
+        );
+    }
+
     cth::log::msg(
         severity,
-        "VALIDATION LAYER: {0} {1}:\n   NAME: {2}\n\t (CODE: {3})\n{4}\n\n",
+        "VALIDATION LAYER: {0} {1}:\n   NAME: {2}\n\t (CODE: {3})\n{4}\n   OBJECTS: {5}\n",
         type,
         to_string(severity),
         callback_data->pMessageIdName,
         callback_data->messageIdNumber,
-        callback_data->pMessage
+        callback_data->pMessage,
+        objects
     );
 
 

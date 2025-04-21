@@ -187,8 +187,6 @@ private:
 
     [[nodiscard]] Core const& core() const { return *_core; }
 
-    
-
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }
     [[nodiscard]] float extentAspectRatio() const { return _aspectRatio; }
