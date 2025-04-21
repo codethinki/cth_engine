@@ -5,8 +5,8 @@
 #include "src/vulkan/resource/CthDestructionQueue.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
-#include <cth/io/file.hpp>
 #include <cth/windows.hpp>
+#include <cth/io/file.hpp>
 
 
 
@@ -70,7 +70,7 @@ std::vector<char> Shader::loadSpv() {
 }
 
 void Shader::create(std::span<char const> spv) {
-    VkShaderModuleCreateInfo createInfo{
+    VkShaderModuleCreateInfo const createInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .codeSize = spv.size(), //size in bytes https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkShaderModuleCreateInfo.html
         .pCode = reinterpret_cast<uint32_t const*>(spv.data()),

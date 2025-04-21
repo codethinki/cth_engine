@@ -7,7 +7,6 @@
 #include <vector>
 
 namespace cth {
-//TEMP left off here somehow the dag is not creating edges implicitly i.e 1 depends on 0 and 0 not inserted
 template<class Rng, class Edge>
 concept dag_edge_range = cth::type::range_over_cpt<Rng, CPT(std::convertible_to<Edge>)>;
 

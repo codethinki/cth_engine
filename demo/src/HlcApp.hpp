@@ -2,7 +2,7 @@
 #include "render/HlcRenderSystem.hpp"
 
 //TEMP remove this once the camera and input controller are refactored
-#include "src/interface/render/renderer3/Renderer3.hpp"
+#include "src/interface/render/Renderer3.hpp"
 #include "src/interface/user/HlcCamera.hpp"
 #include "src/interface/user/HlcInputController.hpp"
 
@@ -66,14 +66,13 @@ private:
 
     std::unique_ptr<RenderSystem> _renderSystem;
 
-    
     size_t _frameCount = 0;
 
     static constexpr std::string_view WINDOW_NAME = "demo";
 
     [[nodiscard]] static std::vector<std::string> getRequiredInstanceExtensions();
 
-[[nodiscard]] vk::Queue& transferQueue();
+    [[nodiscard]] vk::Queue& transferQueue();
     [[nodiscard]] vk::Queue& renderQueue();
     [[nodiscard]] vk::Queue& presentQueue();
 

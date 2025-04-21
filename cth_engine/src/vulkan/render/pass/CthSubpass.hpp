@@ -14,7 +14,7 @@ public:
         std::span<AttachmentCollection* const> resolve_attachments = {},
         AttachmentCollection const* depth_attachment = nullptr,
         std::span<AttachmentCollection* const> preserve_attachments = {}
-        );
+    );
 
     [[nodiscard]] VkSubpassDescription create() const;
 
@@ -43,7 +43,7 @@ public:
         std::span<AttachmentCollection* const> resolve_attachments = {},
         AttachmentCollection const* depth_attachment = nullptr,
         std::span<AttachmentCollection* const> preserve_attachments = {}
-        );
+    );
 
     static void debug_check(Subpass const* subpass);
     static void debug_check(std::span<Subpass const* const> subpasses);
@@ -56,7 +56,5 @@ namespace cth::vk {
 inline void Subpass::debug_check(Subpass const* subpass) {
     CTH_ERR(subpass == nullptr, "subpass must not be invalid (nullptr)") throw details->exception();
 }
-inline void Subpass::debug_check(std::span<Subpass const* const> subpasses) {
-    for(auto const* subpass : subpasses) debug_check(subpass);
-}
+inline void Subpass::debug_check(std::span<Subpass const* const> subpasses) { for(auto const* subpass : subpasses) debug_check(subpass); }
 }

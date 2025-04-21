@@ -2,8 +2,8 @@
 #include "src/vulkan/base/queue/CthQueue.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
-#include <cth/pointers.hpp>
 #include <volk.h>
+#include <cth/pointers.hpp>
 
 #include <span>
 

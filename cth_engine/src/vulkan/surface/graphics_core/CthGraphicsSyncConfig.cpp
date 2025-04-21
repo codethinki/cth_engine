@@ -45,6 +45,7 @@ GraphicsSyncConfig::State GraphicsSyncConfig::release() {
 }
 
 
+
 auto GraphicsSyncConfig::renderFinishedSemaphores() const -> std::array<Semaphore*, SET_SIZE> {
     debug_check(*this);
 

@@ -41,15 +41,11 @@
     <ClInclude Include="include\cth_engine\vulkan\cth_debug.hpp" />
     <ClInclude Include="include\cth_engine\vulkan\cth_resource.hpp" />
     <ClInclude Include="include\cth_engine\vulkan\cth_utility.hpp" />
-    <ClInclude Include="src\interface\render\renderer3\dag.hpp" />
-    <ClInclude Include="src\interface\render\renderer3\Renderer3.hpp" />
-    <ClInclude Include="src\interface\render\CthRenderCycle.hpp" />
-    <ClInclude Include="src\interface\render\CthStage.hpp" />
-    <ClInclude Include="src\interface\render\CthRenderer2.hpp" />
-    <ClInclude Include="src\interface\render\Phase.hpp" />
-    <ClInclude Include="src\interface\render\renderer3\RenderPulse.hpp" />
-    <ClInclude Include="src\interface\render\renderer3\RenderStage.hpp" />
-    <ClInclude Include="src\interface\render\renderer3\RenderStageConfig.hpp" />
+    <ClInclude Include="src\interface\render\dag.hpp" />
+    <ClInclude Include="src\interface\render\Renderer3.hpp" />
+    <ClInclude Include="src\interface\render\RenderPulse.hpp" />
+    <ClInclude Include="src\interface\render\RenderStage.hpp" />
+    <ClInclude Include="src\interface\render\RenderStageConfig.hpp" />
     <ClInclude Include="src\pch\glob\cth.hpp" />
     <ClInclude Include="src\pch\glob\glfw.hpp" />
     <ClInclude Include="src\pch\glob\glm.hpp" />
@@ -111,7 +107,6 @@
     <ClInclude Include="src\interface\render\model\CthVertex.hpp" />
     <ClInclude Include="src\vulkan\resource\image\texture\CthSampler.hpp" />
     <ClInclude Include="src\vulkan\resource\image\texture\CthTexture.hpp" />
-    <ClInclude Include="src\interface\render\CthRenderer.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
     <ClInclude Include="src\vulkan\surface\swapchain\CthBasicSwapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
@@ -124,17 +119,13 @@
     <ClInclude Include="src\vulkan\utility\os.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\interface\render\CthRenderer.inl" />
     <None Include="src\vulkan\resource\buffer\CthBuffer.inl" />
     <None Include="src\vulkan\utility\format\cth_vk_to_string.inl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="engine_main.cpp" />
-    <ClCompile Include="src\interface\render\CthStage.cpp" />
-    <ClCompile Include="src\interface\render\CthRenderer2.cpp" />
-    <ClCompile Include="src\interface\render\Phase.cpp" />
-    <ClCompile Include="src\interface\render\renderer3\Renderer3.cpp" />
-    <ClCompile Include="src\interface\render\renderer3\RenderStage.cpp" />
+    <ClCompile Include="src\interface\render\Renderer3.cpp" />
+    <ClCompile Include="src\interface\render\RenderStage.cpp" />
     <ClCompile Include="src\vulkan\base\queue\CthSubmitInfo.cpp" />
     <ClCompile Include="src\vulkan\base\queue\CthPresentInfo.cpp" />
     <ClCompile Include="src\vulkan\render\pass\AttachmentCollection.cpp" />
@@ -171,7 +162,6 @@
     <ClCompile Include="src\vulkan\base\CthPhysicalDevice.cpp" />
     <ClCompile Include="src\vulkan\base\queue\CthQueue.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthFence.cpp" />
-    <ClCompile Include="src\vulkan\render\control\CthPipelineWaitStage.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthSemaphore.cpp" />
     <ClCompile Include="src\vulkan\render\control\CthTimelineSemaphore.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthRenderPass.cpp" />
@@ -194,7 +184,6 @@
     <ClCompile Include="src\interface\render\model\HlcModelManager.cpp" />
     <ClCompile Include="src\vulkan\resource\image\texture\CthSampler.cpp" />
     <ClCompile Include="src\vulkan\resource\image\texture\CthTexture.cpp" />
-    <ClCompile Include="src\interface\render\CthRenderer.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />
     <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.cpp" />
     <ClCompile Include="src\vulkan\surface\swapchain\CthBasicSwapchain.cpp" />

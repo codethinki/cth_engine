@@ -1,7 +1,5 @@
 #pragma once
 
-#include "src/interface/render/CthRenderCycle.hpp"
-
 #include "src/vulkan/base/queue/CthPresentInfo.hpp"
 #include "src/vulkan/base/queue/CthQueue.hpp"
 #include "src/vulkan/resource/image/CthImage.hpp"
@@ -73,7 +71,7 @@ public:
     void skipPresent();
 
     void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
-        CmdBuffer const& acquire_cmd_buffer, uint32_t image_index);
+        CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) const;
 
     [[nodiscard]] ImageView const* imageView(size_t index) const;
     [[nodiscard]] Image const* image(size_t index) const;
@@ -139,7 +137,7 @@ private:
 
 
 
-    void destroySwapchain(VkSwapchainKHR swapchain);
+    void destroySwapchain(VkSwapchainKHR swapchain) const;
 
     void destroySyncObjects();
     //TEMP left off here check swapchain destruction and then try to make it compile
@@ -153,7 +151,6 @@ private:
 
 
     cth::move_ptr<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
-    std::shared_ptr<BasicSwapchain> _oldSwapchain; //TODO why is this a shared_ptr?
 
 
     VkExtent2D _extent{};

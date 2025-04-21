@@ -67,8 +67,6 @@ public:
     // ReSharper disable once CppHiddenFunction
     State release();
 
-    void signal();
-
     static void destroy(DeviceTable table, VkSemaphore vk_semaphore);
 
 protected:

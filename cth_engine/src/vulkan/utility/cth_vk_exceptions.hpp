@@ -1,8 +1,8 @@
 #pragma once
 #include "cth_vk_format.hpp"
 
-#include <cth/exception.hpp>
 #include <volk.h>
+#include <cth/exception.hpp>
 
 
 

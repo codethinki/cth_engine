@@ -41,7 +41,6 @@ public:
     [[nodiscard]] size_t next() { return ++_value; }
 
     [[nodiscard]] size_t gpuValue() const;
-    void signal();
     [[nodiscard]] VkResult wait(uint64_t nanoseconds = UINT64_MAX) const;
 
 protected:

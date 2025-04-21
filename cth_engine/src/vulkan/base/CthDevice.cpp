@@ -14,10 +14,11 @@ using std::string_view;
 using std::span;
 
 Device::Device(Instance const& instance, PhysicalDevice const& physical_device) :
-    _instance{&instance}, _physicalDevice{&physical_device} {
-}
+    _instance{&instance}, _physicalDevice{&physical_device} {}
+
 Device::Device(Instance const& instance, PhysicalDevice const& physical_device, State state) :
     Device{instance, physical_device} { wrap(std::move(state)); }
+
 Device::Device(Instance const& instance, PhysicalDevice const& physical_device, std::span<Queue> queues) :
     Device{instance, physical_device} { create(queues); }
 
@@ -68,7 +69,7 @@ void Device::createLogicalDevice() {
 
     std::vector<std::vector<float>> queuePriorities{};
 
-    for(auto const [queueFamily, queueCount] : _queueFamiliesQueueCounts){
+    for(auto const [queueFamily, queueCount] : _queueFamiliesQueueCounts) {
         queuePriorities.emplace_back(queueCount, 1.0f);
 
         queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
@@ -120,7 +121,11 @@ void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues)
 Device::State Device::release() {
     Device::debug_check(*this);
 
-    State state{_handle.release(), std::move(_queueFamiliesQueueCounts)};
+    State state{
+        .vkDevice = _handle.release(),
+        .queueFamiliesQueueCounts = std::move(_queueFamiliesQueueCounts),
+        .functionTable = std::move(_functionTable)
+    };
     reset();
     return state;
 }

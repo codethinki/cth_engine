@@ -63,7 +63,7 @@ void CmdBuffer::create(this auto&& self, CmdPool& pool) {
     self.optDestroy();
     self._pool = &pool;
     self._deviceTable = pool.core().deviceTable();
-    VkCommandBuffer const handle = self._pool->template newCmdBuffer<type::pure_t<decltype(self)>>();
+    auto const handle = self._pool->template newCmdBuffer<type::pure_t<decltype(self)>>();
     CTH_CRITICAL(handle == VK_NULL_HANDLE, "failed to create cmd buffer") {}
 
     self._handle = handle;

@@ -3,8 +3,6 @@
 #include "CthImageView.hpp"
 #include "../CthDestructionQueue.hpp"
 #include "src/vulkan/base/CthCore.hpp"
-#include "src/vulkan/base/CthDevice.hpp"
-#include "src/vulkan/render/pass/CthAttachmentCollection.hpp"
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 

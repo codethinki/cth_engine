@@ -1,7 +1,7 @@
 #include "CthPipeline.hpp"
 
-#include "src/interface/render/model/CthVertex.hpp"
 #include "layout/CthPipelineLayout.hpp"
+#include "src/interface/render/model/CthVertex.hpp"
 #include "src/vulkan/base/CthCore.hpp"
 #include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "src/vulkan/render/pipeline/shader/CthShader.hpp"

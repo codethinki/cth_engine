@@ -12,11 +12,5 @@
 #include "glob/glfw.hpp"
 
 
-
-
 #undef far
 #undef near
-
-
-
-

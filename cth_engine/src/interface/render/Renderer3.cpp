@@ -4,7 +4,6 @@
 #include "RenderStage.hpp"
 
 #include "src/vulkan/base/CthCore.hpp"
-#include "src/vulkan/base/queue/CthQueue.hpp"
 #include "src/vulkan/base/queue/CthSubmitInfo.hpp"
 #include "src/vulkan/render/cmd/CthCmdPool.hpp"
 #include "src/vulkan/render/control/CthSemaphore.hpp"
@@ -19,7 +18,7 @@ void Renderer3Config::removeUnusedDependencies() {
 }
 
 namespace cth::vk {
-Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config config) : _pulse{&pulse}, _core{&core} {
+Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config config) : _core{&core}, _pulse{&pulse} {
     config.removeUnusedDependencies();
     Config::debugCheck(config);
 
@@ -32,6 +31,7 @@ Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config config) 
 }
 
 Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config const& config, create_t) : Renderer3{core, pulse, config} { create(); }
+Renderer3::~Renderer3() { optDestroy(); }
 
 auto Renderer3::create() -> std::map<id_t, RenderStage*> {
     Core::debug_check(*_core);

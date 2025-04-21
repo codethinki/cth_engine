@@ -26,7 +26,7 @@ class DebugMessenger {
 public:
     struct Config;
     struct State;
-    using callback_t = VkBool32(VkDebugUtilsMessageSeverityFlagBitsEXT const, VkDebugUtilsMessageTypeFlagsEXT const,
+    using callback_t = VkBool32(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
         VkDebugUtilsMessengerCallbackDataEXT const*,
         void*);
 

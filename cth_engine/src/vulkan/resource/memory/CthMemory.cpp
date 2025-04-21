@@ -83,9 +83,7 @@ void Memory::destroy() {
     if(queue) queue->push(lambda);
     else lambda();
 
-    //TEMP call reset
-    _handle = VK_NULL_HANDLE;
-    _size = 0;
+    reset();
 }
 
 

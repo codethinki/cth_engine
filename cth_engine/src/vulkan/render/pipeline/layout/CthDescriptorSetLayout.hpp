@@ -1,8 +1,8 @@
 #pragma once
 #include "src/vulkan/utility/cth_constants.hpp"
 
-#include <cth/pointers.hpp>
 #include <volk.h>
+#include <cth/pointers.hpp>
 
 #include <optional>
 #include <vector>

@@ -3,8 +3,8 @@
 #include "src/vulkan/utility/cth_constants.hpp"
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
-#include <gsl/pointers>
 #include <volk.h>
+#include <gsl/pointers>
 
 namespace cth::vk {
 class Core;

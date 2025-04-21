@@ -1,13 +1,10 @@
 #pragma once
 #include "queue/CthQueueFamily.hpp"
-#include "src/vulkan/utility/cth_constants.hpp"
-
-
-#include "src/vulkan/utility/device/PhysicalDeviceFeatures.hpp"
 #include "src/vulkan/utility/cth_vk_types.hpp"
+#include "src/vulkan/utility/device/PhysicalDeviceFeatures.hpp"
 
-#include <cth/pointers.hpp>
 #include <volk.h>
+#include <cth/pointers.hpp>
 
 #include <memory>
 #include <span>
@@ -85,8 +82,8 @@ public:
      * @return valid physical device
      * @throws cth::except::default_exception if no device is found
      * @note engine required features and extensions are added to the requirements
-     * @link cth::vk::constants::REQUIRED_DEVICE_FEATURES
-     * @link cth::vk::constants::REQUIRED_DEVICE_EXTENSIONS
+     * @ref cth::vk::constants::REQUIRED_DEVICE_FEATURES
+     * @ref cth::vk::constants::REQUIRED_DEVICE_EXTENSIONS
      */
     [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(Instance const& instance, std::span<Queue const> queues,
         std::span<std::string const> required_extensions, utils::PhysicalDeviceFeatures const& required_features);

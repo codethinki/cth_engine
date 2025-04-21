@@ -34,8 +34,7 @@ void Surface::destroy() {
     if(_destructionQueue) _destructionQueue->push(lambda);
     else lambda();
 
-    //TEMP use reset()
-    _handle = VK_NULL_HANDLE;
+    reset();
 }
 Surface::State Surface::release() {
     Surface::debug_check(*this);

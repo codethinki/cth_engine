@@ -43,10 +43,9 @@ void Instance::wrap(State state) {
 void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
     optDestroy();
 
-    if constexpr(COMPILATION_MODE == CompilationMode::DEBUG) {
+    if constexpr(COMPILATION_MODE == CompilationMode::DEBUG)
         if(messenger_config == std::nullopt)
             messenger_config = DebugMessenger::Config::Default();
-    }
 
     vector<char const*> requiredExtVec(_requiredExt.size());
     std::ranges::transform(_requiredExt, requiredExtVec.begin(), [](auto const& str) { return str.data(); });

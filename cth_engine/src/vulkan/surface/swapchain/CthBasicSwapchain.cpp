@@ -166,7 +166,7 @@ void BasicSwapchain::skipPresent() {
 }
 
 void BasicSwapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
-    CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) {
+    CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) const {
     //TEMP test this function
     std::unordered_map<Image*, ImageBarrier::Info> const images{
         {_resolveAttachments->image(image_index), ImageBarrier::Info::QueueTransition(0, release_queue, 0, acquire_queue)}
@@ -447,13 +447,13 @@ VkSubpassDependency BasicSwapchain::createSubpassDependency() const {
     return VkSubpassDependency{
         .srcSubpass = VK_SUBPASS_EXTERNAL,
         .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+        | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+        | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
         .srcAccessMask = 0,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+        | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
     };
 }
 
@@ -527,7 +527,7 @@ void BasicSwapchain::destroyResources() {
     _msaaAttachments = nullptr;
 }
 
-void BasicSwapchain::destroySwapchain(VkSwapchainKHR swapchain) {
+void BasicSwapchain::destroySwapchain(VkSwapchainKHR swapchain) const {
     auto const lambda = [table = _core->deviceTable(), swapchain]() { destroy(table, swapchain); };
 
     auto const& queue = _core->destructionQueue();

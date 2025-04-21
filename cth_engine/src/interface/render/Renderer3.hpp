@@ -19,7 +19,6 @@ class Semaphore;
 }
 
 namespace cth::vk {
-//TEMP left off here implement the Cycle in here so it can be used by the graphics sync
 struct Renderer3Config {
     using StageConfig = RenderStageConfig;
     using id_t = size_t;
@@ -69,6 +68,8 @@ public:
      */
     Renderer3(Core const& core, RenderPulse const& pulse, Config const& config, create_t);
 
+    ~Renderer3();
+
     /**
      * @brief creates the renderer
      * @attention requires @ref Core::created()
@@ -116,6 +117,11 @@ public:
     [[nodiscard]] RenderPulse const& pulse() const { return *_pulse; }
 
     static void debugCheck(Renderer3 const&);
+
+    Renderer3(Renderer3 const& other) = delete;
+    Renderer3& operator=(Renderer3 const& other) = delete;
+    Renderer3(Renderer3&& other) noexcept = default;
+    Renderer3& operator=(Renderer3&& other) noexcept = default;
 };
 
 

@@ -76,7 +76,7 @@ void CmdPool::destroy() {
     if(queue) queue->push(lambdas);
     else for(auto& lambda : lambdas) lambda();
 
-    _handle = VK_NULL_HANDLE; //TEMP call reset here
+    reset();
 }
 void CmdPool::optDestroy(this auto&& self) { if(self.created()) self.destroy(); }
 

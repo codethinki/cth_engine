@@ -48,7 +48,7 @@ concept render_type = is_render_type_v<T>;
 
 template<>
 struct std::hash<cth::vk::Vertex> {
-    size_t operator()(cth::vk::Vertex const& vertex) const {
+    size_t operator()(cth::vk::Vertex const& vertex) const noexcept {
         size_t seed = 0;
         cth::alg::hash::combine(seed, vertex.position, vertex.normal, vertex.uv);
         return seed;

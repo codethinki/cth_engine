@@ -215,8 +215,7 @@ vector<std::string> PhysicalDevice::getExtensions(vk::not_null<VkPhysicalDevice>
     vector<VkExtensionProperties> availableExtensions{extensionCount};
     auto const writeResult = vkEnumerateDeviceExtensionProperties(vk_device.get(), nullptr, &extensionCount, availableExtensions.data());
     CTH_STABLE_ERR(writeResult != VK_SUCCESS, "failed to write device extension properties")
-        throw result_exception
-            {writeResult, details->exception()};
+        throw result_exception{writeResult, details->exception()};
 
     vector<std::string> extensions{extensionCount};
 

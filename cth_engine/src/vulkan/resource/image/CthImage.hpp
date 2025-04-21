@@ -142,8 +142,9 @@ private:
 
     void reset();
 
+    VkExtent2D _extent{};
+
     cth::not_null<Core const*> _core;
-    VkExtent2D _extent;
     Config _config;
 
 

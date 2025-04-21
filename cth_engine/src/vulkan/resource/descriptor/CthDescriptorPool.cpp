@@ -82,7 +82,7 @@ void DescriptorPool::initSetEntries(Builder const& builder) {
 }
 
 void DescriptorPool::create() {
-    std::vector<VkDescriptorPoolSize> poolSizes = calcPoolSizes();
+   auto const poolSizes = calcPoolSizes();
 
     VkDescriptorPoolCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;

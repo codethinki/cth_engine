@@ -12,6 +12,7 @@ private:
 
     static void terminateVolk();
     static void initVolk();
+
 public:
     [[nodiscard]] static bool initialized() { return _initialized; }
 };

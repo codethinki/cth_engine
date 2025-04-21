@@ -52,7 +52,7 @@ Subpass Subpass::Graphics(uint32_t index,
     std::span<AttachmentCollection* const> resolve_attachments,
     AttachmentCollection const* depth_attachment,
     std::span<AttachmentCollection* const> const preserve_attachments
-    ) {
+) {
     return Subpass{
         index,
         VK_PIPELINE_BIND_POINT_GRAPHICS,

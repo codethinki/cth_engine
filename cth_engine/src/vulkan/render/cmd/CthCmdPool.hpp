@@ -129,7 +129,7 @@ private:
 
     move_ptr<VkCommandPool_T> _handle = VK_NULL_HANDLE;
     std::array<std::vector<VkCommandBuffer>, BUFFER_TYPES> _buffers;
-    std::array<size_t, BUFFER_TYPES> _maxBuffers;
+    std::array<size_t, BUFFER_TYPES> _maxBuffers{};
     VkCommandPoolCreateFlags _flags;
 
     size_t _maxPrimaryBuffers = 0;
@@ -217,7 +217,7 @@ inline void CmdPool::debug_check(CmdPool const& pool) {
     CTH_CRITICAL(!pool.created(), "pool must be created") {}
     debug_check_handle(pool._handle.get());
 }
-inline void CmdPool::debug_check_handle(vk::not_null<VkCommandPool> vk_pool) {}
+inline void CmdPool::debug_check_handle([[maybe_unused]] vk::not_null<VkCommandPool> vk_pool) {}
 inline void CmdPool::debug_check_unused(CmdPool const& pool) {
     auto const& buffers = pool._buffers;
     auto const& maxBuffers = pool._maxBuffers;

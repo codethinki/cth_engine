@@ -1,5 +1,5 @@
 #pragma once
-#include "src/interface/render/renderer3/RenderPulse.hpp"
+#include "src/interface/render/RenderPulse.hpp"
 #include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
@@ -76,12 +76,6 @@ public:
      * @details calls RenderPulse::next()
      */
     void next() { _pulse.next(); }
-
-    /**
-     * @brief signals the render-finished semaphores
-     * @details calls @ref Semaphore::signal() 
-     */
-    void signal();
 
 
     [[nodiscard]] std::array<Semaphore*, SET_SIZE> renderFinishedSemaphores() const;

@@ -1,15 +1,8 @@
 #include "CthDestructionQueue.hpp"
 
 #include "buffer/CthBaseBuffer.hpp"
-#include "src/vulkan/resource/image/Framebuffer.hpp"
-#include "src/vulkan/surface/swapchain/CthBasicSwapchain.hpp"
-
 
 #include "src/vulkan/debug/CthDebugMessenger.hpp"
-
-#include "src/interface/render/CthRenderer.hpp"
-
-#include "src/vulkan/surface/CthOSWindow.hpp"
 
 
 namespace cth::vk {

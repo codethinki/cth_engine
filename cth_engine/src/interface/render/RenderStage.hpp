@@ -32,7 +32,6 @@ public:
     cxpr static uint32_t GROUP_SIZE = constants::FRAMES_IN_FLIGHT;
 
     using Config = RenderStageConfig;
-    //TEMP left off here implement this
     RenderStage(Core const& core, RenderPulse const& pulse, Config config);
 
     /**
