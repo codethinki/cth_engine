@@ -9,6 +9,9 @@
 #include "src/vulkan/render/control/CthSemaphore.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
+import cth.alg.views;
+import cth.alg.utility;
+
 namespace cth::vk {
 void Renderer3Config::removeUnusedDependencies() {
     auto unusedIds = stageDependencies.nodes();

@@ -1,8 +1,7 @@
 #pragma once
 #include "src/vulkan/utility/cth_constants.hpp"
 
-#pragma once
-
+#include <cth/io/io_log.hpp>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -10,8 +9,8 @@
 #include <string>
 #include <vector>
 
-#include <cth/io/log.hpp>
-#include <cth/pointer/move_ptr.hpp>
+import cth.io.log;
+import cth.ptr.move;
 
 
 namespace cth::vk {

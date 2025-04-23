@@ -3,8 +3,8 @@
 #include "src/vulkan/utility/cth_vk_types.hpp"
 #include "src/vulkan/utility/device/PhysicalDeviceFeatures.hpp"
 
+#include <cth/io/io_log.hpp>
 #include <volk.h>
-#include <cth/pointers.hpp>
 
 #include <memory>
 #include <span>
@@ -12,6 +12,8 @@
 #include <vector>
 
 
+import cth.ptr;
+import cth.io.log;
 
 namespace cth::vk {
 class Queue;

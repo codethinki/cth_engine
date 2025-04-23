@@ -3,10 +3,12 @@
 #include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
-#include <cth/io/log.hpp>
-#include <cth/pointer/not_null.hpp>
+#include <cth/io/io_log.hpp>
 
 #include <vector>
+
+import cth.io.log;
+import cth.ptr.not_null;
 
 namespace cth::vk {
 class Semaphore;

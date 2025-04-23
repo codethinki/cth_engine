@@ -5,12 +5,16 @@
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
 #include <volk.h>
-#include <cth/pointers.hpp>
+#include <cth/io/io_log.hpp>
+
 
 
 #include <span>
 #include <vector>
+#include <unordered_map>
 
+import cth.ptr;
+import cth.io.log;
 
 
 namespace cth::vk {

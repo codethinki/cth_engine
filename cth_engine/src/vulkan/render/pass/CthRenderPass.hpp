@@ -3,8 +3,11 @@
 #include "src/vulkan/utility/cth_constants.hpp"
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
-#include <cth/pointer/move_ptr.hpp>
+#include <cth/io/io_log.hpp>
 
+
+import cth.ptr;
+import cth.io.log;
 
 
 namespace cth::vk {

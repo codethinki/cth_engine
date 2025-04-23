@@ -7,6 +7,7 @@
 #include "queue/CthQueue.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
+import cth.string;
 
 namespace cth::vk {
 using std::vector;

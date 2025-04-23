@@ -3,13 +3,12 @@
 #include "src/vulkan/utility/cth_constants.hpp"
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
-#include <cth/pointers.hpp>
-
-#include <gsl/pointers>
-
 #include <volk.h>
+#include <cth/io/io_log.hpp>
 
 
+import cth.ptr.move;
+import cth.io.log;
 
 namespace cth::vk {
 class Core;

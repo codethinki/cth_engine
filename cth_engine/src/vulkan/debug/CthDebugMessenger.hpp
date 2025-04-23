@@ -3,14 +3,15 @@
 
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
-#include <cth/pointers.hpp>
 
 #include <volk.h>
-#include <gsl/pointers>
-
+#include <cth/io/io_log.hpp>
 
 
 #include <functional>
+
+import cth.ptr.move;
+import cth.io.log;
 
 namespace cth::dev {
 VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,

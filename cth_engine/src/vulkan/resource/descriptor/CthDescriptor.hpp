@@ -1,9 +1,10 @@
 #pragma once
 
-#include <cth/io/log.hpp>
+#include <cth/io/io_log.hpp>
 
 #include <volk.h>
 
+import cth.io.log;
 
 namespace cth::vk {
 

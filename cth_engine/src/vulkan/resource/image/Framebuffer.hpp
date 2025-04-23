@@ -4,7 +4,10 @@
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
 #include <volk.h>
-#include <gsl/pointers>
+#include <cth/io/io_log.hpp>
+
+import cth.io.log;
+import cth.ptr.move;
 
 namespace cth::vk {
 class Core;
@@ -116,7 +119,7 @@ struct Framebuffer::State {
 
 namespace cth::vk {
 inline void Framebuffer::debug_check(Framebuffer const& framebuffer) {
-    CTH_ERR(!framebuffer.created(), "framebuffer must be created") throw details->exception();
+    CTH_CRITICAL(!framebuffer.created(), "framebuffer must be created") {}
     debug_check_handle(framebuffer.get());
 }
 inline void Framebuffer::debug_check_handle([[maybe_unused]] vk::not_null<VkFramebuffer> vk_framebuffer) {}

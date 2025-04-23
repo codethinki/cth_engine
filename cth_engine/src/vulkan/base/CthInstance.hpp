@@ -5,13 +5,13 @@
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
 #include <volk.h>
-#include <cth/pointers.hpp>
 
 #include <array>
 #include <optional>
 #include <span>
 #include <vector>
 
+import cth.ptr;
 
 
 namespace cth::vk {

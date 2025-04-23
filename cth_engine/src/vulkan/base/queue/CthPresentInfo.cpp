@@ -5,13 +5,13 @@
 #include <src/vulkan/render/control/CthSemaphore.hpp>
 
 #include <volk.h>
-#include <cth/io/log.hpp>
 
 #include <algorithm>
 #include <cstdint>
 #include <ranges>
 #include <span>
 
+import cth.io.log;
 
 namespace cth::vk {
 PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<Semaphore const*> wait_semaphores) : _swapchain(swapchain->get()) {

@@ -1,6 +1,8 @@
 #pragma once
 #include "src/vulkan/utility/cth_constants.hpp"
 
+import cth.ptr.not_null;
+
 namespace cth::vk {
 class Queue;
 struct PipelineWaitStage;

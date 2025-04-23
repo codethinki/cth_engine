@@ -1,4 +1,6 @@
 #pragma once
+#include <volk.h>
+
 constexpr VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES{
     .robustBufferAccess = false,
     .samplerAnisotropy = true,

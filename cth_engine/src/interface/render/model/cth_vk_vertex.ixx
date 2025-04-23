@@ -1,15 +1,13 @@
-#pragma once
+module;
+#include "src/lib/glm.hpp"
+#include "src/lib/volk.hpp"
 
-
-
-#include <volk.h>
-#include <glm/glm.hpp>
-#include <glm/gtx/hash.hpp>
-
-#include <array>
-#include <functional>
+export module cth.vk.vertex;
 
 import cth.alg.hash;
+
+import std;
+
 
 namespace cth::vk {
 

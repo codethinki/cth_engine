@@ -1,7 +1,8 @@
 #pragma once
 #include <volk.h>
-#include <cth/pointer/not_null.hpp>
 #include <gsl/pointers>
+
+import cth.ptr.not_null;
 
 namespace cth::vk {
 template<typename T>

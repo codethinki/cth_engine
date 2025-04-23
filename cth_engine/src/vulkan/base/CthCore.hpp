@@ -3,10 +3,10 @@
 #include "src/vulkan/utility/cth_constants.hpp"
 
 #include <volk.h>
-#include <cth/pointers.hpp>
 
 #include <span>
 
+import cth.ptr.not_null;
 
 namespace cth::vk {
 struct DeviceTable;

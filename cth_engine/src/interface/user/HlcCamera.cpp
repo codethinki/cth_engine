@@ -1,5 +1,8 @@
 #include "HlcCamera.hpp"
 
+#include <cth/io/io_log.hpp>
+import cth.io.log;
+
 
 namespace cth::vk {
 void Camera::setOrthographicProjection(float left, float right, float top, float bottom, float near, float far) {

@@ -5,8 +5,16 @@
 
 
 #include <volk.h>
+#include <boost/pfr.hpp>
 #include <cth/string/format.hpp>
 
+#include <format>
+#include <string>
+#include <type_traits>
+
+import cth.typ.concepts;
+import cth.typ.variadic;
+import cth.typ.utility;
 
 namespace cth::vk::fmt {
 template<class T>
@@ -22,7 +30,7 @@ std::string structure_to_string(T&& to_tuple) {
 }
 
 template<class T>
-concept formattable_type = cth::type::is_any_of<type::pure_t<T>,
+concept formattable_type = cth::type::is_any_of<cth::type::pure_t<T>,
     VkSurfaceFormatKHR
 >;
 

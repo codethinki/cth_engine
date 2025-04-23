@@ -1,8 +1,9 @@
 #pragma once
 #include "src/vulkan/utility/cth_constants.hpp"
 
-#include <cth/io/log.hpp>
+#include <cth/io/io_log.hpp>
 
+import cth.io.log;
 
 namespace cth::vk {
 class AttachmentCollection;

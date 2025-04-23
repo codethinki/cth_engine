@@ -91,6 +91,9 @@
     <ClInclude Include="src\interface\render\dag.hpp" />
     <ClInclude Include="src\interface\render\RenderStageConfig.hpp" />
     <ClInclude Include="src\interface\render\RenderPulse.hpp" />
+    <ClInclude Include="src\lib\glm.hpp" />
+    <ClInclude Include="src\lib\volk.hpp" />
+    <ClInclude Include="src\lib\glfw.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\vulkan\resource\buffer\CthBuffer.inl" />
@@ -145,5 +148,6 @@
     <ClCompile Include="src\pch\lib\volk\volk.cpp" />
     <ClCompile Include="src\interface\render\Renderer3.cpp" />
     <ClCompile Include="src\interface\render\RenderStage.cpp" />
+    <ClCompile Include="src\interface\render\model\cth_vk_vertex.ixx" />
   </ItemGroup>
 </Project>

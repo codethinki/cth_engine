@@ -5,8 +5,8 @@
 #include "src/vulkan/resource/CthDestructionQueue.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
-#include <cth/windows.hpp>
-#include <cth/io/file.hpp>
+import cth.win;
+import cth.io.file;
 
 
 

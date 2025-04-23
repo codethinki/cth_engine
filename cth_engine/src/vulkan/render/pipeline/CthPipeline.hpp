@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include <cth/pointer/not_null.hpp>
+import cth.ptr.not_null;
 
 //TODO add support for more types of pipelines
 

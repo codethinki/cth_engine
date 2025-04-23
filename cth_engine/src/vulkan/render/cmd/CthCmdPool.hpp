@@ -1,16 +1,21 @@
 #pragma once
 #include "CthCmdBuffer.hpp"
 
-#include "src/vulkan//utility/cth_constants.hpp"
-#include "src/vulkan//utility/cth_vk_types.hpp"
-
-#include <cth/pointers.hpp>
-#include <cth/io/log.hpp>
+#include "src/vulkan/utility/cth_constants.hpp"
+#include "src/vulkan/utility/cth_vk_types.hpp"
 
 #include <volk.h>
+#include <cth/io/io_log.hpp>
 
+#include <array>
+#include <concepts>
+#include <ranges>
 #include <vector>
+#include <algorithm>
 
+import cth.typ.variadic;
+import cth.io.log;
+import cth.ptr;
 
 namespace cth::vk {
 class DestructionQueue;
@@ -172,11 +177,11 @@ public:
     static void debug_check_unused(CmdPool const& pool);
 };
 
+
 template void CmdPool::returnCmdBuffer<PrimaryCmdBuffer>(VkCommandBuffer buffer);
 template void CmdPool::returnCmdBuffer<SecondaryCmdBuffer>(VkCommandBuffer buffer);
 template VkCommandBuffer CmdPool::newCmdBuffer<PrimaryCmdBuffer>();
 template VkCommandBuffer CmdPool::newCmdBuffer<SecondaryCmdBuffer>();
-
 }
 
 //Config

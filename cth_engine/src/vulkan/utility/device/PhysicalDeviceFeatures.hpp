@@ -2,7 +2,11 @@
 #include "../cth_constants.hpp"
 #include "../cth_vk_types.hpp"
 
-#include <gsl/pointers>
+#include <cth/io/io_log.hpp>
+
+
+import cth.typ.utility;
+import cth.io.log;
 
 
 namespace cth::vk::utils {

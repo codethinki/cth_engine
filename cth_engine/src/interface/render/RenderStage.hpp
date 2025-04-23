@@ -4,6 +4,7 @@
 #include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
+import cth.ptr.not_null;
 
 //IMPLEMENT release and state
 namespace cth::vk {

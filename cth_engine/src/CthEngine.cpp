@@ -3,6 +3,9 @@
 #include "src/vulkan/surface/CthOSWindow.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
+#include <cth/io/io_log.hpp>
+
+import cth.io.log;
 
 namespace cth::vk {
 void Engine::terminate() {

@@ -4,9 +4,8 @@
 #include <vector>
 
 #include <volk.h>
-#include <cth/pointer/move_ptr.hpp>
-#include <cth/pointer/not_null.hpp>
 
+import cth.ptr;
 
 //TEMP modernize
 

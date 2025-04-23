@@ -11,6 +11,7 @@
 #include "src/vulkan/resource/image/Framebuffer.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
+import cth.typ.utility;
 
 namespace cth::vk {
 CmdBuffer::CmdBuffer(VkCommandBufferUsageFlags usage) : _bufferUsage{usage} {}

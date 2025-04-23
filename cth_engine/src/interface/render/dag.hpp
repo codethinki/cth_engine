@@ -1,10 +1,13 @@
 #pragma once
-#include <cth/io/log.hpp>
-#include <cth/types/ranges.hpp>
+#include <cth/io/io_log.hpp>
 
+#include <concepts>
 #include <map>
 #include <set>
 #include <vector>
+
+import cth.io.log;
+import cth.typ.ranges;
 
 namespace cth {
 template<class Rng, class Edge>

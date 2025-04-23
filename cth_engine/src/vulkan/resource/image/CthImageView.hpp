@@ -4,8 +4,10 @@
 #include "src/vulkan/utility/cth_vk_types.hpp"
 
 #include <volk.h>
+#include <cth/io/io_log.hpp>
 
-#include <cth/pointer/move_ptr.hpp>
+import cth.ptr.move;
+import cth.io.log;
 
 namespace cth::vk {
 class Core;

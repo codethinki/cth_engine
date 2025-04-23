@@ -1,10 +1,13 @@
 #pragma once
 #include "src/vulkan/utility/cth_constants.hpp"
 
+#include <cth/io/io_log.hpp>
+
 #include <array>
 #include <vector>
 
-#include <cth/io/log.hpp>
+
+import cth.io.log;
 
 
 
@@ -53,7 +56,7 @@ public:
 //debug checks
 namespace cth::vk {
 inline void DestructionQueue::debug_check(DestructionQueue const* queue) {
-    CTH_ERR(queue == nullptr, "queue must not be nullptr") throw details->exception();
+    CTH_CRITICAL(queue == nullptr, "queue must not be nullptr") {}
 }
 inline void DestructionQueue::debug_check_null_allowed(DestructionQueue const* queue) { if(queue) debug_check(queue); }
 }

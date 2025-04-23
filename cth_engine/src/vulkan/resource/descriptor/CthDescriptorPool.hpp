@@ -2,16 +2,17 @@
 
 #include "src/vulkan/utility/cth_constants.hpp"
 
-#include <cth/pointers.hpp>
-#include <cth/io/log.hpp>
+
 
 #include <volk.h>
+#include <cth/io/io_log.hpp>
 
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
-
+import cth.io.log;
+import cth.ptr;
 
 namespace cth::vk {
 class Core;

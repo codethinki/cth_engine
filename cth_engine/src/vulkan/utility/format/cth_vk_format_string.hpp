@@ -1,6 +1,8 @@
 #pragma once
-#include <string_view>
 #include <boost/pfr.hpp>
+
+#include <array>
+#include <concepts>
 
 namespace cth::vk::fmt {
 

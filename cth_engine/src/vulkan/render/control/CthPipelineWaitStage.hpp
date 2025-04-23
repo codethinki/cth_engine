@@ -1,7 +1,8 @@
 #pragma once
 #include <volk.h>
-#include <cth/io/log.hpp>
+#include <cth/io/io_log.hpp>
 
+import cth.io.log;
 
 namespace cth::vk {
 class Semaphore;

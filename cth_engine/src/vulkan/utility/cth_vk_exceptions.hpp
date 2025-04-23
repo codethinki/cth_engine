@@ -2,7 +2,8 @@
 #include "cth_vk_format.hpp"
 
 #include <volk.h>
-#include <cth/exception.hpp>
+
+import cth.exception;
 
 
 
