@@ -1,10 +1,21 @@
-#pragma once
-#include <boost/pfr.hpp>
+module;
+#include "lib/boost/pfr.hpp"
 
-#include <array>
-#include <concepts>
+export module cth.vk.fmt.cxpr_string;
 
-namespace cth::vk::fmt {
+import std;
+
+export namespace cth::vk::fmt {
+
+template<size_t Size>
+struct cxpr_string {
+    cxpr cxpr_string(char const (&str)[Size]) {
+        std::copy_n(str, Size, this.str);
+    }
+
+
+    char str[Size];
+};
 
 
 template<class T, size_t SvSize, size_t Params = boost::pfr::tuple_size_v<T>>

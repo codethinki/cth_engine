@@ -1,20 +1,23 @@
-#pragma once
-#include "dag.hpp"
-#include "RenderPulse.hpp"
+module;
+#include <cth/io/io_log.hpp>
+
+export module cth.vk.renderer;
+
+COMPLETE THIS
 #include "RenderStageConfig.hpp"
 
 #include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
 
-#include <cth/io/io_log.hpp>
-
-#include <map>
-#include <ranges>
-#include <vector>
+import cth.interface.render.pulse;
+import cth.vk.dag;
 
 import cth.ptr.not_null;
 import cth.io.log;
-//IMPLEMENT release and state
 
+
+import std;
+
+//IMPLEMENT release and state
 namespace cth::vk {
 class RenderStage;
 class CmdPool;
@@ -24,7 +27,7 @@ class Core;
 class Semaphore;
 }
 
-namespace cth::vk {
+export namespace cth::vk {
 struct Renderer3Config {
     using StageConfig = RenderStageConfig;
     using id_t = size_t;
@@ -42,7 +45,7 @@ struct Renderer3Config {
 
 }
 
-namespace cth::vk {
+export namespace cth::vk {
 class Renderer3 {
 public:
     using Config = Renderer3Config;

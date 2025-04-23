@@ -41,14 +41,12 @@
     <ClInclude Include="include\cth_engine\vulkan\cth_debug.hpp" />
     <ClInclude Include="include\cth_engine\vulkan\cth_resource.hpp" />
     <ClInclude Include="include\cth_engine\vulkan\cth_utility.hpp" />
-    <ClInclude Include="src\interface\render\dag.hpp" />
-    <ClInclude Include="src\interface\render\Renderer3.hpp" />
-    <ClInclude Include="src\interface\render\RenderPulse.hpp" />
-    <ClInclude Include="src\interface\render\RenderStage.hpp" />
-    <ClInclude Include="src\interface\render\RenderStageConfig.hpp" />
-    <ClInclude Include="src\lib\glfw.hpp" />
-    <ClInclude Include="src\lib\glm.hpp" />
-    <ClInclude Include="src\lib\volk.hpp" />
+    <ClInclude Include="lib\boost\pfr.hpp" />
+    <ClInclude Include="lib\glfw.hpp" />
+    <ClInclude Include="lib\glm.hpp" />
+    <ClInclude Include="lib\gsl.hpp" />
+    <ClInclude Include="lib\volk.hpp" />
+    <ClInclude Include="lib\windows.hpp" />
     <ClInclude Include="src\pch\glob\cth.hpp" />
     <ClInclude Include="src\pch\glob\glfw.hpp" />
     <ClInclude Include="src\pch\glob\glm.hpp" />
@@ -59,9 +57,6 @@
     <ClInclude Include="src\vulkan\render\pass\CthAttachmentCollection.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthSubpass.hpp" />
     <ClInclude Include="src\vulkan\resource\image\Framebuffer.hpp" />
-    <ClInclude Include="src\vulkan\utility\cth_vk_exceptions.hpp" />
-    <ClInclude Include="src\vulkan\utility\cth_vk_format.hpp" />
-    <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
     <ClInclude Include="src\pch\pch.hpp" />
     <ClInclude Include="src\CthEngine.hpp" />
     <ClInclude Include="src\interface\object\HlcRenderObject.hpp" />
@@ -76,13 +71,8 @@
     <ClInclude Include="src\vulkan\base\queue\CthQueue.hpp" />
     <ClInclude Include="src\vulkan\base\queue\CthQueueFamily.hpp" />
     <ClInclude Include="src\vulkan\debug\CthDebugMessenger.hpp" />
-    <ClInclude Include="src\vulkan\render\control\CthFence.hpp" />
-    <ClInclude Include="src\vulkan\render\control\CthPipelineBarrier.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdBuffer.hpp" />
     <ClInclude Include="src\vulkan\render\cmd\CthCmdPool.hpp" />
-    <ClInclude Include="src\vulkan\render\control\CthSemaphore.hpp" />
-    <ClInclude Include="src\vulkan\render\control\CthTimelineSemaphore.hpp" />
-    <ClInclude Include="src\vulkan\render\control\CthPipelineWaitStage.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthRenderPass.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBuffer.hpp" />
     <ClInclude Include="src\vulkan\resource\buffer\CthBaseBuffer.hpp" />
@@ -95,31 +85,17 @@
     <ClInclude Include="src\vulkan\resource\descriptor\descriptors\CthImageDescriptors.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.hpp" />
     <ClInclude Include="src\vulkan\surface\graphics_core\CthGraphicsCore.hpp" />
-    <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
-    <ClInclude Include="src\vulkan\utility\constant\cth_device_constants.hpp" />
-    <ClInclude Include="src\vulkan\utility\cth_constants.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthImageView.hpp" />
-    <ClInclude Include="src\vulkan\render\pipeline\CthPipeline.hpp" />
-    <ClInclude Include="src\vulkan\render\pipeline\layout\CthDescriptorSetLayout.hpp" />
-    <ClInclude Include="src\vulkan\render\pipeline\layout\CthPipelineLayout.hpp" />
-    <ClInclude Include="src\vulkan\render\pipeline\shader\CthShader.hpp" />
     <ClInclude Include="src\vulkan\render\pipeline\shader\HlcPushConstant.hpp" />
     <ClInclude Include="src\vulkan\resource\image\CthImage.hpp" />
     <ClInclude Include="src\interface\render\model\HlcModel.hpp" />
     <ClInclude Include="src\interface\render\model\HlcModelManager.hpp" />
-    <ClInclude Include="src\interface\render\model\CthVertex.hpp" />
     <ClInclude Include="src\vulkan\resource\image\texture\CthSampler.hpp" />
     <ClInclude Include="src\vulkan\resource\image\texture\CthTexture.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
     <ClInclude Include="src\vulkan\surface\swapchain\CthBasicSwapchain.hpp" />
-    <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_debug_macros.hpp" />
-    <ClInclude Include="src\vulkan\utility\cth_vk_overloads.hpp" />
-    <ClInclude Include="src\vulkan\utility\cth_vk_types.hpp" />
-    <ClInclude Include="src\vulkan\utility\format\cth_vk_format_string.hpp" />
-    <ClInclude Include="src\vulkan\utility\format\cth_vk_to_string.hpp" />
-    <ClInclude Include="src\vulkan\utility\os.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\vulkan\resource\buffer\CthBuffer.inl" />
@@ -127,14 +103,36 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="engine_main.cpp" />
+    <ClCompile Include="src\interface\render\cth_interface_render_pulse.ixx" />
+    <ClCompile Include="src\interface\render\cth_interface_render_stage-config.ixx" />
+    <ClCompile Include="src\interface\render\cth_interface_render_stage.ixx" />
+    <ClCompile Include="src\interface\render\cth_vk_dag.ixx" />
+    <ClCompile Include="src\interface\render\cth_vk_renderer.ixx" />
     <ClCompile Include="src\interface\render\model\cth_vk_vertex.ixx" />
     <ClCompile Include="src\interface\render\Renderer3.cpp" />
     <ClCompile Include="src\interface\render\RenderStage.cpp" />
     <ClCompile Include="src\vulkan\base\queue\CthSubmitInfo.cpp" />
     <ClCompile Include="src\vulkan\base\queue\CthPresentInfo.cpp" />
+    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_pipeline-layout.ixx" />
+    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_pipeline.ixx" />
+    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_shader.ixx" />
+    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_fence.ixx" />
+    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_pipeline-barrier.ixx" />
     <ClCompile Include="src\vulkan\render\pass\AttachmentCollection.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthSubpass.cpp" />
+    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_pipeline-wait-stage.ixx" />
+    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_semaphore.ixx" />
+    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_timeline-semaphore.ixx" />
     <ClCompile Include="src\vulkan\resource\image\Framebuffer.cpp" />
+    <ClCompile Include="src\vulkan\surface\cth_vk_os-window.ixx" />
+    <ClCompile Include="src\vulkan\utility\constant\cth_vk_constants_debug.ixx" />
+    <ClCompile Include="src\vulkan\utility\constant\cth_vk_constants_device.ixx" />
+    <ClCompile Include="src\vulkan\utility\cth_vk_constants.ixx" />
+    <ClCompile Include="src\vulkan\utility\cth_vk_exception.ixx" />
+    <ClCompile Include="src\vulkan\utility\cth_vk_fmt.ixx" />
+    <ClCompile Include="src\vulkan\utility\cth_vk_util_overloads.ixx" />
+    <ClCompile Include="src\vulkan\utility\cth_vk_util_types.ixx" />
+    <ClCompile Include="src\vulkan\utility\device\cth_vk_physical_device_features.ixx" />
     <ClCompile Include="src\vulkan\utility\device\PhysicalDeviceFeatures.cpp" />
     <ClCompile Include="src\CthEngine.cpp" />
     <ClCompile Include="src\interface\object\HlcStandardObject.cpp" />
@@ -181,7 +179,7 @@
     <ClCompile Include="src\vulkan\resource\image\CthImageView.cpp" />
     <ClCompile Include="src\vulkan\render\pipeline\CthPipeline.cpp" />
     <ClCompile Include="src\vulkan\render\pipeline\layout\CthDescriptorSetLayout.cpp" />
-    <ClCompile Include="src\vulkan\render\pipeline\layout\CthPipelineLayout.cpp" />
+    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_pipeline-layout.cpp" />
     <ClCompile Include="src\vulkan\render\pipeline\shader\CthShader.cpp" />
     <ClCompile Include="src\vulkan\resource\image\CthImage.cpp" />
     <ClCompile Include="src\interface\render\model\HlcModel.cpp" />
@@ -201,6 +199,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\vulkan\utility\format\cth_vk_fmt_to_string.ixx" />
+    <ClCompile Include="src\vulkan\utility\format\cth_vk_fmt_cxpr_string.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\cth\cth\cth.vcxproj">

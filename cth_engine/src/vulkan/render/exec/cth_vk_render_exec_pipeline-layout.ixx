@@ -1,19 +1,18 @@
-#pragma once
-
-#include <span>
-#include <vector>
-
-#include <volk.h>
+module;
+#include "lib/volk.hpp"
+export module cth.vk.render.exec.pipeline_layout;
 
 import cth.ptr;
 
+import std;
+
+
 //TEMP modernize
 
-namespace cth::vk {
-struct DeviceTable;
-}
 
-namespace cth::vk {
+export namespace cth::vk {
+struct DeviceTable;
+
 class Core;
 class DescriptorSetLayout;
 
@@ -53,11 +52,11 @@ public:
     PipelineLayout& operator=(PipelineLayout&& other) = delete;
 };
 
-} // namespace cth
+}
 
 //Builder
 
-namespace cth::vk {
+export namespace cth::vk {
 struct PipelineLayout::Builder {
     Builder() = default;
     explicit Builder(std::span<DescriptorSetLayout*> layouts);
@@ -76,4 +75,4 @@ private:
 
     friend PipelineLayout;
 };
-} // namespace cth
+}

@@ -1,15 +1,16 @@
-#pragma once
+module;
+#include <cth/macro.hpp>
 #include <cth/io/io_log.hpp>
 
-#include <concepts>
-#include <map>
-#include <set>
-#include <vector>
+export module cth.vk.dag;
 
 import cth.io.log;
 import cth.typ.ranges;
 
-namespace cth {
+import std;
+
+
+export namespace cth {
 template<class Rng, class Edge>
 concept dag_edge_range = cth::type::range_over_cpt<Rng, CPT(std::convertible_to<Edge>)>;
 

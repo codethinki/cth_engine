@@ -1,6 +1,6 @@
 #pragma once
 namespace cth::vk::fmt {
-constexpr std::string_view to_string(VkResult result) {
+cxpr std::string_view to_string(VkResult result) {
     switch(result) {
         case VK_SUCCESS: return "VK_SUCCESS";
         case VK_NOT_READY: return "VK_NOT_READY";
@@ -55,7 +55,7 @@ constexpr std::string_view to_string(VkResult result) {
         default: return "UNKNOWN VK_RESULT (BUG)";
     }
 }
-constexpr std::string_view to_string(VkFormat format) {
+cxpr std::string_view to_string(VkFormat format) {
     switch(format) {
         case VK_FORMAT_UNDEFINED: return "VK_FORMAT_UNDEFINED";
         case VK_FORMAT_R4G4_UNORM_PACK8: return "VK_FORMAT_R4G4_UNORM_PACK8";
@@ -312,7 +312,7 @@ constexpr std::string_view to_string(VkFormat format) {
     }
 }
 
-constexpr std::string_view to_string(VkDescriptorType type) {
+cxpr std::string_view to_string(VkDescriptorType type) {
     switch(type) {
         case VK_DESCRIPTOR_TYPE_SAMPLER: return "VK_DESCRIPTOR_TYPE_SAMPLER";
         case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return "VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER";
@@ -335,7 +335,7 @@ constexpr std::string_view to_string(VkDescriptorType type) {
         default: return "UNKNOWN DESCRIPTOR_TYPE (BUG)";
     }
 }
-constexpr std::string_view to_string(VkStructureType structure) {
+cxpr std::string_view to_string(VkStructureType structure) {
     // NOLINT(google-readability-function-size)y
     switch(structure) {
         case VK_STRUCTURE_TYPE_APPLICATION_INFO: return "VK_STRUCTURE_TYPE_APPLICATION_INFO";
@@ -1566,7 +1566,7 @@ constexpr std::string_view to_string(VkStructureType structure) {
     }
 }
 
-constexpr std::string_view to_string(VkColorSpaceKHR color_space) {
+cxpr std::string_view to_string(VkColorSpaceKHR color_space) {
     switch(color_space) {
         case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR: return "VK_COLOR_SPACE_SRGB_NONLINEAR_KHR";
         case VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT: return "VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT";
@@ -1588,7 +1588,7 @@ constexpr std::string_view to_string(VkColorSpaceKHR color_space) {
         default: return "unknown";
     }
 }
-constexpr std::string_view to_string(VkPresentModeKHR format) {
+cxpr std::string_view to_string(VkPresentModeKHR format) {
     switch(format) {
         case VK_PRESENT_MODE_IMMEDIATE_KHR: return "VK_PRESENT_MODE_IMMEDIATE_KHR";
         case VK_PRESENT_MODE_MAILBOX_KHR: return "VK_PRESENT_MODE_MAILBOX_KHR";

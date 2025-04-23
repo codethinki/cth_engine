@@ -1,7 +1,12 @@
-#pragma once
-#include "CthSemaphore.hpp"
+module;
 
-#include <span>
+export module cth.vk.render.sync.timeline_semaphore;
+
+import cth.vk.constants;
+import cth.vk.util.types;
+import cth.vk.render.sync.semaphore;
+
+import std;
 
 namespace cth::vk {
 class TimelineSemaphore : public Semaphore {

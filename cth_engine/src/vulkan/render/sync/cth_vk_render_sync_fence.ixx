@@ -1,21 +1,24 @@
-#pragma once
-#include "src/vulkan/base/CthDeviceTable.hpp"
-#include "src/vulkan/utility/cth_constants.hpp"
-#include "src/vulkan/utility/cth_vk_types.hpp"
-
-#include <volk.h>
+module;
+#include "lib/volk.hpp"
 #include <cth/io/io_log.hpp>
 
+export module cth.vk.render.sync.fence;
+FIX THIS
+#include "src/vulkan/base/CthDeviceTable.hpp"
 
 
-import cth.ptr.move;
+import cth.vk.constants;
+import cth.vk.util.types;
+
+import cth.ptr;
 import cth.io.log;
 
 namespace cth::vk {
 class Core;
 class DestructionQueue;
+}
 
-
+export namespace cth::vk {
 class Fence {
 public:
     using wait_t = uint64_t;
@@ -139,14 +142,14 @@ public:
     Fence& operator=(Fence const& other) = default;
     Fence& operator=(Fence&& other) = default;
 
-    static void debug_check(Fence const* fence);
-    static void debug_check_handle(VkFence vk_fence);
+    static void debug_check(Fence const& fence);
+    static void debug_check_handle(vk::not_null<VkFence> vk_fence);
 };
 }
 
 //State
 
-namespace cth::vk {
+export namespace cth::vk {
 struct Fence::State {
     vk::not_null<VkFence> vkFence;
 };
@@ -154,12 +157,7 @@ struct Fence::State {
 
 //debug checks
 
-namespace cth::vk {
-inline void Fence::debug_check(Fence const* fence) {
-    CTH_ERR(fence == nullptr, "fence must not be nullptr") throw details->exception();
-    debug_check_handle(fence->_handle.get());
-}
-inline void Fence::debug_check_handle(VkFence vk_fence) {
-    CTH_ERR(vk_fence == VK_NULL_HANDLE, "vk_fence handle must not be invalid (VK_NULL_HANDLE)") throw details->exception();
-}
+export namespace cth::vk {
+void Fence::debug_check(Fence const& fence) { debug_check_handle(fence._handle.get()); }
+void Fence::debug_check_handle([[maybe_unused]] vk::not_null<VkFence> vk_fence) {}
 }

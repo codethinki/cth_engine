@@ -1,11 +1,12 @@
-#pragma once
-#include <volk.h>
+module;
+#include "lib/volk.hpp"
+export module cth.vk.constants.debug;
 
 #ifndef _FINAL
 #define CONSTANT_DEBUG_MODE
 #endif
 
-namespace cth::vk::constants {
+export namespace cth::vk::constants {
 static constexpr bool DEBUG_MODE =
 #ifdef CONSTANT_DEBUG_MODE
     true;

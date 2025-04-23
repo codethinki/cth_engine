@@ -1,10 +1,12 @@
-#pragma once
-#include <volk.h>
-#include <gsl/pointers>
+module;
+#include "lib/gsl.hpp"
+#include "lib/volk.hpp"
+export module cth.vk.util.types;
+
 
 import cth.ptr.not_null;
 
-namespace cth::vk {
+export namespace cth::vk {
 template<typename T>
 // ReSharper disable once CppRedundantTemplateArguments
 using not_null = not_null<gsl::owner<T>, VK_NULL_HANDLE>;

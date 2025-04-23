@@ -1,8 +1,8 @@
-#pragma once
-#include "src/vulkan/utility/cth_constants.hpp"
+export module cth.interface.render.pulse;
 
+import cth.vk.constants;
 
-namespace cth::vk {
+export namespace cth::vk {
 
 class RenderPulse {
     static cxpr size_t DEFAULT_VALUE = 0;

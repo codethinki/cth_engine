@@ -1,12 +1,14 @@
-#pragma once
-#include <volk.h>
+module;
+#include "lib/volk.hpp"
+export module cth.vk.constants.device;
+
+export namespace cth::vk::constants {
 
 constexpr VkPhysicalDeviceFeatures REQUIRED_DEVICE_FEATURES{
     .robustBufferAccess = false,
     .samplerAnisotropy = true,
 };
 
-namespace cth::vk::constants {
 std::array<std::string, 2> const REQUIRED_DEVICE_EXTENSIONS{
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,

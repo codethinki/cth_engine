@@ -1,13 +1,11 @@
-#pragma once
-#include "cth_vk_format.hpp"
-
-#include <volk.h>
+module;
+#include "lib/volk.hpp"
+export module cth.vk.exception;
 
 import cth.exception;
 
 
-
-namespace cth::vk {
+export namespace cth::vk {
 class result_exception final : public except::default_exception {
 public:
     result_exception(VkResult result, default_exception ex) : default_exception(ex), _vkResult(result) { ex.add("VkResult: ({0})", result); }

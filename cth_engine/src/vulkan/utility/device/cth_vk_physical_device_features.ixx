@@ -1,13 +1,13 @@
-#pragma once
-#include "../cth_constants.hpp"
-#include "../cth_vk_types.hpp"
-
+module;
 #include <cth/io/io_log.hpp>
+#include <lib/gsl.hpp>
+export module cth.vk.physical_device_features;
 
+import cth.vk.constants;
+import cth.vk.util.types;
 
 import cth.typ.utility;
 import cth.io.log;
-
 
 namespace cth::vk::utils {
 

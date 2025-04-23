@@ -1,5 +1,5 @@
 #pragma once
-#include "CthVertex.hpp"
+import cth.vk.vertex;
 
 #include <string>
 

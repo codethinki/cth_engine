@@ -1,15 +1,20 @@
-#pragma once
+module;
+#include "lib/volk.hpp"
+export module cth.vk.render.sync.pipeline_barrier;
 
-#include <volk.h>
 
-#include <unordered_map>
-#include <vector>
+import cth.vk.constants;
 
+import cth.ptr.not_null;
+
+import std;
+
+
+FIX THIS
 #include "src/vulkan//base/queue/CthQueue.hpp"
-#include "src/vulkan//utility/cth_constants.hpp"
 
 
-namespace cth::vk {
+export namespace cth::vk {
 class Queue;
 
 class Image;
@@ -51,7 +56,7 @@ public:
 
 //ImageBarrier
 
-namespace cth::vk {
+export namespace cth::vk {
 class ImageBarrier : virtual protected BarrierBase {
 public:
     struct Info;
@@ -92,7 +97,7 @@ public:
 
 //BufferBarrier
 
-namespace cth::vk {
+export namespace cth::vk {
 
 class BufferBarrier : virtual protected BarrierBase {
 public:
@@ -124,7 +129,7 @@ public:
 
 //Barrier
 
-namespace cth::vk {
+export namespace cth::vk {
 
 class PipelineBarrier : public BufferBarrier, public ImageBarrier {
 public:
@@ -144,7 +149,7 @@ private:
 
 //Info
 
-namespace cth::vk {
+export namespace cth::vk {
 struct ImageBarrier::Info {
 
 

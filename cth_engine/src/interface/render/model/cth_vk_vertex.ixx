@@ -9,7 +9,7 @@ import cth.alg.hash;
 import std;
 
 
-namespace cth::vk {
+export namespace cth::vk {
 
 struct Vertex {
     glm::vec3 position{};
@@ -44,7 +44,7 @@ concept render_type = is_render_type_v<T>;
 }
 
 
-template<>
+export template<>
 struct std::hash<cth::vk::Vertex> {
     size_t operator()(cth::vk::Vertex const& vertex) const noexcept {
         size_t seed = 0;

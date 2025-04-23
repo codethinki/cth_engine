@@ -1,14 +1,19 @@
-#pragma once
+module;
+#include "lib/volk.hpp"
+export module cth.vk.render.exec.shader;
+
+FIX_THIS
+ADD DEVICE TABLE
+
 #include "src/vulkan/resource/buffer/CthBaseBuffer.hpp"
 
-#include <volk.h>
+import cth.ptr;
 
-#include <string>
-#include <vector>
+import std;
 
 
 //TEMP modernize
-namespace cth::vk {
+export namespace cth::vk {
 struct DeviceTable;
 class Device;
 

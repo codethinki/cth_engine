@@ -1,21 +1,23 @@
-#pragma once
-#include <volk.h>
+module;
+#include "lib/volk.hpp"
 
-#include <memory>
-#include <vector>
+export module cth.vk.render.exec.pipeline;
 
 import cth.ptr.not_null;
+
+import std;
+
+
 
 //TODO add support for more types of pipelines
 
 //TEMP modernize this
 
-namespace cth::vk {
-class Core;
-
-class PipelineLayout;
-
+export namespace cth::vk {
 struct ShaderSpecialization;
+
+class Core;
+class PipelineLayout;
 class Shader;
 class CmdBuffer;
 
@@ -59,7 +61,7 @@ public:
 
 //Config
 
-namespace cth::vk {
+export namespace cth::vk {
 struct Pipeline::GraphicsConfig {
     void addShaderStage(Shader const* shader, ShaderSpecialization const* specialization_info = nullptr,
         VkPipelineShaderStageCreateFlags flags = 0);

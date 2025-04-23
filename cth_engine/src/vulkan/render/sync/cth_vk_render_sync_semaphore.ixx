@@ -1,15 +1,20 @@
-#pragma once
-#include "src/vulkan/base/CthDeviceTable.hpp"
-#include "src/vulkan/utility/cth_constants.hpp"
-#include "src/vulkan/utility/cth_vk_types.hpp"
+module;
+#include "lib/volk.hpp"
 
-#include <volk.h>
 #include <cth/io/io_log.hpp>
 
-import cth.ptr.move;
+export module cth.vk.render.sync.semaphore;
+
+FIX THIS
+#include "src/vulkan/base/CthDeviceTable.hpp"
+
+import cth.vk.constants;
+import cth.vk.util.types;
+
+import cth.ptr;
 import cth.io.log;
 
-namespace cth::vk {
+export namespace cth::vk {
 class Core;
 
 
@@ -99,7 +104,7 @@ public:
 
 }
 
-namespace cth::vk {
+export namespace cth::vk {
 struct Semaphore::State {
     vk::not_null<VkSemaphore> vkSemaphore;
 };
@@ -107,8 +112,8 @@ struct Semaphore::State {
 
 //debug checks
 
-namespace cth::vk {
-inline void Semaphore::debug_check(Semaphore const& semaphore) {
+export namespace cth::vk {
+void Semaphore::debug_check(Semaphore const& semaphore) {
     CTH_CRITICAL(!semaphore.created(), "semaphore must be created") {}
 }
 

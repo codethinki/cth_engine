@@ -1,12 +1,16 @@
-#pragma once
-#include "RenderStageConfig.hpp"
-#include "src/vulkan/render/control/CthFence.hpp"
-#include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
-#include "src/vulkan/utility/cth_constants.hpp"
+module;
+
+export module cth.interface.render.stage;
+
+import cth.vk.constants;
+import cth.vk.render.sync.fence;
+import cth.vk.render.sync.pipeline_wait_stage;
+import cth.interface.render.stage_config;
 
 import cth.ptr.not_null;
 
-//IMPLEMENT release and state
+import std;
+
 namespace cth::vk {
 class RenderPulse;
 
@@ -22,6 +26,11 @@ class SecondaryCmdBuffer;
 class Queue;
 class RenderPass;
 class Semaphore;
+}
+
+//IMPLEMENT release and state
+namespace cth::vk {
+
 
 struct RenderStageCmdBuffers {
     PrimaryCmdBuffer* cmdBuffer;

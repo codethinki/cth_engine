@@ -1,25 +1,22 @@
-#pragma once
-#include "src/vulkan/utility/cth_constants.hpp"
-
+module;
+#include "lib/glfw.hpp"
 #include <cth/io/io_log.hpp>
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 
-#include <memory>
-#include <string>
-#include <vector>
+export module cth_vk_os_window;
+
+import cth.vk.constants;
 
 import cth.io.log;
 import cth.ptr.move;
 
+import std;
 
-namespace cth::vk {
-class DestructionQueue;
-}
 
-namespace cth::vk {
+export namespace cth::vk {
 class Instance;
 class Surface;
+class DestructionQueue;
+
 //TODO implement DEBUG_CHECK_OS_WINDOW
 //TEMP modernize
 class OSWindow {
@@ -94,7 +91,7 @@ public:
     OSWindow(OSWindow const& other) = delete;
     OSWindow& operator=(OSWindow const& other) = delete;
     OSWindow(OSWindow&& other) = default;
-    OSWindow& operator=(OSWindow&& other) = default; // copy/move operations
+    OSWindow& operator=(OSWindow&& other) = default;
 
     static void debug_check_not_null(OSWindow const* os_window);
     static void debug_check(OSWindow const* os_window);
@@ -102,7 +99,7 @@ public:
 };
 }
 
-namespace cth::vk {
+export namespace cth::vk {
 
 inline void OSWindow::debug_check_not_null(OSWindow const* os_window) {
     CTH_CRITICAL(os_window == nullptr, "os_window must not be nullptr") {}
