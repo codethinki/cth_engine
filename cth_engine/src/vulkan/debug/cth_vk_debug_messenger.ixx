@@ -18,9 +18,14 @@ VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityF
     void* user_data);
 }
 
+
 namespace cth::vk {
 class Instance;
 class DestructionQueue;
+}
+
+export namespace cth::vk {
+
 
 class DebugMessenger {
 public:
@@ -119,7 +124,7 @@ public:
 };
 } // namespace cth
 
-namespace cth::vk {
+export namespace cth::vk {
 struct DebugMessenger::State {
     cth::not_null<Instance const*> instance;
     gsl::owner<VkDebugUtilsMessengerEXT> vkMessenger; // NOLINT(cppcoreguidelines-owning-memory)
@@ -129,7 +134,7 @@ struct DebugMessenger::State {
 
 //debug checks
 
-namespace cth::vk {
+export namespace cth::vk {
 inline void DebugMessenger::debug_check(DebugMessenger const& debug_messenger) {
     CTH_CRITICAL(!debug_messenger.created(), "debug_messenger not created") {}
 }

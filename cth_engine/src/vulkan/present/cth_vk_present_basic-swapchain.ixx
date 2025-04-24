@@ -1,0 +1,231 @@
+﻿module;
+#include "lib/volk.hpp"
+#include <cth/io/io_log.hpp>
+export module cth.vk.present.basic_swapchain;
+
+
+import cth.vk.base.submit.present_info;
+import cth.vk.base.queue;
+import cth.vk.res.img.image;
+import cth.vk.present.surface;
+import cth.vk.render.sync.fence;
+import cth.vk.render.rec.subpass;
+import cth.vk.render.rec.attachment_collection;
+import cth.vk.render.rec.pass;
+import cth.vk.render.rec.cmd.buffer;
+import cth.vk.res.img.framebuffer;
+import cth.vk.res.img.view;
+import cth.vk.base.core;
+import cth.vk.constants;
+
+import cth.io.log;
+
+import std;
+
+namespace cth::vk {
+class GraphicsSyncConfig;
+}
+
+export namespace cth::vk {
+//TEMP make this non basic and remove components like renderpass and subpass as well as attachments (except resolve attachment)
+//TEMP maybe remove framebuffers idk
+
+class BasicSwapchain {
+public:
+    BasicSwapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config,
+        Surface const& surface);
+    virtual ~BasicSwapchain();
+
+    //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
+    virtual void create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE);
+
+    /**
+     * @brief destroys the swapchain
+     * @note calls destroyResources()
+     */
+    virtual void destroy();
+
+
+    virtual void resize(VkExtent2D window_extent);
+
+
+
+    /**
+     * @return result of @ref vkAcquireNextImageKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR]
+     *
+     * @note might block
+     * @note the semaphore must not be signaled
+     * @note the fence must be signaled
+     */
+    VkResult acquireNextImage();
+    void skipAcquire() const;
+
+    void beginRenderPass(PrimaryCmdBuffer const& cmd_buffer) const;
+
+    void endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const;
+
+
+    [[nodiscard]] VkResult present(); //TEMP remove deletion queue from here
+    void skipPresent();
+
+    void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
+        CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) const;
+
+    [[nodiscard]] ImageView const* imageView(size_t index) const;
+    [[nodiscard]] Image const* image(size_t index) const;
+
+
+    static void destroy(DeviceTable table, VkSwapchainKHR swapchain);
+
+private:
+    static constexpr uint32_t NO_IMAGE_INDEX = (std::numeric_limits<uint32_t>::max());
+
+
+    //setMsaaSampleCount
+    [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
+
+
+    //createSyncObjects
+    void createSyncObjects();
+
+    //createSwapchain
+    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::span<VkSurfaceFormatKHR const> available_formats,
+        std::span<VkSurfaceFormatKHR const> allowed_formats);
+    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(std::span<VkPresentModeKHR const> available_present_modes,
+        std::span<VkPresentModeKHR const> allowed_present_modes);
+    [[nodiscard]] static VkExtent2D chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities);
+    [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
+    [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(VkSurfaceKHR surface,
+        VkSurfaceFormatKHR surface_format, VkSurfaceCapabilitiesKHR const& capabilities, VkPresentModeKHR present_mode, VkExtent2D extent,
+        uint32_t image_count, VkSwapchainKHR old_swapchain);
+    void createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain);
+
+
+    [[nodiscard]] Image::Config createColorImageConfig(VkSampleCountFlagBits samples) const;
+    [[nodiscard]] Image::Config createDepthImageConfig() const;
+
+    [[nodiscard]] std::vector<std::unique_ptr<Image>> getSwapchainImages();
+    void findDepthFormat();
+
+
+    void createResolveAttachments(std::vector<std::unique_ptr<Image>> swapchain_images);
+    void createMsaaAttachments();
+    void createDepthAttachments();
+
+    void createAttachments();
+
+
+    //createRenderPass
+    void createSubpass();
+    [[nodiscard]] VkSubpassDependency createSubpassDependency() const;
+    /**
+     * @throws cth::vk::result_exception result of @ref vkCreateRenderPass()
+     */
+    void createRenderPass();
+    /**
+     * @throws cth::vk::result_exception result of @ref vkCreateFramebuffer()
+     */
+    void createFramebuffers();
+
+    void createPresentInfos();
+
+
+    void destroyRenderConstructs();
+    void destroyResources();
+
+
+
+    void destroySwapchain(VkSwapchainKHR swapchain) const;
+
+    void destroySyncObjects();
+    //TEMP left off here check swapchain destruction and then try to make it compile
+
+    void resizeReset();
+    void reset();
+
+    cth::not_null<Core const*> _core;
+    cth::not_null<Queue const*> _presentQueue;
+    cth::not_null<Surface const*> _surface;
+
+
+    cth::move_ptr<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
+
+
+    VkExtent2D _extent{};
+    float _aspectRatio = 0;
+    VkExtent2D _windowExtent{};
+
+
+    size_t _imageCount = 0;
+    VkFormat _imageFormat = VK_FORMAT_UNDEFINED;
+    VkFormat _depthFormat = VK_FORMAT_UNDEFINED;
+
+    std::unique_ptr<AttachmentCollection> _resolveAttachments;
+    std::unique_ptr<AttachmentCollection> _msaaAttachments; //TEMP this should not be here
+    std::unique_ptr<AttachmentCollection> _depthAttachments; //TEMP this should not be here
+
+    std::unique_ptr<RenderPass> _renderPass; //TEMP this should not be here
+    std::unique_ptr<Subpass> _subpass; //TEMP this should not be here
+    std::vector<Framebuffer> _swapchainFramebuffers; //TEMP this maybe should not be here
+
+
+    cth::not_null<GraphicsSyncConfig const*> _syncConfig;
+
+    std::vector<Fence> _imageAvailableFences;
+
+    std::vector<PresentInfo> _presentInfos;
+
+
+    std::array<uint32_t, constants::FRAMES_IN_FLIGHT> _imageIndices{};
+
+    VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    [[nodiscard]] Core const& core() const { return *_core; }
+
+public:
+    [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }
+    [[nodiscard]] float extentAspectRatio() const { return _aspectRatio; }
+    [[nodiscard]] bool compareSwapFormats(BasicSwapchain const& other) const {
+        return other._depthFormat != _depthFormat || other._imageFormat != _imageFormat;
+    }
+    [[nodiscard]] RenderPass const* renderPass() const { return _renderPass.get(); }
+
+    [[nodiscard]] size_t imageCount() const { return _imageCount; }
+    [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
+    [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; } //TODO move this to framebuffer or render pass
+
+
+    BasicSwapchain(BasicSwapchain const& other) = delete;
+    BasicSwapchain(BasicSwapchain&& other) noexcept = default;
+    BasicSwapchain& operator=(BasicSwapchain const& other) = delete;
+    BasicSwapchain& operator=(BasicSwapchain&& other) noexcept = default;
+
+    static void debug_check(BasicSwapchain const* swapchain);
+    static void debug_check_leak(BasicSwapchain const* swapchain);
+
+    static void debug_check_window_extent(VkExtent2D window_extent);
+    static void debug_check_compatibility(BasicSwapchain const& a, BasicSwapchain const& b);
+};
+
+}
+
+//debug checks
+
+export namespace cth::vk {
+
+inline void BasicSwapchain::debug_check(BasicSwapchain const* swapchain) {
+    CTH_CRITICAL(swapchain == nullptr, "swapchain invalid (nullptr)") {}
+    CTH_CRITICAL(swapchain->_handle == VK_NULL_HANDLE, "swapchain handle invalid (VK_NULL_HANDLE)") {}
+}
+inline void BasicSwapchain::debug_check_leak(BasicSwapchain const* swapchain) {
+    CTH_WARN(swapchain->_handle != VK_NULL_HANDLE, "swapchain handle replaced, (potential memory leak)") {}
+}
+inline void BasicSwapchain::debug_check_window_extent(VkExtent2D window_extent) {
+    CTH_CRITICAL(window_extent.width == 0 || window_extent.height == 0, "window_extent width({0}) or height({0}) invalid (> 0 required",
+        window_extent.width, window_extent.height) {}
+}
+inline void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwapchain const& b) {
+    CTH_CRITICAL(a._core == b._core, "swapchains not compatible (different cores)") {}
+}
+
+}
