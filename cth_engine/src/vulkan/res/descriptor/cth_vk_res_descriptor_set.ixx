@@ -2,20 +2,16 @@ module;
 #include "lib/volk.hpp"
 export module cth.vk.res.descriptor.set;
 
-#error FIX THIS
-#include "../buffer/CthBaseBuffer.hpp"
+import cth.vk.res.buffer.base;
+import cth.vk.res.descriptors.base;
+import cth.vk.res.descriptor.pool;
+import cth.vk.res.desciptor.set_layout;
 
 import cth.ptr.move;
 
 import std;
 
-namespace cth::vk {
-class Descriptor;
-class DescriptorSetLayout;
-class DescriptorPool;
-}
-
-namespace cth::vk {
+export namespace cth::vk {
 class DescriptorSet {
     enum class InfoType {
         BUFFER,

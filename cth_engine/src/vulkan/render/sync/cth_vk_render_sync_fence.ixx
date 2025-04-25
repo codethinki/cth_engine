@@ -3,20 +3,16 @@ module;
 #include <cth/io/io_log.hpp>
 
 export module cth.vk.render.sync.fence;
-FIX THIS
-#include "src/vulkan/base/CthDeviceTable.hpp"
 
-
+import cth.vk.base.device_table;
+import cth.vk.base.core;
+import cth_vk_res_destruction_queue;
 import cth.vk.constants;
 import cth.vk.util.types;
 
 import cth.ptr;
 import cth.io.log;
 
-namespace cth::vk {
-class Core;
-class DestructionQueue;
-}
 
 export namespace cth::vk {
 class Fence {

@@ -6,9 +6,7 @@ export module cth.vk.res.descriptors.buffer;
 
 import cth.vk.res.descriptors.base;
 import cth.vk.constants;
-
-FIX THIS
-#include "src/vulkan/memory/buffer/CthDefaultBuffer.hpp"
+import cth.vk.res.buffer;
 
 
 //TODO fix this file

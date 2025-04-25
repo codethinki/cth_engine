@@ -3,25 +3,21 @@
 
 
 export module cth.vk.render.rec.pass;
-FIX THIS
 
-#include "src/vulkan/base/CthDeviceTable.hpp"
-
+import cth.vk.base.device_table;
 import cth.vk.constants;
 import cth.vk.util.types;
+import cth.vk.render.rec.cmd.buffer;
+import cth.vk.render.rec.attachment_collection;
+import cth.vk.render.rec.subpass;
+import cth.vk.res.img.framebuffer;
+import cth.vk.base.core;
+
 
 import cth.ptr;
 import cth.io.log;
 
 import std;
-
-namespace cth::vk {
-class PrimaryCmdBuffer;
-class AttachmentCollection;
-class Subpass;
-class Core;
-class Framebuffer;
-}
 
 export namespace cth::vk {
 
@@ -89,8 +85,8 @@ public:
      */
     State release();
 
-    void begin(PrimaryCmdBuffer const& cmd_buffer, uint32_t config_index, Framebuffer const& framebuffer);
-    void end(PrimaryCmdBuffer const& cmd_buffer);
+    void begin(cth::vk::not_null<VkCommandBuffer> cmd_buffer, uint32_t config_index, Framebuffer const& framebuffer);
+    void end(cth::vk::not_null<VkCommandBuffer> cmd_buffer);
 
     static void destroy(DeviceTable table, VkRenderPass vk_render_pass);
 

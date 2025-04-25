@@ -5,11 +5,13 @@ module;
 
 export module cth.vk.render.rec.cmd.buffer;
 
-FIX THIS
-#include "src/vulkan//base/CthDeviceTable.hpp"
-
+import cth.vk.base.device_table;
 import cth.vk.constants;
 import cth.vk.util.types;
+import cth.vk.res.img.framebuffer;
+import cth.vk.render.rec.subpass;
+
+
 
 import cth.ptr.move;
 import cth.io.log;
@@ -17,8 +19,6 @@ import cth.io.log;
 import std;
 
 namespace cth::vk {
-class Framebuffer;
-class Subpass;
 class RenderPass;
 class Core;
 class CmdPool;

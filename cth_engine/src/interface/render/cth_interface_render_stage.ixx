@@ -2,34 +2,26 @@ module;
 
 export module cth.interface.render.stage;
 
+import cth.interface.render.stage_config;
+import cth.interface.render.pulse;
+
 import cth.vk.constants;
+import cth.vk.base.core;
+import cth.vk.base.submit.info;
+import cth.vk.base.queue;
 import cth.vk.render.sync.fence;
 import cth.vk.render.sync.pipeline_wait_stage;
-import cth.interface.render.stage_config;
+import cth.vk.render.sync.semaphore;
+import cth.vk.render.rec.cmd.buffer;
+import cth.vk.render.rec.cmd.pool;
+import cth.vk.render.rec.pass;
 
 import cth.ptr.not_null;
 
 import std;
 
-namespace cth::vk {
-class RenderPulse;
-
-struct Cycle;
-struct PipelineWaitStage;
-struct SubmitInfo;
-
-class CmdPool;
-class Core;
-class PrimaryCmdBuffer;
-class SecondaryCmdBuffer;
-
-class Queue;
-class RenderPass;
-class Semaphore;
-}
-
 //IMPLEMENT release and state
-namespace cth::vk {
+export namespace cth::vk {
 
 
 struct RenderStageCmdBuffers {

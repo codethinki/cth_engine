@@ -3,15 +3,13 @@
 
 export module cth.vk.base.submit.info;
 
-import std;
+import cth.vk.render.sync.fence;
+import cth.vk.render.sync.pipeline_wait_stage;
+import cth.vk.render.rec.cmd.buffer;
+import cth.vk.render.sync.semaphore;
+import cth.vk.render.sync.timeline_semaphore;
 
-namespace cth::vk {
-class Fence;
-struct PipelineWaitStage;
-class PrimaryCmdBuffer;
-class Semaphore;
-class TimelineSemaphore;
-}
+import std;
 
 export namespace cth::vk {
 

@@ -5,7 +5,6 @@ export module cth.vk.res.img.framebuffer;
 
 import cth.vk.res.img.view;
 import cth.vk.render.rec.attachment_collection;
-import cth.vk.render.rec.pass;
 import cth.vk.base.core;
 import cth.vk.base.device_table;
 import cth.vk.util.types;
@@ -24,9 +23,8 @@ public:
 
     /**
      * @brief base constructor
-     * @param render_pass requires RenderPass::created()
      */
-    Framebuffer(Core const& core, RenderPass const& render_pass,
+    Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass,
         std::span<ImageView const* const> attachments, uint32_t layers = DEFAULT_LAYERS);
 
     /**
@@ -34,7 +32,7 @@ public:
      * @param state passed to @ref wrap()
      * @note calls @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
      */
-    Framebuffer(Core const& core, RenderPass const& render_pass,
+    Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass,
         std::span<ImageView const* const> attachments, State const& state, uint32_t layers = DEFAULT_LAYERS);
 
     /**
@@ -42,7 +40,7 @@ public:
      * @param extent passed to @ref create()
      * @note calls @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
      */
-    Framebuffer(Core const& core, RenderPass const& render_pass,
+    Framebuffer(Core const& core, vk::not_null<VkRenderPass> const& render_pass,
         std::span<ImageView const* const> attachments, VkExtent2D extent, uint32_t layers = DEFAULT_LAYERS);
 
     ~Framebuffer();
@@ -84,7 +82,7 @@ private:
     void reset();
 
     cth::not_null<Core const*> _core;
-    cth::not_null<RenderPass const*> _renderPass;
+    vk::not_null<VkRenderPass> _renderPass;
     std::vector<ImageView const*> _attachments;
     uint32_t _layers;
 

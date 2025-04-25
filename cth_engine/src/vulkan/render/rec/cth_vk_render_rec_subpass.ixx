@@ -4,11 +4,11 @@
 export module cth.vk.render.rec.subpass;
 
 import cth.vk.constants;
+import cth.vk.render.rec.attachment_collection;
 
 import cth.io.log;
 
 export namespace cth::vk {
-class AttachmentCollection;
 class Subpass {
 public:
     Subpass(uint32_t index, VkPipelineBindPoint bind_point,

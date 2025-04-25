@@ -1,30 +1,21 @@
 module;
 #include "lib/volk.hpp"
 #include <cth/io/io_log.hpp>
-
-
 export module cth.vk.res.buffer.base;
-
-
-#error fix this
-#include "../memory/CthMemory.hpp"
-
 
 import cth.vk.constants;
 import cth.vk.util.types;
 import cth_vk_res_destruction_queue;
+import cth.vk.base.core;
+import cth.vk.render.rec.cmd.buffer;
+import cth.vk.res.memory;
+import cth.vk.base.device_table;
+
 
 import cth.io.log;
 import cth.ptr;
 
 import std;
-
-namespace cth::vk {
-class Memory;
-class CmdBuffer;
-class Core;
-class DestructionQueue;
-}
 
 export namespace cth::vk {
 class BaseBuffer {

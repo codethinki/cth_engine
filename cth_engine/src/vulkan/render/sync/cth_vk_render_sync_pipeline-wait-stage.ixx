@@ -4,12 +4,8 @@ module;
 
 export module cth.vk.render.sync.pipeline_wait_stage;
 
-
+import cth.vk.render.sync.semaphore;
 import cth.io.log;
-
-namespace cth::vk {
-class Semaphore;
-}
 
 export namespace cth::vk {
 struct PipelineWaitStage {

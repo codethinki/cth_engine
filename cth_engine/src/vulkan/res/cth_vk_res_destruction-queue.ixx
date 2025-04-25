@@ -1,11 +1,10 @@
 module;
-#include <cth/io/io_log.hpp>
+
+#warning rename this module
 
 export module cth_vk_res_destruction_queue;
-#error rename this module
 import cth.vk.constants;
 
-import cth.io.log;
 
 import std;
 

@@ -6,24 +6,20 @@ export module cth.vk.base.queue;
 
 
 import cth.vk.base.queue_family;
+import cth.vk.base.device;
+import cth.vk.base.submit.present_info;
+import cth.vk.base.submit.info;
 import cth.vk.constants;
+import cth.vk.render.sync.timeline_semaphore;
+import cth.vk.render.sync.fence;
+import cth.vk.render.sync.semaphore;
+import cth.vk.render.rec.cmd.buffer;
+import cth.vk.present.basic_swapchain;
 import cth.vk.util.types;
 
 
 import cth.io.log;
 import cth.ptr;
-
-namespace cth::vk {
-class Device;
-struct PresentInfo;
-struct SubmitInfo;
-class TimelineSemaphore;
-class Semaphore;
-class Fence;
-class Core;
-class BasicSwapchain;
-class PrimaryCmdBuffer;
-}
 
 
 export namespace cth::vk {

@@ -3,14 +3,12 @@
 
 export module cth.vk.res.descriptors.image;
 
-FIX THIS
-#include "src/vulkan/resource/image/CthImage.hpp"
-#include "src/vulkan/resource/image/CthImageView.hpp"
-#include "src/vulkan/resource/image/texture/CthSampler.hpp"
-
+import cth.vk.res.img.image;
+import cth.vk.res.img.view;
+import cth.vk.res.img.texture.sampler;
 import cth.vk.res.descriptors.base;
 
-namespace cth::vk {
+export namespace cth::vk {
 class ImageDescriptor : public Descriptor {
 public:
     explicit ImageDescriptor(VkDescriptorType type, VkDescriptorImageInfo const& info) : Descriptor(type), _vkDescriptorInfo(info) {}
@@ -49,4 +47,4 @@ public:
 
 
 
-} // namespace cth
+}

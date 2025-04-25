@@ -6,15 +6,11 @@ export module cth.vk.base.instance;
 import cth.vk.debug.messenger;
 import cth.vk.constants;
 import cth.vk.util.types;
-
+import cth_vk_res_destruction_queue;
 
 import cth.ptr;
 
 import std;
-
-namespace cth::vk {
-class DestructionQueue;
-}
 
 export namespace cth::vk {
 class Instance {

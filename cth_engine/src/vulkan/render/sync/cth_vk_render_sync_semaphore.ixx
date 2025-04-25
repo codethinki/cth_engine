@@ -5,18 +5,15 @@ module;
 
 export module cth.vk.render.sync.semaphore;
 
-FIX THIS
-#include "src/vulkan/base/CthDeviceTable.hpp"
-
+import cth.vk.base.device_table;
 import cth.vk.constants;
 import cth.vk.util.types;
+import cth.vk.base.core;
 
 import cth.ptr;
 import cth.io.log;
 
 export namespace cth::vk {
-class Core;
-
 
 class Semaphore {
 public:

@@ -7,6 +7,10 @@ export module cth.vk.render.rec.cmd.pool;
 import cth.vk.render.rec.cmd.buffer;
 import cth.vk.constants;
 import cth.vk.util.types;
+import cth.vk.base.device_table;
+import cth.vk.base.core;
+import cth_vk_res_destruction_queue;
+import cth.vk.base.queue;
 
 
 import cth.typ.variadic;
@@ -14,12 +18,6 @@ import cth.io.log;
 import cth.ptr;
 
 import std;
-
-namespace cth::vk {
-class DestructionQueue;
-class Queue;
-class Core;
-}
 
 export namespace cth::vk {
 

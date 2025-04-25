@@ -3,19 +3,14 @@
 #include <cth/io/io_log.hpp>
 export module cth.vk.res.img.image;
 
-#error fix this
-#include "../memory/CthMemory.hpp"
-
-namespace cth::vk {
-class ImageBarrier;
-}
-
 import cth.vk.base.core;
 import cth.vk.base.device_table;
 import cth.vk.constants;
 import cth.vk.res.buffer.base;
 import cth.vk.render.rec.cmd.buffer;
 import cth.vk.util.types;
+import cth.vk.render.sync.barrier.base;
+import cth.vk.res.memory;
 
 import cth.io.log;
 
@@ -229,6 +224,104 @@ inline void Image::debug_check(Image const& image) {
 }
 inline void Image::debug_check_handle([[maybe_unused]] vk::not_null<VkImage> vk_image) {}
 }
+
+//ImageBarrier
+
+export namespace cth::vk {
+class ImageBarrier : virtual protected BarrierBase {
+public:
+    struct Info;
+    ImageBarrier(Core const& core, PipelineStages stages) : BarrierBase(core, stages) {}
+    ImageBarrier(Core const& core, PipelineStages stages, std::unordered_map<Image*, Info> const& images);
+    virtual ~ImageBarrier() = default;
+
+    void add(Image* image, Info const& info);
+    /**
+    * @brief adds the transition to the pipeline barrier
+    * @param mip_levels (Constants::ALL => all remaining)
+    */
+    void transitionLayout(Image& image, VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access,
+        uint32_t first_mip_level = 0, uint32_t mip_levels = constants::ALL);
+
+    void replace(Image* image, Info const& info);
+    void remove(Image const* image);
+
+    virtual void execute(CmdBuffer const& cmd_buffer);
+
+    [[nodiscard]] bool contains(Image const* image) const;
+
+protected:
+    void applyChanges() const;
+
+private:
+    [[nodiscard]] ptrdiff_t find(Image const* image) const;
+
+    void removeChange(size_t barrier_index);
+    void init(std::unordered_map<Image*, ImageBarrier::Info> const& images);
+    std::vector<VkImageMemoryBarrier> _imageBarriers{};
+
+    std::vector<std::pair<size_t, Image*>> _layoutChanges{};
+
+    friend PipelineBarrier;
+
+public:
+    ImageBarrier(ImageBarrier const& other) = delete;
+    ImageBarrier& operator=(ImageBarrier const& other) = delete;
+    ImageBarrier(ImageBarrier&& other) noexcept = default;
+    ImageBarrier& operator=(ImageBarrier&& other) noexcept = default;
+};
+
+struct ImageBarrier::Info {
+
+
+    VkImageAspectFlagBits aspectMask = constants::ASPECT_MASK_IGNORED; //Constants::ASPECT_MASK_IGNORED => vk_image default aspect
+    uint32_t firstMipLevel = 0;
+    uint32_t levels = constants::ALL; //Constants::ALL => all remaining
+    VkImageLayout newLayout = constants::IMAGE_LAYOUT_IGNORED; //Constants::IMAGE_LAYOUT_IGNORED => old layout
+
+    PipelineAccess src;
+    PipelineAccess dst;
+
+
+    static Info Default() { return Info{}; }
+
+    static Info QueueTransition(PipelineAccess const& src, PipelineAccess const& dst) { return Info{.src = src, .dst = dst}; }
+    static Info QueueTransition(VkAccessFlags src_access, uint32_t src_queue_family_index, VkAccessFlags dst_access,
+        uint32_t dst_queue_family_index) {
+        return Info{
+            .src = {src_access, src_queue_family_index},
+            .dst = {dst_access, dst_queue_family_index}
+        };
+    }
+    static Info QueueTransition(VkAccessFlags src_access, Queue const& src_queue, VkAccessFlags dst_access,
+        Queue const& dst_queue) {
+        return Info{
+            .src = {src_access, src_queue.familyIndex()},
+            .dst = {dst_access, dst_queue.familyIndex()}
+        };
+    }
+    /**
+     * @param levels (Constants::ALL => all remaining)
+     */
+    static Info LayoutTransition(VkImageLayout new_layout, VkAccessFlags src_access, VkAccessFlags dst_access,
+        uint32_t const first_mip_level = 0, uint32_t const levels = 0) {
+        return Info{
+            .firstMipLevel = first_mip_level,
+            .levels = levels,
+            .newLayout = new_layout,
+            .src = PipelineAccess{src_access},
+            .dst = PipelineAccess{dst_access},
+        };
+    }
+
+private:
+    [[nodiscard]] VkImageMemoryBarrier createBarrier(Image const& image) const;
+
+    friend ImageBarrier;
+};
+
+
+} // namespace cth
 
 //TODO implement multidimensional image support
 //void write(const DefaultBuffer* buffer, size_t offset = 0, uint32_t mip_level = 0, VkImageAspectFlagBits aspect_mask = VK_IMAGE_ASPECT_NONE) const;

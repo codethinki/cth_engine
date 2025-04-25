@@ -3,15 +3,12 @@ module;
 
 export module cth.vk.base.submit.present_info;
 
+import cth.vk.present.basic_swapchain;
+import cth.vk.render.sync.semaphore;
+
 import std;
 
-namespace cth::vk {
-class BasicSwapchain;
-class Semaphore;
-}
-
 export namespace cth::vk {
-
 
 struct PresentInfo {
     /**

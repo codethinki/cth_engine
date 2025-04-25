@@ -6,12 +6,9 @@ export module cth.vk.res.buffer;
 import cth.vk.constants;
 import cth.vk.res.buffer.base;
 import cth.vk.base.core;
+import cth.vk.render.rec.cmd.buffer;
 
-namespace cth::vk {
-class CmdBuffer;
-}
-
-namespace cth::vk {
+export namespace cth::vk {
 template<typename T>
 class Buffer final : public BaseBuffer {
 public:

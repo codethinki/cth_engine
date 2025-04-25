@@ -11,10 +11,11 @@ import cth.vk.render.rec.pass;
 import cth.vk.base.queue;
 import cth.vk.render.rec.cmd.buffer;
 import cth.vk.present.basic_swapchain;
+import cth.vk.util.types;
 
-#error fix this
 
 namespace cth::vk {
+#warning fix this name
 class GraphicsCore {
 public:
     /**

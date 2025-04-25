@@ -3,29 +3,25 @@ module;
 
 export module cth.vk.renderer;
 
-COMPLETE THIS
-#include "RenderStageConfig.hpp"
-
-#include "src/vulkan/render/control/CthPipelineWaitStage.hpp"
-
 import cth.interface.render.pulse;
+import cth.interface.render.stage_config;
+import cth.interface.render.stage;
+
+import cth.vk.base.core;
+import cth.vk.base.queue;
+import cth.vk.constants;
+import cth.vk.render.rec.cmd.pool;
+import cth.vk.render.sync.timeline_semaphore;
+import cth.vk.render.sync.semaphore;
+import cth.vk.render.sync.pipeline_wait_stage;
 import cth.vk.dag;
 
 import cth.ptr.not_null;
 import cth.io.log;
 
-
 import std;
 
-//IMPLEMENT release and state
-namespace cth::vk {
-class RenderStage;
-class CmdPool;
-class Queue;
-class TimelineSemaphore;
-class Core;
-class Semaphore;
-}
+#warning rename this
 
 export namespace cth::vk {
 struct Renderer3Config {

@@ -6,24 +6,19 @@ export module cth.vk.base.physical_device;
 import cth.vk.base.queue_family;
 import cth.vk.physical_device_features;
 import cth.vk.util.types;
+import cth.vk.base.instance;
+import cth.vk.present.surface;
+import cth.vk.base.queue;
 
 import cth.ptr;
 import cth.io.log;
 
 import std;
 
-namespace cth::vk {
-class Queue;
-class Instance;
-class Surface;
-}
-
 export namespace cth::vk {
 class PhysicalDevice {
 public:
     struct State;
-
-
 
     /**
      * @brief base constructor

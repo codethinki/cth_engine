@@ -7,8 +7,6 @@ import cth.vk.base.physical_device;
 import cth.vk.util.types;
 
 export namespace cth::vk {
-
-
 class Surface {
 public:
     struct State;

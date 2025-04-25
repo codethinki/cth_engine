@@ -6,6 +6,7 @@ export module cth.vk.debug.messenger;
 
 import cth.vk.constants;
 import cth.vk.util.types;
+import cth_vk_res_destruction_queue;
 
 import cth.ptr;
 import cth.io.log;
@@ -16,12 +17,6 @@ namespace cth::dev {
 VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
     VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
     void* user_data);
-}
-
-
-namespace cth::vk {
-class Instance;
-class DestructionQueue;
 }
 
 export namespace cth::vk {
@@ -47,7 +42,7 @@ public:
      * @note calls @ref DebugMessenger(Config)
      * @note calls @ref create()
      */
-    explicit DebugMessenger(Config const& config, Instance const& instance) : DebugMessenger{config} { create(instance); }
+    explicit DebugMessenger(Config const& config, cth::vk::not_null<VkInstance_T> instance) : DebugMessenger{config} { create(instance); }
 
 
     /**
@@ -62,7 +57,7 @@ public:
      * @throws cth::except::default_exception reason: vkGetInstanceProcAddr() returned nullptr
      * @throws cth::vk::result_exception result of @ref vkCreateDebugUtilsMessengerEXT()
      */
-    void create(Instance const& instance);
+    void create(cth::vk::not_null<VkInstance_T> instance);
 
 
     /**
@@ -102,7 +97,7 @@ public:
     };
 
 protected:
-    Instance const* _instance = nullptr;
+    cth::vk::not_null<VkInstance_T> _instance;
     Config _config;
 
 private:
@@ -122,11 +117,11 @@ public:
 
     static void debug_check(DebugMessenger const& debug_messenger);
 };
-} // namespace cth
+}
 
 export namespace cth::vk {
 struct DebugMessenger::State {
-    cth::not_null<Instance const*> instance;
+    vk::not_null<VkInstance_T> instance;
     gsl::owner<VkDebugUtilsMessengerEXT> vkMessenger; // NOLINT(cppcoreguidelines-owning-memory)
 };
 

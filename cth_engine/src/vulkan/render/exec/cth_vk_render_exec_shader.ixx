@@ -2,10 +2,9 @@ module;
 #include "lib/volk.hpp"
 export module cth.vk.render.exec.shader;
 
-FIX_THIS
-ADD DEVICE TABLE
-
-#include "src/vulkan/resource/buffer/CthBaseBuffer.hpp"
+import cth.vk.base.device_table;
+import cth.vk.res.buffer.base;
+import cth.vk.base.core;
 
 import cth.ptr;
 
@@ -14,8 +13,6 @@ import std;
 
 //TEMP modernize
 export namespace cth::vk {
-struct DeviceTable;
-class Device;
 
 struct ShaderSpecialization {
     ShaderSpecialization(std::span<VkSpecializationMapEntry> entries, std::span<char> data);

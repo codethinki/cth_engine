@@ -6,17 +6,14 @@ export module cth.vk.res.descriptor.pool;
 
 
 import cth.vk.constants;
+import cth.vk.base.core;
+import cth.vk.res.descriptor.set;
+import cth.vk.res.desciptor.set_layout;
 
 import cth.io.log;
 import cth.ptr;
 
 import std;
-
-namespace cth::vk {
-class Core;
-class DescriptorSet;
-class DescriptorSetLayout;
-}
 
 export namespace cth::vk {
 /**

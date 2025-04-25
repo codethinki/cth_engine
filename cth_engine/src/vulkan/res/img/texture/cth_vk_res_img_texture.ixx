@@ -2,12 +2,14 @@
 #include "lib/volk.hpp"
 
 export module cth.vk.res.img.texture;
-#error fix this
-#include "src/vulkan/resource/image/CthImage.hpp"
+
 
 //TEMP modernize
 
 import cth.vk.base.core;
+import cth.vk.res.img.image;
+import cth.vk.render.rec.cmd.buffer;
+import cth.vk.res.buffer.base;
 
 import std;
 

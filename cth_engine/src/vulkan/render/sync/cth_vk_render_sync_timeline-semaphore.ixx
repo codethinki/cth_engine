@@ -1,14 +1,16 @@
 module;
-
+#include "lib/volk.hpp"
+#include <cstdint>
 export module cth.vk.render.sync.timeline_semaphore;
 
 import cth.vk.constants;
-import cth.vk.util.types;
 import cth.vk.render.sync.semaphore;
+import cth.vk.util.types;
+import cth.vk.base.core;
 
 import std;
 
-namespace cth::vk {
+export namespace cth::vk {
 class TimelineSemaphore : public Semaphore {
 public:
     struct State;

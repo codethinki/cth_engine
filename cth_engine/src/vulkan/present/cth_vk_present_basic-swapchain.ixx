@@ -3,28 +3,25 @@
 #include <cth/io/io_log.hpp>
 export module cth.vk.present.basic_swapchain;
 
-
 import cth.vk.base.submit.present_info;
+import cth.vk.base.device_table;
 import cth.vk.base.queue;
-import cth.vk.res.img.image;
+import cth.vk.base.core;
+import cth.vk.constants;
 import cth.vk.present.surface;
+import cth.vk.present.sync.config;
 import cth.vk.render.sync.fence;
 import cth.vk.render.rec.subpass;
 import cth.vk.render.rec.attachment_collection;
 import cth.vk.render.rec.pass;
 import cth.vk.render.rec.cmd.buffer;
+import cth.vk.res.img.image;
 import cth.vk.res.img.framebuffer;
 import cth.vk.res.img.view;
-import cth.vk.base.core;
-import cth.vk.constants;
 
 import cth.io.log;
 
 import std;
-
-namespace cth::vk {
-class GraphicsSyncConfig;
-}
 
 export namespace cth::vk {
 //TEMP make this non basic and remove components like renderpass and subpass as well as attachments (except resolve attachment)

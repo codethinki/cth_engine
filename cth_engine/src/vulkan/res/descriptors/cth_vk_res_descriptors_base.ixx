@@ -4,15 +4,10 @@ module;
 
 export module cth.vk.res.descriptors.base;
 
-
+import cth.vk.base.device;
+import cth.vk.render.exec.pipeline;
 
 import cth.io.log;
-
-namespace cth::vk {
-class Device;
-class Pipeline;
-class DescriptedResource;
-}
 
 export namespace cth::vk {
 //TEMP rename this to DescriptorBase
