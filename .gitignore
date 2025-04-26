@@ -366,3 +366,4 @@ FodyWeavers.xsd
 
 #vcpkg
 vcpkg_installed/
+/compileData.scor.gbl
