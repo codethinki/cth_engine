@@ -39,7 +39,7 @@
     <ClInclude Include="lib\windows.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\vulkan\render\exec\HlcPushConstant.hpp">
+    <ClInclude Include="src\render\exec\HlcPushConstant.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\util\cth_debug_macros.hpp">
@@ -113,85 +113,85 @@
     <ClCompile Include="src\present\cth_vk_present_surface.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_pipeline.cpp">
+    <ClCompile Include="src\render\exec\cth_vk_render_exec_pipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_pipeline.ixx">
+    <ClCompile Include="src\render\exec\cth_vk_render_exec_pipeline.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_pipeline-layout.cpp">
+    <ClCompile Include="src\render\exec\cth_vk_render_exec_pipeline-layout.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_pipeline-layout.ixx">
+    <ClCompile Include="src\render\exec\cth_vk_render_exec_pipeline-layout.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_shader.cpp">
+    <ClCompile Include="src\render\exec\cth_vk_render_exec_shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\exec\cth_vk_render_exec_shader.ixx">
+    <ClCompile Include="src\render\exec\cth_vk_render_exec_shader.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cmd\cth_vk_render_rec_cmd_buffer_base.ixx">
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_cmd_buffer_base.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cmd\cth_vk_render_rec_cmd_buffer_primary.ixx">
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_cmd_buffer_primary.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cmd\cth_vk_render_rec_cmd_buffer_secondary.ixx">
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_cmd_buffer_secondary.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cmd\cth_vk_render_rec_cmd_pool.cpp">
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_cmd_pool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cmd\cth_vk_render_rec_cmd_pool.ixx">
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_cmd_pool.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cth_vk_render_rec_attachment-collection.cpp">
+    <ClCompile Include="src\render\rec\cth_vk_render_rec_attachment-collection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cth_vk_render_rec_attachment-collection.ixx">
+    <ClCompile Include="src\render\rec\cth_vk_render_rec_attachment-collection.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cth_vk_render_rec_pass.cpp">
+    <ClCompile Include="src\render\rec\cth_vk_render_rec_pass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cth_vk_render_rec_pass.ixx">
+    <ClCompile Include="src\render\rec\cth_vk_render_rec_pass.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cth_vk_render_rec_subpass.cpp">
+    <ClCompile Include="src\render\rec\cth_vk_render_rec_subpass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\rec\cth_vk_render_rec_subpass.ixx">
+    <ClCompile Include="src\render\rec\cth_vk_render_rec_subpass.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\barrier\cth_vk_render_sync_barrier_base.ixx">
+    <ClCompile Include="src\render\sync\barrier\cth_vk_render_sync_barrier_base.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_fence.cpp">
+    <ClCompile Include="src\render\sync\cth_vk_render_sync_fence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_fence.ixx">
+    <ClCompile Include="src\render\sync\cth_vk_render_sync_fence.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_pipeline-barrier.cpp">
+    <ClCompile Include="src\render\sync\cth_vk_render_sync_pipeline-barrier.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_pipeline-barrier.ixx">
+    <ClCompile Include="src\render\sync\cth_vk_render_sync_pipeline-barrier.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_pipeline-wait-stage.ixx">
+    <ClCompile Include="src\render\sync\cth_vk_render_sync_pipeline-wait-stage.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_semaphore.cpp">
+    <ClCompile Include="src\render\sync\cth_vk_render_sync_semaphore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_semaphore.ixx">
+    <ClCompile Include="src\render\sync\cth_vk_render_sync_semaphore.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_timeline-semaphore.cpp">
+    <ClCompile Include="src\render\sync\cth_vk_render_sync_timeline-semaphore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_sync_timeline-semaphore.ixx">
+    <ClCompile Include="src\render\sync\cth_vk_render_sync_timeline-semaphore.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\res\buffers\cth_vk_res_buffer.ixx">
@@ -329,7 +329,7 @@
     <ClCompile Include="src\util\cth_vk_util_types.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vulkan\render\sync\cth_vk_render_pulse.ixx">
+    <ClCompile Include="src\render\sync\cth_vk_render_pulse.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\init\cth_vk_contol.cpp">
@@ -338,9 +338,39 @@
     <ClCompile Include="src\init\cth_vk_control.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_timeline-semaphore.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_semaphore.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_pipeline-wait-stage.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_pipeline-barrier.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_fence.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_pulse.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_pass.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_subpass.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_attachment-collection.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_barrier_base.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\vulkan\render\rec\cmd\inl\cth_vk_render_rec_cmd_buffer_base.inl">
+    <None Include="src\render\rec\cmd\inl\cth_vk_render_rec_cmd_buffer_base.inl">
       <Filter>Header Files</Filter>
     </None>
     <None Include="src\res\buffers\cth_vk_res_buffer.inl">
