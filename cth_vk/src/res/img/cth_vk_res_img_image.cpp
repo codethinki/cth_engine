@@ -3,6 +3,7 @@ module;
 module cth.vk.res.img.image;
 
 import cth.vk.exception;
+import cth.vk.render.sync.pipeline_barrier;
 
 
 namespace cth::vk {

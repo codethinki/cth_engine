@@ -19,4 +19,4 @@ public:
     [[nodiscard]] static bool initialized() { return _initialized; }
 };
 
-} // namespace cth
+}

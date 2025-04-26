@@ -1,20 +1,10 @@
-#pragma once
-#include "render/HlcRenderSystem.hpp"
+export module demo.app;
 
-//TEMP remove this once the camera and input controller are refactored
-#include "src/interface/render/Renderer3.hpp"
-#include "src/interface/user/HlcCamera.hpp"
-#include "src/interface/user/HlcInputController.hpp"
+import demo.render.system;
+import cth.engine.render;
+import cth.vk;
 
-#include <cth_engine/interface/render.hpp>
-
-
-#include <vector>
-
-#include "src/vulkan/surface/graphics_core/CthGraphicsCore.hpp"
-
-
-namespace cth {
+export namespace cth {
 
 class App {
 public:

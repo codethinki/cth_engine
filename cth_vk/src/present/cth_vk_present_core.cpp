@@ -1,5 +1,6 @@
 module cth.vk.present.core;
 
+import cth.vk.constants;
 
 namespace cth::vk {
 PresentCore::PresentCore(Core const& core) : _core{&core} {}

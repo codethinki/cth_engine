@@ -81,7 +81,7 @@ void ImageBarrier::applyChanges() const {
         auto& barrier = _imageBarriers[index];
         auto& res = barrier.subresourceRange;
 
-        std::fill_n(image->_levelLayouts.begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
+        std::fill_n(image->layouts().begin() + res.baseMipLevel, res.levelCount, barrier.newLayout);
     }
 }
 
@@ -155,8 +155,8 @@ PipelineBarrier::PipelineBarrier(Core const& core, PipelineStages stages, std::u
 void PipelineBarrier::execute(CmdBuffer const& cmd_buffer) {
 
     core().functions()->vkCmdPipelineBarrier(cmd_buffer.get(), srcStage(), dstStage(), 0, 0, nullptr,
-        static_cast<uint32_t>(_bufferBarriers.size()), _bufferBarriers.data(),
-        static_cast<uint32_t>(_imageBarriers.size()), _imageBarriers.data());
+        static_cast<uint32_t>(bufferBarriers().size()), bufferBarriers().data(),
+        static_cast<uint32_t>(imageBarriers().size()), imageBarriers().data());
 
     applyChanges();
 }

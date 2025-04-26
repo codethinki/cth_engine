@@ -24,24 +24,24 @@ public:
     /**
      * @brief base constructor
      */
-    Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass,
-        std::span<ImageView const* const> attachments, uint32_t layers = DEFAULT_LAYERS);
+    Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass, std::span<ImageView const* const> attachments,
+        uint32_t layers = DEFAULT_LAYERS);
 
     /**
      * @brief constructs and wraps
      * @param state passed to @ref wrap()
      * @note calls @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
      */
-    Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass,
-        std::span<ImageView const* const> attachments, State const& state, uint32_t layers = DEFAULT_LAYERS);
+    Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass, std::span<ImageView const* const> attachments, State const& state,
+        uint32_t layers = DEFAULT_LAYERS);
 
     /**
      * @brief constructs and creates
      * @param extent passed to @ref create()
      * @note calls @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
      */
-    Framebuffer(Core const& core, vk::not_null<VkRenderPass> const& render_pass,
-        std::span<ImageView const* const> attachments, VkExtent2D extent, uint32_t layers = DEFAULT_LAYERS);
+    Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass, std::span<ImageView const* const> attachments, VkExtent2D extent,
+        uint32_t layers = DEFAULT_LAYERS);
 
     ~Framebuffer();
 

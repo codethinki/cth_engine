@@ -3,10 +3,9 @@ module;
 #include <cth/macro.hpp>
 export module cth.interface.render.stage_config;
 
-import cth.vk.constants;
-import cth.vk.submit.queue;
-import cth.vk.render.sync.pipeline_wait_stage;
-import cth.vk.render.sync.semaphore;
+import cth.vk.util;
+import cth.vk.submit;
+import cth.vk.render.sync;
 
 import cth.ptr.not_null;
 

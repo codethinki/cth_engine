@@ -167,6 +167,7 @@ public:
     [[nodiscard]] VkImageAspectFlagBits aspectMask() const { return _config.aspectMask; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] Config config() const { return _config; }
+    [[nodiscard]] std::vector<VkImageLayout>& layouts() { return _levelLayouts; }
 
     Image(Image const& other) = delete;
     Image& operator=(Image const& other) = delete;

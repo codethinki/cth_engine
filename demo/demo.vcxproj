@@ -313,18 +313,19 @@
     <ProjectReference Include="..\cth_engine\cth_engine.vcxproj">
       <Project>{d37c8e34-74ea-444e-a15e-bdc27cdcfe82}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\cth_vk\cth_vk.vcxproj">
+      <Project>{b1598f5f-2b24-4d66-91e6-3eb18370fe96}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\HlcApp.hpp" />
     <ClInclude Include="src\pch\glob\cth.hpp" />
     <ClInclude Include="src\pch\glob\volk.hpp" />
     <ClInclude Include="src\pch\pch.hpp" />
     <ClInclude Include="src\pch\glob\std.hpp" />
-    <ClInclude Include="src\render\HlcFrameInfo.hpp" />
-    <ClInclude Include="src\render\HlcRenderSystem.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\HlcApp.cpp" />
+    <ClCompile Include="src\demo_app.ixx" />
+    <ClCompile Include="src\demo_app.cpp" />
     <ClCompile Include="src\demo_main.cpp" />
     <ClCompile Include="src\pch\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
@@ -340,7 +341,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='sanitize|x64'">$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="src\render\HlcRenderSystem.cpp" />
+    <ClCompile Include="src\render\demo_render_frame_info.ixx" />
+    <ClCompile Include="src\render\demo_render_system.ixx" />
+    <ClCompile Include="src\render\demo_render_system.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\img\texture\first_texture.png" />

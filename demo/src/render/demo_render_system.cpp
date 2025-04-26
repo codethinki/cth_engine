@@ -1,18 +1,6 @@
-#include "HlcRenderSystem.hpp"
+module demo.render.system;
 
-#include "src/interface/render/Renderer3.hpp"
-#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "src/vulkan/render/pass/CthRenderPass.hpp"
-#include "src/vulkan/render/pipeline/CthPipeline.hpp"
-#include "src/vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
-#include "src/vulkan/render/pipeline/layout/CthPipelineLayout.hpp"
-#include "src/vulkan/render/pipeline/shader/CthShader.hpp"
-#include "src/vulkan/resource/descriptor/CthDescriptorPool.hpp"
-#include "src/vulkan/resource/descriptor/CthDescriptorSet.hpp"
-#include "src/vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
-#include "src/vulkan/resource/image/texture/CthTexture.hpp"
-
-#include <cth/utility/image.hpp>
+import cth.image;
 
 
 namespace cth {

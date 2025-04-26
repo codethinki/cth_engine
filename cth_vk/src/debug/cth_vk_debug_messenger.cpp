@@ -1,6 +1,6 @@
 module;
 #include <cth/io/io_log.hpp>
-
+#include <cth/string/format.hpp>
 module cth.vk.debug.messenger;
 
 import cth.vk.base.instance;

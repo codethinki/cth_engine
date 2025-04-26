@@ -1,34 +1,14 @@
-#pragma once
-#include "HlcFrameInfo.hpp"
+export module demo.render.system;
 
-//TEMP for compile time speedup only include necessary headers
-//TEMP replace this with #include <cth_engine/cth_engine.hpp>
-#include <cth_engine/interface/cth_model.hpp>
-#include <cth_engine/vulkan/cth_render.hpp>
-#include <cth_engine/vulkan/cth_resource.hpp>
+import cth.engine.render;
+import cth.vk;
+import demo.render.frame_info;
 
 
-#include <memory>
+import std;
 
 
-namespace cth {
-namespace vk {
-    class RenderPass;
-    class Texture;
-    class Shader;
-    class PipelineLayout;
-    class Pipeline;
-    class DescriptorSetLayout;
-    class DescriptorPool;
-    class DescriptorSet;
-    class TextureDescriptor;
-    class ImageView;
-    class Texture;
-    class Sampler;
-}
-
-
-
+export namespace cth {
 inline constexpr std::string_view GLSL_COMPILER_PATH = R"(..\..\..\sdk\Vulkan\Bin\glslc.exe)";
 inline constexpr std::string_view SHADER_GLSL_DIR = R"(src\render\glsl\)";
 inline constexpr std::string_view SHADER_BINARY_DIR = R"(res\bin\shader\)";

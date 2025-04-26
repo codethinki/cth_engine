@@ -46,7 +46,7 @@
   <ItemGroup>
     <ClCompile Include="engine_main.cpp" />
     <ClCompile Include="include\cth_engine.ixx" />
-    <ClCompile Include="include\engine\cth_engine_render.ixx" />
+    <ClCompile Include="include\cth_engine_render.ixx" />
     <ClCompile Include="src\cth_engine_control.ixx" />
     <ClCompile Include="src\render\cth_engine_render_stage-config.ixx" />
     <ClCompile Include="src\render\cth_engine_render_stage.ixx" />

@@ -6,7 +6,7 @@ module cth.vk.res.img.framebuffer;
 namespace cth::vk {
 
 Framebuffer::Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass, std::span<ImageView const* const> attachments,
-    uint32_t layers) : _core{&core}, _renderPass{&render_pass}, _attachments{std::from_range, attachments}, _layers{layers} {}
+    uint32_t layers) : _core{&core}, _renderPass{render_pass}, _attachments{std::from_range, attachments}, _layers{layers} {}
 Framebuffer::Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass, std::span<ImageView const* const> attachments,
     State const& state, uint32_t layers) : Framebuffer{core, render_pass, attachments, layers} { wrap(state); }
 Framebuffer::Framebuffer(Core const& core, vk::not_null<VkRenderPass> render_pass, std::span<ImageView const* const> attachments,

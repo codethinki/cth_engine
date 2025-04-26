@@ -4,8 +4,10 @@
 #include <stb_image.h>
 
 import cth.io.log;
-import cth_engine;
 
+import cth.engine;
+
+import demo.app;
 
 using namespace std;
 using namespace cth;
@@ -13,7 +15,7 @@ using namespace cth;
 int main() {
     cth::log::msg<except::INFO>("exec dir: {}", std::filesystem::current_path().string());
 
-    vk::Engine::init();
+    vk::EngineControl::init();
 
 
     unique_ptr<App> app = make_unique<App>();

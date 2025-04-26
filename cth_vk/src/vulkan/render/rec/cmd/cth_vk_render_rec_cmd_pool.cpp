@@ -9,7 +9,6 @@ import cth.vk.exception;
 
 
 namespace cth::vk {
-    using Core = Core;
 CmdPool::CmdPool(Core const& core, Config const& config) : _core{&core}, _flags{config.flags},
     _queueFamilyIndex{config.queueFamilyIndex} {
     Core::debug_check(core);
@@ -165,10 +164,3 @@ void CmdPool::alloc() {
 
 }
 
-//Config
-
-namespace cth::vk {
-CmdPool::Config CmdPool::Config::Default(Queue const& queue, uint32_t max_primary_buffers, uint32_t max_secondary_buffers) {
-    return Config{max_primary_buffers, max_secondary_buffers, queue.familyIndex()};
-}
-}

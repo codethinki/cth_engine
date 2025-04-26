@@ -3,8 +3,12 @@ module;
 #include <cth/io/io_log.hpp>
 module cth.vk.render.exec.pipeline;
 
+import cth.vk.exception;
+import cth.vk.vertex;
+
 import cth.io.log;
 
+//TEMP refactor this
 
 namespace cth::vk {
 
@@ -27,11 +31,11 @@ void Pipeline::bind(cth::vk::not_null<VkCommandBuffer> cmd_buffer) const {
 void Pipeline::create(GraphicsConfig const& config_info, PipelineLayout const* pipeline_layout, Pipeline const* parent) {
     CTH_CRITICAL(pipeline_layout != nullptr && parent != nullptr, "something went wrong, cannot inherit and specify layout"){}
 
-    CTH_CRITICAL(pipeline_layout == nullptr && parent == nullptr, "pipeline layout or parent invalid") {}
-
     CTH_STABLE_ERR(config_info.renderPass == VK_NULL_HANDLE && parent == nullptr, "renderPass missing in config_info")
         throw details->exception();
 
+
+    CTH_CRITICAL(pipeline_layout == nullptr && parent == nullptr, "pipeline layout or parent invalid") {}
 
     auto pipelineInfo = config_info.createInfo();
 
@@ -104,7 +108,7 @@ void Pipeline::GraphicsConfig::removeShaderStage(VkShaderStageFlagBits shader_st
 
 
 void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
-    config.vertexInputInfo = make_unique<VkPipelineVertexInputStateCreateInfo>();
+    config.vertexInputInfo = std::make_unique<VkPipelineVertexInputStateCreateInfo>();
     config.vertexInputInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     config.vertexInputInfo->vertexAttributeDescriptionCount = static_cast<uint32_t>(VERTEX_ATTRIBUTE_DESCRIPTIONS.size());
     config.vertexInputInfo->pVertexAttributeDescriptions = VERTEX_ATTRIBUTE_DESCRIPTIONS.data();
@@ -112,12 +116,12 @@ void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
     config.vertexInputInfo->vertexBindingDescriptionCount = static_cast<uint32_t>(VERTEX_BINDING_DESCRIPTIONS.size());
     config.vertexInputInfo->pVertexBindingDescriptions = VERTEX_BINDING_DESCRIPTIONS.data();
 
-    config.inputAssemblyInfo = make_unique<VkPipelineInputAssemblyStateCreateInfo>();
+    config.inputAssemblyInfo = std::make_unique<VkPipelineInputAssemblyStateCreateInfo>();
     config.inputAssemblyInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     config.inputAssemblyInfo->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     config.inputAssemblyInfo->primitiveRestartEnable = VK_FALSE;
 
-    config.rasterizationInfo = make_unique<VkPipelineRasterizationStateCreateInfo>();
+    config.rasterizationInfo = std::make_unique<VkPipelineRasterizationStateCreateInfo>();
     config.rasterizationInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     config.rasterizationInfo->depthClampEnable = VK_FALSE;
     config.rasterizationInfo->rasterizerDiscardEnable = VK_FALSE;
@@ -130,7 +134,7 @@ void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
     config.rasterizationInfo->depthBiasClamp = 0.f; // Optional
     config.rasterizationInfo->depthBiasSlopeFactor = 0.0f; // Optional
 
-    config.multisampleInfo = make_unique<VkPipelineMultisampleStateCreateInfo>();
+    config.multisampleInfo = std::make_unique<VkPipelineMultisampleStateCreateInfo>();
     config.multisampleInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     config.multisampleInfo->sampleShadingEnable = VK_FALSE;
     config.multisampleInfo->rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
@@ -139,7 +143,7 @@ void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
     config.multisampleInfo->alphaToCoverageEnable = VK_FALSE; // Optional
     config.multisampleInfo->alphaToOneEnable = VK_FALSE; // Optional
 
-    config.colorBlendAttachment = make_unique<VkPipelineColorBlendAttachmentState>();
+    config.colorBlendAttachment = std::make_unique<VkPipelineColorBlendAttachmentState>();
     config.colorBlendAttachment->blendEnable = VK_TRUE;
     config.colorBlendAttachment->colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
@@ -151,7 +155,7 @@ void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
     config.colorBlendAttachment->dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
     config.colorBlendAttachment->alphaBlendOp = VK_BLEND_OP_ADD; // Optional
 
-    config.colorBlendInfo = make_unique<VkPipelineColorBlendStateCreateInfo>();
+    config.colorBlendInfo = std::make_unique<VkPipelineColorBlendStateCreateInfo>();
     config.colorBlendInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     config.colorBlendInfo->logicOpEnable = VK_FALSE;
     config.colorBlendInfo->logicOp = VK_LOGIC_OP_COPY; // Optional
@@ -162,7 +166,7 @@ void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
     config.colorBlendInfo->blendConstants[2] = 0.0f; // Optional
     config.colorBlendInfo->blendConstants[3] = 0.0f; // Optional
 
-    config.depthStencilInfo = make_unique<VkPipelineDepthStencilStateCreateInfo>();
+    config.depthStencilInfo = std::make_unique<VkPipelineDepthStencilStateCreateInfo>();
     config.depthStencilInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     config.depthStencilInfo->depthTestEnable = VK_TRUE;
     config.depthStencilInfo->depthWriteEnable = VK_TRUE;
@@ -175,7 +179,7 @@ void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
     config.depthStencilInfo->back = {}; // Optional
 
 
-    config.viewportInfo = make_unique<VkPipelineViewportStateCreateInfo>();
+    config.viewportInfo = std::make_unique<VkPipelineViewportStateCreateInfo>();
     config.viewportInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     config.viewportInfo->viewportCount = 1;
     config.viewportInfo->pViewports = nullptr;
@@ -184,7 +188,7 @@ void Pipeline::GraphicsConfig::setDefault(GraphicsConfig& config) {
 
     config.dynamicStates = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-    config.dynamicStateInfo = make_unique<VkPipelineDynamicStateCreateInfo>();
+    config.dynamicStateInfo = std::make_unique<VkPipelineDynamicStateCreateInfo>();
     config.dynamicStateInfo->sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     config.dynamicStateInfo->pDynamicStates = config.dynamicStates.data();
     config.dynamicStateInfo->dynamicStateCount = static_cast<uint32_t>(config.dynamicStates.size());

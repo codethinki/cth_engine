@@ -3,6 +3,7 @@ module;
 
 module cth.vk.present.basic_swapchain;
 import cth.vk.exception;
+import cth.vk.render.sync.pipeline_barrier;
 
 namespace cth::vk {
 
@@ -124,7 +125,7 @@ void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const& cmd_buffer) const {
     _core->functions()->vkCmdSetViewport(cmd_buffer.get(), 0, 1, &viewport);
     _core->functions()->vkCmdSetScissor(cmd_buffer.get(), 0, 1, &scissor);
 }
-void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const { _renderPass->end(cmd_buffer); }
+void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const { _renderPass->end(cmd_buffer.get()); }
 
 VkResult BasicSwapchain::present() {
     size_t const pulse = _syncConfig->pulseVal();

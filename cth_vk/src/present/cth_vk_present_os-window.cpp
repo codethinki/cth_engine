@@ -1,10 +1,7 @@
 module;
 #include <cth/io/io_log.hpp>
 #include "lib/windows.hpp"
-
-#warning this should not be here
-#include "src/interface/user/HlcInputController.hpp"
-#warning rename module
+#include "lib/glfw.hpp"
 module cth.vk.present.os_window;
 
 
@@ -181,7 +178,6 @@ void OSWindow::destroy(GLFWwindow* glfw_window) {
 
 void OSWindow::staticKeyCallback(GLFWwindow* glfw_window, int key, int scan_code, int action, int mods) {
     if(key < 0) return;
-    InputController::keyStates[key] = action; //TODO review this
     window_ptr(glfw_window)->keyCallback(key, scan_code, action, mods);
 }
 void OSWindow::staticMouseCallback(GLFWwindow* glfw_window, int button, int action, int mods) {

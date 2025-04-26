@@ -35,7 +35,7 @@ void Fence::destroy() {
     auto const lambda = [table = _core->deviceTable(), vk_fence = _handle.get()] { destroy(table, vk_fence); };
 
 
-    auto const queue = _core->destructionQueue;
+    auto const queue = _core->destructionQueue();
     if(queue) queue->push(lambda);
     else lambda();
 

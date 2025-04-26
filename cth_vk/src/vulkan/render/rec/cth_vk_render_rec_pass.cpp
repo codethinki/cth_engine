@@ -5,7 +5,6 @@ module cth.vk.render.rec.pass;
 
 import cth.vk.exception;
 
-
 namespace cth::vk {
 RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
     std::span<BeginConfig const> begin_configs) : _core{&core}, _subpasses{std::from_range, subpasses},
@@ -102,8 +101,8 @@ RenderPass::State RenderPass::release() {
     reset();
     return state;
 }
-void RenderPass::begin(cth::vk::not_null<VkCm cmd_buffer, uint32_t config_index, Framebuffer const& framebuffer) {
-    CmdBuffer::debug_check(cmd_buffer);
+void RenderPass::begin(cth::vk::not_null<VkCommandBuffer> cmd_buffer, uint32_t config_index, Framebuffer const& framebuffer) {
+    
     Framebuffer::debug_check(framebuffer);
     CTH_CRITICAL(config_index >= _beginInfos.size(), "config_index out of range") {}
 
@@ -111,7 +110,7 @@ void RenderPass::begin(cth::vk::not_null<VkCm cmd_buffer, uint32_t config_index,
 
     _core->functions()->vkCmdBeginRenderPass(cmd_buffer.get(), &_beginInfos[config_index], _contents[config_index]);
 }
-void RenderPass::end(PrimaryCmdBuffer const& cmd_buffer) { _core->functions()->vkCmdEndRenderPass(cmd_buffer.get()); }
+void RenderPass::end(cth::vk::not_null<VkCommandBuffer> cmd_buffer) { _core->functions()->vkCmdEndRenderPass(cmd_buffer.get()); }
 
 void RenderPass::destroy(DeviceTable table, VkRenderPass vk_render_pass) {
     CTH_WARN(vk_render_pass == VK_NULL_HANDLE, "vk_render_pass should not be invalid (VK_NULL_HANDLE)") {}

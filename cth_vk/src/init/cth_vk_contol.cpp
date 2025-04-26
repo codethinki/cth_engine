@@ -1,7 +1,6 @@
-module;
 #include "lib/volk.hpp"
 #include <cth/io/io_log.hpp>
-module cth.vk.contol;
+module cth.vk.control;
 
 
 import cth.io.log;

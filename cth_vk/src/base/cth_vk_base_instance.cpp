@@ -1,6 +1,11 @@
+module;
+#include <cth/io/io_log.hpp>
 module cth.vk.base.instance;
 
+import cth.vk.constants;
+import cth.vk.exception;
 
+import cth.io.log;
 
 namespace cth::vk {
 
@@ -37,7 +42,7 @@ void Instance::wrap(State state) {
 void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
     optDestroy();
 
-    if constexpr(COMPILATION_MODE == CompilationMode::DEBUG)
+    if constexpr(constants::DEBUG_MODE)
         if(messenger_config == std::nullopt)
             messenger_config = DebugMessenger::Config::Default();
 
@@ -78,7 +83,7 @@ void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
     _handle = ptr;
     loadInstanceFunctions(ptr);
 
-    if(messenger_config != std::nullopt) _debugMessenger = std::make_unique<DebugMessenger>(*messenger_config, *this);
+    if(messenger_config != std::nullopt) _debugMessenger = std::make_unique<DebugMessenger>(*messenger_config, get());
 }
 void Instance::destroy() {
     if(_debugMessenger) _debugMessenger = nullptr;

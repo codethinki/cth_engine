@@ -1,9 +1,4 @@
-#include "HlcApp.hpp"
-
-#include "render/HlcFrameInfo.hpp"
-
-#include <cth_engine/vulkan/cth_base.hpp>
-#include <cth_engine/vulkan/cth_surface.hpp>
+module demo.app;
 
 
 

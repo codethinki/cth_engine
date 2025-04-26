@@ -3,6 +3,9 @@ module;
 
 module cth.vk.res.img.texture;
 
+import cth.vk.res.buffer;
+import cth.vk.render.sync.pipeline_barrier;
+
 import cth.io.log;
 
 namespace cth::vk {
@@ -72,8 +75,8 @@ void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, uint32_t first, uint32_
 
     for(uint32_t i = first; i < first + levels; i++) {
         if(i != first) {
-            transitionLayout(toSrcBarrier, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, i - 1, 1);
 
+            toSrcBarrier.transitionLayout(*this, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, i - 1, 1);
             toSrcBarrier.execute(cmd_buffer);
             toSrcBarrier.remove(this);
         }
