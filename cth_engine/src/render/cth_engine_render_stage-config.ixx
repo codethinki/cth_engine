@@ -2,9 +2,10 @@ module;
 #include <cstdint>
 export module cth.engine.render.stage_config;
 
-import cth.vk.util;
-import cth.vk.submit;
-import cth.vk.render.sync;
+import cth.vk.constants;
+import cth.vk.submit.queue;
+import cth.vk.render.sync.semaphore;
+import cth.vk.render.sync.pipeline_wait_stage;
 
 import cth.ptr.not_null;
 

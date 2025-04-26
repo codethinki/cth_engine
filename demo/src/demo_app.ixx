@@ -5,7 +5,15 @@ export module demo.app;
 
 import demo.render.system;
 import cth.engine.render;
-import cth.vk;
+import cth.vk.submit.queue;
+import cth.vk.render.rec.cmd.buffer.primary;
+import cth.vk.submit.queue_family;
+import cth.engine.render.stage;
+import cth.vk.present.core;
+import cth.vk.base.core;
+import cth.engine.renderer;
+import demo.render.system;
+
 
 import std;
 

@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{0a5a99b8-9b81-49fb-9287-037547bfb9c9}</ProjectGuid>
+    <ProjectGuid>{89843F10-1BC2-40A3-ACFB-93ECEE88FAF2}</ProjectGuid>
     <RootNamespace>demo</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -215,7 +215,7 @@
       <Project>{7dda21b4-4072-4f64-8b76-247008cde359}</Project>
     </ProjectReference>
     <ProjectReference Include="..\cth_engine\cth_engine.vcxproj">
-      <Project>{e2b0db69-c7af-4fda-b100-4bfaed4dc81f}</Project>
+      <Project>{D37C8E34-74EA-444E-A15E-BDC27CDCFE82}</Project>
     </ProjectReference>
     <ProjectReference Include="..\cth_vk\cth_vk.vcxproj">
       <Project>{c3fa3f04-ae56-46b9-aba6-8a305008f513}</Project>

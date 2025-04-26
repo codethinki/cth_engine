@@ -203,23 +203,6 @@
     <ClInclude Include="src\util\cth_debug_macros.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="include\cth_vk.ixx" />
-    <ClCompile Include="include\cth_vk_base.ixx" />
-    <ClCompile Include="include\cth_vk_debug.ixx" />
-    <ClCompile Include="include\cth_vk_init.ixx" />
-    <ClCompile Include="include\cth_vk_present.ixx" />
-    <ClCompile Include="include\cth_vk_render.ixx" />
-    <ClCompile Include="include\cth_vk_render_exec.ixx" />
-    <ClCompile Include="include\cth_vk_render_rec.ixx" />
-    <ClCompile Include="include\cth_vk_render_rec_cmd.ixx" />
-    <ClCompile Include="include\cth_vk_render_sync.ixx" />
-    <ClCompile Include="include\cth_vk_res.ixx" />
-    <ClCompile Include="include\cth_vk_res_buffers.ixx" />
-    <ClCompile Include="include\cth_vk_res_descriptor.ixx" />
-    <ClCompile Include="include\cth_vk_res_descriptors.ixx" />
-    <ClCompile Include="include\cth_vk_res_img.ixx" />
-    <ClCompile Include="include\cth_vk_submit.ixx" />
-    <ClCompile Include="include\cth_vk_util.ixx" />
     <ClCompile Include="lib\pch\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>

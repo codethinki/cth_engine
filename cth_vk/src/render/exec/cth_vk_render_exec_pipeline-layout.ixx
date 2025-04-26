@@ -4,7 +4,7 @@ export module cth.vk.render.exec.pipeline_layout;
 
 import cth.vk.base.device_table;
 import cth.vk.base.core;
-import cth.vk.res.desciptor.set_layout;
+import cth.vk.res.descriptor.set_layout;
 
 import cth.ptr;
 

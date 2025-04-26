@@ -7,7 +7,7 @@ export module cth.vk.res.descriptor.pool;
 
 import cth.vk.constants;
 import cth.vk.base.core;
-import cth.vk.res.desciptor.set_layout;
+import cth.vk.res.descriptor.set_layout;
 
 import cth.io.log;
 import cth.ptr;

@@ -2,7 +2,7 @@
 #include "cth/io/io_log.hpp"
 export module cth.engine.control;
 
-import cth.vk.init;
+import cth.vk.control;
 
 import cth.io.log;
 

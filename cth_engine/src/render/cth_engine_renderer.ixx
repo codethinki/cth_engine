@@ -7,10 +7,13 @@ import cth.engine.render.stage_config;
 import cth.engine.render.stage;
 import cth.engine.render.dag;
 
-import cth.vk.base;
-import cth.vk.submit;
-import cth.vk.util;
-import cth.vk.render;
+import cth.vk.base.core;
+import cth.vk.render.sync.pipeline_wait_stage;
+import cth.engine.render.stage_config;
+import cth.engine.render.dag;
+import cth.vk.render.sync.pulse;
+import cth.vk.constants;
+import cth.vk.render.sync.semaphore;
 
 import cth.ptr.not_null;
 import cth.io.log;

@@ -5,7 +5,23 @@ export module demo.render.system;
 import demo.render.frame_info;
 
 import cth.engine.render;
-import cth.vk;
+import cth.vk.base.core;
+import cth.vk.render.rec.cmd.buffer.primary;
+import cth.vk.render.rec.pass;
+import cth.vk.render.rec.cmd.buffer.base;
+import cth.vk.render.exec.pipeline;
+import cth.vk.res.descriptor.set_layout;
+import cth.vk.res.descriptors.image;
+import cth.vk.res.descriptor.set;
+import cth.vk.render.exec.shader;
+import cth.vk.res.descriptor.pool;
+import cth.vk.render.exec.vertex;
+import cth.vk.render.exec.pipeline_layout;
+import cth.vk.res.img.texture;
+import cth.vk.res.img.view;
+import cth.vk.render.exec.shader;
+import cth.vk.res.img.texture.sampler;
+import cth.vk.res.buffer;
 
 import cth.ptr;
 

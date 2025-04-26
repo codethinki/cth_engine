@@ -1,7 +1,6 @@
 module;
 #include "lib/volk.hpp"
-
-export module cth.vk.res.desciptor.set_layout;
+export module cth.vk.res.descriptor.set_layout;
 
 import cth.vk.constants;
 import cth.vk.base.core;

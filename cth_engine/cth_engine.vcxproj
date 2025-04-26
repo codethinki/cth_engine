@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{e2b0db69-c7af-4fda-b100-4bfaed4dc81f}</ProjectGuid>
+    <ProjectGuid>{D37C8E34-74EA-444E-A15E-BDC27CDCFE82}</ProjectGuid>
     <RootNamespace>cth_engine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>

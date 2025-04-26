@@ -1,6 +1,6 @@
 export module demo.render.frame_info;
 
-import cth.vk.render.rec;
+import cth.vk.render.rec.cmd.buffer.primary;
 
 export namespace cth {
 

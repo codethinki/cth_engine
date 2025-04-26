@@ -1,7 +1,7 @@
 module;
 #include <cth/io/io_log.hpp>
 
-module cth.vk.res.desciptor.set_layout;
+module cth.vk.res.descriptor.set_layout;
 
 import cth.vk.exception;
 
