@@ -1,0 +1,148 @@
+﻿module;
+#include "lib/volk.hpp"
+#include <cth/io/io_log.hpp>
+export module cth.vk.res.img.view;
+
+import cth.vk.base.device_table;
+import cth.vk.constants;
+import cth.vk.util.types;
+import cth.vk.res.img.image;
+import cth.vk.base.core;
+
+
+import cth.ptr.move;
+import cth.io.log;
+
+export namespace cth::vk {
+
+class ImageView {
+public:
+    struct Config;
+    struct State;
+
+    /**
+     * @brief base constructor
+     * @param core must be created
+     */
+    ImageView(Core const& core, Config const& config);
+
+    /**
+     * @brief constructs and creates
+     * @note calls @ref create()
+     * @note calls @ref ImageView(Core const&, Config const&)
+     */
+    ImageView(Core const& core, Config const& config, Image const& image);
+
+    /**
+     * @brief constructs and wraps state
+     * @note calls @ref wrap();
+     * @note calls @ref ImageView(Core const&, Config const&)
+     */
+    ImageView(Core const& core, Config const& config, State const& state);
+
+    /**
+     * @note calls @ref optDestroy()
+     */
+    ~ImageView();
+
+
+    /**
+     * @brief creates the image view
+     * @param image requires Image::created()
+     * @note calls @ref optDestroy()
+     */
+    void create(Image const& image);
+
+    /**
+     * @brief wraps the state with object
+     * @note calls @ref optDestroy()
+     */
+    void wrap(State const& state);
+
+    /**
+     * @brief destroys and resets the object
+     * @note pushes to @ref Core::destructionQueue() if available
+     */
+    void destroy();
+
+    /**
+     * @brief destroys if @ref created()
+     * @note may call @ref destroy()
+     */
+    void optDestroy() { if(created()) destroy(); }
+
+    /**
+     * @brief releases ownership and resets
+     * @return objects state
+     */
+    State release();
+
+    static void destroy(DeviceTable table, VkImageView vk_image_view);
+
+
+
+    struct Config {
+        //VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_NONE; //TODO not supported yet
+        uint32_t baseMipLevel = 0;
+        uint32_t levelCount = 0; //0 => imageLevels - baseMipLevel
+        //uint32_t baseArrayLayer = 0; //TODO not supported yet
+        //uint32_t layerCount = 0; //TODO not supported yet
+
+        [[nodiscard]] static Config Default();
+
+    private:
+        [[nodiscard]] VkImageSubresourceRange range(uint32_t image_mip_levels, VkImageAspectFlags aspect_mask) const;
+        friend class ImageView;
+    };
+
+private:
+    [[nodiscard]] VkImageViewCreateInfo createViewInfo() const;
+
+    void reset();
+
+    cth::not_null<Core const*> _core;
+    Image const* _image = nullptr;
+    cth::move_ptr<VkImageView_T> _handle = VK_NULL_HANDLE;
+
+    Config _config;
+
+public:
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] VkImageView get() const { return _handle.get(); }
+    [[nodiscard]] Image const* image() const { return _image; }
+
+    ImageView(ImageView const& other) = delete;
+    ImageView(ImageView&& other) noexcept = default;
+    ImageView& operator=(ImageView const& other) = delete;
+    ImageView& operator=(ImageView&& other) noexcept = default;
+
+    static void debug_check(ImageView const* image_view);
+    static void debug_check_handle(VkImageView vk_image_view);
+};
+} // namespace cth
+
+//State
+
+export namespace cth::vk {
+struct ImageView::State {
+    vk::not_null<VkImageView> vkImageView; // NOLINT(cppcoreguidelines-owning-memory)
+    cth::not_null<Image const*> image;
+};
+}
+
+//debug checks
+
+export namespace cth::vk {
+
+inline void ImageView::debug_check(ImageView const* image_view) {
+    CTH_CRITICAL(image_view == nullptr, "image view must not be invalid (nullptr)") {}
+    CTH_CRITICAL(!image_view->created(), "image view must be created") {}
+
+    ImageView::debug_check_handle(image_view->get());
+}
+inline void ImageView::debug_check_handle(VkImageView vk_image_view) {
+    CTH_CRITICAL(vk_image_view == VK_NULL_HANDLE, "image view vkQueue must not be invalid (VK_NULL_HANDLE)"){}
+}
+
+
+}
