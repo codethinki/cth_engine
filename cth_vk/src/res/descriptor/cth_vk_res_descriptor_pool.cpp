@@ -153,7 +153,7 @@ void DescriptorPool::Builder::removeLayout(DescriptorSetLayout const& layout, si
 void DescriptorPool::Builder::removeLayouts(std::map<DescriptorSetLayout const*, uint32_t> const& set_allocations) {
     std::ranges::for_each(set_allocations, [this](auto const& pair) {
         CTH_CRITICAL(pair.first == nullptr, "layout must not be nullptr") {}
-        this->removeLayout(pair.first, pair.second);
+        this->removeLayout(*pair.first, pair.second);
     });
 }
 

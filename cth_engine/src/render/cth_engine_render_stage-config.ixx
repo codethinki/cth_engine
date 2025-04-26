@@ -1,7 +1,6 @@
 module;
 #include <cstdint>
-#include <cth/macro.hpp>
-export module cth.interface.render.stage_config;
+export module cth.engine.render.stage_config;
 
 import cth.vk.util;
 import cth.vk.submit;

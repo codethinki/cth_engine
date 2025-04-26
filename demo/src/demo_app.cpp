@@ -1,11 +1,12 @@
 module demo.app;
 
-
+import cth.io.log;
+import demo.render.frame_info;
 
 namespace cth {
 
 App::App() {
-    createRenderer3();
+    createRenderer();
     initFrame();
 }
 
@@ -24,8 +25,18 @@ void App::run() {
     //OldModel::clearModels();
 }
 
-void App::createRenderer3() {
-    vk::Renderer3::Config config{
+void App::createPresentCore() {
+    auto const queueInfos = _core->device().queueInfos();
+
+    _queues.reserve(queueInfos.size());
+
+    for(auto const& info : queueInfos)
+        _queues.emplace_back(*_core, info);
+
+    _graphicsCore = make_unique<vk::PresentCore>(*_core, WINDOW_NAME, VkExtent2D{WIDTH, HEIGHT}, presentQueue());
+}
+void App::createRenderer() {
+    vk::Renderer::Config config{
         .stages{
             {
                 0,
@@ -44,14 +55,14 @@ void App::createRenderer3() {
                 }
             }
         },
-        .stageDependencies = vk::Renderer3::Config::dependencies_t{
+        .stageDependencies = vk::Renderer::Config::dependencies_t{
             {{1, 0, VK_PIPELINE_STAGE_TRANSFER_BIT}}
         }
 
     };
 
 
-    _renderer3 = std::make_unique<vk::Renderer3>(*_core, _graphicsCore->renderPulse(), config, vk::create);
+    _renderer3 = std::make_unique<vk::Renderer>(*_core, _graphicsCore->renderPulse(), config, vk::create);
 
     _transferStage = &_renderer3->stage(0);
     _graphicsStage = &_renderer3->stage(1);
@@ -71,8 +82,7 @@ void App::initFrame() {
 
 void App::renderFrame() const {
     _graphicsStage->wait();
-    _destructionQueue->next();
-
+    _core->destructionQueue()->next();
     _graphicsCore->acquireFrame();
 
     _transferStage->skip();

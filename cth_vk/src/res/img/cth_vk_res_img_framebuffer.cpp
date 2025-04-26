@@ -2,6 +2,7 @@ module;
 #include <cth/io/io_log.hpp>
 
 module cth.vk.res.img.framebuffer;
+import cth.vk.exception;
 
 namespace cth::vk {
 

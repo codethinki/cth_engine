@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lib\boost\pfr.hpp" />
+    <ClInclude Include="lib\cth.hpp" />
     <ClInclude Include="lib\glfw.hpp" />
     <ClInclude Include="lib\glm.hpp" />
     <ClInclude Include="lib\gsl.hpp" />
@@ -31,9 +32,29 @@
     <ClInclude Include="src\util\cth_debug_macros.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="lib\pch\pch.cpp" />
-    <ClCompile Include="src\init\cth_vk_contol.cpp" />
-    <ClCompile Include="src\init\cth_vk_control.ixx" />
+    <ClCompile Include="include\cth_vk.ixx" />
+    <ClCompile Include="include\cth_vk_base.ixx" />
+    <ClCompile Include="include\cth_vk_debug.ixx" />
+    <ClCompile Include="include\cth_vk_init.ixx" />
+    <ClCompile Include="include\cth_vk_present.ixx" />
+    <ClCompile Include="include\cth_vk_render.ixx" />
+    <ClCompile Include="include\cth_vk_render_exec.ixx" />
+    <ClCompile Include="include\cth_vk_render_rec.ixx" />
+    <ClCompile Include="include\cth_vk_render_rec_cmd.ixx" />
+    <ClCompile Include="include\cth_vk_render_sync.ixx" />
+    <ClCompile Include="include\cth_vk_res.ixx" />
+    <ClCompile Include="include\cth_vk_res_buffers.ixx" />
+    <ClCompile Include="include\cth_vk_res_descriptor.ixx" />
+    <ClCompile Include="include\cth_vk_res_descriptors.ixx" />
+    <ClCompile Include="include\cth_vk_res_img.ixx" />
+    <ClCompile Include="include\cth_vk_submit.ixx" />
+    <ClCompile Include="include\cth_vk_util.ixx" />
+    <ClCompile Include="lib\pch\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\base\cth_vk_base_core.cpp" />
     <ClCompile Include="src\base\cth_vk_base_core.ixx" />
     <ClCompile Include="src\base\cth_vk_base_device-table.ixx" />
@@ -45,6 +66,8 @@
     <ClCompile Include="src\base\cth_vk_base_physical-device.ixx" />
     <ClCompile Include="src\debug\cth_vk_debug_messenger.cpp" />
     <ClCompile Include="src\debug\cth_vk_debug_messenger.ixx" />
+    <ClCompile Include="src\init\cth_vk_contol.cpp" />
+    <ClCompile Include="src\init\cth_vk_control.ixx" />
     <ClCompile Include="src\present\cth_vk_present_basic-swapchain.cpp" />
     <ClCompile Include="src\present\cth_vk_present_basic-swapchain.ixx" />
     <ClCompile Include="src\present\cth_vk_present_core.cpp" />
@@ -53,17 +76,6 @@
     <ClCompile Include="src\present\cth_vk_present_os-window.ixx" />
     <ClCompile Include="src\present\cth_vk_present_surface.cpp" />
     <ClCompile Include="src\present\cth_vk_present_surface.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_pulse.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_attachment-collection.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_pass.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_subpass.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_barrier_base.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_fence.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_pipeline-barrier.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_pipeline-wait-stage.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_semaphore.ixx" />
-    <ClCompile Include="src\render\rec\cmd\cth_vk_render_sync_timeline-semaphore.ixx" />
-    <ClCompile Include="src\render\sync\cth_vk_render_pulse.ixx" />
     <ClCompile Include="src\present\sync\cth_vk_present_sync_config.cpp" />
     <ClCompile Include="src\present\sync\cth_vk_present_sync_config.ixx" />
     <ClCompile Include="src\render\exec\cth_vk_render_exec_pipeline-layout.cpp" />
@@ -72,6 +84,7 @@
     <ClCompile Include="src\render\exec\cth_vk_render_exec_pipeline.ixx" />
     <ClCompile Include="src\render\exec\cth_vk_render_exec_shader.cpp" />
     <ClCompile Include="src\render\exec\cth_vk_render_exec_shader.ixx" />
+    <ClCompile Include="src\render\exec\cth_vk_render_exce_vertex.ixx" />
     <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_cmd_buffer_base.ixx" />
     <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_cmd_buffer_primary.ixx" />
     <ClCompile Include="src\render\rec\cmd\cth_vk_render_rec_cmd_buffer_secondary.ixx" />
@@ -84,6 +97,7 @@
     <ClCompile Include="src\render\rec\cth_vk_render_rec_subpass.cpp" />
     <ClCompile Include="src\render\rec\cth_vk_render_rec_subpass.ixx" />
     <ClCompile Include="src\render\sync\barrier\cth_vk_render_sync_barrier_base.ixx" />
+    <ClCompile Include="src\render\sync\cth_vk_render_pulse.ixx" />
     <ClCompile Include="src\render\sync\cth_vk_render_sync_fence.cpp" />
     <ClCompile Include="src\render\sync\cth_vk_render_sync_fence.ixx" />
     <ClCompile Include="src\render\sync\cth_vk_render_sync_pipeline-barrier.cpp" />
@@ -152,7 +166,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{b1598f5f-2b24-4d66-91e6-3eb18370fe96}</ProjectGuid>
+    <ProjectGuid>{2dd233eb-7376-4536-a2ce-49f78bd5ef91}</ProjectGuid>
     <RootNamespace>cth_vk</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -206,32 +220,32 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <PublicModuleDirectories>$(ProjectDir)include\;$(PublicModuleDirectories)</PublicModuleDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <PublicModuleDirectories>$(ProjectDir)include\</PublicModuleDirectories>
+    <ExternalIncludePath>$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <PublicModuleDirectories>$(ProjectDir)include\;$(PublicModuleDirectories)</PublicModuleDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <PublicModuleDirectories>$(ProjectDir)include\</PublicModuleDirectories>
+    <ExternalIncludePath>$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <PublicModuleDirectories>$(ProjectDir)include\;$(PublicModuleDirectories)</PublicModuleDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <PublicModuleDirectories>$(ProjectDir)include\</PublicModuleDirectories>
+    <ExternalIncludePath>$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <PublicModuleDirectories>$(ProjectDir)include\;$(PublicModuleDirectories)</PublicModuleDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(SolutionDir)..\..\sdk\vulkan\Include;$(ExternalIncludePath)</ExternalIncludePath>
+    <PublicModuleDirectories>$(ProjectDir)include\</PublicModuleDirectories>
+    <ExternalIncludePath>$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
@@ -242,8 +256,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Create</PrecompiledHeader>
-      <PrecompiledHeaderFile>lib/pch/pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -263,8 +277,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Create</PrecompiledHeader>
-      <PrecompiledHeaderFile>lib/pch/pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -284,8 +298,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Create</PrecompiledHeader>
-      <PrecompiledHeaderFile>lib/pch/pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -305,8 +319,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Create</PrecompiledHeader>
-      <PrecompiledHeaderFile>lib/pch/pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>

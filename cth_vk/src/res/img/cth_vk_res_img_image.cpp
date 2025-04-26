@@ -131,7 +131,7 @@ void Image::transitionLayout(CmdBuffer const& cmd_buffer, VkImageLayout new_layo
 
     ImageBarrier barrier{core(), {srcStage, dstStage}};
 
-    transitionLayout(barrier, new_layout, srcAccess, dstAccess, first_mip_level, mip_levels);
+    barrier.transitionLayout(*this, new_layout, srcAccess, dstAccess, first_mip_level, mip_levels);
 
     barrier.execute(cmd_buffer);
 }

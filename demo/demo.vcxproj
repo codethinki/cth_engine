@@ -311,7 +311,7 @@
       <Project>{7dda21b4-4072-4f64-8b76-247008cde359}</Project>
     </ProjectReference>
     <ProjectReference Include="..\cth_engine\cth_engine.vcxproj">
-      <Project>{d37c8e34-74ea-444e-a15e-bdc27cdcfe82}</Project>
+      <Project>{e44687a0-724a-42ab-a9c0-aa8cb4a3032a}</Project>
     </ProjectReference>
     <ProjectReference Include="..\cth_vk\cth_vk.vcxproj">
       <Project>{b1598f5f-2b24-4d66-91e6-3eb18370fe96}</Project>

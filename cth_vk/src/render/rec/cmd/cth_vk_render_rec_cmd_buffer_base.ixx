@@ -26,7 +26,8 @@ public:
     explicit CmdBuffer(VkCommandBufferUsageFlags usage = 0);
     virtual ~CmdBuffer() = default;
 
-    void create(this auto&& self, CmdPool& pool);
+    template<class Me>
+    void create(this Me&& self, CmdPool& pool);
 
     /**
      * @brief returns the command buffer to pool

@@ -11,6 +11,7 @@ import cth.vk.base.core;
 import cth.vk.util.types;
 
 import cth.io.log;
+import cth.ptr;
 
 import std;
 

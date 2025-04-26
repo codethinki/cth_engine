@@ -87,7 +87,7 @@ private:
 public:
     [[nodiscard]] VkDescriptorPool get() const { return _handle.get(); }
 
-    
+
 
     DescriptorPool(DescriptorPool const& other) = delete;
     DescriptorPool(DescriptorPool&& other) = delete;
@@ -98,23 +98,23 @@ public:
 
 namespace cth::vk {
 struct DescriptorPool::Builder {
-        Builder() = default;
-        explicit Builder(std::map<DescriptorSetLayout const*, uint32_t> const& max_descriptor_sets) { addLayouts(max_descriptor_sets); }
+    Builder() = default;
+    explicit Builder(std::map<DescriptorSetLayout const*, uint32_t> const& max_descriptor_sets) { addLayouts(max_descriptor_sets); }
 
-        void addLayout(DescriptorSetLayout const& layout, uint32_t alloc_count);
-        void addLayouts(std::map<DescriptorSetLayout const*, uint32_t> const& set_allocations);
+    void addLayout(DescriptorSetLayout const& layout, uint32_t alloc_count);
+    void addLayouts(std::map<DescriptorSetLayout const*, uint32_t> const& set_allocations);
 
-        void removeLayout(DescriptorSetLayout const& layout, size_t amount = constants::WHOLE_SIZE);
-        void removeLayouts(std::map<DescriptorSetLayout const*, uint32_t> const& set_allocations);
+    void removeLayout(DescriptorSetLayout const& layout, size_t amount = constants::WHOLE_SIZE);
+    void removeLayouts(std::map<DescriptorSetLayout const*, uint32_t> const& set_allocations);
 
-    private:
-        std::map<DescriptorSetLayout const*, size_t> _maxDescriptorSets;
+private:
+    std::map<DescriptorSetLayout const*, size_t> _maxDescriptorSets;
 
-        friend DescriptorPool;
+    friend DescriptorPool;
 
-    public:
-        [[nodiscard]] uint32_t setCount() const {
-            return std::ranges::fold_left(_maxDescriptorSets | std::views::values, 0, [](auto sum, auto size) { return sum + size; });
-        }
-    };
+public:
+    [[nodiscard]] uint32_t setCount() const {
+        return std::ranges::fold_left(_maxDescriptorSets | std::views::values, 0, [](auto sum, auto size) { return sum + static_cast<uint32_t>(size); });
+    }
+};
 }

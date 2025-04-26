@@ -3,6 +3,7 @@ module;
 #include <gsl/pointers>
 module cth.vk.physical_device_features;
 
+import cth.vk.fmt;
 
 namespace cth::vk::utils {
 

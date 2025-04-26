@@ -1,5 +1,5 @@
 ﻿module;
-
+#include <cth/io/io_log.hpp>
 
 export module cth.vk.render.rec.attachment_collection;
 
@@ -8,6 +8,7 @@ import cth.vk.res.img.view;
 import cth.vk.base.core;
 
 import cth.ptr.not_null;
+import cth.io.log;
 
 import std;
 

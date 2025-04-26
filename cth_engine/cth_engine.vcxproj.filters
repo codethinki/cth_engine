@@ -1,39 +1,83 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="src\object\HlcRenderObject.hpp" />
-    <ClInclude Include="src\object\HlcStandardObject.hpp" />
-    <ClInclude Include="src\user\HlcCamera.hpp" />
-    <ClInclude Include="src\user\HlcInputController.hpp" />
-    <ClInclude Include="src\user\HlcUser.hpp" />
-    <ClInclude Include="src\render\model\HlcModel.hpp" />
-    <ClInclude Include="src\render\model\HlcModelManager.hpp" />
-    <ClInclude Include="lib\boost\pfr.hpp" />
-    <ClInclude Include="lib\gsl.hpp" />
-    <ClInclude Include="lib\windows.hpp" />
-    <ClInclude Include="lib\glfw.hpp" />
-    <ClInclude Include="lib\glm.hpp" />
-    <ClInclude Include="lib\volk.hpp" />
-    <ClInclude Include="lib\rangev3.hpp" />
-    <ClInclude Include="lib\pch\pch.hpp" />
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\object\HlcStandardObject.cpp" />
-    <ClCompile Include="src\user\HlcCamera.cpp" />
-    <ClCompile Include="src\user\HlcInputController.cpp" />
-    <ClCompile Include="src\render\model\HlcModel.cpp" />
-    <ClCompile Include="src\render\model\HlcModelManager.cpp" />
-    <ClCompile Include="engine_main.cpp" />
-    <ClCompile Include="lib\pch\pch.cpp" />
-    <ClCompile Include="src\render\cth_engine_renderer.cpp" />
-    <ClCompile Include="src\render\cth_engine_render_stage.cpp" />
-    <ClCompile Include="src\render\model\cth_vk_vertex.ixx" />
-    <ClCompile Include="src\render\cth_engine_render_dag.ixx" />
-    <ClCompile Include="src\render\cth_engine_renderer.ixx" />
-    <ClCompile Include="src\render\cth_engine_render_stage.ixx" />
-    <ClCompile Include="src\render\cth_engine_render_stage-config.ixx" />
-    <ClCompile Include="include\cth_engine_render.ixx" />
-    <ClCompile Include="include\cth_engine.ixx" />
-    <ClCompile Include="src\cth_engine_control.ixx" />
+    <ClInclude Include="lib\boost\pfr.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\pch\pch.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\cth.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\glfw.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\glm.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\gsl.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\rangev3.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\volk.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\windows.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lib\pch\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cth_engine_control.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_engine.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_engine_render.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\cth_engine_render_dag.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\cth_engine_render_stage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\cth_engine_render_stage.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\cth_engine_render_stage-config.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\cth_engine_renderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\cth_engine_renderer.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="doc\roadmap.md" />
+    <None Include="doc\scene.md" />
+    <None Include="doc\tinygltf.md" />
   </ItemGroup>
 </Project>

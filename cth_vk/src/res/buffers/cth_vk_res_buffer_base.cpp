@@ -1,5 +1,8 @@
+module;
+#include <cth/io/io_log.hpp>
 module cth.vk.res.buffer.base;
 
+import cth.vk.exception;
 
 namespace cth::vk {
 using std::span;

@@ -116,11 +116,11 @@ void Texture::blitMipLevels(CmdBuffer const& cmd_buffer, uint32_t first, uint32_
 
         if(i == first) continue;
 
-        transitionLayout(shaderBarrier, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, i - 1, 1);
+        shaderBarrier.transitionLayout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, i - 1, 1);
         shaderBarrier.execute(cmd_buffer);
         shaderBarrier.remove(this);
     }
-    transitionLayout(shaderBarrier, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+    shaderBarrier.transitionLayout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
         first + levels - 1, 1);
     shaderBarrier.execute(cmd_buffer);
     shaderBarrier.remove(this);

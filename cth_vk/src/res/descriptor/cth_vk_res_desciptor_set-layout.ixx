@@ -54,11 +54,7 @@ struct DescriptorSetLayout::Builder {
     Builder& removeBinding(uint32_t binding);
 
 private:
-#ifdef CONSTANT_DEBUG_MODE
     using binding_t = std::optional<VkDescriptorSetLayoutBinding>;
-#else
-    using binding_t = VkDescriptorSetLayoutBinding;
-#endif
 
     std::vector<binding_t> _bindings{};
     [[nodiscard]] std::vector<VkDescriptorSetLayoutBinding> bindings() const;

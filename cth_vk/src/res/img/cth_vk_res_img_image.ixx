@@ -13,6 +13,7 @@ import cth.vk.res.memory;
 import cth.vk.base.core;
 
 import cth.io.log;
+import cth.ptr;
 
 export namespace cth::vk {
 /**

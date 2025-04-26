@@ -4,7 +4,6 @@
 export module cth.vk.submit.queue;
 
 
-import cth.vk.base.device;
 import cth.vk.submit.queue_family;
 import cth.vk.submit.present_info;
 import cth.vk.submit.info;
@@ -13,7 +12,9 @@ import cth.vk.render.sync.timeline_semaphore;
 import cth.vk.render.sync.fence;
 import cth.vk.render.sync.semaphore;
 import cth.vk.render.rec.cmd.buffer.base;
+import cth.vk.submit.queue_info;
 import cth.vk.util.types;
+import cth.vk.base.core;
 
 
 
@@ -26,8 +27,7 @@ class Queue {
 public:
     struct State;
 
-
-    explicit Queue(QueueFamilyProperties family_properties) : _familyProperties{family_properties} {}
+    explicit Queue(Core const& core, QueueInfo const& info);
     ~Queue();
 
     /**
@@ -103,8 +103,8 @@ private:
 
     QueueFamilyProperties _familyProperties;
 
+    cth::not_null<Core const*> _core;
     cth::move_ptr<VkQueue_T> _handle = VK_NULL_HANDLE;
-    Device const* _device = nullptr;
     uint32_t _familyIndex = 0;
     uint32_t _queueIndex = 0;
 
@@ -132,7 +132,7 @@ public:
 export namespace cth::vk {
 struct Queue::State {
     vk::not_null<VkQueue> vkQueue;
-    cth::not_null<Device const*> device;
+    cth::not_null<Core const*> core;
     uint32_t familyIndex;
     /**
      * @brief index in the family

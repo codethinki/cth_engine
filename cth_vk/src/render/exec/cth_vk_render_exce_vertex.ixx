@@ -2,7 +2,7 @@ module;
 #include "lib/glm.hpp"
 #include "lib/volk.hpp"
 
-export module cth.vk.vertex;
+export module cth.vk.render.exec.vertex;
 
 import cth.alg.hash;
 

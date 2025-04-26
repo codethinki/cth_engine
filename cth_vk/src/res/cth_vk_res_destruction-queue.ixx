@@ -1,3 +1,4 @@
+module;
 export module cth.vk.res.destruction_queue;
 import cth.vk.constants;
 

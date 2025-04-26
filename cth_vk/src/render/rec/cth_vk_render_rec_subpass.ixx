@@ -57,9 +57,8 @@ public:
 
 
 export namespace cth::vk {
-inline void Subpass::debug_check(Subpass const& subpass) {
-    
-}
+inline void Subpass::debug_check(Subpass const& subpass) {}
 inline void Subpass::debug_check(std::span<Subpass const* const> subpasses) {
     for(auto const* subpass : subpasses) { debug_check(*cth::not_null{subpass}); }
+}
 }

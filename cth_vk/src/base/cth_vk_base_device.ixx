@@ -134,7 +134,7 @@ public:
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
     [[nodiscard]] auto queueFamiliesQueueCounts() const { return _queueFamiliesQueueCounts; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
-    [[nodiscard]] std::span<QueueInfo const> queueInfos() { return _queueInfos; }
+    [[nodiscard]] std::span<QueueInfo const> queueInfos() const { return _queueInfos; }
 
     Device(Device const& other) = delete;
     Device(Device&& other) noexcept = default;

@@ -3,14 +3,16 @@ module;
 
 module cth.vk.res.descriptor.set;
 
+import cth.vk.fmt;
+
 import cth.io.log;
 //DescriptorSet
 
 namespace cth::vk {
-DescriptorSet::DescriptorSet(DescriptorPool& pool, Config const& config) : _pool{&pool}, _layout(config._layout), _descriptors(config._descriptors) {
+DescriptorSet::DescriptorSet(Core const& core, DescriptorPool& pool, Config const& config) : _core{&core}, _pool{&pool}, _layout(config._layout), _descriptors(config._descriptors) {
     copyInfos();
 }
-DescriptorSet::~DescriptorSet() { _pool->returnSet(_handle); }
+DescriptorSet::~DescriptorSet() { _pool->returnSet(_handle.get()); }
 void DescriptorSet::writeDescriptors() {
     CTH_CRITICAL(written(), "set already written") {}
     auto const writes = this->writes();

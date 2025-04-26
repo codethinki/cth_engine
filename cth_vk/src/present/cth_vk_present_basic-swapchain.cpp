@@ -1,9 +1,9 @@
-module;
-#include <cth/io/io_log.hpp>
-
 module cth.vk.present.basic_swapchain;
 import cth.vk.exception;
 import cth.vk.render.sync.pipeline_barrier;
+import cth.vk.render.sync.semaphore;
+import cth.vk.fmt;
+import cth.vk.util.overloads;
 
 namespace cth::vk {
 
@@ -108,7 +108,7 @@ void BasicSwapchain::skipAcquire() const {
 void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const& cmd_buffer) const {
     auto const pulse = _syncConfig->pulseVal();
 
-    _renderPass->begin(cmd_buffer, 0, _swapchainFramebuffers[_imageIndices[pulse]]);
+    _renderPass->begin(cmd_buffer.get(), 0, _swapchainFramebuffers[_imageIndices[pulse]]);
 
     VkViewport const viewport{
         .x = 0,
@@ -476,7 +476,7 @@ void BasicSwapchain::createFramebuffers() {
     for(size_t i = 0; i < imageCount(); i++) {
         std::array attachments = {_msaaAttachments->view(i), _depthAttachments->view(i), _resolveAttachments->view(i)};
 
-        _swapchainFramebuffers.emplace_back(*_core, *_renderPass, attachments, _extent);
+        _swapchainFramebuffers.emplace_back(*_core, _renderPass->get(), attachments, _extent);
     }
 }
 
@@ -487,7 +487,7 @@ void BasicSwapchain::createPresentInfos() {
 
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++) {
         std::vector<Semaphore const*> semaphores{_syncConfig->renderFinishedSemaphore(i)};
-        _presentInfos.emplace_back(this, semaphores);
+        _presentInfos.emplace_back(get(), semaphores);
     }
 }
 

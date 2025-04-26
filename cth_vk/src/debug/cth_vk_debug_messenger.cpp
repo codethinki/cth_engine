@@ -5,6 +5,7 @@ module cth.vk.debug.messenger;
 
 import cth.vk.base.instance;
 import cth.vk.exception;
+import cth.vk.fmt;
 
 namespace cth::vk {
 

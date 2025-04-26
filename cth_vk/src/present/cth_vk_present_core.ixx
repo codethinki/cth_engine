@@ -1,5 +1,6 @@
 ﻿module;
-
+#include <cth/macro.hpp>
+#include <cth/io/io_log.hpp>
 
 export module cth.vk.present.core;
 
@@ -9,12 +10,15 @@ import cth.vk.present.surface;
 import cth.vk.present.os_window;
 import cth.vk.render.rec.pass;
 import cth.vk.submit.queue;
-import cth.vk.render.rec.cmd.buffer.base;
+import cth.vk.render.rec.cmd.buffer.primary;
 import cth.vk.present.basic_swapchain;
 import cth.vk.util.types;
 
+import cth.io.log;
+import cth.ptr.not_null;
 
-namespace cth::vk {
+
+export namespace cth::vk {
 class PresentCore {
 public:
     /**

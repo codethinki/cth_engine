@@ -3,16 +3,21 @@ module;
 
 module cth.vk.submit.queue;
 
+
+
 import cth.vk.exception;
 
 namespace cth::vk {
+
+Queue::Queue(Core const& core, QueueInfo const& info) : _familyProperties{info.familyProperties}, _core{&core}, _handle{info.vkQueue.get()},
+    _familyIndex{info.familyIndex}, _queueIndex{info.queueIndex} {}
 
 Queue::~Queue() { optDestroy(); }
 void Queue::wrap(State const& state) {
     optDestroy();
 
     _handle = state.vkQueue.get();
-    _device = state.device.get();
+    _core = state.core.get();
     _familyIndex = state.familyIndex;
     _queueIndex = state.queueIndex;
 }
@@ -24,7 +29,7 @@ Queue::State Queue::release() {
     debug_check(*this);
     State const state{
         _handle.release(),
-        _device,
+        _core,
         _familyIndex,
         _queueIndex,
     };
@@ -33,16 +38,14 @@ Queue::State Queue::release() {
 }
 
 void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
-void Queue::const_submit(SubmitInfo const& submit_info) const {
-    submit(submit_info.get(), submit_info.fence());
-}
+void Queue::const_submit(SubmitInfo const& submit_info) const { submit(submit_info.get(), submit_info.fence()); }
 void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next()); }
 void Queue::const_skip(SubmitInfo const& submit_info) const { submit(submit_info.skip(), submit_info.fence()); }
 
 
 VkResult Queue::present(uint32_t image_index, PresentInfo& present_info) const {
 
-    auto const result = _device->functions()->vkQueuePresentKHR(get(), present_info.create(image_index));
+    auto const result = _core->functions()->vkQueuePresentKHR(get(), present_info.create(image_index));
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR, "failed to present")
         throw cth::vk::result_exception{result, details->exception()};
@@ -50,21 +53,20 @@ VkResult Queue::present(uint32_t image_index, PresentInfo& present_info) const {
     return result;
 }
 void Queue::const_skip(PresentInfo const& present_info) const {
-    auto const result = _device->functions()->vkQueueSubmit(get(), 1, present_info.skip(), VK_NULL_HANDLE);
+    auto const result = _core->functions()->vkQueueSubmit(get(), 1, present_info.skip(), VK_NULL_HANDLE);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-present")
         throw cth::vk::result_exception{result, details->exception()};
 }
 void Queue::reset() {
     _handle = VK_NULL_HANDLE;
-    _device = nullptr;
     _familyIndex = 0;
     _queueIndex = 0;
 }
 
 void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
     debug_check(*this);
-    auto const result = _device->functions()->vkQueueSubmit(_handle.get(), 1, submit_info, fence);
+    auto const result = _core->functions()->vkQueueSubmit(_handle.get(), 1, submit_info, fence);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
         throw cth::vk::result_exception{result, details->exception()};
 }

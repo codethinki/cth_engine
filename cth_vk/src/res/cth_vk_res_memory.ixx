@@ -10,7 +10,7 @@ import cth.vk.base.core;
 import cth.vk.util.types;
 import cth.vk.constants;
 
-import cth.ptr.move;
+import cth.ptr;
 import cth.io.log;
 
 export namespace cth::vk {

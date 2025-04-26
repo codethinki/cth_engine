@@ -6,14 +6,14 @@ export module cth.vk.res.descriptors.buffer;
 
 import cth.vk.res.descriptors.base;
 import cth.vk.constants;
-import cth.vk.res.buffer;
+import cth.vk.res.buffer.base;
 
 
 //TODO fix this file
 export namespace cth::vk {
 class BufferDescriptor : public Descriptor {
 public:
-    explicit BufferDescriptor(VkDescriptorType  type, DefaultBuffer const* buffer, size_t const descriptor_size = constants::WHOLE_SIZE,
+    explicit BufferDescriptor(VkDescriptorType  type, BaseBuffer const* buffer, size_t const descriptor_size = constants::WHOLE_SIZE,
         size_t const buffer_offset = 0) : Descriptor(type), vkDescriptorInfo(buffer->descriptorInfo(descriptor_size, buffer_offset)) {}
     ~BufferDescriptor() override = 0;
 
@@ -35,7 +35,7 @@ class UniformBufferDescriptor : public BufferDescriptor {
 public:
     static cxpr VkDescriptorType TYPE = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-    explicit UniformBufferDescriptor(DefaultBuffer const* buffer, size_t const descriptor_size = constants::WHOLE_SIZE,
+    explicit UniformBufferDescriptor(BaseBuffer const* buffer, size_t const descriptor_size = constants::WHOLE_SIZE,
         size_t const descriptor_offset = 0) : BufferDescriptor(TYPE, buffer, descriptor_size, descriptor_offset) {}
 };
 

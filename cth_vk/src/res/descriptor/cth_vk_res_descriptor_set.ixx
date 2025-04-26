@@ -8,8 +8,7 @@ import cth.vk.res.descriptor.pool;
 import cth.vk.res.desciptor.set_layout;
 import cth.vk.base.core;
 
-import cth.ptr.move;
-
+import cth.ptr;
 import std;
 
 export namespace cth::vk {

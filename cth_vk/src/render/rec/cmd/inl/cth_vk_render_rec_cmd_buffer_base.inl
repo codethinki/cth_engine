@@ -10,7 +10,7 @@ template<class Me>
 void CmdBuffer::destroy(this Me&& self) {
     self.reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
-    self._pool->returnCmdBuffer(Me::TYPE, self._handle.get());
+    self._pool->returnCmdBuffer(std::decay_t<Me>::TYPE, self._handle.get());
 
     self.reset();
 }
@@ -49,11 +49,12 @@ inline void CmdBuffer::destroy(DeviceTable table, vk::not_null<VkCommandPool> vk
     table->vkFreeCommandBuffers(table.device(), vk_pool.get(), 1, &buffer);
 }
 
-void CmdBuffer::create(this auto&& self, CmdPool& pool) {
+template<class Me>
+void CmdBuffer::create(this Me&& self, CmdPool& pool) {
     self.optDestroy();
     self._pool = &pool;
     self._deviceTable = pool.core().deviceTable();
-    auto const handle = self._pool->template newCmdBuffer<type::pure_t<decltype(self)>>();
+    auto const handle = self._pool->newCmdBuffer(std::decay_t<Me>::TYPE);
     CTH_CRITICAL(handle == VK_NULL_HANDLE, "failed to create cmd buffer") {}
 
     self._handle = handle;

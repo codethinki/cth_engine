@@ -10,7 +10,7 @@ import cth.vk.res.img.image;
 import cth.vk.base.core;
 
 
-import cth.ptr.move;
+import cth.ptr;
 import cth.io.log;
 
 export namespace cth::vk {

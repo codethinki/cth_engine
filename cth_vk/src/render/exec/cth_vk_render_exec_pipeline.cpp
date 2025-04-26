@@ -4,7 +4,7 @@ module;
 module cth.vk.render.exec.pipeline;
 
 import cth.vk.exception;
-import cth.vk.vertex;
+import cth.vk.render.exec.vertex;
 
 import cth.io.log;
 

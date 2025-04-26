@@ -1,6 +1,6 @@
 module;
 #include <cth/io/io_log.hpp>
-
+#include <cth/macro.hpp>
 
 export module cth.vk.present.sync.config;
 

@@ -1,6 +1,4 @@
 #pragma once
-import cth.vk.vertex;
-
 #include <string>
 
 //TEMP old code
