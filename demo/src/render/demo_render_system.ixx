@@ -1,3 +1,4 @@
+module;
 export module demo.render.system;
 
 import demo.render.frame_info;

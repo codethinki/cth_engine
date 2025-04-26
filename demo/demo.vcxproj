@@ -314,7 +314,7 @@
       <Project>{e44687a0-724a-42ab-a9c0-aa8cb4a3032a}</Project>
     </ProjectReference>
     <ProjectReference Include="..\cth_vk\cth_vk.vcxproj">
-      <Project>{b1598f5f-2b24-4d66-91e6-3eb18370fe96}</Project>
+      <Project>{2dd233eb-7376-4536-a2ce-49f78bd5ef91}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

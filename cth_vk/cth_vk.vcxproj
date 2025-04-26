@@ -221,8 +221,8 @@
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <PublicModuleDirectories>$(ProjectDir)include\</PublicModuleDirectories>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
+    <PublicModuleDirectories>$(ProjectDir)include\;</PublicModuleDirectories>
+    <ExternalIncludePath>$(SolutionDir)../../sdk/vulkan/include/;$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
@@ -230,22 +230,22 @@
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <PublicModuleDirectories>$(ProjectDir)include\</PublicModuleDirectories>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
+    <PublicModuleDirectories>$(ProjectDir)include\;</PublicModuleDirectories>
+    <ExternalIncludePath>$(SolutionDir)../../sdk/vulkan/include/;$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <PublicModuleDirectories>$(ProjectDir)include\</PublicModuleDirectories>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
+    <PublicModuleDirectories>$(ProjectDir)include\;</PublicModuleDirectories>
+    <ExternalIncludePath>$(SolutionDir)../../sdk/vulkan/include/;$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
     <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <PublicModuleDirectories>$(ProjectDir)include\</PublicModuleDirectories>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
+    <PublicModuleDirectories>$(ProjectDir)include\;</PublicModuleDirectories>
+    <ExternalIncludePath>$(SolutionDir)../../sdk/vulkan/include/;$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>

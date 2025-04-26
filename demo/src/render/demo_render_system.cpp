@@ -1,3 +1,4 @@
+module;
 module demo.render.system;
 
 import cth.image;
@@ -33,15 +34,15 @@ void RenderSystem::createShaders() {
     std::string const vertexBinary = std::format("{}shader.vert.spv", SHADER_BINARY_DIR);
     std::string const fragmentBinary = std::format("{}shader.frag.spv", SHADER_BINARY_DIR);
 
-#ifndef CONSTANT_DEBUG_MODE
-    vertexShader = make_unique<Shader>(_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
-    fragmentShader = make_unique<Shader>(_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
-#else
-    _vertexShader = std::make_unique<vk::Shader>(*_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
-        std::format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
-    _fragmentShader = std::make_unique<vk::Shader>(*_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
-        std::format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
-#endif
+    if constexpr(!vk::constants::DEBUG_MODE) {
+        _vertexShader = std::make_unique<vk::Shader>(*_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
+        _fragmentShader = std::make_unique<vk::Shader>(*_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
+    } else {
+        _vertexShader = std::make_unique<vk::Shader>(*_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
+            std::format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
+        _fragmentShader = std::make_unique<vk::Shader>(*_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
+            std::format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
+    }
 }
 void RenderSystem::createDescriptorSetLayouts() {
     vk::DescriptorSetLayout::Builder builder{};
@@ -93,9 +94,11 @@ void RenderSystem::createDescriptorSets() {
     _textureDescriptor = std::make_unique<vk::TextureDescriptor>(*_textureView, *_textureSampler);
 
     _descriptorSet = std::make_unique<vk::DescriptorSet>(
-        vk::DescriptorSet::Builder{_descriptorSetLayout.get(), std::vector<vk::Descriptor*>{_textureDescriptor.get()}});
+        *_core,
+        *_descriptorPool,
+        vk::DescriptorSet::Config{_descriptorSetLayout.get(), std::vector<vk::Descriptor*>{_textureDescriptor.get()}}
+    );
 
-    _descriptorPool->writeSets(std::vector{_descriptorSet.get()});
 }
 std::array<vk::Vertex, 3> defaultTriangle{
     vk::Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {1, 0}},
