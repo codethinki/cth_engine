@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lib\boost\pfr.hpp">
+    <ClInclude Include="lib\pch\pch.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lib\pch\pch.hpp">
+    <ClInclude Include="lib\boost\pfr.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="lib\cth.hpp">
@@ -42,18 +42,33 @@
     <ClInclude Include="lib\windows.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\object\HlcRenderObject.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\object\HlcStandardObject.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\user\HlcCamera.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\user\HlcInputController.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\user\HlcUser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lib\pch\pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\cth_engine_control.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\cth_engine.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="include\cth_engine_render.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\object\HlcStandardObject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\render\cth_engine_render_dag.ixx">
@@ -74,10 +89,14 @@
     <ClCompile Include="src\render\cth_engine_renderer.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="doc\roadmap.md" />
-    <None Include="doc\scene.md" />
-    <None Include="doc\tinygltf.md" />
+    <ClCompile Include="src\user\HlcCamera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\user\HlcInputController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cth_engine_control.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

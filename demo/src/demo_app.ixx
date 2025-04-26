@@ -1,8 +1,13 @@
+module;
+#include <cstdint>
+
 export module demo.app;
 
 import demo.render.system;
 import cth.engine.render;
 import cth.vk;
+
+import std;
 
 export namespace cth {
 
@@ -19,8 +24,8 @@ public:
     static constexpr uint32_t HEIGHT = 1000;
 
 private:
+    void createQueues();
     void createPresentCore();
-
     void createRenderer();
 
 
@@ -44,7 +49,7 @@ private:
 
     std::vector<vk::Queue> _queues;
 
-    std::unique_ptr<vk::PresentCore> _graphicsCore;
+    std::unique_ptr<vk::PresentCore> _presentCore;
 
     std::unique_ptr<vk::Renderer> _renderer3;
 

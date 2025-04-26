@@ -18,51 +18,10 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="lib\boost\pfr.hpp" />
-    <ClInclude Include="lib\cth.hpp" />
-    <ClInclude Include="lib\glfw.hpp" />
-    <ClInclude Include="lib\glm.hpp" />
-    <ClInclude Include="lib\gsl.hpp" />
-    <ClInclude Include="lib\pch\pch.hpp" />
-    <ClInclude Include="lib\rangev3.hpp" />
-    <ClInclude Include="lib\volk.hpp" />
-    <ClInclude Include="lib\windows.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="include\cth_engine.ixx" />
-    <ClCompile Include="include\cth_engine_render.ixx" />
-    <ClCompile Include="lib\pch\pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="src\cth_engine_control.ixx" />
-    <ClCompile Include="src\render\cth_engine_renderer.cpp" />
-    <ClCompile Include="src\render\cth_engine_renderer.ixx" />
-    <ClCompile Include="src\render\cth_engine_render_dag.ixx" />
-    <ClCompile Include="src\render\cth_engine_render_stage-config.ixx" />
-    <ClCompile Include="src\render\cth_engine_render_stage.cpp" />
-    <ClCompile Include="src\render\cth_engine_render_stage.ixx" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\cth\cth\cth.vcxproj">
-      <Project>{7dda21b4-4072-4f64-8b76-247008cde359}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\cth_vk\cth_vk.vcxproj">
-      <Project>{2dd233eb-7376-4536-a2ce-49f78bd5ef91}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="doc\roadmap.md" />
-    <None Include="doc\scene.md" />
-    <None Include="doc\tinygltf.md" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{e44687a0-724a-42ab-a9c0-aa8cb4a3032a}</ProjectGuid>
+    <ProjectGuid>{e2b0db69-c7af-4fda-b100-4bfaed4dc81f}</ProjectGuid>
     <RootNamespace>cth_engine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -116,32 +75,32 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(SolutionDir).../../sdk/vulkan/include/;$(ExternalIncludePath)</ExternalIncludePath>
-    <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <PublicModuleDirectories>$(ProjectDir)include\;</PublicModuleDirectories>
+    <PublicModuleDirectories>$(ProjectDir)include;</PublicModuleDirectories>
+    <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
+    <ExternalIncludePath>$(SolutionDir)../../sdk/vulkan/include/;$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(SolutionDir).../../sdk/vulkan/include/;$(ExternalIncludePath)</ExternalIncludePath>
-    <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <PublicModuleDirectories>$(ProjectDir)include\;</PublicModuleDirectories>
+    <PublicModuleDirectories>$(ProjectDir)include;</PublicModuleDirectories>
+    <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
+    <ExternalIncludePath>$(SolutionDir)../../sdk/vulkan/include/;$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(SolutionDir).../../sdk/vulkan/include/;$(ExternalIncludePath)</ExternalIncludePath>
-    <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <PublicModuleDirectories>$(ProjectDir)include\;</PublicModuleDirectories>
+    <PublicModuleDirectories>$(ProjectDir)include;</PublicModuleDirectories>
+    <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
+    <ExternalIncludePath>$(SolutionDir)../../sdk/vulkan/include/;$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(ProjectDir);$(IncludePath)</IncludePath>
     <PublicIncludeDirectories>$(ProjectDir)include\;$(PublicIncludeDirectories)</PublicIncludeDirectories>
-    <ExternalIncludePath>$(SolutionDir)../cth/;$(SolutionDir).../../sdk/vulkan/include/;$(ExternalIncludePath)</ExternalIncludePath>
-    <AllProjectBMIsArePublic>false</AllProjectBMIsArePublic>
-    <PublicModuleDirectories>$(ProjectDir)include\;</PublicModuleDirectories>
+    <PublicModuleDirectories>$(ProjectDir)include;</PublicModuleDirectories>
+    <AllProjectBMIsArePublic>true</AllProjectBMIsArePublic>
+    <ExternalIncludePath>$(SolutionDir)../../sdk/vulkan/include/;$(SolutionDir)../cth/;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>
@@ -152,12 +111,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)lib\pch\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <ForcedIncludeFiles>$(ProjectDir)lib\pch\pch.hpp</ForcedIncludeFiles>
+      <ForcedIncludeFiles>$(ProjectDir)lib/pch/pch.hpp</ForcedIncludeFiles>
       <BuildStlModules>true</BuildStlModules>
     </ClCompile>
     <Link>
@@ -173,12 +132,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)lib\pch\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <ForcedIncludeFiles>$(ProjectDir)lib\pch\pch.hpp</ForcedIncludeFiles>
+      <ForcedIncludeFiles>$(ProjectDir)lib/pch/pch.hpp</ForcedIncludeFiles>
       <BuildStlModules>true</BuildStlModules>
     </ClCompile>
     <Link>
@@ -194,12 +153,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)lib\pch\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <ForcedIncludeFiles>$(ProjectDir)lib\pch\pch.hpp</ForcedIncludeFiles>
+      <ForcedIncludeFiles>$(ProjectDir)lib/pch/pch.hpp</ForcedIncludeFiles>
       <BuildStlModules>true</BuildStlModules>
     </ClCompile>
     <Link>
@@ -215,12 +174,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>$(ProjectDir)lib\pch\pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdclatest</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <ForcedIncludeFiles>$(ProjectDir)lib\pch\pch.hpp</ForcedIncludeFiles>
+      <ForcedIncludeFiles>$(ProjectDir)lib/pch/pch.hpp</ForcedIncludeFiles>
       <BuildStlModules>true</BuildStlModules>
     </ClCompile>
     <Link>
@@ -230,6 +189,54 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="lib\boost\pfr.hpp" />
+    <ClInclude Include="lib\cth.hpp" />
+    <ClInclude Include="lib\glfw.hpp" />
+    <ClInclude Include="lib\glm.hpp" />
+    <ClInclude Include="lib\gsl.hpp" />
+    <ClInclude Include="lib\pch\pch.hpp" />
+    <ClInclude Include="lib\rangev3.hpp" />
+    <ClInclude Include="lib\volk.hpp" />
+    <ClInclude Include="lib\windows.hpp" />
+    <ClInclude Include="src\object\HlcRenderObject.hpp" />
+    <ClInclude Include="src\object\HlcStandardObject.hpp" />
+    <ClInclude Include="src\user\HlcCamera.hpp" />
+    <ClInclude Include="src\user\HlcInputController.hpp" />
+    <ClInclude Include="src\user\HlcUser.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="include\cth_engine.ixx" />
+    <ClCompile Include="include\cth_engine_render.ixx" />
+    <ClCompile Include="lib\pch\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)lib/pch/pch.hpp</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="src\cth_engine_control.ixx" />
+    <ClCompile Include="src\object\HlcStandardObject.cpp" />
+    <ClCompile Include="src\render\cth_engine_renderer.cpp" />
+    <ClCompile Include="src\render\cth_engine_renderer.ixx" />
+    <ClCompile Include="src\render\cth_engine_render_dag.ixx" />
+    <ClCompile Include="src\render\cth_engine_render_stage-config.ixx" />
+    <ClCompile Include="src\render\cth_engine_render_stage.cpp" />
+    <ClCompile Include="src\render\cth_engine_render_stage.ixx" />
+    <ClCompile Include="src\user\HlcCamera.cpp" />
+    <ClCompile Include="src\user\HlcInputController.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\cth\cth\cth.vcxproj">
+      <Project>{7dda21b4-4072-4f64-8b76-247008cde359}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\cth_vk\cth_vk.vcxproj">
+      <Project>{c3fa3f04-ae56-46b9-aba6-8a305008f513}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

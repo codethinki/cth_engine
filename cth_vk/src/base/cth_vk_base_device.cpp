@@ -101,15 +101,15 @@ void Device::createLogicalDevice() {
 }
 void Device::loadFunctionTable() const { volkLoadDeviceTable(_functionTable.get(), get()); }
 
- void Device::wrapQueues(span<uint32_t const> family_indices, span<QueueFamilyProperties const> queues) {
-    CTH_CRITICAL(family_indices.size() != queues.size(), "there must be a family index for every queue") {}
+void Device::wrapQueues(span<uint32_t const> family_indices, span<QueueFamilyProperties const> queue_family_properties) {
+    CTH_CRITICAL(family_indices.size() != queue_family_properties.size(), "there must be a family index for every queue") {}
 
-    _queueInfos.reserve(queues.size());
+    _queueInfos.reserve(queue_family_properties.size());
 
     std::unordered_map<uint32_t, uint32_t> queueCounts{};
     for(auto& index : family_indices) queueCounts[index] = 0;
 
-    for(auto [familyIndex, queue] : std::views::zip(family_indices, queues)) {
+    for(auto [familyIndex, familyProperties] : std::views::zip(family_indices, queue_family_properties)) {
         auto& queueIndex = queueCounts[familyIndex];
         VkQueue ptr = VK_NULL_HANDLE;
 
@@ -117,7 +117,7 @@ void Device::loadFunctionTable() const { volkLoadDeviceTable(_functionTable.get(
 
         CTH_STABLE_ERR(ptr == VK_NULL_HANDLE, "failed to get device queue") throw details->exception();
 
-        _queueInfos.emplace_back(queue, familyIndex, queueIndex++, ptr);
+        _queueInfos.emplace_back(familyProperties, familyIndex, queueIndex++, ptr);
     }
 }
 Device::State Device::release() {

@@ -15,10 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="lib\pch\pch.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="lib\boost\pfr.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lib\pch\pch.hpp">
+    <ClInclude Include="lib\cth.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="lib\glfw.hpp">
@@ -45,12 +48,60 @@
     <ClInclude Include="src\util\cth_debug_macros.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lib\cth.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lib\pch\pch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_base.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_debug.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_init.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_present.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_render.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_render_exec.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_render_rec.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_render_rec_cmd.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_render_sync.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_res.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_res_buffers.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_res_descriptor.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_res_descriptors.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_res_img.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_submit.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="include\cth_vk_util.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\base\cth_vk_base_core.cpp">
@@ -120,6 +171,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\present\cth_vk_present_surface.ixx">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\exec\cth_vk_render_exce_vertex.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\render\exec\cth_vk_render_exec_pipeline.cpp">
@@ -339,60 +393,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\util\cth_vk_util_types.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\render\exec\cth_vk_render_exce_vertex.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_base.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_debug.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_init.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_present.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_render.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_render_exec.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_render_rec.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_render_rec_cmd.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_render_sync.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_res.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_res_buffers.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_res_descriptor.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_res_descriptors.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_res_img.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_submit.ixx">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="include\cth_vk_util.ixx">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

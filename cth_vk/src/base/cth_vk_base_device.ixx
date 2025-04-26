@@ -116,7 +116,7 @@ private:
      * @param family_indices family index of each queue
      * @note calls @ref Queue::wrap(Queue::State const&)
      */
-    void wrapQueues(std::span<uint32_t const> family_indices, std::span<QueueFamilyProperties const> queues);
+    void wrapQueues(std::span<uint32_t const> family_indices, std::span<QueueFamilyProperties const> queue_family_properties);
 
 
     cth::not_null<Instance const*> _instance;

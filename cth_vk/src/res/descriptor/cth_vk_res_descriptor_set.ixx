@@ -26,7 +26,7 @@ public:
 
 private:
     void writeDescriptors();
-    void alloc(VkDescriptorSet set, DescriptorPool* pool);
+    void alloc(VkDescriptorSet set, DescriptorPool& pool);
     void deallocate();
     [[nodiscard]] virtual std::vector<VkWriteDescriptorSet> writes();
 

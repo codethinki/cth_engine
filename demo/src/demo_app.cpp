@@ -1,3 +1,6 @@
+module;
+#include "lib/glfw.hpp"
+#include "lib/volk.hpp"
 module demo.app;
 
 import cth.io.log;
@@ -6,6 +9,8 @@ import demo.render.frame_info;
 namespace cth {
 
 App::App() {
+    createQueues();
+    createPresentCore();
     createRenderer();
     initFrame();
 }
@@ -13,7 +18,7 @@ App::App() {
 void App::run() {
     cth::log::msg<except::INFO>("starting...");
 
-    while(!_graphicsCore->osWindow()->shouldClose()) {
+    while(!_presentCore->osWindow()->shouldClose()) {
         glfwPollEvents();
 
         renderFrame();
@@ -25,16 +30,15 @@ void App::run() {
     //OldModel::clearModels();
 }
 
-void App::createPresentCore() {
+void App::createQueues() {
     auto const queueInfos = _core->device().queueInfos();
 
     _queues.reserve(queueInfos.size());
 
     for(auto const& info : queueInfos)
         _queues.emplace_back(*_core, info);
-
-    _graphicsCore = make_unique<vk::PresentCore>(*_core, WINDOW_NAME, VkExtent2D{WIDTH, HEIGHT}, presentQueue());
 }
+void App::createPresentCore() { _presentCore = make_unique<vk::PresentCore>(*_core, WINDOW_NAME, VkExtent2D{WIDTH, HEIGHT}, presentQueue()); }
 void App::createRenderer() {
     vk::Renderer::Config config{
         .stages{
@@ -49,8 +53,8 @@ void App::createRenderer() {
                 vk::RenderStageConfig{
                     .queue = &renderQueue(),
                     .subStages = 3,
-                    .signalSemaphores{std::from_range, _graphicsCore->renderFinishedSemaphores()},
-                    .waitStages{std::from_range, _graphicsCore->imageAvailableWaitStages()},
+                    .signalSemaphores{std::from_range, _presentCore->renderFinishedSemaphores()},
+                    .waitStages{std::from_range, _presentCore->imageAvailableWaitStages()},
                     .flags = vk::RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING | vk::RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING
                 }
             }
@@ -62,14 +66,14 @@ void App::createRenderer() {
     };
 
 
-    _renderer3 = std::make_unique<vk::Renderer>(*_core, _graphicsCore->renderPulse(), config, vk::create);
+    _renderer3 = std::make_unique<vk::Renderer>(*_core, _presentCore->renderPulse(), config, vk::create);
 
     _transferStage = &_renderer3->stage(0);
     _graphicsStage = &_renderer3->stage(1);
 }
 void App::initFrame() {
 
-    _graphicsCore->skipAcquire();
+    _presentCore->skipAcquire();
 
     auto [initCmdBuffer, _] = _transferStage->begin();
     initRenderSystem(*initCmdBuffer);
@@ -77,37 +81,37 @@ void App::initFrame() {
     _transferStage->submit();
     _graphicsStage->skip();
 
-    _graphicsCore->skipPresent();
+    _presentCore->skipPresent();
 }
 
 void App::renderFrame() const {
     _graphicsStage->wait();
     _core->destructionQueue()->next();
-    _graphicsCore->acquireFrame();
+    _presentCore->acquireFrame();
 
     _transferStage->skip();
 
     graphicsPhase();
 
-    _graphicsCore->presentFrame();
+    _presentCore->presentFrame();
 }
 void App::graphicsPhase() const {
     auto [cmdBuffer, _] = _graphicsStage->begin();
 
-    _graphicsCore->beginWindowPass(cmdBuffer);
+    _presentCore->beginWindowPass(cmdBuffer);
 
-    auto const info = FrameInfo{_graphicsCore->pulseVal(), 0.f, cmdBuffer};
+    auto const info = FrameInfo{_presentCore->pulseVal(), 0.f, cmdBuffer};
     _renderSystem->render(info);
 
-    _graphicsCore->endWindowPass(cmdBuffer);
+    _presentCore->endWindowPass(cmdBuffer);
 
     _graphicsStage->submit();
 }
 
 
 void App::initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer) {
-    _renderSystem = std::make_unique<RenderSystem>(_core.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(),
-        _graphicsCore->msaaSamples());
+    _renderSystem = std::make_unique<RenderSystem>(_core.get(), cmd_buffer, _presentCore->swapchainRenderPass(),
+        _presentCore->msaaSamples());
 }
 
 

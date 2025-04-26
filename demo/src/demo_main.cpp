@@ -1,7 +1,8 @@
-#include "HlcApp.hpp"
-
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
+#define VOLK_IMPLEMENTATION
+#include <volk.h>
 
 import cth.io.log;
 
@@ -41,6 +42,6 @@ int main() {
          std::terminate();
      }*/
 
-    vk::Engine::terminate();
+    vk::EngineControl::terminate();
     return EXIT_SUCCESS;
 }

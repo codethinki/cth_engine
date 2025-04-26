@@ -1,4 +1,6 @@
 module;
+#include <glm/glm.hpp>
+#include "lib/volk.hpp"
 module demo.render.system;
 
 import cth.image;
@@ -122,7 +124,7 @@ void RenderSystem::createDefaultTriangle(vk::CmdBuffer const& cmd_buffer) {
 }
 
 void RenderSystem::render(FrameInfo const& frame_info) const {
-    _pipeline->bind(frame_info.commandBuffer);
+    _pipeline->bind(frame_info.commandBuffer->get());
     std::vector<VkBuffer> const vertexBuffers{_defaultTriangleBuffer->get()};
     std::vector<size_t> const offsets(vertexBuffers.size());
     std::vector<VkDescriptorSet> const descriptorSets{_descriptorSet->get()};

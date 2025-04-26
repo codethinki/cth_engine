@@ -79,10 +79,10 @@ void RenderStage::initCmdPools() {
     uint32_t const secondaryBuffers = nonParallelSecondaries * buffersPerPool;
 
     for(uint32_t i = 0; i < primaryPools; i++) {
-        _cmdPools.emplace_back(*_core, CmdPool::Config::Default(*_config.queue, buffersPerPool, secondaryBuffers));
+        _cmdPools.emplace_back(*_core, CmdPool::Config::Default(_config.queue->familyIndex(), buffersPerPool, secondaryBuffers));
 
         for(uint32_t j = 0; j < secondaryOnlyPools; j++)
-            _cmdPools.emplace_back(*_core, CmdPool::Config::Default(*_config.queue, 0, buffersPerPool));
+            _cmdPools.emplace_back(*_core, CmdPool::Config::Default(_config.queue->familyIndex(), 0, buffersPerPool));
     }
 }
 void RenderStage::initCmdBuffers() { _primaryCmdBuffers.resize(GROUP_SIZE); }

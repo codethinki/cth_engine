@@ -1,4 +1,5 @@
 module;
+#include "lib/volk.hpp"
 export module demo.render.system;
 
 import demo.render.frame_info;

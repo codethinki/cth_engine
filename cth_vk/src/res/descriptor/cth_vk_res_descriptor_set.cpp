@@ -9,8 +9,12 @@ import cth.io.log;
 //DescriptorSet
 
 namespace cth::vk {
-DescriptorSet::DescriptorSet(Core const& core, DescriptorPool& pool, Config const& config) : _core{&core}, _pool{&pool}, _layout(config._layout), _descriptors(config._descriptors) {
+DescriptorSet::DescriptorSet(Core const& core, DescriptorPool& pool, Config const& config) : _core{&core}, _pool{&pool}, _layout(config._layout),
+    _descriptors(config._descriptors) {
     copyInfos();
+
+    alloc(pool.borrowSet(*config._layout), pool);
+    writeDescriptors();
 }
 DescriptorSet::~DescriptorSet() { _pool->returnSet(_handle.get()); }
 void DescriptorSet::writeDescriptors() {
@@ -19,11 +23,9 @@ void DescriptorSet::writeDescriptors() {
     _core->functions()->vkUpdateDescriptorSets(_core->vkDevice(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 }
 
-void DescriptorSet::alloc(VkDescriptorSet set, DescriptorPool* pool) {
-
-
+void DescriptorSet::alloc(VkDescriptorSet set, DescriptorPool& pool) {
     _handle = set;
-    this->_pool = pool;
+    this->_pool = &pool;
 }
 void DescriptorSet::deallocate() {
     _handle = VK_NULL_HANDLE;

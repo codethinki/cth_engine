@@ -114,6 +114,7 @@ private:
 
 
     cth::not_null<Core const*> _core;
+    uint32_t _queueFamilyIndex;
 
     cth::move_ptr<VkCommandPool_T> _handle = VK_NULL_HANDLE;
     std::array<std::vector<VkCommandBuffer>, BUFFER_TYPES> _buffers;
@@ -122,7 +123,6 @@ private:
 
     size_t _maxPrimaryBuffers = 0;
     size_t _maxSecondaryBuffers = 0;
-    uint32_t _queueFamilyIndex;
 
     constexpr static VkCommandBufferLevel to_buffer_level(BufferType type) { return static_cast<VkCommandBufferLevel>(type); }
 
