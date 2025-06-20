@@ -144,6 +144,7 @@ inline void Renderer3Config::debugCheck(Renderer3Config const& config) {
             | std::views::keys
             | std::views::filter([&dag = config.stageDependencies](auto const id) { return !dag.contains(id); });
 
+        static_assert(std::same_as<std::ranges::range_value_t<decltype(view)>, size_t>, "fuckedyfuckj");
         details->add("missing id's: {}", view);
     }
 }

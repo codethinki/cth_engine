@@ -1,6 +1,6 @@
 #include "CthRenderPass.hpp"
 
-#include "CthAttachmentCollection.hpp"
+#include "AttachmentCollection.hpp"
 #include "CthSubpass.hpp"
 
 #include "../cmd/CthCmdBuffer.hpp"
@@ -132,21 +132,25 @@ void RenderPass::reset() {
     for(auto& beginInfo : _beginInfos) beginInfo.renderPass = VK_NULL_HANDLE;
 }
 
-void debug_check_attachments(std::span<AttachmentCollection const* const> attachments) {
-    CTH_CRITICAL(std::ranges::any_of(attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*>const& pair){
-        return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->index();}), "invalid attachments or indices submitted in subpasses") {
-        uint32_t i = 0;
-        std::vector<uint32_t> missingIndices{};
-        for(auto const* attachment : attachments) {
-            if(attachment->index() != i) {
-                missingIndices.push_back(i);
-                i = attachment->index();
+namespace {
+    void debug_check_attachments(std::span<AttachmentCollection const* const> attachments) {
+        CTH_CRITICAL(std::ranges::any_of(attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*>const& pair){
+                return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->index();}),
+            "invalid attachments or indices submitted in subpasses") {
+            uint32_t i = 0;
+            std::vector<uint32_t> missingIndices{};
+            for(auto const* attachment : attachments) {
+                if(attachment->index() != i) {
+                    missingIndices.push_back(i);
+                    i = attachment->index();
+                }
+                ++i;
             }
-            ++i;
+            details->add("missing indices: {}", missingIndices);
+            throw details->exception();
         }
-        details->add("missing indices: {}", missingIndices);
-        throw details->exception();
     }
+
 }
 
 void RenderPass::initAttachments() {

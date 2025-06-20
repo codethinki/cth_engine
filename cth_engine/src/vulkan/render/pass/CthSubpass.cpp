@@ -1,6 +1,6 @@
 #include "CthSubpass.hpp"
 
-#include "CthAttachmentCollection.hpp"
+#include "AttachmentCollection.hpp"
 
 namespace cth::vk {
 

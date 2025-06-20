@@ -7,12 +7,9 @@
 
 #include <span>
 
-
 namespace cth::vk {
 struct DeviceTable;
-}
 
-namespace cth::vk {
 class DestructionQueue;
 class Queue;
 class Device;

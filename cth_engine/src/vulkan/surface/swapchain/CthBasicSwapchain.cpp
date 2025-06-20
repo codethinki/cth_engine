@@ -8,7 +8,7 @@
 #include "src/vulkan/render/control/CthFence.hpp"
 #include "src/vulkan/render/control/CthPipelineBarrier.hpp"
 #include "src/vulkan/render/control/CthSemaphore.hpp"
-#include "src/vulkan/render/pass/CthAttachmentCollection.hpp"
+#include "src/vulkan/render/pass/AttachmentCollection.hpp"
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
 #include "src/vulkan/render/pass/CthSubpass.hpp"
 #include "src/vulkan/resource/CthDestructionQueue.hpp"

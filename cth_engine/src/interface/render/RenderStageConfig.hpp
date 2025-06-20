@@ -27,3 +27,4 @@ struct RenderStageConfig {
     [[nodiscard]] cxpr bool parallelSubStageRecording() const { return flags & RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING; }
 };
 }
+
