@@ -91,6 +91,11 @@
     <ClInclude Include="src\interface\render\dag.hpp" />
     <ClInclude Include="src\interface\render\RenderStageConfig.hpp" />
     <ClInclude Include="src\interface\render\RenderPulse.hpp" />
+    <ClInclude Include="src\vulkan\surface\swapchain\SwapPass.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\RenderPassConfig.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\RenderPassBeginConfig.hpp" />
+    <ClInclude Include="src\vulkan\resource\image\ImageConfig.hpp" />
+    <ClInclude Include="src\vulkan\surface\SurfaceConfig.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\vulkan\resource\buffer\CthBuffer.inl" />
@@ -145,5 +150,6 @@
     <ClCompile Include="src\pch\lib\volk\volk.cpp" />
     <ClCompile Include="src\interface\render\Renderer3.cpp" />
     <ClCompile Include="src\interface\render\RenderStage.cpp" />
+    <ClCompile Include="src\vulkan\surface\swapchain\SwapPass.cpp" />
   </ItemGroup>
 </Project>

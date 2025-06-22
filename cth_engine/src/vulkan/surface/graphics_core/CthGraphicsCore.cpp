@@ -98,14 +98,18 @@ void GraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) cons
 }
 
 
-void GraphicsCore::presentFrame() const {
+bool GraphicsCore::presentFrame() const {
     debug_check(*this);
     auto const result = _swapchain->present();
-    if(result != VK_SUCCESS) [[unlikely]] {
+    auto const resize = result != VK_SUCCESS;
+
+    if(resize) {
         minimized();
         _swapchain->resize(_osWindow->extent());
     }
     _syncConfig->next();
+
+    return resize;
 }
 void GraphicsCore::skipPresent() const {
     debug_check(*this);
@@ -129,4 +133,17 @@ void GraphicsCore::State::debug_check(State const& state) {
 
 RenderPass const* GraphicsCore::swapchainRenderPass() const { return _swapchain->renderPass(); }
 VkSampleCountFlagBits GraphicsCore::msaaSamples() const { return _swapchain->msaaSamples(); }
-} //namespace cth
+
+AttachmentCollection const* GraphicsCore::swapchainResolveAttachments() const { return _swapchain->resolveAttachments(); }
+VkFormat GraphicsCore::swapchainImageFormat() const { return _swapchain->imageFormat(); }
+VkExtent2D GraphicsCore::swapchainExtent() const {
+    return _swapchain->extent();
+}
+size_t GraphicsCore::swapchainSize() const {
+    return _swapchain->size();
+}
+size_t GraphicsCore::swapchainImageIndex(RenderPulse const& pulse) const {
+    return _swapchain->imageIndex(pulse);
+}
+
+}

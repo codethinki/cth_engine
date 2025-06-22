@@ -1,4 +1,6 @@
 #pragma once
+#include "RenderPassBeginConfig.hpp"
+
 #include "src/vulkan/base/CthDeviceTable.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 #include "src/vulkan/utility/cth_vk_types.hpp"
@@ -14,31 +16,30 @@ class Subpass;
 class Core;
 class Framebuffer;
 
+struct RenderPassConfig;
+
 class RenderPass {
 public:
-    struct BeginConfig;
+    using Config = RenderPassConfig;
+    using BeginConfig = RenderPassBeginConfig;
     struct State;
 
     /**
      * @brief base constructor
      */
-    RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
-        std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs);
+    RenderPass(Core const& core, Config const& config);
 
     /**
      * @brief constructs and calls @ref wrap(State const&)
-     * @note calls @ref RenderPass(Core const&, std::span<Subpass const* const>, std::span<VkSubpassDependency const>, std::span<BeginConfig const>)
+     * @note calls @ref RenderPass(Core const&, Config const&)
      */
-    RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
-        std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs, State const& state);
+    RenderPass(Core const& core, Config const& config, State const& state);
 
     /**
      * @brief constructs and creates
-     * @note calls @ref RenderPass(Core const&, std::span<Subpass const* const>, std::span<VkSubpassDependency const>, std::span<BeginConfig const>)
+     * @note calls @ref RenderPass(Core const&, Config const&)
      */
-    RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
-        std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
-        create_t);
+    RenderPass(Core const& core, Config const& config, create_t);
 
 
     /**
@@ -115,17 +116,6 @@ public:
 
 }
 
-//BeginConfig
-
-namespace cth::vk {
-struct RenderPass::BeginConfig {
-    std::span<VkClearValue const> clearValues;
-    VkExtent2D extent;
-    VkSubpassContents subpassContents = VK_SUBPASS_CONTENTS_INLINE;
-    VkOffset2D offset{0, 0};
-};
-
-}
 
 //State
 

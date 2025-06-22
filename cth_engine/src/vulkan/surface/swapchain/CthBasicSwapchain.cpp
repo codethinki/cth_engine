@@ -11,6 +11,7 @@
 #include "src/vulkan/render/pass/AttachmentCollection.hpp"
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
 #include "src/vulkan/render/pass/CthSubpass.hpp"
+#include "src/vulkan/render/pass/RenderPassConfig.hpp"
 #include "src/vulkan/resource/CthDestructionQueue.hpp"
 #include "src/vulkan/resource/image/Framebuffer.hpp"
 #include "src/vulkan/surface/CthSurface.hpp"
@@ -182,6 +183,10 @@ void BasicSwapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer
 ImageView const* BasicSwapchain::imageView(size_t index) const { return _resolveAttachments->view(index); }
 Image const* BasicSwapchain::image(size_t index) const { return _resolveAttachments->image(index); }
 
+void BasicSwapchain::addResolveSubpassDependencyFlags(VkSubpassDependency& swap_subpass_dependency) {
+    swap_subpass_dependency.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    swap_subpass_dependency.dstStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+}
 
 void BasicSwapchain::destroy(DeviceTable table, VkSwapchainKHR swapchain) {
     CTH_WARN(swapchain == VK_NULL_HANDLE, "swapchain should not be invalid (VK_NULL_HANDLE)") {}
@@ -191,6 +196,10 @@ void BasicSwapchain::destroy(DeviceTable table, VkSwapchainKHR swapchain) {
 
 
 
+void BasicSwapchain::setImageFormat(VkFormat format) {
+    _imageFormat = format;
+    CTH_CRITICAL(_imageFormat == VK_FORMAT_UNDEFINED, "image format must not be VK_FORMAT_UNDEFINED") {}
+}
 VkSampleCountFlagBits BasicSwapchain::evalMsaaSampleCount() const {
     uint32_t const maxSamples = _core->physicalDevice().maxSampleCount() / 2; //TODO add proper max_sample_count selection
 
@@ -206,32 +215,6 @@ void BasicSwapchain::createSyncObjects() {
         _imageAvailableFences.emplace_back(*_core, VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
-VkSurfaceFormatKHR BasicSwapchain::chooseSwapSurfaceFormat(std::span<VkSurfaceFormatKHR const> available_formats,
-    std::span<VkSurfaceFormatKHR const> allowed_formats) {
-    for(auto const format : allowed_formats)
-        if(std::ranges::contains(available_formats, format)) return format;
-
-
-    CTH_STABLE_ERR(true, "no suitable format found") {
-        details->add("available: {}", available_formats);
-        details->add("allowed: {}", allowed_formats);
-        throw details->exception();
-    }
-}
-VkPresentModeKHR BasicSwapchain::chooseSwapPresentMode(std::span<VkPresentModeKHR const> available_present_modes,
-    std::span<VkPresentModeKHR const> allowed_present_modes) {
-    for(auto const mode : allowed_present_modes)
-        if(std::ranges::contains(available_present_modes, mode)) {
-            cth::log::msg<except::INFO>("present mode: {}", mode);
-            return mode;
-        }
-
-    CTH_STABLE_ERR(true, "none of the allowed present modes were available") {
-        details->add("available: {}", available_present_modes);
-        details->add("allowed: {}", allowed_present_modes);
-        throw details->exception();
-    }
-}
 VkExtent2D BasicSwapchain::chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities) {
     if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) return capabilities.currentExtent;
 
@@ -261,6 +244,7 @@ VkSwapchainCreateInfoKHR BasicSwapchain::createInfo(VkSurfaceKHR surface,
 
     VkSwapchainCreateInfoKHR const createInfo{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .pNext = nullptr,
         .surface = surface,
 
         .minImageCount = image_count,
@@ -292,17 +276,12 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
 
     _windowExtent = window_extent;
 
-    auto const surfaceFormats = _surface->formats(_core->physicalDevice());
-    auto const presentModes = _surface->presentModes(_core->physicalDevice());
     auto const capabilities = _surface->capabilities(_core->physicalDevice());
 
-    auto const allowedSurfaceFormats = std::vector<VkSurfaceFormatKHR>{{VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}};
-    std::vector<VkPresentModeKHR> const allowedPresentModes{VK_PRESENT_MODE_FIFO_KHR};
-    //TEMP change to always FIFO {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_KHR};
+    auto const surfaceFormat = _surface->format(_core->physicalDevice());
+    auto const presentMode = _surface->presentMode(_core->physicalDevice());
 
-    VkSurfaceFormatKHR const surfaceFormat = chooseSwapSurfaceFormat(surfaceFormats, allowedSurfaceFormats);
-    VkPresentModeKHR const presentMode = chooseSwapPresentMode(presentModes, allowedPresentModes);
-    VkExtent2D const extent = chooseSwapExtent(window_extent, capabilities);
+    auto const extent = chooseSwapExtent(window_extent, capabilities);
 
     uint32_t const imageCount = evalMinImageCount(capabilities.minImageCount, capabilities.maxImageCount);
 
@@ -310,13 +289,15 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
 
 
     VkSwapchainKHR ptr = nullptr;
-    VkResult const createResult = _core->deviceTable()->vkCreateSwapchainKHR(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const createResult = _core->deviceTable()->vkCreateSwapchainKHR(_core->vkDevice(), &info, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create swapchain")
         throw cth::vk::result_exception{createResult, details->exception()};
 
     _handle = ptr;
 
-    _imageFormat = surfaceFormat.format;
+
+    setImageFormat(surfaceFormat.format);
+
     _extent = extent;
     _aspectRatio = static_cast<float>(_extent.width) / static_cast<float>(_extent.height);
 }
@@ -324,6 +305,7 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
 
 
 Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits samples) const {
+    //TEMP moved to frame resources in demo
     CTH_CRITICAL(_imageFormat == VK_FORMAT_UNDEFINED, "image format must not be VK_FORMAT_UNDEFINED") {}
 
     return Image::Config{
@@ -336,6 +318,7 @@ Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits sampl
 }
 
 Image::Config BasicSwapchain::createDepthImageConfig() const {
+    //TEMP moved to frame resources in demo
     CTH_CRITICAL(_depthFormat == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED") {}
 
     return Image::Config{
@@ -385,12 +368,14 @@ void BasicSwapchain::createMsaaAttachments() {
 
     auto const imageConfig = createColorImageConfig(_msaaSamples);
 
-    _msaaAttachments = std::make_unique<AttachmentCollection>(*_core, imageCount(), 0, imageConfig, description, _extent);
+    _msaaAttachments = std::make_unique<AttachmentCollection>(*_core, size(), 0, imageConfig, description, _extent);
 }
 void BasicSwapchain::findDepthFormat() {
     _depthFormat = _core->physicalDevice().findSupportedFormat(
-        std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
 }
 void BasicSwapchain::createDepthAttachments() {
     AttachmentDescription description{
@@ -402,7 +387,7 @@ void BasicSwapchain::createDepthAttachments() {
 
     auto const imageConfig = createDepthImageConfig();
 
-    _depthAttachments = std::make_unique<AttachmentCollection>(*_core, imageCount(), 1, imageConfig, description, _extent);
+    _depthAttachments = std::make_unique<AttachmentCollection>(*_core, size(), 1, imageConfig, description, _extent);
 }
 
 void BasicSwapchain::createResolveAttachments(std::vector<std::unique_ptr<Image>> swapchain_images) {
@@ -417,7 +402,7 @@ void BasicSwapchain::createResolveAttachments(std::vector<std::unique_ptr<Image>
     for(auto& image : swapchain_images) state.images.emplace_back(std::move(image));
 
 
-    _resolveAttachments = std::make_unique<AttachmentCollection>(*_core, imageCount(), 2, state.images[0]->config(), description, std::move(state));
+    _resolveAttachments = std::make_unique<AttachmentCollection>(*_core, size(), 2, state.images[0]->config(), description, std::move(state));
 }
 
 void BasicSwapchain::createAttachments() {
@@ -464,29 +449,36 @@ void BasicSwapchain::createRenderPass() {
 
     auto const subpassDependency = createSubpassDependency();
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{0, 0, 0, 1}}; // NOLINT(cppcoreguidelines-pro-type-union-access)
-    clearValues[1].depthStencil = {1.0f, 0}; // NOLINT(cppcoreguidelines-pro-type-union-access)
 
     RenderPass::BeginConfig const beginConfig{
-        .clearValues = clearValues,
+        .clearValues = {{
+            {.color = {{0, 0, 0, 1}}},
+            {.depthStencil = {1.0f, 0}}
+        }},
         .extent = _extent,
     };
 
     _renderPass = std::make_unique<RenderPass>(
-        *_core,
-        std::vector{_subpass.get()},
-        std::vector{subpassDependency},
-        std::vector{beginConfig},
+        *_core, 
+        RenderPassConfig{
+            .subpasses{_subpass.get()},
+            .dependencies{subpassDependency},
+            .beginConfigs{beginConfig}
+        },
         vk::create
     );
 }
 
 
 void BasicSwapchain::createFramebuffers() {
-    _swapchainFramebuffers.reserve(imageCount());
+    /*TEMP solve the problem of imageCount instead of FRAMES_IN_FLIGHT depth / msaa attachments with
+        a framebuffer combination matrix with (resolve[0], msaa[0], depth[0]), ..., (resolve[0], msaa[n], depth[n]), (resolve[1],...
+    imageCount * FRAMES_IN_FLIGHT framebuffers needed (upper bound probably 12 - 15)
 
-    for(size_t i = 0; i < imageCount(); i++) {
+    */
+    _swapchainFramebuffers.reserve(size());
+
+    for(size_t i = 0; i < size(); i++) {
         std::array attachments = {_msaaAttachments->view(i), _depthAttachments->view(i), _resolveAttachments->view(i)};
 
         _swapchainFramebuffers.emplace_back(*_core, *_renderPass, attachments, _extent);
@@ -554,6 +546,19 @@ void BasicSwapchain::reset() {
     _handle = VK_NULL_HANDLE;
     resizeReset();
 }
+ImageConfig BasicSwapchain::imageConfig() const {
+    //TEMP left off here. the swapchain selects the image format which is retarded, it should really be the surface that decides it
+    debug_check(this);
+
+    return {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .format = _imageFormat,
+        .usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+    };
+}
+
 
 } // namespace cth
 

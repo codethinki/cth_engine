@@ -4,6 +4,10 @@
 
 
 namespace cth::vk {
+class AttachmentCollection;
+}
+
+namespace cth::vk {
 class GraphicsSyncConfig;
 class Surface;
 class OSWindow;
@@ -98,8 +102,9 @@ public:
      * @note calls @ref BasicSwapchain::present()
      * @note may call @ref BasicSwapchain::resize()
      * @note may call @ref minimized()
+     * @return true if swapchain was resized
      */
-    void presentFrame() const;
+    [[nodiscard]] bool presentFrame() const;
     void skipPresent() const;
 
     /**
@@ -122,8 +127,14 @@ public:
     [[nodiscard]] Surface const* surface() const { return _surface.get(); }
     [[nodiscard]] GraphicsSyncConfig const* syncConfig() const { return _syncConfig.get(); }
     [[nodiscard]] BasicSwapchain const* swapchain() const { return _swapchain.get(); }
-    [[nodiscard]] RenderPass const* swapchainRenderPass() const;
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const;
+
+    [[nodiscard]] RenderPass const* swapchainRenderPass() const;
+    [[nodiscard]] AttachmentCollection const* swapchainResolveAttachments() const;
+    [[nodiscard]] VkFormat swapchainImageFormat() const;
+    [[nodiscard]] VkExtent2D swapchainExtent() const;
+    [[nodiscard]] size_t swapchainSize() const;
+    [[nodiscard]] size_t swapchainImageIndex(RenderPulse const& pulse) const;
 
     [[nodiscard]] dclauto imageAvailableWaitStages() const { return _syncConfig->imageAvailableWaitStages(); }
     [[nodiscard]] dclauto renderFinishedSemaphores() const { return _syncConfig->renderFinishedSemaphores(); }

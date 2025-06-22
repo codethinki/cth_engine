@@ -1,6 +1,6 @@
 #pragma once
 #include <cth/io/log.hpp>
-#include <cth/types/ranges.hpp>
+#include <cth/types/typ_ranges.hpp>
 
 #include <map>
 #include <set>

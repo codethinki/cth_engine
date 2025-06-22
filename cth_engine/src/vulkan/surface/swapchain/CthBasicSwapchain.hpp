@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/interface/render/RenderPulse.hpp"
 #include "src/vulkan/base/queue/CthPresentInfo.hpp"
 #include "src/vulkan/base/queue/CthQueue.hpp"
 #include "src/vulkan/resource/image/CthImage.hpp"
@@ -67,7 +68,7 @@ public:
     void endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const;
 
 
-    [[nodiscard]] VkResult present(); //TEMP remove deletion queue from here
+    [[nodiscard]] VkResult present();
     void skipPresent();
 
     void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
@@ -76,12 +77,17 @@ public:
     [[nodiscard]] ImageView const* imageView(size_t index) const;
     [[nodiscard]] Image const* image(size_t index) const;
 
+    /**
+     * @brief adds a minimum of required flags for the resolve subpass
+     */
+    static void addResolveSubpassDependencyFlags(VkSubpassDependency& swap_subpass_dependency);
 
     static void destroy(DeviceTable table, VkSwapchainKHR swapchain);
 
 private:
     static constexpr uint32_t NO_IMAGE_INDEX = (std::numeric_limits<uint32_t>::max());
 
+    void setImageFormat(VkFormat format);
 
     //setMsaaSampleCount
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
@@ -90,11 +96,6 @@ private:
     //createSyncObjects
     void createSyncObjects();
 
-    //createSwapchain
-    [[nodiscard]] static VkSurfaceFormatKHR chooseSwapSurfaceFormat(std::span<VkSurfaceFormatKHR const> available_formats,
-        std::span<VkSurfaceFormatKHR const> allowed_formats);
-    [[nodiscard]] static VkPresentModeKHR chooseSwapPresentMode(std::span<VkPresentModeKHR const> available_present_modes,
-        std::span<VkPresentModeKHR const> allowed_present_modes);
     [[nodiscard]] static VkExtent2D chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities);
     [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
     [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(VkSurfaceKHR surface,
@@ -187,15 +188,15 @@ private:
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }
     [[nodiscard]] float extentAspectRatio() const { return _aspectRatio; }
-    [[nodiscard]] bool compareSwapFormats(BasicSwapchain const& other) const {
-        return other._depthFormat != _depthFormat || other._imageFormat != _imageFormat;
-    }
     [[nodiscard]] RenderPass const* renderPass() const { return _renderPass.get(); }
+    [[nodiscard]] auto imageIndex(RenderPulse const& pulse) const { return _imageIndices[pulse.get()]; }
 
-    [[nodiscard]] size_t imageCount() const { return _imageCount; }
+    [[nodiscard]] size_t size() const { return _imageCount; }
+    [[nodiscard]] ImageConfig imageConfig() const;
     [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; } //TODO move this to framebuffer or render pass
-
+    [[nodiscard]] AttachmentCollection const* resolveAttachments() const { return _resolveAttachments.get(); }
+    [[nodiscard]] auto extent() const { return _extent; }
 
     BasicSwapchain(BasicSwapchain const& other) = delete;
     BasicSwapchain(BasicSwapchain&& other) noexcept = default;

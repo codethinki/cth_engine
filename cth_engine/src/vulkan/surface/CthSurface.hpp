@@ -1,4 +1,6 @@
 #pragma once
+#include "SurfaceConfig.hpp"
+
 #include "src/vulkan/base/CthInstance.hpp"
 
 
@@ -12,17 +14,20 @@ class OSWindow;
 
 class Surface {
 public:
+    using Config = SurfaceConfig;
+    using format_t = Config::format_t;
+    using present_mode_t = Config::present_mode_t;
     struct State;
 
     /**
      * @brief base constructor
-     * @param instance must be created
-     * @param destruction_queue nullptr or created
+     * @param instance requires @ref Instance::created()
+     * @param destruction_queue requires nullptr or @ref DestructionQueue::created()
      */
-    Surface(Instance const& instance, DestructionQueue* destruction_queue) :
-        _instance{&instance}, _destructionQueue{destruction_queue} {}
+    Surface(Instance const& instance, DestructionQueue* destruction_queue, Config config = {}) :
+        _instance{&instance}, _destructionQueue{destruction_queue}, _config{std::move(config)} {}
 
-    Surface(Instance const& instance, DestructionQueue* destruction_queue, State const& state);
+    Surface(Instance const& instance, DestructionQueue* destruction_queue, Config config, State const& state);
 
     ~Surface();
 
@@ -53,9 +58,26 @@ public:
 
     [[nodiscard]] bool supportsFamily(PhysicalDevice const& physical_device, uint32_t family_index) const;
     [[nodiscard]] std::vector<VkPresentModeKHR> presentModes(PhysicalDevice const& physical_device) const;
-    [[nodiscard]] std::vector<VkSurfaceFormatKHR> formats(PhysicalDevice const& physical_device) const;
     [[nodiscard]] VkSurfaceCapabilitiesKHR capabilities(PhysicalDevice const& physical_device) const;
 
+
+    /**
+     * @return allowed and available formats
+     * @attention if no allowed format is found the surface is invalid
+     */
+    [[nodiscard]] std::vector<format_t> formats(PhysicalDevice const& physical_device) const;
+
+
+    /**
+     * @brief first allowed format
+     * @attention @ref formats(PhysicalDevice const&) must not be empty
+     */
+    [[nodiscard]] format_t format(PhysicalDevice const& physical_device) const;
+    /**
+     * @brief first allowed present mode
+     * @attention @ref presentModes(PhysicalDevice const&) must not be empty
+     */
+    [[nodiscard]] present_mode_t presentMode(PhysicalDevice const& physical_device) const;
 
     /**
      * @brief creates an invisible surface
@@ -74,12 +96,14 @@ private:
 
     cth::not_null<Instance const*> _instance;
     DestructionQueue* _destructionQueue;
+    Config _config;
 
     move_ptr<VkSurfaceKHR_T> _handle = VK_NULL_HANDLE;
 
 public:
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkSurfaceKHR get() const { return _handle.get(); }
+
 
     Surface(Surface const& other) = default;
     Surface(Surface&& other) noexcept = delete;

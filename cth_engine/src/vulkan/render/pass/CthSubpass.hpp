@@ -9,9 +9,9 @@ class AttachmentCollection;
 class Subpass {
 public:
     Subpass(uint32_t index, VkPipelineBindPoint bind_point,
-        std::span<AttachmentCollection* const> input_attachments = {},
-        std::span<AttachmentCollection* const> color_attachments = {},
-        std::span<AttachmentCollection* const> resolve_attachments = {},
+        std::span<AttachmentCollection const* const> input_attachments = {},
+        std::span<AttachmentCollection const* const> color_attachments = {},
+        std::span<AttachmentCollection const* const> resolve_attachments = {},
         AttachmentCollection const* depth_attachment = nullptr,
         std::span<AttachmentCollection* const> preserve_attachments = {}
     );

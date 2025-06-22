@@ -2,11 +2,11 @@
 
 #include "AttachmentCollection.hpp"
 #include "CthSubpass.hpp"
+#include "RenderPassConfig.hpp"
 
 #include "../cmd/CthCmdBuffer.hpp"
 
 #include "src/vulkan/base/CthCore.hpp"
-#include "src/vulkan/base/CthDevice.hpp"
 #include "src/vulkan/resource/CthDestructionQueue.hpp"
 #include "src/vulkan/resource/image/Framebuffer.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
@@ -15,16 +15,15 @@ namespace cth::vk {
 
 
 
-RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
-    std::span<BeginConfig const> begin_configs) : _core{&core}, _subpasses{std::from_range, subpasses},
-    _dependencies{std::from_range, dependencies} {
+RenderPass::RenderPass(Core const& core, Config const& config) : _core{&core}, _subpasses{config.subpasses},
+    _dependencies{config.dependencies} {
 
     Core::debug_check(core);
     Subpass::debug_check(_subpasses);
 
     initAttachments();
 
-    for(auto [clearValues, extent, subpassContents, offset] : begin_configs) {
+    for(auto [clearValues, extent, subpassContents, offset] : config.beginConfigs) {
         _clearValues.insert_range(_clearValues.end(), clearValues);
         _contents.push_back(subpassContents);
 
@@ -40,12 +39,9 @@ RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpass
     }
 
 }
-RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses, std::span<VkSubpassDependency const> dependencies,
-    std::span<BeginConfig const> begin_configs, State const& state) : RenderPass{core, subpasses, dependencies, begin_configs} { wrap(state); }
+RenderPass::RenderPass(Core const& core, Config const& config, State const& state) : RenderPass{core, config} { wrap(state); }
 
-RenderPass::RenderPass(Core const& core, std::span<Subpass const* const> subpasses,
-    std::span<VkSubpassDependency const> dependencies, std::span<BeginConfig const> begin_configs,
-    create_t) : RenderPass{core, subpasses, dependencies, begin_configs} { create(); }
+RenderPass::RenderPass(Core const& core, Config const& config, create_t) : RenderPass{core, config} { create(); }
 
 RenderPass::~RenderPass() { optDestroy(); }
 
@@ -134,7 +130,7 @@ void RenderPass::reset() {
 
 namespace {
     void debug_check_attachments(std::span<AttachmentCollection const* const> attachments) {
-        CTH_CRITICAL(std::ranges::any_of(attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*>const& pair){
+        CTH_CRITICAL(std::ranges::any_of(attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*> const& pair){
                 return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->index();}),
             "invalid attachments or indices submitted in subpasses") {
             uint32_t i = 0;

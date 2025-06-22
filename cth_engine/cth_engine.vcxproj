@@ -55,7 +55,12 @@
     <ClInclude Include="src\vulkan\base\queue\CthPresentInfo.hpp" />
     <ClInclude Include="src\vulkan\render\pass\AttachmentCollection.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthSubpass.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\RenderPassBeginConfig.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\RenderPassConfig.hpp" />
     <ClInclude Include="src\vulkan\resource\image\Framebuffer.hpp" />
+    <ClInclude Include="src\vulkan\resource\image\ImageConfig.hpp" />
+    <ClInclude Include="src\vulkan\surface\SurfaceConfig.hpp" />
+    <ClInclude Include="src\vulkan\surface\swapchain\SwapPass.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_vk_exceptions.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_vk_format.hpp" />
     <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
@@ -131,6 +136,7 @@
     <ClCompile Include="src\vulkan\render\pass\AttachmentCollection.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthSubpass.cpp" />
     <ClCompile Include="src\vulkan\resource\image\Framebuffer.cpp" />
+    <ClCompile Include="src\vulkan\surface\swapchain\SwapPass.cpp" />
     <ClCompile Include="src\vulkan\utility\device\PhysicalDeviceFeatures.cpp" />
     <ClCompile Include="src\CthEngine.cpp" />
     <ClCompile Include="src\interface\object\HlcStandardObject.cpp" />

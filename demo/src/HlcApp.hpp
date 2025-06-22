@@ -30,7 +30,7 @@ public:
 
 private:
     void createRenderer3();
-
+    void createRenderPass();
 
     void initFrame();
     void renderFrame() const;
@@ -54,6 +54,7 @@ private:
     cth::move_ptr<vk::DestructionQueue> _destructionQueue = _core->destructionQueue();
 
     std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(*_core, WINDOW_NAME, VkExtent2D{WIDTH, HEIGHT}, _queues[2]);
+    std::unique_ptr<vk::RenderPass> _renderPass;
 
     std::unique_ptr<vk::Renderer3> _renderer3;
 
