@@ -8,7 +8,7 @@
 
 #include "src/vulkan/base/CthCore.hpp"
 #include "src/vulkan/resource/CthDestructionQueue.hpp"
-#include "src/vulkan/resource/image/Framebuffer.hpp"
+#include "src/vulkan/resource/framebuffer/Framebuffer.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 namespace cth::vk {
@@ -84,7 +84,7 @@ void RenderPass::create() {
     for(auto& beginInfo : _beginInfos) beginInfo.renderPass = _handle.get();
 }
 void RenderPass::destroy() {
-    debug_check(this);
+    debug_check(*this);
 
     auto const lambda = [table = _core->deviceTable(), handle = _handle.get()] { destroy(table, handle); };
 
@@ -97,7 +97,7 @@ void RenderPass::destroy() {
 
 
 RenderPass::State RenderPass::release() {
-    debug_check(this);
+    debug_check(*this);
 
     State const state{
         .vkRenderPass = _handle.get()

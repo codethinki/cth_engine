@@ -2,29 +2,19 @@
 #include "src/vulkan/render/pass/RenderPassBeginConfig.hpp"
 #include "src/vulkan/resource/image/ImageConfig.hpp"
 
-namespace cth::vk {
-class RenderPulse;
-}
 
 namespace cth::vk {
-class Framebuffer;
-}
-
-namespace cth::vk {
-class PrimaryCmdBuffer;
-}
-
-namespace cth::vk {
-class AttachmentCollection;
-}
-
-namespace cth::vk {
+class ScFramebufferCollection;
 class Subpass;
 class Core;
 class RenderPass;
 class GraphicsCore;
-
+class AttachmentCollection;
+class Framebuffer;
+class RenderPulse;
+class PrimaryCmdBuffer;
 }
+
 //TEMP left off here. the frame resources class should be completed and the only thing left is to delete the stuff from the swapchain
 
 //TEMP this is a temp fix this class is ugly af and should not be like that. create some proper system 
@@ -38,7 +28,6 @@ public:
 
 private:
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
-    [[nodiscard]] VkFormat queryDepthFormat() const;
 
     [[nodiscard]] VkFormat findDepthFormat() const;
     [[nodiscard]] vk::ImageConfig createDepthImageConfig() const;
@@ -53,7 +42,7 @@ private:
 
     void createRenderPass();
 
-    void createFramebuffers();
+    void createFramebufferCollection();
 
     void create();
 
@@ -71,9 +60,10 @@ private:
     std::unique_ptr<vk::AttachmentCollection> _msaaAttachments;
     std::unique_ptr<vk::AttachmentCollection> _depthAttachments;
 
-    std::vector<vk::Framebuffer> _framebuffers;
+    std::unique_ptr<vk::ScFramebufferCollection> _framebufferCollection;
 
     [[nodiscard]] vk::Framebuffer const& framebuffer();
+
 public:
 };
 }

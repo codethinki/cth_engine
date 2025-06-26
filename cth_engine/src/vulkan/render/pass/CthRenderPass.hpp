@@ -109,7 +109,7 @@ public:
     RenderPass& operator=(RenderPass&& other) noexcept = default;
 
 
-    static void debug_check(RenderPass const* render_pass);
+    static void debug_check(RenderPass const& render_pass);
     static void debug_check_handle(VkRenderPass vk_render_pass);
 };
 
@@ -127,9 +127,8 @@ struct RenderPass::State {
 
 namespace cth::vk {
 
-inline void RenderPass::debug_check(RenderPass const* render_pass) {
-    CTH_CRITICAL(render_pass == nullptr, "render pass must not be invalid (nullptr)") {}
-    debug_check_handle(render_pass->get());
+inline void RenderPass::debug_check(RenderPass const& render_pass) {
+    debug_check_handle(render_pass.get());
 }
 inline void RenderPass::debug_check_handle(VkRenderPass vk_render_pass) {
     CTH_CRITICAL(vk_render_pass == VK_NULL_HANDLE, "vk_render_pass must not be invalid (VK_NULL_HANDLE)") {}

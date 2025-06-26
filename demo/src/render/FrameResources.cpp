@@ -7,7 +7,7 @@
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
 #include "src/vulkan/render/pass/CthSubpass.hpp"
 #include "src/vulkan/render/pass/RenderPassConfig.hpp"
-#include "src/vulkan/resource/image/Framebuffer.hpp"
+#include "src/vulkan/resource/framebuffer/ScFramebufferCollection.hpp"
 #include "src/vulkan/surface/graphics_core/CthGraphicsCore.hpp"
 #include "src/vulkan/surface/swapchain/CthBasicSwapchain.hpp"
 #include "src/vulkan/utility/cth_vk_overloads.hpp"
@@ -35,11 +35,8 @@ void FrameResources::beginRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) {
     };
     _core->functions()->vkCmdSetViewport(cmd_buffer.get(), 0, 1, &viewport);
     _core->functions()->vkCmdSetScissor(cmd_buffer.get(), 0, 1, &scissor);
-
 }
-void FrameResources::endRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const {
-    _renderPass->end(cmd_buffer);
-}
+void FrameResources::endRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const { _renderPass->end(cmd_buffer); }
 
 VkSampleCountFlagBits FrameResources::evalMsaaSampleCount() const {
     uint32_t const maxSamples = _core->physicalDevice().maxSampleCount() / 2; //TODO add proper max_sample_count selection
@@ -48,13 +45,6 @@ VkSampleCountFlagBits FrameResources::evalMsaaSampleCount() const {
     while(samples < maxSamples && samples < vk::constants::MAX_MSAA_SAMPLES) samples *= 2;
 
     return static_cast<VkSampleCountFlagBits>(samples);
-}
-VkFormat FrameResources::queryDepthFormat() const {
-    return _core->physicalDevice().findSupportedFormat(
-        std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
 }
 VkFormat FrameResources::findDepthFormat() const {
     auto const format = _core->physicalDevice().findSupportedFormat(
@@ -91,7 +81,7 @@ void FrameResources::createDepthAttachments() {
 
     auto const imageConfig = createDepthImageConfig();
 
-    _depthAttachments = std::make_unique<vk::AttachmentCollection>(*_core, vk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description,
+    _depthAttachments = std::make_unique<vk::AttachmentCollection>(*_core, vk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description,
         _graphicsCore->swapchainExtent());
 }
 
@@ -113,7 +103,7 @@ void FrameResources::createMsaaAttachments() {
         .samples = _msaaSamples,
     };
 
-    _msaaAttachments = std::make_unique<vk::AttachmentCollection>(*_core, vk::constants::FRAMES_IN_FLIGHT, 0, imageConfig, description,
+    _msaaAttachments = std::make_unique<vk::AttachmentCollection>(*_core, vk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description,
         _graphicsCore->swapchainExtent());
 }
 
@@ -173,19 +163,10 @@ void FrameResources::createRenderPass() {
         }
     );
 }
-void FrameResources::createFramebuffers() {
-    auto const& swapchainAttachments = _graphicsCore->swapchainResolveAttachments();
-    auto const swapchainSize = _graphicsCore->swapchainSize();
-    _framebuffers.reserve(swapchainSize * vk::constants::FRAMES_IN_FLIGHT);
-
-
-    for(size_t i = 0; i < swapchainSize; i++)
-        for(size_t j = 0; j < vk::constants::FRAMES_IN_FLIGHT; j++)
-            _framebuffers.emplace_back(
-                *_core,
-                *_renderPass,
-                std::vector{_msaaAttachments->view(j), _depthAttachments->view(j), swapchainAttachments->view(i)}
-            );
+void FrameResources::createFramebufferCollection() {
+    _framebufferCollection = std::make_unique<vk::ScFramebufferCollection>(*_core, *_graphicsCore->swapchain(), *_renderPass,
+        vk::FramebufferCollectionConfig::Attachments(std::vector{_msaaAttachments.get(), _depthAttachments.get()})
+    );
 }
 
 
@@ -195,7 +176,7 @@ void FrameResources::create() {
     createAttachments();
 
     createRenderPass();
-    createFramebuffers();
+    createFramebufferCollection();
 }
 void FrameResources::resize() {
     auto const extent = _graphicsCore->swapchainExtent();
@@ -205,13 +186,12 @@ void FrameResources::resize() {
     _depthAttachments->create(extent);
     _msaaAttachments->create(extent);
 
-    _framebuffers.clear();
-    createFramebuffers();
+    _framebufferCollection->create(extent);
 }
 vk::Framebuffer const& FrameResources::framebuffer() {
     auto const& pulse = _graphicsCore->renderPulse();
 
-    return _framebuffers[_graphicsCore->swapchainImageIndex(pulse) * vk::constants::FRAMES_IN_FLIGHT + pulse.get()];
+    return _framebufferCollection->get(pulse.get());
 }
 
 

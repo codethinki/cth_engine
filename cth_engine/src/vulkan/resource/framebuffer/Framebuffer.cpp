@@ -1,7 +1,7 @@
 #include "Framebuffer.hpp"
 
-#include "CthImageView.hpp"
 #include "../CthDestructionQueue.hpp"
+#include "../image/CthImageView.hpp"
 #include "src/vulkan/base/CthCore.hpp"
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
@@ -25,6 +25,7 @@ void Framebuffer::wrap(State const& state) {
 }
 
 void Framebuffer::create(VkExtent2D extent) {
+    RenderPass::debug_check(*_renderPass);
     optDestroy();
 
     _extent = extent;

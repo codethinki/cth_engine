@@ -21,7 +21,6 @@ public:
 
     /**
      * @brief base constructor
-     * @param render_pass requires RenderPass::created()
      */
     Framebuffer(Core const& core, RenderPass const& render_pass,
         std::span<ImageView const* const> attachments, uint32_t layers = DEFAULT_LAYERS);
@@ -36,8 +35,9 @@ public:
 
     /**
      * @brief constructs and creates
-     * @param extent passed to @ref create()
-     * @note calls @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
+     * @details calls:
+     *  - @ref Framebuffer(Core const&, RenderPass const&, std::span<ImageView const* const>, uint32_t)
+     *  - @ref create()
      */
     Framebuffer(Core const& core, RenderPass const& render_pass,
         std::span<ImageView const* const> attachments, VkExtent2D extent, uint32_t layers = DEFAULT_LAYERS);
@@ -53,7 +53,8 @@ public:
     /**
      * @brief creates the framebuffer
      * @param extent framebuffer extent
-     * @note calls @ref optDestroy()
+     * @details calls @ref optDestroy()
+     * @attention requires @ref RenderPass::created()
      */
     void create(VkExtent2D extent);
 
@@ -116,7 +117,7 @@ struct Framebuffer::State {
 
 namespace cth::vk {
 inline void Framebuffer::debug_check(Framebuffer const& framebuffer) {
-    CTH_ERR(!framebuffer.created(), "framebuffer must be created") throw details->exception();
+    CTH_CRITICAL(!framebuffer.created(), "framebuffer must be created") {}
     debug_check_handle(framebuffer.get());
 }
 inline void Framebuffer::debug_check_handle([[maybe_unused]] vk::not_null<VkFramebuffer> vk_framebuffer) {}

@@ -13,7 +13,7 @@
 #include "src/vulkan/render/pass/CthSubpass.hpp"
 #include "src/vulkan/render/pass/RenderPassConfig.hpp"
 #include "src/vulkan/resource/CthDestructionQueue.hpp"
-#include "src/vulkan/resource/image/Framebuffer.hpp"
+#include "src/vulkan/resource/framebuffer/Framebuffer.hpp"
 #include "src/vulkan/surface/CthSurface.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 #include "src/vulkan/utility/cth_vk_overloads.hpp"
@@ -180,7 +180,7 @@ void BasicSwapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer
     barrier.execute(acquire_cmd_buffer);
 }
 
-ImageView const* BasicSwapchain::imageView(size_t index) const { return _resolveAttachments->view(index); }
+ImageView const& BasicSwapchain::imageView(size_t index) const { return _resolveAttachments->view(index); }
 Image const* BasicSwapchain::image(size_t index) const { return _resolveAttachments->image(index); }
 
 void BasicSwapchain::addResolveSubpassDependencyFlags(VkSubpassDependency& swap_subpass_dependency) {
@@ -479,7 +479,7 @@ void BasicSwapchain::createFramebuffers() {
     _swapchainFramebuffers.reserve(size());
 
     for(size_t i = 0; i < size(); i++) {
-        std::array attachments = {_msaaAttachments->view(i), _depthAttachments->view(i), _resolveAttachments->view(i)};
+        std::array attachments = {&_msaaAttachments->view(i), &_depthAttachments->view(i), &_resolveAttachments->view(i)};
 
         _swapchainFramebuffers.emplace_back(*_core, *_renderPass, attachments, _extent);
     }

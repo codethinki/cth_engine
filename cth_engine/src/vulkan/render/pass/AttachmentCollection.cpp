@@ -26,7 +26,7 @@ namespace cth::vk {
 
 AttachmentCollection::AttachmentCollection(Core const& core, size_t size, uint32_t render_pass_index,
     Image::Config const& image_config, AttachmentDescription const& description) : _core{&core}, _config{image_config},
-    _renderPassIndex{render_pass_index}, _size{size}, _description{description}, _images{_size}, _views{_size} {}
+    _renderPassIndex{render_pass_index}, _size{size}, _description{description}, _images{_size} { init(); }
 
 AttachmentCollection::AttachmentCollection(Core const& core, size_t size, uint32_t render_pass_index,
     Image::Config const& image_config, AttachmentDescription const& description, VkExtent2D extent) :
@@ -71,13 +71,15 @@ void AttachmentCollection::wrap(State state) {
     if(views.empty()) createImageViews();
     else
         for(auto [src, dst] : std::views::zip(views, _views))
-            dst = src.release_val();
+            dst = std::move(*src.release_val());
 }
 void AttachmentCollection::destroy() {
     debug_check(*this);
 
     std::ranges::fill(_images, nullptr);
-    std::ranges::fill(_views, nullptr);
+    for(auto& view : _views) view.destroy();
+
+    reset();
 }
 AttachmentCollection::State AttachmentCollection::release() {
     debug_check(*this);
@@ -86,25 +88,35 @@ AttachmentCollection::State AttachmentCollection::release() {
     state.images.reserve(_size);
     state.views.reserve(_size);
     for(auto& image : _images) state.images.emplace_back(std::move(image));
-    for(auto& view : _views) state.views.emplace_back(std::move(view));
+    for(auto& view : _views) state.views.emplace_back(std::make_unique<ImageView>(std::move(view)));
 
     reset();
 
     return state;
 }
+void AttachmentCollection::init() {
+    _views.reserve(_size);
+    for(size_t i = 0; i < _size; i++)
+        _views.emplace_back(*_core, ImageView::Config{});
+}
 
 void AttachmentCollection::reset() {
     _extent = {0, 0};
     std::ranges::fill(_images, nullptr);
-    std::ranges::fill(_views, nullptr);
 }
+
+
 void AttachmentCollection::createImages() { for(size_t i = 0; i < _size; ++i) _images[i] = std::make_unique<Image>(*_core, _config, _extent); }
 void AttachmentCollection::createImageViews() {
     for(size_t i = 0; i < _size; ++i) {
-        Image::debug_check(*_images[i]);
-        _views[i] = std::make_unique<ImageView>(*_core, ImageView::Config{}, *_images[i]);
+        auto& image = *_images[i];
+        Image::debug_check(image);
+        _views[i].create(image);
     }
 }
 
-ImageView const* AttachmentCollection::view(size_t index) const { return _views[index].get(); }
+bool AttachmentCollection::created() const {
+    return _views[0].created();
+}
+ImageView const& AttachmentCollection::view(size_t index) const { return _views[index]; }
 }

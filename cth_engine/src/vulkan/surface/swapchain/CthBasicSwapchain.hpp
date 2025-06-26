@@ -74,7 +74,7 @@ public:
     void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
         CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) const;
 
-    [[nodiscard]] ImageView const* imageView(size_t index) const;
+    [[nodiscard]] ImageView const& imageView(size_t index) const;
     [[nodiscard]] Image const* image(size_t index) const;
 
     /**
@@ -189,7 +189,8 @@ public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }
     [[nodiscard]] float extentAspectRatio() const { return _aspectRatio; }
     [[nodiscard]] RenderPass const* renderPass() const { return _renderPass.get(); }
-    [[nodiscard]] auto imageIndex(RenderPulse const& pulse) const { return _imageIndices[pulse.get()]; }
+    [[nodiscard]] auto imageIndex(size_t pulse_value) const { return _imageIndices[pulse_value]; }
+    [[nodiscard]] auto imageIndex(RenderPulse const& pulse) const { return imageIndex(pulse.get()); }
 
     [[nodiscard]] size_t size() const { return _imageCount; }
     [[nodiscard]] ImageConfig imageConfig() const;

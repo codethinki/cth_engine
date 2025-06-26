@@ -92,6 +92,8 @@ public:
     [[nodiscard]] State release();
 
 private:
+    void init();
+
     void reset();
     void createImages();
     void createImageViews();
@@ -104,16 +106,16 @@ private:
 
     VkExtent2D _extent{};
     std::vector<std::unique_ptr<Image>> _images;
-    std::vector<std::unique_ptr<ImageView>> _views;
+    std::vector<ImageView> _views;
 
 public:
     /**
      * @note false after moving 
      */
-    [[nodiscard]] bool created() const { return !_images.empty(); }
+    [[nodiscard]] bool created() const;
     [[nodiscard]] size_t size() const { return _size; }
     [[nodiscard]] uint32_t index() const { return _renderPassIndex; }
-    [[nodiscard]] ImageView const* view(size_t index) const;
+    [[nodiscard]] ImageView const& view(size_t index) const;
     [[nodiscard]] Image* image(size_t index) const { return _images[index].get(); }
     [[nodiscard]] VkAttachmentDescription description() const { return _description.create(_config.format, _config.initialLayout); }
     [[nodiscard]] VkAttachmentReference reference() const {
