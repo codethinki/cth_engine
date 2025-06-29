@@ -36,7 +36,7 @@ inline constexpr std::string_view TEXTURE_DIR = R"(res\img\texture\)";
 
 class RenderSystem {
 public:
-    RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer, vk::RenderPass const* render_pass,
+    RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer, vk::RenderPass const& render_pass,
         VkSampleCountFlagBits msaa_samples);
     ~RenderSystem() = default;
 

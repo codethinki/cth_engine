@@ -94,9 +94,6 @@ public:
      */
     void skipAcquire() const;
 
-    void beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
-    void endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const;
-
     /**
      * @brief presents the image
      * @note calls @ref BasicSwapchain::present()
@@ -129,7 +126,6 @@ public:
     [[nodiscard]] BasicSwapchain const* swapchain() const { return _swapchain.get(); }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const;
 
-    [[nodiscard]] RenderPass const* swapchainRenderPass() const;
     [[nodiscard]] AttachmentCollection const* swapchainResolveAttachments() const;
     [[nodiscard]] VkFormat swapchainImageFormat() const;
     [[nodiscard]] VkExtent2D swapchainExtent() const;

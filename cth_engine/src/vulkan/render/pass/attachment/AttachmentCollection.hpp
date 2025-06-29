@@ -1,6 +1,8 @@
 #pragma once
 
 
+#include "AttachmentCollectionConfig.hpp"
+
 #include "src/vulkan/resource/image/CthImage.hpp"
 #include "src/vulkan/resource/image/CthImageView.hpp"
 
@@ -8,51 +10,35 @@
 #include <vector>
 
 
-namespace cth::vk {
-class ImageView;
-
-struct AttachmentDescription {
-    VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
-    VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    VkAttachmentLoadOp stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    VkAttachmentStoreOp stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    VkImageLayout finalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    VkImageLayout referenceLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    VkAttachmentDescriptionFlags flags = 0;
-
-    [[nodiscard]] VkAttachmentDescription create(VkFormat format, VkImageLayout initial_layout) const;
-};
-}
-
 
 namespace cth::vk {
+struct AttachmentDescription;
+
 /**
  * @brief wraps a collection of attachments of the same image for a render pass
  */
 class AttachmentCollection {
 public:
+    using Config = AttachmentCollectionConfig;
+
     struct State;
 
     /**
      * @brief base constructor
      */
-    AttachmentCollection(Core const& core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
-        AttachmentDescription const& description);
+    AttachmentCollection(Core const& core, Config config);
 
     /**
      * @brief initializes the collection and creates it
      * @note calls @ref create()
      */
-    AttachmentCollection(Core const& core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
-        AttachmentDescription const& description, VkExtent2D extent);
+    AttachmentCollection(Core const& core, Config const& config, VkExtent2D extent);
 
     /**
      * @brief initializes the collection and wraps the state
      * @note calls @ref wrap()
      */
-    AttachmentCollection(Core const& core, size_t size, uint32_t render_pass_index, Image::Config const& image_config,
-        AttachmentDescription const& description, State state);
+    AttachmentCollection(Core const& core, Config const& config, State state);
 
 
     ~AttachmentCollection();
@@ -98,11 +84,11 @@ private:
     void createImages();
     void createImageViews();
 
+    [[nodiscard]] size_t index_of(size_t index, size_t attachment_nr) const;
+    [[nodiscard]] size_t total_size() const { return _config.attachmentsPerIndex * attachments(); }
+
     cth::not_null<Core const*> _core;
-    Image::Config _config;
-    uint32_t _renderPassIndex;
-    size_t _size;
-    AttachmentDescription _description;
+    Config _config;
 
     VkExtent2D _extent{};
     std::vector<std::unique_ptr<Image>> _images;
@@ -113,14 +99,29 @@ public:
      * @note false after moving 
      */
     [[nodiscard]] bool created() const;
-    [[nodiscard]] size_t size() const { return _size; }
-    [[nodiscard]] uint32_t index() const { return _renderPassIndex; }
-    [[nodiscard]] ImageView const& view(size_t index) const;
-    [[nodiscard]] Image* image(size_t index) const { return _images[index].get(); }
-    [[nodiscard]] VkAttachmentDescription description() const { return _description.create(_config.format, _config.initialLayout); }
-    [[nodiscard]] VkAttachmentReference reference() const {
-        return VkAttachmentReference{.attachment = _renderPassIndex, .layout = _description.referenceLayout};
+
+    [[nodiscard]] size_t per_attachment_size() const { return _config.attachmentsPerIndex; }
+    [[nodiscard]] size_t attachments() const { return _config.attachmentIndices.size(); }
+    [[nodiscard]] std::span<uint32_t const> indices() const { return _config.attachmentIndices; }
+
+    /**
+     * @brief gets the image view at @ref index for the @ref attachment_nr
+     * @param index per attachment index
+     * @param attachment_nr attachment index number (not render pass index)
+     */
+    [[nodiscard]] ImageView const& view(size_t index, size_t attachment_nr = 0) const;
+    /**
+     * @brief gets the image at @ref index for the @ref attachment_nr
+     * @param index per attachment index
+     * @param attachment_nr attachment index number (not render pass index)
+     */
+    [[nodiscard]] Image* image(size_t index, size_t attachment_nr = 0) const;
+
+
+    [[nodiscard]] VkAttachmentDescription description() const {
+        return _config.description.create(_config.imageConfig.format, _config.imageConfig.initialLayout);
     }
+    [[nodiscard]] std::vector<VkAttachmentReference> references() const;
 
     AttachmentCollection(AttachmentCollection const& other) = delete;
     AttachmentCollection(AttachmentCollection&& other) noexcept = default;

@@ -1,9 +1,9 @@
 #include "ScFramebufferCollection.hpp"
 
-#include "cth/numeric.hpp"
-
-#include "src/vulkan/render/pass/AttachmentCollection.hpp"
+#include "src/vulkan/render/pass/attachment/AttachmentCollection.hpp"
 #include "src/vulkan/surface/swapchain/CthBasicSwapchain.hpp"
+
+#include <cth/numeric.hpp>
 
 
 namespace cth::vk {
@@ -20,10 +20,10 @@ auto ScFramebufferCollection::addSwapchainAttachments(BasicSwapchain const& swap
 
     auto const& attachments = swapchain.resolveAttachments();
 
-    auto view = config.imageViews | std::views::chunk(config.framebufferSize);
+    auto view = config.imageViews | std::views::chunk(config.framebuffers);
 
 
-    auto const newFramebufferSize = config.framebufferSize + 1;
+    auto const newFramebufferSize = config.framebuffers + 1;
     auto const framebuffers = view.size();
 
     std::vector<ImageView const*> views{newFramebufferSize * framebuffers * swapchain.size()};
@@ -36,12 +36,12 @@ auto ScFramebufferCollection::addSwapchainAttachments(BasicSwapchain const& swap
             std::memcpy(
                 reinterpret_cast<void*>(&span[imageIndex, i, 1]),
                 reinterpret_cast<void const*>(view[static_cast<ptrdiff_t>(i)].data()),
-                config.framebufferSize
+                config.framebuffers
             );
         }
     return {
         .imageViews = std::move(views),
-        .framebufferSize = newFramebufferSize
+        .framebuffers = newFramebufferSize
     };
 }
 size_t ScFramebufferCollection::size() const {

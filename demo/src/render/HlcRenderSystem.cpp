@@ -22,7 +22,7 @@ struct UniformBuffer {
 };
 //TEMP renderer should not be here
 RenderSystem::RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer,
-    vk::RenderPass const* render_pass, VkSampleCountFlagBits const msaa_samples) : _core{core} {
+    vk::RenderPass const& render_pass, VkSampleCountFlagBits const msaa_samples) : _core{core} {
     createShaders();
 
     createDescriptorSetLayouts();
@@ -32,7 +32,7 @@ RenderSystem::RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& ini
     createDescriptorPool();
     loadDescriptorData(init_cmd_buffer);
 
-    createPipeline(render_pass->get(), msaa_samples);
+    createPipeline(render_pass.get(), msaa_samples);
 
     createDescriptorSets();
 

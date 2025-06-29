@@ -68,9 +68,9 @@
     <ClInclude Include="src\vulkan\utility\constant\cth_debug_constants.hpp" />
     <ClInclude Include="src\vulkan\utility\device\PhysicalDeviceFeatures.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_vk_format.hpp" />
-    <ClInclude Include="src\vulkan\resource\framebuffer\Framebuffer.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\framebuffer\Framebuffer.hpp" />
     <ClInclude Include="src\vulkan\render\pass\CthSubpass.hpp" />
-    <ClInclude Include="src\vulkan\render\pass\AttachmentCollection.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\attachment\AttachmentCollection.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_vk_types.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_vk_exceptions.hpp" />
     <ClInclude Include="src\pch\glob\glm.hpp" />
@@ -91,14 +91,15 @@
     <ClInclude Include="src\interface\render\dag.hpp" />
     <ClInclude Include="src\interface\render\RenderStageConfig.hpp" />
     <ClInclude Include="src\interface\render\RenderPulse.hpp" />
-    <ClInclude Include="src\vulkan\surface\swapchain\SwapPass.hpp" />
     <ClInclude Include="src\vulkan\render\pass\RenderPassConfig.hpp" />
     <ClInclude Include="src\vulkan\render\pass\RenderPassBeginConfig.hpp" />
     <ClInclude Include="src\vulkan\resource\image\ImageConfig.hpp" />
     <ClInclude Include="src\vulkan\surface\SurfaceConfig.hpp" />
-    <ClInclude Include="src\vulkan\resource\framebuffer\FramebufferCollection.hpp" />
-    <ClInclude Include="src\vulkan\resource\framebuffer\FramebufferCollectionConfig.hpp" />
-    <ClInclude Include="src\vulkan\resource\framebuffer\ScFramebufferCollection.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\framebuffer\FramebufferCollection.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\framebuffer\FramebufferCollectionConfig.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\framebuffer\ScFramebufferCollection.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\attachment\AttachmentCollectionConfig.hpp" />
+    <ClInclude Include="src\vulkan\render\pass\attachment\AttachmentDescription.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\vulkan\resource\buffer\CthBuffer.inl" />
@@ -145,17 +146,17 @@
     <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.cpp" />
     <ClCompile Include="src\pch\pch.cpp" />
     <ClCompile Include="src\vulkan\utility\device\PhysicalDeviceFeatures.cpp" />
-    <ClCompile Include="src\vulkan\resource\framebuffer\Framebuffer.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\framebuffer\Framebuffer.cpp" />
     <ClCompile Include="src\vulkan\render\pass\CthSubpass.cpp" />
-    <ClCompile Include="src\vulkan\render\pass\AttachmentCollection.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\attachment\AttachmentCollection.cpp" />
     <ClCompile Include="src\vulkan\base\queue\CthSubmitInfo.cpp" />
     <ClCompile Include="src\vulkan\base\queue\CthPresentInfo.cpp" />
     <ClCompile Include="src\pch\lib\volk\volk.cpp" />
     <ClCompile Include="src\interface\render\Renderer3.cpp" />
     <ClCompile Include="src\interface\render\RenderStage.cpp" />
-    <ClCompile Include="src\vulkan\surface\swapchain\SwapPass.cpp" />
-    <ClCompile Include="src\vulkan\resource\framebuffer\FramebufferCollection.cpp" />
-    <ClCompile Include="src\vulkan\resource\framebuffer\FramebufferCollectionConfig.cpp" />
-    <ClCompile Include="src\vulkan\resource\framebuffer\ScFramebufferCollection.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\framebuffer\FramebufferCollection.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\framebuffer\FramebufferCollectionConfig.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\framebuffer\ScFramebufferCollection.cpp" />
+    <ClCompile Include="src\vulkan\render\pass\attachment\AttachmentDescription.cpp" />
   </ItemGroup>
 </Project>

@@ -16,7 +16,8 @@ namespace cth {
 
 
 FrameResources::FrameResources(vk::Core const& core, vk::GraphicsCore const& graphics_core) : _core{&core}, _graphicsCore{&graphics_core} {}
-void FrameResources::beginRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) {
+FrameResources::~FrameResources() = default;
+void FrameResources::beginRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const {
     _renderPass->begin(cmd_buffer, 0, framebuffer());
 
     auto const extent = _graphicsCore->swapchainExtent();
@@ -178,7 +179,7 @@ void FrameResources::create() {
     createRenderPass();
     createFramebufferCollection();
 }
-void FrameResources::resize() {
+void FrameResources::resize() const {
     auto const extent = _graphicsCore->swapchainExtent();
 
     CTH_CRITICAL(extent == (VkExtent2D{0, 0}), "extent must not be empty") {}
@@ -188,11 +189,12 @@ void FrameResources::resize() {
 
     _framebufferCollection->create(extent);
 }
-vk::Framebuffer const& FrameResources::framebuffer() {
+vk::Framebuffer const& FrameResources::framebuffer() const {
     auto const& pulse = _graphicsCore->renderPulse();
 
     return _framebufferCollection->get(pulse.get());
 }
+vk::RenderPass const& FrameResources::renderPass() const { return *_renderPass; }
 
 
 }

@@ -22,9 +22,12 @@ namespace cth {
 class FrameResources {
 public:
     FrameResources(vk::Core const& core, vk::GraphicsCore const& graphics_core);
+    ~FrameResources();
 
-    void beginRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer);
+    void beginRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const;
     void endRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const;
+
+    void resize() const;
 
 private:
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
@@ -46,8 +49,6 @@ private:
 
     void create();
 
-    void resize();
-
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
     cth::not_null<vk::Core const*> _core;
@@ -62,8 +63,9 @@ private:
 
     std::unique_ptr<vk::ScFramebufferCollection> _framebufferCollection;
 
-    [[nodiscard]] vk::Framebuffer const& framebuffer();
+    [[nodiscard]] vk::Framebuffer const& framebuffer() const;
 
 public:
+    [[nodiscard]] vk::RenderPass const& renderPass() const;
 };
 }

@@ -25,7 +25,7 @@ Subpass::Subpass(
     _inputAttachments = {inputAttachments.begin(), inputAttachments.end()};
     _colorAttachments = {colorAttachments.begin(), colorAttachments.end()};
     _resolveAttachments = {resolveAttachments.begin(), resolveAttachments.end()};
-    _depthAttachment = depth_attachment->reference();
+    _depthAttachment = depth_attachment->references();
     _preserveAttachments = {preserveAttachments.begin(), preserveAttachments.end()};
 
     auto attachments = ::ranges::views::concat(input_attachments, color_attachments, resolve_attachments);

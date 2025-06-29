@@ -18,10 +18,8 @@ namespace cth::vk {
 struct PresentInfo;
 class Fence;
 class Subpass;
-class RenderPass;
 class AttachmentCollection;
 class Image;
-class Framebuffer;
 class ImageView;
 class CmdBuffer;
 class PrimaryCmdBuffer;
@@ -63,10 +61,6 @@ public:
     VkResult acquireNextImage();
     void skipAcquire() const;
 
-    void beginRenderPass(PrimaryCmdBuffer const& cmd_buffer) const;
-
-    void endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const;
-
 
     [[nodiscard]] VkResult present();
     void skipPresent();
@@ -101,42 +95,21 @@ private:
     [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(VkSurfaceKHR surface,
         VkSurfaceFormatKHR surface_format, VkSurfaceCapabilitiesKHR const& capabilities, VkPresentModeKHR present_mode, VkExtent2D extent,
         uint32_t image_count, VkSwapchainKHR old_swapchain);
+
     void createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain);
 
 
     [[nodiscard]] Image::Config createColorImageConfig(VkSampleCountFlagBits samples) const;
-    [[nodiscard]] Image::Config createDepthImageConfig() const;
 
     [[nodiscard]] std::vector<std::unique_ptr<Image>> getSwapchainImages();
-    void findDepthFormat();
 
+    void createResolveAttachments();
 
-    void createResolveAttachments(std::vector<std::unique_ptr<Image>> swapchain_images);
-    void createMsaaAttachments();
-    void createDepthAttachments();
-
-    void createAttachments();
-
-
-    //createRenderPass
-    void createSubpass();
-    [[nodiscard]] VkSubpassDependency createSubpassDependency() const;
-    /**
-     * @throws cth::vk::result_exception result of @ref vkCreateRenderPass()
-     */
-    void createRenderPass();
-    /**
-     * @throws cth::vk::result_exception result of @ref vkCreateFramebuffer()
-     */
-    void createFramebuffers();
 
     void createPresentInfos();
 
 
-    void destroyRenderConstructs();
     void destroyResources();
-
-
 
     void destroySwapchain(VkSwapchainKHR swapchain) const;
 
@@ -161,16 +134,8 @@ private:
 
     size_t _imageCount = 0;
     VkFormat _imageFormat = VK_FORMAT_UNDEFINED;
-    VkFormat _depthFormat = VK_FORMAT_UNDEFINED;
 
     std::unique_ptr<AttachmentCollection> _resolveAttachments;
-    std::unique_ptr<AttachmentCollection> _msaaAttachments; //TEMP this should not be here
-    std::unique_ptr<AttachmentCollection> _depthAttachments; //TEMP this should not be here
-
-    std::unique_ptr<RenderPass> _renderPass; //TEMP this should not be here
-    std::unique_ptr<Subpass> _subpass; //TEMP this should not be here
-    std::vector<Framebuffer> _swapchainFramebuffers; //TEMP this maybe should not be here
-
 
     cth::not_null<GraphicsSyncConfig const*> _syncConfig;
 
@@ -188,7 +153,6 @@ private:
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }
     [[nodiscard]] float extentAspectRatio() const { return _aspectRatio; }
-    [[nodiscard]] RenderPass const* renderPass() const { return _renderPass.get(); }
     [[nodiscard]] auto imageIndex(size_t pulse_value) const { return _imageIndices[pulse_value]; }
     [[nodiscard]] auto imageIndex(RenderPulse const& pulse) const { return imageIndex(pulse.get()); }
 

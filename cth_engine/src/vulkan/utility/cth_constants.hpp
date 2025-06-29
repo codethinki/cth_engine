@@ -31,4 +31,6 @@ static constexpr auto IMAGE_LAYOUT_IGNORED = VK_IMAGE_LAYOUT_MAX_ENUM;
 
 static constexpr VkSampleCountFlagBits MAX_MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
 static constexpr size_t FRAMES_IN_FLIGHT = 2;
+
+static cxpr size_t SWAPCHAIN_ATTACHMENT_INDEX = 0;
 } // namespace cth::vk::constants

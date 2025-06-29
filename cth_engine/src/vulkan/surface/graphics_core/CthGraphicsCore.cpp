@@ -88,15 +88,6 @@ void GraphicsCore::skipAcquire() const {
     _swapchain->skipAcquire();
 }
 
-void GraphicsCore::beginWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const {
-    debug_check(*this);
-    _swapchain->beginRenderPass(*render_cmd_buffer);
-}
-void GraphicsCore::endWindowPass(PrimaryCmdBuffer const* render_cmd_buffer) const {
-    debug_check(*this);
-    _swapchain->endRenderPass(*render_cmd_buffer);
-}
-
 
 bool GraphicsCore::presentFrame() const {
     debug_check(*this);
@@ -131,7 +122,6 @@ void GraphicsCore::State::debug_check(State const& state) {
 }
 
 
-RenderPass const* GraphicsCore::swapchainRenderPass() const { return _swapchain->renderPass(); }
 VkSampleCountFlagBits GraphicsCore::msaaSamples() const { return _swapchain->msaaSamples(); }
 
 AttachmentCollection const* GraphicsCore::swapchainResolveAttachments() const { return _swapchain->resolveAttachments(); }

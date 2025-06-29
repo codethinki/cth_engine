@@ -87,24 +87,26 @@ void App::renderFrame() const {
 
     graphicsPhase();
 
-    _graphicsCore->presentFrame();
+    auto const resized = _graphicsCore->presentFrame();
+
+    if(resized) _resources->resize();
 }
 void App::graphicsPhase() const {
     auto [cmdBuffer, _] = _graphicsStage->begin();
 
-    _graphicsCore->beginWindowPass(cmdBuffer);
+    _resources->beginRenderPass(*cmdBuffer);
 
     auto const info = FrameInfo{_graphicsCore->pulseVal(), 0.f, cmdBuffer};
     _renderSystem->render(info);
 
-    _graphicsCore->endWindowPass(cmdBuffer);
+    _resources->endRenderPass(*cmdBuffer);
 
     _graphicsStage->submit();
 }
 
 
 void App::initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer) {
-    _renderSystem = std::make_unique<RenderSystem>(_core.get(), cmd_buffer, _graphicsCore->swapchainRenderPass(),
+    _renderSystem = std::make_unique<RenderSystem>(_core.get(), cmd_buffer, _resources->renderPass(),
         _graphicsCore->msaaSamples());
 }
 

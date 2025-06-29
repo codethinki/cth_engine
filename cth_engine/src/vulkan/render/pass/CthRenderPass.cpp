@@ -131,14 +131,14 @@ void RenderPass::reset() {
 namespace {
     void debug_check_attachments(std::span<AttachmentCollection const* const> attachments) {
         CTH_CRITICAL(std::ranges::any_of(attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*> const& pair){
-                return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->index();}),
+                return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->indices();}),
             "invalid attachments or indices submitted in subpasses") {
             uint32_t i = 0;
             std::vector<uint32_t> missingIndices{};
             for(auto const* attachment : attachments) {
-                if(attachment->index() != i) {
+                if(attachment->indices() != i) {
                     missingIndices.push_back(i);
-                    i = attachment->index();
+                    i = attachment->indices();
                 }
                 ++i;
             }
@@ -153,7 +153,7 @@ void RenderPass::initAttachments() {
     _attachments = _subpasses | std::views::transform([](Subpass const* subpass) { return subpass->attachments(); })
         | std::views::join | std::ranges::to<std::vector<AttachmentCollection const*>>();
 
-    std::ranges::sort(_attachments, [](AttachmentCollection const* a, AttachmentCollection const* b) { return a->index() < b->index(); });
+    std::ranges::sort(_attachments, [](AttachmentCollection const* a, AttachmentCollection const* b) { return a->indices() < b->indices(); });
     auto const duplicates = std::ranges::unique(_attachments);
 
 

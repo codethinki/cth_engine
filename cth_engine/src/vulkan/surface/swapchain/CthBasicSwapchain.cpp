@@ -9,9 +9,6 @@
 #include "src/vulkan/render/control/CthPipelineBarrier.hpp"
 #include "src/vulkan/render/control/CthSemaphore.hpp"
 #include "src/vulkan/render/pass/AttachmentCollection.hpp"
-#include "src/vulkan/render/pass/CthRenderPass.hpp"
-#include "src/vulkan/render/pass/CthSubpass.hpp"
-#include "src/vulkan/render/pass/RenderPassConfig.hpp"
 #include "src/vulkan/resource/CthDestructionQueue.hpp"
 #include "src/vulkan/resource/framebuffer/Framebuffer.hpp"
 #include "src/vulkan/surface/CthSurface.hpp"
@@ -42,9 +39,7 @@ void BasicSwapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapcha
 
     createSwapchain(window_extent, old_swapchain);
 
-    createRenderPass();
-
-    createFramebuffers();
+    createResolveAttachments();
 
     createPresentInfos();
 }
@@ -97,6 +92,7 @@ VkResult BasicSwapchain::acquireNextImage() {
 
     return acquireResult;
 }
+
 void BasicSwapchain::skipAcquire() const {
     auto const pulse = _syncConfig->pulseVal();
     auto const& fence = _imageAvailableFences[pulse];
@@ -119,27 +115,7 @@ void BasicSwapchain::skipAcquire() const {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire a vk_image")
         throw cth::vk::result_exception{result, details->exception()};
 }
-void BasicSwapchain::beginRenderPass(PrimaryCmdBuffer const& cmd_buffer) const {
-    auto const pulse = _syncConfig->pulseVal();
 
-    _renderPass->begin(cmd_buffer, 0, _swapchainFramebuffers[_imageIndices[pulse]]);
-
-    VkViewport const viewport{
-        .x = 0,
-        .y = 0,
-        .width = static_cast<float>(_extent.width),
-        .height = static_cast<float>(_extent.height),
-        .minDepth = 0,
-        .maxDepth = 1.0f,
-    };
-    VkRect2D const scissor{
-        .offset = {0, 0},
-        .extent = _extent
-    };
-    _core->functions()->vkCmdSetViewport(cmd_buffer.get(), 0, 1, &viewport);
-    _core->functions()->vkCmdSetScissor(cmd_buffer.get(), 0, 1, &scissor);
-}
-void BasicSwapchain::endRenderPass(PrimaryCmdBuffer const& cmd_buffer) const { _renderPass->end(cmd_buffer); }
 
 VkResult BasicSwapchain::present() {
     size_t const pulse = _syncConfig->pulseVal();
@@ -154,6 +130,7 @@ VkResult BasicSwapchain::present() {
 
     return result;
 }
+
 void BasicSwapchain::skipPresent() {
     auto const pulse = _syncConfig->pulseVal();
 
@@ -317,18 +294,6 @@ Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits sampl
     };
 }
 
-Image::Config BasicSwapchain::createDepthImageConfig() const {
-    //TEMP moved to frame resources in demo
-    CTH_CRITICAL(_depthFormat == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED") {}
-
-    return Image::Config{
-        .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-        .format = _depthFormat,
-        .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        .memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        .samples = _msaaSamples,
-    };
-}
 
 auto BasicSwapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>> {
     uint32_t imageCount; //only min specified, might be higher
@@ -357,40 +322,10 @@ auto BasicSwapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>>
 }
 
 
-void BasicSwapchain::createMsaaAttachments() {
-    AttachmentDescription description{
-        .samples = _msaaSamples,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .referenceLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
 
-    auto const imageConfig = createColorImageConfig(_msaaSamples);
+void BasicSwapchain::createResolveAttachments() {
+    auto swapchainImages = getSwapchainImages();
 
-    _msaaAttachments = std::make_unique<AttachmentCollection>(*_core, size(), 0, imageConfig, description, _extent);
-}
-void BasicSwapchain::findDepthFormat() {
-    _depthFormat = _core->physicalDevice().findSupportedFormat(
-        std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
-}
-void BasicSwapchain::createDepthAttachments() {
-    AttachmentDescription description{
-        .samples = _msaaSamples,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        .referenceLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-    };
-
-    auto const imageConfig = createDepthImageConfig();
-
-    _depthAttachments = std::make_unique<AttachmentCollection>(*_core, size(), 1, imageConfig, description, _extent);
-}
-
-void BasicSwapchain::createResolveAttachments(std::vector<std::unique_ptr<Image>> swapchain_images) {
     AttachmentDescription description{
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
@@ -399,90 +334,10 @@ void BasicSwapchain::createResolveAttachments(std::vector<std::unique_ptr<Image>
 
     AttachmentCollection::State state{_extent};
 
-    for(auto& image : swapchain_images) state.images.emplace_back(std::move(image));
+    for(auto& image : swapchainImages) state.images.emplace_back(std::move(image));
 
 
-    _resolveAttachments = std::make_unique<AttachmentCollection>(*_core, size(), 2, state.images[0]->config(), description, std::move(state));
-}
-
-void BasicSwapchain::createAttachments() {
-    findDepthFormat();
-    auto swapchainImages = getSwapchainImages();
-
-    createMsaaAttachments();
-    createDepthAttachments();
-    createResolveAttachments(std::move(swapchainImages));
-
-}
-
-
-
-void BasicSwapchain::createSubpass() {
-    _subpass = std::make_unique<Subpass>(
-        0u,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        std::vector<AttachmentCollection*>{},
-        std::vector{_msaaAttachments.get()},
-        std::vector{_resolveAttachments.get()},
-        _depthAttachments.get(),
-        std::vector<AttachmentCollection*>{}
-    );
-}
-VkSubpassDependency BasicSwapchain::createSubpassDependency() const {
-    return VkSubpassDependency{
-        .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-        | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-        | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .srcAccessMask = 0,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-        | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-    };
-}
-
-
-void BasicSwapchain::createRenderPass() {
-    createAttachments();
-    createSubpass();
-
-    auto const subpassDependency = createSubpassDependency();
-
-
-    RenderPass::BeginConfig const beginConfig{
-        .clearValues = {{
-            {.color = {{0, 0, 0, 1}}},
-            {.depthStencil = {1.0f, 0}}
-        }},
-        .extent = _extent,
-    };
-
-    _renderPass = std::make_unique<RenderPass>(
-        *_core, 
-        RenderPassConfig{
-            .subpasses{_subpass.get()},
-            .dependencies{subpassDependency},
-            .beginConfigs{beginConfig}
-        },
-        vk::create
-    );
-}
-
-
-void BasicSwapchain::createFramebuffers() {
-    /*TEMP solve the problem of imageCount instead of FRAMES_IN_FLIGHT depth / msaa attachments with
-        a framebuffer combination matrix with (resolve[0], msaa[0], depth[0]), ..., (resolve[0], msaa[n], depth[n]), (resolve[1],...
-    imageCount * FRAMES_IN_FLIGHT framebuffers needed (upper bound probably 12 - 15)
-
-    */
-    _swapchainFramebuffers.reserve(size());
-
-    for(size_t i = 0; i < size(); i++) {
-        std::array attachments = {&_msaaAttachments->view(i), &_depthAttachments->view(i), &_resolveAttachments->view(i)};
-
-        _swapchainFramebuffers.emplace_back(*_core, *_renderPass, attachments, _extent);
-    }
+    _resolveAttachments = std::make_unique<AttachmentCollection>(*_core, size(), constants::SWAPCHAIN_ATTACHMENT_INDEX, state.images[0]->config(), description, std::move(state));
 }
 
 
@@ -497,15 +352,8 @@ void BasicSwapchain::createPresentInfos() {
 }
 
 
-void BasicSwapchain::destroyRenderConstructs() {
-    _presentInfos.clear();
-    _swapchainFramebuffers.clear();
-    _renderPass = nullptr;
-    _subpass = nullptr;
-}
-
 void BasicSwapchain::destroyResources() {
-    destroyRenderConstructs();
+    _presentInfos.clear();
 
 
     auto resolveAttachmentState = _resolveAttachments->release();
@@ -514,9 +362,7 @@ void BasicSwapchain::destroyResources() {
     resolveAttachmentState.views.clear();
 
 
-    _resolveAttachments = nullptr;
-    _depthAttachments = nullptr;
-    _msaaAttachments = nullptr;
+    _resolveAttachments->destroy();
 }
 
 void BasicSwapchain::destroySwapchain(VkSwapchainKHR swapchain) const {
@@ -536,7 +382,6 @@ void BasicSwapchain::resizeReset() {
     _extent = {};
     _windowExtent = {};
     _aspectRatio = 0;
-    _depthFormat = VK_FORMAT_UNDEFINED;
     _imageFormat = VK_FORMAT_UNDEFINED;
     _imageCount = 0;
     _imageIndices.fill(NO_IMAGE_INDEX);

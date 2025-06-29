@@ -2,6 +2,8 @@
 #include "render/HlcRenderSystem.hpp"
 
 //TEMP remove this once the camera and input controller are refactored
+#include "render/FrameResources.hpp"
+
 #include "src/interface/render/Renderer3.hpp"
 #include "src/interface/user/HlcCamera.hpp"
 #include "src/interface/user/HlcInputController.hpp"
@@ -13,6 +15,10 @@
 
 #include "src/vulkan/surface/graphics_core/CthGraphicsCore.hpp"
 
+
+namespace cth {
+class FrameResources;
+}
 
 namespace cth {
 
@@ -54,7 +60,7 @@ private:
     cth::move_ptr<vk::DestructionQueue> _destructionQueue = _core->destructionQueue();
 
     std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(*_core, WINDOW_NAME, VkExtent2D{WIDTH, HEIGHT}, _queues[2]);
-    std::unique_ptr<vk::RenderPass> _renderPass;
+    std::unique_ptr<FrameResources> _resources = std::make_unique<FrameResources>(*_core, *_graphicsCore);
 
     std::unique_ptr<vk::Renderer3> _renderer3;
 
