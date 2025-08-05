@@ -4,6 +4,7 @@
 #include "src/vulkan/base/CthCore.hpp"
 #include "src/vulkan/base/CthDevice.hpp"
 #include "src/vulkan/base/CthPhysicalDevice.hpp"
+#include "src/vulkan/base/queue/CthPresentInfo.hpp"
 #include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "src/vulkan/render/control/CthFence.hpp"
 #include "src/vulkan/render/control/CthPipelineBarrier.hpp"
@@ -29,7 +30,6 @@ Swapchain::Swapchain(Core const& core, Queue const& present_queue,
 }
 Swapchain::~Swapchain() {
     optDestroy();
-    Swapchain::debug_check_leak(this);
 }
 
 void Swapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {

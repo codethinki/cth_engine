@@ -90,7 +90,7 @@ auto ScFramebufferCollection::addSwapchainAttachments(Swapchain const& swapchain
 }
 size_t ScFramebufferCollection::size() const {
     auto const size = FramebufferCollection::size();
-    CTH_CRITICAL(size % _scImages != 0, "size [{}] must be divisible by swapchain size [{}]", size, _scImages);
+    CTH_CRITICAL(size % _scImages != 0, "size [{}] must be divisible by swapchain size [{}]", size, _scImages) {}
 
     return size / _scImages;
 }

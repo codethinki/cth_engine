@@ -6,7 +6,6 @@
 #include "../CthSurface.hpp"
 #include "../swapchain/Swapchain.hpp"
 #include "src/vulkan/base/CthCore.hpp"
-#include "src/vulkan/render/pass/CthRenderPass.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 

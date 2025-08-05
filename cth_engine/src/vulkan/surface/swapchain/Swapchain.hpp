@@ -1,15 +1,13 @@
 #pragma once
+#include "src/interface/render/RenderPulse.hpp"
+#include "src/vulkan/base/CthDeviceTable.hpp"
+#include "src/vulkan/resource/image/ImageConfig.hpp"
+#include "src/vulkan/utility/cth_constants.hpp"
 
 #include "cth/numeric.hpp"
 
-#include "src/interface/render/RenderPulse.hpp"
-#include "src/vulkan/base/queue/CthPresentInfo.hpp"
-#include "src/vulkan/base/queue/CthQueue.hpp"
-#include "src/vulkan/resource/image/CthImage.hpp"
-
 
 #include <volk.h>
-
 
 #include <memory>
 #include <vector>
@@ -22,9 +20,7 @@ class Fence;
 class Subpass;
 class AttachmentCollection;
 class Image;
-class ImageView;
 class CmdBuffer;
-class PrimaryCmdBuffer;
 class Surface;
 class GraphicsSyncConfig;
 class Queue;
@@ -109,7 +105,7 @@ private:
     void createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain);
 
 
-    [[nodiscard]] Image::Config createColorImageConfig(VkSampleCountFlagBits samples) const;
+    [[nodiscard]] ImageConfig createColorImageConfig(VkSampleCountFlagBits samples) const;
 
     [[nodiscard]] std::vector<std::unique_ptr<Image>> getSwapchainImages();
 
@@ -137,13 +133,6 @@ private:
     cth::move_ptr<VkSwapchainKHR_T> _handle = VK_NULL_HANDLE;
 
 
-    VkExtent2D _extent{};
-    float _aspectRatio = 0;
-    VkExtent2D _windowExtent{};
-
-
-    size_t _imageCount = 0;
-    VkFormat _imageFormat = VK_FORMAT_UNDEFINED;
 
     std::unique_ptr<AttachmentCollection> _resolveAttachments;
 
@@ -152,6 +141,15 @@ private:
     std::vector<Fence> _imageAvailableFences;
 
     std::vector<PresentInfo> _presentInfos;
+
+
+    VkExtent2D _extent{};
+    float _aspectRatio = 0;
+    VkExtent2D _windowExtent{};
+
+
+    size_t _imageCount = 0;
+    VkFormat _imageFormat = VK_FORMAT_UNDEFINED;
 
 
     std::array<uint32_t, constants::FRAMES_IN_FLIGHT> _imageIndices{};
@@ -178,12 +176,11 @@ public:
     [[nodiscard]] auto extent() const { return _extent; }
 
     Swapchain(Swapchain const& other) = delete;
-    Swapchain(Swapchain&& other) noexcept = default;
     Swapchain& operator=(Swapchain const& other) = delete;
+    Swapchain(Swapchain&& other) noexcept = default;
     Swapchain& operator=(Swapchain&& other) noexcept = default;
 
     static void debug_check(Swapchain const& swapchain);
-    static void debug_check_leak(Swapchain const* swapchain);
 
     static void debug_check_window_extent(VkExtent2D window_extent);
     static void debug_check_compatibility(Swapchain const& a, Swapchain const& b);
@@ -198,9 +195,6 @@ namespace cth::vk {
 inline void Swapchain::debug_check(Swapchain const& swapchain) {
     CTH_CRITICAL(swapchain._handle == VK_NULL_HANDLE, "swapchain handle invalid (VK_NULL_HANDLE)") {}
     CTH_CRITICAL(swapchain.size() == 0, "swapchain size must not be 0") {}
-}
-inline void Swapchain::debug_check_leak(Swapchain const* swapchain) {
-    CTH_WARN(swapchain->_handle != VK_NULL_HANDLE, "swapchain handle replaced, (potential memory leak)") {}
 }
 inline void Swapchain::debug_check_window_extent(VkExtent2D window_extent) {
     CTH_CRITICAL(
