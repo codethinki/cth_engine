@@ -4,7 +4,7 @@
 
 #include "../CthOSWindow.hpp"
 #include "../CthSurface.hpp"
-#include "../swapchain/CthBasicSwapchain.hpp"
+#include "../swapchain/Swapchain.hpp"
 #include "src/vulkan/base/CthCore.hpp"
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
@@ -37,13 +37,11 @@ void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, Queue
     _osWindow = std::make_unique<OSWindow>(_core->instance(), _core->destructionQueue(), window_name, extent);
     _surface = std::make_unique<Surface>(_core->instance(), _core->destructionQueue(), Surface::Config{}, Surface::State{_osWindow->releaseSurface()});
     _syncConfig = std::make_unique<GraphicsSyncConfig>(*_core, vk::create);
-    _swapchain = std::make_unique<Swapchain>(*_core, present_queue, *_syncConfig, *_surface);
-    _swapchain->create(_osWindow->extent()); //TEMP replace this with swapchain create constructor
+    _swapchain = std::make_unique<Swapchain>(*_core, present_queue, *_syncConfig, *_surface, osWindow()->extent());
 }
 void GraphicsCore::destroy() {
     debug_check(*this);
 
-    _swapchain->destroy(); //TEMP replace this once non basic swapchain is ready
     _swapchain = nullptr;
     _syncConfig = nullptr;
     _surface = nullptr;

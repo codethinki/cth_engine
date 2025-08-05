@@ -61,9 +61,6 @@ void App::createRenderer3() {
     _transferStage = &_renderer3->stage(0);
     _graphicsStage = &_renderer3->stage(1);
 }
-void App::createRenderPass() {
-    
-}
 void App::initFrame() {
 
     _graphicsCore->skipAcquire();

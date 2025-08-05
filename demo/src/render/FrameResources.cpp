@@ -10,7 +10,7 @@
 #include "src/vulkan/render/pass/attachment/AttachmentDescription.hpp"
 #include "src/vulkan/render/pass/framebuffer/ScFramebufferCollection.hpp"
 #include "src/vulkan/surface/graphics_core/CthGraphicsCore.hpp"
-#include "src/vulkan/surface/swapchain/CthBasicSwapchain.hpp"
+#include "src/vulkan/surface/swapchain/Swapchain.hpp"
 #include "src/vulkan/utility/cth_vk_overloads.hpp"
 
 namespace cth {

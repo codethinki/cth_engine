@@ -1,4 +1,4 @@
-#include "CthBasicSwapchain.hpp"
+#include "Swapchain.hpp"
 
 #include "../graphics_core/CthGraphicsSyncConfig.hpp"
 #include "src/vulkan/base/CthCore.hpp"
@@ -23,12 +23,9 @@ Swapchain::Swapchain(Core const& core, Queue const& present_queue, GraphicsSyncC
     init();
 }
 Swapchain::Swapchain(Core const& core, Queue const& present_queue,
-    GraphicsSyncConfig const& sync_config, Surface const& surface, create_t) : Swapchain{core, present_queue, sync_config, surface} {
+    GraphicsSyncConfig const& sync_config, Surface const& surface, VkExtent2D window_extent) : Swapchain{core, present_queue, sync_config, surface} {
 
-
-    createSyncObjects();
-    createResolveAttachments();
-    _imageIndices.fill(NO_IMAGE_INDEX);
+    create(window_extent);
 }
 Swapchain::~Swapchain() {
     optDestroy();
@@ -44,7 +41,7 @@ void Swapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
     optDestroy();
 
 
-    //create the reset function
+    _imageIndices.fill(NO_IMAGE_INDEX);
     _msaaSamples = evalMsaaSampleCount();
 
     createSyncObjects();
@@ -151,7 +148,9 @@ void Swapchain::skipPresent() {
 
     auto& imageIndex = _imageIndices[pulse];
 
-    CTH_WARN(imageIndex != NO_IMAGE_INDEX, "skip presenting an acquired vk_image, it will be discarded") {}
+    CTH_WARN(imageIndex != NO_IMAGE_INDEX, "skip presenting an acquired vk_image, it will be discarded") {
+        int x = 0;
+    }
 
     _presentQueue->const_skip(_presentInfos[pulse]);
 
@@ -427,81 +426,3 @@ ImageConfig Swapchain::imageConfig() const {
 
 } // namespace cth
 
-//TEMP old code
-
-//BasicSwapchain::BasicSwapchain(const Core* core, DestructionQueue* destruction_queue, const Surface* surface, const Queue* present_queue,
-//    const VkExtent2D window_extent) : _core(core), _presentQueue(present_queue), _windowExtent(window_extent), { init(surface, destruction_queue); }
-//BasicSwapchain::BasicSwapchain(const Core* core, DestructionQueue* destruction_queue, const Surface* surface, const Queue* present_queue,
-//    const VkExtent2D window_extent, shared_ptr<BasicSwapchain> previous) : _core{core}, _presentQueue(present_queue), _windowExtent(window_extent),
-//    _oldSwapchain{std::move(previous)} {
-//    init(surface, destruction_queue);
-//    _oldSwapchain = nullptr;
-//}
-
-
-//BasicSwapchain::~BasicSwapchain() {
-//
-//    if(_vkSwapchain != nullptr) {
-//        vkDestroySwapchainKHR(_core->vkDevice(), _vkSwapchain, nullptr);
-//        _vkSwapchain = nullptr;
-//    }
-//
-//    _swapchainImages.clear();
-//    _msaaImages.clear();
-//    _msaaImageViews.clear();
-//    _depthImages.clear();
-//    _depthImageViews.clear();
-//
-//
-//    ranges::for_each(_swapchainFramebuffers, [this](VkFramebuffer framebuffer) { vkDestroyFramebuffer(_core->vkDevice(), framebuffer, nullptr); });
-//
-//    vkDestroyRenderPass(_core->vkDevice(), _renderPass, nullptr);
-//
-//    for(size_t i = 0; i < constants::MAX_FRAMES_IN_FLIGHT; i++) {
-//        vkDestroySemaphore(_core->vkDevice(), _renderFinishedSemaphores[i], nullptr);
-//        vkDestroySemaphore(_core->vkDevice(), _imageAvailableSemaphores[i], nullptr);
-//        vkDestroyFence(_core->vkDevice(), _inFlightFences[i], nullptr);
-//    }
-//}
-
-//VkResult BasicSwapchain::submit(vector<const PrimaryCmdBuffer*> cmd_buffers) const {
-//    static_assert(false, "this cannot be here");
-//
-//    vector<VkCommandBuffer> cmdBuffers(cmd_buffers.size());
-//    ranges::transform(cmd_buffers, cmdBuffers.begin(), [](const PrimaryCmdBuffer* cmd_buffer) { return cmd_buffer->get(); });
-//
-//    VkSubmitInfo submitInfo = {};
-//    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-//
-//    submitInfo.waitSemaphoreCount = 1u;
-//    submitInfo.pWaitSemaphores = &_imageAvailableSemaphores[_frameIndex];
-//
-//    constexpr array<VkPipelineStageFlags, 1> waitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-//    submitInfo.pWaitDstStageMask = waitStages.data();
-//    submitInfo.commandBufferCount = static_cast<uint32_t>(cmdBuffers.size());
-//    submitInfo.pCommandBuffers = cmdBuffers.data();
-//
-//    submitInfo.signalSemaphoreCount = 1u;
-//    submitInfo.pSignalSemaphores = &_renderFinishedSemaphores[_frameIndex];
-//
-//    return vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, _inFlightFences[_frameIndex]);
-//}
-
-//submitCommandBuffer()
-//if(_imagesInFlight[image_index].get() != VK_NULL_HANDLE) {
-//    vkWaitForFences(_core->vkDevice(), 1, &_imagesInFlight[image_index], VK_TRUE, UINT64_MAX);
-//    destruction_queue->clear(static_cast<uint32_t>(_frameIndex));
-//destruction_queue->create(static_cast<uint32_t>(_frameIndex)); 
-//
-//_imagesInFlight[image_index] = _inFlightFences[_frameIndex];
-//
-//vkResetFences(_core->vkDevice(), 1, &_inFlightFences[_frameIndex]);
-//
-//
-//const VkResult submitResult = submit(vector{cmd_buffer});
-//CTH_STABLE_ERR(submitResult != VK_SUCCESS, "failed to submit draw call")
-//throw cth::vk::result_exception{submitResult, details->exception()};
-//
-//const auto presentResult = present(image_index);
-//
-//++_frameIndex %= constants::FRAMES_IN_FLIGHT;

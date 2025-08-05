@@ -1,7 +1,7 @@
 #include "CthPresentInfo.hpp"
 
 #include "src/vulkan/render/control/CthTimelineSemaphore.hpp"
-#include "src/vulkan/surface/swapchain/CthBasicSwapchain.hpp"
+#include "src/vulkan/surface/swapchain/Swapchain.hpp"
 #include <src/vulkan/render/control/CthSemaphore.hpp>
 
 #include <volk.h>

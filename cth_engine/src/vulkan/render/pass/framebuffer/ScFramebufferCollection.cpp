@@ -3,7 +3,7 @@
 #include "Framebuffer.hpp"
 
 #include "src/vulkan/render/pass/attachment/AttachmentCollection.hpp"
-#include "src/vulkan/surface/swapchain/CthBasicSwapchain.hpp"
+#include "src/vulkan/surface/swapchain/Swapchain.hpp"
 #include "src/vulkan/utility/cth_vk_overloads.hpp"
 
 #include <cth/numeric.hpp>

@@ -15,8 +15,6 @@ class RenderPulse;
 class PrimaryCmdBuffer;
 }
 
-//TEMP left off here. the frame resources class should be completed and the only thing left is to delete the stuff from the swapchain
-
 //TEMP this is a temp fix this class is ugly af and should not be like that. create some proper system 
 namespace cth {
 class FrameResources {

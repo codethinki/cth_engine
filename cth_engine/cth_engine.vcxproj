@@ -117,7 +117,7 @@
     <ClInclude Include="src\vulkan\resource\image\texture\CthSampler.hpp" />
     <ClInclude Include="src\vulkan\resource\image\texture\CthTexture.hpp" />
     <ClInclude Include="src\vulkan\surface\CthSurface.hpp" />
-    <ClInclude Include="src\vulkan\surface\swapchain\CthBasicSwapchain.hpp" />
+    <ClInclude Include="src\vulkan\surface\swapchain\Swapchain.hpp" />
     <ClInclude Include="src\vulkan\surface\CthOSWindow.hpp" />
     <ClInclude Include="src\vulkan\base\CthCore.hpp" />
     <ClInclude Include="src\vulkan\utility\cth_debug_macros.hpp" />
@@ -199,7 +199,7 @@
     <ClCompile Include="src\vulkan\resource\image\texture\CthTexture.cpp" />
     <ClCompile Include="src\vulkan\surface\CthSurface.cpp" />
     <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsSyncConfig.cpp" />
-    <ClCompile Include="src\vulkan\surface\swapchain\CthBasicSwapchain.cpp" />
+    <ClCompile Include="src\vulkan\surface\swapchain\Swapchain.cpp" />
     <ClCompile Include="src\vulkan\surface\CthOSWindow.cpp" />
     <ClCompile Include="src\vulkan\surface\graphics_core\CthGraphicsCore.cpp" />
     <ClCompile Include="src\pch\lib\volk\volk.cpp">

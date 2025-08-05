@@ -37,17 +37,17 @@ public:
     Swapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config, Surface const& surface);
 
     Swapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config,
-        Surface const& surface, create_t);
-    virtual ~Swapchain();
+        Surface const& surface, VkExtent2D window_extent);
+    ~Swapchain();
 
     //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
-    virtual void create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE);
+    void create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE);
 
     /**
      * @brief destroys the swapchain
      * @note requires @ref created()
      */
-    virtual void destroy();
+    void destroy();
 
 
     /**
@@ -56,7 +56,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
 
-    virtual void resize(VkExtent2D window_extent);
+    void resize(VkExtent2D window_extent);
 
 
 
