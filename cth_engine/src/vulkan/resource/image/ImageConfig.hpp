@@ -10,6 +10,17 @@ struct ImageConfig {
     VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
     VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
+    [[nodiscard]] static ImageConfig DepthBuffer(VkFormat depth_format, VkSampleCountFlagBits samples) {
+        return vk::ImageConfig{
+            .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .format = depth_format,
+            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            .memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            .samples = samples,
+        };
+    }
+
     [[nodiscard]] VkImageCreateInfo createInfo() const;
 };
+
 }

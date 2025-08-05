@@ -31,7 +31,6 @@ private:
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
 
     [[nodiscard]] VkFormat findDepthFormat() const;
-    [[nodiscard]] vk::ImageConfig createDepthImageConfig() const;
 
     void createDepthAttachments();
     void createMsaaAttachments();

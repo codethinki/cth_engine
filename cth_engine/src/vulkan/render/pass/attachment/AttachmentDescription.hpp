@@ -15,6 +15,15 @@ struct AttachmentDescription {
     VkImageLayout referenceLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkAttachmentDescriptionFlags flags = 0;
 
+    [[nodiscard]] static AttachmentDescription DepthBuffer(VkSampleCountFlagBits samples) {
+        return {
+            .samples = samples,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            .referenceLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+    }
+
     [[nodiscard]] VkAttachmentDescription create(VkFormat format, VkImageLayout initial_layout) const;
 };
 }

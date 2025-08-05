@@ -63,28 +63,10 @@ VkFormat FrameResources::findDepthFormat() const {
 
     return format;
 }
-vk::ImageConfig FrameResources::createDepthImageConfig() const {
-    auto const depthFormat = findDepthFormat();
-
-
-    return vk::ImageConfig{
-        .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-        .format = depthFormat,
-        .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-        .memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        .samples = _msaaSamples,
-    };
-}
 
 void FrameResources::createDepthAttachments() {
-    vk::AttachmentDescription const description{
-        .samples = _msaaSamples,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        .referenceLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-    };
-
-    auto const imageConfig = createDepthImageConfig();
+    auto const description = vk::AttachmentDescription::DepthBuffer(_msaaSamples);
+    auto const imageConfig = vk::ImageConfig::DepthBuffer(findDepthFormat(), _msaaSamples);
 
     _depthAttachments = std::make_unique<vk::AttachmentCollection>(*_core,
         vk::AttachmentCollection::Config{vk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description},
@@ -202,10 +184,7 @@ void FrameResources::resize() const {
 }
 vk::Framebuffer const& FrameResources::framebuffer() const {
     auto const& pulse = _graphicsCore->renderPulse();
-
     return _framebufferCollection->get(pulse.get());
 }
 vk::RenderPass const& FrameResources::renderPass() const { return *_renderPass; }
-
-
 }
