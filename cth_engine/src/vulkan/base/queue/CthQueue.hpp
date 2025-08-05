@@ -18,7 +18,7 @@ class TimelineSemaphore;
 class Semaphore;
 class Fence;
 class Core;
-class BasicSwapchain;
+class Swapchain;
 class PrimaryCmdBuffer;
 
 

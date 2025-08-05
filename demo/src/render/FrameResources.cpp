@@ -142,7 +142,7 @@ VkSubpassDependency FrameResources::createSubpassDependency() {
         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
     };
 
-    vk::BasicSwapchain::addResolveSubpassDependencyFlags(dependency);
+    vk::Swapchain::addResolveSubpassDependencyFlags(dependency);
     return dependency;
 }
 

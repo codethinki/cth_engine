@@ -3,7 +3,7 @@
 //PresentInfo
 
 namespace cth::vk {
-class BasicSwapchain;
+class Swapchain;
 class Semaphore;
 
 struct PresentInfo {
@@ -11,7 +11,7 @@ struct PresentInfo {
      * @param swapchain must not be recreated
      *
      */
-    explicit PresentInfo(BasicSwapchain const* swapchain, std::span<Semaphore const*> wait_semaphores);
+    explicit PresentInfo(Swapchain const* swapchain, std::span<Semaphore const*> wait_semaphores);
 
     void createInfo();
 

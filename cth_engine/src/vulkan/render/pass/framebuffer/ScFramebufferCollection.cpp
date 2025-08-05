@@ -11,11 +11,11 @@
 
 namespace cth::vk {
 
-ScFramebufferCollection::ScFramebufferCollection(Core const& core, BasicSwapchain const& swapchain,
+ScFramebufferCollection::ScFramebufferCollection(Core const& core, Swapchain const& swapchain,
     RenderPass const& render_pass, FramebufferCollectionConfig const& config) :
     FramebufferCollection{core, render_pass, addSwapchainAttachments(swapchain, config)},
     _swapchain{&swapchain}, _scImages{_swapchain->size()} {}
-ScFramebufferCollection::ScFramebufferCollection(Core const& core, BasicSwapchain const& swapchain, RenderPass const& render_pass,
+ScFramebufferCollection::ScFramebufferCollection(Core const& core, Swapchain const& swapchain, RenderPass const& render_pass,
     FramebufferCollectionConfig const& config, create_t) : ScFramebufferCollection{core, swapchain, render_pass, config} {
     create(_swapchain->extent(), false);
 }
@@ -50,10 +50,10 @@ void ScFramebufferCollection::create(VkExtent2D extent, bool reconfigure) {
 }
 
 
-auto ScFramebufferCollection::addSwapchainAttachments(BasicSwapchain const& swapchain,
+auto ScFramebufferCollection::addSwapchainAttachments(Swapchain const& swapchain,
     FramebufferCollectionConfig const& config) -> FramebufferCollectionConfig {
     Config::debug_check_size(config);
-    BasicSwapchain::debug_check(swapchain);
+    Swapchain::debug_check(swapchain);
 
     auto const& scAttachments = swapchain.resolveAttachments();
     CTH_CRITICAL(scAttachments->indices().size() > 1, "resolve attachments must only have one index") {}

@@ -30,16 +30,15 @@ class GraphicsSyncConfig;
 class Queue;
 class Core;
 
-//TEMP make this non basic and remove components like renderpass and subpass as well as attachments (except resolve attachment)
-//TEMP maybe remove framebuffers idk
+//TODO add release and wrap
 
-class BasicSwapchain {
+class Swapchain {
 public:
-    BasicSwapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config, Surface const& surface);
+    Swapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config, Surface const& surface);
 
-    BasicSwapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config,
+    Swapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config,
         Surface const& surface, create_t);
-    virtual ~BasicSwapchain();
+    virtual ~Swapchain();
 
     //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
     virtual void create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE);
@@ -178,16 +177,16 @@ public:
     [[nodiscard]] AttachmentCollection const* resolveAttachments() const { return _resolveAttachments.get(); }
     [[nodiscard]] auto extent() const { return _extent; }
 
-    BasicSwapchain(BasicSwapchain const& other) = delete;
-    BasicSwapchain(BasicSwapchain&& other) noexcept = default;
-    BasicSwapchain& operator=(BasicSwapchain const& other) = delete;
-    BasicSwapchain& operator=(BasicSwapchain&& other) noexcept = default;
+    Swapchain(Swapchain const& other) = delete;
+    Swapchain(Swapchain&& other) noexcept = default;
+    Swapchain& operator=(Swapchain const& other) = delete;
+    Swapchain& operator=(Swapchain&& other) noexcept = default;
 
-    static void debug_check(BasicSwapchain const& swapchain);
-    static void debug_check_leak(BasicSwapchain const* swapchain);
+    static void debug_check(Swapchain const& swapchain);
+    static void debug_check_leak(Swapchain const* swapchain);
 
     static void debug_check_window_extent(VkExtent2D window_extent);
-    static void debug_check_compatibility(BasicSwapchain const& a, BasicSwapchain const& b);
+    static void debug_check_compatibility(Swapchain const& a, Swapchain const& b);
 };
 
 }
@@ -196,21 +195,21 @@ public:
 
 namespace cth::vk {
 
-inline void BasicSwapchain::debug_check(BasicSwapchain const& swapchain) {
+inline void Swapchain::debug_check(Swapchain const& swapchain) {
     CTH_CRITICAL(swapchain._handle == VK_NULL_HANDLE, "swapchain handle invalid (VK_NULL_HANDLE)") {}
     CTH_CRITICAL(swapchain.size() == 0, "swapchain size must not be 0") {}
 }
-inline void BasicSwapchain::debug_check_leak(BasicSwapchain const* swapchain) {
+inline void Swapchain::debug_check_leak(Swapchain const* swapchain) {
     CTH_WARN(swapchain->_handle != VK_NULL_HANDLE, "swapchain handle replaced, (potential memory leak)") {}
 }
-inline void BasicSwapchain::debug_check_window_extent(VkExtent2D window_extent) {
+inline void Swapchain::debug_check_window_extent(VkExtent2D window_extent) {
     CTH_CRITICAL(
         window_extent.width == 0 || window_extent.height == 0,
         "window_extent width({0}) or height({0}) invalid (> 0 required)",
         window_extent.width, window_extent.height
     ) {}
 }
-inline void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwapchain const& b) {
+inline void Swapchain::debug_check_compatibility(Swapchain const& a, Swapchain const& b) {
     CTH_CRITICAL(a._core == b._core, "swapchains not compatible (different cores)") {}
 }
 

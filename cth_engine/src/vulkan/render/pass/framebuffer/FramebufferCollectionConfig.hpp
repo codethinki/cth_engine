@@ -3,7 +3,7 @@
 #include "src/vulkan/utility/cth_constants.hpp"
 
 namespace cth::vk {
-class BasicSwapchain;
+class Swapchain;
 }
 
 namespace cth::vk {

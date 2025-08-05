@@ -37,7 +37,7 @@ void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, Queue
     _osWindow = std::make_unique<OSWindow>(_core->instance(), _core->destructionQueue(), window_name, extent);
     _surface = std::make_unique<Surface>(_core->instance(), _core->destructionQueue(), Surface::Config{}, Surface::State{_osWindow->releaseSurface()});
     _syncConfig = std::make_unique<GraphicsSyncConfig>(*_core, vk::create);
-    _swapchain = std::make_unique<BasicSwapchain>(*_core, present_queue, *_syncConfig, *_surface);
+    _swapchain = std::make_unique<Swapchain>(*_core, present_queue, *_syncConfig, *_surface);
     _swapchain->create(_osWindow->extent()); //TEMP replace this with swapchain create constructor
 }
 void GraphicsCore::destroy() {
@@ -118,7 +118,7 @@ void GraphicsCore::reset() {
 void GraphicsCore::State::debug_check(State const& state) {
     OSWindow::debug_check(state.osWindow.get());
     Surface::debug_check(*state.surface);
-    BasicSwapchain::debug_check(*state.swapchain.get());
+    Swapchain::debug_check(*state.swapchain.get());
 }
 
 

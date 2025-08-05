@@ -11,7 +11,7 @@ public:
      * @param swapchain image index and attachment source
      * @param render_pass swapchain attachment index must be at 0
      */
-    ScFramebufferCollection(Core const& core, BasicSwapchain const& swapchain, RenderPass const& render_pass,
+    ScFramebufferCollection(Core const& core, Swapchain const& swapchain, RenderPass const& render_pass,
         FramebufferCollectionConfig const& config);
     /**
      * @brief constructs and creates
@@ -21,7 +21,7 @@ public:
      *          - ScFramebufferCollection(Core const&, BasicSwapchain const&, RenderPass const&, FramebufferCollectionConfig const&)
      *          - @ref create(VkExtent2D)
      */
-    ScFramebufferCollection(Core const& core, BasicSwapchain const& swapchain, RenderPass const& render_pass,
+    ScFramebufferCollection(Core const& core, Swapchain const& swapchain, RenderPass const& render_pass,
         FramebufferCollectionConfig const& config, create_t);
 
     void create();
@@ -33,11 +33,11 @@ private:
     void create(VkExtent2D extent, bool reconfigure);
 
 
-    static auto addSwapchainAttachments(BasicSwapchain const& swapchain, FramebufferCollectionConfig const& config) -> FramebufferCollectionConfig;
+    static auto addSwapchainAttachments(Swapchain const& swapchain, FramebufferCollectionConfig const& config) -> FramebufferCollectionConfig;
 
 
 
-    cth::not_null<BasicSwapchain const*> _swapchain;
+    cth::not_null<Swapchain const*> _swapchain;
     size_t _scImages = 0;
 
 public:

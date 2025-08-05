@@ -18,24 +18,24 @@
 
 namespace cth::vk {
 
-BasicSwapchain::BasicSwapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config, Surface const& surface) :
+Swapchain::Swapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config, Surface const& surface) :
     _core(&core), _presentQueue(&present_queue), _surface{&surface}, _syncConfig(&sync_config) {
     init();
 }
-BasicSwapchain::BasicSwapchain(Core const& core, Queue const& present_queue,
-    GraphicsSyncConfig const& sync_config, Surface const& surface, create_t) : BasicSwapchain{core, present_queue, sync_config, surface} {
+Swapchain::Swapchain(Core const& core, Queue const& present_queue,
+    GraphicsSyncConfig const& sync_config, Surface const& surface, create_t) : Swapchain{core, present_queue, sync_config, surface} {
 
 
     createSyncObjects();
     createResolveAttachments();
     _imageIndices.fill(NO_IMAGE_INDEX);
 }
-BasicSwapchain::~BasicSwapchain() {
+Swapchain::~Swapchain() {
     optDestroy();
-    BasicSwapchain::debug_check_leak(this);
+    Swapchain::debug_check_leak(this);
 }
 
-void BasicSwapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
+void Swapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
     Core::debug_check(*_core);
     Surface::debug_check(*_surface);
     Queue::debug_check_present(*_presentQueue);
@@ -56,7 +56,7 @@ void BasicSwapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapcha
     createPresentInfos();
 }
 
-void BasicSwapchain::destroy() {
+void Swapchain::destroy() {
     CTH_CRITICAL(!created(), "swapchain must be created") {}
 
     destroyResources();
@@ -69,7 +69,7 @@ void BasicSwapchain::destroy() {
 }
 
 
-void BasicSwapchain::resize(VkExtent2D window_extent) {
+void Swapchain::resize(VkExtent2D window_extent) {
 
     VkSwapchainKHR old = _handle.release();
 
@@ -83,7 +83,7 @@ void BasicSwapchain::resize(VkExtent2D window_extent) {
 
 
 
-VkResult BasicSwapchain::acquireNextImage() {
+VkResult Swapchain::acquireNextImage() {
     //TODO add timeout
     auto const pulse = _syncConfig->pulseVal();
 
@@ -108,7 +108,7 @@ VkResult BasicSwapchain::acquireNextImage() {
     return acquireResult;
 }
 
-void BasicSwapchain::skipAcquire() const {
+void Swapchain::skipAcquire() const {
     auto const pulse = _syncConfig->pulseVal();
     auto const& fence = _imageAvailableFences[pulse];
     fence.wait();
@@ -132,7 +132,7 @@ void BasicSwapchain::skipAcquire() const {
 }
 
 
-VkResult BasicSwapchain::present() {
+VkResult Swapchain::present() {
     size_t const pulse = _syncConfig->pulseVal();
 
     auto& imageIndex = _imageIndices[pulse];
@@ -146,7 +146,7 @@ VkResult BasicSwapchain::present() {
     return result;
 }
 
-void BasicSwapchain::skipPresent() {
+void Swapchain::skipPresent() {
     auto const pulse = _syncConfig->pulseVal();
 
     auto& imageIndex = _imageIndices[pulse];
@@ -158,7 +158,7 @@ void BasicSwapchain::skipPresent() {
     imageIndex = NO_IMAGE_INDEX;
 }
 
-void BasicSwapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
+void Swapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
     CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) const {
     //TEMP test this function
     std::unordered_map<Image*, ImageBarrier::Info> const images{
@@ -172,12 +172,12 @@ void BasicSwapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer
     barrier.execute(acquire_cmd_buffer);
 }
 
-void BasicSwapchain::addResolveSubpassDependencyFlags(VkSubpassDependency& swap_subpass_dependency) {
+void Swapchain::addResolveSubpassDependencyFlags(VkSubpassDependency& swap_subpass_dependency) {
     swap_subpass_dependency.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     swap_subpass_dependency.dstStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 }
 
-void BasicSwapchain::destroy(DeviceTable table, VkSwapchainKHR swapchain) {
+void Swapchain::destroy(DeviceTable table, VkSwapchainKHR swapchain) {
     CTH_WARN(swapchain == VK_NULL_HANDLE, "swapchain should not be invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroySwapchainKHR(table.device(), swapchain, nullptr);
@@ -185,22 +185,22 @@ void BasicSwapchain::destroy(DeviceTable table, VkSwapchainKHR swapchain) {
 
 
 
-void BasicSwapchain::initSyncObjects() {
+void Swapchain::initSyncObjects() {
     _imageAvailableFences.reserve(constants::FRAMES_IN_FLIGHT);
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
         _imageAvailableFences.emplace_back(*_core);
 }
-void BasicSwapchain::initAttachments() {
+void Swapchain::initAttachments() {
     
 }
 
-void BasicSwapchain::init() { initSyncObjects(); }
+void Swapchain::init() { initSyncObjects(); }
 
-void BasicSwapchain::setImageFormat(VkFormat format) {
+void Swapchain::setImageFormat(VkFormat format) {
     _imageFormat = format;
     CTH_CRITICAL(_imageFormat == VK_FORMAT_UNDEFINED, "image format must not be VK_FORMAT_UNDEFINED") {}
 }
-VkSampleCountFlagBits BasicSwapchain::evalMsaaSampleCount() const {
+VkSampleCountFlagBits Swapchain::evalMsaaSampleCount() const {
     uint32_t const maxSamples = _core->physicalDevice().maxSampleCount() / 2; //TODO add proper max_sample_count selection
 
     uint32_t samples = 1;
@@ -209,12 +209,12 @@ VkSampleCountFlagBits BasicSwapchain::evalMsaaSampleCount() const {
     return static_cast<VkSampleCountFlagBits>(samples);
 }
 
-void BasicSwapchain::createSyncObjects() {
+void Swapchain::createSyncObjects() {
     for(auto& fence : _imageAvailableFences)
         fence.create(VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
-VkExtent2D BasicSwapchain::chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities) {
+VkExtent2D Swapchain::chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities) {
     if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) return capabilities.currentExtent;
 
     VkExtent2D const extent{
@@ -226,7 +226,7 @@ VkExtent2D BasicSwapchain::chooseSwapExtent(VkExtent2D window_extent, VkSurfaceC
 
     return extent;
 }
-uint32_t BasicSwapchain::evalMinImageCount(uint32_t min, uint32_t max) {
+uint32_t Swapchain::evalMinImageCount(uint32_t min, uint32_t max) {
     uint32_t imageCount = min + 1; //TODO check if this is really wrong if the imageCount is 4
     if(max > 0 && imageCount > max) imageCount = max;
 
@@ -236,7 +236,7 @@ uint32_t BasicSwapchain::evalMinImageCount(uint32_t min, uint32_t max) {
     return imageCount;
 }
 
-VkSwapchainCreateInfoKHR BasicSwapchain::createInfo(VkSurfaceKHR surface,
+VkSwapchainCreateInfoKHR Swapchain::createInfo(VkSurfaceKHR surface,
     VkSurfaceFormatKHR surface_format, VkSurfaceCapabilitiesKHR const& capabilities,
     VkPresentModeKHR present_mode, VkExtent2D extent, uint32_t image_count,
     VkSwapchainKHR old_swapchain) {
@@ -270,8 +270,8 @@ VkSwapchainCreateInfoKHR BasicSwapchain::createInfo(VkSurfaceKHR surface,
     return createInfo;
 }
 
-void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
-    BasicSwapchain::debug_check_window_extent(window_extent);
+void Swapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
+    Swapchain::debug_check_window_extent(window_extent);
 
     _windowExtent = window_extent;
 
@@ -303,7 +303,7 @@ void BasicSwapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR ol
 
 
 
-Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits samples) const {
+Image::Config Swapchain::createColorImageConfig(VkSampleCountFlagBits samples) const {
     //TEMP moved to frame resources in demo
     CTH_CRITICAL(_imageFormat == VK_FORMAT_UNDEFINED, "image format must not be VK_FORMAT_UNDEFINED") {}
 
@@ -317,7 +317,7 @@ Image::Config BasicSwapchain::createColorImageConfig(VkSampleCountFlagBits sampl
 }
 
 
-auto BasicSwapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>> {
+auto Swapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>> {
     uint32_t imageCount; //only min specified, might be higher
     auto const countResult = _core->deviceTable()->vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(), &imageCount, nullptr);
 
@@ -345,7 +345,7 @@ auto BasicSwapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>>
 
 
 
-void BasicSwapchain::createResolveAttachments() {
+void Swapchain::createResolveAttachments() {
     auto swapchainImages = getSwapchainImages();
 
     AttachmentDescription const description{
@@ -368,7 +368,7 @@ void BasicSwapchain::createResolveAttachments() {
 
 
 
-void BasicSwapchain::createPresentInfos() {
+void Swapchain::createPresentInfos() {
     _presentInfos.reserve(constants::FRAMES_IN_FLIGHT);
 
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++) {
@@ -378,7 +378,7 @@ void BasicSwapchain::createPresentInfos() {
 }
 
 
-void BasicSwapchain::destroyResources() {
+void Swapchain::destroyResources() {
     _presentInfos.clear();
 
 
@@ -388,7 +388,7 @@ void BasicSwapchain::destroyResources() {
     resolveAttachmentState.views.clear();
 }
 
-void BasicSwapchain::destroySwapchain(VkSwapchainKHR swapchain) const {
+void Swapchain::destroySwapchain(VkSwapchainKHR swapchain) const {
     auto const lambda = [table = _core->deviceTable(), swapchain]() { destroy(table, swapchain); };
 
     auto const& queue = _core->destructionQueue();
@@ -397,8 +397,8 @@ void BasicSwapchain::destroySwapchain(VkSwapchainKHR swapchain) const {
     else lambda();
 }
 
-void BasicSwapchain::destroySyncObjects() { for(auto& fence : _imageAvailableFences) fence.destroy(); }
-void BasicSwapchain::resizeReset() {
+void Swapchain::destroySyncObjects() { for(auto& fence : _imageAvailableFences) fence.destroy(); }
+void Swapchain::resizeReset() {
     _extent = {};
     _windowExtent = {};
     _aspectRatio = 0;
@@ -407,11 +407,11 @@ void BasicSwapchain::resizeReset() {
     _imageIndices.fill(NO_IMAGE_INDEX);
 }
 
-void BasicSwapchain::reset() {
+void Swapchain::reset() {
     _handle = VK_NULL_HANDLE;
     resizeReset();
 }
-ImageConfig BasicSwapchain::imageConfig() const {
+ImageConfig Swapchain::imageConfig() const {
     //TEMP left off here. the swapchain selects the image format which is retarded, it should really be the surface that decides it
     debug_check(*this);
 

@@ -116,14 +116,14 @@ private:
     std::unique_ptr<GraphicsSyncConfig> _syncConfig;
     std::unique_ptr<OSWindow> _osWindow;
     std::unique_ptr<Surface> _surface;
-    std::unique_ptr<BasicSwapchain> _swapchain; //TEMP change to Swapchain ptr once implemented
+    std::unique_ptr<Swapchain> _swapchain; //TEMP change to Swapchain ptr once implemented
 
 public:
     [[nodiscard]] bool created() const { return _osWindow || _surface || _swapchain; }
     [[nodiscard]] OSWindow const* osWindow() const { return _osWindow.get(); }
     [[nodiscard]] Surface const* surface() const { return _surface.get(); }
     [[nodiscard]] GraphicsSyncConfig const* syncConfig() const { return _syncConfig.get(); }
-    [[nodiscard]] BasicSwapchain const* swapchain() const { return _swapchain.get(); }
+    [[nodiscard]] Swapchain const* swapchain() const { return _swapchain.get(); }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const;
 
     [[nodiscard]] AttachmentCollection const* swapchainResolveAttachments() const;
@@ -154,7 +154,7 @@ struct GraphicsCore::State {
     unique_not_null<OSWindow> osWindow;
     unique_not_null<Surface> surface;
     unique_not_null<GraphicsSyncConfig> syncConfig;
-    unique_not_null<BasicSwapchain> swapchain;
+    unique_not_null<Swapchain> swapchain;
 
 private:
     static void debug_check(State const& state);

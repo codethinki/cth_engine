@@ -14,7 +14,7 @@
 
 
 namespace cth::vk {
-PresentInfo::PresentInfo(BasicSwapchain const* swapchain, std::span<Semaphore const*> wait_semaphores) : _swapchain(swapchain->get()) {
+PresentInfo::PresentInfo(Swapchain const* swapchain, std::span<Semaphore const*> wait_semaphores) : _swapchain(swapchain->get()) {
     _waitSemaphores.resize(wait_semaphores.size());
 
     for(auto [dst, src] : std::views::zip(_waitSemaphores, wait_semaphores)) {
