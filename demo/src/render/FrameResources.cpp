@@ -3,11 +3,12 @@
 #include "src/vulkan/base/CthCore.hpp"
 #include "src/vulkan/base/CthPhysicalDevice.hpp"
 #include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "src/vulkan/render/pass/AttachmentCollection.hpp"
+#include "src/vulkan/render/pass/attachment/AttachmentCollection.hpp"
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
 #include "src/vulkan/render/pass/CthSubpass.hpp"
 #include "src/vulkan/render/pass/RenderPassConfig.hpp"
-#include "src/vulkan/resource/framebuffer/ScFramebufferCollection.hpp"
+#include "src/vulkan/render/pass/attachment/AttachmentDescription.hpp"
+#include "src/vulkan/render/pass/framebuffer/ScFramebufferCollection.hpp"
 #include "src/vulkan/surface/graphics_core/CthGraphicsCore.hpp"
 #include "src/vulkan/surface/swapchain/CthBasicSwapchain.hpp"
 #include "src/vulkan/utility/cth_vk_overloads.hpp"
@@ -15,10 +16,12 @@
 namespace cth {
 
 
-FrameResources::FrameResources(vk::Core const& core, vk::GraphicsCore const& graphics_core) : _core{&core}, _graphicsCore{&graphics_core} {}
+FrameResources::FrameResources(vk::Core const& core, vk::GraphicsCore const& graphics_core) : _core{&core}, _graphicsCore{&graphics_core} {
+    create();
+}
 FrameResources::~FrameResources() = default;
 void FrameResources::beginRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const {
-    _renderPass->begin(cmd_buffer, 0, framebuffer());
+    _renderPass->begin(cmd_buffer, framebuffer());
 
     auto const extent = _graphicsCore->swapchainExtent();
 
@@ -47,6 +50,7 @@ VkSampleCountFlagBits FrameResources::evalMsaaSampleCount() const {
 
     return static_cast<VkSampleCountFlagBits>(samples);
 }
+
 VkFormat FrameResources::findDepthFormat() const {
     auto const format = _core->physicalDevice().findSupportedFormat(
         std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
@@ -73,7 +77,7 @@ vk::ImageConfig FrameResources::createDepthImageConfig() const {
 }
 
 void FrameResources::createDepthAttachments() {
-    vk::AttachmentDescription description{
+    vk::AttachmentDescription const description{
         .samples = _msaaSamples,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
@@ -82,12 +86,13 @@ void FrameResources::createDepthAttachments() {
 
     auto const imageConfig = createDepthImageConfig();
 
-    _depthAttachments = std::make_unique<vk::AttachmentCollection>(*_core, vk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description,
+    _depthAttachments = std::make_unique<vk::AttachmentCollection>(*_core,
+        vk::AttachmentCollection::Config{vk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description},
         _graphicsCore->swapchainExtent());
 }
 
 void FrameResources::createMsaaAttachments() {
-    vk::AttachmentDescription description{
+    vk::AttachmentDescription const description{
         .samples = _msaaSamples,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -96,7 +101,7 @@ void FrameResources::createMsaaAttachments() {
     };
 
 
-    vk::ImageConfig imageConfig{
+    vk::ImageConfig const imageConfig{
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .format = _graphicsCore->swapchainImageFormat(),
         .usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -104,8 +109,11 @@ void FrameResources::createMsaaAttachments() {
         .samples = _msaaSamples,
     };
 
-    _msaaAttachments = std::make_unique<vk::AttachmentCollection>(*_core, vk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description,
-        _graphicsCore->swapchainExtent());
+    _msaaAttachments = std::make_unique<vk::AttachmentCollection>(
+        *_core,
+        vk::AttachmentCollection::Config{vk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description},
+        _graphicsCore->swapchainExtent()
+    );
 }
 
 void FrameResources::createAttachments() {
@@ -118,11 +126,9 @@ std::unique_ptr<vk::Subpass> FrameResources::createSubpass() const {
     return std::make_unique<vk::Subpass>(
         0u,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
-        std::vector<vk::AttachmentCollection*>{},
         std::vector{_msaaAttachments.get()},
         std::vector{_graphicsCore->swapchainResolveAttachments()},
-        _depthAttachments.get(),
-        std::vector<vk::AttachmentCollection*>{}
+        _depthAttachments.get()
     );
 }
 
@@ -143,6 +149,7 @@ VkSubpassDependency FrameResources::createSubpassDependency() {
 vk::RenderPassBeginConfig FrameResources::createRenderPassBeginConfig() const {
     return {
         .clearValues = {{
+            {.color = {{0, 0, 0, 1}}}, //TEMP this is the swapchain clear value and should be set by the swapchain not manually
             {.color = {{0, 0, 0, 1}}},
             {.depthStencil = {1.0f, 0}}
         }},
@@ -160,13 +167,16 @@ void FrameResources::createRenderPass() {
         vk::RenderPass::Config{
             .subpasses{_subpass.get()},
             .dependencies{subpassDependency},
-            .beginConfigs{beginConfig}
-        }
+            .beginConfig{beginConfig}
+        },
+        vk::create
     );
 }
 void FrameResources::createFramebufferCollection() {
-    _framebufferCollection = std::make_unique<vk::ScFramebufferCollection>(*_core, *_graphicsCore->swapchain(), *_renderPass,
-        vk::FramebufferCollectionConfig::Attachments(std::vector{_msaaAttachments.get(), _depthAttachments.get()})
+    _framebufferCollection = std::make_unique<vk::ScFramebufferCollection>(
+        *_core, *_graphicsCore->swapchain(), *_renderPass,
+        vk::FramebufferCollectionConfig::Attachments(std::vector{_msaaAttachments.get(), _depthAttachments.get()}), 
+        vk::create
     );
 }
 
@@ -188,6 +198,7 @@ void FrameResources::resize() const {
     _msaaAttachments->create(extent);
 
     _framebufferCollection->create(extent);
+    _renderPass->resize(extent);
 }
 vk::Framebuffer const& FrameResources::framebuffer() const {
     auto const& pulse = _graphicsCore->renderPulse();

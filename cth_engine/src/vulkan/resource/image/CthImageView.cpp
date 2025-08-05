@@ -43,7 +43,7 @@ void ImageView::wrap(State const& state) {
 
 }
 void ImageView::destroy() {
-    ImageView::debug_check(this);
+    ImageView::debug_check(*this);
     auto const lambda = [table = _core->deviceTable(), vk_image_view = _handle.get()] { destroy(table, vk_image_view); };
 
     auto const queue = _core->destructionQueue();

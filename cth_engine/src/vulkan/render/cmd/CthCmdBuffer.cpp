@@ -7,7 +7,7 @@
 
 #include "src/vulkan/base/CthCore.hpp"
 #include "src/vulkan/base/CthDeviceTable.hpp"
-#include "src/vulkan/resource/framebuffer/Framebuffer.hpp"
+#include "src/vulkan/render/pass/framebuffer/Framebuffer.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 

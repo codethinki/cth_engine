@@ -84,7 +84,7 @@ private:
     void createImages();
     void createImageViews();
 
-    [[nodiscard]] size_t index_of(size_t index, size_t attachment_nr) const;
+    [[nodiscard]] size_t index_of(size_t sub_index, size_t index_nr) const;
     [[nodiscard]] size_t total_size() const { return _config.attachmentsPerIndex * attachments(); }
 
     cth::not_null<Core const*> _core;
@@ -106,21 +106,24 @@ public:
 
     /**
      * @brief gets the image view at @ref index for the @ref attachment_nr
-     * @param index per attachment index
-     * @param attachment_nr attachment index number (not render pass index)
+     * @param sub_index of a render pass attachment index in collection
+     * @param att_index render pass attachment index collection index (2 in [0, 2, 3] => 1)
      */
-    [[nodiscard]] ImageView const& view(size_t index, size_t attachment_nr = 0) const;
+    [[nodiscard]] ImageView const& view(size_t sub_index, size_t att_index = 0) const;
     /**
      * @brief gets the image at @ref index for the @ref attachment_nr
-     * @param index per attachment index
-     * @param attachment_nr attachment index number (not render pass index)
+     * @param sub_index of a render pass attachment index in collection
+     * @param att_index render pass attachment index collection index (2 in [0, 2, 3] => 1)
      */
-    [[nodiscard]] Image* image(size_t index, size_t attachment_nr = 0) const;
+    [[nodiscard]] Image* image(size_t sub_index, size_t att_index = 0) const;
 
 
     [[nodiscard]] VkAttachmentDescription description() const {
         return _config.description.create(_config.imageConfig.format, _config.imageConfig.initialLayout);
     }
+    /**
+     * @return attachment reference for every render pass attachment index
+     */
     [[nodiscard]] std::vector<VkAttachmentReference> references() const;
 
     AttachmentCollection(AttachmentCollection const& other) = delete;

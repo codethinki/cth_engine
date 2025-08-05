@@ -76,9 +76,12 @@ public:
      */
     State release();
 
-    static void destroy(DeviceTable table, VkFramebuffer vk_framebuffer);
 
+    [[nodiscard]] bool created() const { return _handle.operator bool(); }
+    [[nodiscard]] VkFramebuffer get() const { return _handle.get(); }
+    [[nodiscard]] VkExtent2D extent() const { return _extent; }
 private:
+    static void destroy(DeviceTable table, VkFramebuffer vk_framebuffer);
     void reset();
 
     cth::not_null<Core const*> _core;
@@ -90,8 +93,7 @@ private:
     VkExtent2D _extent{};
 
 public:
-    [[nodiscard]] VkFramebuffer get() const { return _handle.get(); }
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] std::span<ImageView const* const> attachments() const;
 
     Framebuffer(Framebuffer const& other) = delete;
     Framebuffer(Framebuffer&& other) noexcept = default;

@@ -113,8 +113,8 @@ public:
     ImageView& operator=(ImageView const& other) = delete;
     ImageView& operator=(ImageView&& other) noexcept = default;
 
-    static void debug_check(ImageView const* image_view);
-    static void debug_check_handle(VkImageView vk_image_view);
+    static void debug_check(ImageView const& image_view);
+    static void debug_check_handle(cth::vk::not_null<VkImageView> vk_image_view);
 };
 } // namespace cth
 
@@ -131,15 +131,12 @@ struct ImageView::State {
 
 namespace cth::vk {
 
-inline void ImageView::debug_check(ImageView const* image_view) {
-    CTH_CRITICAL(image_view == nullptr, "image view must not be invalid (nullptr)") {}
-    CTH_CRITICAL(!image_view->created(), "image view must be created") {}
+inline void ImageView::debug_check(ImageView const& image_view) {
+    CTH_CRITICAL(!image_view.created(), "image view must be created") {}
 
-    ImageView::debug_check_handle(image_view->get());
+    ImageView::debug_check_handle(image_view.get());
 }
-inline void ImageView::debug_check_handle(VkImageView vk_image_view) {
-    CTH_CRITICAL(vk_image_view == VK_NULL_HANDLE, "image view vkQueue must not be invalid (VK_NULL_HANDLE)"){}
-}
+inline void ImageView::debug_check_handle(cth::vk::not_null<VkImageView>) {}
 
 
 }

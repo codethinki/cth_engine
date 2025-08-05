@@ -78,15 +78,24 @@ public:
      */
     State release();
 
-    void begin(PrimaryCmdBuffer const& cmd_buffer, uint32_t config_index, Framebuffer const& framebuffer);
+    void resize(VkExtent2D extent, VkOffset2D offset = {});
+    void resize(VkRect2D area);
+    void recolor(std::span<VkClearValue const> clear_values);
+    void relocateSubpassContents(VkSubpassContents contents);
+
+    void begin(PrimaryCmdBuffer const& cmd_buffer, Framebuffer const& framebuffer);
     void end(PrimaryCmdBuffer const& cmd_buffer);
 
     static void destroy(DeviceTable table, VkRenderPass vk_render_pass);
 
 private:
     void reset();
+    void setHandle(VkRenderPass handle);
 
+
+    std::vector<VkAttachmentDescription> attachmentDescriptions() const;
     void initAttachments();
+
 
     cth::not_null<Core const*> _core;
 
@@ -95,9 +104,9 @@ private:
     std::vector<Subpass const*> _subpasses;
     std::vector<AttachmentCollection const*> _attachments;
     std::vector<VkSubpassDependency> _dependencies;
-    std::vector<VkRenderPassBeginInfo> _beginInfos;
-    std::vector<VkSubpassContents> _contents;
-    std::vector<VkClearValue> _clearValues;
+    VkRenderPassBeginInfo _beginInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, nullptr};
+    VkSubpassContents _subpassContents;
+    std::vector<VkClearValue> _clearValue;
 
 public:
     [[nodiscard]] VkRenderPass get() const { return _handle.get(); }
@@ -128,6 +137,8 @@ struct RenderPass::State {
 namespace cth::vk {
 
 inline void RenderPass::debug_check(RenderPass const& render_pass) {
+
+
     debug_check_handle(render_pass.get());
 }
 inline void RenderPass::debug_check_handle(VkRenderPass vk_render_pass) {

@@ -2,7 +2,7 @@
 
 #include "../attachment/AttachmentCollection.hpp"
 
-#include "src/vulkan/render/pass/AttachmentCollection.hpp"
+#include "src/vulkan/render/pass/attachment/AttachmentCollection.hpp"
 
 namespace cth::vk {
 
@@ -22,19 +22,19 @@ size_t FramebufferCollectionConfig::evalFramebufferCount(attachments_span_t coll
     );
 }
 FramebufferCollectionConfig::views_t FramebufferCollectionConfig::readViews(attachments_span_t const& collections, size_t framebuffers) {
-    size_t const attachments = std::ranges::fold_left(collections, 0uz, [](size_t sum, AttachmentCollection const* ptr) {
-        return sum + ptr->indices().size();
-    });
 
+    auto const attachments = 1 + std::ranges::max(
+        collections | std::views::transform([](auto const* collection) { return collection->indices(); }) | std::views::join
+    );
 
     std::vector<ImageView const*> views{framebuffers * attachments};
-    std::mdspan const span{views.data(), framebuffers, attachments};
+    std::mdspan const span(views.data(), framebuffers, attachments);
 
-    for(size_t frameIndex = 0; frameIndex < framebuffers; frameIndex++)
+    for(size_t fbIndex = 0; fbIndex < framebuffers; fbIndex++)
         for(auto const& collection : collections) {
             auto indices = collection->indices();
             for(size_t i = 0; i < indices.size(); i++)
-                span[frameIndex, indices[i]] = &collection->view(frameIndex, i);
+                span[fbIndex, indices[i]] = &collection->view(fbIndex, i);
         }
     return views;
 }

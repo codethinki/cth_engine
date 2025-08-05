@@ -1,15 +1,15 @@
 #include "CthRenderPass.hpp"
 
-#include "AttachmentCollection.hpp"
 #include "CthSubpass.hpp"
 #include "RenderPassConfig.hpp"
-
-#include "../cmd/CthCmdBuffer.hpp"
-
+#include "attachment/AttachmentCollection.hpp"
+#include "framebuffer/Framebuffer.hpp"
 #include "src/vulkan/base/CthCore.hpp"
+#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
 #include "src/vulkan/resource/CthDestructionQueue.hpp"
-#include "src/vulkan/resource/framebuffer/Framebuffer.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
+
+#include <map>
 
 namespace cth::vk {
 
@@ -23,21 +23,10 @@ RenderPass::RenderPass(Core const& core, Config const& config) : _core{&core}, _
 
     initAttachments();
 
-    for(auto [clearValues, extent, subpassContents, offset] : config.beginConfigs) {
-        _clearValues.insert_range(_clearValues.end(), clearValues);
-        _contents.push_back(subpassContents);
-
-        _beginInfos.emplace_back(
-            VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            nullptr,
-            _handle.get(),
-            VK_NULL_HANDLE,
-            VkRect2D{offset, extent},
-            static_cast<uint32_t>(clearValues.size()),
-            &_clearValues[_clearValues.size() - clearValues.size()]
-        );
-    }
-
+    auto const& [contents, clearValues, extent, offset] = config.beginConfig;
+    relocateSubpassContents(contents);
+    recolor(clearValues);
+    resize(extent, offset);
 }
 RenderPass::RenderPass(Core const& core, Config const& config, State const& state) : RenderPass{core, config} { wrap(state); }
 
@@ -57,8 +46,7 @@ void RenderPass::create() {
     std::vector<VkSubpassDescription> subpasses{_subpasses.size()};
     std::ranges::transform(_subpasses, subpasses.begin(), [](Subpass const* subpass) { return subpass->create(); });
 
-    std::vector<VkAttachmentDescription> attachments{_attachments.size()};
-    std::ranges::transform(_attachments, attachments.begin(), [](AttachmentCollection const* attachment) { return attachment->description(); });
+    auto attachments = attachmentDescriptions();
 
 
     VkRenderPassCreateInfo const createInfo{
@@ -79,9 +67,7 @@ void RenderPass::create() {
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create render pass")
         throw cth::vk::result_exception{result, details->exception()};
 
-    _handle = ptr;
-
-    for(auto& beginInfo : _beginInfos) beginInfo.renderPass = _handle.get();
+    setHandle(ptr);
 }
 void RenderPass::destroy() {
     debug_check(*this);
@@ -106,16 +92,40 @@ RenderPass::State RenderPass::release() {
     reset();
     return state;
 }
-void RenderPass::begin(PrimaryCmdBuffer const& cmd_buffer, uint32_t config_index, Framebuffer const& framebuffer) {
+void RenderPass::resize(VkExtent2D extent, VkOffset2D offset) { resize({offset, extent}); }
+void RenderPass::resize(VkRect2D area) {
+    _beginInfo.renderArea = area;
+}
+void RenderPass::recolor(std::span<VkClearValue const> clear_values) {
+    size_t index = 0;
+    for(size_t i = 0; i < _attachments.size(); i++)
+        if(_attachments[i]->description().stencilLoadOp == VK_ATTACHMENT_LOAD_OP_CLEAR)
+            index = i;
+    CTH_CRITICAL(clear_values.size() <= index, "clear values must be >= index of last cleared attachment") {}
+
+    _clearValue.clear();
+    _clearValue.insert_range(_clearValue.end(), clear_values);
+
+    _beginInfo.clearValueCount = static_cast<uint32_t>(_clearValue.size());
+    _beginInfo.pClearValues = _clearValue.data();
+}
+void RenderPass::relocateSubpassContents(VkSubpassContents contents) {
+    _subpassContents = contents;
+}
+
+
+void RenderPass::begin(PrimaryCmdBuffer const& cmd_buffer, Framebuffer const& framebuffer) {
     CmdBuffer::debug_check(cmd_buffer);
     Framebuffer::debug_check(framebuffer);
-    CTH_CRITICAL(config_index >= _beginInfos.size(), "config_index out of range") {}
+    debug_check(*this);
 
-    _beginInfos[config_index].framebuffer = framebuffer.get();
+    _beginInfo.framebuffer = framebuffer.get();
 
-    _core->functions()->vkCmdBeginRenderPass(cmd_buffer.get(), &_beginInfos[config_index], _contents[config_index]);
+    _core->functions()->vkCmdBeginRenderPass(cmd_buffer.get(), &_beginInfo, _subpassContents);
 }
+
 void RenderPass::end(PrimaryCmdBuffer const& cmd_buffer) { _core->functions()->vkCmdEndRenderPass(cmd_buffer.get()); }
+
 
 void RenderPass::destroy(DeviceTable table, VkRenderPass vk_render_pass) {
     CTH_WARN(vk_render_pass == VK_NULL_HANDLE, "vk_render_pass should not be invalid (VK_NULL_HANDLE)") {}
@@ -124,42 +134,59 @@ void RenderPass::destroy(DeviceTable table, VkRenderPass vk_render_pass) {
 }
 
 void RenderPass::reset() {
-    _handle = nullptr;
-    for(auto& beginInfo : _beginInfos) beginInfo.renderPass = VK_NULL_HANDLE;
+    setHandle(nullptr);
+}
+void RenderPass::setHandle(VkRenderPass handle) {
+    _handle = handle;
+    _beginInfo.renderPass = handle;
+}
+std::vector<VkAttachmentDescription> RenderPass::attachmentDescriptions() const {
+    std::map<uint32_t, VkAttachmentDescription> map{};
+
+    for(auto const& collection : _attachments) {
+        auto description = collection->description();
+        for(auto const index : collection->indices())
+            map.emplace(index, description);
+    }
+    return {std::from_range, map | std::views::values};
 }
 
 namespace {
     void debug_check_attachments(std::span<AttachmentCollection const* const> attachments) {
-        CTH_CRITICAL(std::ranges::any_of(attachments | std::views::enumerate, [](std::tuple<ptrdiff_t, AttachmentCollection const*> const& pair){
-                return static_cast<uint32_t>(std::get<0>(pair)) != std:: get<1>(pair)->indices();}),
-            "invalid attachments or indices submitted in subpasses") {
-            uint32_t i = 0;
-            std::vector<uint32_t> missingIndices{};
-            for(auto const* attachment : attachments) {
-                if(attachment->indices() != i) {
-                    missingIndices.push_back(i);
-                    i = attachment->indices();
+
+        std::unordered_map<uint32_t, AttachmentCollection const*> indexMap{};
+        for(auto& collection : attachments)
+            for(auto index : collection->indices()) {
+                auto& parent = indexMap[index];
+                CTH_CRITICAL(parent != nullptr && parent != collection, "index overlap between collections") {
+                    details->add("1. indices: {}", parent->indices());
+                    details->add("2. indices: {}", collection->indices());
                 }
-                ++i;
+                parent = collection;
             }
-            details->add("missing indices: {}", missingIndices);
-            throw details->exception();
-        }
+
+
+        std::vector indices{std::from_range, indexMap | std::views::keys};
+        std::ranges::sort(indices);
+
+        CTH_CRITICAL(
+            std::ranges::any_of(
+                indices | std::views::enumerate,
+                [](std::tuple<ptrdiff_t, uint32_t> const& pair) { return std::cmp_not_equal(std::get<0>(pair), std::get<1>(pair)); }),
+            "invalid indices submitted in subpasses, must fill [0 : n-1]"
+        ) { details->add("indices: {}", indices); }
     }
 
 }
 
 void RenderPass::initAttachments() {
-    _attachments = _subpasses | std::views::transform([](Subpass const* subpass) { return subpass->attachments(); })
-        | std::views::join | std::ranges::to<std::vector<AttachmentCollection const*>>();
+    _attachments = {std::from_range,
+        _subpasses | std::views::transform([](Subpass const* subpass) { return subpass->attachments(); }) | std::views::join
+    };
 
-    std::ranges::sort(_attachments, [](AttachmentCollection const* a, AttachmentCollection const* b) { return a->indices() < b->indices(); });
-    auto const duplicates = std::ranges::unique(_attachments);
-
-
-    _attachments.erase(std::ranges::begin(duplicates), std::ranges::end(duplicates));
 
     debug_check_attachments(_attachments);
+
 }
 
 

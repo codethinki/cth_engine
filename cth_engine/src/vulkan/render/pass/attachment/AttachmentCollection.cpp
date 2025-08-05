@@ -10,6 +10,9 @@
 namespace cth::vk {
 
 AttachmentCollection::AttachmentCollection(Core const& core, Config config) : _core{&core}, _config{std::move(config)}, _images{total_size()} {
+    Config::debug_check(_config);
+    std::ranges::sort(_config.attachmentIndices);
+
     init();
 }
 
@@ -46,7 +49,7 @@ void AttachmentCollection::wrap(State state) {
     for(auto const& image : images) Image::debug_check(*image);
 
     for(auto const [view, image] : std::views::zip(views, images)) {
-        ImageView::debug_check(view.get());
+        ImageView::debug_check(*view);
         CTH_CRITICAL(view->image() != image.get(), "image and view mismatch") {}
     }
 
@@ -98,18 +101,18 @@ void AttachmentCollection::createImageViews() {
         view.create(*image);
     }
 }
-size_t AttachmentCollection::index_of(size_t index, size_t attachment_nr) const {
-    CTH_CRITICAL(!cth::num::in(index, 0, _config.attachmentsPerIndex), "index [{}] out of bounds [0, {})", index, _config.attachmentsPerIndex){}
-    CTH_CRITICAL(!cth::num::in(attachment_nr, 0, attachments()), "attachment_nr [{}] out of bounds [0, {})", attachment_nr, 0, attachments());
+size_t AttachmentCollection::index_of(size_t sub_index, size_t index_nr) const {
+    CTH_CRITICAL(!cth::num::in(sub_index, 0, _config.attachmentsPerIndex), "sub index [{}] out of bounds [0, {})", sub_index, _config.attachmentsPerIndex){}
+    CTH_CRITICAL(!cth::num::in(index_nr, 0, attachments()), "attachment_nr [{}] out of bounds [0, {})", index_nr, 0, attachments());
 
-    return attachment_nr * _config.attachmentsPerIndex + index;
+    return index_nr * _config.attachmentsPerIndex + sub_index;
 }
 
 bool AttachmentCollection::created() const { return _views[0].created(); }
 
-ImageView const& AttachmentCollection::view(size_t index, size_t attachment_nr) const { return _views[index_of(index, attachment_nr)]; }
+ImageView const& AttachmentCollection::view(size_t sub_index, size_t att_index) const { return _views[index_of(sub_index, att_index)]; }
 
-Image* AttachmentCollection::image(size_t index, size_t attachment_nr) const { return _images[index_of(index, attachment_nr)].get(); }
+Image* AttachmentCollection::image(size_t sub_index, size_t att_index) const { return _images[index_of(sub_index, att_index)].get(); }
 
 
 std::vector<VkAttachmentReference> AttachmentCollection::references() const {

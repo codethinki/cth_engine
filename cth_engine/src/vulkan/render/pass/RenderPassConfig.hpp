@@ -9,6 +9,9 @@ struct RenderPassConfig {
 
     std::vector<Subpass const*> subpasses;
     std::vector<VkSubpassDependency> dependencies;
-    std::vector<BeginConfig> beginConfigs;
+    /**
+     * @brief optional, can be specified after create
+     */
+    BeginConfig beginConfig{};
 };
 }

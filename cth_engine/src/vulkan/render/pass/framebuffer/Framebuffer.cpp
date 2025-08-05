@@ -1,9 +1,9 @@
 #include "Framebuffer.hpp"
 
-#include "../CthDestructionQueue.hpp"
-#include "../image/CthImageView.hpp"
 #include "src/vulkan/base/CthCore.hpp"
 #include "src/vulkan/render/pass/CthRenderPass.hpp"
+#include "src/vulkan/resource/CthDestructionQueue.hpp"
+#include "src/vulkan/resource/image/CthImageView.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 
 namespace cth::vk {
@@ -31,7 +31,10 @@ void Framebuffer::create(VkExtent2D extent) {
     _extent = extent;
 
     std::vector<VkImageView> attachments{_attachments.size()};
-    std::ranges::transform(_attachments, attachments.begin(), [](ImageView const* attachment) { return attachment->get(); });
+    std::ranges::transform(_attachments, attachments.begin(), [](ImageView const* attachment) {
+        ImageView::debug_check(*attachment);
+        return attachment->get();
+    });
 
     VkFramebufferCreateInfo const createInfo{
         .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -46,6 +49,8 @@ void Framebuffer::create(VkExtent2D extent) {
     };
 
     VkFramebuffer ptr = VK_NULL_HANDLE;
+
+    //BUG left off here, this crashes on resize bc the image / image view don't get properly recreated on resize
 
     auto const createResult = _core->functions()->vkCreateFramebuffer(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
@@ -87,5 +92,6 @@ void Framebuffer::reset() {
     _handle = VK_NULL_HANDLE;
     _extent = {};
 }
+std::span<ImageView const* const> Framebuffer::attachments() const { return _attachments; }
 
 }

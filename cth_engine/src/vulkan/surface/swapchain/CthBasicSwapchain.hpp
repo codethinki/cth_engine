@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cth/numeric.hpp"
+
 #include "src/interface/render/RenderPulse.hpp"
 #include "src/vulkan/base/queue/CthPresentInfo.hpp"
 #include "src/vulkan/base/queue/CthQueue.hpp"
@@ -33,8 +35,10 @@ class Core;
 
 class BasicSwapchain {
 public:
+    BasicSwapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config, Surface const& surface);
+
     BasicSwapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config,
-        Surface const& surface);
+        Surface const& surface, create_t);
     virtual ~BasicSwapchain();
 
     //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
@@ -42,9 +46,15 @@ public:
 
     /**
      * @brief destroys the swapchain
-     * @note calls destroyResources()
+     * @note requires @ref created()
      */
     virtual void destroy();
+
+
+    /**
+     * @brief if @ref created() -> calls @ref destroy()
+     */
+    void optDestroy() { if(created()) destroy(); }
 
 
     virtual void resize(VkExtent2D window_extent);
@@ -68,9 +78,6 @@ public:
     void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer, uint32_t acquire_queue,
         CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) const;
 
-    [[nodiscard]] ImageView const& imageView(size_t index) const;
-    [[nodiscard]] Image const* image(size_t index) const;
-
     /**
      * @brief adds a minimum of required flags for the resolve subpass
      */
@@ -80,6 +87,10 @@ public:
 
 private:
     static constexpr uint32_t NO_IMAGE_INDEX = (std::numeric_limits<uint32_t>::max());
+
+    void initSyncObjects();
+    void initAttachments();
+    void init();
 
     void setImageFormat(VkFormat format);
 
@@ -152,8 +163,12 @@ private:
 
 public:
     [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] float extentAspectRatio() const { return _aspectRatio; }
-    [[nodiscard]] auto imageIndex(size_t pulse_value) const { return _imageIndices[pulse_value]; }
+    [[nodiscard]] auto imageIndex(size_t pulse_value) const {
+        CTH_CRITICAL(!cth::num::in(pulse_value, 0, _imageIndices.size()), "pulse value out of bounds") {}
+        return _imageIndices[pulse_value];
+    }
     [[nodiscard]] auto imageIndex(RenderPulse const& pulse) const { return imageIndex(pulse.get()); }
 
     [[nodiscard]] size_t size() const { return _imageCount; }
@@ -168,7 +183,7 @@ public:
     BasicSwapchain& operator=(BasicSwapchain const& other) = delete;
     BasicSwapchain& operator=(BasicSwapchain&& other) noexcept = default;
 
-    static void debug_check(BasicSwapchain const* swapchain);
+    static void debug_check(BasicSwapchain const& swapchain);
     static void debug_check_leak(BasicSwapchain const* swapchain);
 
     static void debug_check_window_extent(VkExtent2D window_extent);
@@ -181,16 +196,19 @@ public:
 
 namespace cth::vk {
 
-inline void BasicSwapchain::debug_check(BasicSwapchain const* swapchain) {
-    CTH_CRITICAL(swapchain == nullptr, "swapchain invalid (nullptr)") {}
-    CTH_CRITICAL(swapchain->_handle == VK_NULL_HANDLE, "swapchain handle invalid (VK_NULL_HANDLE)") {}
+inline void BasicSwapchain::debug_check(BasicSwapchain const& swapchain) {
+    CTH_CRITICAL(swapchain._handle == VK_NULL_HANDLE, "swapchain handle invalid (VK_NULL_HANDLE)") {}
+    CTH_CRITICAL(swapchain.size() == 0, "swapchain size must not be 0") {}
 }
 inline void BasicSwapchain::debug_check_leak(BasicSwapchain const* swapchain) {
     CTH_WARN(swapchain->_handle != VK_NULL_HANDLE, "swapchain handle replaced, (potential memory leak)") {}
 }
 inline void BasicSwapchain::debug_check_window_extent(VkExtent2D window_extent) {
-    CTH_CRITICAL(window_extent.width == 0 || window_extent.height == 0, "window_extent width({0}) or height({0}) invalid (> 0 required",
-        window_extent.width, window_extent.height) {}
+    CTH_CRITICAL(
+        window_extent.width == 0 || window_extent.height == 0,
+        "window_extent width({0}) or height({0}) invalid (> 0 required)",
+        window_extent.width, window_extent.height
+    ) {}
 }
 inline void BasicSwapchain::debug_check_compatibility(BasicSwapchain const& a, BasicSwapchain const& b) {
     CTH_CRITICAL(a._core == b._core, "swapchains not compatible (different cores)") {}

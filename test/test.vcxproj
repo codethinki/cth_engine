@@ -21,9 +21,15 @@
   <ItemGroup>
     <ClCompile Include="src\test.cpp" />
     <ClCompile Include="src\test_utils\pch.cpp" />
+    <ClCompile Include="src\vulkan\utility\format\format_string_test.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\test_utils\pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\cth_engine\cth_engine.vcxproj">
+      <Project>{d37c8e34-74ea-444e-a15e-bdc27cdcfe82}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -80,18 +86,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\test\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\test\</IntDir>
+    <IncludePath>$(SolutionDir);$(SolutionDir)../cth/</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\test\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\test\</IntDir>
+    <IncludePath>$(SolutionDir);$(SolutionDir)../cth/</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\test\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\test\</IntDir>
+    <IncludePath>$(SolutionDir);$(SolutionDir)../cth/</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\test\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\test\</IntDir>
+    <IncludePath>$(SolutionDir);$(SolutionDir)../cth/</IncludePath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnableManifest>true</VcpkgEnableManifest>

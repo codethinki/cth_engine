@@ -16,9 +16,9 @@ public:
     using Config = FramebufferCollectionConfig;
 
     /**
-     * 
+     * @brief constructs
      */
-    FramebufferCollection(Core const& core, RenderPass const& render_pass, Config const& config);
+    FramebufferCollection(Core const& core, RenderPass const& render_pass, Config config);
 
     /**
      * @brief constructs and creates
@@ -28,6 +28,7 @@ public:
     FramebufferCollection(Core const& core, RenderPass const& render_pass, Config const& config, VkExtent2D framebuffer_extent);
 
     virtual ~FramebufferCollection();
+
     /**
      * @brief creates the framebuffers
      * @details calls:
@@ -35,7 +36,7 @@ public:
      *  - @ref Framebuffer::create()
      *  @attention requires @ref AttachmentCollection::created()
      */
-    void create(VkExtent2D framebuffer_extent);
+    virtual void create(VkExtent2D framebuffer_extent);
 
     //TODO void wrap();
 
@@ -51,6 +52,9 @@ public:
      */
     void destroy();
 
+protected:
+    void reconfigure(Config config);
+
 private:
     using views_t = Config::views_t;
     void init();
@@ -59,14 +63,13 @@ private:
     cth::not_null<Core const*> _core;
     cth::not_null<RenderPass const*> _renderPass;
 
-    views_t _views;
-    size_t _size;
+    Config _config;
 
     std::vector<Framebuffer> _framebuffers;
 
 public:
     [[nodiscard]] bool created() const;
-    [[nodiscard]] virtual size_t size() const { return _size; }
+    [[nodiscard]] virtual size_t size() const { return _config.framebuffers; }
 
 
     [[nodiscard]] virtual Framebuffer const& get(size_t pulse_index) const;

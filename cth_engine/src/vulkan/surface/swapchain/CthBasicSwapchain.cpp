@@ -8,9 +8,9 @@
 #include "src/vulkan/render/control/CthFence.hpp"
 #include "src/vulkan/render/control/CthPipelineBarrier.hpp"
 #include "src/vulkan/render/control/CthSemaphore.hpp"
-#include "src/vulkan/render/pass/AttachmentCollection.hpp"
+#include "src/vulkan/render/pass/attachment/AttachmentCollection.hpp"
+#include "src/vulkan/render/pass/framebuffer/Framebuffer.hpp"
 #include "src/vulkan/resource/CthDestructionQueue.hpp"
-#include "src/vulkan/resource/framebuffer/Framebuffer.hpp"
 #include "src/vulkan/surface/CthSurface.hpp"
 #include "src/vulkan/utility/cth_vk_exceptions.hpp"
 #include "src/vulkan/utility/cth_vk_overloads.hpp"
@@ -18,24 +18,36 @@
 
 namespace cth::vk {
 
+BasicSwapchain::BasicSwapchain(Core const& core, Queue const& present_queue, GraphicsSyncConfig const& sync_config, Surface const& surface) :
+    _core(&core), _presentQueue(&present_queue), _surface{&surface}, _syncConfig(&sync_config) {
+    init();
+}
 BasicSwapchain::BasicSwapchain(Core const& core, Queue const& present_queue,
-    GraphicsSyncConfig const& sync_config, Surface const& surface) : _core(&core), _presentQueue(&present_queue),
-    _surface{&surface}, _syncConfig(&sync_config) {
-    Core::debug_check(core);
-    Surface::debug_check(surface);
-    Queue::debug_check_present(present_queue);
-    GraphicsSyncConfig::debug_check(sync_config);
+    GraphicsSyncConfig const& sync_config, Surface const& surface, create_t) : BasicSwapchain{core, present_queue, sync_config, surface} {
+
+
     createSyncObjects();
+    createResolveAttachments();
     _imageIndices.fill(NO_IMAGE_INDEX);
 }
 BasicSwapchain::~BasicSwapchain() {
+    optDestroy();
     BasicSwapchain::debug_check_leak(this);
-    destroySyncObjects();
 }
 
 void BasicSwapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
+    Core::debug_check(*_core);
+    Surface::debug_check(*_surface);
+    Queue::debug_check_present(*_presentQueue);
+    GraphicsSyncConfig::debug_check(*_syncConfig);
+
+    optDestroy();
+
+
     //create the reset function
     _msaaSamples = evalMsaaSampleCount();
+
+    createSyncObjects();
 
     createSwapchain(window_extent, old_swapchain);
 
@@ -45,10 +57,13 @@ void BasicSwapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapcha
 }
 
 void BasicSwapchain::destroy() {
+    CTH_CRITICAL(!created(), "swapchain must be created") {}
 
     destroyResources();
 
     destroySwapchain(_handle.get());
+
+    destroySyncObjects();
 
     reset();
 }
@@ -157,9 +172,6 @@ void BasicSwapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer
     barrier.execute(acquire_cmd_buffer);
 }
 
-ImageView const& BasicSwapchain::imageView(size_t index) const { return _resolveAttachments->view(index); }
-Image const* BasicSwapchain::image(size_t index) const { return _resolveAttachments->image(index); }
-
 void BasicSwapchain::addResolveSubpassDependencyFlags(VkSubpassDependency& swap_subpass_dependency) {
     swap_subpass_dependency.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     swap_subpass_dependency.dstStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -172,6 +184,17 @@ void BasicSwapchain::destroy(DeviceTable table, VkSwapchainKHR swapchain) {
 }
 
 
+
+void BasicSwapchain::initSyncObjects() {
+    _imageAvailableFences.reserve(constants::FRAMES_IN_FLIGHT);
+    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
+        _imageAvailableFences.emplace_back(*_core);
+}
+void BasicSwapchain::initAttachments() {
+    
+}
+
+void BasicSwapchain::init() { initSyncObjects(); }
 
 void BasicSwapchain::setImageFormat(VkFormat format) {
     _imageFormat = format;
@@ -187,9 +210,8 @@ VkSampleCountFlagBits BasicSwapchain::evalMsaaSampleCount() const {
 }
 
 void BasicSwapchain::createSyncObjects() {
-    _imageAvailableFences.reserve(constants::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
-        _imageAvailableFences.emplace_back(*_core, VK_FENCE_CREATE_SIGNALED_BIT);
+    for(auto& fence : _imageAvailableFences)
+        fence.create(VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
 VkExtent2D BasicSwapchain::chooseSwapExtent(VkExtent2D window_extent, VkSurfaceCapabilitiesKHR const& capabilities) {
@@ -326,7 +348,7 @@ auto BasicSwapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>>
 void BasicSwapchain::createResolveAttachments() {
     auto swapchainImages = getSwapchainImages();
 
-    AttachmentDescription description{
+    AttachmentDescription const description{
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         .referenceLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -337,7 +359,11 @@ void BasicSwapchain::createResolveAttachments() {
     for(auto& image : swapchainImages) state.images.emplace_back(std::move(image));
 
 
-    _resolveAttachments = std::make_unique<AttachmentCollection>(*_core, size(), constants::SWAPCHAIN_ATTACHMENT_INDEX, state.images[0]->config(), description, std::move(state));
+    _resolveAttachments = std::make_unique<AttachmentCollection>(
+        *_core,
+        AttachmentCollection::Config{size(), constants::SWAPCHAIN_ATTACHMENT_INDEX, state.images[0]->config(), description}, 
+        std::move(state)
+    );
 }
 
 
@@ -360,9 +386,6 @@ void BasicSwapchain::destroyResources() {
     for(auto const& image : resolveAttachmentState.images)
         [[maybe_unused]] auto const result = image->release();
     resolveAttachmentState.views.clear();
-
-
-    _resolveAttachments->destroy();
 }
 
 void BasicSwapchain::destroySwapchain(VkSwapchainKHR swapchain) const {
@@ -374,10 +397,7 @@ void BasicSwapchain::destroySwapchain(VkSwapchainKHR swapchain) const {
     else lambda();
 }
 
-void BasicSwapchain::destroySyncObjects() {
-    for(auto& fence : _imageAvailableFences) fence.destroy();
-    _imageAvailableFences.clear();
-}
+void BasicSwapchain::destroySyncObjects() { for(auto& fence : _imageAvailableFences) fence.destroy(); }
 void BasicSwapchain::resizeReset() {
     _extent = {};
     _windowExtent = {};
@@ -393,7 +413,7 @@ void BasicSwapchain::reset() {
 }
 ImageConfig BasicSwapchain::imageConfig() const {
     //TEMP left off here. the swapchain selects the image format which is retarded, it should really be the surface that decides it
-    debug_check(this);
+    debug_check(*this);
 
     return {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,

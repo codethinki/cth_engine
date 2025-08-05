@@ -1,4 +1,5 @@
 #pragma once
+#include "src/vulkan/resource/image/CthImageView.hpp"
 #include "src/vulkan/utility/cth_constants.hpp"
 
 namespace cth::vk {
@@ -28,10 +29,10 @@ public:
      * @brief collection framebuffers
      * @attention must be > 0
      */
-    size_t framebuffers = constants::FRAMES_IN_FLIGHT;
+    size_t framebuffers;
 
     /**
-     * @brief creates with attachments at in collection specified 
+     * @brief creates with attachments specified in collection  
      */
     static FramebufferCollectionConfig Attachments(attachments_span_t collections, size_t max_framebuffers = constants::ALL);
 
@@ -45,10 +46,21 @@ private:
     static [[nodiscard]] views_t readViews(attachments_span_t const& collections, size_t framebuffers);
 
 public:
+    [[nodiscard]] size_t framebufferSize() const { return imageViews.size() / framebuffers; }
+
+
     static void debug_check(FramebufferCollectionConfig const& config) {
+        debug_check_size(config);
+
+        CTH_CRITICAL(std::ranges::any_of(config.imageViews, [](auto const* view){ return view == nullptr; }), "view must not be invalid") {}
+    }
+
+    static void debug_check_size(FramebufferCollectionConfig const& config) {
         CTH_CRITICAL(config.framebuffers == 0, "config framebuffers must be > 0") {}
-        CTH_CRITICAL(config.imageViews.size() % config.framebuffers != 0,
-            "imageViews [{}] % framebuffers [{}] == 0 required", config.imageViews.size(), config.framebuffers) {}
+        CTH_CRITICAL(
+            config.imageViews.size() % config.framebuffers != 0,
+            "imageViews [{}] % framebuffers [{}] == 0 required", config.imageViews.size(), config.framebuffers
+        ) {}
     }
 };
 }

@@ -118,7 +118,7 @@ void GraphicsCore::reset() {
 void GraphicsCore::State::debug_check(State const& state) {
     OSWindow::debug_check(state.osWindow.get());
     Surface::debug_check(*state.surface);
-    BasicSwapchain::debug_check(state.swapchain.get());
+    BasicSwapchain::debug_check(*state.swapchain.get());
 }
 
 
