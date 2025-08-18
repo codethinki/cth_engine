@@ -1,4 +1,4 @@
-#include "cth_engine/src/vulkan/utility/format/cth_vk_format_string.hpp"
+#include "vk/utility/format/cth_vk_format_string.hpp"
 
 #include <gtest/gtest.h>
 

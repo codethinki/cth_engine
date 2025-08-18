@@ -1,16 +1,17 @@
 #include "HlcRenderSystem.hpp"
 
-#include "src/interface/render/Renderer3.hpp"
-#include "src/vulkan/render/cmd/CthCmdBuffer.hpp"
-#include "src/vulkan/render/pass/CthRenderPass.hpp"
-#include "src/vulkan/render/pipeline/CthPipeline.hpp"
-#include "src/vulkan/render/pipeline/layout/CthDescriptorSetLayout.hpp"
-#include "src/vulkan/render/pipeline/layout/CthPipelineLayout.hpp"
-#include "src/vulkan/render/pipeline/shader/CthShader.hpp"
-#include "src/vulkan/resource/descriptor/CthDescriptorPool.hpp"
-#include "src/vulkan/resource/descriptor/CthDescriptorSet.hpp"
-#include "src/vulkan/resource/descriptor/descriptors/CthImageDescriptors.hpp"
-#include "src/vulkan/resource/image/texture/CthTexture.hpp"
+#include "jolly/render/Renderer3.hpp"
+#include "vk/render/cmd/CthCmdBuffer.hpp"
+#include "vk/render/pass/CthRenderPass.hpp"
+#include "vk/render/pipeline/CthPipeline.hpp"
+#include "vk/render/pipeline/PipelineVertexDescription.hpp"
+#include "vk/render/pipeline/layout/CthDescriptorSetLayout.hpp"
+#include "vk/render/pipeline/layout/CthPipelineLayout.hpp"
+#include "vk/render/pipeline/shader/CthShader.hpp"
+#include "vk/resource/descriptor/CthDescriptorPool.hpp"
+#include "vk/resource/descriptor/CthDescriptorSet.hpp"
+#include "vk/resource/descriptor/descriptors/CthImageDescriptors.hpp"
+#include "vk/resource/image/texture/CthTexture.hpp"
 
 #include <cth/utility/image.hpp>
 
@@ -39,6 +40,7 @@ RenderSystem::RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& ini
     createDefaultTriangle(init_cmd_buffer);
 
 }
+RenderSystem::~RenderSystem() = default;
 
 void RenderSystem::createShaders() {
 
@@ -71,7 +73,10 @@ void RenderSystem::createPipelineLayout() {
     _pipelineLayout = std::make_unique<vk::PipelineLayout>(*_core, builder);
 }
 void RenderSystem::createPipeline(VkRenderPass render_pass, VkSampleCountFlagBits const msaa_samples) {
-    vk::Pipeline::GraphicsConfig config = vk::Pipeline::GraphicsConfig::createDefault();
+    vk::Pipeline::GraphicsConfig config = vk::Pipeline::GraphicsConfig::Default(vk::PipelineVertexDescription{
+        .bindings{std::from_range, vk::VERTEX_BINDING_DESCRIPTIONS},
+        .attributes{std::from_range, vk::VERTEX_ATTRIBUTE_DESCRIPTIONS}
+    });
 
     config.renderPass = render_pass;
     config.multisampleInfo->rasterizationSamples = msaa_samples;

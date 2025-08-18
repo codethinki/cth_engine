@@ -1,7 +1,7 @@
 #pragma once
-#include "vk/src/utility/cth_constants.hpp"
+#include "vk/utility/cth_constants.hpp"
 
-#include "vk/src/utility/cth_vk_types.hpp"
+#include "vk/utility/cth_vk_types.hpp"
 
 #include <cth/pointers.hpp>
 

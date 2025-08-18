@@ -1,11 +1,13 @@
 #include "HlcApp.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
+#include "jolly/utility/CthOSWindow.hpp"
+
 #include <stb_image.h>
 
-#include "cth_engine/src/vulkan/utility/cth_vk_format.hpp"
-#include <cth_engine/cth_engine.hpp>
+#include "vk/utility/cth_vk_format.hpp"
 
+#include "vk/base/jvk.hpp"
 
 
 using namespace std;
@@ -14,7 +16,8 @@ using namespace cth;
 int main() {
     cth::log::msg<except::INFO>("exec dir: {}", std::filesystem::current_path().string());
 
-    vk::Engine::init();
+    vk::Jvk::init();
+    vk::OSWindow::init();
 
 
     unique_ptr<App> app = make_unique<App>();
@@ -40,6 +43,6 @@ int main() {
          std::terminate();
      }*/
 
-    vk::Engine::terminate();
+    vk::Jvk::terminate();
     return EXIT_SUCCESS;
 }

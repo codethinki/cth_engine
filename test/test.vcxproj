@@ -27,8 +27,17 @@
     <ClInclude Include="src\test_utils\pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\cth\cth\cth.vcxproj">
+      <Project>{7dda21b4-4072-4f64-8b76-247008cde359}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\cth_engine\cth_engine.vcxproj">
       <Project>{d37c8e34-74ea-444e-a15e-bdc27cdcfe82}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\engine\engine.vcxproj">
+      <Project>{eae03cc1-0dd8-41e5-a031-640b1813fa1c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\vk\vk.vcxproj">
+      <Project>{05ff75aa-574a-4701-9d6a-d79af7eeafed}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">

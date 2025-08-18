@@ -1,6 +1,6 @@
 #pragma once
-#include "src/vulkan/render/pass/RenderPassBeginConfig.hpp"
-#include "src/vulkan/resource/image/ImageConfig.hpp"
+#include "vk/render/pass/RenderPassBeginConfig.hpp"
+#include "vk/resource/image/ImageConfig.hpp"
 
 
 namespace cth::vk {

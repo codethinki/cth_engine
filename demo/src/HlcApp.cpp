@@ -1,9 +1,11 @@
 #include "HlcApp.hpp"
 
+#include "jolly/render/RenderStage.hpp"
+#include "jolly/utility/CthOSWindow.hpp"
+
 #include "render/HlcFrameInfo.hpp"
 
-#include <cth_engine/vulkan/cth_base.hpp>
-#include <cth_engine/vulkan/cth_surface.hpp>
+#include "vk/base/CthDevice.hpp"
 
 
 

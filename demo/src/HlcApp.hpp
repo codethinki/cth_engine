@@ -4,16 +4,15 @@
 //TEMP remove this once the camera and input controller are refactored
 #include "render/FrameResources.hpp"
 
-#include "src/interface/render/Renderer3.hpp"
-#include "src/interface/user/HlcCamera.hpp"
-#include "src/interface/user/HlcInputController.hpp"
+#include "jolly/render/Renderer3.hpp"
+#include "jolly/user/HlcCamera.hpp"
+#include "jolly/user/HlcInputController.hpp"
+#include "jolly/utility/GraphicsCore.hpp"
 
-#include <cth_engine/interface/render.hpp>
 
 
 #include <vector>
 
-#include "src/vulkan/surface/graphics_core/CthGraphicsCore.hpp"
 
 
 namespace cth {
@@ -36,7 +35,6 @@ public:
 
 private:
     void createRenderer3();
-    void createRenderPass();
 
     void initFrame();
     void renderFrame() const;

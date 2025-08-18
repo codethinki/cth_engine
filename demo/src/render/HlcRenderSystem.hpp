@@ -3,16 +3,19 @@
 
 //TEMP for compile time speedup only include necessary headers
 //TEMP replace this with #include <cth_engine/cth_engine.hpp>
-#include <cth_engine/interface/cth_model.hpp>
-#include <cth_engine/vulkan/cth_render.hpp>
-#include <cth_engine/vulkan/cth_resource.hpp>
 
+
+#include "jolly/render/model/CthVertex.hpp"
+
+#include "vk/resource/buffer/CthBuffer.hpp"
 
 #include <memory>
 
 
 namespace cth {
 namespace vk {
+    class CmdBuffer;
+    class Core;
     class RenderPass;
     class Texture;
     class Shader;
@@ -38,7 +41,7 @@ class RenderSystem {
 public:
     RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer, vk::RenderPass const& render_pass,
         VkSampleCountFlagBits msaa_samples);
-    ~RenderSystem() = default;
+    ~RenderSystem();
 
     void render(FrameInfo const& frame_info) const;
 

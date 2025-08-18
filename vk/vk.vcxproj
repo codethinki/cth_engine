@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{05ff75aa-574a-4701-9d6a-d79af7eeafed}</ProjectGuid>
+    <RootNamespace>vk</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <PublicIncludeDirectories>$(ProjectDir)incl\</PublicIncludeDirectories>
+    <IncludePath>$(ProjectDir)incl\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+    <PublicIncludeDirectories>$(ProjectDir)incl\</PublicIncludeDirectories>
+    <IncludePath>$(ProjectDir)incl\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PublicIncludeDirectories>$(ProjectDir)incl\</PublicIncludeDirectories>
+    <IncludePath>$(ProjectDir)incl\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PublicIncludeDirectories>$(ProjectDir)incl\</PublicIncludeDirectories>
+    <IncludePath>$(ProjectDir)incl\;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>$(ProjectDir)src\pch\pch.hpp</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>$(ProjectDir)src\pch\pch.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\base\CthCore.cpp" />
+    <ClCompile Include="src\base\CthDevice.cpp" />
+    <ClCompile Include="src\base\CthInstance.cpp" />
+    <ClCompile Include="src\base\CthPhysicalDevice.cpp" />
+    <ClCompile Include="src\base\jvk.cpp" />
+    <ClCompile Include="src\base\queue\CthPresentInfo.cpp" />
+    <ClCompile Include="src\base\queue\CthQueue.cpp" />
+    <ClCompile Include="src\base\queue\CthSubmitInfo.cpp" />
+    <ClCompile Include="src\debug\CthDebugMessenger.cpp" />
+    <ClCompile Include="src\pch\lib\volk\volk.cpp" />
+    <ClCompile Include="src\pch\pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\render\cmd\CthCmdBuffer.cpp" />
+    <ClCompile Include="src\render\cmd\CthCmdPool.cpp" />
+    <ClCompile Include="src\render\ctrl\CthFence.cpp" />
+    <ClCompile Include="src\render\ctrl\CthPipelineBarrier.cpp" />
+    <ClCompile Include="src\render\ctrl\CthSemaphore.cpp" />
+    <ClCompile Include="src\render\ctrl\CthTimelineSemaphore.cpp" />
+    <ClCompile Include="src\render\pass\attachment\AttachmentCollection.cpp" />
+    <ClCompile Include="src\render\pass\attachment\AttachmentDescription.cpp" />
+    <ClCompile Include="src\render\pass\CthRenderPass.cpp" />
+    <ClCompile Include="src\render\pass\CthSubpass.cpp" />
+    <ClCompile Include="src\render\pass\framebuffer\Framebuffer.cpp" />
+    <ClCompile Include="src\render\pass\framebuffer\FramebufferCollection.cpp" />
+    <ClCompile Include="src\render\pass\framebuffer\FramebufferCollectionConfig.cpp" />
+    <ClCompile Include="src\render\pass\framebuffer\ScFramebufferCollection.cpp" />
+    <ClCompile Include="src\render\pipeline\CthPipeline.cpp" />
+    <ClCompile Include="src\render\pipeline\layout\CthDescriptorSetLayout.cpp" />
+    <ClCompile Include="src\render\pipeline\layout\CthPipelineLayout.cpp" />
+    <ClCompile Include="src\render\pipeline\shader\CthShader.cpp" />
+    <ClCompile Include="src\resource\buffer\CthBaseBuffer.cpp" />
+    <ClCompile Include="src\resource\CthDestructionQueue.cpp" />
+    <ClCompile Include="src\resource\descriptor\CthDescriptorPool.cpp" />
+    <ClCompile Include="src\resource\descriptor\CthDescriptorSet.cpp" />
+    <ClCompile Include="src\resource\image\CthImage.cpp" />
+    <ClCompile Include="src\resource\image\CthImageView.cpp" />
+    <ClCompile Include="src\resource\image\texture\CthSampler.cpp" />
+    <ClCompile Include="src\resource\image\texture\CthTexture.cpp" />
+    <ClCompile Include="src\resource\memory\CthMemory.cpp" />
+    <ClCompile Include="src\surface\CthSurface.cpp" />
+    <ClCompile Include="src\surface\swapchain\Swapchain.cpp" />
+    <ClCompile Include="src\utility\device\PhysicalDeviceFeatures.cpp" />
+    <ClCompile Include="src\utility\os.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="incl\vk\base\CthCore.hpp" />
+    <ClInclude Include="incl\vk\base\CthDevice.hpp" />
+    <ClInclude Include="incl\vk\base\CthDeviceTable.hpp" />
+    <ClInclude Include="incl\vk\base\CthInstance.hpp" />
+    <ClInclude Include="incl\vk\base\CthPhysicalDevice.hpp" />
+    <ClInclude Include="incl\vk\base\jvk.hpp" />
+    <ClInclude Include="incl\vk\base\queue\CthPresentInfo.hpp" />
+    <ClInclude Include="incl\vk\base\queue\CthQueue.hpp" />
+    <ClInclude Include="incl\vk\base\queue\CthQueueFamily.hpp" />
+    <ClInclude Include="incl\vk\base\queue\CthSubmitInfo.hpp" />
+    <ClInclude Include="incl\vk\debug\CthDebugMessenger.hpp" />
+    <ClInclude Include="incl\vk\render\cmd\CthCmdBuffer.hpp" />
+    <ClInclude Include="incl\vk\render\cmd\CthCmdPool.hpp" />
+    <ClInclude Include="incl\vk\render\ctrl\CthFence.hpp" />
+    <ClInclude Include="incl\vk\render\ctrl\CthPipelineBarrier.hpp" />
+    <ClInclude Include="incl\vk\render\ctrl\CthPipelineWaitStage.hpp" />
+    <ClInclude Include="incl\vk\render\ctrl\CthSemaphore.hpp" />
+    <ClInclude Include="incl\vk\render\ctrl\CthTimelineSemaphore.hpp" />
+    <ClInclude Include="incl\vk\render\pass\attachment\AttachmentCollection.hpp" />
+    <ClInclude Include="incl\vk\render\pass\attachment\AttachmentCollectionConfig.hpp" />
+    <ClInclude Include="incl\vk\render\pass\attachment\AttachmentDescription.hpp" />
+    <ClInclude Include="incl\vk\render\pass\CthRenderPass.hpp" />
+    <ClInclude Include="incl\vk\render\pass\CthSubpass.hpp" />
+    <ClInclude Include="incl\vk\render\pass\framebuffer\Framebuffer.hpp" />
+    <ClInclude Include="incl\vk\render\pass\framebuffer\FramebufferCollection.hpp" />
+    <ClInclude Include="incl\vk\render\pass\framebuffer\FramebufferCollectionConfig.hpp" />
+    <ClInclude Include="incl\vk\render\pass\framebuffer\ScFramebufferCollection.hpp" />
+    <ClInclude Include="incl\vk\render\pass\RenderPassBeginConfig.hpp" />
+    <ClInclude Include="incl\vk\render\pass\RenderPassConfig.hpp" />
+    <ClInclude Include="incl\vk\render\pipeline\CthPipeline.hpp" />
+    <ClInclude Include="incl\vk\render\pipeline\layout\CthDescriptorSetLayout.hpp" />
+    <ClInclude Include="incl\vk\render\pipeline\layout\CthPipelineLayout.hpp" />
+    <ClInclude Include="incl\vk\render\pipeline\PipelineVertexDescription.hpp" />
+    <ClInclude Include="incl\vk\render\pipeline\shader\CthShader.hpp" />
+    <ClInclude Include="incl\vk\render\pipeline\shader\HlcPushConstant.hpp" />
+    <ClInclude Include="incl\vk\resource\buffer\CthBaseBuffer.hpp" />
+    <ClInclude Include="incl\vk\resource\buffer\CthBuffer.hpp" />
+    <ClInclude Include="incl\vk\resource\CthDestructionQueue.hpp" />
+    <ClInclude Include="incl\vk\resource\descriptor\CthDescriptor.hpp" />
+    <ClInclude Include="incl\vk\resource\descriptor\CthDescriptorPool.hpp" />
+    <ClInclude Include="incl\vk\resource\descriptor\CthDescriptorSet.hpp" />
+    <ClInclude Include="incl\vk\resource\descriptor\descriptors\CthBufferDescriptors.hpp" />
+    <ClInclude Include="incl\vk\resource\descriptor\descriptors\CthImageDescriptors.hpp" />
+    <ClInclude Include="incl\vk\resource\image\CthImage.hpp" />
+    <ClInclude Include="incl\vk\resource\image\CthImageView.hpp" />
+    <ClInclude Include="incl\vk\resource\image\ImageConfig.hpp" />
+    <ClInclude Include="incl\vk\resource\image\texture\CthSampler.hpp" />
+    <ClInclude Include="incl\vk\resource\image\texture\CthTexture.hpp" />
+    <ClInclude Include="incl\vk\resource\memory\CthMemory.hpp" />
+    <ClInclude Include="incl\vk\surface\CthSurface.hpp" />
+    <ClInclude Include="incl\vk\surface\SurfaceConfig.hpp" />
+    <ClInclude Include="incl\vk\surface\swapchain\Swapchain.hpp" />
+    <ClInclude Include="incl\vk\surface\swapchain\SwapchainConfig.hpp" />
+    <ClInclude Include="incl\vk\utility\constant\cth_debug_constants.hpp" />
+    <ClInclude Include="incl\vk\utility\constant\cth_device_constants.hpp" />
+    <ClInclude Include="incl\vk\utility\cth_constants.hpp" />
+    <ClInclude Include="incl\vk\utility\cth_debug_macros.hpp" />
+    <ClInclude Include="incl\vk\utility\cth_vk_exceptions.hpp" />
+    <ClInclude Include="incl\vk\utility\cth_vk_format.hpp" />
+    <ClInclude Include="incl\vk\utility\cth_vk_overloads.hpp" />
+    <ClInclude Include="incl\vk\utility\cth_vk_types.hpp" />
+    <ClInclude Include="incl\vk\utility\device\PhysicalDeviceFeatures.hpp" />
+    <ClInclude Include="incl\vk\utility\format\cth_vk_format_string.hpp" />
+    <ClInclude Include="incl\vk\utility\format\cth_vk_to_string.hpp" />
+    <ClInclude Include="incl\vk\utility\os.hpp" />
+    <ClInclude Include="src\utility\os\incl_windows.hpp" />
+    <ClInclude Include="incl\vk\utility\os\windows.hpp" />
+    <ClInclude Include="src\pch\glob\cth.hpp" />
+    <ClInclude Include="src\pch\glob\glm.hpp" />
+    <ClInclude Include="src\pch\glob\std.hpp" />
+    <ClInclude Include="src\pch\glob\volk.hpp" />
+    <ClInclude Include="src\pch\pch.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\cth\cth\cth.vcxproj">
+      <Project>{7dda21b4-4072-4f64-8b76-247008cde359}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="incl\vk\resource\buffer\CthBuffer.inl" />
+    <None Include="incl\vk\utility\format\cth_vk_to_string.inl" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

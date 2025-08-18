@@ -1,7 +1,6 @@
-#include "CthDebugMessenger.hpp"
-
-#include "vk/src/base/CthInstance.hpp"
-#include "vk/src/utility/cth_vk_exceptions.hpp"
+#include "vk/debug/CthDebugMessenger.hpp"
+#include "vk/base/CthInstance.hpp"
+#include "vk/utility/cth_vk_exceptions.hpp"
 
 
 
