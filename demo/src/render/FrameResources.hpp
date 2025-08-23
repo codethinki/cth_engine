@@ -1,9 +1,15 @@
 #pragma once
-#include "vk/render/pass/RenderPassBeginConfig.hpp"
-#include "vk/resource/image/ImageConfig.hpp"
+#include "frame_resources_config.hpp"
+
+#include "jvk/render/pass/render_pass_begin_config.hpp"
 
 
-namespace cth::vk {
+namespace jvk {
+class GraphicsSyncConfig;
+}
+
+namespace jvk {
+class Renderer3;
 class ScFramebufferCollection;
 class Subpass;
 class Core;
@@ -15,17 +21,30 @@ class RenderPulse;
 class PrimaryCmdBuffer;
 }
 
-//TEMP this is a temp fix this class is ugly af and should not be like that. create some proper system 
+//TEMP this is a temp fix this class is ugly af and should not be like that. create some proper system
 namespace cth {
 class FrameResources {
+    static cxpr uint32_t RENDER_SUBPASS_INDEX = 0;
+
 public:
-    FrameResources(vk::Core const& core, vk::GraphicsCore const& graphics_core);
+    using Config = FrameResourcesConfig;
+
+    FrameResources(jvk::Core const& core, Config config
+    );
+
     ~FrameResources();
 
-    void beginRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const;
-    void endRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const;
+    void beginRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) const;
+
+    void endRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) const;
 
     void resize() const;
+
+    void acquireFrame() const;
+    void skipAcquire() const;
+
+    [[nodiscard]] bool presentFrame() const;
+    void skipPresent() const;
 
 private:
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
@@ -33,36 +52,50 @@ private:
     [[nodiscard]] VkFormat findDepthFormat() const;
 
     void createDepthAttachments();
+
     void createMsaaAttachments();
+
     void createAttachments();
 
-    [[nodiscard]] std::unique_ptr<vk::Subpass> createSubpass() const;
+    [[nodiscard]] std::unique_ptr<jvk::Subpass> createSubpass() const;
+
     [[nodiscard]] static VkSubpassDependency createSubpassDependency();
-    [[nodiscard]] vk::RenderPassBeginConfig createRenderPassBeginConfig() const;
+
+    [[nodiscard]] jvk::RenderPassBeginConfig createRenderPassBeginConfig() const;
 
     void createRenderPass();
 
     void createFramebufferCollection();
 
+    void createGraphicsCore();
+
     void create();
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    cth::not_null<vk::Core const*> _core;
-    cth::not_null<vk::GraphicsCore const*> _graphicsCore;
+    not_null<jvk::Core const*>
+    _core;
+    Config _config;
+
+    std::unique_ptr<jvk::GraphicsCore> _graphicsCore;
+    std::unique_ptr<jvk::RenderPass> _renderPass;
+    std::unique_ptr<jvk::Subpass> _subpass;
+
+    std::unique_ptr<jvk::AttachmentCollection> _msaaAttachments;
+    std::unique_ptr<jvk::AttachmentCollection> _depthAttachments;
+
+    std::unique_ptr<jvk::ScFramebufferCollection> _framebufferCollection;
 
 
-    std::unique_ptr<vk::RenderPass> _renderPass;
-    std::unique_ptr<vk::Subpass> _subpass;
-
-    std::unique_ptr<vk::AttachmentCollection> _msaaAttachments;
-    std::unique_ptr<vk::AttachmentCollection> _depthAttachments;
-
-    std::unique_ptr<vk::ScFramebufferCollection> _framebufferCollection;
-
-    [[nodiscard]] vk::Framebuffer const& framebuffer() const;
+    [[nodiscard]] jvk::Framebuffer const& framebuffer() const;
 
 public:
-    [[nodiscard]] vk::RenderPass const& renderPass() const;
+    [[nodiscard]] jvk::RenderPass const& renderPass() const;
+    [[nodiscard]] jvk::GraphicsCore const& graphicsCore() const { return *_graphicsCore; }
+    [[nodiscard]] bool shouldClose() const;
+    [[nodiscard]] jvk::RenderPulse const& renderPulse() const;
+    [[nodiscard]] jvk::GraphicsSyncConfig const& syncConfig() const;
+    [[nodiscard]] jvk::GraphicsCore const& core() const { return *_graphicsCore; }
+    [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return _msaaSamples; }
 };
 }

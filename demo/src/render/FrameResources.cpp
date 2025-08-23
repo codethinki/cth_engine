@@ -1,26 +1,33 @@
 #include "FrameResources.hpp"
 
-#include "vk/base/CthCore.hpp"
-#include "vk/base/CthPhysicalDevice.hpp"
-#include "vk/render/cmd/CthCmdBuffer.hpp"
-#include "vk/render/pass/CthRenderPass.hpp"
-#include "vk/render/pass/CthSubpass.hpp"
-#include "vk/render/pass/RenderPassConfig.hpp"
-#include "vk/render/pass/attachment/AttachmentCollection.hpp"
-#include "vk/render/pass/attachment/AttachmentDescription.hpp"
-#include "vk/render/pass/framebuffer/ScFramebufferCollection.hpp"
+#include "jolly/utility/CthOSWindow.hpp"
 #include "jolly/utility/GraphicsCore.hpp"
-#include "vk/surface/swapchain/Swapchain.hpp"
-#include "vk/utility/cth_vk_overloads.hpp"
+#include "jvk/base/core.hpp"
+#include "jvk/base/physical_device.hpp"
+#include "jvk/render/cmd/cmd_buffer.hpp"
+#include "jvk/render/pass/subpass.hpp"
+#include "jvk/render/pass/render_pass.hpp"
+#include "jvk/render/pass/render_pass_config.hpp"
+#include "jvk/render/pass/attachment/attachment_collection.hpp"
+#include "jvk/render/pass/attachment/attachment_description.hpp"
+#include "jvk/render/pass/framebuffer/swapchain_fb_collection.hpp"
+#include "jvk/surface/swapchain/swapchain.hpp"
+#include "jvk/utility/vk_overloads.hpp"
 
 namespace cth {
 
 
-FrameResources::FrameResources(vk::Core const& core, vk::GraphicsCore const& graphics_core) : _core{&core}, _graphicsCore{&graphics_core} {
+FrameResources::FrameResources(jvk::Core const& core, Config config
+)
+    : _core{&core}
+    ,
+    _config{std::move(config)} {
     create();
 }
+
 FrameResources::~FrameResources() = default;
-void FrameResources::beginRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const {
+
+void FrameResources::beginRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) const {
     _renderPass->begin(cmd_buffer, framebuffer());
 
     auto const extent = _graphicsCore->swapchainExtent();
@@ -40,13 +47,46 @@ void FrameResources::beginRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) con
     _core->functions()->vkCmdSetViewport(cmd_buffer.get(), 0, 1, &viewport);
     _core->functions()->vkCmdSetScissor(cmd_buffer.get(), 0, 1, &scissor);
 }
-void FrameResources::endRenderPass(vk::PrimaryCmdBuffer const& cmd_buffer) const { _renderPass->end(cmd_buffer); }
+
+void FrameResources::endRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) const {
+    _renderPass->end(cmd_buffer);
+}
+
+
+void FrameResources::resize() const {
+    auto const extent = _graphicsCore->swapchainExtent();
+
+    CTH_CRITICAL(extent == (VkExtent2D{0, 0}), "extent must not be empty") {}
+
+    _depthAttachments->create(extent);
+    _msaaAttachments->create(extent);
+
+    _framebufferCollection->create(extent);
+    _renderPass->resize(extent);
+}
+
+void FrameResources::acquireFrame() const {
+    _graphicsCore->acquireFrame();
+}
+
+void FrameResources::skipAcquire() const {
+    _graphicsCore->skipAcquire();
+}
+
+bool FrameResources::presentFrame() const {
+    return _graphicsCore->presentFrame();
+}
+
+void FrameResources::skipPresent() const {
+    _graphicsCore->skipPresent();
+}
 
 VkSampleCountFlagBits FrameResources::evalMsaaSampleCount() const {
-    uint32_t const maxSamples = _core->physicalDevice().maxSampleCount() / 2; //TODO add proper max_sample_count selection
+    uint32_t const maxSamples = _core->physicalDevice().maxSampleCount() / 2;
+    //TODO add proper max_sample_count selection
 
     uint32_t samples = 1;
-    while(samples < maxSamples && samples < vk::constants::MAX_MSAA_SAMPLES) samples *= 2;
+    while(samples < maxSamples && samples < jvk::constants::MAX_MSAA_SAMPLES) samples *= 2;
 
     return static_cast<VkSampleCountFlagBits>(samples);
 }
@@ -65,25 +105,21 @@ VkFormat FrameResources::findDepthFormat() const {
 }
 
 void FrameResources::createDepthAttachments() {
-    auto const description = vk::AttachmentDescription::DepthBuffer(_msaaSamples);
-    auto const imageConfig = vk::ImageConfig::DepthBuffer(findDepthFormat(), _msaaSamples);
+    auto const description = jvk::AttachmentDescription::DepthBuffer(RENDER_SUBPASS_INDEX, _msaaSamples);
+    auto const imageConfig = jvk::ImageConfig::DepthBuffer(findDepthFormat(), _msaaSamples);
 
-    _depthAttachments = std::make_unique<vk::AttachmentCollection>(*_core,
-        vk::AttachmentCollection::Config{vk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description},
-        _graphicsCore->swapchainExtent());
+    _depthAttachments = std::make_unique<jvk::AttachmentCollection>(
+        *_core,
+        jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description},
+        _graphicsCore->swapchainExtent()
+    );
 }
 
 void FrameResources::createMsaaAttachments() {
-    vk::AttachmentDescription const description{
-        .samples = _msaaSamples,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .referenceLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
+    auto const description = jvk::AttachmentDescription::Color(RENDER_SUBPASS_INDEX, _msaaSamples);
 
 
-    vk::ImageConfig const imageConfig{
+    jvk::ImageConfig const imageConfig{
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .format = _graphicsCore->swapchainImageFormat(),
         .usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -91,22 +127,21 @@ void FrameResources::createMsaaAttachments() {
         .samples = _msaaSamples,
     };
 
-    _msaaAttachments = std::make_unique<vk::AttachmentCollection>(
+    _msaaAttachments = std::make_unique<jvk::AttachmentCollection>(
         *_core,
-        vk::AttachmentCollection::Config{vk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description},
-        _graphicsCore->swapchainExtent()
-    );
+        jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description},
+        _graphicsCore->swapchainExtent());
 }
+
 
 void FrameResources::createAttachments() {
     createMsaaAttachments();
     createDepthAttachments();
 }
 
-
-std::unique_ptr<vk::Subpass> FrameResources::createSubpass() const {
-    return std::make_unique<vk::Subpass>(
-        0u,
+std::unique_ptr<jvk::Subpass> FrameResources::createSubpass() const {
+    return std::make_unique<jvk::Subpass>(
+        RENDER_SUBPASS_INDEX,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         std::vector{_msaaAttachments.get()},
         std::vector{_graphicsCore->swapchainResolveAttachments()},
@@ -117,21 +152,24 @@ std::unique_ptr<vk::Subpass> FrameResources::createSubpass() const {
 VkSubpassDependency FrameResources::createSubpassDependency() {
     VkSubpassDependency dependency{
         .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+        .dstSubpass = RENDER_SUBPASS_INDEX,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
         .dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
         .srcAccessMask = 0,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
     };
 
-    vk::Swapchain::addResolveSubpassDependencyFlags(dependency);
+    jvk::Swapchain::addResolveSubpassDependencyFlags(dependency);
     return dependency;
 }
 
-vk::RenderPassBeginConfig FrameResources::createRenderPassBeginConfig() const {
+jvk::RenderPassBeginConfig FrameResources::createRenderPassBeginConfig() const {
     return {
         .clearValues = {{
-            {.color = {{0, 0, 0, 1}}}, //TEMP this is the swapchain clear value and should be set by the swapchain not manually
+            {.color = {{0, 0, 0, 1}}},
+            //TEMP this is the swapchain clear value and should be set by the swapchain not manually
             {.color = {{0, 0, 0, 1}}},
             {.depthStencil = {1.0f, 0}}
         }},
@@ -144,26 +182,48 @@ void FrameResources::createRenderPass() {
     auto const subpassDependency = createSubpassDependency();
     auto const beginConfig = createRenderPassBeginConfig();
 
-    _renderPass = std::make_unique<vk::RenderPass>(
+    _renderPass = std::make_unique<jvk::RenderPass>(
         *_core,
-        vk::RenderPass::Config{
+        jvk::RenderPass::Config{
             .subpasses{_subpass.get()},
             .dependencies{subpassDependency},
             .beginConfig{beginConfig}
         },
-        vk::create
-    );
-}
-void FrameResources::createFramebufferCollection() {
-    _framebufferCollection = std::make_unique<vk::ScFramebufferCollection>(
-        *_core, *_graphicsCore->swapchain(), *_renderPass,
-        vk::FramebufferCollectionConfig::Attachments(std::vector{_msaaAttachments.get(), _depthAttachments.get()}), 
-        vk::create
+        jvk::create
     );
 }
 
+
+void FrameResources::createFramebufferCollection() {
+    _framebufferCollection = std::make_unique<jvk::ScFramebufferCollection>(
+        *_core,
+        *_graphicsCore->swapchain(),
+        *_renderPass,
+        jvk::FramebufferCollectionConfig::Attachments(
+            std::vector{
+                _msaaAttachments.get(),
+                _depthAttachments.get()
+            }
+        ),
+        jvk::create
+    );
+}
+
+void FrameResources::createGraphicsCore() {
+    _graphicsCore = std::make_unique<jvk::GraphicsCore>(
+        *_core,
+        jvk::GraphicsCore::Config{
+            .subpassConfig = jvk::SwapchainSubpassConfig::ColorAttachmentOptimal(RENDER_SUBPASS_INDEX),
+        },
+        _config.windowName,
+        _config.windowExtent,
+        _config.presentQueue
+    );
+}
 
 void FrameResources::create() {
+    createGraphicsCore();
+
     _msaaSamples = evalMsaaSampleCount();
 
     createAttachments();
@@ -171,20 +231,25 @@ void FrameResources::create() {
     createRenderPass();
     createFramebufferCollection();
 }
-void FrameResources::resize() const {
-    auto const extent = _graphicsCore->swapchainExtent();
 
-    CTH_CRITICAL(extent == (VkExtent2D{0, 0}), "extent must not be empty") {}
 
-    _depthAttachments->create(extent);
-    _msaaAttachments->create(extent);
-
-    _framebufferCollection->create(extent);
-    _renderPass->resize(extent);
-}
-vk::Framebuffer const& FrameResources::framebuffer() const {
+jvk::Framebuffer const& FrameResources::framebuffer() const {
     auto const& pulse = _graphicsCore->renderPulse();
     return _framebufferCollection->get(pulse.get());
 }
-vk::RenderPass const& FrameResources::renderPass() const { return *_renderPass; }
+
+jvk::RenderPass const& FrameResources::renderPass() const { return *_renderPass; }
+
+bool FrameResources::shouldClose() const {
+    return _graphicsCore->osWindow()->shouldClose();
+}
+
+jvk::RenderPulse const& FrameResources::renderPulse() const {
+    return _graphicsCore->renderPulse();
+}
+
+jvk::GraphicsSyncConfig const& FrameResources::syncConfig() const {
+    return *_graphicsCore->syncConfig();
+}
+
 }

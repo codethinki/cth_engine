@@ -1,12 +1,12 @@
 {
   "default-registry": {
     "kind": "builtin",
-    "baseline": "d033613d9021107e4a7b52c5fac1f87ae8a6fcc6"
+    "baseline": "6ecbbbdf31cba47aafa7cf6189b1e73e10ac61f8"
   },
   "registries": [
     {
       "kind": "builtin",
-      "baseline": "d033613d9021107e4a7b52c5fac1f87ae8a6fcc6",
+      "baseline": "6ecbbbdf31cba47aafa7cf6189b1e73e10ac61f8",
       "packages": []
     }
   ]

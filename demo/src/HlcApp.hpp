@@ -41,33 +41,39 @@ private:
     void graphicsPhase() const;
 
 
-    void initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer);
+    void initRenderSystem(jvk::PrimaryCmdBuffer& cmd_buffer);
 
 
 
-    std::vector<vk::Queue> _queues{
-        vk::Queue{vk::QUEUE_FAMILY_PROPERTY_TRANSFER | vk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
-        vk::Queue{vk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
-        vk::Queue{vk::QUEUE_FAMILY_PROPERTY_PRESENT}
+    std::vector<jvk::Queue>
+    _queues{
+        jvk::Queue{jvk::QUEUE_FAMILY_PROPERTY_TRANSFER | jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
+        jvk::Queue{jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
+        jvk::Queue{jvk::QUEUE_FAMILY_PROPERTY_PRESENT}
     };
+
 
     std::vector<std::string> _glfwExtensions = getRequiredInstanceExtensions();
 
-    std::unique_ptr<vk::Core> _core = std::make_unique<vk::Core>(vk::Core::Config::Default("demo", "engine", _queues, _glfwExtensions));
+    std::unique_ptr<jvk::Core> _core = std::make_unique<jvk::Core>(
+        jvk::Core::Config::Default("demo", "engine", _queues, _glfwExtensions));
 
-    cth::move_ptr<vk::DestructionQueue> _destructionQueue = _core->destructionQueue();
-
-    std::unique_ptr<vk::GraphicsCore> _graphicsCore = make_unique<vk::GraphicsCore>(*_core, WINDOW_NAME, VkExtent2D{WIDTH, HEIGHT}, _queues[2]);
-    std::unique_ptr<FrameResources> _resources = std::make_unique<FrameResources>(*_core, *_graphicsCore);
-
-    std::unique_ptr<vk::Renderer3> _renderer3;
-
-    vk::RenderStage* _transferStage{};
-    vk::RenderStage* _graphicsStage{};
+    move_ptr<jvk::DestructionQueue> _destructionQueue = _core->destructionQueue();
 
 
-    vk::InputController _inputController{};
-    vk::Camera _camera{};
+    std::unique_ptr<FrameResources> _resources = std::make_unique<FrameResources>(
+        *_core,
+        FrameResources::Config{WINDOW_NAME, {WIDTH, HEIGHT}, _queues[2]}
+    );
+
+    std::unique_ptr<jvk::Renderer3> _renderer3;
+
+    jvk::RenderStage* _transferStage{};
+    jvk::RenderStage* _graphicsStage{};
+
+
+    jvk::InputController _inputController{};
+    jvk::Camera _camera{};
 
     std::unique_ptr<RenderSystem> _renderSystem;
 
@@ -77,11 +83,12 @@ private:
 
     [[nodiscard]] static std::vector<std::string> getRequiredInstanceExtensions();
 
-    [[nodiscard]] vk::Queue& transferQueue();
-    [[nodiscard]] vk::Queue& renderQueue();
-    [[nodiscard]] vk::Queue& presentQueue();
+    [[nodiscard]] jvk::Queue& transferQueue();
+    [[nodiscard]] jvk::Queue& renderQueue();
+    [[nodiscard]] jvk::Queue& presentQueue();
 
-public:
+public
+:
     App(App const& other) = delete;
     App(App&& other) noexcept = delete;
     App& operator=(App const& other) = delete;

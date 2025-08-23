@@ -1,17 +1,17 @@
 #include "HlcRenderSystem.hpp"
 
 #include "jolly/render/Renderer3.hpp"
-#include "vk/render/cmd/CthCmdBuffer.hpp"
-#include "vk/render/pass/CthRenderPass.hpp"
-#include "vk/render/pipeline/CthPipeline.hpp"
-#include "vk/render/pipeline/PipelineVertexDescription.hpp"
-#include "vk/render/pipeline/layout/CthDescriptorSetLayout.hpp"
-#include "vk/render/pipeline/layout/CthPipelineLayout.hpp"
-#include "vk/render/pipeline/shader/CthShader.hpp"
-#include "vk/resource/descriptor/CthDescriptorPool.hpp"
-#include "vk/resource/descriptor/CthDescriptorSet.hpp"
-#include "vk/resource/descriptor/descriptors/CthImageDescriptors.hpp"
-#include "vk/resource/image/texture/CthTexture.hpp"
+#include "jvk/render/cmd/cmd_buffer.hpp"
+#include "jvk/render/pass/render_pass.hpp"
+#include "jvk/render/pipeline/pipeline.hpp"
+#include "jvk/render/pipeline/pipeline_vertex_description.hpp"
+#include "jvk/render/pipeline/layout/descriptor_set_layout.hpp"
+#include "jvk/render/pipeline/layout/pipeline_layout.hpp"
+#include "jvk/render/pipeline/shader/shader.hpp"
+#include "jvk/res/descriptor/descriptor_pool.hpp"
+#include "jvk/res/descriptor/descriptor_set.hpp"
+#include "jvk/res/descriptor/types/image_descriptors.hpp"
+#include "jvk/res/img/texture/texture.hpp"
 
 #include <cth/utility/image.hpp>
 
@@ -21,9 +21,11 @@ struct UniformBuffer {
     glm::mat4 projectionView;
     explicit UniformBuffer(glm::mat4 const& projection_view) : projectionView{projection_view} {}
 };
+
 //TEMP renderer should not be here
-RenderSystem::RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& init_cmd_buffer,
-    vk::RenderPass const& render_pass, VkSampleCountFlagBits const msaa_samples) : _core{core} {
+RenderSystem::RenderSystem(jvk::Core const* core, jvk::PrimaryCmdBuffer const& init_cmd_buffer,
+    jvk::RenderPass const& render_pass, VkSampleCountFlagBits const msaa_samples)
+    : _core{core} {
     createShaders();
 
     createDescriptorSetLayouts();
@@ -40,43 +42,46 @@ RenderSystem::RenderSystem(vk::Core const* core, vk::PrimaryCmdBuffer const& ini
     createDefaultTriangle(init_cmd_buffer);
 
 }
+
 RenderSystem::~RenderSystem() = default;
 
 void RenderSystem::createShaders() {
 
-    std::string const vertexBinary = std::format("{}shader.vert.spv", SHADER_BINARY_DIR);
-    std::string const fragmentBinary = std::format("{}shader.frag.spv", SHADER_BINARY_DIR);
+    auto const vertexBinary = std::format("{}shader.vert.spv", SHADER_BINARY_DIR);
+    auto const fragmentBinary = std::format("{}shader.frag.spv", SHADER_BINARY_DIR);
 
-#ifndef CONSTANT_DEBUG_MODE
-    vertexShader = make_unique<Shader>(_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
-    fragmentShader = make_unique<Shader>(_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary.data());
-#else
-    _vertexShader = std::make_unique<vk::Shader>(*_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
-        std::format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
-    _fragmentShader = std::make_unique<vk::Shader>(*_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
-        std::format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
-#endif
+    _vertexShader = std::make_unique<jvk::Shader>(*_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary.data());
+    _fragmentShader = std::make_unique<jvk::Shader>(*_core, VK_SHADER_STAGE_FRAGMENT_BIT,
+        fragmentBinary.data());
+    /* _vertexShader = std::make_unique(jvk::Shader>(*_core, VK_SHADER_STAGE_VERTEX_BIT, vertexBinary,
+             std::format("{}shader.vert", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);
+         _fragmentShader = std::make_unique(jvk::Shader>(*_core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentBinary,
+             std::format("{}shader.frag", SHADER_GLSL_DIR), GLSL_COMPILER_PATH);*/
 }
+
 void RenderSystem::createDescriptorSetLayouts() {
-    vk::DescriptorSetLayout::Builder builder{};
-    builder.addBinding(0, vk::TextureDescriptor::TYPE, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+    jvk::DescriptorSetLayout::Builder builder{};
+    builder.addBinding(0, jvk::TextureDescriptor::TYPE, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
 
 
-    _descriptorSetLayout = std::make_unique<vk::DescriptorSetLayout>(*_core, builder);
+    _descriptorSetLayout = std::make_unique<jvk::DescriptorSetLayout>(*_core, builder);
 }
 
 
 void RenderSystem::createPipelineLayout() {
-    vk::PipelineLayout::Builder builder{};
+    jvk::PipelineLayout::Builder builder{};
     builder.addSetLayout(_descriptorSetLayout.get(), 0);
 
-    _pipelineLayout = std::make_unique<vk::PipelineLayout>(*_core, builder);
+    _pipelineLayout = std::make_unique<jvk::PipelineLayout>(*_core, builder);
 }
+
 void RenderSystem::createPipeline(VkRenderPass render_pass, VkSampleCountFlagBits const msaa_samples) {
-    vk::Pipeline::GraphicsConfig config = vk::Pipeline::GraphicsConfig::Default(vk::PipelineVertexDescription{
-        .bindings{std::from_range, vk::VERTEX_BINDING_DESCRIPTIONS},
-        .attributes{std::from_range, vk::VERTEX_ATTRIBUTE_DESCRIPTIONS}
-    });
+    auto config = jvk::Pipeline::GraphicsConfig::Default(
+        jvk::PipelineVertexDescription{
+            .bindings{std::from_range, jvk::VERTEX_BINDING_DESCRIPTIONS},
+            .attributes{std::from_range, jvk::VERTEX_ATTRIBUTE_DESCRIPTIONS}
+        }
+    );
 
     config.renderPass = render_pass;
     config.multisampleInfo->rasterizationSamples = msaa_samples;
@@ -84,18 +89,21 @@ void RenderSystem::createPipeline(VkRenderPass render_pass, VkSampleCountFlagBit
     config.addShaderStage(_fragmentShader.get());
 
 
-    _pipeline = std::make_unique<vk::Pipeline>(*_core, _pipelineLayout.get(), config);
+    _pipeline = std::make_unique<jvk::Pipeline>(*_core, _pipelineLayout.get(), config);
 }
+
 void RenderSystem::createDescriptorPool() {
-    _descriptorPool = std::make_unique<vk::DescriptorPool>(*_core, vk::DescriptorPool::Builder{{{_descriptorSetLayout.get(), 1}}});
+    _descriptorPool = std::make_unique<jvk::DescriptorPool>(*_core, jvk::DescriptorPool::Builder{
+        {{_descriptorSetLayout.get(), 1}}});
 }
-void RenderSystem::loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer) {
+
+void RenderSystem::loadDescriptorData(jvk::CmdBuffer const& init_cmd_buffer) {
     cth::img::stb_image const image{std::format("{}first_texture.png", TEXTURE_DIR), 4};
 
-    _texture = std::make_unique<vk::Texture>(
+    _texture = std::make_unique<jvk::Texture>(
         *_core,
         VkExtent2D{static_cast<uint32_t>(image.width()), static_cast<uint32_t>(image.height())},
-        vk::Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
+        jvk::Texture::Config{VK_FORMAT_R8G8B8A8_SRGB},
         init_cmd_buffer,
         std::span{image.raw(), image.size()}
     );
@@ -103,31 +111,35 @@ void RenderSystem::loadDescriptorData(vk::CmdBuffer const& init_cmd_buffer) {
 
 
 void RenderSystem::createDescriptorSets() {
-    _textureSampler = std::make_unique<vk::Sampler>(*_core, vk::Sampler::Config{});
+    _textureSampler = std::make_unique<jvk::Sampler>(*_core, jvk::Sampler::Config{});
 
 
-    _textureView = std::make_unique<vk::ImageView>(*_core, vk::ImageView::Config::Default(), *_texture);
-    _textureDescriptor = std::make_unique<vk::TextureDescriptor>(*_textureView, *_textureSampler);
+    _textureView = std::make_unique<jvk::ImageView>(*_core, jvk::ImageView::Config::Default(), *_texture);
+    _textureDescriptor = std::make_unique<jvk::TextureDescriptor>(*_textureView, *_textureSampler);
 
-    _descriptorSet = std::make_unique<vk::DescriptorSet>(
-        vk::DescriptorSet::Builder{_descriptorSetLayout.get(), std::vector<vk::Descriptor*>{_textureDescriptor.get()}});
+    _descriptorSet = std::make_unique<jvk::DescriptorSet>(
+        jvk::DescriptorSet::Builder{
+            _descriptorSetLayout.get(),
+            std::vector<jvk::Descriptor*>{_textureDescriptor.get()}
+        }
+    );
 
     _descriptorPool->writeSets(std::vector{_descriptorSet.get()});
 }
-std::array<vk::Vertex, 3> defaultTriangle{
-    vk::Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {1, 0}},
-    vk::Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {0.5, 1}},
-    vk::Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {0, 0}},
+
+static cxpr std::array<jvk::Vertex, 3> defaultTriangle{
+    jvk::Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {1, 0}},
+    jvk::Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {0.5, 1}},
+    jvk::Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {0, 0}},
 };
 
 
-
-void RenderSystem::createDefaultTriangle(vk::CmdBuffer const& cmd_buffer) {
-    _defaultTriangleBuffer = std::make_unique<vk::Buffer<vk::Vertex>>(*_core, 3,
+void RenderSystem::createDefaultTriangle(jvk::CmdBuffer const& cmd_buffer) {
+    _defaultTriangleBuffer = std::make_unique<jvk::Buffer<jvk::Vertex>>(*_core, 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    vk::Buffer<vk::Vertex> stagingBuffer{*_core, 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    jvk::Buffer<jvk::Vertex> stagingBuffer{*_core, 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
     stagingBuffer.map();
     stagingBuffer.write(defaultTriangle);
@@ -141,14 +153,18 @@ void RenderSystem::render(FrameInfo const& frame_info) const {
     std::vector<size_t> const offsets(vertexBuffers.size());
     std::vector<VkDescriptorSet> const descriptorSets{_descriptorSet->get()};
 
-    _core->functions()->vkCmdBindDescriptorSets(frame_info.commandBuffer->get(), VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout->get(), 0, 1,
+    _core->functions()->vkCmdBindDescriptorSets(frame_info.commandBuffer->get(),
+        VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout->get(), 0, 1,
         descriptorSets.data(), 0,
         nullptr);
-    _core->functions()->vkCmdBindVertexBuffers(frame_info.commandBuffer->get(), 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(),
+    _core->functions()->vkCmdBindVertexBuffers(frame_info.commandBuffer->get(), 0,
+        static_cast<uint32_t>(vertexBuffers.size()),
+        vertexBuffers.data(),
         offsets.data());
 
     //TEMP replace this with model drawing
-    _core->functions()->vkCmdDraw(frame_info.commandBuffer->get(), static_cast<uint32_t>(_defaultTriangleBuffer->size()), 1, 0, 0);
+    _core->functions()->vkCmdDraw(frame_info.commandBuffer->get(),
+        static_cast<uint32_t>(_defaultTriangleBuffer->size()), 1, 0, 0);
 
 
     //const UniformBuffer uniformBuffer{frame_info.camera.getProjection() * frame_info.camera.getView()};
@@ -157,7 +173,7 @@ void RenderSystem::render(FrameInfo const& frame_info) const {
 
 
     /*vkCmdBindDescriptorSets(frame_info.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-        &descriptorSets[frame_info.frameIndex], 0, nullptr);*/
+            &descriptorSets[frame_info.frameIndex], 0, nullptr);*/
 
 }
 } // namespace cth

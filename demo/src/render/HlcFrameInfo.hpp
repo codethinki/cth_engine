@@ -3,16 +3,16 @@
 
 
 
-namespace cth {
+namespace jvk {
+class PrimaryCmdBuffer;
+}
 
-namespace vk {
-    class PrimaryCmdBuffer;
-} //namespace vk
+namespace cth {
 
 struct FrameInfo {
     size_t frameIndex;
     float frameTime;
-    vk::PrimaryCmdBuffer const* commandBuffer;
+    jvk::PrimaryCmdBuffer const* commandBuffer;
 };
 
 } // namespace cth

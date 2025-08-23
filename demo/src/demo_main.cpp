@@ -5,22 +5,21 @@
 
 #include <stb_image.h>
 
-#include "vk/utility/cth_vk_format.hpp"
+#include "jvk/utility/format.hpp"
 
-#include "vk/base/jvk.hpp"
+#include "jvk/base/jvk.hpp"
 
 
-using namespace std;
 using namespace cth;
 
 int main() {
     cth::log::msg<except::INFO>("exec dir: {}", std::filesystem::current_path().string());
 
-    vk::Jvk::init();
-    vk::OSWindow::init();
+    jvk::Jvk::init();
+    jvk::OSWindow::init();
 
 
-    unique_ptr<App> app = make_unique<App>();
+    auto app = std::make_unique<App>();
     app->run();
     app = nullptr;
     //try {
@@ -43,6 +42,6 @@ int main() {
          std::terminate();
      }*/
 
-    vk::Jvk::terminate();
+    jvk::Jvk::terminate();
     return EXIT_SUCCESS;
 }

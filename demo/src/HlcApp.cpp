@@ -5,7 +5,7 @@
 
 #include "render/HlcFrameInfo.hpp"
 
-#include "vk/base/CthDevice.hpp"
+#include "jvk/base/device.hpp"
 
 
 
@@ -19,7 +19,7 @@ App::App() {
 void App::run() {
     cth::log::msg<except::INFO>("starting...");
 
-    while(!_graphicsCore->osWindow()->shouldClose()) {
+    while(!_resources->shouldClose()) {
         glfwPollEvents();
 
         renderFrame();
@@ -32,40 +32,42 @@ void App::run() {
 }
 
 void App::createRenderer3() {
-    vk::Renderer3::Config config{
+    jvk::Renderer3::Config config{
         .stages{
             {
                 0,
-                vk::RenderStageConfig{
+                jvk::RenderStageConfig{
                     .queue = &transferQueue()
                 }
             },
             {
                 1,
-                vk::RenderStageConfig{
+                jvk::RenderStageConfig{
                     .queue = &renderQueue(),
                     .subStages = 3,
-                    .signalSemaphores{std::from_range, _graphicsCore->renderFinishedSemaphores()},
-                    .waitStages{std::from_range, _graphicsCore->imageAvailableWaitStages()},
-                    .flags = vk::RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING | vk::RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING
+                    .signalSemaphores{std::from_range, _resources->syncConfig().renderFinishedSemaphores()},
+                    .waitStages{std::from_range, _resources->syncConfig().imageAvailableWaitStages()},
+                    .flags = jvk::RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING |
+                    jvk::RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING
                 }
             }
         },
-        .stageDependencies = vk::Renderer3::Config::dependencies_t{
+        .stageDependencies = jvk::Renderer3::Config::dependencies_t{
             {{1, 0, VK_PIPELINE_STAGE_TRANSFER_BIT}}
         }
 
     };
 
 
-    _renderer3 = std::make_unique<vk::Renderer3>(*_core, _graphicsCore->renderPulse(), config, vk::create);
+    _renderer3 = std::make_unique<jvk::Renderer3>(*_core, _resources->renderPulse(), config, jvk::create);
 
     _transferStage = &_renderer3->stage(0);
     _graphicsStage = &_renderer3->stage(1);
 }
+
 void App::initFrame() {
 
-    _graphicsCore->skipAcquire();
+    _resources->skipAcquire();
 
     auto [initCmdBuffer, _] = _transferStage->begin();
     initRenderSystem(*initCmdBuffer);
@@ -73,29 +75,30 @@ void App::initFrame() {
     _transferStage->submit();
     _graphicsStage->skip();
 
-    _graphicsCore->skipPresent();
+    _resources->skipPresent();
 }
 
 void App::renderFrame() const {
     _graphicsStage->wait();
     _destructionQueue->next();
 
-    _graphicsCore->acquireFrame();
+    _resources->acquireFrame();
 
     _transferStage->skip();
 
     graphicsPhase();
 
-    auto const resized = _graphicsCore->presentFrame();
+    auto const resized = _resources->presentFrame();
 
     if(resized) _resources->resize();
 }
+
 void App::graphicsPhase() const {
     auto [cmdBuffer, _] = _graphicsStage->begin();
 
     _resources->beginRenderPass(*cmdBuffer);
 
-    auto const info = FrameInfo{_graphicsCore->pulseVal(), 0.f, cmdBuffer};
+    auto const info = FrameInfo{_resources->renderPulse().get(), 0.f, cmdBuffer};
     _renderSystem->render(info);
 
     _resources->endRenderPass(*cmdBuffer);
@@ -104,22 +107,23 @@ void App::graphicsPhase() const {
 }
 
 
-void App::initRenderSystem(vk::PrimaryCmdBuffer& cmd_buffer) {
+void App::initRenderSystem(jvk::PrimaryCmdBuffer& cmd_buffer) {
     _renderSystem = std::make_unique<RenderSystem>(_core.get(), cmd_buffer, _resources->renderPass(),
-        _graphicsCore->msaaSamples());
+        _resources->msaaSampleCount());
 }
 
 
 
 std::vector<std::string> App::getRequiredInstanceExtensions() {
-    auto extensions = vk::OSWindow::getGLFWInstanceExtensions();
+    auto extensions = jvk::OSWindow::getGLFWInstanceExtensions();
 
 
     return extensions;
 }
-vk::Queue& App::transferQueue() { return _queues[0]; }
-vk::Queue& App::renderQueue() { return _queues[1]; }
-vk::Queue& App::presentQueue() { return _queues[2]; }
+
+jvk::Queue& App::transferQueue() { return _queues[0]; }
+jvk::Queue& App::renderQueue() { return _queues[1]; }
+jvk::Queue& App::presentQueue() { return _queues[2]; }
 
 }
 

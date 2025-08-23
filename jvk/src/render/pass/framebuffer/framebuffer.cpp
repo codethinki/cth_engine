@@ -1,0 +1,115 @@
+#include "jvk/render/pass/framebuffer/framebuffer.hpp"
+
+#include "jvk/base/core.hpp"
+#include "jvk/render/pass/render_pass.hpp"
+#include "jvk/res/destruction_queue.hpp"
+#include "jvk/res/img/image_view.hpp"
+#include "jvk/utility/vk_exceptions.hpp"
+
+namespace jvk {
+
+Framebuffer::Framebuffer(Core const& core, RenderPass const& render_pass,
+    std::span<ImageView const* const> attachments,
+    uint32_t layers) : _core{&core}, _renderPass{&render_pass}, _attachments{std::from_range, attachments},
+    _layers{layers} {}
+
+Framebuffer::Framebuffer(Core const& core, RenderPass const& render_pass,
+    std::span<ImageView const* const> attachments,
+    State const& state, uint32_t layers) : Framebuffer{core, render_pass, attachments, layers} {
+    wrap(state);
+}
+
+Framebuffer::Framebuffer(Core const& core, RenderPass const& render_pass,
+    std::span<ImageView const* const> attachments,
+    VkExtent2D extent, uint32_t layers) : Framebuffer{core, render_pass, attachments, layers} {
+    create(extent);
+}
+
+
+Framebuffer::~Framebuffer() { optDestroy(); }
+
+void Framebuffer::wrap(State const& state) {
+    optDestroy();
+    _handle = state.vkFramebuffer.get();
+    _extent = state.extent;
+}
+
+void Framebuffer::create(VkExtent2D extent) {
+    RenderPass::debug_check(*_renderPass);
+    optDestroy();
+
+    _extent = extent;
+
+    std::vector<VkImageView> attachments{_attachments.size()};
+    std::ranges::transform(_attachments, attachments.begin(), [](ImageView const* attachment) {
+        ImageView::debug_check(*attachment);
+        return attachment->get();
+    });
+
+    VkFramebufferCreateInfo const createInfo{
+        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .renderPass = _renderPass->get(),
+        .attachmentCount = static_cast<uint32_t>(attachments.size()),
+        .pAttachments = attachments.data(),
+        .width = _extent.width,
+        .height = _extent.height,
+        .layers = 1,
+    };
+
+    VkFramebuffer ptr = VK_NULL_HANDLE;
+
+    //BUG left off here, this crashes on resize bc the image / image view don't get properly recreated on resize
+
+    auto const createResult = _core->functions()->vkCreateFramebuffer(_core->vkDevice(), &createInfo, nullptr,
+        &ptr);
+
+    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create framebuffer") {
+        reset();
+        throw jvk::result_exception{createResult, details->exception()};
+    }
+
+    _handle = ptr;
+}
+
+void Framebuffer::destroy() {
+    debug_check(*this);
+    auto const lambda = [table = _core->deviceTable(), vk_framebuffer = _handle.get()]() {
+        destroy(table, vk_framebuffer);
+    };
+
+    auto const queue = _core->destructionQueue();
+
+    if(queue) queue->push(lambda);
+    else lambda();
+
+    //TEMP use reset();
+    _handle = nullptr;
+}
+
+Framebuffer::State Framebuffer::release() {
+    debug_check(*this);
+
+    State const state{
+        _handle.release(),
+        _extent,
+    };
+    reset();
+    return state;
+}
+
+void Framebuffer::destroy(DeviceTable table, VkFramebuffer vk_framebuffer) {
+    CTH_WARN(vk_framebuffer == VK_NULL_HANDLE, "framebuffer should not be invalid (VK_NULL_HANDLE") {}
+
+    table->vkDestroyFramebuffer(table.device(), vk_framebuffer, nullptr);
+}
+
+void Framebuffer::reset() {
+    _handle = VK_NULL_HANDLE;
+    _extent = {};
+}
+
+std::span<ImageView const* const> Framebuffer::attachments() const { return _attachments; }
+
+}
