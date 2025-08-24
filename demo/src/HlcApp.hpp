@@ -66,14 +66,14 @@ private:
         FrameResources::Config{WINDOW_NAME, {WIDTH, HEIGHT}, _queues[2]}
     );
 
-    std::unique_ptr<jvk::Renderer3> _renderer3;
+    std::unique_ptr<jly::Renderer3> _renderer3;
 
-    jvk::RenderStage* _transferStage{};
-    jvk::RenderStage* _graphicsStage{};
+    jly::RenderStage* _transferStage{};
+    jly::RenderStage* _graphicsStage{};
 
 
-    jvk::InputController _inputController{};
-    jvk::Camera _camera{};
+    jly::InputController _inputController{};
+    jly::Camera _camera{};
 
     std::unique_ptr<RenderSystem> _renderSystem;
 

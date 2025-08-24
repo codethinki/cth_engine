@@ -16,7 +16,7 @@ int main() {
     cth::log::msg<except::INFO>("exec dir: {}", std::filesystem::current_path().string());
 
     jvk::Jvk::init();
-    jvk::OSWindow::init();
+    jly::OSWindow::init();
 
 
     auto app = std::make_unique<App>();

@@ -1,6 +1,7 @@
 #include "jolly/render/RenderStage.hpp"
 
 #include "jolly/render/RenderPulse.hpp"
+#include "jolly/utility/types.hpp"
 
 #include "jvk/base/queue/queue.hpp"
 #include "jvk/base/queue/submit_info.hpp"
@@ -12,14 +13,15 @@
 #include <utility>
 
 
-namespace jvk {
+namespace jly {
 
-RenderStage::RenderStage(Core const& core, RenderPulse const& pulse, Config config) : _core{&core},
+RenderStage::RenderStage(jvk::Core const& core, RenderPulse const& pulse, Config config) : _core{&core},
     _pulse{&pulse}, _config{std::move(config)} {
     init();
 }
 
-RenderStage::RenderStage(Core const& core, RenderPulse const& pulse, Config config, create_t) : RenderStage{
+RenderStage::RenderStage(jvk::Core const& core, RenderPulse const& pulse, Config config,
+    create_t) : RenderStage{
     core, pulse, std::move(config)} {
     create();
 }
@@ -100,11 +102,11 @@ void RenderStage::initCmdPools() {
     for(uint32_t i = 0; i < primaryPools; i++) {
         _cmdPools.emplace_back(
             *_core,
-            CmdPool::Config::Default(*_config.queue, buffersPerPool, secondaryBuffers)
+            jvk::CmdPool::Config::Default(*_config.queue, buffersPerPool, secondaryBuffers)
         );
 
         for(uint32_t j = 0; j < secondaryOnlyPools; j++)
-            _cmdPools.emplace_back(*_core, CmdPool::Config::Default(*_config.queue, 0, buffersPerPool));
+            _cmdPools.emplace_back(*_core, jvk::CmdPool::Config::Default(*_config.queue, 0, buffersPerPool));
     }
 }
 
@@ -173,17 +175,17 @@ void RenderStage::createSubmitInfos() {
 
 size_t RenderStage::secondaryChunkSize() const { return _secondaryCmdBuffers.size() / GROUP_SIZE; }
 
-PrimaryCmdBuffer& RenderStage::primaryCmdBuffer() { return _primaryCmdBuffers[subIndex()]; }
-PrimaryCmdBuffer const& RenderStage::primaryCmdBuffer() const { return _primaryCmdBuffers[subIndex()]; }
+jvk::PrimaryCmdBuffer& RenderStage::primaryCmdBuffer() { return _primaryCmdBuffers[subIndex()]; }
+jvk::PrimaryCmdBuffer const& RenderStage::primaryCmdBuffer() const { return _primaryCmdBuffers[subIndex()]; }
 
-std::vector<SecondaryCmdBuffer*> RenderStage::secondaryCmdBuffers() {
+std::vector<jvk::SecondaryCmdBuffer*> RenderStage::secondaryCmdBuffers() {
     if(_secondaryCmdBuffers.empty()) return {};
     auto chunks = _secondaryCmdBuffers | cth::views::split_into(GROUP_SIZE);
     return {std::from_range, chunks[static_cast<ptrdiff_t>(subIndex())] | cth::views::to_ptr_range};
 }
 
-SubmitInfo& RenderStage::submitInfo() { return _submitInfos[subIndex()]; }
-Fence const& RenderStage::fence() const { return _fences[subIndex()]; }
+jvk::SubmitInfo& RenderStage::submitInfo() { return _submitInfos[subIndex()]; }
+jvk::Fence const& RenderStage::fence() const { return _fences[subIndex()]; }
 size_t RenderStage::subIndex() const { return _pulse->get(); }
 bool RenderStage::created() const { return !_cmdPools.empty() && _cmdPools[0].created(); }
 bool RenderStage::recording() const { return primaryCmdBuffer().recording(); }

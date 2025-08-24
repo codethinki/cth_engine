@@ -32,34 +32,34 @@ void App::run() {
 }
 
 void App::createRenderer3() {
-    jvk::Renderer3::Config config{
+    jly::Renderer3::Config config{
         .stages{
             {
                 0,
-                jvk::RenderStageConfig{
+                jly::RenderStageConfig{
                     .queue = &transferQueue()
                 }
             },
             {
                 1,
-                jvk::RenderStageConfig{
+                jly::RenderStageConfig{
                     .queue = &renderQueue(),
                     .subStages = 3,
                     .signalSemaphores{std::from_range, _resources->syncConfig().renderFinishedSemaphores()},
                     .waitStages{std::from_range, _resources->syncConfig().imageAvailableWaitStages()},
-                    .flags = jvk::RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING |
-                    jvk::RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING
+                    .flags = jly::RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING |
+                    jly::RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING
                 }
             }
         },
-        .stageDependencies = jvk::Renderer3::Config::dependencies_t{
+        .stageDependencies = jly::Renderer3::Config::dependencies_t{
             {{1, 0, VK_PIPELINE_STAGE_TRANSFER_BIT}}
         }
 
     };
 
 
-    _renderer3 = std::make_unique<jvk::Renderer3>(*_core, _resources->renderPulse(), config, jvk::create);
+    _renderer3 = std::make_unique<jly::Renderer3>(*_core, _resources->renderPulse(), config, jly::create);
 
     _transferStage = &_renderer3->stage(0);
     _graphicsStage = &_renderer3->stage(1);
@@ -115,7 +115,7 @@ void App::initRenderSystem(jvk::PrimaryCmdBuffer& cmd_buffer) {
 
 
 std::vector<std::string> App::getRequiredInstanceExtensions() {
-    auto extensions = jvk::OSWindow::getGLFWInstanceExtensions();
+    auto extensions = jly::OSWindow::getGLFWInstanceExtensions();
 
 
     return extensions;

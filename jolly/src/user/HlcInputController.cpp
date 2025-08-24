@@ -3,7 +3,7 @@
 #include "jolly/object/HlcStandardObject.hpp"
 
 
-namespace jvk {
+namespace jly {
 void InputController::moveByKeys(float dt, std::unique_ptr<StandardObject> const& object) const {
     float const yaw = object->_transform.rotation.y;
     glm::vec3 const forwardDir{sin(yaw), 0.f, cos(yaw)};
@@ -17,8 +17,9 @@ void InputController::moveByKeys(float dt, std::unique_ptr<StandardObject> const
     if(getKeyState(MOVE_LEFT)) moveDir -= rightDir;
     if(getKeyState(MOVE_UP)) moveDir += upDir;
     if(getKeyState(MOVE_DOWN)) moveDir -= upDir;
-    if(dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon()) object->_transform.translation +=
-        moveSpeed * dt * normalize(moveDir);
+    if(dot(moveDir, moveDir) > std::numeric_limits<float>::epsilon())
+        object->_transform.translation +=
+            moveSpeed * dt * normalize(moveDir);
 }
 
 void InputController::rotateByMouse(float dt, std::unique_ptr<StandardObject> const& object) const {

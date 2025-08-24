@@ -1,8 +1,8 @@
 #pragma once
 #include "jvk/surface/swapchain/swapchain_subpass_config.hpp"
 
-namespace jvk {
+namespace jly {
 struct GraphicsCoreConfig {
-    SwapchainSubpassConfig subpassConfig;
+    jvk::SwapchainSubpassConfig subpassConfig;
 };
 }

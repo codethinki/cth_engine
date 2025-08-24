@@ -15,8 +15,9 @@
 
 
 
-namespace jvk {
-OSWindow::OSWindow(Instance const& instance, DestructionQueue* destruction_queue, std::string_view name,
+namespace jly {
+OSWindow::OSWindow(jvk::Instance const& instance, jvk::DestructionQueue* destruction_queue,
+    std::string_view name,
     VkExtent2D extent) : _instance{&instance}, _destructionQueue{destruction_queue}, _windowName{name},
     _width{static_cast<int>(extent.width)}, _height{static_cast<int>(extent.height)} {
     initWindow();
@@ -32,13 +33,13 @@ OSWindow::~OSWindow() {
         std::terminate(); // NOLINT(clang-diagnostic-exceptions)
 
     if(_surface) {
-        Surface::destroy(_instance->get(), _surface.get());
+        jvk::Surface::destroy(_instance->get(), _surface.get());
         _surface = nullptr;
     }
     if(_handle) destroy(); //TEMP use created() instead
 }
 
-void OSWindow::destroy(DestructionQueue* destruction_queue) {
+void OSWindow::destroy(jvk::DestructionQueue* destruction_queue) {
     if(destruction_queue) _destructionQueue = destruction_queue;
 
     auto const lambda = [handle = _handle.get()] { destroy(handle); };
@@ -70,7 +71,7 @@ void OSWindow::setCallbacks() {
     //glfwSetCursorPosCallback(hlcWindow, staticMovementCallback);
 }
 
-void OSWindow::createSurface(Instance const& instance) {
+void OSWindow::createSurface(jvk::Instance const& instance) {
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
     auto const result = glfwCreateWindowSurface(instance.get(), _handle.get(), nullptr, &vkSurface);
 
@@ -116,7 +117,7 @@ void OSWindow::framebufferResizeCallback(int new_width, int new_height) {
 
 //static methods
 
-namespace jvk {
+namespace jly {
 void OSWindow::setGLFWWindowHints() {
     //const vector windowIcons = loadWindowIcons();
     //glfwSetWindowIcon(hlcWindow, static_cast<int>(windowIcons.size()), windowIcons.data());

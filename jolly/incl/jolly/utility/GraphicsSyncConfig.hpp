@@ -135,11 +135,11 @@ struct GraphicsSyncConfig::State {
     /**
      * @attention must not be nullptr
      */
-    std::array<std::unique_ptr<jvk::Semaphore>, constants::FRAMES_IN_FLIGHT> imageAvailableSemaphores;
+    std::array<std::unique_ptr<jvk::Semaphore>, jvk::constants::FRAMES_IN_FLIGHT> imageAvailableSemaphores;
     /**
      * @attention must not be nullptr
      */
-    std::array<std::unique_ptr<Semaphore>, constants::FRAMES_IN_FLIGHT> renderFinishedSemaphores;
+    std::array<std::unique_ptr<jvk::Semaphore>, jvk::constants::FRAMES_IN_FLIGHT> renderFinishedSemaphores;
 
 private:
     static void debug_check(State const& state);
@@ -151,7 +151,7 @@ private:
 
 //debug checks
 
-namespace jvk {
+namespace jly {
 inline void GraphicsSyncConfig::debug_check(GraphicsSyncConfig const& config) {
     CTH_CRITICAL(!config.created(), "config not created") {}
 }

@@ -78,8 +78,8 @@ void RenderSystem::createPipelineLayout() {
 void RenderSystem::createPipeline(VkRenderPass render_pass, VkSampleCountFlagBits const msaa_samples) {
     auto config = jvk::Pipeline::GraphicsConfig::Default(
         jvk::PipelineVertexDescription{
-            .bindings{std::from_range, jvk::VERTEX_BINDING_DESCRIPTIONS},
-            .attributes{std::from_range, jvk::VERTEX_ATTRIBUTE_DESCRIPTIONS}
+            .bindings{std::from_range, jly::VERTEX_BINDING_DESCRIPTIONS},
+            .attributes{std::from_range, jly::VERTEX_ATTRIBUTE_DESCRIPTIONS}
         }
     );
 
@@ -127,19 +127,19 @@ void RenderSystem::createDescriptorSets() {
     _descriptorPool->writeSets(std::vector{_descriptorSet.get()});
 }
 
-static cxpr std::array<jvk::Vertex, 3> defaultTriangle{
-    jvk::Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {1, 0}},
-    jvk::Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {0.5, 1}},
-    jvk::Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {0, 0}},
+static cxpr std::array<jly::Vertex, 3> defaultTriangle{
+    jly::Vertex{{1.f, -0.5f, 0.2f}, {0, 0, 1}, {1, 0}},
+    jly::Vertex{{0, 1.f, 0.2f}, {0, 1, 0}, {0.5, 1}},
+    jly::Vertex{{-1.f, -0.5f, 0.2f}, {1, 0, 0}, {0, 0}},
 };
 
 
 void RenderSystem::createDefaultTriangle(jvk::CmdBuffer const& cmd_buffer) {
-    _defaultTriangleBuffer = std::make_unique<jvk::Buffer<jvk::Vertex>>(*_core, 3,
+    _defaultTriangleBuffer = std::make_unique<jvk::Buffer<jly::Vertex>>(*_core, 3,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    jvk::Buffer<jvk::Vertex> stagingBuffer{*_core, 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    jvk::Buffer<jly::Vertex> stagingBuffer{*_core, 3, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT};
     stagingBuffer.map();
     stagingBuffer.write(defaultTriangle);

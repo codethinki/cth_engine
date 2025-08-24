@@ -4,20 +4,19 @@
 #include "jvk/render/pass/render_pass_begin_config.hpp"
 
 
-namespace jvk {
+namespace jly {
+class RenderPulse;
 class GraphicsSyncConfig;
+class GraphicsCore;
 }
 
 namespace jvk {
-class Renderer3;
 class ScFramebufferCollection;
 class Subpass;
 class Core;
 class RenderPass;
-class GraphicsCore;
 class AttachmentCollection;
 class Framebuffer;
-class RenderPulse;
 class PrimaryCmdBuffer;
 }
 
@@ -77,7 +76,7 @@ private:
     _core;
     Config _config;
 
-    std::unique_ptr<jvk::GraphicsCore> _graphicsCore;
+    std::unique_ptr<jly::GraphicsCore> _graphicsCore;
     std::unique_ptr<jvk::RenderPass> _renderPass;
     std::unique_ptr<jvk::Subpass> _subpass;
 
@@ -91,11 +90,11 @@ private:
 
 public:
     [[nodiscard]] jvk::RenderPass const& renderPass() const;
-    [[nodiscard]] jvk::GraphicsCore const& graphicsCore() const { return *_graphicsCore; }
+    [[nodiscard]] auto const& graphicsCore() const { return *_graphicsCore; }
     [[nodiscard]] bool shouldClose() const;
-    [[nodiscard]] jvk::RenderPulse const& renderPulse() const;
-    [[nodiscard]] jvk::GraphicsSyncConfig const& syncConfig() const;
-    [[nodiscard]] jvk::GraphicsCore const& core() const { return *_graphicsCore; }
+    [[nodiscard]] jly::RenderPulse const& renderPulse() const;
+    [[nodiscard]] jly::GraphicsSyncConfig const& syncConfig() const;
+    [[nodiscard]] auto const& core() const { return *_graphicsCore; }
     [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return _msaaSamples; }
 };
 }

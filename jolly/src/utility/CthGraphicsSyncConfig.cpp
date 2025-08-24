@@ -5,15 +5,18 @@
 #include "jvk/res/destruction_queue.hpp"
 
 
-namespace jvk {
+namespace jly {
 
-GraphicsSyncConfig::GraphicsSyncConfig(Core const& core) : _core{&core} {}
+GraphicsSyncConfig::GraphicsSyncConfig(jvk::Core const& core) : _core{&core} {}
 
-GraphicsSyncConfig::GraphicsSyncConfig(Core const& core, State state) : GraphicsSyncConfig{core} {
+GraphicsSyncConfig::GraphicsSyncConfig(jvk::Core const& core, State state) : GraphicsSyncConfig{core} {
     wrap(std::move(state));
 }
 
-GraphicsSyncConfig::GraphicsSyncConfig(Core const& core, create_t) : GraphicsSyncConfig{core} { create(); }
+GraphicsSyncConfig::GraphicsSyncConfig(jvk::Core const& core, create_t) : GraphicsSyncConfig{core} {
+    create();
+}
+
 GraphicsSyncConfig::~GraphicsSyncConfig() { optDestroy(); }
 
 void GraphicsSyncConfig::wrap(State state) {
@@ -28,9 +31,9 @@ void GraphicsSyncConfig::create() {
     optDestroy();
 
     for(auto& uniquePtr : _renderFinishedSemaphores) //TODO refactor this to init and make create only create
-        uniquePtr = std::make_unique<Semaphore>(*_core, jvk::create);
+        uniquePtr = std::make_unique<jvk::Semaphore>(*_core, jvk::create);
     for(auto& uniquePtr : _imageAvailableSemaphores)
-        uniquePtr = std::make_unique<Semaphore>(*_core, jvk::create);
+        uniquePtr = std::make_unique<jvk::Semaphore>(*_core, jvk::create);
 }
 
 void GraphicsSyncConfig::destroy() {
@@ -54,40 +57,40 @@ GraphicsSyncConfig::State GraphicsSyncConfig::release() {
 
 
 
-auto GraphicsSyncConfig::renderFinishedSemaphores() const -> std::array<Semaphore*, SET_SIZE> {
+auto GraphicsSyncConfig::renderFinishedSemaphores() const -> std::array<jvk::Semaphore*, SET_SIZE> {
     debug_check(*this);
 
 
-    std::array<Semaphore*, SET_SIZE> semaphores{};
+    std::array<jvk::Semaphore*, SET_SIZE> semaphores{};
     for(auto [src, dst] : std::views::zip(_renderFinishedSemaphores, semaphores)) dst = src.get();
     return semaphores;
 }
 
-auto GraphicsSyncConfig::imageAvailableSemaphores() const -> std::array<Semaphore*, SET_SIZE> {
+auto GraphicsSyncConfig::imageAvailableSemaphores() const -> std::array<jvk::Semaphore*, SET_SIZE> {
     debug_check(*this);
 
-    std::array<Semaphore*, SET_SIZE> semaphores{};
+    std::array<jvk::Semaphore*, SET_SIZE> semaphores{};
     for(auto [src, dst] : std::views::zip(_imageAvailableSemaphores, semaphores)) dst = src.get();
     return semaphores;
 }
 
-auto GraphicsSyncConfig::imageAvailableWaitStages() const -> std::vector<PipelineWaitStage> {
+auto GraphicsSyncConfig::imageAvailableWaitStages() const -> std::vector<jvk::PipelineWaitStage> {
     auto const semaphores = imageAvailableSemaphores();
     return {
         std::from_range,
-        semaphores | std::views::transform([](Semaphore const* ptr) {
-            return PipelineWaitStage{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, ptr};
+        semaphores | std::views::transform([](jvk::Semaphore const* ptr) {
+            return jvk::PipelineWaitStage{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, ptr};
         })
     };
 
 
 }
 
-Semaphore* GraphicsSyncConfig::renderFinishedSemaphore(size_t index) const {
+jvk::Semaphore* GraphicsSyncConfig::renderFinishedSemaphore(size_t index) const {
     return _renderFinishedSemaphores[index].get();
 }
 
-Semaphore* GraphicsSyncConfig::imageAvailableSemaphore(size_t index) const {
+jvk::Semaphore* GraphicsSyncConfig::imageAvailableSemaphore(size_t index) const {
     return _imageAvailableSemaphores[index].get();
 }
 
@@ -96,12 +99,12 @@ Semaphore* GraphicsSyncConfig::imageAvailableSemaphore(size_t index) const {
 
 //State
 
-namespace jvk {
+namespace jly {
 void GraphicsSyncConfig::State::debug_check(State const& state) {
     for(auto& semaphore : state.imageAvailableSemaphores)
-        Semaphore::debug_check(*semaphore);
+        jvk::Semaphore::debug_check(*semaphore);
     for(auto& semaphore : state.renderFinishedSemaphores)
-        Semaphore::debug_check(*semaphore);
+        jvk::Semaphore::debug_check(*semaphore);
 }
 
 }

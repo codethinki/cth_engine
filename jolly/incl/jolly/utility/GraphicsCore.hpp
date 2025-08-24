@@ -11,12 +11,12 @@ namespace jvk {
 class AttachmentCollection;
 class GraphicsSyncConfig;
 class Surface;
-class OSWindow;
 struct Cycle;
 class RenderPass;
 }
 
 namespace jly {
+class OSWindow;
 
 
 class GraphicsCore {
@@ -32,14 +32,14 @@ public:
     /**
      * @param core must be created
      */
-    explicit GraphicsCore(Core const& core, Config config);
+    explicit GraphicsCore(jvk::Core const& core, Config config);
 
     /**
      * @brief wraps the state
      * @note calls @ref GraphicsCore(Core const&, Config)
      * @note calls @ref wrap()
      */
-    GraphicsCore(Core const& core, Config const& config, State state);
+    GraphicsCore(jvk::Core const& core, Config const& config, State state);
 
 
     /**
@@ -48,8 +48,8 @@ public:
      * @note calls @ref create()
      * @note calls @ref GraphicsCore(Core const&)
      */
-    GraphicsCore(Core const& core, Config const& config, std::string_view window_name, VkExtent2D extent,
-        Queue const& present_queue);
+    GraphicsCore(jvk::Core const& core, Config const& config, std::string_view window_name, VkExtent2D extent,
+        jvk::Queue const& present_queue);
 
     /**
      * @note calls @ref optDestroy()
@@ -61,7 +61,7 @@ public:
      * @brief constructs osWindow, surface and swapchain
      * @note calls @ref optDestroy()
      */
-    void create(std::string_view window_name, VkExtent2D extent, Queue const& present_queue);
+    void create(std::string_view window_name, VkExtent2D extent, jvk::Queue const& present_queue);
 
     /**
      * @brief wraps the state
@@ -120,23 +120,23 @@ public:
 private:
     void reset();
 
-    not_null<Core const*> _core;
+    cth::not_null<jvk::Core const*> _core;
     Config _config;
 
     std::unique_ptr<GraphicsSyncConfig> _syncConfig;
     std::unique_ptr<OSWindow> _osWindow;
-    std::unique_ptr<Surface> _surface;
-    std::unique_ptr<Swapchain> _swapchain; //TEMP change to Swapchain ptr once implemented
+    std::unique_ptr<jvk::Surface> _surface;
+    std::unique_ptr<jvk::Swapchain> _swapchain; //TEMP change to Swapchain ptr once implemented
 
 public:
     [[nodiscard]] bool created() const { return _osWindow || _surface || _swapchain; }
     [[nodiscard]] OSWindow const* osWindow() const { return _osWindow.get(); }
-    [[nodiscard]] Surface const* surface() const { return _surface.get(); }
+    [[nodiscard]] jvk::Surface const* surface() const { return _surface.get(); }
     [[nodiscard]] GraphicsSyncConfig const* syncConfig() const { return _syncConfig.get(); }
-    [[nodiscard]] Swapchain const* swapchain() const { return _swapchain.get(); }
+    [[nodiscard]] jvk::Swapchain const* swapchain() const { return _swapchain.get(); }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const;
 
-    [[nodiscard]] AttachmentCollection const* swapchainResolveAttachments() const;
+    [[nodiscard]] jvk::AttachmentCollection const* swapchainResolveAttachments() const;
     [[nodiscard]] VkFormat swapchainImageFormat() const;
     [[nodiscard]] VkExtent2D swapchainExtent() const;
     [[nodiscard]] size_t swapchainSize() const;
@@ -159,12 +159,12 @@ public:
 
 //State
 
-namespace jvk {
+namespace jly {
 struct GraphicsCore::State {
-    unique_not_null<OSWindow> osWindow;
-    unique_not_null<Surface> surface;
-    unique_not_null<GraphicsSyncConfig> syncConfig;
-    unique_not_null<Swapchain> swapchain;
+    cth::unique_not_null<OSWindow> osWindow;
+    cth::unique_not_null<jvk::Surface> surface;
+    cth::unique_not_null<GraphicsSyncConfig> syncConfig;
+    cth::unique_not_null<jvk::Swapchain> swapchain;
 
 private:
     static void debug_check(State const& state);
@@ -176,7 +176,7 @@ private:
 
 //debug check
 
-namespace jvk {
+namespace jly {
 inline void GraphicsCore::debug_check(GraphicsCore const& graphics_core) {
     CTH_CRITICAL(!graphics_core.created(), "graphics core must be created") {}
 }

@@ -1,5 +1,8 @@
 #pragma once
 #include "RenderStageConfig.hpp"
+
+#include "jolly/utility/types.hpp"
+
 #include "jvk/render/ctrl/fence.hpp"
 #include "jvk/render/ctrl/pipeline_wait_stage.hpp"
 #include "jvk/utility/constants.hpp"
@@ -7,8 +10,6 @@
 
 //IMPLEMENT release and state
 namespace jvk {
-class RenderPulse;
-
 struct Cycle;
 struct PipelineWaitStage;
 struct SubmitInfo;
@@ -24,6 +25,7 @@ class Semaphore;
 }
 
 namespace jly {
+class RenderPulse;
 
 struct RenderStageCmdBuffers {
     jvk::PrimaryCmdBuffer* cmdBuffer;
@@ -41,7 +43,7 @@ public:
      * @brief create constructor
      * @details calls: @ref create()
      */
-    RenderStage(Core const& core, RenderPulse const& pulse, Config config, create_t);
+    RenderStage(jvk::Core const& core, RenderPulse const& pulse, Config config, create_t);
 
     /**
      * @details calls @ref optDestroy()
@@ -139,7 +141,7 @@ private:
 
     void createSubmitInfos();
 
-    cth::not_null<Core const*> _core;
+    cth::not_null<jvk::Core const*> _core;
     cth::not_null<RenderPulse const*> _pulse;
 
     Config _config;

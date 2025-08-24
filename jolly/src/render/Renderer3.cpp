@@ -11,7 +11,7 @@
 
 #include <cth/algorithm/views.hpp>
 
-namespace jvk {
+namespace jly {
 void Renderer3Config::removeUnusedDependencies() {
     auto unusedIds = stageDependencies.nodes();
     for(auto const& id : stages | std::views::keys) unusedIds.erase(id);
@@ -19,8 +19,8 @@ void Renderer3Config::removeUnusedDependencies() {
 }
 }
 
-namespace jvk {
-Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config config) : _core{&core},
+namespace jly {
+Renderer3::Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config config) : _core{&core},
     _pulse{&pulse} {
     config.removeUnusedDependencies();
     Config::debugCheck(config);
@@ -33,13 +33,14 @@ Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config config) 
     initRenderStages(stages);
 }
 
-Renderer3::Renderer3(Core const& core, RenderPulse const& pulse, Config const& config, create_t) : Renderer3{
+Renderer3::Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config const& config,
+    create_t) : Renderer3{
     core, pulse, config} { create(); }
 
 Renderer3::~Renderer3() { optDestroy(); }
 
 auto Renderer3::create() -> std::map<id_t, RenderStage*> {
-    Core::debug_check(*_core);
+    jvk::Core::debug_check(*_core);
     optDestroy();
 
     createSemaphores();
@@ -67,7 +68,7 @@ void Renderer3::initDependencySemaphores(size_t edges) {
 
 void Renderer3::linkStageDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag,
     id_t source_id,
-    std::span<Semaphore*> stage_semaphores) {
+    std::span<jvk::Semaphore*> stage_semaphores) {
 
     CTH_CRITICAL(!stages.contains(source_id), "stages must contain the source id") {}
 

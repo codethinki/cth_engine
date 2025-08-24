@@ -67,7 +67,7 @@ private:
     std::unique_ptr<jvk::Shader> _vertexShader, _fragmentShader;
 
     //TEMP replaced with actual model data once ready
-    std::unique_ptr<jvk::Buffer<jvk::Vertex>> _defaultTriangleBuffer{};
+    std::unique_ptr<jvk::Buffer<jly::Vertex>> _defaultTriangleBuffer{};
 
     std::unique_ptr<jvk::DescriptorSetLayout> _descriptorSetLayout;
     std::unique_ptr<jvk::DescriptorPool> _descriptorPool;

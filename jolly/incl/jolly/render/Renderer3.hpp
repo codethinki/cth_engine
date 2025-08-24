@@ -3,6 +3,7 @@
 #include "jolly/render/dag.hpp"
 #include "jolly/render/RenderPulse.hpp"
 #include "jolly/render/RenderStageConfig.hpp"
+#include "jolly/utility/types.hpp"
 
 #include "jvk/render/ctrl/pipeline_wait_stage.hpp"
 
@@ -13,7 +14,6 @@
 //IMPLEMENT release and state
 
 namespace jvk {
-class RenderStage;
 class CmdPool;
 class Queue;
 class TimelineSemaphore;
@@ -22,10 +22,15 @@ class Semaphore;
 }
 
 namespace jly {
+class RenderStage;
+}
+
+namespace jly {
+
 struct Renderer3Config {
     using StageConfig = RenderStageConfig;
     using id_t = size_t;
-    using dependencies_t = cth::dag<id_t, PipelineWaitStage::stage_t>;
+    using dependencies_t = cth::dag<id_t, jvk::PipelineWaitStage::stage_t>;
     using stage_map_t = std::map<id_t, StageConfig>;
 
     stage_map_t stages;
@@ -62,14 +67,14 @@ public:
      * @brief creates
      * @param config to use
      */
-    Renderer3(Core const& core, RenderPulse const& pulse, Config config);
+    Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config config);
     /**
      * @brief constructs and creates
      * @param core requires @ref Core::created()
      * @param config to use
      * @details calls: Renderer::Render(Core const&, Config)
      */
-    Renderer3(Core const& core, RenderPulse const& pulse, Config const& config, create_t);
+    Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config const& config, create_t);
 
     ~Renderer3();
 
@@ -108,7 +113,7 @@ private:
 
     bool _created = false;
 
-    cth::not_null<Core const*> _core;
+    cth::not_null<jvk::Core const*> _core;
     cth::not_null<RenderPulse const*> _pulse;
 
     std::vector<jvk::Semaphore> _stageSemaphores;
@@ -156,7 +161,7 @@ inline void Renderer3Config::debugCheck(Renderer3Config const& config) {
 }
 }
 
-namespace jvk {
+namespace jly {
 inline void Renderer3::debugCheck(Renderer3 const& renderer) {
     CTH_CRITICAL(!renderer.created(), "renderer must be created") {}
 }

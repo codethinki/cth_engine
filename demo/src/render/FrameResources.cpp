@@ -210,9 +210,9 @@ void FrameResources::createFramebufferCollection() {
 }
 
 void FrameResources::createGraphicsCore() {
-    _graphicsCore = std::make_unique<jvk::GraphicsCore>(
+    _graphicsCore = std::make_unique<jly::GraphicsCore>(
         *_core,
-        jvk::GraphicsCore::Config{
+        jly::GraphicsCore::Config{
             .subpassConfig = jvk::SwapchainSubpassConfig::ColorAttachmentOptimal(RENDER_SUBPASS_INDEX),
         },
         _config.windowName,
@@ -244,11 +244,11 @@ bool FrameResources::shouldClose() const {
     return _graphicsCore->osWindow()->shouldClose();
 }
 
-jvk::RenderPulse const& FrameResources::renderPulse() const {
+jly::RenderPulse const& FrameResources::renderPulse() const {
     return _graphicsCore->renderPulse();
 }
 
-jvk::GraphicsSyncConfig const& FrameResources::syncConfig() const {
+jly::GraphicsSyncConfig const& FrameResources::syncConfig() const {
     return *_graphicsCore->syncConfig();
 }
 

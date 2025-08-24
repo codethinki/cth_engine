@@ -8,30 +8,34 @@
 #include "jvk/utility/vk_exceptions.hpp"
 
 
-namespace jvk {
-GraphicsCore::GraphicsCore(Core const& core, Config config) : _core{&core}, _config{std::move(config)} {}
+namespace jly {
+GraphicsCore::GraphicsCore(jvk::Core const& core, Config config) : _core{&core}, _config{std::move(config)} {}
 
-GraphicsCore::GraphicsCore(Core const& core, Config const& config, State state) : GraphicsCore{core, config} {
+GraphicsCore::GraphicsCore(jvk::Core const& core, Config const& config, State state) : GraphicsCore{core,
+    config} {
     wrap(std::move(state));
 }
 
-GraphicsCore::GraphicsCore(Core const& core, Config const& config, std::string_view window_name,
+GraphicsCore::GraphicsCore(jvk::Core const& core, Config const& config, std::string_view window_name,
     VkExtent2D extent,
-    Queue const& present_queue) : GraphicsCore{core, config} { create(window_name, extent, present_queue); }
+    jvk::Queue const& present_queue) : GraphicsCore{core, config} {
+    create(window_name, extent, present_queue);
+}
 
 GraphicsCore::~GraphicsCore() { optDestroy(); }
 
-void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, Queue const& present_queue) {
+void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, jvk::Queue const& present_queue) {
     optDestroy();
 
 
     _osWindow = std::make_unique<OSWindow>(_core->instance(), _core->destructionQueue(), window_name, extent);
-    _surface = std::make_unique<Surface>(_core->instance(), _core->destructionQueue(), Surface::Config{},
-        Surface::State{_osWindow->releaseSurface()});
-    _syncConfig = std::make_unique<GraphicsSyncConfig>(*_core,jvk::create);
-    _swapchain = std::make_unique<Swapchain>(
+    _surface = std::make_unique<jvk::Surface>(_core->instance(), _core->destructionQueue(),
+        jvk::Surface::Config{},
+        jvk::Surface::State{_osWindow->releaseSurface()});
+    _syncConfig = std::make_unique<GraphicsSyncConfig>(*_core, jly::create);
+    _swapchain = std::make_unique<jvk::Swapchain>(
         *_core, present_queue, *_surface,
-        Swapchain::Config{
+        jvk::Swapchain::Config{
             .imageAvailableSemaphores{std::from_range, _syncConfig->imageAvailableSemaphores()},
             .renderFinishedSemaphores{std::from_range, _syncConfig->renderFinishedSemaphores()},
             .subpassConfig = _config.subpassConfig
@@ -133,7 +137,7 @@ void GraphicsCore::reset() {
 VkSampleCountFlagBits GraphicsCore::msaaSamples() const { return _swapchain->msaaSamples(); }
 
 
-AttachmentCollection const* GraphicsCore::swapchainResolveAttachments() const {
+jvk::AttachmentCollection const* GraphicsCore::swapchainResolveAttachments() const {
     return _swapchain->resolveAttachments();
 }
 
@@ -147,8 +151,8 @@ size_t GraphicsCore::swapchainImageIndex(RenderPulse const& pulse) const {
 
 void GraphicsCore::State::debug_check(State const& state) {
     OSWindow::debug_check(state.osWindow.get());
-    Surface::debug_check(*state.surface);
-    Swapchain::debug_check(*state.swapchain.get());
+    jvk::Surface::debug_check(*state.surface);
+    jvk::Swapchain::debug_check(*state.swapchain.get());
 }
 
 }

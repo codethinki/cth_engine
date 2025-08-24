@@ -3,7 +3,7 @@
 #include <cth/io/log.hpp>
 
 
-namespace jvk {
+namespace jly {
 void Camera::setOrthographicProjection(float left, float right, float top, float bottom, float near,
     float far) {
     _projectionMatrix = glm::mat4{1.0f};
