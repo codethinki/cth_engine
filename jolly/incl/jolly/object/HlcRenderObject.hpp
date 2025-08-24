@@ -4,9 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace jvk {
-using namespace std;
-
+namespace jly {
 struct Vertex;
 
 class Model;
@@ -37,12 +35,12 @@ public:
      * @brief request models to access for drawing
      * @return model names for the requested models
      */
-    virtual vector<string> getReqModels() = 0;
+    virtual std::vector<std::string> getReqModels() = 0;
 
     /**
      * @brief receive model pointers for rendering
      */
-    virtual void recModelPtrs(vector<Model*> const& model_ptrs) = 0;
+    virtual void recModelPtrs(std::vector<Model*> const& model_ptrs) = 0;
 
 
     RenderObject(RenderObject const&) = default;

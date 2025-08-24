@@ -4,7 +4,7 @@
 #include <cth/macro.hpp>
 
 
-namespace jvk {
+namespace jly {
 
 class RenderPulse {
     static cxpr size_t DEFAULT_VALUE = 0;
@@ -12,7 +12,7 @@ class RenderPulse {
 public:
     RenderPulse() = default;
     ~RenderPulse() = default;
-    void next() { _subIndex = (get() + 1) % constants::FRAMES_IN_FLIGHT; }
+    void next() { _subIndex = (get() + 1) % jvk::constants::FRAMES_IN_FLIGHT; }
     void reset() { _subIndex = DEFAULT_VALUE; }
 
 private:

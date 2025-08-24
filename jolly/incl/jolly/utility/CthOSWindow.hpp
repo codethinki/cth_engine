@@ -12,11 +12,11 @@ using window_handle_t = std::add_pointer_t<struct GLFWwindow>;
 
 namespace jvk {
 class DestructionQueue;
+class Surface;
+class Instance;
 }
 
-namespace jvk {
-class Instance;
-class Surface;
+namespace jly {
 //TODO implement DEBUG_CHECK_OS_WINDOW
 //TEMP modernize
 class OSWindow {
@@ -24,11 +24,11 @@ class OSWindow {
     using window_t = std::remove_pointer_t<handle_t>;
 
 public:
-    OSWindow(Instance const& instance, DestructionQueue* destruction_queue, std::string_view name,
+    OSWindow(jvk::Instance const& instance, jvk::DestructionQueue* destruction_queue, std::string_view name,
         VkExtent2D extent);
     ~OSWindow();
 
-    void destroy(DestructionQueue* destruction_queue = nullptr);
+    void destroy(jvk::DestructionQueue* destruction_queue = nullptr);
 
     void resetWindowResized() { _framebufferResized = false; }
     void waitEvents();
@@ -43,7 +43,7 @@ public:
 private:
     void initWindow();
     void setCallbacks();
-    void createSurface(Instance const& instance);
+    void createSurface(jvk::Instance const& instance);
 
 
     void keyCallback(int key, int scan_code, int action, int mods);
@@ -53,8 +53,8 @@ private:
     void framebufferResizeCallback(int new_width, int new_height);
 
 
-    Instance const* _instance = nullptr;
-    DestructionQueue* _destructionQueue;
+    jvk::Instance const* _instance = nullptr;
+    jvk::DestructionQueue* _destructionQueue;
 
     bool _focus = true;
     bool _framebufferResized = false;
@@ -104,7 +104,7 @@ public:
 };
 }
 
-namespace jvk {
+namespace jly {
 
 inline void OSWindow::debug_check_not_null(OSWindow const* os_window) {
     CTH_CRITICAL(os_window == nullptr, "os_window must not be nullptr") {}

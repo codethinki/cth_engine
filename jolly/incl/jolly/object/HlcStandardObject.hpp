@@ -4,7 +4,7 @@
 
 
 
-namespace jvk {
+namespace jly {
 class InputController;
 
 
@@ -24,8 +24,12 @@ struct Transform {
 
 class StandardObject {
 public:
-    StandardObject() { _id = currentId++; }
-    explicit StandardObject(Transform const& transform) : _transform{transform} { _id = currentId++; }
+    StandardObject() : _id(currentId++) {}
+
+    explicit StandardObject(Transform const& transform) : StandardObject{} {
+        _transform = transform;
+    }
+
     virtual ~StandardObject() = 0;
 
     [[nodiscard]] uint32_t getId() const { return _id; }

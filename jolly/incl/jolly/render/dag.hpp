@@ -38,7 +38,8 @@ public:
 
     template<dag_edge_range<edge_t> Rng>
     explicit dag(Rng const& edges, tag_t = TAG) : dag{} { insert(edges); }
-    explicit dag(edge_init_list_t const& edges) : dag(edges, TAG) {}
+
+    dag(edge_init_list_t const& edges) : dag{edges, TAG} {}
 
 
     void insert(node_t node) { _connections[node]; }
@@ -176,14 +177,19 @@ public:
             [](size_t const sum, auto const& set) { return sum + set.size(); }
         );
     }
+
     [[nodiscard]] bool contains(node_t node) const { return _connections.contains(node); }
 
     [[nodiscard]] auto& at(node_t node) const { return _connections.at(node); }
     [[nodiscard]] auto& map() const { return _connections; }
 
-    [[nodiscard]] std::set<node_t> nodes() const { return {std::from_range, _connections | std::views::keys}; }
+    [[nodiscard]] std::set<node_t> nodes() const {
+        return {std::from_range, _connections | std::views::keys};
+    }
+
     [[nodiscard]] annotation_t annotation(node_t source, node_t target) const {
-        CTH_CRITICAL(!_annotations.contains({source, target}), "the edge between source and target must exist"){}
+        CTH_CRITICAL(!_annotations.contains({source, target}),
+            "the edge between source and target must exist"){}
         return _annotations.at({source, target});
     }
 

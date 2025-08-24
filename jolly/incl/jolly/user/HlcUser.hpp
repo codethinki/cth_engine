@@ -2,7 +2,7 @@
 #include "interface/object/HlcStandardObject.hpp"
 
 
-namespace jvk {
+namespace jly {
 
 class User final : public StandardObject {
 public:

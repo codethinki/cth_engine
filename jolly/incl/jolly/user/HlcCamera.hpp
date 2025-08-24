@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 
-namespace jvk {
+namespace jly {
 
 class Camera {
 public:

@@ -21,7 +21,7 @@ class Core;
 class Semaphore;
 }
 
-namespace jvk {
+namespace jly {
 struct Renderer3Config {
     using StageConfig = RenderStageConfig;
     using id_t = size_t;
@@ -39,7 +39,7 @@ struct Renderer3Config {
 
 }
 
-namespace jvk {
+namespace jly {
 class Renderer3 {
 public:
     using Config = Renderer3Config;
@@ -95,7 +95,7 @@ private:
 
     static void linkStageDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag,
         id_t source_id,
-        std::span<Semaphore*> stage_semaphores);
+        std::span<jvk::Semaphore*> stage_semaphores);
 
 
     void linkDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag);
@@ -111,7 +111,7 @@ private:
     cth::not_null<Core const*> _core;
     cth::not_null<RenderPulse const*> _pulse;
 
-    std::vector<Semaphore> _stageSemaphores;
+    std::vector<jvk::Semaphore> _stageSemaphores;
     std::map<id_t, RenderStage> _renderStages;
 
 public:
@@ -132,7 +132,7 @@ public:
 
 }
 
-namespace jvk {
+namespace jly {
 inline void Renderer3Config::debugCheck(Renderer3Config const& config) {
     CTH_CRITICAL(config.stageDependencies.cyclic(), "stage dependency dag invalid, cyclic nodes: {}",
         config.stageDependencies.cyclics()) {}

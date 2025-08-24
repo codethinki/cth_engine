@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 
-namespace jvk {
+namespace jly {
 
 class StandardObject;
 
@@ -40,7 +40,7 @@ public:
     static bool getKeyState(Key_Mappings key) { return keyStates[KEY_MAPPINGS[key]]; }
 
     static constexpr auto KEY_MAPPINGS = [] {
-        std::array < int, KEY_MAPPINGS_SIZE > arr{};
+        std::array<int, KEY_MAPPINGS_SIZE> arr{};
 
         arr[MOVE_FORWARD] = GLFW_KEY_W;
         arr[MOVE_BACKWARD] = GLFW_KEY_S;

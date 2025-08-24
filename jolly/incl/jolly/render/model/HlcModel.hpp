@@ -4,7 +4,7 @@
 #include <string>
 
 //TEMP old code
-namespace jvk {
+namespace jly {
 
 class ModelManager;
 

@@ -9,14 +9,15 @@
 
 namespace jvk {
 class AttachmentCollection;
-}
-
-namespace jvk {
 class GraphicsSyncConfig;
 class Surface;
 class OSWindow;
 struct Cycle;
 class RenderPass;
+}
+
+namespace jly {
+
 
 class GraphicsCore {
 public:

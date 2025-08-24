@@ -2,7 +2,7 @@
 
 #include <glm/fwd.hpp>
 
-namespace jvk {
+namespace jly {
 //TODO this is untested but could work idk
 //glm::mat4 Transform::matrix(const glm::vec3& direction_scale_normal) const {
 //    //assuming your model has the base (center of the bottom circle) at (0, 0, 0) and is 1 in height

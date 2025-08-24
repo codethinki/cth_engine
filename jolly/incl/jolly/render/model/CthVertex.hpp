@@ -11,7 +11,7 @@
 #include <functional>
 
 
-namespace jvk {
+namespace jly {
 
 struct Vertex {
     glm::vec3 position{};
@@ -48,8 +48,8 @@ concept render_type = is_render_type_v<T>;
 
 
 template<>
-struct std::hash<jvk::Vertex> {
-    size_t operator()(jvk::Vertex const& vertex) const noexcept {
+struct std::hash<jly::Vertex> {
+    size_t operator()(jly::Vertex const& vertex) const noexcept {
         size_t seed = 0;
         cth::alg::hash::combine(seed, vertex.position, vertex.normal, vertex.uv);
         return seed;

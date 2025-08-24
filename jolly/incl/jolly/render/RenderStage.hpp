@@ -21,18 +21,21 @@ class SecondaryCmdBuffer;
 class Queue;
 class RenderPass;
 class Semaphore;
+}
+
+namespace jly {
 
 struct RenderStageCmdBuffers {
-    PrimaryCmdBuffer* cmdBuffer;
-    std::vector<SecondaryCmdBuffer*> secondaryCmdBuffers;
+    jvk::PrimaryCmdBuffer* cmdBuffer;
+    std::vector<jvk::SecondaryCmdBuffer*> secondaryCmdBuffers;
 };
 
 class RenderStage {
 public:
-    cxpr static uint32_t GROUP_SIZE = constants::FRAMES_IN_FLIGHT;
+    cxpr static uint32_t GROUP_SIZE = jvk::constants::FRAMES_IN_FLIGHT;
 
     using Config = RenderStageConfig;
-    RenderStage(Core const& core, RenderPulse const& pulse, Config config);
+    RenderStage(jvk::Core const& core, RenderPulse const& pulse, Config config);
 
     /**
      * @brief create constructor
@@ -136,29 +139,29 @@ private:
 
     void createSubmitInfos();
 
-    not_null<Core const*> _core;
-    not_null<RenderPulse const*> _pulse;
+    cth::not_null<Core const*> _core;
+    cth::not_null<RenderPulse const*> _pulse;
 
     Config _config;
 
-    std::vector<Fence> _fences;
-    std::vector<CmdPool> _cmdPools;
-    std::vector<PrimaryCmdBuffer> _primaryCmdBuffers;
-    std::vector<SecondaryCmdBuffer> _secondaryCmdBuffers;
-    std::vector<SubmitInfo> _submitInfos;
+    std::vector<jvk::Fence> _fences;
+    std::vector<jvk::CmdPool> _cmdPools;
+    std::vector<jvk::PrimaryCmdBuffer> _primaryCmdBuffers;
+    std::vector<jvk::SecondaryCmdBuffer> _secondaryCmdBuffers;
+    std::vector<jvk::SubmitInfo> _submitInfos;
 
 
 
     [[nodiscard]] size_t secondaryChunkSize() const;
-    [[nodiscard]] PrimaryCmdBuffer& primaryCmdBuffer();
-    [[nodiscard]] PrimaryCmdBuffer const& primaryCmdBuffer() const;
-    [[nodiscard]] std::vector<SecondaryCmdBuffer*> secondaryCmdBuffers();
+    [[nodiscard]] jvk::PrimaryCmdBuffer& primaryCmdBuffer();
+    [[nodiscard]] jvk::PrimaryCmdBuffer const& primaryCmdBuffer() const;
+    [[nodiscard]] std::vector<jvk::SecondaryCmdBuffer*> secondaryCmdBuffers();
 
 
 
     [[nodiscard]] auto& queue() const { return *_config.queue; }
-    [[nodiscard]] SubmitInfo& submitInfo();
-    [[nodiscard]] Fence const& fence() const;
+    [[nodiscard]] jvk::SubmitInfo& submitInfo();
+    [[nodiscard]] jvk::Fence const& fence() const;
     [[nodiscard]] size_t subIndex() const;
 
 public:
