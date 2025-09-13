@@ -21,12 +21,13 @@ std::string structure_to_string(T&& to_tuple) {
             return std::format(std::string_view{FMT_BASE}, std::forward<U>(args)...);
         },
         tuple
-    );
+        );
 }
 
 template<class T>
 concept formattable_type = cth::type::is_any_of<cth::type::pure_t<T>,
-    VkSurfaceFormatKHR
+    VkSurfaceFormatKHR,
+    VkExtent2D
 >;
 
 

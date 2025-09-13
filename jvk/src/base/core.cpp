@@ -10,7 +10,10 @@ namespace jvk {
 
 Core::Core(State state) { wrap(std::move(state)); }
 Core::Core(Config const& config) { create(config); }
-Core::~Core() { optDestroy(); }
+
+Core::~Core() {
+    optDestroy();
+}
 
 void Core::wrap(State state) {
     Instance::debug_check(*state.instance);

@@ -29,7 +29,7 @@ public:
     using Config = FrameResourcesConfig;
 
     FrameResources(jvk::Core const& core, Config config
-    );
+        );
 
     ~FrameResources();
 
@@ -87,6 +87,7 @@ private:
 
 
     [[nodiscard]] jvk::Framebuffer const& framebuffer() const;
+    [[nodiscard]] VkExtent2D swapchainExtent() const;
 
 public:
     [[nodiscard]] jvk::RenderPass const& renderPass() const;

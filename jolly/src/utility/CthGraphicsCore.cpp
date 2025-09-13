@@ -6,6 +6,9 @@
 #include "jvk/surface/surface.hpp"
 #include "jvk/surface/swapchain/swapchain.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
+#include "jvk/utility/format.hpp"
+
+#include "src/utility/vk_convert.hpp"
 
 
 namespace jly {
@@ -17,31 +20,36 @@ GraphicsCore::GraphicsCore(jvk::Core const& core, Config const& config, State st
 }
 
 GraphicsCore::GraphicsCore(jvk::Core const& core, Config const& config, std::string_view window_name,
-    VkExtent2D extent,
+    glm::uvec2 extent,
     jvk::Queue const& present_queue) : GraphicsCore{core, config} {
     create(window_name, extent, present_queue);
 }
 
 GraphicsCore::~GraphicsCore() { optDestroy(); }
 
-void GraphicsCore::create(std::string_view window_name, VkExtent2D extent, jvk::Queue const& present_queue) {
+void GraphicsCore::create(std::string_view window_name, glm::uvec2 extent, jvk::Queue const& present_queue) {
     optDestroy();
 
 
     _osWindow = std::make_unique<OSWindow>(_core->instance(), _core->destructionQueue(), window_name, extent);
-    _surface = std::make_unique<jvk::Surface>(_core->instance(), _core->destructionQueue(),
+    _surface = std::make_unique<jvk::Surface>(
+        _core->instance(),
+        _core->destructionQueue(),
         jvk::Surface::Config{},
-        jvk::Surface::State{_osWindow->releaseSurface()});
+        jvk::Surface::State{_osWindow->releaseSurface()}
+    );
     _syncConfig = std::make_unique<GraphicsSyncConfig>(*_core, jly::create);
     _swapchain = std::make_unique<jvk::Swapchain>(
-        *_core, present_queue, *_surface,
+        *_core,
+        present_queue,
+        *_surface,
         jvk::Swapchain::Config{
             .imageAvailableSemaphores{std::from_range, _syncConfig->imageAvailableSemaphores()},
             .renderFinishedSemaphores{std::from_range, _syncConfig->renderFinishedSemaphores()},
             .subpassConfig = _config.subpassConfig
-            //TODO left off here, change the swapchain config to have a subpass config
-            //where formats are stored, put that in the graphics core config and just copy it
-        }, osWindow()->extent());
+        },
+        to_vk_extent(osWindow()->framebufferExtent())
+    );
 }
 
 
@@ -80,25 +88,25 @@ auto GraphicsCore::release() -> State {
 }
 
 void GraphicsCore::minimized() const {
-    VkExtent2D extent = _osWindow->extent();
+    auto extent = _osWindow->framebufferExtent();
 
-    if(extent.width != 0 && extent.height != 0) return;
-    while(extent.width == 0 || extent.height == 0) {
-        extent = _osWindow->extent();
+    if(extent.x != 0 && extent.y != 0) return;
+    while(extent.x == 0 || extent.y == 0) {
+        extent = _osWindow->framebufferExtent();
         _osWindow->waitEvents();
     }
-    _swapchain->resize(extent);
-
 }
 
 
 
-void GraphicsCore::acquireFrame() const {
+void GraphicsCore::acquireFrame() {
     debug_check(*this);
     auto const result = _swapchain->acquireNextImage(_syncConfig->pulseVal());
 
     CTH_WARN(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR,
         "swapchain image acquire result != VK_SUCCESS ({})", result) {}
+
+    _resize |= result != VK_SUCCESS;
 }
 
 void GraphicsCore::skipAcquire() const {
@@ -107,18 +115,17 @@ void GraphicsCore::skipAcquire() const {
 }
 
 
-bool GraphicsCore::presentFrame() const {
+bool GraphicsCore::presentFrame() {
     debug_check(*this);
     auto const result = _swapchain->present(_syncConfig->pulseVal());
-    auto const resize = result != VK_SUCCESS;
 
-    if(resize) {
-        minimized();
-        _swapchain->resize(_osWindow->extent());
-    }
+    auto const shouldResize = _resize || result != VK_SUCCESS;
+
+    if(shouldResize) resize();
+
     _syncConfig->next();
 
-    return resize;
+    return shouldResize;
 }
 
 void GraphicsCore::skipPresent() const {
@@ -134,6 +141,15 @@ void GraphicsCore::reset() {
     _osWindow = nullptr;
 }
 
+void GraphicsCore::resize() {
+    minimized();
+    _swapchain->resize(to_vk_extent(_osWindow->framebufferExtent()));
+
+    _resize = false;
+}
+
+
+
 VkSampleCountFlagBits GraphicsCore::msaaSamples() const { return _swapchain->msaaSamples(); }
 
 
@@ -142,10 +158,15 @@ jvk::AttachmentCollection const* GraphicsCore::swapchainResolveAttachments() con
 }
 
 VkFormat GraphicsCore::swapchainImageFormat() const { return _swapchain->imageFormat(); }
-VkExtent2D GraphicsCore::swapchainExtent() const { return _swapchain->extent(); }
+
+glm::uvec2 GraphicsCore::swapchainExtent() const {
+    auto const extent = _swapchain->extent();
+    return {extent.width, extent.height};
+}
+
 size_t GraphicsCore::swapchainSize() const { return _swapchain->size(); }
 
-size_t GraphicsCore::swapchainImageIndex(RenderPulse const& pulse) const {
+size_t GraphicsCore::swapchainImageIndex() const {
     return _swapchain->imageIndex(_syncConfig->pulseVal());
 }
 

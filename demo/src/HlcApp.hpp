@@ -58,7 +58,7 @@ private:
     std::unique_ptr<jvk::Core> _core = std::make_unique<jvk::Core>(
         jvk::Core::Config::Default("demo", "engine", _queues, _glfwExtensions));
 
-    move_ptr<jvk::DestructionQueue> _destructionQueue = _core->destructionQueue();
+    cth::move_ptr<jvk::DestructionQueue> _destructionQueue = _core->destructionQueue();
 
 
     std::unique_ptr<FrameResources> _resources = std::make_unique<FrameResources>(

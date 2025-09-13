@@ -1,14 +1,12 @@
-project(jolly LANGUAGES CXX)
-
 glob_cpp(JOLLY_SRC "src")
 glob_cpp(JOLLY_INCL "incl")
 
 add_library(jolly STATIC ${JOLLY_SRC} ${JOLLY_INCL})
 
 target_include_directories(
-        jolly PUBLIC
-        incl
-        ../../cth/
+        jolly
+        PUBLIC incl
+        PRIVATE ./
 )
 target_precompile_headers(
         jolly
@@ -19,5 +17,5 @@ target_precompile_headers(
 find_package(glfw3 CONFIG REQUIRED)
 
 
-target_link_libraries(jolly PUBLIC jvk glfw)
+target_link_libraries(jolly PUBLIC jvk glfw cth::cth)
 

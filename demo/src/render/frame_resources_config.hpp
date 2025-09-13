@@ -8,7 +8,7 @@
 namespace cth {
 struct FrameResourcesConfig {
     std::string_view windowName;
-    VkExtent2D windowExtent;
+    glm::uvec2 windowExtent;
     jvk::Queue presentQueue;
 };
 }

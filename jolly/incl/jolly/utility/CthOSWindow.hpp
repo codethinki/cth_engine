@@ -25,12 +25,11 @@ class OSWindow {
 
 public:
     OSWindow(jvk::Instance const& instance, jvk::DestructionQueue* destruction_queue, std::string_view name,
-        VkExtent2D extent);
+        glm::uvec2 extent);
     ~OSWindow();
 
     void destroy(jvk::DestructionQueue* destruction_queue = nullptr);
 
-    void resetWindowResized() { _framebufferResized = false; }
     void waitEvents();
 
 
@@ -41,9 +40,11 @@ public:
     static void destroy(handle_t glfw_window);
 
 private:
-    void initWindow();
+    void createWindow();
     void setCallbacks();
     void createSurface(jvk::Instance const& instance);
+    void updateSizes();
+    void initWindow(jvk::Instance const& instance);
 
 
     void keyCallback(int key, int scan_code, int action, int mods);
@@ -51,16 +52,17 @@ private:
     void scrollCallback(double x_offset, double y_offset);
     void focusCallback(int focused);
     void framebufferResizeCallback(int new_width, int new_height);
+    void windowResizeCallback(int new_width, int new_height);
 
+    glm::uvec2 _framebufferExtent{};
 
     jvk::Instance const* _instance = nullptr;
     jvk::DestructionQueue* _destructionQueue;
 
     bool _focus = true;
-    bool _framebufferResized = false;
 
     std::string _windowName;
-    int _width, _height;
+    glm::uvec2 _windowExtent;
 
     cth::move_ptr<window_t> _handle;
     cth::move_ptr<VkSurfaceKHR_T> _surface;
@@ -73,16 +75,16 @@ private:
     static void staticMouseCallback(handle_t glfw_window, int button, int action, int mods);
     static void staticScrollCallback(handle_t glfw_window, double x_offset, double y_offset);
     static void staticFramebufferResizeCallback(handle_t glfw_window, int width, int height);
+    static void staticWindowResizeCallback(handle_t glfw_window, int width, int height);
     static void staticFocusCallback(handle_t glfw_window, int focused);
 
 public:
     [[nodiscard]] bool shouldClose() const;
 
-    [[nodiscard]] VkExtent2D extent() const {
-        return {static_cast<uint32_t>(_width), static_cast<uint32_t>(_height)};
+    [[nodiscard]] glm::uvec2 framebufferExtent() const {
+        return _framebufferExtent;
     }
 
-    [[nodiscard]] bool windowResized() const { return _framebufferResized; }
     [[nodiscard]] bool focused() const { return _focus; }
 
     [[nodiscard]] VkSurfaceKHR releaseSurface() {

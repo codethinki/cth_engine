@@ -1,5 +1,3 @@
-project(demo LANGUAGES CXX)
-
 add_subdirectory(demo_shaders)
 
 glob_cpp(DEMO_SRC "src")
@@ -12,7 +10,6 @@ add_dependencies(demo demo_shaders)
 target_include_directories(
         demo PUBLIC
         incl
-        ../../cth/
 )
 
 target_precompile_headers(
@@ -20,5 +17,4 @@ target_precompile_headers(
         src/pch/pch.hpp
 )
 
-target_link_libraries(demo PRIVATE jvk jolly)
-
+target_link_libraries(demo PRIVATE jvk jolly cth::cth)

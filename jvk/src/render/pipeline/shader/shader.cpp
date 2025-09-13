@@ -5,8 +5,9 @@
 #include "jvk/res/destruction_queue.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
-#include <cth/windows.hpp>
 #include <cth/io/file.hpp>
+
+#include <cth/win/windows.hpp>
 
 namespace dev {
 static std::string to_string(std::filesystem::path const& path) { return path.string(); }
@@ -145,8 +146,9 @@ void Shader::compile(path_t const& glsl_path, path_t const& compiler_path, std::
 
     if(debugInfo.size() > 2) {
         debugInfo.resize(debugInfo.size() - 1);
-        for(auto& line : debugInfo) line = std::format("line {}: ",
-            line.substr(line.find(glslFile) + glslFile.size()));
+        for(auto& line : debugInfo)
+            line = std::format("line {}: ",
+                line.substr(line.find(glslFile) + glslFile.size()));
     }
     CTH_STABLE_ABORT(true, "shader compilation failed") {
         details->add("file: {}", glslFile);

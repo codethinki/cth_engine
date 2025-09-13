@@ -14,14 +14,14 @@
 #include "jvk/surface/swapchain/swapchain.hpp"
 #include "jvk/utility/vk_overloads.hpp"
 
+
+#include "../../../jolly/src/utility/vk_convert.hpp"
+
 namespace cth {
 
 
-FrameResources::FrameResources(jvk::Core const& core, Config config
-)
-    : _core{&core}
-    ,
-    _config{std::move(config)} {
+FrameResources::FrameResources(jvk::Core const& core, Config config)
+    : _core{&core}, _config{std::move(config)} {
     create();
 }
 
@@ -35,14 +35,14 @@ void FrameResources::beginRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) co
     VkViewport const viewport{
         .x = 0,
         .y = 0,
-        .width = static_cast<float>(extent.width),
-        .height = static_cast<float>(extent.height),
+        .width = static_cast<float>(extent.x),
+        .height = static_cast<float>(extent.y),
         .minDepth = 0,
         .maxDepth = 1.0f,
     };
     VkRect2D const scissor{
         .offset = {0, 0},
-        .extent = extent
+        .extent = {extent.x, extent.y}
     };
     _core->functions()->vkCmdSetViewport(cmd_buffer.get(), 0, 1, &viewport);
     _core->functions()->vkCmdSetScissor(cmd_buffer.get(), 0, 1, &scissor);
@@ -54,15 +54,16 @@ void FrameResources::endRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) cons
 
 
 void FrameResources::resize() const {
+    _graphicsCore->resize();
     auto const extent = _graphicsCore->swapchainExtent();
+    CTH_CRITICAL(extent == (glm::uvec2{0, 0}), "extent must not be empty") {}
 
-    CTH_CRITICAL(extent == (VkExtent2D{0, 0}), "extent must not be empty") {}
+    auto const vkExtent = VkExtent2D{extent.x, extent.y};
+    _depthAttachments->create(vkExtent);
+    _msaaAttachments->create(vkExtent);
 
-    _depthAttachments->create(extent);
-    _msaaAttachments->create(extent);
-
-    _framebufferCollection->create(extent);
-    _renderPass->resize(extent);
+    _framebufferCollection->create(vkExtent);
+    _renderPass->resize(vkExtent);
 }
 
 void FrameResources::acquireFrame() const {
@@ -96,10 +97,10 @@ VkFormat FrameResources::findDepthFormat() const {
         std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
+        );
 
     CTH_STABLE_ERR(format == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED")
-        throw details->exception();
+    throw details->exception();
 
     return format;
 }
@@ -111,8 +112,8 @@ void FrameResources::createDepthAttachments() {
     _depthAttachments = std::make_unique<jvk::AttachmentCollection>(
         *_core,
         jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description},
-        _graphicsCore->swapchainExtent()
-    );
+        swapchainExtent()
+        );
 }
 
 void FrameResources::createMsaaAttachments() {
@@ -130,7 +131,7 @@ void FrameResources::createMsaaAttachments() {
     _msaaAttachments = std::make_unique<jvk::AttachmentCollection>(
         *_core,
         jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description},
-        _graphicsCore->swapchainExtent());
+        swapchainExtent());
 }
 
 
@@ -146,7 +147,7 @@ std::unique_ptr<jvk::Subpass> FrameResources::createSubpass() const {
         std::vector{_msaaAttachments.get()},
         std::vector{_graphicsCore->swapchainResolveAttachments()},
         _depthAttachments.get()
-    );
+        );
 }
 
 VkSubpassDependency FrameResources::createSubpassDependency() {
@@ -173,7 +174,7 @@ jvk::RenderPassBeginConfig FrameResources::createRenderPassBeginConfig() const {
             {.color = {{0, 0, 0, 1}}},
             {.depthStencil = {1.0f, 0}}
         }},
-        .extent = _graphicsCore->swapchainExtent()
+        .extent = swapchainExtent()
     };
 }
 
@@ -190,7 +191,7 @@ void FrameResources::createRenderPass() {
             .beginConfig{beginConfig}
         },
         jvk::create
-    );
+        );
 }
 
 
@@ -204,9 +205,9 @@ void FrameResources::createFramebufferCollection() {
                 _msaaAttachments.get(),
                 _depthAttachments.get()
             }
-        ),
+            ),
         jvk::create
-    );
+        );
 }
 
 void FrameResources::createGraphicsCore() {
@@ -218,7 +219,7 @@ void FrameResources::createGraphicsCore() {
         _config.windowName,
         _config.windowExtent,
         _config.presentQueue
-    );
+        );
 }
 
 void FrameResources::create() {
@@ -236,6 +237,11 @@ void FrameResources::create() {
 jvk::Framebuffer const& FrameResources::framebuffer() const {
     auto const& pulse = _graphicsCore->renderPulse();
     return _framebufferCollection->get(pulse.get());
+}
+
+VkExtent2D FrameResources::swapchainExtent() const {
+    auto const extent = _graphicsCore->swapchainExtent();
+    return {extent.x, extent.y};
 }
 
 jvk::RenderPass const& FrameResources::renderPass() const { return *_renderPass; }

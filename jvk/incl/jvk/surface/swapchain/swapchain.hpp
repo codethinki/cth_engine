@@ -181,7 +181,7 @@ public:
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; }
     //TODO move this to framebuffer or render pass
     [[nodiscard]] AttachmentCollection const* resolveAttachments() const { return _resolveAttachments.get(); }
-    [[nodiscard]] auto extent() const { return _extent; }
+    [[nodiscard]] VkExtent2D extent() const { return _extent; }
 
     Swapchain(Swapchain const& other) = delete;
     Swapchain& operator=(Swapchain const& other) = delete;

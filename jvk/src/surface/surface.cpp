@@ -14,9 +14,9 @@ Surface::Surface(Instance const& instance, DestructionQueue* destruction_queue, 
     destruction_queue, std::move(config)} { wrap(state); }
 
 Surface::~Surface() {
-    optDestroy();
 
-    log::msg("destroyed surface");
+    if(created()) cth::log::msg("destroyed surface");
+    optDestroy();
 }
 
 void Surface::wrap(State const& state) {

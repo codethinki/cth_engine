@@ -2,6 +2,8 @@
 #include "../../../src/utility/graphics_core_config.hpp"
 
 #include "jolly/render/RenderPulse.hpp"
+#include "jolly/render/model/CthVertex.hpp"
+#include "jolly/render/model/CthVertex.hpp"
 
 #include "jolly/utility/GraphicsSyncConfig.hpp"
 #include "jvk/base/core.hpp"
@@ -46,9 +48,9 @@ public:
      * @brief constructs and creates
      * @param present_queue must be valid
      * @note calls @ref create()
-     * @note calls @ref GraphicsCore(Core const&)
+     * @note calls @ref GraphicsCore(Core const&, Config)
      */
-    GraphicsCore(jvk::Core const& core, Config const& config, std::string_view window_name, VkExtent2D extent,
+    GraphicsCore(jvk::Core const& core, Config const& config, std::string_view window_name, glm::uvec2 extent,
         jvk::Queue const& present_queue);
 
     /**
@@ -61,7 +63,7 @@ public:
      * @brief constructs osWindow, surface and swapchain
      * @note calls @ref optDestroy()
      */
-    void create(std::string_view window_name, VkExtent2D extent, jvk::Queue const& present_queue);
+    void create(std::string_view window_name, glm::uvec2 extent, jvk::Queue const& present_queue);
 
     /**
      * @brief wraps the state
@@ -95,7 +97,7 @@ public:
      * @brief acquires frame from swapchain
      * @note calls @ref Swapchain::acquireNextImage()
      */
-    void acquireFrame() const;
+    void acquireFrame();
     /**
      * @brief skips the acquire
      * @note calls @ref Swapchain::skipAcquire()
@@ -109,7 +111,7 @@ public:
      * @note may call @ref minimized()
      * @return true if swapchain was resized
      */
-    [[nodiscard]] bool presentFrame() const;
+    [[nodiscard]] bool presentFrame();
     void skipPresent() const;
 
     /**
@@ -117,8 +119,17 @@ public:
      */
     void optDestroy() { if(created()) destroy(); }
 
+
+    /**
+     * @brief resizes the window and swapchain
+     */
+    void resize();
+
 private:
     void reset();
+
+
+    bool _resize = false;
 
     cth::not_null<jvk::Core const*> _core;
     Config _config;
@@ -138,9 +149,9 @@ public:
 
     [[nodiscard]] jvk::AttachmentCollection const* swapchainResolveAttachments() const;
     [[nodiscard]] VkFormat swapchainImageFormat() const;
-    [[nodiscard]] VkExtent2D swapchainExtent() const;
+    [[nodiscard]] glm::uvec2 swapchainExtent() const;
     [[nodiscard]] size_t swapchainSize() const;
-    [[nodiscard]] size_t swapchainImageIndex(RenderPulse const& pulse) const;
+    [[nodiscard]] size_t swapchainImageIndex() const;
 
     [[nodiscard]] dclauto imageAvailableWaitStages() const { return _syncConfig->imageAvailableWaitStages(); }
     [[nodiscard]] dclauto renderFinishedSemaphores() const { return _syncConfig->renderFinishedSemaphores(); }
