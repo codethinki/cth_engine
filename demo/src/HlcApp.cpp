@@ -32,7 +32,7 @@ void App::run() {
 }
 
 void App::createRenderer3() {
-    jly::Renderer3::Config config{
+    jly::Renderer3::Config const config{
         .stages{
             {
                 0,
