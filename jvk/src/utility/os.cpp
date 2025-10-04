@@ -9,25 +9,11 @@
 
 namespace jvk::os {
 
-std::unique_ptr<Surface> TempSurface(Instance const& instance) {
+
+Surface surface_from_window(Instance const& instance, window_t const& window) {
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-    // Create a hidden window for the surface
-    std::wstring const name = L"TempHiddenWindow";
-    WNDCLASSEX const wc{
-        .cbSize = sizeof(wc),
-        .lpfnWndProc = DefWindowProc,
-        .hInstance = GetModuleHandle(nullptr),
-        .lpszClassName = name.data(),
-    };
-    RegisterClassEx(&wc);
-
-    HWND hwnd = CreateWindowEx(0, name.data(), L"TempHiddenSurface", 0, 0, 0, 0, 0, nullptr, nullptr,
-        GetModuleHandle(nullptr), nullptr);
-
-    CTH_STABLE_ERR(hwnd == nullptr, "failed to create temp window")
-    throw details->exception();
-
+    auto const hwnd = static_cast<HWND>(window.handle.get());
 
     // Create the Vulkan surface
     VkWin32SurfaceCreateInfoKHR const createInfo{
@@ -40,11 +26,41 @@ std::unique_ptr<Surface> TempSurface(Instance const& instance) {
     auto const result = vkCreateWin32SurfaceKHR(instance.get(), &createInfo, nullptr, &surface);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create temp surface") {
         DestroyWindow(hwnd);
-        throw jvk::result_exception{result, details->exception()};
+        throw jvk::vk_result_exception{result, details->exception()};
     }
 
     log::msg("created temp surface");
 
-    return std::make_unique<Surface>(instance, nullptr, Surface::Config{}, Surface::State{surface});
+    return Surface{instance, nullptr, Surface::Config{}, Surface::State{surface}};
+}
+
+std::vector<window_t> create_hidden_monitor_windows() {
+    cxpr std::string_view windowBaseName = "jvk::os::hiddenMonitorWindow";
+
+
+    auto const monitors = cth::win::screen::enum_monitors();
+    JVK_STABLE_OS_THROW(monitors.empty(), "no monitors found :(") {}
+
+    std::vector<window_t> windows{};
+    windows.reserve(monitors.size());
+
+    for(size_t i = 0; i < monitors.size(); i++) {
+        auto const& [_, rect] = monitors[i];
+
+        try {
+            windows.push_back(
+                cth::win::screen::create_window(
+                    std::format("{} [{}]", windowBaseName, i),
+                    {rect.x, rect.y, 0, 0},
+                    false
+                )
+            );
+        }
+        catch(cth::except::win_exception const& e) {
+            throw os_exception{std::format("failed to construct window for monitor: {}", i)}.add(e.msg());
+        }
+    }
+
+    return windows;
 }
 }

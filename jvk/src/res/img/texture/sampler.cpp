@@ -29,7 +29,7 @@ void Sampler::create(Config const& config) {
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create sampler") {
         reset();
-        throw jvk::result_exception(createResult, details->exception());
+        throw jvk::vk_result_exception(createResult, details->exception());
     }
 
     _handle = ptr;

@@ -212,7 +212,7 @@ void BaseBuffer::createBuffer() {
         &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create buffer") {
         reset();
-        throw result_exception{createResult, details->exception()};
+        throw vk_result_exception{createResult, details->exception()};
     }
 
     _handle = ptr;
@@ -234,7 +234,7 @@ void BaseBuffer::bind() {
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind buffer memory") {
         destroy();
-        throw jvk::result_exception{bindResult, details->exception()};
+        throw jvk::vk_result_exception{bindResult, details->exception()};
     }
 }
 

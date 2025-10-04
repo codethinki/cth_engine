@@ -98,7 +98,7 @@ void Device::createLogicalDevice() {
     VkResult const createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create logical device") {
         reset();
-        throw jvk::result_exception{createResult, details->exception()};
+        throw jvk::vk_result_exception{createResult, details->exception()};
     }
     _handle = ptr;
 }
@@ -141,7 +141,7 @@ void Device::waitIdle() const {
     auto const result = table()->vkDeviceWaitIdle(_handle.get());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for device")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 }
 
 void Device::destroy(VkDevice vk_device, PFN_vkDestroyDevice destroy_function) {

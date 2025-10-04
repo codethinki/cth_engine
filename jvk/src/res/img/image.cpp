@@ -176,7 +176,7 @@ void Image::createHandle() {
     auto const createResult = _core->functions()->
                                      vkCreateImage(_core->vkDevice(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create image")
-        throw jvk::result_exception{createResult, details->exception()};
+        throw jvk::vk_result_exception{createResult, details->exception()};
 
     _handle = ptr;
 }
@@ -197,7 +197,7 @@ void Image::bind() const {
         _memory->get(), 0);
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind image memory")
-        throw jvk::result_exception{bindResult, details->exception()};
+        throw jvk::vk_result_exception{bindResult, details->exception()};
 }
 
 void Image::reset() {

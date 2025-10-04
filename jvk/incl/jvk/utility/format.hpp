@@ -17,11 +17,9 @@ std::string structure_to_string(T&& to_tuple) {
     auto tuple = boost::pfr::structure_to_tuple(std::forward<T>(to_tuple));
 
     return std::apply(
-        []<typename... U>(U&&... args) {
-            return std::format(std::string_view{FMT_BASE}, std::forward<U>(args)...);
-        },
+        []<typename... U>(U&&... args) { return std::format(std::string_view{FMT_BASE}, std::forward<U>(args)...); },
         tuple
-        );
+    );
 }
 
 template<class T>

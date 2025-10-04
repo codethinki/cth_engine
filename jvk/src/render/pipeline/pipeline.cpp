@@ -56,7 +56,7 @@ void Pipeline::create(GraphicsConfig const& config_info, PipelineLayout const* p
 
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create graphics pipeline")
-    throw jvk::result_exception{createResult, details->exception()};
+    throw jvk::vk_result_exception{createResult, details->exception()};
 
     cth::log::msg("created graphics-pipeline ");
 }

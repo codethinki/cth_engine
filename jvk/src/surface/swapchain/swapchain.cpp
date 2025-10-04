@@ -105,7 +105,7 @@ VkResult Swapchain::acquireNextImage(size_t in_flight_index) {
 
     CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR,
         "failed to acquire vk_image")
-    throw jvk::result_exception{acquireResult, details->exception()};
+    throw jvk::vk_result_exception{acquireResult, details->exception()};
 
     return acquireResult;
 }
@@ -129,7 +129,7 @@ void Swapchain::skipAcquire(size_t in_flight_index) const {
     //TODO this should be done via Queue::skip()
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire a vk_image")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 }
 
 
@@ -302,7 +302,7 @@ void Swapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swa
     auto const createResult = _core->deviceTable()->vkCreateSwapchainKHR(_core->vkDevice(), &info, nullptr,
         &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create swapchain")
-    throw jvk::result_exception{createResult, details->exception()};
+    throw jvk::vk_result_exception{createResult, details->exception()};
 
     _handle = ptr;
 
@@ -335,7 +335,7 @@ auto Swapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>> {
         &imageCount, nullptr);
 
     CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to get swapchain image count")
-    throw jvk::result_exception{countResult, details->exception()};
+    throw jvk::vk_result_exception{countResult, details->exception()};
 
     _imageCount = imageCount;
 
@@ -344,7 +344,7 @@ auto Swapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>> {
         &imageCount, vkImages.data());
 
     CTH_STABLE_ERR(getResult != VK_SUCCESS, "failed to get swapchain images")
-    throw jvk::result_exception{getResult, details->exception()};
+    throw jvk::vk_result_exception{getResult, details->exception()};
 
 
     std::vector<std::unique_ptr<Image>> images{};

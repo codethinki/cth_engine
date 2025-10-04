@@ -67,7 +67,7 @@ void Framebuffer::create(VkExtent2D extent) {
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create framebuffer") {
         reset();
-        throw jvk::result_exception{createResult, details->exception()};
+        throw jvk::vk_result_exception{createResult, details->exception()};
     }
 
     _handle = ptr;

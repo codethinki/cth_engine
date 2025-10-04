@@ -7,7 +7,7 @@
 
 #include <cth/io/file.hpp>
 
-#include <cth/win/windows.hpp>
+#include <cth/win/cmd.hpp>
 
 namespace dev {
 static std::string to_string(std::filesystem::path const& path) { return path.string(); }
@@ -18,17 +18,23 @@ CTH_FORMAT_TYPE(std::filesystem::path, dev::to_string);
 //Specialization
 
 namespace jvk {
-ShaderSpecialization::ShaderSpecialization(std::span<VkSpecializationMapEntry> entries,
-    std::span<char> data) : _vkInfo{
+ShaderSpecialization::ShaderSpecialization(
+    std::span<VkSpecializationMapEntry> entries,
+    std::span<char> data
+) : _vkInfo{
     static_cast<uint32_t>(entries.size()),
-    entries.data(), data.size(), reinterpret_cast<void*>(data.data())} {}
+    entries.data(),
+    data.size(),
+    reinterpret_cast<void*>(data.data())
+} {}
 }
 
 //Shader
 
 namespace jvk {
 Shader::Shader(Core const& core, VkShaderStageFlagBits stage, path_t spv_path) : _core{&core},
-    _vkStage{stage}, _spvPath{std::move(spv_path)} {
+    _vkStage{stage},
+    _spvPath{std::move(spv_path)} {
     auto spv = loadSpv();
     create(spv);
 }
@@ -86,11 +92,15 @@ void Shader::create(std::span<char const> spv) {
 
     VkShaderModule ptr = VK_NULL_HANDLE;
 
-    VkResult const createResult = _core->functions()->vkCreateShaderModule(_core->vkDevice(), &createInfo,
-        nullptr, &ptr);
+    VkResult const createResult = _core->functions()->vkCreateShaderModule(
+        _core->vkDevice(),
+        &createInfo,
+        nullptr,
+        &ptr
+    );
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create shader module")
-    throw jvk::result_exception{createResult, details->exception()};
+    throw jvk::vk_result_exception{createResult, details->exception()};
 
     _handle = ptr;
 
@@ -116,7 +126,6 @@ void Shader::reset() { _handle = VK_NULL_HANDLE; }
 
 #ifndef _FINAL
 void Shader::compile(path_t const& glsl_path, path_t const& compiler_path, std::string_view flags) const {
-
     CTH_STABLE_ERR(!std::filesystem::exists(glsl_path), "invalid glsl path") {
         details->add("path: {0}", glsl_path);
         throw details->exception();
@@ -124,8 +133,15 @@ void Shader::compile(path_t const& glsl_path, path_t const& compiler_path, std::
 
     constexpr std::string_view logFile = "shader_compile_log.txt";
 
-    std::string const command = std::format(R"("{0}" {1} -c "{2}" -o "{3}">NUL 2>"{4}")",
-        compiler_path, flags, glsl_path, _spvPath, logFile);
+    std::string const command = std::format(
+        R"("{0}" {1} -c "{2}" -o "{3}">NUL 2>"{4}")",
+        compiler_path,
+        flags,
+        glsl_path,
+        _spvPath,
+        logFile
+    );
+
     int const result = cth::win::cmd::hidden(command);
 
     std::vector<std::string> debugInfo = cth::io::file::chop(logFile);
@@ -147,8 +163,10 @@ void Shader::compile(path_t const& glsl_path, path_t const& compiler_path, std::
     if(debugInfo.size() > 2) {
         debugInfo.resize(debugInfo.size() - 1);
         for(auto& line : debugInfo)
-            line = std::format("line {}: ",
-                line.substr(line.find(glslFile) + glslFile.size()));
+            line = std::format(
+                "line {}: ",
+                line.substr(line.find(glslFile) + glslFile.size())
+            );
     }
     CTH_STABLE_ABORT(true, "shader compilation failed") {
         details->add("file: {}", glslFile);
@@ -159,8 +177,14 @@ void Shader::compile(path_t const& glsl_path, path_t const& compiler_path, std::
 }
 
 
-Shader::Shader(Core const& core, VkShaderStageFlagBits stages, path_t spv_path, path_t const& glsl_path,
-    path_t const& compiler_path) : _core{&core}, _vkStage{stages},
+Shader::Shader(
+    Core const& core,
+    VkShaderStageFlagBits stages,
+    path_t spv_path,
+    path_t const& glsl_path,
+    path_t const& compiler_path
+) : _core{&core},
+    _vkStage{stages},
     _spvPath{std::move(spv_path)} {
 #ifndef _DEBUG
     CTH_STABLE_WARN(true, "compiling shaders on startup, only use this on debug") {}

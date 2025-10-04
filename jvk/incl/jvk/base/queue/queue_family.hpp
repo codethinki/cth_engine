@@ -1,7 +1,10 @@
 #pragma once
 
-#include <cstdint>
+#include "jvk/utility/vk_hash.hpp"
+#include "jvk/utility/vk_overloads.hpp"
+
 #include <volk.h>
+
 
 namespace jvk {
 enum QueueFamilyPropertyFlagBits : uint32_t {
@@ -23,19 +26,23 @@ static QueueFamilyProperties to_queue_properties(VkQueueFlags flags, bool presen
 }
 
 struct QueueFamily {
-
-
-    QueueFamily(uint32_t index, VkQueueFamilyProperties const& vk_properties,
-        bool present_support) : index(index),
-        properties(to_queue_properties(vk_properties.queueFlags, present_support)),
-        vkProperties(vk_properties) {}
-
     uint32_t index;
     QueueFamilyProperties properties;
     VkQueueFamilyProperties vkProperties;
 
-
+    static QueueFamily Vk(uint32_t index, VkQueueFamilyProperties const& vk_properties, bool present_support) {
+        return {
+            .index = index,
+            .properties = to_queue_properties(vk_properties.queueFlags, present_support),
+            .vkProperties = vk_properties
+        };
+    }
 };
 
+static bool operator==(QueueFamily const& l, QueueFamily const& r) {
+    return l.index == r.index && l.properties == r.properties && l.vkProperties == r.vkProperties;
+}
 
 }
+
+CTH_HASH_AGGREGATE(jvk::QueueFamily)

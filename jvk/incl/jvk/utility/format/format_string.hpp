@@ -7,7 +7,7 @@
 namespace jvk::fmt {
 
 namespace dev {
-    inline cval size_t number_chars(size_t params) {
+    cval size_t number_chars(size_t params) {
         cxpr static size_t BASE = 10;
 
 
@@ -61,7 +61,7 @@ cxpr auto generate_format_string(char const (&type_name)[SvSize]) {
     cxpr size_t typeChars = SvSize - 1;
     cxpr size_t totalChars = typeChars + fieldChars + terminatorChars;
 
-    std::array < char, totalChars > result{};
+    std::array<char, totalChars> result{};
 
     size_t pos = 0;
     for(; pos < typeChars; pos++) result[pos] = type_name[pos];

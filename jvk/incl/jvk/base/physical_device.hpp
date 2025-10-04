@@ -28,25 +28,36 @@ public:
      * @brief base constructor
      * @param instance @ref Instance::created() required
      */
-    explicit PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures required_features,
-        std::span<std::string const> required_extensions);
+    explicit PhysicalDevice(
+        Instance const& instance,
+        utils::PhysicalDeviceFeatures required_features,
+        std::span<std::string const> required_extensions
+    );
 
     /**
      * @brief constructs and creates
      * @note calls @ref PhysicalDevice(Instance*, utils::PhysicalDeviceFeatures, std::span<std::string const>, Surface const&)
      * @note calls @ref create()
      */
-    explicit PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures const& required_features,
-        std::span<std::string const> required_extensions, Surface const& surface,
-        jvk::vk_not_null<VkPhysicalDevice> vk_device);
+    explicit PhysicalDevice(
+        Instance const& instance,
+        utils::PhysicalDeviceFeatures const& required_features,
+        std::span<std::string const> required_extensions,
+        std::span<Surface const> surfaces,
+        jvk::vk_not_null<VkPhysicalDevice> vk_device
+    );
 
     /**
      * @brief constructs and wraps
      * @note calls @ref PhysicalDevice(Instance*, utils::PhysicalDeviceFeatures, std::span<std::string const>, Surface const&)
      * @note calls @ref wrap(State const&)
      */
-    explicit PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures const& required_features,
-        std::span<std::string const> required_extensions, State const& state);
+    explicit PhysicalDevice(
+        Instance const& instance,
+        utils::PhysicalDeviceFeatures const& required_features,
+        std::span<std::string const> required_extensions,
+        State const& state
+    );
 
 
 
@@ -55,33 +66,43 @@ public:
      * @param queues passed to @ref suitable()
      * @return if @ref suitable() returns instance, else nullopt
      */
-    static std::optional<PhysicalDevice> Create(Instance const& instance, Surface const& surface,
+    static std::optional<PhysicalDevice> Create(
+        Instance const& instance,
+        std::span<Surface const> surface,
         std::span<Queue const> queues,
         std::span<std::string const> required_extensions,
         utils::PhysicalDeviceFeatures const& required_features,
-        jvk::vk_not_null<VkPhysicalDevice> vk_device);
+        jvk::vk_not_null<VkPhysicalDevice> vk_device
+    );
 
     ~PhysicalDevice() = default;
 
 
     /**
-     * @brief wraps the @ref State
+     * wraps the @ref State
      * @note resets if @ref created()
      */
     void wrap(State const& state);
 
+
     /**
-     * @param surface @ref Surface::created() required
+     * creates the physical device
+     * @param surfaces to evaluate queue families from
+     * @note calls @ref QueueFamily
+     */
+    void create(std::span<Surface const> surfaces, vk_not_null<VkPhysicalDevice> vk_device);
+
+    /**
+     * creates the physical device
      * @note calls @ref getExtensions()
      * @note calls @ref getProperties()
      * @note calls @ref getMemoryProperties()
      * @note calls @ref getQueueFamilyProperties()
      */
-    void create(Surface const& surface, vk_not_null<VkPhysicalDevice> vk_device);
+    void create(std::span<QueueFamily const> queue_families, vk_not_null<VkPhysicalDevice> vk_device);
 
     /**
      * @brief enumerates all available devices and picks one that fits the requirements
-     * @param temp_surface
      * @param queues required queues to support
      * @return valid physical device
      * @throws cth::except::default_exception if no device is found
@@ -89,10 +110,13 @@ public:
      * @ref jvk::constants::REQUIRED_DEVICE_FEATURES
      * @ref jvk::constants::REQUIRED_DEVICE_EXTENSIONS
      */
-    [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(Instance const& instance,
-        Surface const& temp_surface,
-        std::span<Queue const> queues, std::span<std::string const> required_extensions,
-        utils::PhysicalDeviceFeatures const& required_features);
+    [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(
+        Instance const& instance,
+        std::span<Surface const> temp_surfaces,
+        std::span<Queue const> queues,
+        std::span<std::string const> required_extensions,
+        utils::PhysicalDeviceFeatures const& required_features
+    );
 
 
     /**
@@ -106,7 +130,8 @@ public:
      * @return indices of missing features from utils::deviceFeaturesToArray
      */
     [[nodiscard]] std::vector<std::variant<size_t, VkStructureType>> supports(
-        utils::PhysicalDeviceFeatures const& required_features) const;
+        utils::PhysicalDeviceFeatures const& required_features
+    ) const;
 
     /**
      * @return missing extensions 
@@ -114,8 +139,12 @@ public:
     [[nodiscard]] std::vector<std::string> supports(std::span<std::string const> required_extensions);
 
     [[nodiscard]] uint32_t findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags mem_properties) const;
-    [[nodiscard]] VkFormat findSupportedFormat(std::span<VkFormat const> candidates, VkImageTiling tiling,
-        VkFormatFeatureFlags features) const;
+
+    [[nodiscard]] VkFormat findSupportedFormat(
+        std::span<VkFormat const> candidates,
+        VkImageTiling tiling,
+        VkFormatFeatureFlags features
+    ) const;
 
     /**
      * @brief finds a combination of queue families that support the requested queue types
@@ -134,24 +163,37 @@ public:
    * @throws jvk::result_exception result of @ref vkEnumeratePhysicalDevices()
    */
     [[nodiscard]] static std::vector<VkPhysicalDevice> enumerateVkDevices(
-        jvk::vk_not_null<VkInstance> vk_instance);
+        jvk::vk_not_null<VkInstance> vk_instance
+    );
 
     /**
      * @throws jvk::result_exception result of @ref vkGetPhysicalDeviceProperties()
      */
-    [[nodiscard]] static std::vector<std::string> getExtensions(jvk::vk_not_null<VkPhysicalDevice> vk_device);
+    [[nodiscard]] static std::vector<std::string> queryExtensions(
+        jvk::vk_not_null<VkPhysicalDevice> vk_device
+    );
 
-    [[nodiscard]] static VkPhysicalDeviceProperties getProperties(
-        jvk::vk_not_null<VkPhysicalDevice> vk_device);
+    [[nodiscard]] static VkPhysicalDeviceProperties queryProperties(
+        jvk::vk_not_null<VkPhysicalDevice> vk_device
+    );
 
-    [[nodiscard]] static VkPhysicalDeviceMemoryProperties getMemoryProperties(
-        jvk::vk_not_null<VkPhysicalDevice> vk_device);
+    [[nodiscard]] static VkPhysicalDeviceMemoryProperties queryMemoryProperties(
+        jvk::vk_not_null<VkPhysicalDevice> vk_device
+    );
 
-    [[nodiscard]] static std::vector<QueueFamily> getQueueFamilies(Surface const& surface,
-        jvk::vk_not_null<VkPhysicalDevice> vk_device);
+    [[nodiscard]] static std::vector<QueueFamily> queryQueueFamilies(
+        Surface const& surface,
+        jvk::vk_not_null<VkPhysicalDevice> vk_device
+    );
+
+    [[nodiscard]] static std::vector<QueueFamily> queryQueueFamilies(
+        std::span<Surface const> surfaces,
+        vk_not_null<VkPhysicalDevice> vk_device
+    );
 
     [[nodiscard]] static VkSampleCountFlagBits evalMaxSampleCount(
-        VkPhysicalDeviceProperties const& properties);
+        VkPhysicalDeviceProperties const& properties
+    );
 
 private:
     Instance const* _instance;
@@ -187,8 +229,8 @@ public:
     PhysicalDevice& operator=(PhysicalDevice const& other) = delete;
     PhysicalDevice& operator=(PhysicalDevice&& other) noexcept = default;
 
-    static void debug_check(PhysicalDevice const& device);
-    static void debug_check_handle(jvk::vk_not_null<VkPhysicalDevice> vk_device);
+    static void debug_check(PhysicalDevice const&);
+    static void debug_check_handle(jvk::vk_not_null<VkPhysicalDevice>);
 };
 }
 
@@ -221,7 +263,6 @@ inline void PhysicalDevice::debug_check(PhysicalDevice const& device) {
     debug_check_handle(device.get());
 }
 
-inline void
-PhysicalDevice::debug_check_handle([[maybe_unused]] jvk::vk_not_null<VkPhysicalDevice> vk_device) {}
+inline void PhysicalDevice::debug_check_handle([[maybe_unused]] jvk::vk_not_null<VkPhysicalDevice>) {}
 
 }

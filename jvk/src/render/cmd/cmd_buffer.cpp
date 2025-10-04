@@ -27,7 +27,7 @@ void CmdBuffer::destroy(this Me&& self) {
 void CmdBuffer::reset(VkCommandBufferResetFlags flags) {
     auto const result = _deviceTable->table->vkResetCommandBuffer(_handle.get(), flags);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset command buffer")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 
     _recording = false;
 }
@@ -37,7 +37,7 @@ void CmdBuffer::end() {
 
     auto const result = _deviceTable->table->vkEndCommandBuffer(_handle.get());
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset end buffer")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 
     _recording = false;
 }
@@ -73,7 +73,7 @@ void CmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
     auto const result = _pool->core().deviceTable()->vkBeginCommandBuffer(_handle.get(), &info);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to begin command buffer")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 
     _recording = true;
 }

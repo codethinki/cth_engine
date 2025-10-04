@@ -5,15 +5,14 @@
 #include "jvk/base/physical_device.hpp"
 #include "jvk/res/destruction_queue.hpp"
 #include "jvk/utility/os.hpp"
+#include "jvk/utility/vk_exceptions.hpp"
 
 namespace jvk {
 
 Core::Core(State state) { wrap(std::move(state)); }
 Core::Core(Config const& config) { create(config); }
 
-Core::~Core() {
-    optDestroy();
-}
+Core::~Core() { optDestroy(); }
 
 void Core::wrap(State state) {
     Instance::debug_check(*state.instance);
@@ -33,8 +32,8 @@ void Core::create(Config const& config) {
     optDestroy();
 
     _instance = std::make_unique<Instance>(config.appName, config.requiredExtensions, std::nullopt);
-    _physicalDevice = PhysicalDevice::AutoPick(*_instance, *jvk::os::TempSurface(*_instance), config.queues,
-        {}, {});
+
+    createPhysicalDevice(config);
 
     _device = std::make_unique<Device>(*_instance, *_physicalDevice, config.queues);
 
@@ -70,6 +69,26 @@ Core::State Core::release() {
     Core::reset();
 
     return temp;
+}
+void Core::createPhysicalDevice(Config const& config) {
+    auto windows = os::create_hidden_monitor_windows();
+
+    JVK_STABLE_THROW(windows.empty(), "failed to create temp monitor windows") {}
+
+    std::vector surfaces{
+        std::from_range,
+        windows | std::views::transform(
+            [this](os::window_t const& window) { return os::surface_from_window(*_instance, window); }
+        )
+    };
+
+    _physicalDevice = PhysicalDevice::AutoPick(
+        *_instance,
+        surfaces,
+        config.queues,
+        {},
+        {}
+    );
 }
 
 

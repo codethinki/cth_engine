@@ -71,7 +71,7 @@ void RenderPass::create() {
     auto const result = _core->functions()->vkCreateRenderPass(_core->vkDevice(), &createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create render pass")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 
     setHandle(ptr);
 }

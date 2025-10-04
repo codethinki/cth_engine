@@ -28,7 +28,7 @@ void Fence::create(VkFenceCreateFlags flags) {
     auto const result = _core->functions()->vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create fence")
-        throw jvk::result_exception{result, details->exception()};
+        throw jvk::vk_result_exception{result, details->exception()};
 
     _handle = ptr;
 }
@@ -54,7 +54,7 @@ VkResult Fence::status() const {
     auto const result = _core->functions()->vkGetFenceStatus(_core->vkDevice(), _handle.get());
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_NOT_READY, "failed to get fence status")
-        throw jvk::result_exception{result, details->exception()};
+        throw jvk::vk_result_exception{result, details->exception()};
 
     return result;
 }
@@ -66,7 +66,7 @@ void Fence::reset() const {
         static_cast<uint32_t>(fences.size()), fences.data());
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset fence")
-        throw jvk::result_exception{result, details->exception()};
+        throw jvk::vk_result_exception{result, details->exception()};
 }
 
 
@@ -85,7 +85,7 @@ VkResult Fence::wait(wait_t timeout) const {
     );
 
     CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
-        throw jvk::result_exception{result, details->exception()};
+        throw jvk::vk_result_exception{result, details->exception()};
 
     return result;
 }

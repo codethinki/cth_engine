@@ -41,7 +41,7 @@ void PipelineLayout::create() {
         nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline-layout")
-    throw jvk::result_exception(result, details->exception());
+    throw jvk::vk_result_exception(result, details->exception());
     _handle = ptr;
 
     log::msg("created pipeline-layout");

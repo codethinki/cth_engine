@@ -103,7 +103,7 @@ void DescriptorPool::create() {
     VkResult const createResult = _core->functions()->vkCreateDescriptorPool(_core->vkDevice(), &createInfo,
         nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "vk: failed to create descriptor pool")
-    throw jvk::result_exception(createResult, details->exception());
+    throw jvk::vk_result_exception(createResult, details->exception());
 
     _handle = ptr;
 
@@ -128,7 +128,7 @@ void DescriptorPool::allocSets() {
         _vkSets.data());
 
     CTH_STABLE_ERR(allocResult != VK_SUCCESS, "vk: failed to allocate descriptor sets")
-    throw jvk::result_exception(allocResult, details->exception());
+    throw jvk::vk_result_exception(allocResult, details->exception());
 }
 
 void DescriptorPool::returnSet(DescriptorSet* set) {

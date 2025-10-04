@@ -106,10 +106,10 @@ public:
     [[nodiscard]] VkSurfaceKHR get() const { return _handle.get(); }
 
 
-    Surface(Surface const& other) = default;
-    Surface(Surface&& other) noexcept = delete;
-    Surface& operator=(Surface const& other) = default;
-    Surface& operator=(Surface&& other) noexcept = delete;
+    Surface(Surface const& other) = delete;
+    Surface(Surface&& other) noexcept = default;
+    Surface& operator=(Surface const& other) = delete;
+    Surface& operator=(Surface&& other) noexcept = default;
 
     static void debug_check(Surface const& surface);
     static void debug_check_handle(jvk::vk_not_null<VkSurfaceKHR> surface);

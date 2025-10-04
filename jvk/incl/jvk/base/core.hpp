@@ -85,6 +85,8 @@ public:
     State release();
 
 private:
+    void createPhysicalDevice(Config const&);
+
     std::unique_ptr<Device> _device;
     std::unique_ptr<PhysicalDevice> _physicalDevice;
     std::unique_ptr<Instance> _instance;
@@ -156,10 +158,12 @@ struct Core::Config {
      */
     bool destructionQueue;
 
-    static Config Default(std::string_view app_name, std::string_view engine_name, std::span<Queue> queues,
-        std::span<std::string const> required_extensions) {
-        return Config{app_name, engine_name, queues, required_extensions, true};
-    }
+    static Config Default(
+        std::string_view app_name,
+        std::string_view engine_name,
+        std::span<Queue> queues,
+        std::span<std::string const> required_extensions
+    ) { return Config{app_name, engine_name, queues, required_extensions, true}; }
 };
 }
 

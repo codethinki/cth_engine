@@ -134,18 +134,18 @@ void GraphicsCore::skipPresent() const {
     _syncConfig->next();
 }
 
-void GraphicsCore::reset() {
-    _swapchain = nullptr;
-    _syncConfig = nullptr;
-    _surface = nullptr;
-    _osWindow = nullptr;
-}
-
 void GraphicsCore::resize() {
     minimized();
     _swapchain->resize(to_vk_extent(_osWindow->framebufferExtent()));
 
     _resize = false;
+}
+
+void GraphicsCore::reset() {
+    _swapchain = nullptr;
+    _syncConfig = nullptr;
+    _surface = nullptr;
+    _osWindow = nullptr;
 }
 
 

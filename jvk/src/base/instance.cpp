@@ -85,7 +85,7 @@ void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
 
     CTH_STABLE_ERR(createInstanceResult != VK_SUCCESS, "failed to create instance!") {
         reset();
-        throw jvk::result_exception{createInstanceResult, details->exception()};
+        throw jvk::vk_result_exception{createInstanceResult, details->exception()};
     }
 
     _handle = ptr;

@@ -26,7 +26,7 @@ void DebugMessenger::create(Instance const& instance) {
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to set up debug messenger") {
         reset();
-        throw jvk::result_exception{createResult, details->exception()};
+        throw jvk::vk_result_exception{createResult, details->exception()};
     }
 
     _handle = ptr;

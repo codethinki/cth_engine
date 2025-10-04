@@ -102,7 +102,7 @@ void OSWindow::createSurface(jvk::Instance const& instance) {
     _surface = vkSurface;
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create GLFW window surface")
-        throw jvk::result_exception{result, details->exception()};
+        throw jvk::vk_result_exception{result, details->exception()};
 
     cth::log::msg("created surface");
 }
@@ -209,5 +209,11 @@ void OSWindow::staticFocusCallback(GLFWwindow* glfw_window, int focused) {
 }
 
 bool OSWindow::shouldClose() const { return glfwWindowShouldClose(_handle.get()); }
+
+glm::uvec2 OSWindow::framebufferExtent() const {
+    glm::ivec2 framebufferExtent;
+    glfwGetFramebufferSize(_handle.get(), &framebufferExtent.x, &framebufferExtent.y);
+    return {framebufferExtent.x, framebufferExtent.y};
+}
 
 }

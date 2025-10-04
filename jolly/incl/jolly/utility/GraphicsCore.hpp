@@ -1,17 +1,14 @@
 #pragma once
-#include "../../../src/utility/graphics_core_config.hpp"
-
-#include "jolly/render/RenderPulse.hpp"
-#include "jolly/render/model/CthVertex.hpp"
-#include "jolly/render/model/CthVertex.hpp"
+#include "graphics_core_config.hpp"
 
 #include "jolly/utility/GraphicsSyncConfig.hpp"
 #include "jvk/base/core.hpp"
 
+#include <cth/macro.hpp>
+
 
 namespace jvk {
 class AttachmentCollection;
-class GraphicsSyncConfig;
 class Surface;
 struct Cycle;
 class RenderPass;

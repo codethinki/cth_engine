@@ -14,8 +14,11 @@ namespace jvk {
 Memory::Memory(Core const& core, VkMemoryPropertyFlags vk_properties) : _core{&core},
     _vkProperties(vk_properties) { Core::debug_check(core); }
 
-Memory::Memory(Core const& core, VkMemoryPropertyFlags properties,
-    VkMemoryRequirements const& vk_requirements) : Memory{core, properties} { create(vk_requirements); }
+Memory::Memory(
+    Core const& core,
+    VkMemoryPropertyFlags properties,
+    VkMemoryRequirements const& vk_requirements
+) : Memory{core, properties} { create(vk_requirements); }
 
 Memory::~Memory() { if(created()) Memory::destroy(); }
 
@@ -33,15 +36,22 @@ void Memory::create(VkMemoryRequirements const& vk_requirements) {
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = vk_requirements.size;
-    allocInfo.memoryTypeIndex = _core->physicalDevice().findMemoryType(vk_requirements.memoryTypeBits,
-        _vkProperties);
+    allocInfo.memoryTypeIndex = _core->physicalDevice().findMemoryType(
+        vk_requirements.memoryTypeBits,
+        _vkProperties
+    );
 
     VkDeviceMemory ptr = VK_NULL_HANDLE;
 
-    VkResult const allocResult = _core->functions()->vkAllocateMemory(_core->device().get(), &allocInfo,
-        nullptr, &ptr);
-    CTH_STABLE_ERR(allocResult != VK_SUCCESS, "failed to allocate buffer memory")
-    throw jvk::result_exception{allocResult, details->exception()};
+    VkResult const allocResult = _core->functions()->vkAllocateMemory(
+        _core->device().get(),
+        &allocInfo,
+        nullptr,
+        &ptr
+    );
+
+    JVK_RESULT_STABLE_THROW(allocResult != VK_SUCCESS, allocResult, "failed to allocate buffer memory");
+
 
     _handle = ptr;
 
@@ -52,10 +62,15 @@ std::span<char> Memory::map(size_t map_size, size_t offset) const {
     Memory::debug_check(this);
 
     void* mappedPtr = nullptr;
-    VkResult const mapResult = _core->functions()->vkMapMemory(_core->vkDevice(), _handle.get(), offset,
-        _size, 0, &mappedPtr);
-    CTH_STABLE_ERR(mapResult != VK_SUCCESS, "memory mapping failed")
-    throw jvk::result_exception{mapResult, details->exception()};
+    VkResult const mapResult = _core->functions()->vkMapMemory(
+        _core->vkDevice(),
+        _handle.get(),
+        offset,
+        _size,
+        0,
+        &mappedPtr
+    );
+    JVK_RESULT_STABLE_THROW(mapResult != VK_SUCCESS, mapResult, "memory mapping failed");
 
     return std::span<char>{static_cast<char*>(mappedPtr), map_size};
 }
@@ -69,7 +84,7 @@ void Memory::flush(size_t size, size_t offset) const {
     auto const result = _core->functions()->vkFlushMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to flush mapped memory ranges")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 }
 
 void Memory::invalidate(size_t size, size_t offset) const {
@@ -82,7 +97,7 @@ void Memory::invalidate(size_t size, size_t offset) const {
                                vkInvalidateMappedMemoryRanges(_core->vkDevice(), 1, &mappedRange);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to invalidate mapped memory ranges")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 }
 
 void Memory::unmap() const { _core->functions()->vkUnmapMemory(_core->vkDevice(), _handle.get()); }

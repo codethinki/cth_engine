@@ -10,6 +10,8 @@
 #include <array>
 #include <functional>
 
+#include <cth/hash.hpp>
+
 
 namespace jly {
 
@@ -51,7 +53,7 @@ template<>
 struct std::hash<jly::Vertex> {
     size_t operator()(jly::Vertex const& vertex) const noexcept {
         size_t seed = 0;
-        cth::alg::hash::combine(seed, vertex.position, vertex.normal, vertex.uv);
+        cth::hash::combine(seed, vertex.position, vertex.normal, vertex.uv);
         return seed;
     }
 };

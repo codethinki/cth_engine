@@ -1,9 +1,13 @@
 #include "jvk/base/physical_device.hpp"
 
+#include "../utility/os/incl_windows.hpp"
+
 #include "jvk/base/instance.hpp"
 #include "jvk/base/queue/queue.hpp"
 #include "jvk/surface/surface.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
+
+#include <unordered_set>
 
 
 #include <range/v3/view/concat.hpp>
@@ -16,29 +20,38 @@ using std::unique_ptr;
 
 
 
-PhysicalDevice::PhysicalDevice(Instance const& instance, utils::PhysicalDeviceFeatures required_features,
-    std::span<std::string const> required_extensions) : _instance{&instance},
+PhysicalDevice::PhysicalDevice(
+    Instance const& instance,
+    utils::PhysicalDeviceFeatures required_features,
+    std::span<std::string const> required_extensions
+) : _instance{&instance},
     _requiredFeatures{std::move(required_features)},
     _requiredExtensions{std::from_range, required_extensions} {}
 
-PhysicalDevice::PhysicalDevice(Instance const& instance,
+PhysicalDevice::PhysicalDevice(
+    Instance const& instance,
     utils::PhysicalDeviceFeatures const& required_features,
-    std::span<std::string const> required_extensions, Surface const& surface,
-    jvk::vk_not_null<VkPhysicalDevice> vk_device) : PhysicalDevice{instance,
-    required_features, required_extensions} { create(surface, vk_device); }
+    std::span<std::string const> required_extensions,
+    std::span<Surface const> surfaces,
+    jvk::vk_not_null<VkPhysicalDevice> vk_device
+) : PhysicalDevice{instance, required_features, required_extensions} { create(surfaces, vk_device); }
 
-PhysicalDevice::PhysicalDevice(Instance const& instance,
+PhysicalDevice::PhysicalDevice(
+    Instance const& instance,
     utils::PhysicalDeviceFeatures const& required_features,
-    std::span<std::string const> required_extensions, State const& state) : PhysicalDevice{instance,
-    required_features,
-    required_extensions} { wrap(state); }
+    std::span<std::string const> required_extensions,
+    State const& state
+) : PhysicalDevice{instance, required_features, required_extensions} { wrap(state); }
 
 
-std::optional<PhysicalDevice> PhysicalDevice::Create(Instance const& instance, Surface const& surface,
-    std::span<Queue const> queues, std::span<std::string const> required_extensions,
+std::optional<PhysicalDevice> PhysicalDevice::Create(
+    Instance const& instance,
+    std::span<Surface const> surface,
+    std::span<Queue const> queues,
+    std::span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features,
-    jvk::vk_not_null<VkPhysicalDevice> vk_device) {
-
+    jvk::vk_not_null<VkPhysicalDevice> vk_device
+) {
     PhysicalDevice physicalDevice{instance, required_features, required_extensions, surface, vk_device};
 
     if(physicalDevice.suitable(queues)) return physicalDevice;
@@ -55,29 +68,33 @@ void PhysicalDevice::wrap(State const& state) {
     else _features = utils::PhysicalDeviceFeatures{device, _requiredFeatures};
 
     if(!state.extensions.empty()) _extensions = state.extensions;
-    else _extensions = getExtensions(device);
+    else _extensions = queryExtensions(device);
 
-    _properties = state.properties.value_or(getProperties(device));
+    _properties = state.properties.value_or(queryProperties(device));
 
     if(_maxSampleCount != VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM) _maxSampleCount = state.maxSampleCount;
     else _maxSampleCount = evalMaxSampleCount(_properties);
 
 
-    _memProperties = state.memProperties.value_or(getMemoryProperties(device));
+    _memProperties = state.memProperties.value_or(queryMemoryProperties(device));
     _queueFamilies = state.queueFamilies;
-
 }
 
-void PhysicalDevice::create(Surface const& surface, vk_not_null<VkPhysicalDevice> vk_device) {
+void PhysicalDevice::create(std::span<Surface const> surfaces, vk_not_null<VkPhysicalDevice> vk_device) {
+    CTH_CRITICAL(surfaces.empty(), "there must be at least one surface") {}
+    create(queryQueueFamilies(surfaces, vk_device), vk_device);
+}
+
+void PhysicalDevice::create(std::span<QueueFamily const> queue_families, vk_not_null<VkPhysicalDevice> vk_device) {
     PhysicalDevice::debug_check_handle(vk_device);
 
     _handle = vk_device.get();
     _features = utils::PhysicalDeviceFeatures{vk_device, _requiredFeatures};
-    _extensions = getExtensions(vk_device);
-    _properties = getProperties(vk_device);
+    _extensions = queryExtensions(vk_device);
+    _properties = queryProperties(vk_device);
     _maxSampleCount = evalMaxSampleCount(_properties);
-    _memProperties = getMemoryProperties(vk_device);
-    _queueFamilies = getQueueFamilies(surface, vk_device);
+    _memProperties = queryMemoryProperties(vk_device);
+    _queueFamilies = {std::from_range, queue_families};
 }
 
 
@@ -92,15 +109,20 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
     CTH_WARN(!valid, "physical device ({}) is missing features", _properties.deviceName) {
         if(queueIndices.empty()) details->add("missing queue families");
         for(auto const& missingExtension : missingExtensions)
-            details->add("missing extension: {}",
-                missingExtension);
+            details->add(
+                "missing extension: {}",
+                missingExtension
+            );
         for(auto const& missingFeature : missingFeatures)
-            std::visit(cth::var::overload{
-                [&details](size_t index) { details->add("missing feature ({})", index); },
-                [&details](VkStructureType s_type) {
-                    details->add("missing feature2 extension: ({})", static_cast<uint32_t>(s_type));
-                }
-            }, missingFeature);
+            std::visit(
+                cth::var::overload{
+                    [&details](size_t index) { details->add("missing feature ({})", index); },
+                    [&details](VkStructureType s_type) {
+                        details->add("missing feature2 extension: ({})", static_cast<uint32_t>(s_type));
+                    }
+                },
+                missingFeature
+            );
     }
 
 
@@ -108,15 +130,19 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
 }
 
 
-auto PhysicalDevice::AutoPick(Instance const& instance, Surface const& temp_surface,
+auto PhysicalDevice::AutoPick(
+    Instance const& instance,
+    std::span<Surface const> temp_surfaces,
     std::span<Queue const> queues,
     span<std::string const> required_extensions,
-    utils::PhysicalDeviceFeatures const& required_features) -> unique_ptr<PhysicalDevice> {
+    utils::PhysicalDeviceFeatures const& required_features
+) -> unique_ptr<PhysicalDevice> {
     Instance::debug_check(instance);
 
     auto const devices = enumerateVkDevices(instance.get());
 
     auto joinView = ::ranges::views::concat(required_extensions, constants::REQUIRED_DEVICE_EXTENSIONS);
+
     vector<std::string> requiredExtensions{std::ranges::begin(joinView), std::ranges::end(joinView)};
 
 
@@ -126,11 +152,11 @@ auto PhysicalDevice::AutoPick(Instance const& instance, Surface const& temp_surf
 
     vector<unique_ptr<PhysicalDevice>> physicalDevices{};
     for(auto& device : devices) {
-        auto physicalDevice = Create(instance, temp_surface, queues, requiredExtensions, requiredFeatures,
-            device);
+        auto physicalDevice = Create(instance, temp_surfaces, queues, requiredExtensions, requiredFeatures, device);
         if(physicalDevice.has_value())
             physicalDevices.emplace_back(
-                std::make_unique < PhysicalDevice > (std::move(physicalDevice.value())));
+                std::make_unique<PhysicalDevice>(std::move(physicalDevice.value()))
+            );
     }
     CTH_STABLE_ERR(physicalDevices.empty(), "no GPU is suitable")
     throw details->exception();
@@ -143,8 +169,8 @@ auto PhysicalDevice::AutoPick(Instance const& instance, Surface const& temp_surf
 
 
 auto PhysicalDevice::supports(
-    utils::PhysicalDeviceFeatures const& required_features) const -> std::vector<std::variant<size_t,
-    VkStructureType>> {
+    utils::PhysicalDeviceFeatures const& required_features
+) const -> std::vector<std::variant<size_t, VkStructureType>> {
     PhysicalDevice::debug_check(*this);
 
     return _features.supports(required_features);
@@ -173,8 +199,11 @@ uint32_t PhysicalDevice::findMemoryType(uint32_t type_filter, VkMemoryPropertyFl
     throw details->exception();
 }
 
-auto PhysicalDevice::findSupportedFormat(span<VkFormat const> candidates, VkImageTiling tiling,
-    VkFormatFeatureFlags features) const -> VkFormat {
+auto PhysicalDevice::findSupportedFormat(
+    span<VkFormat const> candidates,
+    VkImageTiling tiling,
+    VkFormatFeatureFlags features
+) const -> VkFormat {
     PhysicalDevice::debug_check(*this);
 
     for(VkFormat const format : candidates) {
@@ -226,52 +255,66 @@ vector<VkPhysicalDevice> PhysicalDevice::enumerateVkDevices(jvk::vk_not_null<VkI
     uint32_t deviceCount = 0;
     auto const countResult = vkEnumeratePhysicalDevices(vk_instance.get(), &deviceCount, nullptr);
     CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to count physical devices")
-    throw result_exception{countResult, details->exception()};
+    throw vk_result_exception{countResult, details->exception()};
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     auto const writeResult = vkEnumeratePhysicalDevices(vk_instance.get(), &deviceCount, devices.data());
     CTH_STABLE_ERR(writeResult != VK_SUCCESS, "failed to write physical devices")
-    throw result_exception{writeResult, details->exception()};
+    throw vk_result_exception{writeResult, details->exception()};
 
     return devices;
 }
 
-vector<std::string> PhysicalDevice::getExtensions(jvk::vk_not_null<VkPhysicalDevice> vk_device) {
+vector<std::string> PhysicalDevice::queryExtensions(jvk::vk_not_null<VkPhysicalDevice> vk_device) {
     uint32_t extensionCount = 0;
-    auto const countResult = vkEnumerateDeviceExtensionProperties(vk_device.get(), nullptr, &extensionCount,
-        nullptr);
+    auto const countResult = vkEnumerateDeviceExtensionProperties(
+        vk_device.get(),
+        nullptr,
+        &extensionCount,
+        nullptr
+    );
     CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to count device extensions")
-    throw result_exception{countResult, details->exception()};
+    throw vk_result_exception{countResult, details->exception()};
 
     vector<VkExtensionProperties> availableExtensions{extensionCount};
-    auto const writeResult = vkEnumerateDeviceExtensionProperties(vk_device.get(), nullptr, &extensionCount,
-        availableExtensions.data());
+    auto const writeResult = vkEnumerateDeviceExtensionProperties(
+        vk_device.get(),
+        nullptr,
+        &extensionCount,
+        availableExtensions.data()
+    );
     CTH_STABLE_ERR(writeResult != VK_SUCCESS, "failed to write device extension properties")
-    throw result_exception{writeResult, details->exception()};
+    throw vk_result_exception{writeResult, details->exception()};
 
     vector<std::string> extensions{extensionCount};
 
-    std::ranges::transform(availableExtensions, extensions.begin(),
-        [](VkExtensionProperties const& extension) { return extension.extensionName; });
+    std::ranges::transform(
+        availableExtensions,
+        extensions.begin(),
+        [](VkExtensionProperties const& extension) { return extension.extensionName; }
+    );
 
     return extensions;
 }
 
-VkPhysicalDeviceProperties PhysicalDevice::getProperties(jvk::vk_not_null<VkPhysicalDevice> vk_device) {
+VkPhysicalDeviceProperties PhysicalDevice::queryProperties(jvk::vk_not_null<VkPhysicalDevice> vk_device) {
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(vk_device.get(), &properties);
     return properties;
 }
 
-VkPhysicalDeviceMemoryProperties
-PhysicalDevice::getMemoryProperties(jvk::vk_not_null<VkPhysicalDevice> vk_device) {
+VkPhysicalDeviceMemoryProperties PhysicalDevice::queryMemoryProperties(
+    jvk::vk_not_null<VkPhysicalDevice> vk_device
+) {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(vk_device.get(), &memProperties);
     return memProperties;
 }
 
-std::vector<QueueFamily> PhysicalDevice::getQueueFamilies(Surface const& surface,
-    jvk::vk_not_null<VkPhysicalDevice> vk_device) {
+std::vector<QueueFamily> PhysicalDevice::queryQueueFamilies(
+    Surface const& surface,
+    jvk::vk_not_null<VkPhysicalDevice> vk_device
+) {
     vector<VkQueueFamilyProperties> familyProperties{};
     uint32_t count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(vk_device.get(), &count, nullptr);
@@ -291,26 +334,55 @@ std::vector<QueueFamily> PhysicalDevice::getQueueFamilies(Surface const& surface
 
     queueFamilies.reserve(presentSupport.size());
     for(size_t i = 0; i < presentSupport.size(); i++)
-        queueFamilies.emplace_back(static_cast<uint32_t>(i),
-            familyProperties[i], presentSupport[i]);
+        queueFamilies.push_back(
+            QueueFamily::Vk(static_cast<uint32_t>(i), familyProperties[i], presentSupport[i])
+        );
 
     return queueFamilies;
 }
 
+std::vector<QueueFamily> PhysicalDevice::queryQueueFamilies(
+    std::span<Surface const> surfaces,
+    vk_not_null<VkPhysicalDevice> vk_device
+) {
+    CTH_CRITICAL(surfaces.empty(), "no surfaces provided"){}
+
+    std::unordered_set<QueueFamily> queueFamilies{};
+    queueFamilies.insert_range(queryQueueFamilies(surfaces.front(), vk_device));
+
+    for(auto const& surface : surfaces) {
+        std::unordered_set families = {std::from_range, queryQueueFamilies(surface, vk_device)};
+        std::erase_if(
+            queueFamilies,
+            [&families](auto const& queue_family) { return !families.contains(queue_family); }
+        );
+    }
+
+    return {std::from_range, queueFamilies};
+}
+
 VkSampleCountFlagBits PhysicalDevice::evalMaxSampleCount(VkPhysicalDeviceProperties const& properties) {
-    VkSampleCountFlags const counts = properties.limits.framebufferColorSampleCounts &
+    VkSampleCountFlags const supportedSamples = properties.limits.framebufferColorSampleCounts &
         properties.limits.framebufferDepthSampleCounts;
 
-    VkSampleCountFlagBits maxSampleCount;
-    if(counts & VK_SAMPLE_COUNT_64_BIT) maxSampleCount = VK_SAMPLE_COUNT_64_BIT;
-    else if(counts & VK_SAMPLE_COUNT_32_BIT) maxSampleCount = VK_SAMPLE_COUNT_32_BIT;
-    else if(counts & VK_SAMPLE_COUNT_16_BIT) maxSampleCount = VK_SAMPLE_COUNT_16_BIT;
-    else if(counts & VK_SAMPLE_COUNT_8_BIT) maxSampleCount = VK_SAMPLE_COUNT_8_BIT;
-    else if(counts & VK_SAMPLE_COUNT_4_BIT) maxSampleCount = VK_SAMPLE_COUNT_4_BIT;
-    else if(counts & VK_SAMPLE_COUNT_2_BIT) maxSampleCount = VK_SAMPLE_COUNT_2_BIT;
-    else maxSampleCount = VK_SAMPLE_COUNT_1_BIT;
 
-    return maxSampleCount;
+    cxpr std::array sampleFlagBits = {
+        VK_SAMPLE_COUNT_64_BIT,
+        VK_SAMPLE_COUNT_32_BIT,
+        VK_SAMPLE_COUNT_16_BIT,
+        VK_SAMPLE_COUNT_8_BIT,
+        VK_SAMPLE_COUNT_4_BIT,
+        VK_SAMPLE_COUNT_2_BIT,
+        VK_SAMPLE_COUNT_1_BIT
+    };
+
+
+    for(auto const sampleFlagBit : sampleFlagBits)
+        if(supportedSamples & sampleFlagBit)
+            return sampleFlagBit;
+
+    CTH_CRITICAL(true, "invalid state, sample count not supported") {}
+    return VK_SAMPLE_COUNT_1_BIT;
 }
 
 }

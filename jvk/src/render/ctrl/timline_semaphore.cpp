@@ -33,7 +33,7 @@ size_t TimelineSemaphore::gpuValue() const {
     size_t value = 0;
     auto const result = _core->functions()->vkGetSemaphoreCounterValue(_core->vkDevice(), get(), &value);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to get semaphore counter value")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 
     return value;
 }
@@ -43,7 +43,7 @@ void TimelineSemaphore::signal() {
 
     auto const result = _core->functions()->vkSignalSemaphore(_core->vkDevice(), &info);
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to signal semaphore")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 }
 
 VkResult TimelineSemaphore::wait(uint64_t nanoseconds) const {

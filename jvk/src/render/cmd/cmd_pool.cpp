@@ -155,7 +155,7 @@ void CmdPool::createPool() {
     auto const result = _core->functions()->vkCreateCommandPool(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create command pool")
-    throw jvk::result_exception{result, details->exception()};
+    throw jvk::vk_result_exception{result, details->exception()};
 
     _handle = ptr;
 }
@@ -179,7 +179,7 @@ void CmdPool::alloc() {
         CTH_STABLE_ERR(allocResult != VK_SUCCESS,
             "failed to allocate group({}) command buffers (0 = PRIMARY, 1 = SECONDARY)",
             static_cast<size_t>(i))
-        throw jvk::result_exception{allocResult, details->exception()};
+        throw jvk::vk_result_exception{allocResult, details->exception()};
     }
 }
 

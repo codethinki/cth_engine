@@ -68,7 +68,7 @@ void Semaphore::createHandle(VkSemaphoreCreateInfo const& info) {
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create semaphore") {
         reset();
-        throw jvk::result_exception{createResult, details->exception()};
+        throw jvk::vk_result_exception{createResult, details->exception()};
     }
     _handle = ptr;
 }

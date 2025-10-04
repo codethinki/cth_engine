@@ -165,7 +165,7 @@ DescriptorSet::Builder& DescriptorSet::Builder::addDescriptor(Descriptor* descri
         details->add("binding: {}", binding);
         details->add("array index: {}", arr_index);
     }
-    CTH_INFORM(descriptor == nullptr, "adding empty descriptor, consider using removeDescriptor() instead") {
+    CTH_INFO(descriptor == nullptr, "adding empty descriptor, consider using removeDescriptor() instead") {
         details->add("binding: {}", binding);
         details->add("array index: {}", arr_index);
     }
@@ -183,7 +183,7 @@ DescriptorSet::Builder::addDescriptors(std::span<Descriptor* const> binding_desc
         details->add("binding: {0}, layout size: {1}", binding, _descriptors[binding].size());
         details->add("binding descriptors: {0}, arr_first: {1}", binding_descriptors.size(), arr_first);
     }
-    CTH_INFORM(std::ranges::any_of(binding_descriptors, [](Descriptor const* descriptor) {
+    CTH_INFO(std::ranges::any_of(binding_descriptors, [](Descriptor const* descriptor) {
             return !descriptor;
         }),
         "adding empty descriptors, consider using removeDescriptors() instead") {

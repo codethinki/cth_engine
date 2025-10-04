@@ -3,10 +3,10 @@
 #include "jolly/render/RenderStage.hpp"
 #include "jolly/utility/CthOSWindow.hpp"
 
+#include "jolly/utility/types.hpp"
 #include "render/HlcFrameInfo.hpp"
 
 #include "jvk/base/device.hpp"
-
 
 
 namespace cth {

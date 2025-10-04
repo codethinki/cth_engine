@@ -81,9 +81,7 @@ private:
 public:
     [[nodiscard]] bool shouldClose() const;
 
-    [[nodiscard]] glm::uvec2 framebufferExtent() const {
-        return _framebufferExtent;
-    }
+    [[nodiscard]] glm::uvec2 framebufferExtent() const;
 
     [[nodiscard]] bool focused() const { return _focus; }
 
