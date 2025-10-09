@@ -21,9 +21,7 @@ namespace cth {
 
 
 FrameResources::FrameResources(jvk::Core const& core, Config config)
-    : _core{&core}, _config{std::move(config)} {
-    create();
-}
+    : _core{&core}, _config{std::move(config)} { create(); }
 
 FrameResources::~FrameResources() = default;
 
@@ -48,9 +46,7 @@ void FrameResources::beginRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) co
     _core->functions()->vkCmdSetScissor(cmd_buffer.get(), 0, 1, &scissor);
 }
 
-void FrameResources::endRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) const {
-    _renderPass->end(cmd_buffer);
-}
+void FrameResources::endRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) const { _renderPass->end(cmd_buffer); }
 
 
 void FrameResources::resize() const {
@@ -66,21 +62,13 @@ void FrameResources::resize() const {
     _renderPass->resize(vkExtent);
 }
 
-void FrameResources::acquireFrame() const {
-    _graphicsCore->acquireFrame();
-}
+void FrameResources::acquireFrame() const { _graphicsCore->acquireFrame(); }
 
-void FrameResources::skipAcquire() const {
-    _graphicsCore->skipAcquire();
-}
+void FrameResources::skipAcquire() const { _graphicsCore->skipAcquire(); }
 
-bool FrameResources::presentFrame() const {
-    return _graphicsCore->presentFrame();
-}
+bool FrameResources::presentFrame() const { return _graphicsCore->presentFrame(); }
 
-void FrameResources::skipPresent() const {
-    _graphicsCore->skipPresent();
-}
+void FrameResources::skipPresent() const { _graphicsCore->skipPresent(); }
 
 VkSampleCountFlagBits FrameResources::evalMsaaSampleCount() const {
     uint32_t const maxSamples = _core->physicalDevice().maxSampleCount() / 2;
@@ -97,7 +85,7 @@ VkFormat FrameResources::findDepthFormat() const {
         std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-        );
+    );
 
     CTH_STABLE_ERR(format == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED")
     throw details->exception();
@@ -113,7 +101,7 @@ void FrameResources::createDepthAttachments() {
         *_core,
         jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description},
         swapchainExtent()
-        );
+    );
 }
 
 void FrameResources::createMsaaAttachments() {
@@ -131,7 +119,8 @@ void FrameResources::createMsaaAttachments() {
     _msaaAttachments = std::make_unique<jvk::AttachmentCollection>(
         *_core,
         jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description},
-        swapchainExtent());
+        swapchainExtent()
+    );
 }
 
 
@@ -147,7 +136,7 @@ std::unique_ptr<jvk::Subpass> FrameResources::createSubpass() const {
         std::vector{_msaaAttachments.get()},
         std::vector{_graphicsCore->swapchainResolveAttachments()},
         _depthAttachments.get()
-        );
+    );
 }
 
 VkSubpassDependency FrameResources::createSubpassDependency() {
@@ -168,12 +157,14 @@ VkSubpassDependency FrameResources::createSubpassDependency() {
 
 jvk::RenderPassBeginConfig FrameResources::createRenderPassBeginConfig() const {
     return {
-        .clearValues = {{
-            {.color = {{0, 0, 0, 1}}},
-            //TEMP this is the swapchain clear value and should be set by the swapchain not manually
-            {.color = {{0, 0, 0, 1}}},
-            {.depthStencil = {1.0f, 0}}
-        }},
+        .clearValues = {
+            {
+                {.color = {{0, 0, 0, 1}}},
+                //TEMP this is the swapchain clear value and should be set by the swapchain not manually
+                {.color = {{0, 0, 0, 1}}},
+                {.depthStencil = {1.0f, 0}}
+            }
+        },
         .extent = swapchainExtent()
     };
 }
@@ -191,7 +182,7 @@ void FrameResources::createRenderPass() {
             .beginConfig{beginConfig}
         },
         jvk::create
-        );
+    );
 }
 
 
@@ -205,9 +196,9 @@ void FrameResources::createFramebufferCollection() {
                 _msaaAttachments.get(),
                 _depthAttachments.get()
             }
-            ),
+        ),
         jvk::create
-        );
+    );
 }
 
 void FrameResources::createGraphicsCore() {
@@ -219,7 +210,7 @@ void FrameResources::createGraphicsCore() {
         _config.windowName,
         _config.windowExtent,
         _config.presentQueue
-        );
+    );
 }
 
 void FrameResources::create() {
@@ -246,16 +237,13 @@ VkExtent2D FrameResources::swapchainExtent() const {
 
 jvk::RenderPass const& FrameResources::renderPass() const { return *_renderPass; }
 
-bool FrameResources::shouldClose() const {
-    return _graphicsCore->osWindow()->shouldClose();
-}
+bool FrameResources::shouldClose() const { return _graphicsCore->osWindow()->shouldClose(); }
 
-jly::RenderPulse const& FrameResources::renderPulse() const {
-    return _graphicsCore->renderPulse();
-}
+jly::RenderPulse const& FrameResources::renderPulse() const { return _graphicsCore->renderPulse(); }
 
-jly::GraphicsSyncConfig const& FrameResources::syncConfig() const {
-    return *_graphicsCore->syncConfig();
+jly::GraphicsSyncConfig const& FrameResources::syncConfig() const { return *_graphicsCore->syncConfig(); }
+std::vector<jvk::Semaphore*> FrameResources::renderFinishedSemaphores() const {
+    return _graphicsCore->renderFinishedSemaphores();
 }
 
 }

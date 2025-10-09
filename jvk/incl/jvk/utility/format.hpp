@@ -23,7 +23,7 @@ std::string structure_to_string(T&& to_tuple) {
 }
 
 template<class T>
-concept formattable_type = cth::type::is_any_of<cth::type::pure_t<T>,
+concept formattable_type = cth::type::any_of<cth::type::pure_t<T>,
     VkSurfaceFormatKHR,
     VkExtent2D
 >;

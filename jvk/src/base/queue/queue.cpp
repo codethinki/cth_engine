@@ -42,15 +42,18 @@ Queue::State Queue::release() {
 
 void Queue::submit(SubmitInfo& submit_info) const { const_submit(submit_info.next()); }
 
-void Queue::const_submit(SubmitInfo const& submit_info) const { submit(submit_info.get(), submit_info.fence()); }
+void Queue::const_submit(SubmitInfo const& submit_info) const { raw_submit(*submit_info.get(), submit_info.fence()); }
 
 void Queue::skip(SubmitInfo& submit_info) const { const_skip(submit_info.next()); }
 
-void Queue::const_skip(SubmitInfo const& submit_info) const { submit(submit_info.skip(), submit_info.fence()); }
+void Queue::const_skip(SubmitInfo const& submit_info) const { raw_submit(*submit_info.skip(), submit_info.fence()); }
 
 
 VkResult Queue::present(uint32_t image_index, PresentInfo& present_info) const {
-    auto const result = _device->functions()->vkQueuePresentKHR(get(), present_info.create(image_index));
+    return raw_present(*present_info.create(image_index));
+}
+VkResult Queue::raw_present(VkPresentInfoKHR const& present_info) const {
+    auto const result = _device->functions()->vkQueuePresentKHR(get(), &present_info);
 
     JVK_RESULT_STABLE_THROW(
         result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR,
@@ -62,11 +65,10 @@ VkResult Queue::present(uint32_t image_index, PresentInfo& present_info) const {
 }
 
 void Queue::const_skip(PresentInfo const& present_info) const {
-    auto const result = _device->functions()->vkQueueSubmit(get(), 1, present_info.skip(), VK_NULL_HANDLE);
-
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-present")
-    throw jvk::vk_result_exception{result, details->exception()};
+    debug_check(*this);
+    raw_submit(*present_info.skip(), VK_NULL_HANDLE);
 }
+
 
 void Queue::reset() {
     _handle = VK_NULL_HANDLE;
@@ -75,11 +77,15 @@ void Queue::reset() {
     _queueIndex = 0;
 }
 
-void Queue::submit(VkSubmitInfo const* submit_info, VkFence fence) const {
+void Queue::raw_submit(VkSubmitInfo const& submit_info, VkFence fence) const {
     debug_check(*this);
-    auto const result = _device->functions()->vkQueueSubmit(_handle.get(), 1, submit_info, fence);
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to submit info to queue")
-    throw jvk::vk_result_exception{result, details->exception()};
+    auto const result = _device->functions()->vkQueueSubmit(_handle.get(), 1, &submit_info, fence);
+
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit info to queue");
+}
+void Queue::wait() const {
+    debug_check(*this);
+    _device->functions()->vkQueueWaitIdle(_handle.get());
 }
 
 } //namespace cth

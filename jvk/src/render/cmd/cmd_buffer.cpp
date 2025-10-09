@@ -15,7 +15,7 @@ CmdBuffer::CmdBuffer(VkCommandBufferUsageFlags usage) : _bufferUsage{usage} {}
 template<class Me>
 void CmdBuffer::destroy(this Me&& self) {
     self.reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-    static_assert(cth::type::is_any_of<cth::type::pure_t<Me>, PrimaryCmdBuffer, SecondaryCmdBuffer>);
+    static_assert(cth::type::any_of<cth::type::pure_t<Me>, PrimaryCmdBuffer, SecondaryCmdBuffer>);
 
     self._pool->template returnCmdBuffer<cth::type::pure_t<Me>>(self._handle.get());
 

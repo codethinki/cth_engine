@@ -2,7 +2,7 @@
 #include "jvk/base/instance.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
-
+#include <cth/string/joiner.hpp>
 
 namespace jvk {
 
@@ -41,8 +41,10 @@ void DebugMessenger::destroy() {
 }
 
 
-void DebugMessenger::destroy(jvk::vk_not_null<VkInstance> vk_instance,
-    VkDebugUtilsMessengerEXT vk_messenger) {
+void DebugMessenger::destroy(
+    jvk::vk_not_null<VkInstance> vk_instance,
+    VkDebugUtilsMessengerEXT vk_messenger
+) {
     Instance::debug_check_handle(vk_instance.get());
     CTH_WARN(vk_messenger == VK_NULL_HANDLE, "messenger invalid") {}
 
@@ -59,18 +61,21 @@ DebugMessenger::State DebugMessenger::release() {
 
 //Config
 namespace jvk::dev {
-VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-    VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
-    void* user_data);
+VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type,
+    VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
+    void* user_data
+);
 }
 
 namespace jvk {
 DebugMessenger::Config DebugMessenger::Config::Default(std::function<callback_t> const& callback) {
-    return Config{callback == nullptr ? dev::defaultDebugCallback : callback};
+    return Config{callback == nullptr ? dev::default_debug_callback : callback};
 }
 
 std::function<DebugMessenger::callback_t> DebugMessenger::Config::defaultCallback() {
-    return dev::defaultDebugCallback;
+    return dev::default_debug_callback;
 }
 
 VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::Config::createInfo() const {
@@ -85,7 +90,6 @@ VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::Config::createInfo() const {
     createInfo.pUserData = nullptr; // Optional
 
     return createInfo;
-
 }
 
 void DebugMessenger::reset() {
@@ -114,15 +118,51 @@ CTH_FORMAT_TYPE(jvk::dev::component_info, jvk::dev::component_info::to_string);
 
 namespace jvk::dev {
 
-VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-    VkDebugUtilsMessageTypeFlagsEXT message_type, VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
-    [[maybe_unused]] void* user_data) {
-    auto severity = except::CRITICAL;
+namespace {
+    auto to_severity(VkDebugUtilsMessageSeverityFlagsEXT vk_severity) {
+        using vk_severity_t = VkDebugUtilsMessageSeverityFlagBitsEXT;
 
-    if(message_severity <= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) severity = except::LOG;
-    else if(message_severity <= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) severity = except::INFO;
-    else if(message_severity <= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) severity = except::WARNING;
-    else if(message_severity <= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) severity = except::ERR;
+        cxpr std::array severities{
+            std::pair{VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT, cth::except::LOG},
+            std::pair{VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT, cth::except::INFO},
+            std::pair{VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT, cth::except::WARNING},
+            std::pair{VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT, cth::except::ERR}
+        };
+
+
+        for(auto [vkSeverityFlagBits, severity] : severities)
+            if(vk_severity <= vkSeverityFlagBits)
+                return severity;
+
+        return cth::except::CRITICAL;
+    }
+
+    std::string to_msg(VkDebugUtilsMessageTypeFlagBitsEXT vk_msg_type) {
+        cxpr std::array msgTypes{
+            std::pair{VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT, "GENERAL"},
+            std::pair{VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT, "VALIDATION"},
+            std::pair{VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT, "PERFORMANCE"}
+        };
+
+        cth::str::joiner joiner(" | ");
+
+        for(auto [vkSeverityFlagBit, name] : msgTypes)
+            if(vk_msg_type & vkSeverityFlagBit)
+                joiner += name;
+
+        return joiner;
+    }
+
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type,
+    VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
+    [[maybe_unused]] void* user_data
+) {
+    auto const severity = to_severity(message_severity);
+
 
     std::string type = "UNKNOWN";
     if(message_type & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) type = "GENERAL";

@@ -33,9 +33,12 @@ Renderer3::Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config con
     initRenderStages(stages);
 }
 
-Renderer3::Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config const& config,
-    create_t) : Renderer3{
-    core, pulse, config} { create(); }
+Renderer3::Renderer3(
+    jvk::Core const& core,
+    RenderPulse const& pulse,
+    Config const& config,
+    create_t
+) : Renderer3{core, pulse, config} { create(); }
 
 Renderer3::~Renderer3() { optDestroy(); }
 
@@ -63,20 +66,23 @@ void Renderer3::initDependencySemaphores(size_t edges) {
     _stageSemaphores.reserve(semaphores);
 
     for(size_t i = 0; i < semaphores; ++i) _stageSemaphores.emplace_back(*_core);
-
 }
 
-void Renderer3::linkStageDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag,
+void Renderer3::linkStageDependencies(
+    Config::stage_map_t& stages,
+    Config::dependencies_t const& dag,
     id_t source_id,
-    std::span<jvk::Semaphore*> stage_semaphores) {
-
+    std::span<jvk::Semaphore*> stage_semaphores
+) {
     CTH_CRITICAL(!stages.contains(source_id), "stages must contain the source id") {}
 
 
     auto const& dependencies = dag.at(source_id);
 
-    for(auto const [dependencyId, dependencySemaphores] : std::views::zip(dependencies,
-            stage_semaphores | std::views::chunk(GROUP_SIZE))) {
+    for(auto const [dependencyId, dependencySemaphores] : std::views::zip(
+            dependencies,
+            stage_semaphores | std::views::chunk(GROUP_SIZE)
+        )) {
         auto& targetStage = stages.at(dependencyId);
 
         targetStage.signalSemaphores.append_range(dependencySemaphores);
@@ -101,7 +107,6 @@ void Renderer3::linkDependencies(Config::stage_map_t& stages, Config::dependenci
 
         linkStageDependencies(stages, dag, uniqueID, stageSemaphores);
     }
-
 }
 
 void Renderer3::initRenderStages(Config::stage_map_t const& stage_configs) {
@@ -109,9 +114,7 @@ void Renderer3::initRenderStages(Config::stage_map_t const& stage_configs) {
         _renderStages.emplace(id, RenderStage{*_core, *_pulse, config});
 }
 
-void Renderer3::createSemaphores() {
-    for(auto& semaphore : _stageSemaphores) semaphore.create();
-}
+void Renderer3::createSemaphores() { for(auto& semaphore : _stageSemaphores) semaphore.create(); }
 
 void Renderer3::createStages() { for(auto& stage : _renderStages | std::views::values) stage.create(); }
 
@@ -122,10 +125,10 @@ RenderStage& Renderer3::stage(id_t id) {
 }
 
 auto Renderer3::stages() -> std::map<id_t, RenderStage*> {
-    return std::map{std::from_range,
-        _renderStages | std::views::transform([](auto& pair) {
-            return std::pair{pair.first, &pair.second};
-        })};
+    return std::map{
+        std::from_range,
+        _renderStages | std::views::transform([](auto& pair) { return std::pair{pair.first, &pair.second}; })
+    };
 }
 
 }

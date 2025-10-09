@@ -21,9 +21,12 @@ class TimelineSemaphore;
  *
  */
 struct SubmitInfo {
-    SubmitInfo(std::span<PrimaryCmdBuffer const* const> cmd_buffers,
+    SubmitInfo(
+        std::span<PrimaryCmdBuffer const* const> cmd_buffers,
         std::span<PipelineWaitStage const> wait_stages,
-        std::span<Semaphore* const> signal_semaphores, Fence const* fence);
+        std::span<Semaphore* const> signal_semaphores,
+        Fence const* fence
+    );
 
     /**
      * @brief advances the timeline semaphores and returns this

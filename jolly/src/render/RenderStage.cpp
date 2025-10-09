@@ -16,15 +16,19 @@
 namespace jly {
 
 RenderStage::RenderStage(jvk::Core const& core, RenderPulse const& pulse, Config config) : _core{&core},
-    _pulse{&pulse}, _config{std::move(config)} {
-    init();
-}
+    _pulse{&pulse},
+    _config{std::move(config)} { init(); }
 
-RenderStage::RenderStage(jvk::Core const& core, RenderPulse const& pulse, Config config,
-    create_t) : RenderStage{
-    core, pulse, std::move(config)} {
-    create();
-}
+RenderStage::RenderStage(
+    jvk::Core const& core,
+    RenderPulse const& pulse,
+    Config config,
+    create_t
+) : RenderStage{
+    core,
+    pulse,
+    std::move(config)
+} { create(); }
 
 RenderStage::~RenderStage() { optDestroy(); }
 
@@ -154,7 +158,6 @@ void RenderStage::createSecondaryCmdBuffers() {
     for(size_t i = 0; i < GROUP_SIZE; i++)
         for(size_t j = 0; j < subStages; j++)
             _secondaryCmdBuffers[i * subStages + j].create(_cmdPools[i * poolChunkSize + j]);
-
 }
 
 void RenderStage::createCmdBuffers() {
@@ -165,8 +168,10 @@ void RenderStage::createCmdBuffers() {
 void RenderStage::createSubmitInfos() {
     for(size_t i = 0; i < GROUP_SIZE; i++) {
         std::vector primaryCmdBuffers{&_primaryCmdBuffers[i]};
-        std::vector signalSemaphores{std::from_range,
-            _config.signalSemaphores | cth::views::drop_stride(i, GROUP_SIZE)};
+        std::vector signalSemaphores{
+            std::from_range,
+            _config.signalSemaphores | cth::views::drop_stride(i, GROUP_SIZE)
+        };
         std::vector waitStages{std::from_range, _config.waitStages | cth::views::drop_stride(i, GROUP_SIZE)};
 
         _submitInfos.emplace_back(primaryCmdBuffers, waitStages, signalSemaphores, &_fences[i]);

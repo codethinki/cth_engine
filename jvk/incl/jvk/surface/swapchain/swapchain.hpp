@@ -33,15 +33,24 @@ class Swapchain {
 public:
     using Config = SwapchainConfig;
 
-    Swapchain(Core const& core, Queue const& present_queue, Surface const& surface,
-        Config config);
+    Swapchain(
+        Core const& core,
+        Queue const& present_queue,
+        Surface const& surface,
+        Config config
+    );
 
-    Swapchain(Core const& core, Queue const& present_queue, Surface const& surface,
-        Config const& config, VkExtent2D window_extent);
+    Swapchain(
+        Core const& core,
+        Queue const& present_queue,
+        Surface const& surface,
+        Config const& config,
+        VkExtent2D window_extent
+    );
 
     ~Swapchain();
 
-    //IMPLEMENT virtual void wrap(const Surface* surface, VkExtent2D window_extent);
+    //IMPLEMENT void wrap(const Surface* surface, VkExtent2D window_extent);
     void create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE);
 
     /**
@@ -75,9 +84,13 @@ public:
     [[nodiscard]] VkResult present(size_t in_flight_index);
     void skipPresent(size_t in_flight_index);
 
-    void changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer,
+    void changeSwapchainImageQueue(
+        uint32_t release_queue,
+        CmdBuffer const& release_cmd_buffer,
         uint32_t acquire_queue,
-        CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) const;
+        CmdBuffer const& acquire_cmd_buffer,
+        uint32_t image_index
+    ) const;
 
     /**
      * @brief adds a minimum of required flags for the resolve subpass
@@ -89,33 +102,54 @@ public:
 private:
     static constexpr uint32_t NO_IMAGE_INDEX = (std::numeric_limits<uint32_t>::max());
 
-    void initSyncObjects();
-    void initAttachments();
-    void init();
+    [[nodiscard]] VkResult vkPresent(Semaphore const& semaphore, uint32_t image_index) const;
+
+    void syncSubmit(Semaphore const* wait, Semaphore const* signal) const;
+
+    void linkRenderFinishedSemaphores(size_t in_flight_index) const;
 
     void setImageFormat(VkFormat format);
 
-    //setMsaaSampleCount
+
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
 
 
-    //createSyncObjects
-    void createSyncObjects();
-
-    [[nodiscard]] static VkExtent2D chooseSwapExtent(VkExtent2D window_extent,
-        VkSurfaceCapabilitiesKHR const& capabilities);
+    [[nodiscard]] static VkExtent2D chooseSwapExtent(
+        VkExtent2D window_extent,
+        VkSurfaceCapabilitiesKHR const& capabilities
+    );
+    /**
+     * @throws jvk::jvk_exception if no compatible image count was found
+     */
     [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
-    [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(VkSurfaceKHR surface,
-        VkSurfaceFormatKHR surface_format, VkSurfaceCapabilitiesKHR const& capabilities,
-        VkPresentModeKHR present_mode, VkExtent2D extent,
-        uint32_t image_count, VkSwapchainKHR old_swapchain);
 
+    void refreshSize();
+
+    [[nodiscard]] static VkSwapchainCreateInfoKHR createInfo(
+        VkSurfaceKHR surface,
+        VkSurfaceFormatKHR surface_format,
+        VkSurfaceCapabilitiesKHR const& capabilities,
+        VkPresentModeKHR present_mode,
+        VkExtent2D extent,
+        uint32_t image_count,
+        VkSwapchainKHR old_swapchain
+    );
+
+    /**
+     * @throws jvk::vk_result_exception if vkCreateSwapchainKHR fails
+     */
     void createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swapchain);
+
+    void createSyncObjects();
 
 
     [[nodiscard]] ImageConfig createColorImageConfig(VkSampleCountFlagBits samples) const;
 
-    [[nodiscard]] std::vector<std::unique_ptr<Image>> getSwapchainImages();
+    /**
+     * Gets the swapchain images, must be released before destroying
+     * @throws jvk::vk_result_exception if vkGetSwapchainImagesKHR fails
+     */
+    [[nodiscard]] std::vector<std::unique_ptr<Image>> getSwapchainImages() const;
 
     void createResolveAttachments();
 
@@ -128,7 +162,6 @@ private:
     void destroySwapchain(VkSwapchainKHR swapchain) const;
 
     void destroySyncObjects();
-    //TEMP left off here check swapchain destruction and then try to make it compile
 
     void resizeReset();
     void reset();
@@ -145,10 +178,10 @@ private:
 
     std::unique_ptr<AttachmentCollection> _resolveAttachments;
 
-    std::vector<Fence> _imageAvailableFences;
+    std::vector<Fence> _acquireFences;
+    std::vector<Semaphore> _presentSemaphores;
 
     std::vector<PresentInfo> _presentInfos;
-
 
     VkExtent2D _extent{};
     float _aspectRatio = 0;
@@ -209,7 +242,8 @@ inline void Swapchain::debug_check_window_extent(VkExtent2D window_extent) {
     CTH_CRITICAL(
         window_extent.width == 0 || window_extent.height == 0,
         "window_extent width({0}) or height({0}) invalid (> 0 required)",
-        window_extent.width, window_extent.height
+        window_extent.width,
+        window_extent.height
     ) {}
 }
 

@@ -22,7 +22,7 @@ class PrimaryCmdBuffer;
 class SecondaryCmdBuffer;
 
 template<class T>
-concept cmd_buffer_t = cth::type::is_any_of<T, PrimaryCmdBuffer, SecondaryCmdBuffer>;
+concept cmd_buffer_t = cth::type::any_of<T, PrimaryCmdBuffer, SecondaryCmdBuffer>;
 
 
 class CmdPool {

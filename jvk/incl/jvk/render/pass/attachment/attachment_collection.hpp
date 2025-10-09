@@ -141,10 +141,14 @@ public:
 //State
 
 namespace jvk {
+// TODO see if this can be refactored to just vectors of Image/ImageView
 struct AttachmentCollection::State {
-    // ReSharper disable once CppNonExplicitConvertingConstructor
-    State(VkExtent2D extent, std::vector<unique_not_null<ImageView>> views = {},
-        std::vector<unique_not_null<Image>> images = {}) : extent{extent}, views{std::move(views)},
+    explicit State(
+        VkExtent2D extent,
+        std::vector<unique_not_null<ImageView>> views = {},
+        std::vector<unique_not_null<Image>> images = {}
+    ) : extent{extent},
+        views{std::move(views)},
         images{std::move(images)} {}
 
     /**

@@ -1,12 +1,12 @@
-﻿{
+{
   "version": 3,
   "configurePresets": [
     {
-      "name": "windows-clang-base",
+      "name": "windows-msvc-base",
       "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/install/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe"
@@ -18,16 +18,16 @@
       }
     },
     {
-      "name": "win_debug",
-      "inherits": "windows-clang-base",
+      "name": "win-msvc-debug",
+      "inherits": "windows-msvc-base",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "win_release",
-      "inherits": "windows-clang-base",
+      "name": "win-msvc-release",
+      "inherits": "windows-msvc-base",
       "hidden": true,
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"

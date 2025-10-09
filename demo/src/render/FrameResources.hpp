@@ -95,6 +95,10 @@ public:
     [[nodiscard]] bool shouldClose() const;
     [[nodiscard]] jly::RenderPulse const& renderPulse() const;
     [[nodiscard]] jly::GraphicsSyncConfig const& syncConfig() const;
+
+    [[nodiscard]] std::vector<jvk::Semaphore*> renderFinishedSemaphores() const;
+
+
     [[nodiscard]] auto const& core() const { return *_graphicsCore; }
     [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return _msaaSamples; }
 };

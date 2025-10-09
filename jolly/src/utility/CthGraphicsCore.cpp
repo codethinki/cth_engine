@@ -14,16 +14,16 @@
 namespace jly {
 GraphicsCore::GraphicsCore(jvk::Core const& core, Config config) : _core{&core}, _config{std::move(config)} {}
 
-GraphicsCore::GraphicsCore(jvk::Core const& core, Config const& config, State state) : GraphicsCore{core,
-    config} {
-    wrap(std::move(state));
-}
+GraphicsCore::GraphicsCore(jvk::Core const& core, Config const& config, State state) :
+    GraphicsCore{core, config} { wrap(std::move(state)); }
 
-GraphicsCore::GraphicsCore(jvk::Core const& core, Config const& config, std::string_view window_name,
+GraphicsCore::GraphicsCore(
+    jvk::Core const& core,
+    Config const& config,
+    std::string_view window_name,
     glm::uvec2 extent,
-    jvk::Queue const& present_queue) : GraphicsCore{core, config} {
-    create(window_name, extent, present_queue);
-}
+    jvk::Queue const& present_queue
+) : GraphicsCore{core, config} { create(window_name, extent, present_queue); }
 
 GraphicsCore::~GraphicsCore() { optDestroy(); }
 
@@ -103,8 +103,11 @@ void GraphicsCore::acquireFrame() {
     debug_check(*this);
     auto const result = _swapchain->acquireNextImage(_syncConfig->pulseVal());
 
-    CTH_WARN(result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR,
-        "swapchain image acquire result != VK_SUCCESS ({})", result) {}
+    CTH_WARN(
+        result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR,
+        "swapchain image acquire result != VK_SUCCESS ({})",
+        result
+    ) {}
 
     _resize |= result != VK_SUCCESS;
 }
@@ -166,9 +169,7 @@ glm::uvec2 GraphicsCore::swapchainExtent() const {
 
 size_t GraphicsCore::swapchainSize() const { return _swapchain->size(); }
 
-size_t GraphicsCore::swapchainImageIndex() const {
-    return _swapchain->imageIndex(_syncConfig->pulseVal());
-}
+size_t GraphicsCore::swapchainImageIndex() const { return _swapchain->imageIndex(_syncConfig->pulseVal()); }
 
 void GraphicsCore::State::debug_check(State const& state) {
     OSWindow::debug_check(state.osWindow.get());

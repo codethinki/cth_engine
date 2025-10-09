@@ -90,16 +90,35 @@ public:
      */
     [[nodiscard]] VkResult present(uint32_t image_index, PresentInfo& present_info) const;
 
+
+    /**
+     * presents via vkQueuePresentKHR()
+     * @return result of @ref vkQueuePresentKHR() [VK_SUCCESS, VK_SUBOPTIMAL_KHR, VK_ERROR_OUT_OF_DATE_KHR]
+     * @throws jvk::result_exception result of @ref vkQueuePresentKHR()
+     */
+    [[nodiscard]] VkResult raw_present(VkPresentInfoKHR const& present_info) const;
+
     /**
      * @brief skips presenting the info
      * @note this call respects sync primitives
      */
     void const_skip(PresentInfo const& present_info) const;
 
+    /**
+     * Submits the raw VkSubmitInfo to the queue
+     * @throws jvk::vk_result_exception if vkQueueSubmit != VK_SUCCESS
+     */
+    void raw_submit(VkSubmitInfo const& submit_info, VkFence fence = nullptr) const;
+
+    /**
+     * Blocks cpu until all queue gpu operations are finished
+     * @details calls vkQueueWaitIdle()
+     */
+    void wait() const;
+
 private:
     void reset();
 
-    void submit(VkSubmitInfo const* submit_info, VkFence fence = nullptr) const;
 
 
     QueueFamilyProperties _familyProperties;
@@ -151,8 +170,10 @@ inline void Queue::debug_check(Queue const& queue) {
 
 inline void Queue::debug_check_present(Queue const& queue) {
     debug_check(queue);
-    CTH_CRITICAL(!(queue.familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT),
-        "queue is not a present queue") {}
+    CTH_CRITICAL(
+        !(queue.familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT),
+        "queue is not a present queue"
+    ) {}
 }
 
 inline void Queue::debug_check_handle(VkQueue vk_queue) {

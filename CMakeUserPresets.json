@@ -6,27 +6,25 @@
       "hidden": true,
       "environment": {
         "VCPKG_ROOT": "${sourceDir}/../../tools/vcpkg"
-      }
+      },
+      "cacheVariables": {
+        "CTH_INSTALL_PATH": "${sourceDir}/../cth/out/install/${presetName}"
+      },
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
     },
     {
-      "name": "debug",
+      "name": "win_msvc_debug",
       "inherits": [
-        "win_debug",
+        "win-msvc-debug",
         "settings"
-      ],
-      "environment": {
-        "CMAKE_PREFIX_PATH": "${sourceDir}/../cth/install/win_debug/"
-      }
+      ]
     },
     {
-      "name": "release",
+      "name": "win_msvc_release",
       "inherits": [
-        "win_release",
+        "win-msvc-release",
         "settings"
-      ],
-      "environment": {
-        "CMAKE_PREFIX_PATH": "${sourceDir}/../cth/install/win_release/"
-      }
+      ]
     }
   ]
 }

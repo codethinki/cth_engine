@@ -10,17 +10,31 @@
 
 namespace jvk {
 
-ScFramebufferCollection::ScFramebufferCollection(Core const& core, Swapchain const& swapchain,
-    RenderPass const& render_pass, FramebufferCollectionConfig const& config) : FramebufferCollection{core,
-        render_pass, addSwapchainAttachments(swapchain, config)},
-    _swapchain{&swapchain}, _scImages{_swapchain->size()} {}
-
-ScFramebufferCollection::ScFramebufferCollection(Core const& core, Swapchain const& swapchain,
+ScFramebufferCollection::ScFramebufferCollection(
+    Core const& core,
+    Swapchain const& swapchain,
     RenderPass const& render_pass,
-    FramebufferCollectionConfig const& config, create_t) : ScFramebufferCollection{core, swapchain,
-    render_pass, config} {
-    create(_swapchain->extent(), false);
-}
+    FramebufferCollectionConfig const& config
+) : FramebufferCollection{
+        core,
+        render_pass,
+        addSwapchainAttachments(swapchain, config)
+    },
+    _swapchain{&swapchain},
+    _scImages{_swapchain->size()} {}
+
+ScFramebufferCollection::ScFramebufferCollection(
+    Core const& core,
+    Swapchain const& swapchain,
+    RenderPass const& render_pass,
+    FramebufferCollectionConfig const& config,
+    create_t
+) : ScFramebufferCollection{
+    core,
+    swapchain,
+    render_pass,
+    config
+} { create(_swapchain->extent(), false); }
 
 void ScFramebufferCollection::create() { ScFramebufferCollection::create(_swapchain->extent()); }
 void ScFramebufferCollection::create(VkExtent2D framebuffer_extent) { create(framebuffer_extent, true); }
@@ -40,15 +54,17 @@ void ScFramebufferCollection::swapchainResized() {
             .imageViews = std::move(attachmentViews),
             .framebuffers = size(),
         }
-        );
+    );
     _scImages = _swapchain->size();
 
     reconfigure(std::move(config));
 }
 
 void ScFramebufferCollection::create(VkExtent2D extent, bool reconfigure) {
-    CTH_WARN(extent != _swapchain->extent(),
-        "swapchain framebuffer collection extent should be equal to swapchain extent") {}
+    CTH_WARN(
+        extent != _swapchain->extent(),
+        "swapchain framebuffer collection extent should be equal to swapchain extent"
+    ) {}
 
     if(reconfigure) swapchainResized();
 
@@ -56,8 +72,10 @@ void ScFramebufferCollection::create(VkExtent2D extent, bool reconfigure) {
 }
 
 
-auto ScFramebufferCollection::addSwapchainAttachments(Swapchain const& swapchain,
-    FramebufferCollectionConfig const& config) -> FramebufferCollectionConfig {
+auto ScFramebufferCollection::addSwapchainAttachments(
+    Swapchain const& swapchain,
+    FramebufferCollectionConfig const& config
+) -> FramebufferCollectionConfig {
     Config::debug_check_size(config);
     Swapchain::debug_check(swapchain);
 
@@ -69,8 +87,10 @@ auto ScFramebufferCollection::addSwapchainAttachments(Swapchain const& swapchain
 
     auto view = config.imageViews | cth::views::split_into(config.framebuffers);
 
-    auto const newFramebufferSize = std::max(config.framebufferSize(),
-        static_cast<size_t>(scAttachmentIndex) + 1);
+    auto const newFramebufferSize = std::max(
+        config.framebufferSize(),
+        static_cast<size_t>(scAttachmentIndex) + 1
+    );
 
     size_t const scSize = swapchain.size();
 
@@ -98,8 +118,12 @@ auto ScFramebufferCollection::addSwapchainAttachments(Swapchain const& swapchain
 
 size_t ScFramebufferCollection::size() const {
     auto const size = FramebufferCollection::size();
-    CTH_CRITICAL(size % _scImages != 0, "size [{}] must be divisible by swapchain size [{}]", size,
-        _scImages) {}
+    CTH_CRITICAL(
+        size % _scImages != 0,
+        "size [{}] must be divisible by swapchain size [{}]",
+        size,
+        _scImages
+    ) {}
 
     return size / _scImages;
 }
@@ -110,11 +134,18 @@ Framebuffer const& ScFramebufferCollection::get(size_t pulse_index) const {
 
 Framebuffer const& ScFramebufferCollection::get(size_t swapchain_image_index, size_t pulse_index) const {
     auto const size = ScFramebufferCollection::size();
-    CTH_CRITICAL(!cth::num::in(pulse_index, 0, size), "index [{}] out of bounds [0, {})", pulse_index,
-        size) {}
+    CTH_CRITICAL(
+        !cth::num::in(pulse_index, 0, size),
+        "index [{}] out of bounds [0, {})",
+        pulse_index,
+        size
+    ) {}
 
-    CTH_CRITICAL(!cth::num::in(swapchain_image_index, 0, _scImages),
-        "swapchain image index out of bounds [0, {})", _scImages) {}
+    CTH_CRITICAL(
+        !cth::num::in(swapchain_image_index, 0, _scImages),
+        "swapchain image index out of bounds [0, {})",
+        _scImages
+    ) {}
 
 
     return FramebufferCollection::get(swapchain_image_index * size + pulse_index);

@@ -14,7 +14,7 @@ namespace jvk {
 
 struct SwapchainConfig {
 
-    std::vector<Semaphore const*> imageAvailableSemaphores;
+    std::vector<Semaphore*> imageAvailableSemaphores;
     std::vector<Semaphore const*> renderFinishedSemaphores;
 
     SwapchainSubpassConfig subpassConfig;
@@ -24,14 +24,16 @@ struct SwapchainConfig {
             config.imageAvailableSemaphores.size() != constants::FRAMES_IN_FLIGHT,
             "imageAvailableSemaphores.size() [{}] must equal frames in flight",
             config.imageAvailableSemaphores.size()
-            ) {}
+        ) {}
         CTH_CRITICAL(
             config.renderFinishedSemaphores.size() != constants::FRAMES_IN_FLIGHT,
             "renderFinishedSemaphores.size() [{}] must equal frames in flight",
             config.renderFinishedSemaphores.size()
-            ) {}
-        CTH_CRITICAL(config.subpassConfig.subpassLayouts.empty(),
-            "subpassLayouts must not be empty, there must be at least one subpass") {}
+        ) {}
+        CTH_CRITICAL(
+            config.subpassConfig.subpassLayouts.empty(),
+            "subpassLayouts must not be empty, there must be at least one subpass"
+        ) {}
     }
 };
 }

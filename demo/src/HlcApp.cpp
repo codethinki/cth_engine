@@ -45,7 +45,7 @@ void App::createRenderer3() {
                 jly::RenderStageConfig{
                     .queue = &renderQueue(),
                     .subStages = 3,
-                    .signalSemaphores{std::from_range, _resources->syncConfig().renderFinishedSemaphores()},
+                    .signalSemaphores{std::from_range, _resources->renderFinishedSemaphores()},
                     .waitStages{std::from_range, _resources->syncConfig().imageAvailableWaitStages()},
                     .flags = jly::RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING |
                     jly::RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING
@@ -66,7 +66,6 @@ void App::createRenderer3() {
 }
 
 void App::initFrame() {
-
     _resources->skipAcquire();
 
     auto [initCmdBuffer, _] = _transferStage->begin();
@@ -108,8 +107,12 @@ void App::graphicsPhase() const {
 
 
 void App::initRenderSystem(jvk::PrimaryCmdBuffer& cmd_buffer) {
-    _renderSystem = std::make_unique<RenderSystem>(_core.get(), cmd_buffer, _resources->renderPass(),
-        _resources->msaaSampleCount());
+    _renderSystem = std::make_unique<RenderSystem>(
+        _core.get(),
+        cmd_buffer,
+        _resources->renderPass(),
+        _resources->msaaSampleCount()
+    );
 }
 
 

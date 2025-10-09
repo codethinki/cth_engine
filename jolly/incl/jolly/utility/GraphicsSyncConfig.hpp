@@ -23,29 +23,33 @@ public:
 
     /**
      * @brief base constructor
+     * @param size number of semaphores to create (!= 0)
      */
-    explicit GraphicsSyncConfig(jvk::Core const& core);
+    explicit GraphicsSyncConfig(jvk::Core const& core, size_t size = jvk::constants::FRAMES_IN_FLIGHT);
 
     /**
      * @brief constructs and wraps
+     * @details calls @ref GraphicsSyncConfig(jvk::Core const&, size_t)
      * @note calls @ref wrap()
      */
-    GraphicsSyncConfig(jvk::Core const& core, State state);
+    GraphicsSyncConfig(jvk::Core const& core, State state, size_t size = jvk::constants::FRAMES_IN_FLIGHT);
 
     /**
-     * @brief constructs and creates if create
-    * @note may call @ref create()
+     * constructs and creates if create
+     * @details calls:
+        - @ref GraphicsSyncConfig(jvk::Core const&, size_t) with size
+        - @ref create()
      */
-    GraphicsSyncConfig(jvk::Core const& core, create_t);
+    GraphicsSyncConfig(jvk::Core const& core, create_t, size_t size = jvk::constants::FRAMES_IN_FLIGHT);
 
     /**
-     * @note calls @ref optDestroy()
+     * @details calls @ref optDestroy()
      */
     ~GraphicsSyncConfig();
 
     /**
      * @brief wraps @ref State
-     * @note calls @ref optDestroy()
+     * @details calls @ref optDestroy()
      */
     void wrap(State state);
     /**
@@ -81,12 +85,15 @@ public:
     void next() { _pulse.next(); }
 
 
-    [[nodiscard]] std::array<jvk::Semaphore*, SET_SIZE> renderFinishedSemaphores() const;
-    [[nodiscard]] std::array<jvk::Semaphore*, SET_SIZE> imageAvailableSemaphores() const;
+    [[nodiscard]] std::vector<jvk::Semaphore*> renderFinishedSemaphores();
+    [[nodiscard]] std::vector<jvk::Semaphore*> imageAvailableSemaphores();
+    [[nodiscard]] std::vector<jvk::Semaphore const*> renderFinishedSemaphores() const;
+    [[nodiscard]] std::vector<jvk::Semaphore const*> imageAvailableSemaphores() const;
     [[nodiscard]] std::vector<jvk::PipelineWaitStage> imageAvailableWaitStages() const;
 
 private:
     cth::not_null<jvk::Core const*> _core;
+    size_t _size;
 
     RenderPulse _pulse{};
 
@@ -94,25 +101,23 @@ private:
      * semaphores[currentFrame] will be signaled once the vk_image is clear to render on
      * expects that the semaphore will be waited before rendering
      */
-    std::array<std::unique_ptr<jvk::Semaphore>, SET_SIZE> _imageAvailableSemaphores;
+    std::vector<jvk::Semaphore> _imageAvailableSemaphores;
 
     /**
      * expects semaphores[currentFrame] to be signaled after rendering
      * presents the vk_image once the semaphore is signaled
      */
-    std::array<std::unique_ptr<jvk::Semaphore>, SET_SIZE> _renderFinishedSemaphores;
+    std::vector<jvk::Semaphore> _renderFinishedSemaphores;
 
 public:
     [[nodiscard]] bool created() const {
-        return std::ranges::none_of(_imageAvailableSemaphores, [](auto const& ptr) { return ptr == nullptr; })
-            //TODO make this faster
-            && std::ranges::none_of(_imageAvailableSemaphores, [](auto const& ptr) {
-                return ptr == nullptr;
-            });
+        return !_imageAvailableSemaphores.empty() && !_renderFinishedSemaphores.empty();
     }
 
-    [[nodiscard]] jvk::Semaphore* renderFinishedSemaphore(size_t index) const;
-    [[nodiscard]] jvk::Semaphore* imageAvailableSemaphore(size_t index) const;
+    [[nodiscard]] jvk::Semaphore const* renderFinishedSemaphore(size_t index) const;
+    [[nodiscard]] jvk::Semaphore* renderFinishedSemaphore(size_t index);
+    [[nodiscard]] jvk::Semaphore const* imageAvailableSemaphore(size_t index) const;
+    [[nodiscard]] jvk::Semaphore* imageAvailableSemaphore(size_t index);
 
     [[nodiscard]] RenderPulse const& pulse() const { return _pulse; }
     [[nodiscard]] dclauto pulseVal() const { return _pulse.get(); }
@@ -135,11 +140,11 @@ struct GraphicsSyncConfig::State {
     /**
      * @attention must not be nullptr
      */
-    std::array<std::unique_ptr<jvk::Semaphore>, jvk::constants::FRAMES_IN_FLIGHT> imageAvailableSemaphores;
+    std::vector<jvk::Semaphore> imageAvailableSemaphores;
     /**
      * @attention must not be nullptr
      */
-    std::array<std::unique_ptr<jvk::Semaphore>, jvk::constants::FRAMES_IN_FLIGHT> renderFinishedSemaphores;
+    std::vector<jvk::Semaphore> renderFinishedSemaphores;
 
 private:
     static void debug_check(State const& state);

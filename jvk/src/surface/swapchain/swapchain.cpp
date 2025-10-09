@@ -1,41 +1,41 @@
 #include "jvk/surface/swapchain/swapchain.hpp"
 
-#include "../../../../jolly/incl/jolly/render/model/CthVertex.hpp"
-#include "../../../../jolly/incl/jolly/render/model/CthVertex.hpp"
-#include "../../../../jolly/incl/jolly/render/model/CthVertex.hpp"
-#include "../../../../jolly/incl/jolly/render/model/CthVertex.hpp"
-#include "../../../../jolly/incl/jolly/render/model/CthVertex.hpp"
-#include "../../../../jolly/incl/jolly/render/model/CthVertex.hpp"
-
 #include "jvk/base/core.hpp"
 #include "jvk/base/device.hpp"
 #include "jvk/base/physical_device.hpp"
 #include "jvk/base/queue/present_info.hpp"
+#include "jvk/base/queue/submit_info.hpp"
 #include "jvk/render/cmd/cmd_buffer.hpp"
 #include "jvk/render/ctrl/fence.hpp"
 #include "jvk/render/ctrl/pipeline_barrier.hpp"
+#include "jvk/render/ctrl/pipeline_wait_stage.hpp"
 #include "jvk/render/ctrl/semaphore.hpp"
 #include "jvk/render/pass/attachment/attachment_collection.hpp"
 #include "jvk/render/pass/framebuffer/framebuffer.hpp"
 #include "jvk/res/destruction_queue.hpp"
 #include "jvk/surface/surface.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
-#include "jvk/utility/vk_overloads.hpp"
 
 
 namespace jvk {
 
-Swapchain::Swapchain(Core const& core, Queue const& present_queue, Surface const& surface,
-    Config config) : _core(&core),
-    _presentQueue(&present_queue), _surface{&surface}, _config{std::move(config)} {
-    Config::debug_check(_config);
-    init();
-}
+Swapchain::Swapchain(
+    Core const& core,
+    Queue const& present_queue,
+    Surface const& surface,
+    Config config
+) : _core(&core),
+    _presentQueue(&present_queue),
+    _surface{&surface},
+    _config{std::move(config)} { Config::debug_check(_config); }
 
-Swapchain::Swapchain(Core const& core, Queue const& present_queue, Surface const& surface,
-    Config const& config, VkExtent2D window_extent) : Swapchain{core, present_queue, surface, config} {
-    create(window_extent);
-}
+Swapchain::Swapchain(
+    Core const& core,
+    Queue const& present_queue,
+    Surface const& surface,
+    Config const& config,
+    VkExtent2D window_extent
+) : Swapchain{core, present_queue, surface, config} { create(window_extent); }
 
 Swapchain::~Swapchain() { optDestroy(); }
 
@@ -50,9 +50,10 @@ void Swapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
     _imageIndices.fill(NO_IMAGE_INDEX);
     _msaaSamples = evalMsaaSampleCount();
 
-    createSyncObjects();
 
     createSwapchain(window_extent, old_swapchain);
+
+    createSyncObjects();
 
     createResolveAttachments();
 
@@ -73,7 +74,6 @@ void Swapchain::destroy() {
 
 
 void Swapchain::resize(VkExtent2D window_extent) {
-
     VkSwapchainKHR old = _handle.release();
 
     destroyResources();
@@ -87,91 +87,106 @@ void Swapchain::resize(VkExtent2D window_extent) {
 
 
 VkResult Swapchain::acquireNextImage(size_t in_flight_index) {
-    //TODO add timeout
-    auto const& fence = _imageAvailableFences[in_flight_index];
-    auto const semaphore = _config.imageAvailableSemaphores[in_flight_index]->get();
+    auto& imageIndex = _imageIndices[in_flight_index];
 
-    fence.wait();
-    fence.reset();
+    auto const& fence = _acquireFences[in_flight_index];
+    fence.waitReset();
+
+    auto const& semaphore = _config.imageAvailableSemaphores[in_flight_index];
 
     VkResult const acquireResult = _core->functions()->vkAcquireNextImageKHR(
         _core->vkDevice(),
         _handle.get(),
         std::numeric_limits<uint64_t>::max(),
-        semaphore,
+        semaphore->get(),
         fence.get(),
-        &_imageIndices[in_flight_index]
-        );
+        &imageIndex
+    );
 
-    CTH_STABLE_ERR(acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR,
-        "failed to acquire vk_image")
-    throw jvk::vk_result_exception{acquireResult, details->exception()};
+    JVK_RESULT_STABLE_THROW(
+        acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR,
+        acquireResult,
+        "failed to acquire vk_image"
+    );
+
 
     return acquireResult;
 }
 
 void Swapchain::skipAcquire(size_t in_flight_index) const {
-    auto const& fence = _imageAvailableFences[in_flight_index];
+    debug_check(*this);
+
+    auto const& fence = _acquireFences[in_flight_index];
     fence.wait();
-    fence.reset();
 
-    auto const semaphore = _config.imageAvailableSemaphores[in_flight_index]->get();
-
-
-    auto const submitInfo = VkSubmitInfo{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = 0,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &semaphore
-    };
-
-    auto const result = _core->functions()->vkQueueSubmit(_presentQueue->get(), 1, &submitInfo, fence.get());
-    //TODO this should be done via Queue::skip()
-
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to skip-acquire a vk_image")
-    throw jvk::vk_result_exception{result, details->exception()};
+    auto const semaphore = _config.imageAvailableSemaphores[in_flight_index];
+    syncSubmit(nullptr, semaphore);
 }
 
 
 VkResult Swapchain::present(size_t in_flight_index) {
+    debug_check(*this);
+
+
     auto& imageIndex = _imageIndices[in_flight_index];
 
     CTH_CRITICAL(imageIndex == NO_IMAGE_INDEX, "no acquired vk_image available") {
         details->add("frame: ({})", in_flight_index);
     }
 
-    auto const result = _presentQueue->present(imageIndex, _presentInfos[in_flight_index]);
+    auto const& presentSemaphore = _presentSemaphores[imageIndex];
 
+    syncSubmit(
+        _config.renderFinishedSemaphores[in_flight_index],
+        &presentSemaphore
+    );
+
+    auto const result = vkPresent(presentSemaphore, imageIndex);
     imageIndex = NO_IMAGE_INDEX;
 
     return result;
 }
 
 void Swapchain::skipPresent(size_t in_flight_index) {
+    debug_check(*this);
+
     auto& imageIndex = _imageIndices[in_flight_index];
 
-    CTH_WARN(imageIndex != NO_IMAGE_INDEX, "skip presenting an acquired vk_image, it will be discarded") {}
+    //TODO review this, change skipAcquire too or fix this implementation
+    CTH_CRITICAL(imageIndex != NO_IMAGE_INDEX, "acquired images must be presented") {}
 
-    _presentQueue->const_skip(_presentInfos[in_flight_index]);
+    syncSubmit(_config.renderFinishedSemaphores[in_flight_index], nullptr);
 
     imageIndex = NO_IMAGE_INDEX;
 }
 
-void Swapchain::changeSwapchainImageQueue(uint32_t release_queue, CmdBuffer const& release_cmd_buffer,
+void Swapchain::changeSwapchainImageQueue(
+    uint32_t release_queue,
+    CmdBuffer const& release_cmd_buffer,
     uint32_t acquire_queue,
-    CmdBuffer const& acquire_cmd_buffer, uint32_t image_index) const {
+    CmdBuffer const& acquire_cmd_buffer,
+    uint32_t image_index
+) const {
     //TEMP test this function
     std::unordered_map<Image*, ImageBarrier::Info> const images{
-        {_resolveAttachments->image(image_index),
-            ImageBarrier::Info::QueueTransition(0, release_queue, 0, acquire_queue)}
+        {
+            _resolveAttachments->image(image_index),
+            ImageBarrier::Info::QueueTransition(0, release_queue, 0, acquire_queue)
+        }
     };
 
-    ImageBarrier releaseBarrier{core(),
-        {VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT}, images};
+    ImageBarrier releaseBarrier{
+        core(),
+        {VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT},
+        images
+    };
     releaseBarrier.execute(release_cmd_buffer);
 
-    ImageBarrier barrier{core(), {VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT},
-        images};
+    ImageBarrier barrier{
+        core(),
+        {VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT},
+        images
+    };
     barrier.execute(acquire_cmd_buffer);
 }
 
@@ -188,15 +203,50 @@ void Swapchain::destroy(DeviceTable table, VkSwapchainKHR swapchain) {
 
 
 
-void Swapchain::initSyncObjects() {
-    _imageAvailableFences.reserve(constants::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
-        _imageAvailableFences.emplace_back(*_core);
+VkResult Swapchain::vkPresent(Semaphore const& semaphore, uint32_t image_index) const {
+    auto vkPresentSemaphore = semaphore.get();
+    auto swapchain = _handle.get();
+
+    VkPresentInfoKHR const presentInfo{
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .pNext = nullptr,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &vkPresentSemaphore,
+        .swapchainCount = 1,
+        .pSwapchains = &swapchain,
+        .pImageIndices = &image_index,
+        .pResults = nullptr
+    };
+
+    return _presentQueue->raw_present(presentInfo);
 }
 
-void Swapchain::initAttachments() {}
 
-void Swapchain::init() { initSyncObjects(); }
+void Swapchain::syncSubmit(Semaphore const* wait, Semaphore const* signal) const {
+    static constexpr VkPipelineStageFlags VK_WAIT_STAGE = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+    auto vkWait = wait ? wait->get() : VK_NULL_HANDLE;
+    auto vkSignal = signal ? signal->get() : VK_NULL_HANDLE;
+
+    VkSubmitInfo const info{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .waitSemaphoreCount = vkWait != VK_NULL_HANDLE ? 1ul : 0ul,
+        .pWaitSemaphores = &vkWait,
+        .pWaitDstStageMask = &VK_WAIT_STAGE,
+        .commandBufferCount = 0,
+        .pCommandBuffers = nullptr,
+        .signalSemaphoreCount = vkSignal != VK_NULL_HANDLE ? 1ul : 0ul,
+        .pSignalSemaphores = &vkSignal
+    };
+
+    _presentQueue->raw_submit(info, nullptr);
+}
+void Swapchain::linkRenderFinishedSemaphores(size_t in_flight_index) const {
+    auto const vkWaitSemaphore = _config.renderFinishedSemaphores[in_flight_index];
+    auto const& vkSignalSemaphore = _presentSemaphores[_imageIndices[in_flight_index]];
+
+    syncSubmit(vkWaitSemaphore, &vkSignalSemaphore);
+}
 
 void Swapchain::setImageFormat(VkFormat format) {
     _imageFormat = format;
@@ -214,43 +264,75 @@ VkSampleCountFlagBits Swapchain::evalMsaaSampleCount() const {
     return static_cast<VkSampleCountFlagBits>(samples);
 }
 
-void Swapchain::createSyncObjects() {
-    for(auto& fence : _imageAvailableFences)
-        fence.create(VK_FENCE_CREATE_SIGNALED_BIT);
-}
-
-VkExtent2D Swapchain::chooseSwapExtent(VkExtent2D window_extent,
-    VkSurfaceCapabilitiesKHR const& capabilities) {
+VkExtent2D Swapchain::chooseSwapExtent(
+    VkExtent2D window_extent,
+    VkSurfaceCapabilitiesKHR const& capabilities
+) {
     if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-        return capabilities.currentExtent;
+        return capabilities.currentExtent; //TODO review this looks wrong
 
     VkExtent2D const extent{
-        .width = std::max(capabilities.minImageExtent.width,
-            std::min(capabilities.maxImageExtent.width, window_extent.width)),
-        .height = std::max(capabilities.minImageExtent.height,
-            std::min(capabilities.maxImageExtent.height, window_extent.height))
+        .width = std::max(
+            capabilities.minImageExtent.width,
+            std::min(capabilities.maxImageExtent.width, window_extent.width)
+        ),
+        .height = std::max(
+            capabilities.minImageExtent.height,
+            std::min(capabilities.maxImageExtent.height, window_extent.height)
+        )
     };
 
     return extent;
 }
 
 uint32_t Swapchain::evalMinImageCount(uint32_t min, uint32_t max) {
+    JVK_STABLE_THROW(
+        min > max || min < 0 || max < constants::FRAMES_IN_FLIGHT,
+        "invalid swapchain image count bounds"
+    ) {
+        details->add("requires 0 < min < max && min <= FRAMES_IN_FLIGHT <= max");
+        details->add("min: {}, max: {}", min, max);
+        details->add("FRAMES_IN_FLIGHT: {}", constants::FRAMES_IN_FLIGHT);
+    }
+
+
     uint32_t imageCount = min + 1; //TODO check if this is really wrong if the imageCount is 4
     if(max > 0 && imageCount > max)
         imageCount = max;
 
 
-    log::msg<except::INFO>("vk_image count: {0}, frames in flight: {1}", min + 1,
-        constants::FRAMES_IN_FLIGHT);
+    log::msg<except::INFO>(
+        "vk_image count: {0}, frames in flight: {1}",
+        min + 1,
+        constants::FRAMES_IN_FLIGHT
+    );
 
     return imageCount;
 }
 
-VkSwapchainCreateInfoKHR Swapchain::createInfo(VkSurfaceKHR surface,
-    VkSurfaceFormatKHR surface_format, VkSurfaceCapabilitiesKHR const& capabilities,
-    VkPresentModeKHR present_mode, VkExtent2D extent, uint32_t image_count,
-    VkSwapchainKHR old_swapchain) {
+void Swapchain::refreshSize() {
+    uint32_t imageCount; //only min specified, might be higher
+    auto const countResult = _core->deviceTable()->vkGetSwapchainImagesKHR(
+        _core->vkDevice(),
+        _handle.get(),
+        &imageCount,
+        nullptr
+    );
 
+    CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to get swapchain image count")
+    throw jvk::vk_result_exception{countResult, details->exception()};
+
+    _imageCount = imageCount;
+}
+VkSwapchainCreateInfoKHR Swapchain::createInfo(
+    VkSurfaceKHR surface,
+    VkSurfaceFormatKHR surface_format,
+    VkSurfaceCapabilitiesKHR const& capabilities,
+    VkPresentModeKHR present_mode,
+    VkExtent2D extent,
+    uint32_t image_count,
+    VkSwapchainKHR old_swapchain
+) {
     VkSwapchainCreateInfoKHR const createInfo{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .pNext = nullptr,
@@ -265,8 +347,10 @@ VkSwapchainCreateInfoKHR Swapchain::createInfo(VkSurfaceKHR surface,
 
 
         .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0, // Optional
-        .pQueueFamilyIndices = nullptr, // Optional
+        .queueFamilyIndexCount = 0,
+        // Optional
+        .pQueueFamilyIndices = nullptr,
+        // Optional
 
 
         .preTransform = capabilities.currentTransform,
@@ -294,23 +378,44 @@ void Swapchain::createSwapchain(VkExtent2D window_extent, VkSwapchainKHR old_swa
 
     uint32_t const imageCount = evalMinImageCount(capabilities.minImageCount, capabilities.maxImageCount);
 
-    auto const info = createInfo(_surface->get(), surfaceFormat, capabilities, presentMode, extent,
-        imageCount, old_swapchain);
+    auto const info = createInfo(
+        _surface->get(),
+        surfaceFormat,
+        capabilities,
+        presentMode,
+        extent,
+        imageCount,
+        old_swapchain
+    );
 
 
     VkSwapchainKHR ptr = nullptr;
-    auto const createResult = _core->deviceTable()->vkCreateSwapchainKHR(_core->vkDevice(), &info, nullptr,
-        &ptr);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create swapchain")
-    throw jvk::vk_result_exception{createResult, details->exception()};
+    auto const createResult = _core->deviceTable()->vkCreateSwapchainKHR(
+        _core->vkDevice(),
+        &info,
+        nullptr,
+        &ptr
+    );
+
+    JVK_RESULT_STABLE_THROW(createResult != VK_SUCCESS, createResult, "failed to create swapchain");
 
     _handle = ptr;
-
 
     setImageFormat(surfaceFormat.format);
 
     _extent = extent;
     _aspectRatio = static_cast<float>(_extent.width) / static_cast<float>(_extent.height);
+
+    refreshSize();
+}
+
+void Swapchain::createSyncObjects() {
+    for(size_t i = 0; i < _imageCount; i++)
+        _presentSemaphores.emplace_back(*_core, jvk::create);
+
+    _acquireFences.reserve(constants::FRAMES_IN_FLIGHT);
+    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
+        _acquireFences.emplace_back(*_core, VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
 
@@ -323,37 +428,40 @@ Image::Config Swapchain::createColorImageConfig(VkSampleCountFlagBits samples) c
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .format = _imageFormat,
         .usage = _config.subpassConfig.imageUsageFlags,
-        .memoryProperties = std::nullopt, //just filler memory is handled by driver
+
+        //just filler memory is handled by driver
+        .memoryProperties = std::nullopt,
+
         .samples = samples,
     };
 }
 
 
-auto Swapchain::getSwapchainImages() -> std::vector<std::unique_ptr<Image>> {
-    uint32_t imageCount; //only min specified, might be higher
-    auto const countResult = _core->deviceTable()->vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(),
-        &imageCount, nullptr);
-
-    CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to get swapchain image count")
-    throw jvk::vk_result_exception{countResult, details->exception()};
-
-    _imageCount = imageCount;
+auto Swapchain::getSwapchainImages() const -> std::vector<std::unique_ptr<Image>> {
+    auto imageCount = static_cast<uint32_t>(_imageCount);
 
     std::vector<VkImage> vkImages{imageCount};
-    auto const getResult = _core->deviceTable()->vkGetSwapchainImagesKHR(_core->vkDevice(), _handle.get(),
-        &imageCount, vkImages.data());
+    auto const getResult = _core->deviceTable()->vkGetSwapchainImagesKHR(
+        _core->vkDevice(),
+        _handle.get(),
+        &imageCount,
+        vkImages.data()
+    );
 
-    CTH_STABLE_ERR(getResult != VK_SUCCESS, "failed to get swapchain images")
-    throw jvk::vk_result_exception{getResult, details->exception()};
-
+    JVK_RESULT_STABLE_THROW(getResult != VK_SUCCESS, getResult, "failed to get swapchain images");
 
     std::vector<std::unique_ptr<Image>> images{};
     images.reserve(imageCount);
 
     auto const imageConfig = createColorImageConfig(VK_SAMPLE_COUNT_1_BIT);
     for(auto const& vkImage : vkImages)
-        images.emplace_back(std::make_unique<Image>(*_core, imageConfig,
-            Image::State{_extent, vkImage, true, nullptr}));
+        images.emplace_back(
+            std::make_unique<Image>(
+                *_core,
+                imageConfig,
+                Image::State{_extent, vkImage, true, nullptr}
+            )
+        );
 
     return images;
 }
@@ -385,16 +493,19 @@ void Swapchain::createResolveAttachments() {
             description
         },
         std::move(state)
-        );
+    );
 }
 
 
 
 void Swapchain::createPresentInfos(std::span<Semaphore const* const> render_finished_semaphores) {
+    cxpr auto frames = constants::FRAMES_IN_FLIGHT;
+
     _presentInfos.reserve(constants::FRAMES_IN_FLIGHT);
 
     for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++) {
-        std::vector semaphores{render_finished_semaphores[i]};
+        std::vector semaphores{std::from_range, render_finished_semaphores | cth::views::drop_stride(i, frames)};
+
         _presentInfos.emplace_back(this, semaphores);
     }
 }
@@ -423,8 +534,10 @@ void Swapchain::destroySwapchain(VkSwapchainKHR swapchain) const {
 }
 
 void Swapchain::destroySyncObjects() {
-    for(auto& fence : _imageAvailableFences)
-        fence.destroy();
+    _acquireFences.clear();
+
+    _presentQueue->wait();
+    _presentSemaphores.clear();
 }
 
 void Swapchain::resizeReset() {
@@ -434,12 +547,15 @@ void Swapchain::resizeReset() {
     _imageFormat = VK_FORMAT_UNDEFINED;
     _imageCount = 0;
     _imageIndices.fill(NO_IMAGE_INDEX);
+
+    destroySyncObjects();
 }
 
 void Swapchain::reset() {
     _handle = VK_NULL_HANDLE;
     resizeReset();
 }
+
 
 ImageConfig Swapchain::imageConfig() const {
     //TEMP left off here. the swapchain selects the image format which is retarded, it should really be the surface that decides it
