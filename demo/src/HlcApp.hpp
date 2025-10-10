@@ -4,7 +4,7 @@
 //TEMP remove this once the camera and input controller are refactored
 #include "render/FrameResources.hpp"
 
-#include "jolly/render/Renderer3.hpp"
+#include "jolly/render/renderer.hpp"
 #include "jolly/user/HlcCamera.hpp"
 #include "jolly/user/HlcInputController.hpp"
 #include "jolly/utility/GraphicsCore.hpp"
@@ -66,7 +66,7 @@ private:
         FrameResources::Config{WINDOW_NAME, {WIDTH, HEIGHT}, _queues[2]}
     );
 
-    std::unique_ptr<jly::Renderer3> _renderer3;
+    std::unique_ptr<jly::Renderer> _renderer3;
 
     jly::RenderStage* _transferStage{};
     jly::RenderStage* _graphicsStage{};

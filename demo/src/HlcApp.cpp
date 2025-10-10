@@ -32,7 +32,7 @@ void App::run() {
 }
 
 void App::createRenderer3() {
-    jly::Renderer3::Config const config{
+    jly::Renderer::Config const config{
         .stages{
             {
                 0,
@@ -52,14 +52,14 @@ void App::createRenderer3() {
                 }
             }
         },
-        .stageDependencies = jly::Renderer3::Config::dependencies_t{
+        .stageDependencies = jly::Renderer::Config::dependencies_t{
             {{1, 0, VK_PIPELINE_STAGE_TRANSFER_BIT}}
         }
 
     };
 
 
-    _renderer3 = std::make_unique<jly::Renderer3>(*_core, _resources->renderPulse(), config, jly::create);
+    _renderer3 = std::make_unique<jly::Renderer>(*_core, _resources->renderPulse(), config, jly::create);
 
     _transferStage = &_renderer3->stage(0);
     _graphicsStage = &_renderer3->stage(1);

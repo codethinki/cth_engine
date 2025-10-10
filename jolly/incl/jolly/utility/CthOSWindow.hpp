@@ -24,8 +24,12 @@ class OSWindow {
     using window_t = std::remove_pointer_t<handle_t>;
 
 public:
-    OSWindow(jvk::Instance const& instance, jvk::DestructionQueue* destruction_queue, std::string_view name,
-        glm::uvec2 extent);
+    OSWindow(
+        jvk::Instance const& instance,
+        jvk::DestructionQueue* destruction_queue,
+        std::string_view name,
+        glm::uvec2 extent
+    );
     ~OSWindow();
 
     void destroy(jvk::DestructionQueue* destruction_queue = nullptr);

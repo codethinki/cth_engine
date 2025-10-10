@@ -19,8 +19,13 @@ public:
      * @param filepath path to model.obj
      * @param mtl_base_dir path to material dir, empty -> same dir
      */
-    explicit Model(ModelManager* manager, std::string const& name, uint32_t id, std::string const& filepath,
-        std::string const& mtl_base_dir = "");
+    explicit Model(
+        ModelManager* manager,
+        std::string const& name,
+        uint32_t id,
+        std::string const& filepath,
+        std::string const& mtl_base_dir = ""
+    );
 
 
 

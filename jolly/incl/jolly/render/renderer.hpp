@@ -27,7 +27,7 @@ class RenderStage;
 
 namespace jly {
 
-struct Renderer3Config {
+struct RendererConfig {
     using StageConfig = RenderStageConfig;
     using id_t = size_t;
     using dependencies_t = cth::dag<id_t, jvk::PipelineWaitStage::stage_t>;
@@ -37,7 +37,7 @@ struct Renderer3Config {
     dependencies_t stageDependencies;
 
     void removeUnusedDependencies();
-    static void debugCheck(Renderer3Config const&);
+    static void debugCheck(RendererConfig const&);
 };
 
 
@@ -45,9 +45,9 @@ struct Renderer3Config {
 }
 
 namespace jly {
-class Renderer3 {
+class Renderer {
 public:
-    using Config = Renderer3Config;
+    using Config = RendererConfig;
     using id_t = Config::id_t;
     using StageConfig = Config::StageConfig;
 
@@ -67,16 +67,16 @@ public:
      * @brief creates
      * @param config to use
      */
-    Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config config);
+    Renderer(jvk::Core const& core, RenderPulse const& pulse, Config config);
     /**
      * @brief constructs and creates
      * @param core requires @ref Core::created()
      * @param config to use
      * @details calls: Renderer::Render(Core const&, Config)
      */
-    Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config const& config, create_t);
+    Renderer(jvk::Core const& core, RenderPulse const& pulse, Config const& config, create_t);
 
-    ~Renderer3();
+    ~Renderer();
 
     /**
      * @brief creates the renderer
@@ -98,9 +98,12 @@ public:
 private:
     void initDependencySemaphores(size_t edges);
 
-    static void linkStageDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag,
+    static void linkStageDependencies(
+        Config::stage_map_t& stages,
+        Config::dependencies_t const& dag,
         id_t source_id,
-        std::span<jvk::Semaphore*> stage_semaphores);
+        std::span<jvk::Semaphore*> stage_semaphores
+    );
 
 
     void linkDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag);
@@ -125,12 +128,12 @@ public:
     [[nodiscard]] std::map<id_t, RenderStage*> stages();
     [[nodiscard]] RenderPulse const& pulse() const { return *_pulse; }
 
-    static void debugCheck(Renderer3 const&);
+    static void debugCheck(Renderer const&);
 
-    Renderer3(Renderer3 const& other) = delete;
-    Renderer3& operator=(Renderer3 const& other) = delete;
-    Renderer3(Renderer3&& other) noexcept = default;
-    Renderer3& operator=(Renderer3&& other) noexcept = default;
+    Renderer(Renderer const& other) = delete;
+    Renderer& operator=(Renderer const& other) = delete;
+    Renderer(Renderer&& other) noexcept = default;
+    Renderer& operator=(Renderer&& other) noexcept = default;
 };
 
 
@@ -138,23 +141,24 @@ public:
 }
 
 namespace jly {
-inline void Renderer3Config::debugCheck(Renderer3Config const& config) {
-    CTH_CRITICAL(config.stageDependencies.cyclic(), "stage dependency dag invalid, cyclic nodes: {}",
-        config.stageDependencies.cyclics()) {}
+inline void RendererConfig::debugCheck(RendererConfig const& config) {
+    CTH_CRITICAL(
+        config.stageDependencies.cyclic(),
+        "stage dependency dag invalid, cyclic nodes: {}",
+        config.stageDependencies.cyclics()
+    ) {}
 
 
     CTH_CRITICAL(
         std::ranges::any_of(
             config.stages | std::views::keys,
-            [&config](Renderer3Config::id_t const id) { return !config.stageDependencies.contains(id); }
+            [&config](RendererConfig::id_t const id) { return !config.stageDependencies.contains(id); }
         ),
         "the dependency graph must contain all config id's"
     ) {
         auto view = config.stages
             | std::views::keys
-            | std::views::filter([&dag = config.stageDependencies](auto const id) {
-                return !dag.contains(id);
-            });
+            | std::views::filter([&dag = config.stageDependencies](auto const id) { return !dag.contains(id); });
 
         details->add("missing id's: {}", view);
     }
@@ -162,7 +166,7 @@ inline void Renderer3Config::debugCheck(Renderer3Config const& config) {
 }
 
 namespace jly {
-inline void Renderer3::debugCheck(Renderer3 const& renderer) {
+inline void Renderer::debugCheck(Renderer const& renderer) {
     CTH_CRITICAL(!renderer.created(), "renderer must be created") {}
 }
 }

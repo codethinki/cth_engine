@@ -26,8 +26,12 @@ public:
      * @note calls @ref Buffer(Core const&, size_t, VkBufferUsageFlags)
      * @note calls @ref BaseBuffer::create()
      */
-    Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags,
-        VkMemoryPropertyFlags memory_property_flags);
+    Buffer(
+        Core const& core,
+        size_t element_count,
+        VkBufferUsageFlags usage_flags,
+        VkMemoryPropertyFlags memory_property_flags
+    );
 
 
     ~Buffer() override = default;
@@ -81,9 +85,13 @@ public:
     * @param dst_offset in elements
     * @note calls @ref BaseBuffer::copy()
     */
-    void copy(CmdBuffer const& cmd_buffer, Buffer const& src, size_t copy_size = constants::WHOLE_SIZE,
+    void copy(
+        CmdBuffer const& cmd_buffer,
+        Buffer const& src,
+        size_t copy_size = constants::WHOLE_SIZE,
         size_t src_offset = 0,
-        size_t dst_offset = 0) const;
+        size_t dst_offset = 0
+    ) const;
 
     /**
      * @brief stages a device local buffer with a temporary host visible buffer

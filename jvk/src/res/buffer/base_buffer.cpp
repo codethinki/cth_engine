@@ -15,21 +15,26 @@ using std::span;
 
 
 BaseBuffer::BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags) : _core{&core},
-    _size{byte_size}, _usage{usage_flags} { Core::debug_check(core); }
+    _size{byte_size},
+    _usage{usage_flags} { Core::debug_check(core); }
 
-BaseBuffer::BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags,
-    State state) : BaseBuffer{core, byte_size, usage_flags} { BaseBuffer::wrap(std::move(state)); }
+BaseBuffer::BaseBuffer(
+    Core const& core,
+    size_t byte_size,
+    VkBufferUsageFlags usage_flags,
+    State state
+) : BaseBuffer{core, byte_size, usage_flags} { BaseBuffer::wrap(std::move(state)); }
 
-BaseBuffer::BaseBuffer(Core const& core, size_t bytes_size, VkBufferUsageFlags usage_flags,
-    VkMemoryPropertyFlags vk_memory_flags) : BaseBuffer{core, bytes_size, usage_flags} {
-    BaseBuffer::create(vk_memory_flags);
-}
+BaseBuffer::BaseBuffer(
+    Core const& core,
+    size_t bytes_size,
+    VkBufferUsageFlags usage_flags,
+    VkMemoryPropertyFlags vk_memory_flags
+) : BaseBuffer{core, bytes_size, usage_flags} { BaseBuffer::create(vk_memory_flags); }
 
 
 
 void BaseBuffer::wrap(State state) {
-
-
     optDestroy();
 
 
@@ -55,9 +60,7 @@ void BaseBuffer::destroy() {
     debug_check(this);
 
 
-    auto const lambda = [table = _core->deviceTable(), buffer = _handle.get()] {
-        BaseBuffer::destroy(table, buffer);
-    };
+    auto const lambda = [table = _core->deviceTable(), buffer = _handle.get()] { BaseBuffer::destroy(table, buffer); };
 
     auto const queue = _core->destructionQueue();
     if(queue) queue->push(lambda);
@@ -84,7 +87,8 @@ std::span<char> BaseBuffer::map(size_t size, size_t offset) {
     CTH_CRITICAL(size + offset > _size && size != constants::WHOLE_SIZE, "memory out of bounds") {}
 
 
-    if(!_mapped.empty() && _mapped.size() > offset + size) return span<char>{_mapped.data() + offset, size};
+    if(!_mapped.empty() && _mapped.size() > offset + size)
+        return span<char>{_mapped.data() + offset, size};
 
     auto mem = span<char>{_memory->map(size, offset).data(), size};
 
@@ -108,23 +112,35 @@ void BaseBuffer::write(span<char const> data, size_t buffer_offset) const {
     std::memcpy(_mapped.data() + buffer_offset, data.data(), data.size());
 }
 
-void BaseBuffer::copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src, size_t copy_size, size_t src_offset,
-    size_t dst_offset) const {
+void BaseBuffer::copy(
+    CmdBuffer const& cmd_buffer,
+    BaseBuffer const& src,
+    size_t copy_size,
+    size_t src_offset,
+    size_t dst_offset
+) const {
     CmdBuffer::debug_check(cmd_buffer);
     debug_check(this);
     debug_check(&src);
 
-    CTH_CRITICAL(!(src._usage & VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
-        "src buffer usageFlags must be marked as transfer source") {}
-    CTH_CRITICAL(!(_usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT),
-        "dst buffer usageFlags must be marked as transfer destination") {}
+    CTH_CRITICAL(
+        !(src._usage & VK_BUFFER_USAGE_TRANSFER_SRC_BIT),
+        "src buffer usageFlags must be marked as transfer source"
+    ) {}
+    CTH_CRITICAL(
+        !(_usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT),
+        "dst buffer usageFlags must be marked as transfer destination"
+    ) {}
 
 
-    size_t const copySize = (copy_size == constants::WHOLE_SIZE
-        ? std::min(src._size - src_offset, _size - dst_offset) : copy_size);
+    size_t const copySize = copy_size == constants::WHOLE_SIZE
+                            ? std::min(src._size - src_offset, _size - dst_offset)
+                            : copy_size;
 
-    CTH_CRITICAL(src_offset + copySize > src._size || dst_offset + copySize > _size,
-        "copy region out of bounds") {
+    CTH_CRITICAL(
+        src_offset + copySize > src._size || dst_offset + copySize > _size,
+        "copy region out of bounds"
+    ) {
         if(src_offset + copySize > src._size) {
             details->add("src buffer out of bounds");
             details->add("{0} + {1} > {2} (off + copy_size > src.size)", src_offset, copySize, src._size);
@@ -159,8 +175,7 @@ void BaseBuffer::unmap() {
     _memory->unmap();
 }
 
-void BaseBuffer::stage(CmdBuffer const& cmd_buffer, BaseBuffer const& staging_buffer,
-    size_t dst_offset) const {
+void BaseBuffer::stage(CmdBuffer const& cmd_buffer, BaseBuffer const& staging_buffer, size_t dst_offset) const {
     debug_check(this);
     debug_check(&staging_buffer);
     this->copy(cmd_buffer, staging_buffer, staging_buffer._size, 0, dst_offset);
@@ -208,8 +223,12 @@ void BaseBuffer::createBuffer() {
 
     VkBuffer ptr = VK_NULL_HANDLE;
 
-    VkResult const createResult = _core->functions()->vkCreateBuffer(_core->vkDevice(), &bufferInfo, nullptr,
-        &ptr);
+    VkResult const createResult = _core->functions()->vkCreateBuffer(
+        _core->vkDevice(),
+        &bufferInfo,
+        nullptr,
+        &ptr
+    );
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create buffer") {
         reset();
         throw vk_result_exception{createResult, details->exception()};
@@ -229,8 +248,12 @@ void BaseBuffer::createMemory(VkMemoryPropertyFlags vk_memory_properties) {
 void BaseBuffer::bind() {
     CTH_CRITICAL(!_memory->created(), "memory must be allocated") {}
 
-    VkResult const bindResult = _core->functions()->vkBindBufferMemory(_core->vkDevice(), _handle.get(),
-        _memory->get(), 0);
+    VkResult const bindResult = _core->functions()->vkBindBufferMemory(
+        _core->vkDevice(),
+        _handle.get(),
+        _memory->get(),
+        0
+    );
 
     CTH_STABLE_ERR(bindResult != VK_SUCCESS, "failed to bind buffer memory") {
         destroy();

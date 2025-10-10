@@ -5,8 +5,8 @@
 #include "jvk/base/core.hpp"
 #include "jvk/surface/surface.hpp"
 #include "jvk/surface/swapchain/swapchain.hpp"
-#include "jvk/utility/vk_exceptions.hpp"
 #include "jvk/utility/format.hpp"
+#include "jvk/utility/vk_exceptions.hpp"
 
 #include "src/utility/vk_convert.hpp"
 
@@ -163,8 +163,8 @@ jvk::AttachmentCollection const* GraphicsCore::swapchainResolveAttachments() con
 VkFormat GraphicsCore::swapchainImageFormat() const { return _swapchain->imageFormat(); }
 
 glm::uvec2 GraphicsCore::swapchainExtent() const {
-    auto const extent = _swapchain->extent();
-    return {extent.width, extent.height};
+    auto const [width, height] = _swapchain->extent();
+    return {width, height};
 }
 
 size_t GraphicsCore::swapchainSize() const { return _swapchain->size(); }

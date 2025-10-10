@@ -1,4 +1,4 @@
-#include "jolly/render/Renderer3.hpp"
+#include "jolly/render/renderer.hpp"
 
 #include "jolly/render/RenderPulse.hpp"
 #include "jolly/render/RenderStage.hpp"
@@ -12,7 +12,7 @@
 #include <cth/algorithm/views.hpp>
 
 namespace jly {
-void Renderer3Config::removeUnusedDependencies() {
+void RendererConfig::removeUnusedDependencies() {
     auto unusedIds = stageDependencies.nodes();
     for(auto const& id : stages | std::views::keys) unusedIds.erase(id);
     for(auto const& id : unusedIds) stageDependencies.erase(id);
@@ -20,7 +20,7 @@ void Renderer3Config::removeUnusedDependencies() {
 }
 
 namespace jly {
-Renderer3::Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config config) : _core{&core},
+Renderer::Renderer(jvk::Core const& core, RenderPulse const& pulse, Config config) : _core{&core},
     _pulse{&pulse} {
     config.removeUnusedDependencies();
     Config::debugCheck(config);
@@ -33,16 +33,16 @@ Renderer3::Renderer3(jvk::Core const& core, RenderPulse const& pulse, Config con
     initRenderStages(stages);
 }
 
-Renderer3::Renderer3(
+Renderer::Renderer(
     jvk::Core const& core,
     RenderPulse const& pulse,
     Config const& config,
     create_t
-) : Renderer3{core, pulse, config} { create(); }
+) : Renderer{core, pulse, config} { create(); }
 
-Renderer3::~Renderer3() { optDestroy(); }
+Renderer::~Renderer() { optDestroy(); }
 
-auto Renderer3::create() -> std::map<id_t, RenderStage*> {
+auto Renderer::create() -> std::map<id_t, RenderStage*> {
     jvk::Core::debug_check(*_core);
     optDestroy();
 
@@ -54,21 +54,21 @@ auto Renderer3::create() -> std::map<id_t, RenderStage*> {
     return stages();
 }
 
-void Renderer3::destroy() {
+void Renderer::destroy() {
     for(auto& stage : _renderStages | std::views::values) stage.destroy();
     for(auto& semaphore : _stageSemaphores) semaphore.destroy();
 
     _created = false;
 }
 
-void Renderer3::initDependencySemaphores(size_t edges) {
+void Renderer::initDependencySemaphores(size_t edges) {
     size_t const semaphores = edges * StageConfig::GROUP_SIZE;
     _stageSemaphores.reserve(semaphores);
 
     for(size_t i = 0; i < semaphores; ++i) _stageSemaphores.emplace_back(*_core);
 }
 
-void Renderer3::linkStageDependencies(
+void Renderer::linkStageDependencies(
     Config::stage_map_t& stages,
     Config::dependencies_t const& dag,
     id_t source_id,
@@ -92,7 +92,7 @@ void Renderer3::linkStageDependencies(
 }
 
 
-void Renderer3::linkDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag) {
+void Renderer::linkDependencies(Config::stage_map_t& stages, Config::dependencies_t const& dag) {
     std::vector semaphores{std::from_range, _stageSemaphores | cth::views::to_ptr_range};
 
     size_t semaphoreCounter = 0;
@@ -109,22 +109,22 @@ void Renderer3::linkDependencies(Config::stage_map_t& stages, Config::dependenci
     }
 }
 
-void Renderer3::initRenderStages(Config::stage_map_t const& stage_configs) {
+void Renderer::initRenderStages(Config::stage_map_t const& stage_configs) {
     for(auto& [id, config] : stage_configs)
         _renderStages.emplace(id, RenderStage{*_core, *_pulse, config});
 }
 
-void Renderer3::createSemaphores() { for(auto& semaphore : _stageSemaphores) semaphore.create(); }
+void Renderer::createSemaphores() { for(auto& semaphore : _stageSemaphores) semaphore.create(); }
 
-void Renderer3::createStages() { for(auto& stage : _renderStages | std::views::values) stage.create(); }
+void Renderer::createStages() { for(auto& stage : _renderStages | std::views::values) stage.create(); }
 
 
-RenderStage& Renderer3::stage(id_t id) {
+RenderStage& Renderer::stage(id_t id) {
     CTH_CRITICAL(!_renderStages.contains(id), "stage id must be present, missing: {}", id) {}
     return _renderStages.at(id);
 }
 
-auto Renderer3::stages() -> std::map<id_t, RenderStage*> {
+auto Renderer::stages() -> std::map<id_t, RenderStage*> {
     return std::map{
         std::from_range,
         _renderStages | std::views::transform([](auto& pair) { return std::pair{pair.first, &pair.second}; })
