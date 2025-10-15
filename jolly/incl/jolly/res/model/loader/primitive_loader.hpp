@@ -1,7 +1,8 @@
 #pragma once
 
 namespace jly {
-    class mesh_loader {
+    class PrimitiveLoader {
         
     };
 }
+

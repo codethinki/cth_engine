@@ -16,16 +16,21 @@
 
 
 namespace jly {
-OSWindow::OSWindow(jvk::Instance const& instance, jvk::DestructionQueue* destruction_queue,
-    std::string_view name, glm::uvec2 extent) : _instance{&instance}, _destructionQueue{destruction_queue},
-    _windowName{name}, _windowExtent{extent} {
-
-    initWindow(instance);
-}
+OSWindow::OSWindow(
+    jvk::Instance const& instance,
+    jvk::DestructionQueue* destruction_queue,
+    std::string_view name,
+    glm::uvec2 extent
+) : _instance{&instance},
+    _destructionQueue{destruction_queue},
+    _windowName{name},
+    _windowExtent{extent} { initWindow(instance); }
 
 OSWindow::~OSWindow() {
-    CTH_STABLE_ERR(_surface != nullptr,
-        "surface must be retrieved (i have to swap glfw with native windows impl, this is crap")
+    CTH_STABLE_ERR(
+        _surface != nullptr,
+        "surface must be retrieved (i have to swap glfw with native windows impl, this is crap"
+    )
         std::terminate(); // NOLINT(clang-diagnostic-exceptions)
 
     _surface = nullptr;
@@ -44,9 +49,7 @@ void OSWindow::destroy(jvk::DestructionQueue* destruction_queue) {
     _handle = nullptr;
 }
 
-void OSWindow::waitEvents() {
-    glfwWaitEvents();
-}
+void OSWindow::waitEvents() { glfwWaitEvents(); }
 
 std::vector<std::string> OSWindow::getGLFWInstanceExtensions() {
     uint32_t glfwExtensionCount = 0;
@@ -54,8 +57,11 @@ std::vector<std::string> OSWindow::getGLFWInstanceExtensions() {
 
     std::span<char const*> extensionsSpan{glfwExtensions, glfwExtensionCount};
     std::vector<std::string> extensions{extensionsSpan.size()};
-    std::ranges::transform(extensionsSpan, extensions.begin(),
-        [](std::string_view c) { return std::string(c); });
+    std::ranges::transform(
+        extensionsSpan,
+        extensions.begin(),
+        [](std::string_view c) { return std::string(c); }
+    );
 
     return extensions;
 }
@@ -187,10 +193,12 @@ void OSWindow::staticKeyCallback(GLFWwindow* glfw_window, int key, int scan_code
 
 
 
-void OSWindow::staticMouseCallback(GLFWwindow* glfw_window, int button, int action,
-    [[maybe_unused]] int mods) {
-    window_ptr(glfw_window)->mouseCallback(button, action);
-}
+void OSWindow::staticMouseCallback(
+    GLFWwindow* glfw_window,
+    int button,
+    int action,
+    [[maybe_unused]] int mods
+) { window_ptr(glfw_window)->mouseCallback(button, action); }
 
 void OSWindow::staticScrollCallback(GLFWwindow* glfw_window, double x_offset, double y_offset) {
     window_ptr(glfw_window)->scrollCallback(x_offset, y_offset);
