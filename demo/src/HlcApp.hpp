@@ -19,6 +19,7 @@ namespace cth {
 class FrameResources;
 }
 
+
 namespace cth {
 
 class App {
@@ -34,6 +35,11 @@ public:
     static constexpr uint32_t HEIGHT = 1000;
 
 private:
+    static constexpr std::array<size_t, 6> QUEUE_SETS{
+        0, 1, 2,
+        0, 0, 0
+    };
+
     void createRenderer3();
 
     void initFrame();
@@ -53,10 +59,19 @@ private:
     };
 
 
+
+
     std::vector<std::string> _glfwExtensions = getRequiredInstanceExtensions();
 
     std::unique_ptr<jvk::Core> _core = std::make_unique<jvk::Core>(
-        jvk::Core::Config::Default("demo", "engine", _queues, _glfwExtensions));
+        jvk::Core::Config{
+            "demo",
+            "engine",
+            _queues,
+            _glfwExtensions,
+            QUEUE_SETS
+        }
+    );
 
     cth::move_ptr<jvk::DestructionQueue> _destructionQueue = _core->destructionQueue();
 

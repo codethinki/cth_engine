@@ -12,6 +12,7 @@
 
 #include <range/v3/view/concat.hpp>
 
+
 namespace jvk {
 using std::vector;
 using std::string_view;
@@ -54,7 +55,8 @@ std::optional<PhysicalDevice> PhysicalDevice::Create(
 ) {
     PhysicalDevice physicalDevice{instance, required_features, required_extensions, surface, vk_device};
 
-    if(physicalDevice.suitable(queues)) return physicalDevice;
+    if(physicalDevice.suitable(queues))
+        return physicalDevice;
     return std::nullopt;
 }
 
@@ -104,15 +106,18 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
     auto const missingFeatures = supports(_requiredFeatures);
     auto const missingExtensions = supports(_requiredExtensions);
     auto const queueIndices = queueFamilyIndices(queues);
-    bool const valid = missingFeatures.empty() && missingExtensions.empty() && !queueIndices.empty();
+    bool const suitable = missingFeatures.empty() && missingExtensions.empty() && !queueIndices.empty();
 
-    CTH_WARN(!valid, "physical device ({}) is missing features", _properties.deviceName) {
-        if(queueIndices.empty()) details->add("missing queue families");
+    CTH_WARN(!suitable, "physical device ({}) is missing features", _properties.deviceName) {
+        if(queueIndices.empty())
+            details->add("missing queue families");
+
         for(auto const& missingExtension : missingExtensions)
             details->add(
                 "missing extension: {}",
                 missingExtension
             );
+
         for(auto const& missingFeature : missingFeatures)
             std::visit(
                 cth::var::overload{
@@ -126,7 +131,7 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
     }
 
 
-    return valid;
+    return suitable;
 }
 
 
@@ -136,7 +141,7 @@ auto PhysicalDevice::AutoPick(
     std::span<Queue const> queues,
     span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features
-) -> unique_ptr<PhysicalDevice> {
+) -> PhysicalDevice {
     Instance::debug_check(instance);
 
     auto const devices = enumerateVkDevices(instance.get());
@@ -150,27 +155,26 @@ auto PhysicalDevice::AutoPick(
     requiredFeatures.merge(required_features);
 
 
-    vector<unique_ptr<PhysicalDevice>> physicalDevices{};
+    vector<PhysicalDevice> physicalDevices{};
     for(auto& device : devices) {
-        auto physicalDevice = Create(instance, temp_surfaces, queues, requiredExtensions, requiredFeatures, device);
-        if(physicalDevice.has_value())
+        auto deviceOpt = Create(instance, temp_surfaces, queues, requiredExtensions, requiredFeatures, device);
+
+        if(deviceOpt.has_value())
             physicalDevices.emplace_back(
-                std::make_unique<PhysicalDevice>(std::move(physicalDevice.value()))
+                std::move(*deviceOpt)
             );
     }
-    CTH_STABLE_ERR(physicalDevices.empty(), "no GPU is suitable")
-    throw details->exception();
+    JVK_STABLE_THROW(physicalDevices.empty(), "no GPU is suitable") {}
 
-    cth::log::msg<except::INFO>("chosen physical device: {}", physicalDevices[0]->_properties.deviceName);
+    cth::log::msg<except::INFO>("chosen physical device: {}", physicalDevices[0]._properties.deviceName);
 
     return std::move(physicalDevices[0]);
 }
 
 
 
-auto PhysicalDevice::supports(
-    utils::PhysicalDeviceFeatures const& required_features
-) const -> std::vector<std::variant<size_t, VkStructureType>> {
+auto PhysicalDevice::supports(utils::PhysicalDeviceFeatures const& required_features) const
+    -> std::vector<std::variant<size_t, VkStructureType>> {
     PhysicalDevice::debug_check(*this);
 
     return _features.supports(required_features);
@@ -222,16 +226,17 @@ auto PhysicalDevice::findSupportedFormat(
 }
 
 auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vector<uint32_t> {
-    PhysicalDevice::debug_check(*this);
+    debug_check(*this);
 
     vector<vector<uint32_t>> queueIndices{queues.size()};
 
     for(auto [queue, indices] : std::views::zip(queues, queueIndices)) {
         auto const requiredProperties = queue.familyProperties();
-        for(uint32_t index = 0; index < _queueFamilies.size(); ++index) {
-            bool const support = (_queueFamilies[index].properties & requiredProperties) ==
-                requiredProperties;
-            if(support) indices.push_back(index);
+
+        for(auto const& family : _queueFamilies) {
+            bool const support = (family.properties & requiredProperties) == requiredProperties;
+
+            if(support) indices.push_back(family.index);
         }
     }
     std::vector<size_t> familiesMaxQueues(_queueFamilies.size());
@@ -384,5 +389,6 @@ VkSampleCountFlagBits PhysicalDevice::evalMaxSampleCount(VkPhysicalDevicePropert
     CTH_CRITICAL(true, "invalid state, sample count not supported") {}
     return VK_SAMPLE_COUNT_1_BIT;
 }
+
 
 }

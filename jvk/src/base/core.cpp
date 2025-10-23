@@ -7,6 +7,7 @@
 #include "jvk/utility/os.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
+
 namespace jvk {
 
 Core::Core(State state) { wrap(std::move(state)); }
@@ -33,7 +34,7 @@ void Core::create(Config const& config) {
 
     _instance = std::make_unique<Instance>(config.appName, config.requiredExtensions, std::nullopt);
 
-    createPhysicalDevice(config);
+    createPhysicalDevice(config.queues);
 
     _device = std::make_unique<Device>(*_instance, *_physicalDevice, config.queues);
 
@@ -70,7 +71,7 @@ Core::State Core::release() {
 
     return temp;
 }
-void Core::createPhysicalDevice(Config const& config) {
+void Core::createPhysicalDevice(std::span<Queue const> queues) {
     auto windows = os::create_hidden_monitor_windows();
 
     JVK_STABLE_THROW(windows.empty(), "failed to create temp monitor windows") {}
@@ -82,12 +83,14 @@ void Core::createPhysicalDevice(Config const& config) {
         )
     };
 
-    _physicalDevice = PhysicalDevice::AutoPick(
-        *_instance,
-        surfaces,
-        config.queues,
-        {},
-        {}
+    _physicalDevice = std::make_unique<PhysicalDevice>(
+        PhysicalDevice::AutoPick(
+            *_instance,
+            surfaces,
+            queues,
+            {},
+            {}
+        )
     );
 }
 

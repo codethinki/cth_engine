@@ -8,6 +8,7 @@
 
 #include <span>
 
+
 namespace jvk {
 struct DeviceTable;
 
@@ -85,7 +86,7 @@ public:
     State release();
 
 private:
-    void createPhysicalDevice(Config const&);
+    void createPhysicalDevice(std::span<Queue const> queues);
 
     std::unique_ptr<Device> _device;
     std::unique_ptr<PhysicalDevice> _physicalDevice;
@@ -154,16 +155,16 @@ struct Core::Config {
     std::span<std::string const> requiredExtensions; //TODO replace this with better extension handling
 
     /**
+     * 
+     * @note empty -> default queue set, every queue is unique.
+        Equivalent to {0, ..., N - 1}
+     */
+    std::span<size_t const> queueSets{};
+
+    /**
      * @brief if true, creates a DestructionQueue
      */
-    bool destructionQueue;
-
-    static Config Default(
-        std::string_view app_name,
-        std::string_view engine_name,
-        std::span<Queue> queues,
-        std::span<std::string const> required_extensions
-    ) { return Config{app_name, engine_name, queues, required_extensions, true}; }
+    bool destructionQueue = true;
 };
 }
 

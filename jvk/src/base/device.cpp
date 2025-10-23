@@ -74,13 +74,15 @@ void Device::createLogicalDevice() {
     for(auto const [queueFamily, queueCount] : _queueFamiliesQueueCounts) {
         queuePriorities.emplace_back(queueCount, 1.0f);
 
-        queueCreateInfos.push_back(VkDeviceQueueCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .pNext = nullptr,
-            .queueFamilyIndex = queueFamily,
-            .queueCount = queueCount,
-            .pQueuePriorities = queuePriorities.back().data()
-        });
+        queueCreateInfos.push_back(
+            {
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .pNext = nullptr,
+                .queueFamilyIndex = queueFamily,
+                .queueCount = queueCount,
+                .pQueuePriorities = queuePriorities.back().data()
+            }
+        );
     }
     auto const requiredExtensions = cth::str::to_c_str_vector(_physicalDevice->requiredExtensions());
 

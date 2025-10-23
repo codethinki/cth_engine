@@ -104,13 +104,17 @@ public:
     /**
      * @brief enumerates all available devices and picks one that fits the requirements
      * @param queues required queues to support
+     * @param queue_sets queue set describes a combination of queues to unique vk_queue instances 
+
+    
      * @return valid physical device
      * @throws cth::except::default_exception if no device is found
      * @note engine required features and extensions are added to the requirements
-     * @ref jvk::constants::REQUIRED_DEVICE_FEATURES
-     * @ref jvk::constants::REQUIRED_DEVICE_EXTENSIONS
+        - @ref jvk::constants::REQUIRED_DEVICE_FEATURES
+        - @ref jvk::constants::REQUIRED_DEVICE_EXTENSIONS
+     * @details a single queue set has length N (number of queues), multiple queue sets may be provided.
      */
-    [[nodiscard]] static std::unique_ptr<PhysicalDevice> AutoPick(
+    [[nodiscard]] static PhysicalDevice AutoPick(
         Instance const& instance,
         std::span<Surface const> temp_surfaces,
         std::span<Queue const> queues,
@@ -129,9 +133,7 @@ public:
     /**
      * @return indices of missing features from utils::deviceFeaturesToArray
      */
-    [[nodiscard]] std::vector<std::variant<size_t, VkStructureType>> supports(
-        utils::PhysicalDeviceFeatures const& required_features
-    ) const;
+    [[nodiscard]] std::vector<std::variant<size_t, VkStructureType>> supports(utils::PhysicalDeviceFeatures const& required_features) const;
 
     /**
      * @return missing extensions 
@@ -196,6 +198,8 @@ public:
     );
 
 private:
+    [[nodiscard]] std::vector<uint32_t> queueSetFamilyIndices(std::span<std::vector<uint32_t> const> queues_family_candidates, std::span<size_t const> families_max_queues, std::span<size_t const> queue_set) const;
+
     Instance const* _instance;
     utils::PhysicalDeviceFeatures _requiredFeatures;
     std::vector<std::string> _requiredExtensions{};
