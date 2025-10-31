@@ -1,10 +1,16 @@
 #pragma once
+#include "jvk/base/core_config.hpp"
+
 #include "jvk/base/queue/queue.hpp"
 #include "jvk/surface/surface.hpp"
 #include "jvk/utility/constants.hpp"
+#include "jvk/utility/types.hpp"
 
+
+
+#include <map>
 #include <volk.h>
-#include <cth/pointers.hpp>
+#include <cth/data/union_find.hpp>
 
 #include <span>
 
@@ -20,7 +26,8 @@ class Instance;
 
 class Core {
 public:
-    struct Config;
+    using Config = CoreConfig;
+    using queue_set_t = Config::queue_set_t;
     struct State;
 
     Core() = default;
@@ -86,16 +93,38 @@ public:
     State release();
 
 private:
-    void createPhysicalDevice(std::span<Queue const> queues);
+    [[nodiscard]] std::map<size_t, QueueFamilyProperties> createPhysicalDevice(
+        std::span<Queue const> queues,
+        std::span<queue_set_t const> queue_sets
+    );
+
+    [[nodiscard]] std::map<size_t, QueueFamilyProperties> tryCreatePhysicalDevice(
+        std::span<Surface const> surfaces,
+        std::span<QueueFamilyProperties const> queue_properties,
+        queue_set_t queue_set
+    );
+
+    void wrapQueues(
+        std::unordered_map<size_t, Queue const*> const& physical_queues,
+        std::span<Queue> queues,
+        queue_set_t const& queue_set
+    ) const;
+
 
     std::unique_ptr<Device> _device;
     std::unique_ptr<PhysicalDevice> _physicalDevice;
+    std::optional<size_t> _queueSetIndex;
+
     std::unique_ptr<Instance> _instance;
     std::unique_ptr<DestructionQueue> _destructionQueue;
 
 public:
     [[nodiscard]] bool created() const {
         return _device != nullptr && _physicalDevice != nullptr && _instance != nullptr;
+    }
+    [[nodiscard]] size_t queueSetIndex() const {
+        debug_check(*this);
+        return *_queueSetIndex;
     }
 
     [[nodiscard]] Device const& device() const;
@@ -144,29 +173,6 @@ struct Core::State {
 };
 }
 
-
-//Config
-
-namespace jvk {
-struct Core::Config {
-    std::string_view appName;
-    std::string_view engineName;
-    std::span<Queue> queues;
-    std::span<std::string const> requiredExtensions; //TODO replace this with better extension handling
-
-    /**
-     * 
-     * @note empty -> default queue set, every queue is unique.
-        Equivalent to {0, ..., N - 1}
-     */
-    std::span<size_t const> queueSets{};
-
-    /**
-     * @brief if true, creates a DestructionQueue
-     */
-    bool destructionQueue = true;
-};
-}
 
 
 //debug check

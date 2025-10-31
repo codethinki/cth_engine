@@ -1,9 +1,9 @@
 #include "jvk/base/queue/submit_info.hpp"
 
 #include "jvk/render/cmd/cmd_buffer.hpp"
-#include "jvk/render/ctrl/fence.hpp"
-#include "jvk/render/ctrl/pipeline_wait_stage.hpp"
-#include "jvk/render/ctrl/timline_semaphore.hpp"
+#include "jvk/render/sync/fence.hpp"
+#include "jvk/render/sync/pipeline_wait_stage.hpp"
+#include "jvk/render/sync/timline_semaphore.hpp"
 
 
 namespace jvk {

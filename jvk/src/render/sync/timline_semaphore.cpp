@@ -1,4 +1,4 @@
-#include "jvk/render/ctrl/timline_semaphore.hpp"
+#include "jvk/render/sync/timline_semaphore.hpp"
 
 #include "jvk/base/core.hpp"
 #include "jvk/utility/vk_exceptions.hpp"

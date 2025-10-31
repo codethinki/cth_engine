@@ -5,7 +5,7 @@
 #include "jolly/render/RenderStageConfig.hpp"
 #include "jolly/utility/types.hpp"
 
-#include "jvk/render/ctrl/pipeline_wait_stage.hpp"
+#include "jvk/render/sync/pipeline_wait_stage.hpp"
 
 #include <cth/pointer/not_null.hpp>
 

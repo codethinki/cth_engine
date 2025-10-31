@@ -1,7 +1,11 @@
 #pragma once
+#include "cmd_buffer_config.hpp"
+
 #include "jvk/base/device_table.hpp"
 #include "jvk/utility/constants.hpp"
 #include "jvk/utility/types.hpp"
+
+#include <cth/coro/task.hpp>
 #include <cth/pointer/move_ptr.hpp>
 
 #include <volk.h>
@@ -25,10 +29,12 @@ class CmdPool;
 
 class CmdBuffer {
 public:
+    using Config = CmdBufferConfig;
+
     /**
      * @brief base constructor
      */
-    explicit CmdBuffer(VkCommandBufferUsageFlags usage = 0);
+    explicit CmdBuffer(Config config);
     virtual ~CmdBuffer() = default;
 
     void create(this auto&& self, CmdPool& pool);
@@ -50,7 +56,6 @@ public:
     void reset(VkCommandBufferResetFlags flags);
 
 
-
     static void destroy(DeviceTable table, VkCommandPool vk_pool, std::span<VkCommandBuffer const> buffers);
     static void destroy(DeviceTable table, vk_not_null<VkCommandPool_T*> vk_pool, VkCommandBuffer buffer);
 
@@ -61,8 +66,9 @@ private:
     void reset();
 
 
-    VkCommandBufferUsageFlags _bufferUsage;
+    Config _config;
     std::optional<DeviceTable> _deviceTable = std::nullopt;
+
     CmdPool* _pool = nullptr;
     move_ptr<VkCommandBuffer_T> _handle = VK_NULL_HANDLE;
     bool _recording = false;
@@ -74,7 +80,7 @@ public:
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] bool recording() const { return _recording; }
     [[nodiscard]] CmdPool& pool() const { return *_pool; }
-    [[nodiscard]] VkBufferUsageFlags usageFlags() const { return _bufferUsage; }
+    [[nodiscard]] VkBufferUsageFlags usageFlags() const { return _config.usageFlags; }
 
     CmdBuffer(CmdBuffer const& other) = delete;
     CmdBuffer& operator=(CmdBuffer const& other) = delete;
@@ -99,8 +105,8 @@ inline void CmdBuffer::debug_check_handle([[maybe_unused]] jvk::vk_not_null<VkCo
 namespace jvk {
 class PrimaryCmdBuffer : public CmdBuffer {
 public:
-    explicit PrimaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
-    explicit PrimaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage = 0);
+    explicit PrimaryCmdBuffer(Config config) : CmdBuffer{config} {}
+    explicit PrimaryCmdBuffer(Config config, CmdPool& cmd_pool);
 
     ~PrimaryCmdBuffer() override { optDestroy(); }
 
@@ -118,8 +124,8 @@ public:
 namespace jvk {
 class SecondaryCmdBuffer : public CmdBuffer {
 public:
-    explicit SecondaryCmdBuffer(VkCommandBufferUsageFlags usage = 0) : CmdBuffer{usage} {}
-    explicit SecondaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage = 0);
+    explicit SecondaryCmdBuffer(Config config) : CmdBuffer{std::move(config)} {}
+    explicit SecondaryCmdBuffer(Config config, CmdPool& cmd_pool);
 
     ~SecondaryCmdBuffer() override { optDestroy(); }
 

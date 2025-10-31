@@ -1,4 +1,4 @@
-#include "jvk/render/ctrl/semaphore.hpp"
+#include "jvk/render/sync/semaphore.hpp"
 
 #include "jvk/base/core.hpp"
 #include "jvk/base/device.hpp"

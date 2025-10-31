@@ -1,11 +1,15 @@
-#include "jvk/utility/os.hpp"
-
+#pragma once
+#include "jvk/utility/os/os_window.hpp"
 
 #include "jvk/base/instance.hpp"
 #include "jvk/surface/surface.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
+#include "jvk/utility/os/os_exception.hpp"
 
-#include "os/incl_windows.hpp"
+#include "incl_windows.hpp"
+
+
+#include <cth/io/log.hpp>
 
 namespace jvk::os {
 
@@ -29,7 +33,7 @@ Surface surface_from_window(Instance const& instance, window_t const& window) {
         throw jvk::vk_result_exception{result, details->exception()};
     }
 
-    log::msg("created temp surface");
+    cth::log::msg("created temp surface");
 
     return Surface{instance, nullptr, Surface::Config{}, Surface::State{surface}};
 }

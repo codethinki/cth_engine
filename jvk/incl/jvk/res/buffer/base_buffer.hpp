@@ -36,8 +36,12 @@ public:
      * @brief constructs and calls @ref create()
      * @note calls @ref BaseBuffer(Core const&, size_t, VkBufferUsageFlags)
      */
-    BaseBuffer(Core const& core, size_t bytes_size, VkBufferUsageFlags usage_flags,
-        VkMemoryPropertyFlags vk_memory_flags);
+    BaseBuffer(
+        Core const& core,
+        size_t bytes_size,
+        VkBufferUsageFlags usage_flags,
+        VkMemoryPropertyFlags vk_memory_flags
+    );
 
 
     /**
@@ -133,9 +137,13 @@ public:
     * @param dst_offset in bytes
     * @attention requires @ref created()
      */
-    void copy(CmdBuffer const& cmd_buffer, BaseBuffer const& src, size_t copy_size = constants::WHOLE_SIZE,
+    void copy(
+        CmdBuffer const& cmd_buffer,
+        BaseBuffer const& src,
+        size_t copy_size = constants::WHOLE_SIZE,
         size_t src_offset = 0,
-        size_t dst_offset = 0) const;
+        size_t dst_offset = 0
+    ) const;
 
     /**
     * @brief unmaps all mapped memory ranges

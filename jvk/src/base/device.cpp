@@ -17,10 +17,15 @@ Device::Device(Instance const& instance, PhysicalDevice const& physical_device) 
     _physicalDevice{&physical_device} {}
 
 Device::Device(Instance const& instance, PhysicalDevice const& physical_device, State state) : Device{
-    instance, physical_device} { wrap(std::move(state)); }
+    instance,
+    physical_device
+} { wrap(std::move(state)); }
 
-Device::Device(Instance const& instance, PhysicalDevice const& physical_device,
-    std::span<Queue> queues) : Device{instance, physical_device} { create(queues); }
+Device::Device(
+    Instance const& instance,
+    PhysicalDevice const& physical_device,
+    std::span<Queue> queues
+) : Device{instance, physical_device} { create(queues); }
 
 Device::~Device() { optDestroy(); }
 
@@ -32,7 +37,6 @@ void Device::wrap(State state) {
 
     _functionTable = std::move(state.functionTable);
     if(_functionTable == nullptr) loadFunctionTable();
-
 }
 
 void Device::create(std::span<Queue> queues) {
@@ -54,10 +58,15 @@ void Device::destroy() {
 }
 
 vector<uint32_t> Device::setUniqueFamilyIndices(span<Queue const> queues) {
-    auto const& queueFamilyIndices = _physicalDevice->queueFamilyIndices(queues);
+    auto const& queueFamilyIndices = _physicalDevice->queueFamilyIndices(
+        std::vector{
+            std::from_range,
+            queues | std::views::transform([](auto const& queue) { return queue.familyProperties(); })
+        }
+    );
 
-    for(auto const& familyIndex : queueFamilyIndices) ++_queueFamiliesQueueCounts[familyIndex];
-
+    for(auto const& familyIndex : queueFamilyIndices)
+        ++_queueFamiliesQueueCounts[familyIndex];
 
     return queueFamilyIndices;
 }
@@ -122,7 +131,6 @@ void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues)
 
         queue.wrap(Queue::State{ptr, this, familyIndex, queueCounts[familyIndex]++});
     }
-
 }
 
 Device::State Device::release() {

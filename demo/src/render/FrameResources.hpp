@@ -28,8 +28,7 @@ class FrameResources {
 public:
     using Config = FrameResourcesConfig;
 
-    FrameResources(jvk::Core const& core, Config config
-        );
+    FrameResources(jvk::Core const& core, Config config);
 
     ~FrameResources();
 
@@ -37,15 +36,16 @@ public:
 
     void endRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) const;
 
-    void resize() const;
 
     void acquireFrame() const;
     void skipAcquire() const;
 
-    [[nodiscard]] bool presentFrame() const;
+    void presentFrame() const;
     void skipPresent() const;
 
 private:
+    void resize() const;
+
     [[nodiscard]] VkSampleCountFlagBits evalMsaaSampleCount() const;
 
     [[nodiscard]] VkFormat findDepthFormat() const;

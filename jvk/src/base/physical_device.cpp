@@ -1,7 +1,5 @@
 #include "jvk/base/physical_device.hpp"
 
-#include "../utility/os/incl_windows.hpp"
-
 #include "jvk/base/instance.hpp"
 #include "jvk/base/queue/queue.hpp"
 #include "jvk/surface/surface.hpp"
@@ -48,14 +46,14 @@ PhysicalDevice::PhysicalDevice(
 std::optional<PhysicalDevice> PhysicalDevice::Create(
     Instance const& instance,
     std::span<Surface const> surface,
-    std::span<Queue const> queues,
+    std::span<QueueFamilyProperties const> queue_properties,
     std::span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features,
     jvk::vk_not_null<VkPhysicalDevice> vk_device
 ) {
     PhysicalDevice physicalDevice{instance, required_features, required_extensions, surface, vk_device};
 
-    if(physicalDevice.suitable(queues))
+    if(physicalDevice.suitable(queue_properties))
         return physicalDevice;
     return std::nullopt;
 }
@@ -100,7 +98,7 @@ void PhysicalDevice::create(std::span<QueueFamily const> queue_families, vk_not_
 }
 
 
-bool PhysicalDevice::suitable(std::span<Queue const> queues) {
+bool PhysicalDevice::suitable(std::span<QueueFamilyProperties const> queues) {
     PhysicalDevice::debug_check(*this);
 
     auto const missingFeatures = supports(_requiredFeatures);
@@ -138,10 +136,10 @@ bool PhysicalDevice::suitable(std::span<Queue const> queues) {
 auto PhysicalDevice::AutoPick(
     Instance const& instance,
     std::span<Surface const> temp_surfaces,
-    std::span<Queue const> queues,
+    std::span<QueueFamilyProperties const> queue_properties,
     span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features
-) -> PhysicalDevice {
+) -> std::optional<PhysicalDevice> {
     Instance::debug_check(instance);
 
     auto const devices = enumerateVkDevices(instance.get());
@@ -157,14 +155,15 @@ auto PhysicalDevice::AutoPick(
 
     vector<PhysicalDevice> physicalDevices{};
     for(auto& device : devices) {
-        auto deviceOpt = Create(instance, temp_surfaces, queues, requiredExtensions, requiredFeatures, device);
+        auto deviceOpt = Create(instance, temp_surfaces, queue_properties, requiredExtensions, requiredFeatures, device);
 
         if(deviceOpt.has_value())
             physicalDevices.emplace_back(
                 std::move(*deviceOpt)
             );
     }
-    JVK_STABLE_THROW(physicalDevices.empty(), "no GPU is suitable") {}
+
+    if(physicalDevices.empty()) return std::nullopt;
 
     cth::log::msg<except::INFO>("chosen physical device: {}", physicalDevices[0]._properties.deviceName);
 
@@ -173,8 +172,9 @@ auto PhysicalDevice::AutoPick(
 
 
 
-auto PhysicalDevice::supports(utils::PhysicalDeviceFeatures const& required_features) const
-    -> std::vector<std::variant<size_t, VkStructureType>> {
+auto PhysicalDevice::supports(
+    utils::PhysicalDeviceFeatures const& required_features
+) const -> std::vector<std::variant<size_t, VkStructureType>> {
     PhysicalDevice::debug_check(*this);
 
     return _features.supports(required_features);
@@ -225,13 +225,12 @@ auto PhysicalDevice::findSupportedFormat(
     throw except::data_exception{features, details->exception()};
 }
 
-auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vector<uint32_t> {
+auto PhysicalDevice::queueFamilyIndices(span<QueueFamilyProperties const> queue_properties) const -> vector<uint32_t> {
     debug_check(*this);
 
-    vector<vector<uint32_t>> queueIndices{queues.size()};
+    vector<vector<uint32_t>> queueIndices{queue_properties.size()};
 
-    for(auto [queue, indices] : std::views::zip(queues, queueIndices)) {
-        auto const requiredProperties = queue.familyProperties();
+    for(auto [requiredProperties, indices] : std::views::zip(queue_properties, queueIndices)) {
 
         for(auto const& family : _queueFamilies) {
             bool const support = (family.properties & requiredProperties) == requiredProperties;
@@ -248,10 +247,10 @@ auto PhysicalDevice::queueFamilyIndices(span<Queue const> queues) const -> vecto
     return result;
 }
 
-bool PhysicalDevice::supportsQueueSet(span<Queue const> queues) const {
+bool PhysicalDevice::supportsQueueSet(span<QueueFamilyProperties const> queue_properties) const {
     PhysicalDevice::debug_check(*this);
 
-    return !queueFamilyIndices(queues).empty();
+    return !queueFamilyIndices(queue_properties).empty();
 }
 
 vector<VkPhysicalDevice> PhysicalDevice::enumerateVkDevices(jvk::vk_not_null<VkInstance> vk_instance) {

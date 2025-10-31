@@ -46,7 +46,6 @@ Checks: >
   portability-std-allocator-const,
   portability-simd-intrinsics,
 
-
   # Exclusions for 'bugprone-*'
   -bugprone-switch-missing-default-case,
   -bugprone-casting-through-void,
@@ -105,3 +104,6 @@ Checks: >
   -readability-function-cognitive-complexity,
   -readability-identifier-naming,
   -readability-enum-initial-value
+
+CheckOptions:
+  -performance-move-const-arg.CheckTriviallyCopyableMove: 'false'

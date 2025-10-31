@@ -3,7 +3,7 @@
 #include "jvk/base/core.hpp"
 #include "jvk/base/device.hpp"
 #include "jvk/render/cmd/cmd_buffer.hpp"
-#include "jvk/render/ctrl/pipeline_barrier.hpp"
+#include "jvk/render/sync/pipeline_barrier.hpp"
 #include "jvk/res/destruction_queue.hpp"
 #include "jvk/res/buffer/base_buffer.hpp"
 #include "jvk/utility/vk_exceptions.hpp"

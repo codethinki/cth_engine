@@ -3,8 +3,8 @@
 
 #include "jolly/utility/types.hpp"
 
-#include "jvk/render/ctrl/fence.hpp"
-#include "jvk/render/ctrl/pipeline_wait_stage.hpp"
+#include "jvk/render/sync/fence.hpp"
+#include "jvk/render/sync/pipeline_wait_stage.hpp"
 #include "jvk/utility/constants.hpp"
 
 

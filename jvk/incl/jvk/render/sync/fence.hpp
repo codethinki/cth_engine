@@ -10,6 +10,9 @@ namespace jvk {
 class Core;
 class DestructionQueue;
 
+namespace os {
+    using fence_handle_t = void*;
+}
 
 class Fence {
 public:
@@ -115,6 +118,9 @@ public:
     void wait() const;
 
     static void destroy(DeviceTable table, VkFence vk_fence);
+
+
+     os::fence_handle_t extractOsHandle();
 
 private:
     void resetState();

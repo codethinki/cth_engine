@@ -4,7 +4,6 @@
 #include "jvk/utility/device/physical_device_features.hpp"
 
 #include <volk.h>
-#include <cth/pointers.hpp>
 
 #include <memory>
 #include <span>
@@ -63,13 +62,13 @@ public:
 
     /**
      * @brief creates if requirements are met
-     * @param queues passed to @ref suitable()
+     * @param queue_properties passed to @ref suitable()
      * @return if @ref suitable() returns instance, else nullopt
      */
     static std::optional<PhysicalDevice> Create(
         Instance const& instance,
         std::span<Surface const> surface,
-        std::span<Queue const> queues,
+        std::span<QueueFamilyProperties const> queue_properties,
         std::span<std::string const> required_extensions,
         utils::PhysicalDeviceFeatures const& required_features,
         jvk::vk_not_null<VkPhysicalDevice> vk_device
@@ -103,30 +102,27 @@ public:
 
     /**
      * @brief enumerates all available devices and picks one that fits the requirements
-     * @param queues required queues to support
-     * @param queue_sets queue set describes a combination of queues to unique vk_queue instances 
-
-    
-     * @return valid physical device
+     * @param queue_properties required queues to support
+     * @return physical device if a suitable one is found, else nullopt
      * @throws cth::except::default_exception if no device is found
      * @note engine required features and extensions are added to the requirements
         - @ref jvk::constants::REQUIRED_DEVICE_FEATURES
         - @ref jvk::constants::REQUIRED_DEVICE_EXTENSIONS
      * @details a single queue set has length N (number of queues), multiple queue sets may be provided.
      */
-    [[nodiscard]] static PhysicalDevice AutoPick(
+    [[nodiscard]] static std::optional<PhysicalDevice> AutoPick(
         Instance const& instance,
         std::span<Surface const> temp_surfaces,
-        std::span<Queue const> queues,
-        std::span<std::string const> required_extensions,
-        utils::PhysicalDeviceFeatures const& required_features
+        std::span<QueueFamilyProperties const> queue_properties,
+        std::span<std::string const> required_extensions = {},
+        utils::PhysicalDeviceFeatures const& required_features = {}
     );
 
 
     /**
      * @brief evaluates if the device has minimal support
      */
-    [[nodiscard]] bool suitable(std::span<Queue const> queues);
+    [[nodiscard]] bool suitable(std::span<QueueFamilyProperties const> queues);
 
 
 
@@ -150,15 +146,15 @@ public:
 
     /**
      * @brief finds a combination of queue families that support the requested queue types
-     * @param queues requested queue types
+     * @param queue_properties requested queue types
      * @return order of queue types preserved
      * @return empty if no combination is possible
      */
-    [[nodiscard]] std::vector<uint32_t> queueFamilyIndices(std::span<Queue const> queues) const;
+    [[nodiscard]] std::vector<uint32_t> queueFamilyIndices(std::span<QueueFamilyProperties const> queue_properties) const;
 
 
 
-    [[nodiscard]] bool supportsQueueSet(std::span<Queue const> queues) const;
+    [[nodiscard]] bool supportsQueueSet(std::span<QueueFamilyProperties const> queue_properties) const;
 
     /**
    * @brief enumerates all available physical devices

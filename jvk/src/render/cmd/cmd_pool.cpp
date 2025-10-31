@@ -12,7 +12,8 @@
 
 namespace jvk {
 
-CmdPool::CmdPool(Core const& core, Config const& config) : _core{&core}, _flags{config.flags},
+CmdPool::CmdPool(Core const& core, Config const& config) : _core{&core},
+    _flags{config.flags},
     _queueFamilyIndex{config.queueFamilyIndex} {
     Core::debug_check(core);
 
@@ -22,9 +23,7 @@ CmdPool::CmdPool(Core const& core, Config const& config) : _core{&core}, _flags{
     for(size_t i = 0; i < _maxBuffers.size(); i++) _buffers[i].resize(_maxBuffers[i]);
 }
 
-CmdPool::CmdPool(Core const& core, Config const& config, State const& state) : CmdPool{core, config} {
-    wrap(state);
-}
+CmdPool::CmdPool(Core const& core, Config const& config, State const& state) : CmdPool{core, config} { wrap(state); }
 
 CmdPool::CmdPool(Core const& core, Config const& config, create_t) : CmdPool{core, config} { create(); }
 
@@ -32,23 +31,35 @@ CmdPool::CmdPool(Core const& core, Config const& config, create_t) : CmdPool{cor
 CmdPool::~CmdPool() { optDestroy(); }
 
 void CmdPool::wrap(State const& state) {
-
     CTH_CRITICAL(
         state.vkPrimaryBuffers.size() != _maxBuffers[BUFFER_TYPE_PRIMARY] || state.vkSecondaryBuffers.size()
         != _maxBuffers[BUFFER_TYPE_SECONDARY],
-        "buffers must match size") {
-        details->add("expected primary: {0}, actual primary: {1}", _maxBuffers[BUFFER_TYPE_PRIMARY],
-            state.vkPrimaryBuffers.size());
-        details->add("expected secondary: {0}, actual secondary: {1}", _maxBuffers[BUFFER_TYPE_SECONDARY],
-            state.vkSecondaryBuffers.size());
+        "buffers must match size"
+    ) {
+        details->add(
+            "expected primary: {0}, actual primary: {1}",
+            _maxBuffers[BUFFER_TYPE_PRIMARY],
+            state.vkPrimaryBuffers.size()
+        );
+        details->add(
+            "expected secondary: {0}, actual secondary: {1}",
+            _maxBuffers[BUFFER_TYPE_SECONDARY],
+            state.vkSecondaryBuffers.size()
+        );
     }
 
     _handle = state.vkPool.get();
 
-    std::ranges::transform(state.vkPrimaryBuffers, _buffers[BUFFER_TYPE_PRIMARY].begin(),
-        [](auto const& buffer) { return buffer.get(); });
-    std::ranges::transform(state.vkSecondaryBuffers, _buffers[BUFFER_TYPE_SECONDARY].begin(),
-        [](auto const& buffer) { return buffer.get(); });
+    std::ranges::transform(
+        state.vkPrimaryBuffers,
+        _buffers[BUFFER_TYPE_PRIMARY].begin(),
+        [](auto const& buffer) { return buffer.get(); }
+    );
+    std::ranges::transform(
+        state.vkSecondaryBuffers,
+        _buffers[BUFFER_TYPE_SECONDARY].begin(),
+        [](auto const& buffer) { return buffer.get(); }
+    );
 }
 
 
@@ -173,12 +184,17 @@ void CmdPool::alloc() {
         allocInfo.level = to_buffer_level(i);
         allocInfo.commandBufferCount = static_cast<uint32_t>(buffers.size());
 
-        auto const allocResult = _core->functions()->vkAllocateCommandBuffers(_core->vkDevice(), &allocInfo,
-            buffers.data());
+        auto const allocResult = _core->functions()->vkAllocateCommandBuffers(
+            _core->vkDevice(),
+            &allocInfo,
+            buffers.data()
+        );
 
-        CTH_STABLE_ERR(allocResult != VK_SUCCESS,
+        CTH_STABLE_ERR(
+            allocResult != VK_SUCCESS,
             "failed to allocate group({}) command buffers (0 = PRIMARY, 1 = SECONDARY)",
-            static_cast<size_t>(i))
+            static_cast<size_t>(i)
+        )
         throw jvk::vk_result_exception{allocResult, details->exception()};
     }
 }
@@ -188,8 +204,9 @@ void CmdPool::alloc() {
 //Config
 
 namespace jvk {
-CmdPool::Config CmdPool::Config::Default(Queue const& queue, uint32_t max_primary_buffers,
-    uint32_t max_secondary_buffers) {
-    return Config{max_primary_buffers, max_secondary_buffers, queue.familyIndex()};
-}
+CmdPool::Config CmdPool::Config::Default(
+    Queue const& queue,
+    uint32_t max_primary_buffers,
+    uint32_t max_secondary_buffers
+) { return Config{max_primary_buffers, max_secondary_buffers, queue.familyIndex()}; }
 }

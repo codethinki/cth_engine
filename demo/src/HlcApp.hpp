@@ -35,11 +35,6 @@ public:
     static constexpr uint32_t HEIGHT = 1000;
 
 private:
-    static constexpr std::array<size_t, 6> QUEUE_SETS{
-        0, 1, 2,
-        0, 0, 0
-    };
-
     void createRenderer3();
 
     void initFrame();
@@ -51,13 +46,17 @@ private:
 
 
 
-    std::vector<jvk::Queue>
-    _queues{
+    std::vector<jvk::Queue> _queues{
         jvk::Queue{jvk::QUEUE_FAMILY_PROPERTY_TRANSFER | jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
         jvk::Queue{jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
         jvk::Queue{jvk::QUEUE_FAMILY_PROPERTY_PRESENT}
     };
-
+    std::array<jvk::Core::queue_set_t, 2> _queueSets{
+        {
+            {{0}, {1}, {2}},
+            {{0, 1, 2}}
+        }
+    };
 
 
 
@@ -69,7 +68,7 @@ private:
             "engine",
             _queues,
             _glfwExtensions,
-            QUEUE_SETS
+            _queueSets,
         }
     );
 

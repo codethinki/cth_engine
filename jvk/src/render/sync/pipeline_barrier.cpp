@@ -1,4 +1,4 @@
-#include "jvk/render/ctrl/pipeline_barrier.hpp"
+#include "jvk/render/sync/pipeline_barrier.hpp"
 
 #include "jvk/base/core.hpp"
 #include "jvk/render/cmd/cmd_buffer.hpp"

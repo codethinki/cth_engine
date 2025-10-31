@@ -1,11 +1,10 @@
-#include "jvk/render/ctrl/fence.hpp"
+#include "jvk/render/sync/fence.hpp"
 
 #include "jvk/base/core.hpp"
 #include "jvk/base/device.hpp"
 #include "jvk/res/destruction_queue.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
-
-
+#include "jvk/utility/os/os_constants.hpp"
 
 namespace jvk {
 
@@ -35,9 +34,7 @@ void Fence::create(VkFenceCreateFlags flags) {
 
 void Fence::destroy() {
     debug_check(this);
-    auto const lambda = [table = _core->deviceTable(), vk_fence = _handle.get()] {
-        destroy(table, vk_fence);
-    };
+    auto const lambda = [table = _core->deviceTable(), vk_fence = _handle.get()] { destroy(table, vk_fence); };
 
 
     auto const queue = _core->destructionQueue();
@@ -62,8 +59,11 @@ VkResult Fence::status() const {
 void Fence::reset() const {
     debug_check(this);
     std::array<VkFence, 1> const fences = {_handle.get()};
-    auto const result = _core->functions()->vkResetFences(_core->vkDevice(),
-        static_cast<uint32_t>(fences.size()), fences.data());
+    auto const result = _core->functions()->vkResetFences(
+        _core->vkDevice(),
+        static_cast<uint32_t>(fences.size()),
+        fences.data()
+    );
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset fence")
         throw jvk::vk_result_exception{result, details->exception()};
@@ -111,6 +111,55 @@ void Fence::destroy(DeviceTable table, VkFence vk_fence) {
 
 
     table->vkDestroyFence(table.device(), vk_fence, nullptr);
+}
+
+namespace os {
+    consteval auto get_fence_handle_info() {
+        if constexpr(PLATFORM == Platform::WINDOWS)
+            return VkFenceGetWin32HandleInfoKHR{
+                VK_STRUCTURE_TYPE_FENCE_GET_WIN32_HANDLE_INFO_KHR,
+                nullptr,
+                VK_NULL_HANDLE,
+                VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_WIN32_BIT
+            };
+        else if constexpr(PLATFORM == Platform::LINUX)
+            return VkFenceGetFdInfoKHR{
+                VK_STRUCTURE_TYPE_FENCE_GET_WIN32_HANDLE_INFO_KHR,
+                nullptr,
+                VK_NULL_HANDLE,
+                VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT
+            };
+        else return std::type_identity<void>{};
+    }
+
+}
+
+
+
+void* Fence::extractOsHandle() {
+    debug_check(this);
+
+    auto const info = os::get_fence_handle_info();
+
+
+    os::fence_handle_t handle = nullptr;
+    VkResult result = VK_RESULT_MAX_ENUM;
+    if constexpr(jvk::os::PLATFORM == jvk::os::Platform::WINDOWS)
+        result = _core->functions()->vkGetFenceWin32HandleKHR(
+            _core->vkDevice(),
+            reinterpret_cast<VkFenceGetWin32HandleInfoKHR const*>(&info),
+            static_cast<HANDLE*>(handle)
+        );
+    else
+        result = _core->functions()->vkGetFenceFdKHR(
+            _core->vkDevice(),
+            reinterpret_cast<VkFenceGetFdInfoKHR const*>(&info),
+            static_cast<int*>(handle)
+        );
+
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to extract fence");
+
+    return handle;
 }
 
 

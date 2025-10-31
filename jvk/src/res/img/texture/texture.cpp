@@ -1,7 +1,7 @@
 #include "jvk/res/img/texture/texture.hpp"
 
 #include "jvk/render/cmd/cmd_buffer.hpp"
-#include "jvk/render/ctrl/pipeline_barrier.hpp"
+#include "jvk/render/sync/pipeline_barrier.hpp"
 #include "jvk/res/buffer/buffer.hpp"
 
 namespace jvk {

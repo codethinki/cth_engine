@@ -1,7 +1,7 @@
 #include "jvk/base/queue/present_info.hpp"
 
-#include "jvk/render/ctrl/semaphore.hpp"
-#include "jvk/render/ctrl/timline_semaphore.hpp"
+#include "jvk/render/sync/semaphore.hpp"
+#include "jvk/render/sync/timline_semaphore.hpp"
 #include "jvk/surface/swapchain/swapchain.hpp"
 
 #include <volk.h>

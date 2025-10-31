@@ -131,6 +131,7 @@ public:
     [[nodiscard]] DeviceTable table() const { return DeviceTable{_handle.get(), _functionTable.get()}; }
     [[nodiscard]] VolkDeviceTable const* functions() const { return _functionTable.get(); }
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
+
     [[nodiscard]] auto queueFamiliesQueueCounts() const { return _queueFamiliesQueueCounts; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
 

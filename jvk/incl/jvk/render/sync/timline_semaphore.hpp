@@ -1,5 +1,5 @@
 #pragma once
-#include "jvk/render/ctrl/semaphore.hpp"
+#include "jvk/render/sync/semaphore.hpp"
 
 #include <span>
 

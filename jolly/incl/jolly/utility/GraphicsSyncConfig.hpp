@@ -2,7 +2,7 @@
 #include "types.hpp"
 
 #include "jolly/render/RenderPulse.hpp"
-#include "jvk/render/ctrl/pipeline_wait_stage.hpp"
+#include "jvk/render/sync/pipeline_wait_stage.hpp"
 #include "jvk/utility/constants.hpp"
 
 #include <cth/io/log.hpp>

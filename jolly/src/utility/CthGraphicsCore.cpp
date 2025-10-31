@@ -122,13 +122,11 @@ bool GraphicsCore::presentFrame() {
     debug_check(*this);
     auto const result = _swapchain->present(_syncConfig->pulseVal());
 
-    auto const shouldResize = _resize || result != VK_SUCCESS;
-
-    if(shouldResize) resize();
+    _resize |= result != VK_SUCCESS;
 
     _syncConfig->next();
 
-    return shouldResize;
+    return _resize;
 }
 
 void GraphicsCore::skipPresent() const {

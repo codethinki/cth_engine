@@ -66,7 +66,11 @@ void FrameResources::acquireFrame() const { _graphicsCore->acquireFrame(); }
 
 void FrameResources::skipAcquire() const { _graphicsCore->skipAcquire(); }
 
-bool FrameResources::presentFrame() const { return _graphicsCore->presentFrame(); }
+void FrameResources::presentFrame() const {
+    auto resize = _graphicsCore->presentFrame();
+
+    if(resize) this->resize();
+}
 
 void FrameResources::skipPresent() const { _graphicsCore->skipPresent(); }
 

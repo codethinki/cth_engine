@@ -10,7 +10,7 @@
 
 
 namespace jvk {
-CmdBuffer::CmdBuffer(VkCommandBufferUsageFlags usage) : _bufferUsage{usage} {}
+CmdBuffer::CmdBuffer(Config config) : _config{config} {}
 
 template<class Me>
 void CmdBuffer::destroy(this Me&& self) {
@@ -26,8 +26,8 @@ void CmdBuffer::destroy(this Me&& self) {
 
 void CmdBuffer::reset(VkCommandBufferResetFlags flags) {
     auto const result = _deviceTable->table->vkResetCommandBuffer(_handle.get(), flags);
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset command buffer")
-    throw jvk::vk_result_exception{result, details->exception()};
+
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to reset command buffer");
 
     _recording = false;
 }
@@ -36,8 +36,8 @@ void CmdBuffer::end() {
     CTH_CRITICAL(!recording(), "cmd buffer must be in recording state") {}
 
     auto const result = _deviceTable->table->vkEndCommandBuffer(_handle.get());
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to reset end buffer")
-    throw jvk::vk_result_exception{result, details->exception()};
+
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to end buffer");
 
     _recording = false;
 }
@@ -48,8 +48,12 @@ void CmdBuffer::destroy(DeviceTable table, VkCommandPool vk_pool, std::span<VkCo
     CTH_ERR(valid && vk_pool == VK_NULL_HANDLE, "vk_pool is invalid (VK_NULL_HANDLE)")
     throw details->exception();
 
-    table->vkFreeCommandBuffers(table.device(), vk_pool, static_cast<uint32_t>(buffers.size()),
-        buffers.data());
+    table->vkFreeCommandBuffers(
+        table.device(),
+        vk_pool,
+        static_cast<uint32_t>(buffers.size()),
+        buffers.data()
+    );
 }
 
 void CmdBuffer::destroy(DeviceTable table, jvk::vk_not_null<VkCommandPool> vk_pool, VkCommandBuffer buffer) {
@@ -82,7 +86,6 @@ void CmdBuffer::reset() {
     _deviceTable = std::nullopt;
     _pool = nullptr;
     _handle = VK_NULL_HANDLE;
-
 }
 
 }
@@ -92,7 +95,7 @@ void CmdBuffer::reset() {
 
 namespace jvk {
 
-PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool& cmd_pool, VkCommandBufferUsageFlags usage) : CmdBuffer{usage} {
+PrimaryCmdBuffer::PrimaryCmdBuffer(Config config, CmdPool& cmd_pool) : CmdBuffer{std::move(config)} {
     create(cmd_pool);
 }
 
@@ -113,11 +116,16 @@ void PrimaryCmdBuffer::begin() {
 //SecondaryCmdBuffer
 
 namespace jvk {
-SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool& cmd_pool,
-    VkCommandBufferUsageFlags usage) : SecondaryCmdBuffer{usage} { create(cmd_pool); }
+SecondaryCmdBuffer::SecondaryCmdBuffer(
+    Config config,
+    CmdPool& cmd_pool
+) : SecondaryCmdBuffer{std::move(config)} { create(cmd_pool); }
 
-void SecondaryCmdBuffer::begin(RenderPass const& render_pass, Subpass const& subpass,
-    Framebuffer const* framebuffer) {
+void SecondaryCmdBuffer::begin(
+    RenderPass const& render_pass,
+    Subpass const& subpass,
+    Framebuffer const* framebuffer
+) {
     _inheritanceInfo.renderPass = render_pass.get();
     _inheritanceInfo.subpass = subpass.index();
     _inheritanceInfo.framebuffer = framebuffer != nullptr ? framebuffer->get() : VK_NULL_HANDLE;

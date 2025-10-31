@@ -87,9 +87,8 @@ void App::renderFrame() const {
 
     graphicsPhase();
 
-    auto const resized = _resources->presentFrame();
+    _resources->presentFrame();
 
-    if(resized) _resources->resize();
 }
 
 void App::graphicsPhase() const {

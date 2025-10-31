@@ -106,7 +106,7 @@ public:
      * @note calls @ref Swapchain::present()
      * @note may call @ref Swapchain::resize()
      * @note may call @ref minimized()
-     * @return true if swapchain was resized
+     * @return true if core should be resized
      */
     [[nodiscard]] bool presentFrame();
     void skipPresent() const;
@@ -143,6 +143,8 @@ public:
     [[nodiscard]] GraphicsSyncConfig const* syncConfig() const { return _syncConfig.get(); }
     [[nodiscard]] jvk::Swapchain const* swapchain() const { return _swapchain.get(); }
     [[nodiscard]] VkSampleCountFlagBits msaaSamples() const;
+
+    [[nodiscard]] bool shouldResize() const { return _resize; }
 
     [[nodiscard]] jvk::AttachmentCollection const* swapchainResolveAttachments() const;
     [[nodiscard]] VkFormat swapchainImageFormat() const;

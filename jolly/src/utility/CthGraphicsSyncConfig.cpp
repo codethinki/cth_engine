@@ -1,7 +1,7 @@
 #include "jolly/utility/GraphicsSyncConfig.hpp"
 
 #include "jvk/base/core.hpp"
-#include "jvk/render/ctrl/semaphore.hpp"
+#include "jvk/render/sync/semaphore.hpp"
 #include "jvk/res/destruction_queue.hpp"
 
 #include <cth/algorithm/views.hpp>

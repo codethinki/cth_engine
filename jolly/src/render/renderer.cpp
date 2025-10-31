@@ -6,7 +6,7 @@
 #include "jvk/base/core.hpp"
 #include "jvk/base/queue/submit_info.hpp"
 #include "jvk/render/cmd/cmd_pool.hpp"
-#include "jvk/render/ctrl/semaphore.hpp"
+#include "jvk/render/sync/semaphore.hpp"
 #include "jvk/utility/constants.hpp"
 
 #include <cth/algorithm/views.hpp>

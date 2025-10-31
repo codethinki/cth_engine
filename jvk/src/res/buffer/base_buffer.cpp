@@ -14,7 +14,8 @@ using std::span;
 
 
 
-BaseBuffer::BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags) : _core{&core},
+BaseBuffer::BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags) :
+    _core{&core},
     _size{byte_size},
     _usage{usage_flags} { Core::debug_check(core); }
 
