@@ -42,7 +42,7 @@ private:
     void graphicsPhase() const;
 
 
-    void initRenderSystem(jvk::PrimaryCmdBuffer& cmd_buffer);
+    void initRenderSystem(jvk::PrimaryCmdBuffer const& cmd_buffer);
 
 
 

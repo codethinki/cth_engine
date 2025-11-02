@@ -1,6 +1,7 @@
 #include "HlcApp.hpp"
 
 #include "jolly/render/RenderStage.hpp"
+#include "jolly/render/cmd/primary_cmd_buffer.hpp"
 #include "jolly/utility/CthOSWindow.hpp"
 
 #include "jolly/utility/types.hpp"
@@ -69,7 +70,7 @@ void App::initFrame() {
     _resources->skipAcquire();
 
     auto [initCmdBuffer, _] = _transferStage->begin();
-    initRenderSystem(*initCmdBuffer);
+    initRenderSystem(initCmdBuffer->raw());
 
     _transferStage->submit();
     _graphicsStage->skip();
@@ -94,18 +95,18 @@ void App::renderFrame() const {
 void App::graphicsPhase() const {
     auto [cmdBuffer, _] = _graphicsStage->begin();
 
-    _resources->beginRenderPass(*cmdBuffer);
+    _resources->beginRenderPass(cmdBuffer->raw());
 
-    auto const info = FrameInfo{_resources->renderPulse().get(), 0.f, cmdBuffer};
+    auto const info = FrameInfo{_resources->renderPulse().get(), 0.f, &cmdBuffer->raw()};
     _renderSystem->render(info);
 
-    _resources->endRenderPass(*cmdBuffer);
+    _resources->endRenderPass(cmdBuffer->raw());
 
     _graphicsStage->submit();
 }
 
 
-void App::initRenderSystem(jvk::PrimaryCmdBuffer& cmd_buffer) {
+void App::initRenderSystem(jvk::PrimaryCmdBuffer const& cmd_buffer) {
     _renderSystem = std::make_unique<RenderSystem>(
         _core.get(),
         cmd_buffer,

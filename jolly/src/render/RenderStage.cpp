@@ -1,6 +1,7 @@
 #include "jolly/render/RenderStage.hpp"
 
 #include "jolly/render/RenderPulse.hpp"
+#include "jolly/render/cmd/primary_cmd_buffer.hpp"
 #include "jolly/utility/types.hpp"
 
 #include "jvk/base/queue/queue.hpp"
@@ -51,6 +52,8 @@ void RenderStage::destroy() {
 RenderStageCmdBuffers RenderStage::begin() {
     wait();
 
+    CTH_CRITICAL(recording(), "stage must not be recording to begin") {}
+
     auto& primary = primaryCmdBuffer();
     primary.begin();
     return RenderStageCmdBuffers{
@@ -68,6 +71,8 @@ void RenderStage::submit() {
     optEnd();
     reset();
     queue().submit(submitInfo());
+
+    //TODO extract fence handle and add to boost::asio
 }
 
 void RenderStage::skip() {
@@ -75,7 +80,10 @@ void RenderStage::skip() {
 
     wait();
     fence().reset();
+
     queue().skip(submitInfo());
+
+    primaryCmdBuffer().discardCompletionTasks();
 }
 
 VkResult RenderStage::wait(size_t timeout) const { return fence().wait(timeout); }
@@ -114,7 +122,19 @@ void RenderStage::initCmdPools() {
     }
 }
 
-void RenderStage::initCmdBuffers() { _primaryCmdBuffers.resize(GROUP_SIZE); }
+void RenderStage::initCmdBuffers() {
+    _primaryCmdBuffers.reserve(GROUP_SIZE);
+
+    for(size_t i = 0; i < GROUP_SIZE; i++)
+        _primaryCmdBuffers.emplace_back(PrimaryCmdBuffer::Config{});
+
+    auto const secondaries = static_cast<size_t>(GROUP_SIZE) * _config.subStages;
+    _secondaryCmdBuffers.reserve(secondaries);
+    for(size_t i = 0; i < secondaries; i++)
+        _secondaryCmdBuffers.emplace_back(
+            jvk::CmdBuffer::Config{} // TEMP replace with jly::SecondaryCmdBuffer::Config{}
+        );
+}
 void RenderStage::initSubmitInfos() { _submitInfos.reserve(GROUP_SIZE); }
 
 void RenderStage::init() {
@@ -167,7 +187,7 @@ void RenderStage::createCmdBuffers() {
 
 void RenderStage::createSubmitInfos() {
     for(size_t i = 0; i < GROUP_SIZE; i++) {
-        std::vector primaryCmdBuffers{&_primaryCmdBuffers[i]};
+        std::vector primaryCmdBuffers{&_primaryCmdBuffers[i].raw()};
         std::vector signalSemaphores{
             std::from_range,
             _config.signalSemaphores | cth::views::drop_stride(i, GROUP_SIZE)
@@ -180,8 +200,8 @@ void RenderStage::createSubmitInfos() {
 
 size_t RenderStage::secondaryChunkSize() const { return _secondaryCmdBuffers.size() / GROUP_SIZE; }
 
-jvk::PrimaryCmdBuffer& RenderStage::primaryCmdBuffer() { return _primaryCmdBuffers[subIndex()]; }
-jvk::PrimaryCmdBuffer const& RenderStage::primaryCmdBuffer() const { return _primaryCmdBuffers[subIndex()]; }
+PrimaryCmdBuffer& RenderStage::primaryCmdBuffer() { return _primaryCmdBuffers[subIndex()]; }
+PrimaryCmdBuffer const& RenderStage::primaryCmdBuffer() const { return _primaryCmdBuffers[subIndex()]; }
 
 std::vector<jvk::SecondaryCmdBuffer*> RenderStage::secondaryCmdBuffers() {
     if(_secondaryCmdBuffers.empty()) return {};
@@ -194,5 +214,8 @@ jvk::Fence const& RenderStage::fence() const { return _fences[subIndex()]; }
 size_t RenderStage::subIndex() const { return _pulse->get(); }
 bool RenderStage::created() const { return !_cmdPools.empty() && _cmdPools[0].created(); }
 bool RenderStage::recording() const { return primaryCmdBuffer().recording(); }
+
+
+RenderStage::RenderStage(RenderStage&& other) noexcept = default;
 
 }

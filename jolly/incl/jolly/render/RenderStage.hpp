@@ -16,7 +16,6 @@ struct SubmitInfo;
 
 class CmdPool;
 class Core;
-class PrimaryCmdBuffer;
 class SecondaryCmdBuffer;
 
 class Queue;
@@ -25,10 +24,17 @@ class Semaphore;
 }
 
 namespace jly {
+class PrimaryCmdBuffer;
 class RenderPulse;
 
 struct RenderStageCmdBuffers {
-    jvk::PrimaryCmdBuffer* cmdBuffer;
+    /**
+     * render stage
+     */
+    PrimaryCmdBuffer* cmdBuffer;
+    /**
+     * represent sub stages
+     */
     std::vector<jvk::SecondaryCmdBuffer*> secondaryCmdBuffers;
 };
 
@@ -128,6 +134,11 @@ private:
     void init();
 
     void createFences();
+    /**
+     * @details:
+        - parallel frames in flight -> pool per frame
+        - parallel sub stages -> pool per sub stage
+     */
     void createCmdPools();
     void createPrimaryCmdBuffers();
     void createSecondaryCmdBuffers();
@@ -146,17 +157,18 @@ private:
 
     Config _config;
 
-    std::vector<jvk::Fence> _fences;
+    std::vector<jvk::Fence> _fences; //count: GROUP_SIZE
     std::vector<jvk::CmdPool> _cmdPools;
-    std::vector<jvk::PrimaryCmdBuffer> _primaryCmdBuffers;
-    std::vector<jvk::SecondaryCmdBuffer> _secondaryCmdBuffers;
-    std::vector<jvk::SubmitInfo> _submitInfos;
+
+    std::vector<PrimaryCmdBuffer> _primaryCmdBuffers; //count: GROUP_SIZE
+    std::vector<jvk::SecondaryCmdBuffer> _secondaryCmdBuffers; //count: subStages * GROUP_SIZE
+    std::vector<jvk::SubmitInfo> _submitInfos; //count: GROUP_SIZE
 
 
 
     [[nodiscard]] size_t secondaryChunkSize() const;
-    [[nodiscard]] jvk::PrimaryCmdBuffer& primaryCmdBuffer();
-    [[nodiscard]] jvk::PrimaryCmdBuffer const& primaryCmdBuffer() const;
+    [[nodiscard]] PrimaryCmdBuffer& primaryCmdBuffer();
+    [[nodiscard]] PrimaryCmdBuffer const& primaryCmdBuffer() const;
     [[nodiscard]] std::vector<jvk::SecondaryCmdBuffer*> secondaryCmdBuffers();
 
 
@@ -172,7 +184,7 @@ public:
 
     RenderStage(RenderStage const& other) = delete;
     RenderStage& operator=(RenderStage const& other) = delete;
-    RenderStage(RenderStage&& other) noexcept = default;
+    RenderStage(RenderStage&& other) noexcept;
     RenderStage& operator=(RenderStage&& other) noexcept = default;
 };
 
