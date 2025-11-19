@@ -6,6 +6,6 @@ template<class T> using not_null = cth::not_null<T>;
 }
 
 namespace jly {
-inline constexpr auto create = [] {};
-using create_t = decltype(create);
+struct create_t {};
+inline constexpr create_t create{};
 }

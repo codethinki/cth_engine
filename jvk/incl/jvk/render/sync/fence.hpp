@@ -3,12 +3,21 @@
 #include "jvk/utility/constants.hpp"
 #include "jvk/utility/types.hpp"
 
+#include <coroutine>
 #include <volk.h>
 #include <cth/pointers.hpp>
+
+#include <boost/asio/awaitable.hpp>
+
 
 namespace jvk {
 class Core;
 class DestructionQueue;
+
+class FenceAwaiter;
+}
+
+namespace jvk {
 
 namespace os {
     using fence_handle_t = void*;
@@ -27,13 +36,13 @@ public:
      * @brief constructs and calls @ref wrap()
      * @note calls @ref Fence(Core const&)
      */
-    explicit Fence(Core const& core, State const& state);
+    Fence(Core const& core, State const& state);
 
     /**
      * @brief constructs and calls @ref create()
      * @note calls @ref Fence(Core const&)
      */
-    explicit Fence(Core const& core, VkFenceCreateFlags flags);
+    Fence(Core const& core, VkFenceCreateFlags flags);
 
 
     /**
@@ -68,23 +77,25 @@ public:
 
     /**
      * @brief queries the status of the fence
-     * @attention requires @ref created() const
+     * @pre @ref created()
      * @return VkResult of vkGetFenceStatus() [VK_SUCCESS, VK_NOT_READY]
      * @throws jvk::result_exception result of @ref vkGetFenceStatus()
      */
     [[nodiscard]] VkResult status() const;
 
+    [[nodiscard]] bool signaled() const { return status() == VK_SUCCESS; }
+
     /**
      * @brief resets the fence
-     * @attention requires @ref created()
+     * @pre requires @ref created()
      * @throws jvk::result_exception result of @ref vkResetFences()
      */
     void reset() const;
 
     /**
      * @brief blocks cpu until fence is signaled or the timeout is reached
-     * @attention requires @ref created()
-     * @param timeout in nanoseconds
+     * @pre @ref created()
+     * @param timeout in nanoseconds (accurate to device specs)
      * @return VkResult of vkWaitForFences() [VK_SUCCESS, VK_TIMEOUT]
      * @throws jvk::result_exception result of @ref vkWaitForFences()
      */
@@ -101,7 +112,7 @@ public:
 
     /**
      * @brief waits [0, timeout) and resets
-     * @param timeout in nanoseconds
+     * @param timeout in nanoseconds (accurate to device specs)
      * @return VkResult of @ref wait(wait_t) const
      * @details calls:
             - @ref wait(wait_t) const
@@ -120,7 +131,12 @@ public:
     static void destroy(DeviceTable table, VkFence vk_fence);
 
 
-     os::fence_handle_t extractOsHandle();
+    /**
+     * extracts the os native handle from the fence via vkGetFence...KHR (requires extension)
+     * @pre @ref created()
+     * @return os native handle 
+     */
+    os::fence_handle_t extractOsHandle() const;
 
 private:
     void resetState();
@@ -153,10 +169,25 @@ struct Fence::State {
 };
 }
 
+
+namespace jvk {
+class FenceAwaiter {
+public:
+    explicit FenceAwaiter(Fence const& fence);
+
+    bool await_ready() const;
+    void await_suspend(std::coroutine_handle<> continuation);
+    void await_resume() const noexcept;
+
+private:
+    cth::not_null<Fence const*> _fence;
+};
+}
+
 //debug checks
 
 namespace jvk {
-inline void Fence::debug_check(Fence const* fence) {
+inline void Fence::debug_check(Fence const* fence) { //TODO refactor to reference
     CTH_ERR(fence == nullptr, "fence must not be nullptr")
     throw details->exception();
     debug_check_handle(fence->_handle.get());

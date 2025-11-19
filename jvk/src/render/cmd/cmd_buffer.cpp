@@ -81,6 +81,10 @@ void CmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
 
     _recording = true;
 }
+DeviceTable const& CmdBuffer::deviceTable() const {
+    debug_check(*this);
+    return *_deviceTable;
+}
 
 void CmdBuffer::reset() {
     _deviceTable = std::nullopt;
@@ -109,23 +113,17 @@ void PrimaryCmdBuffer::begin() {
     CmdBuffer::begin(info);
 }
 
-
 }
 
 
 //SecondaryCmdBuffer
 
 namespace jvk {
-SecondaryCmdBuffer::SecondaryCmdBuffer(
-    Config config,
-    CmdPool& cmd_pool
-) : SecondaryCmdBuffer{std::move(config)} { create(cmd_pool); }
+SecondaryCmdBuffer::SecondaryCmdBuffer(Config config, CmdPool& cmd_pool) : SecondaryCmdBuffer{std::move(config)} {
+    create(cmd_pool);
+}
 
-void SecondaryCmdBuffer::begin(
-    RenderPass const& render_pass,
-    Subpass const& subpass,
-    Framebuffer const* framebuffer
-) {
+void SecondaryCmdBuffer::begin(RenderPass const& render_pass, Subpass const& subpass, Framebuffer const* framebuffer) {
     _inheritanceInfo.renderPass = render_pass.get();
     _inheritanceInfo.subpass = subpass.index();
     _inheritanceInfo.framebuffer = framebuffer != nullptr ? framebuffer->get() : VK_NULL_HANDLE;

@@ -16,7 +16,6 @@ struct SubmitInfo;
 
 class CmdPool;
 class Core;
-class SecondaryCmdBuffer;
 
 class Queue;
 class RenderPass;
@@ -26,6 +25,11 @@ class Semaphore;
 namespace jly {
 class PrimaryCmdBuffer;
 class RenderPulse;
+class SecondaryCmdBuffer;
+}
+
+namespace jly {
+
 
 struct RenderStageCmdBuffers {
     /**
@@ -35,7 +39,7 @@ struct RenderStageCmdBuffers {
     /**
      * represent sub stages
      */
-    std::vector<jvk::SecondaryCmdBuffer*> secondaryCmdBuffers;
+    std::vector<SecondaryCmdBuffer*> secondaryCmdBuffers;
 };
 
 class RenderStage {
@@ -161,7 +165,7 @@ private:
     std::vector<jvk::CmdPool> _cmdPools;
 
     std::vector<PrimaryCmdBuffer> _primaryCmdBuffers; //count: GROUP_SIZE
-    std::vector<jvk::SecondaryCmdBuffer> _secondaryCmdBuffers; //count: subStages * GROUP_SIZE
+    std::vector<SecondaryCmdBuffer> _secondaryCmdBuffers; //count: subStages * GROUP_SIZE
     std::vector<jvk::SubmitInfo> _submitInfos; //count: GROUP_SIZE
 
 
@@ -169,7 +173,7 @@ private:
     [[nodiscard]] size_t secondaryChunkSize() const;
     [[nodiscard]] PrimaryCmdBuffer& primaryCmdBuffer();
     [[nodiscard]] PrimaryCmdBuffer const& primaryCmdBuffer() const;
-    [[nodiscard]] std::vector<jvk::SecondaryCmdBuffer*> secondaryCmdBuffers();
+    [[nodiscard]] std::vector<SecondaryCmdBuffer*> secondaryCmdBuffers();
 
 
 

@@ -7,6 +7,7 @@
     "ms-gsl",
     "range-v3",
     "stb",
-    "volk"
+    "volk",
+    "boost-asio"
   ]
 }

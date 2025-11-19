@@ -136,7 +136,7 @@ namespace os {
 
 
 
-void* Fence::extractOsHandle() {
+void* Fence::extractOsHandle() const {
     debug_check(this);
 
     auto const info = os::get_fence_handle_info();
@@ -161,7 +161,6 @@ void* Fence::extractOsHandle() {
 
     return handle;
 }
-
 
 
 void Fence::resetState() { _handle = VK_NULL_HANDLE; }

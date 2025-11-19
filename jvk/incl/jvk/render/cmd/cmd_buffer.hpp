@@ -81,6 +81,8 @@ public:
     [[nodiscard]] bool recording() const { return _recording; }
     [[nodiscard]] CmdPool& pool() const { return *_pool; }
     [[nodiscard]] VkBufferUsageFlags usageFlags() const { return _config.usageFlags; }
+    [[nodiscard]] DeviceTable const& deviceTable() const;
+
 
     CmdBuffer(CmdBuffer const& other) = delete;
     CmdBuffer& operator=(CmdBuffer const& other) = delete;
@@ -111,6 +113,8 @@ public:
     ~PrimaryCmdBuffer() override { optDestroy(); }
 
     void begin();
+
+
 
     PrimaryCmdBuffer(PrimaryCmdBuffer const& other) = delete;
     PrimaryCmdBuffer& operator=(PrimaryCmdBuffer const& other) = delete;

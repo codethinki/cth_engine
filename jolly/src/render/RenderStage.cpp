@@ -2,14 +2,20 @@
 
 #include "jolly/render/RenderPulse.hpp"
 #include "jolly/render/cmd/primary_cmd_buffer.hpp"
+#include "jolly/render/cmd/secondary_cmd_buffer.hpp"
 #include "jolly/utility/types.hpp"
 
 #include "jvk/base/queue/queue.hpp"
 #include "jvk/base/queue/submit_info.hpp"
-#include "jvk/render/cmd/cmd_buffer.hpp"
 #include "jvk/render/cmd/cmd_pool.hpp"
 
 #include <cth/algorithm/views.hpp>
+
+#ifdef VOID
+#error "fuck"
+#endif
+
+#include <cth/coro/task.hpp>
 
 #include <utility>
 
@@ -72,6 +78,7 @@ void RenderStage::submit() {
     reset();
     queue().submit(submitInfo());
 
+    
     //TODO extract fence handle and add to boost::asio
 }
 
@@ -83,7 +90,7 @@ void RenderStage::skip() {
 
     queue().skip(submitInfo());
 
-    primaryCmdBuffer().discardCompletionTasks();
+    primaryCmdBuffer().discardTasks();
 }
 
 VkResult RenderStage::wait(size_t timeout) const { return fence().wait(timeout); }
@@ -132,7 +139,7 @@ void RenderStage::initCmdBuffers() {
     _secondaryCmdBuffers.reserve(secondaries);
     for(size_t i = 0; i < secondaries; i++)
         _secondaryCmdBuffers.emplace_back(
-            jvk::CmdBuffer::Config{} // TEMP replace with jly::SecondaryCmdBuffer::Config{}
+            jly::SecondaryCmdBufferConfig{}
         );
 }
 void RenderStage::initSubmitInfos() { _submitInfos.reserve(GROUP_SIZE); }
@@ -149,9 +156,10 @@ void RenderStage::createCmdPools() { for(auto& pool : _cmdPools) pool.create(); 
 
 
 void RenderStage::createPrimaryCmdBuffers() {
-    for(size_t i = 0; i < GROUP_SIZE; i++) {
-        auto& pool = _cmdPools[_cmdPools.size() / GROUP_SIZE * i];
+    uint32_t const poolsPerFrame = _cmdPools.size() / GROUP_SIZE;
 
+    for(size_t i = 0; i < GROUP_SIZE; i++) {
+        auto& pool = _cmdPools[i * poolsPerFrame];
         _primaryCmdBuffers[i].create(pool);
     }
 }
@@ -159,25 +167,22 @@ void RenderStage::createPrimaryCmdBuffers() {
 void RenderStage::createSecondaryCmdBuffers() {
     if(_secondaryCmdBuffers.empty()) return;
 
-    if(_cmdPools.size() == 1) {
-        for(auto& buffer : _secondaryCmdBuffers) buffer.create(_cmdPools.front());
-        return;
-    }
+    bool const parallelSubStages = _config.parallelSubStageRecording();
+    uint32_t const subStages = _config.subStages;
+    uint32_t const poolsPerFrame = _cmdPools.size() / GROUP_SIZE;
 
-    auto const chunks = _secondaryCmdBuffers | cth::views::split_into(GROUP_SIZE);
+    for(size_t frameIdx = 0; frameIdx < GROUP_SIZE; frameIdx++)
+        for(size_t subStageIdx = 0; subStageIdx < subStages; subStageIdx++) {
+            auto const bufferIdx = frameIdx * subStages + subStageIdx;
 
-    if(_cmdPools.size() == GROUP_SIZE) {
-        for(ptrdiff_t i = 0; std::cmp_less(i, GROUP_SIZE); i++)
-            for(auto& buffer : chunks[i]) buffer.create(_cmdPools[i]);
+            size_t poolIdx;
+            if(parallelSubStages)
+                poolIdx = frameIdx * poolsPerFrame + 1 + subStageIdx;
+            else
+                poolIdx = frameIdx * poolsPerFrame;
 
-        return;
-    }
-    auto const poolChunkSize = _cmdPools.size() / GROUP_SIZE;
-    size_t const subStages = _config.subStages;
-
-    for(size_t i = 0; i < GROUP_SIZE; i++)
-        for(size_t j = 0; j < subStages; j++)
-            _secondaryCmdBuffers[i * subStages + j].create(_cmdPools[i * poolChunkSize + j]);
+            _secondaryCmdBuffers[bufferIdx].create(_cmdPools[poolIdx]);
+        }
 }
 
 void RenderStage::createCmdBuffers() {
@@ -203,7 +208,7 @@ size_t RenderStage::secondaryChunkSize() const { return _secondaryCmdBuffers.siz
 PrimaryCmdBuffer& RenderStage::primaryCmdBuffer() { return _primaryCmdBuffers[subIndex()]; }
 PrimaryCmdBuffer const& RenderStage::primaryCmdBuffer() const { return _primaryCmdBuffers[subIndex()]; }
 
-std::vector<jvk::SecondaryCmdBuffer*> RenderStage::secondaryCmdBuffers() {
+std::vector<SecondaryCmdBuffer*> RenderStage::secondaryCmdBuffers() {
     if(_secondaryCmdBuffers.empty()) return {};
     auto chunks = _secondaryCmdBuffers | cth::views::split_into(GROUP_SIZE);
     return {std::from_range, chunks[static_cast<ptrdiff_t>(subIndex())] | cth::views::to_ptr_range};

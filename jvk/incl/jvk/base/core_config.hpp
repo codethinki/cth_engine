@@ -1,5 +1,4 @@
 #pragma once
-#include "queue/queue.hpp"
 
 #include <cth/data/union_find.hpp>
 
@@ -8,6 +7,9 @@
 #include <string_view>
 
 
+namespace jvk {
+class Queue;
+}
 
 namespace jvk {
 struct CoreConfig {
