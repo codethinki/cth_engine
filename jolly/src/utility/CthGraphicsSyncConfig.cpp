@@ -1,27 +1,21 @@
 #include "jolly/utility/GraphicsSyncConfig.hpp"
 
-#include "jvk/base/core.hpp"
-#include "jvk/render/sync/semaphore.hpp"
-#include "jvk/res/destruction_queue.hpp"
+#include "jolly/render/sync/pipeline_wait_stage.hpp"
+#include <jvk/render/sync/semaphore.hpp>
 
 #include <cth/algorithm/views.hpp>
 
 
 namespace jly {
 
-GraphicsSyncConfig::GraphicsSyncConfig(jvk::Core const& core, size_t size) : _core{&core}, _size{size} {
-    CTH_CRITICAL(_size == 0, "size must not be 0") {}
-}
+GraphicsSyncConfig::GraphicsSyncConfig(jvk::Core const& core) : _core{&core} {}
 
 GraphicsSyncConfig::GraphicsSyncConfig(
     jvk::Core const& core,
-    State state,
-    size_t size
-) : GraphicsSyncConfig{core, size} { wrap(std::move(state)); }
+    State state
+) : GraphicsSyncConfig{core} { wrap(std::move(state)); }
 
-GraphicsSyncConfig::GraphicsSyncConfig(jvk::Core const& core, create_t, size_t size) : GraphicsSyncConfig{core, size} {
-    create();
-}
+GraphicsSyncConfig::GraphicsSyncConfig(jvk::Core const& core, size_t frames_in_flight) : GraphicsSyncConfig{core} { create(frames_in_flight); }
 
 GraphicsSyncConfig::~GraphicsSyncConfig() { optDestroy(); }
 
@@ -33,10 +27,12 @@ void GraphicsSyncConfig::wrap(State state) {
     _imageAvailableSemaphores = std::move(state.imageAvailableSemaphores);
 }
 
-void GraphicsSyncConfig::create() {
+void GraphicsSyncConfig::create(size_t frames_in_flight) {
     optDestroy();
+    _pulse.emplace(frames_in_flight);
 
-    for(size_t i = 0; i < _size; i++) {
+
+    for(size_t i = 0; i < framesInFlight(); i++) {
         _renderFinishedSemaphores.emplace_back(*_core, jvk::create);
         _imageAvailableSemaphores.emplace_back(*_core, jvk::create);
     }
@@ -56,6 +52,7 @@ GraphicsSyncConfig::State GraphicsSyncConfig::release() {
     debug_check(*this);
 
     return State{
+        .pulse = *std::move(_pulse),
         .imageAvailableSemaphores = std::move(_imageAvailableSemaphores),
         .renderFinishedSemaphores = std::move(_renderFinishedSemaphores)
     };
@@ -85,12 +82,12 @@ std::vector<jvk::Semaphore const*> GraphicsSyncConfig::imageAvailableSemaphores(
     return {std::from_range, _imageAvailableSemaphores | cth::views::to_ptr_range};
 }
 
-auto GraphicsSyncConfig::imageAvailableWaitStages() const -> std::vector<jvk::PipelineWaitStage> {
+auto GraphicsSyncConfig::imageAvailableWaitStages() const -> std::vector<PipelineWaitStage> {
     auto const semaphores = imageAvailableSemaphores();
     return {
         std::from_range,
         semaphores | std::views::transform(
-            [](jvk::Semaphore const* ptr) { return jvk::PipelineWaitStage{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, ptr}; }
+            [](jvk::Semaphore const* ptr) { return PipelineWaitStage{PipelineStageFlags::TOP_OF_PIPE_BIT, ptr}; }
         )
     };
 }

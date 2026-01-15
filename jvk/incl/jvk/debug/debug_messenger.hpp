@@ -3,7 +3,7 @@
 
 #include "jvk/utility/types.hpp"
 
-#include <cth/pointers.hpp>
+#include <cth/ptr.hpp>
 
 #include <volk.h>
 #include <gsl/pointers>
@@ -20,9 +20,12 @@ class DebugMessenger {
 public:
     struct Config;
     struct State;
-    using callback_t = VkBool32(VkDebugUtilsMessageSeverityFlagBitsEXT, VkDebugUtilsMessageTypeFlagsEXT,
+    using callback_t = VkBool32(
+        VkDebugUtilsMessageSeverityFlagBitsEXT,
+        VkDebugUtilsMessageTypeFlagsEXT,
         VkDebugUtilsMessengerCallbackDataEXT const*,
-        void*);
+        void*
+    );
 
 
 

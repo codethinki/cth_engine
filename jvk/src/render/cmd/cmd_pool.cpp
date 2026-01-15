@@ -4,7 +4,7 @@
 #include "jvk/base/device.hpp"
 #include "jvk/base/queue/queue.hpp"
 #include "jvk/render/cmd/cmd_buffer.hpp"
-#include "jvk/res/destruction_queue.hpp"
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
 #include <range/v3/view/concat.hpp>

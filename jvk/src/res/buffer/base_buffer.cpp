@@ -3,7 +3,7 @@
 #include "jvk/base/core.hpp"
 #include "jvk/base/device.hpp"
 #include "jvk/render/cmd/cmd_buffer.hpp"
-#include "jvk/res/destruction_queue.hpp"
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/res/memory/memory.hpp"
 #include "jvk/utility/constants.hpp"
 #include "jvk/utility/vk_exceptions.hpp"

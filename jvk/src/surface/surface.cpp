@@ -1,7 +1,7 @@
 #include "jvk/surface/surface.hpp"
 
 #include "jvk/base/physical_device.hpp"
-#include "jvk/res/destruction_queue.hpp"
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 #include "jvk/utility/vk_overloads.hpp"
 

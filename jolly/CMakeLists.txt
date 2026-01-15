@@ -15,8 +15,8 @@ target_precompile_headers(
 )
 
 find_package(glfw3 CONFIG REQUIRED)
-find_package(cth CONFIG REQUIRED)
+find_package(cth CONFIG REQUIRED COMPONENTS cth coro)
 
 
-target_link_libraries(jolly PUBLIC jvk glfw cth::cth)
+target_link_libraries(jolly PUBLIC jvk glfw cth::cth cth::coro)
 

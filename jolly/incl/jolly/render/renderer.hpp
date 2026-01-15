@@ -7,7 +7,7 @@
 
 #include "jvk/render/sync/pipeline_wait_stage.hpp"
 
-#include <cth/pointer/not_null.hpp>
+#include <cth/ptr/not_null.hpp>
 
 #include <map>
 
@@ -50,12 +50,6 @@ public:
     using Config = RendererConfig;
     using id_t = Config::id_t;
     using StageConfig = Config::StageConfig;
-
-    static constexpr auto GROUP_SIZE = StageConfig::GROUP_SIZE;
-    /**
-     * @brief begin and end semaphores for a frame
-     */
-    static constexpr auto FRAME_SEMAPHORES = 2 * GROUP_SIZE;
 
     static constexpr size_t MAX_SECONDARY_CMD_BUFFERS = 0;
 

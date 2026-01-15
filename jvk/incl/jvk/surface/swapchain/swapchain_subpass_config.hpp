@@ -3,12 +3,14 @@
 
 #include <volk.h>
 
-#include <map>
+#include <unordered_map>
 #include <span>
 
 namespace jvk {
 struct SwapchainSubpassConfig {
-    std::map<uint32_t, VkImageLayout> subpassLayouts;
+    std::unordered_map<uint32_t, VkImageLayout> subpassLayouts;
+
+
     /**
      * @brief swapchain image usage flags
      */

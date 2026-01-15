@@ -2,11 +2,9 @@
 #include "types.hpp"
 
 #include "jolly/render/RenderPulse.hpp"
-#include "jvk/render/sync/pipeline_wait_stage.hpp"
-#include "jvk/utility/constants.hpp"
 
 #include <cth/io/log.hpp>
-#include <cth/pointer/not_null.hpp>
+#include <cth/ptr/not_null.hpp>
 
 #include <vector>
 
@@ -16,31 +14,34 @@ class Core;
 }
 
 namespace jly {
+struct PipelineWaitStage;
+class GraphicsCore;
+}
+
+namespace jly {
 class GraphicsSyncConfig {
 public:
-    static constexpr auto SET_SIZE = jvk::constants::FRAMES_IN_FLIGHT;
     struct State;
 
     /**
      * @brief base constructor
-     * @param size number of semaphores to create (!= 0)
      */
-    explicit GraphicsSyncConfig(jvk::Core const& core, size_t size = jvk::constants::FRAMES_IN_FLIGHT);
+    explicit GraphicsSyncConfig(jvk::Core const&);
 
     /**
      * @brief constructs and wraps
-     * @details calls @ref GraphicsSyncConfig(jvk::Core const&, size_t)
+     * @details calls @ref GraphicsSyncConfig(GraphicsCore const&)
      * @note calls @ref wrap()
      */
-    GraphicsSyncConfig(jvk::Core const& core, State state, size_t size = jvk::constants::FRAMES_IN_FLIGHT);
+    GraphicsSyncConfig(jvk::Core const&, State state);
 
     /**
      * constructs and creates if create
      * @details calls:
-        - @ref GraphicsSyncConfig(jvk::Core const&, size_t) with size
-        - @ref create()
+        - @ref GraphicsSyncConfig(GraphicsCore const&)
+        - @ref create(size_t)
      */
-    GraphicsSyncConfig(jvk::Core const& core, create_t, size_t size = jvk::constants::FRAMES_IN_FLIGHT);
+    GraphicsSyncConfig(jvk::Core const&, size_t frames_in_flight);
 
     /**
      * @details calls @ref optDestroy()
@@ -58,7 +59,7 @@ public:
             @ref optDestroy()
             @ref Semaphore::Semaphore(Core const&, create_t)
      */
-    void create();
+    void create(size_t frames_in_flight);
 
     /**
      * @brief destroys and resets
@@ -74,28 +75,28 @@ public:
 
     /**
      * @brief releases ownership and resets
-     * @attention @ref created() required
+     * @pre @ref created()
      */
     State release();
 
     /**
      * @brief next pulse
      * @details calls RenderPulse::next()
+     * @pre @ref created()
      */
-    void next() { _pulse.next(); }
+    void next() { _pulse->next(); }
 
 
     [[nodiscard]] std::vector<jvk::Semaphore*> renderFinishedSemaphores();
     [[nodiscard]] std::vector<jvk::Semaphore*> imageAvailableSemaphores();
     [[nodiscard]] std::vector<jvk::Semaphore const*> renderFinishedSemaphores() const;
     [[nodiscard]] std::vector<jvk::Semaphore const*> imageAvailableSemaphores() const;
-    [[nodiscard]] std::vector<jvk::PipelineWaitStage> imageAvailableWaitStages() const;
+    [[nodiscard]] std::vector<PipelineWaitStage> imageAvailableWaitStages() const;
 
 private:
-    cth::not_null<jvk::Core const*> _core;
-    size_t _size;
+    not_null<jvk::Core const*> _core;
 
-    RenderPulse _pulse{};
+    std::optional<RenderPulse> _pulse;
 
     /**
      * semaphores[currentFrame] will be signaled once the vk_image is clear to render on
@@ -114,13 +115,24 @@ public:
         return !_imageAvailableSemaphores.empty() && !_renderFinishedSemaphores.empty();
     }
 
+    /**
+     * @pre @ref created()
+     */
+    [[nodiscard]] auto framesInFlight() const { return _pulse->framesInFlight(); }
+
     [[nodiscard]] jvk::Semaphore const* renderFinishedSemaphore(size_t index) const;
     [[nodiscard]] jvk::Semaphore* renderFinishedSemaphore(size_t index);
     [[nodiscard]] jvk::Semaphore const* imageAvailableSemaphore(size_t index) const;
     [[nodiscard]] jvk::Semaphore* imageAvailableSemaphore(size_t index);
 
-    [[nodiscard]] RenderPulse const& pulse() const { return _pulse; }
-    [[nodiscard]] dclauto pulseVal() const { return _pulse.get(); }
+    /**
+     * @pre @ref created()
+     */
+    [[nodiscard]] RenderPulse const& pulse() const { return *_pulse; }
+    /**
+     * @pre @ref created()
+     */
+    [[nodiscard]] dclauto pulseVal() const { return _pulse->get(); }
 
     GraphicsSyncConfig(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig const& other) = delete;

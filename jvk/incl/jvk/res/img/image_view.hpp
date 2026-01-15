@@ -5,7 +5,7 @@
 
 #include <volk.h>
 
-#include <cth/pointer/move_ptr.hpp>
+#include <cth/ptr/move_ptr.hpp>
 
 namespace jvk {
 class Core;

@@ -17,4 +17,6 @@ target_precompile_headers(
         src/pch/pch.hpp
 )
 
+find_package(cth CONFIG REQUIRED)
+
 target_link_libraries(demo PRIVATE jvk jolly cth::cth)

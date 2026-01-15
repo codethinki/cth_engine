@@ -1,7 +1,7 @@
 #pragma once
 #include <volk.h>
-#include <cth/pointer/move_ptr.hpp>
-#include <cth/pointer/not_null.hpp>
+#include <cth/ptr/move_ptr.hpp>
+#include <cth/ptr/not_null.hpp>
 #include <gsl/pointers>
 
 namespace jvk {

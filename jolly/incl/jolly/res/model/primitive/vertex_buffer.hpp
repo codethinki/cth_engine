@@ -6,7 +6,7 @@
 #include "jvk/res/buffer/base_buffer.hpp"
 #include "jolly/utility/types.hpp"
 
-#include <cth/memory/miniram.hpp>
+#include <cth/data/miniram.hpp>
 
 namespace jly {
 class VertexBuffer {
@@ -39,7 +39,7 @@ private:
 
     vertex_key _key;
 
-    cth::mem::miniram _ram;
+    cth::dt::miniram _ram;
 
     jvk::BaseBuffer _buffer;
 };

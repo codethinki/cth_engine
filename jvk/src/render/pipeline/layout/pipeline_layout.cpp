@@ -4,7 +4,7 @@
 #include "jvk/base/device_table.hpp"
 #include "jvk/base/physical_device.hpp"
 #include "jvk/render/pipeline/layout/descriptor_set_layout.hpp"
-#include "jvk/res/destruction_queue.hpp"
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
 

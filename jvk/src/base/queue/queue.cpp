@@ -53,6 +53,8 @@ VkResult Queue::present(uint32_t image_index, PresentInfo& present_info) const {
     return raw_present(*present_info.create(image_index));
 }
 VkResult Queue::raw_present(VkPresentInfoKHR const& present_info) const {
+    debug_check_present(*this);
+
     auto const result = _device->functions()->vkQueuePresentKHR(get(), &present_info);
 
     JVK_RESULT_STABLE_THROW(

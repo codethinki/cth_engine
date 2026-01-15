@@ -1,5 +1,6 @@
 {
   "dependencies": [
+    "boost-asio",
     "boost-pfr",
     "glfw3",
     "glm",
@@ -7,7 +8,6 @@
     "ms-gsl",
     "range-v3",
     "stb",
-    "volk",
-    "boost-asio"
+    "volk"
   ]
 }

@@ -1,3 +1,4 @@
+#include "jolly/core/queue.hpp"
 #include "jolly/utility/GraphicsCore.hpp"
 
 #include "jolly/utility/CthOSWindow.hpp"
@@ -22,12 +23,12 @@ GraphicsCore::GraphicsCore(
     Config const& config,
     std::string_view window_name,
     glm::uvec2 extent,
-    jvk::Queue const& present_queue
+    Queue const& present_queue
 ) : GraphicsCore{core, config} { create(window_name, extent, present_queue); }
 
 GraphicsCore::~GraphicsCore() { optDestroy(); }
 
-void GraphicsCore::create(std::string_view window_name, glm::uvec2 extent, jvk::Queue const& present_queue) {
+void GraphicsCore::create(std::string_view window_name, glm::uvec2 extent, Queue const& present_queue) {
     optDestroy();
 
 
@@ -38,10 +39,10 @@ void GraphicsCore::create(std::string_view window_name, glm::uvec2 extent, jvk::
         jvk::Surface::Config{},
         jvk::Surface::State{_osWindow->releaseSurface()}
     );
-    _syncConfig = std::make_unique<GraphicsSyncConfig>(*_core, jly::create);
+    _syncConfig = std::make_unique<GraphicsSyncConfig>(*_core, framesInFlight());
     _swapchain = std::make_unique<jvk::Swapchain>(
         *_core,
-        present_queue,
+        present_queue.raw(),
         *_surface,
         jvk::Swapchain::Config{
             .imageAvailableSemaphores{std::from_range, _syncConfig->imageAvailableSemaphores()},
@@ -149,9 +150,6 @@ void GraphicsCore::reset() {
     _osWindow = nullptr;
 }
 
-
-
-VkSampleCountFlagBits GraphicsCore::msaaSamples() const { return _swapchain->msaaSamples(); }
 
 
 jvk::AttachmentCollection const* GraphicsCore::swapchainResolveAttachments() const {

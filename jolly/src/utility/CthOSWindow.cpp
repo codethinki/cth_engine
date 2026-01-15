@@ -1,7 +1,7 @@
 #include "jolly/utility/CthOSWindow.hpp"
 
 #include "jvk/base/instance.hpp"
-#include "jvk/res/destruction_queue.hpp"
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/surface/surface.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 

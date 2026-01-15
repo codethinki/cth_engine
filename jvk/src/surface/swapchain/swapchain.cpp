@@ -12,7 +12,7 @@
 #include "jvk/render/sync/semaphore.hpp"
 #include "jvk/render/pass/attachment/attachment_collection.hpp"
 #include "jvk/render/pass/framebuffer/framebuffer.hpp"
-#include "jvk/res/destruction_queue.hpp"
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/surface/surface.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
@@ -46,8 +46,7 @@ void Swapchain::create(VkExtent2D window_extent, VkSwapchainKHR old_swapchain) {
 
     optDestroy();
 
-
-    _imageIndices.fill(NO_IMAGE_INDEX);
+    clearImageIndices();
     _msaaSamples = evalMsaaSampleCount();
 
 
@@ -287,12 +286,12 @@ VkExtent2D Swapchain::chooseSwapExtent(
 
 uint32_t Swapchain::evalMinImageCount(uint32_t min, uint32_t max) {
     JVK_STABLE_THROW(
-        min > max || min < 0 || max < constants::FRAMES_IN_FLIGHT,
+        min > max || min < 0 || max < framesInFlight(),
         "invalid swapchain image count bounds"
     ) {
         details->add("requires 0 < min < max && min <= FRAMES_IN_FLIGHT <= max");
         details->add("min: {}, max: {}", min, max);
-        details->add("FRAMES_IN_FLIGHT: {}", constants::FRAMES_IN_FLIGHT);
+        details->add("FRAMES_IN_FLIGHT: {}", framesInFlight());
     }
 
 
@@ -304,7 +303,7 @@ uint32_t Swapchain::evalMinImageCount(uint32_t min, uint32_t max) {
     log::msg<except::INFO>(
         "vk_image count: {0}, frames in flight: {1}",
         min + 1,
-        constants::FRAMES_IN_FLIGHT
+        framesInFlight()
     );
 
     return imageCount;
@@ -413,8 +412,8 @@ void Swapchain::createSyncObjects() {
     for(size_t i = 0; i < _imageCount; i++)
         _presentSemaphores.emplace_back(*_core, jvk::create);
 
-    _acquireFences.reserve(constants::FRAMES_IN_FLIGHT);
-    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++)
+    _acquireFences.reserve(framesInFlight());
+    for(size_t i = 0; i < framesInFlight(); i++)
         _acquireFences.emplace_back(*_core, VK_FENCE_CREATE_SIGNALED_BIT);
 }
 
@@ -499,11 +498,11 @@ void Swapchain::createResolveAttachments() {
 
 
 void Swapchain::createPresentInfos(std::span<Semaphore const* const> render_finished_semaphores) {
-    cxpr auto frames = constants::FRAMES_IN_FLIGHT;
+    auto const frames = framesInFlight();
 
-    _presentInfos.reserve(constants::FRAMES_IN_FLIGHT);
+    _presentInfos.reserve(framesInFlight());
 
-    for(size_t i = 0; i < constants::FRAMES_IN_FLIGHT; i++) {
+    for(size_t i = 0; i < framesInFlight(); i++) {
         std::vector semaphores{std::from_range, render_finished_semaphores | cth::views::drop_stride(i, frames)};
 
         _presentInfos.emplace_back(this, semaphores);
@@ -546,7 +545,7 @@ void Swapchain::resizeReset() {
     _aspectRatio = 0;
     _imageFormat = VK_FORMAT_UNDEFINED;
     _imageCount = 0;
-    _imageIndices.fill(NO_IMAGE_INDEX);
+    clearImageIndices();
 
     destroySyncObjects();
 }
@@ -554,6 +553,10 @@ void Swapchain::resizeReset() {
 void Swapchain::reset() {
     _handle = VK_NULL_HANDLE;
     resizeReset();
+}
+void Swapchain::clearImageIndices() {
+    _imageIndices.resize(framesInFlight());
+    std::ranges::fill(_imageIndices, NO_IMAGE_INDEX);
 }
 
 

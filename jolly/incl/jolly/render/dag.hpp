@@ -1,6 +1,6 @@
 #pragma once
 #include <cth/io/log.hpp>
-#include <cth/types/typ_ranges.hpp>
+#include <cth/meta/ranges.hpp>
 
 #include <map>
 #include <set>
@@ -8,10 +8,10 @@
 
 namespace cth {
 template<class Rng, class Edge>
-concept dag_edge_range = cth::type::range_over_cpt<Rng, CPT(std::convertible_to<Edge>)>;
+concept dag_edge_range = cth::mta::range_over_cpt<Rng, CPT(std::convertible_to<Edge>)>;
 
 template<class Rng, class Node>
-concept dag_node_range = cth::type::range_over<Rng, Node>;
+concept dag_node_range = cth::mta::range_over<Rng, Node>;
 
 /**
  * @brief directed acrylic graph

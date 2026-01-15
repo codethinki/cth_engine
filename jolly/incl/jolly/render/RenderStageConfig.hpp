@@ -1,43 +1,46 @@
 #pragma once
 
-
-#include "jvk/utility/constants.hpp"
-
-#include <cth/pointer/not_null.hpp>
+#include <cth/ptr/not_null.hpp>
 
 
 namespace jvk {
-class Queue;
-struct PipelineWaitStage;
 class Semaphore;
 }
 
 namespace jly {
-enum RenderStageFlag : size_t {
-    RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING = 1 << 0,
-    RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING = 1 << 1
+class Queue;
+struct PipelineWaitStage;
+
+enum class RenderStageFlags : size_t {
+    NONE,
+    PARALLEL_SUB_STAGE_RECORDING = 1 << 0,
+    PARALLEL_FRAMES_IN_FLIGHT_RECORDING = 1 << 1
 };
 
-using RenderStageFlags = std::underlying_type_t<RenderStageFlag>;
+}
+
+
+CTH_GEN_ENUM_FLAG_OVERLOADS(jly::RenderStageFlags)
+
+namespace jly {
+
 
 struct RenderSubStageConfig {};
 
 struct RenderStageConfig {
-    static constexpr auto GROUP_SIZE = jvk::constants::FRAMES_IN_FLIGHT;
-
-    cth::not_null<jvk::Queue const*> queue;
+    cth::not_null<Queue const*> queue;
     uint32_t subStages = 0;
 
     std::vector<jvk::Semaphore*> signalSemaphores{};
-    std::vector<jvk::PipelineWaitStage> waitStages{};
-    RenderStageFlags flags = RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING;
+    std::vector<PipelineWaitStage> waitStages{};
+    RenderStageFlags flags = RenderStageFlags::PARALLEL_SUB_STAGE_RECORDING;
 
     [[nodiscard]] cxpr bool parallelFrameInFlightRecording() const {
-        return flags & RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING;
+        return contains(flags, RenderStageFlags::PARALLEL_FRAMES_IN_FLIGHT_RECORDING);
     }
 
     [[nodiscard]] cxpr bool parallelSubStageRecording() const {
-        return flags & RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING;
+        return contains(flags, RenderStageFlags::PARALLEL_SUB_STAGE_RECORDING);
     }
 };
 }

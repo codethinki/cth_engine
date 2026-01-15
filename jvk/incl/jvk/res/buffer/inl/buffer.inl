@@ -1,6 +1,6 @@
 #pragma once
-#include "../../destruction_queue.hpp"
 #include "jvk/base/core.hpp"
+#include "jvk/base/destruction_queue.hpp"
 
 
 namespace jvk {

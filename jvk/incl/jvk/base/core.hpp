@@ -30,7 +30,7 @@ public:
     using queue_set_t = Config::queue_set_t;
     struct State;
 
-    Core() = default;
+    Core();
 
     /**
      * @brief constructs and wraps

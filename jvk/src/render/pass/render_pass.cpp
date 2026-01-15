@@ -1,12 +1,12 @@
 #include "jvk/render/pass/render_pass.hpp"
 
 #include "jvk/base/core.hpp"
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/render/cmd/cmd_buffer.hpp"
-#include "jvk/render/pass/subpass.hpp"
 #include "jvk/render/pass/render_pass_config.hpp"
+#include "jvk/render/pass/subpass.hpp"
 #include "jvk/render/pass/attachment/attachment_collection.hpp"
 #include "jvk/render/pass/framebuffer/framebuffer.hpp"
-#include "jvk/res/destruction_queue.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
 #include <map>
@@ -14,10 +14,9 @@
 namespace jvk {
 
 
-
-RenderPass::RenderPass(Core const& core, Config const& config) : _core{&core}, _subpasses{config.subpasses},
+RenderPass::RenderPass(Core const& core, Config const& config) : _core{&core},
+    _subpasses{config.subpasses},
     _dependencies{config.dependencies} {
-
     Core::debug_check(core);
     Subpass::debug_check(_subpasses);
 
@@ -29,12 +28,13 @@ RenderPass::RenderPass(Core const& core, Config const& config) : _core{&core}, _
     resize(extent, offset);
 }
 
-RenderPass::RenderPass(Core const& core, Config const& config,
-    State const& state) : RenderPass{core, config} { wrap(state); }
+RenderPass::RenderPass(
+    Core const& core,
+    Config const& config,
+    State const& state
+) : RenderPass{core, config} { wrap(state); }
 
-RenderPass::RenderPass(Core const& core, Config const& config, create_t) : RenderPass{core, config} {
-    create();
-}
+RenderPass::RenderPass(Core const& core, Config const& config, create_t) : RenderPass{core, config} { create(); }
 
 RenderPass::~RenderPass() { optDestroy(); }
 
@@ -49,8 +49,11 @@ void RenderPass::create() {
 
 
     std::vector<VkSubpassDescription> subpasses{_subpasses.size()};
-    std::ranges::transform(_subpasses, subpasses.begin(),
-        [](Subpass const* subpass) { return subpass->create(); });
+    std::ranges::transform(
+        _subpasses,
+        subpasses.begin(),
+        [](Subpass const* subpass) { return subpass->create(); }
+    );
 
     auto attachments = attachmentDescriptions();
 
@@ -102,9 +105,7 @@ RenderPass::State RenderPass::release() {
 
 void RenderPass::resize(VkExtent2D extent, VkOffset2D offset) { resize({offset, extent}); }
 
-void RenderPass::resize(VkRect2D area) {
-    _beginInfo.renderArea = area;
-}
+void RenderPass::resize(VkRect2D area) { _beginInfo.renderArea = area; }
 
 void RenderPass::recolor(std::span<VkClearValue const> clear_values) {
     size_t index = 0;
@@ -120,9 +121,7 @@ void RenderPass::recolor(std::span<VkClearValue const> clear_values) {
     _beginInfo.pClearValues = _clearValue.data();
 }
 
-void RenderPass::relocateSubpassContents(VkSubpassContents contents) {
-    _subpassContents = contents;
-}
+void RenderPass::relocateSubpassContents(VkSubpassContents contents) { _subpassContents = contents; }
 
 
 void RenderPass::begin(PrimaryCmdBuffer const& cmd_buffer, Framebuffer const& framebuffer) {
@@ -135,9 +134,7 @@ void RenderPass::begin(PrimaryCmdBuffer const& cmd_buffer, Framebuffer const& fr
     _core->functions()->vkCmdBeginRenderPass(cmd_buffer.get(), &_beginInfo, _subpassContents);
 }
 
-void RenderPass::end(PrimaryCmdBuffer const& cmd_buffer) {
-    _core->functions()->vkCmdEndRenderPass(cmd_buffer.get());
-}
+void RenderPass::end(PrimaryCmdBuffer const& cmd_buffer) { _core->functions()->vkCmdEndRenderPass(cmd_buffer.get()); }
 
 
 void RenderPass::destroy(DeviceTable table, VkRenderPass vk_render_pass) {
@@ -146,9 +143,7 @@ void RenderPass::destroy(DeviceTable table, VkRenderPass vk_render_pass) {
     table->vkDestroyRenderPass(table.device(), vk_render_pass, nullptr);
 }
 
-void RenderPass::reset() {
-    setHandle(nullptr);
-}
+void RenderPass::reset() { setHandle(nullptr); }
 
 void RenderPass::setHandle(VkRenderPass handle) {
     _handle = handle;
@@ -168,7 +163,6 @@ std::vector<VkAttachmentDescription> RenderPass::attachmentDescriptions() const 
 
 namespace {
     void debug_check_attachments(std::span<AttachmentCollection const* const> attachments) {
-
         std::unordered_map<uint32_t, AttachmentCollection const*> indexMap{};
         for(auto& collection : attachments)
             for(auto index : collection->indices()) {
@@ -188,26 +182,23 @@ namespace {
             std::ranges::any_of(
                 indices | std::views::enumerate,
                 [](std::tuple<ptrdiff_t, uint32_t> const& pair) {
-                    return std::cmp_not_equal(std::get < 0 > (pair), std::get < 1 > (pair));
+                return std::cmp_not_equal(std::get < 0 > (pair), std::get < 1 > (pair));
                 }),
             "invalid indices submitted in subpasses, must fill [0 : n-1]"
-            ) {
-            details->add("indices: {}", indices);
-        }
+        ) { details->add("indices: {}", indices); }
     }
 
 }
 
 void RenderPass::initAttachments() {
-    _attachments = {std::from_range,
-        _subpasses | std::views::transform([](Subpass const* subpass) {
-            return subpass->attachments();
-        }) | std::views::join
+    _attachments = {
+        std::from_range,
+        _subpasses | std::views::transform([](Subpass const* subpass) { return subpass->attachments(); }) |
+        std::views::join
     };
 
 
     debug_check_attachments(_attachments);
-
 }
 
 

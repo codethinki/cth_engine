@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <cth/io/log.hpp>
-#include <cth/pointer/move_ptr.hpp>
+#include <cth/ptr/move_ptr.hpp>
 
 using window_handle_t = std::add_pointer_t<struct GLFWwindow>;
 

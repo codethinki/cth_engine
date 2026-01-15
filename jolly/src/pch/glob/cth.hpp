@@ -3,8 +3,8 @@
 #include <cth/algorithm.hpp>
 #include <cth/exception.hpp>
 #include <cth/io.hpp>
-#include <cth/pointers.hpp>
-#include <cth/types.hpp>
+#include <cth/ptr.hpp>
+#include <cth/meta.hpp>
 #include <cth/algorithm/combine.hpp>
 #include <cth/data/union_find.hpp>
 #include <cth/string/format.hpp>

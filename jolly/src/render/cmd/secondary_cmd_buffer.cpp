@@ -28,12 +28,12 @@ void SecondaryCmdBuffer::reset(bool release_memory) {
 
     _handle->reset(flags);
 
-    _tasks.discard();
+    task_mixin::discardTasks();
 }
 void SecondaryCmdBuffer::destroy() {
     _handle->destroy();
 
-    _tasks.discard();
+    task_mixin::discardTasks();
 }
 // ReSharper restore CppMemberFunctionMayBeConst
 

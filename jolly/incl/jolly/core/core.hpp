@@ -1,4 +1,5 @@
 #pragma once
+#include <cth/coro/executor.hpp>
 #include <cth/coro/scheduler.hpp>
 
 namespace jvk {
@@ -35,6 +36,13 @@ private:
 public:
     [[nodiscard]] bool created() const;
     [[nodiscard]] jvk::Core const& raw() const { return *_handle; }
+    [[nodiscard]] cth::co::scheduler const& scheduler() const {
+        return _scheduler;
+    }
+
+    [[nodiscard]] cth::co::executor co_executor() const {
+        return cth::co::executor{_scheduler};
+    }
 
 
     static void debug_check(Core const& core);

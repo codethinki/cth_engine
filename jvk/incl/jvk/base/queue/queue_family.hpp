@@ -3,25 +3,42 @@
 #include "jvk/utility/vk_hash.hpp"
 #include "jvk/utility/vk_overloads.hpp"
 
+#include <cth/enums.hpp>
+
 #include <volk.h>
 
 
 namespace jvk {
-enum QueueFamilyPropertyFlagBits : uint32_t {
-    QUEUE_FAMILY_PROPERTY_GRAPHICS = VK_QUEUE_GRAPHICS_BIT,
-    QUEUE_FAMILY_PROPERTY_COMPUTE = VK_QUEUE_COMPUTE_BIT,
-    QUEUE_FAMILY_PROPERTY_TRANSFER = VK_QUEUE_TRANSFER_BIT,
-    QUEUE_FAMILY_PROPERTY_PRESENT = 8u,
+using cth::en::flag_val;
+
+enum class QueueFamilyProperties {
+    NONE = 0,
+    GRAPHICS = flag_val(0),
+    COMPUTE = flag_val(1),
+    TRANSFER = flag_val(2),
+    PRESENT = flag_val(3)
 };
 
-using QueueFamilyProperties = uint32_t;
+}
+
+CTH_GEN_ENUM_FLAG_OVERLOADS(jvk::QueueFamilyProperties)
+
+namespace jvk {
+//enum QueueFamilyPropertyFlagBits : uint32_t {
+//    QUEUE_FAMILY_PROPERTY_GRAPHICS = VK_QUEUE_GRAPHICS_BIT,
+//    QUEUE_FAMILY_PROPERTY_COMPUTE = VK_QUEUE_COMPUTE_BIT,
+//    QUEUE_FAMILY_PROPERTY_TRANSFER = VK_QUEUE_TRANSFER_BIT,
+//    QUEUE_FAMILY_PROPERTY_PRESENT = 8u,
+//};
+//
+//using QueueFamilyProperties = uint32_t;
 
 static QueueFamilyProperties to_queue_properties(VkQueueFlags flags, bool present_support) {
-    QueueFamilyProperties result{};
-    if(flags & VK_QUEUE_GRAPHICS_BIT) result |= QUEUE_FAMILY_PROPERTY_GRAPHICS;
-    if(flags & VK_QUEUE_COMPUTE_BIT) result |= QUEUE_FAMILY_PROPERTY_COMPUTE;
-    if(flags & VK_QUEUE_TRANSFER_BIT) result |= QUEUE_FAMILY_PROPERTY_TRANSFER;
-    if(present_support) result |= QUEUE_FAMILY_PROPERTY_PRESENT;
+    auto result = QueueFamilyProperties::NONE;
+    if(flags & VK_QUEUE_GRAPHICS_BIT) result |= QueueFamilyProperties::GRAPHICS;
+    if(flags & VK_QUEUE_COMPUTE_BIT) result |= QueueFamilyProperties::COMPUTE;
+    if(flags & VK_QUEUE_TRANSFER_BIT) result |= QueueFamilyProperties::TRANSFER;
+    if(present_support) result |= QueueFamilyProperties::PRESENT;
     return result;
 }
 

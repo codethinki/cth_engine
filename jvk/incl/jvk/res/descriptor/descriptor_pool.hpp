@@ -3,7 +3,7 @@
 #include "jvk/utility/constants.hpp"
 #include "jvk/utility/types.hpp"
 
-#include <cth/pointers.hpp>
+#include <cth/ptr.hpp>
 #include <cth/io/log.hpp>
 
 #include <volk.h>

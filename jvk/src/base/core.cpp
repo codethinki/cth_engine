@@ -1,9 +1,9 @@
 #include "jvk/base/core.hpp"
 
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/base/device.hpp"
 #include "jvk/base/instance.hpp"
 #include "jvk/base/physical_device.hpp"
-#include "jvk/res/destruction_queue.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 #include "jvk/utility/os/os_window.hpp"
 
@@ -12,6 +12,7 @@
 
 namespace jvk {
 
+Core::Core() = default;
 Core::Core(State state) { wrap(std::move(state)); }
 Core::Core(Config const& config) { create(config); }
 
@@ -21,7 +22,7 @@ void Core::wrap(State state) {
     Instance::debug_check(*state.instance);
     PhysicalDevice::debug_check(*state.physicalDevice);
     Device::debug_check(*state.device);
-    DEBUG_CHECK_DESTRUCTION_QUEUE_NULL_ALLOWED(state.destructionQueue);
+    DestructionQueue::debug_check_null_allowed(state.destructionQueue.get());
 
     optDestroy();
 
@@ -53,7 +54,8 @@ void Core::create(Config const& config) {
 
     wrapQueues(setIndexToQueue, config.queues, config.queueSets[*_queueSetIndex]);
 
-    if(config.destructionQueue) _destructionQueue = std::make_unique<DestructionQueue>();
+    if(config.destructionQueueConfig) 
+        _destructionQueue = std::make_unique<DestructionQueue>(*config.destructionQueueConfig);
 }
 
 void Core::destroy() {

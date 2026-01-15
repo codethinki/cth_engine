@@ -19,7 +19,7 @@ void PrimaryCmdBuffer::begin() { _handle->begin(); }
 void PrimaryCmdBuffer::end() { _handle->end(); }
 void PrimaryCmdBuffer::exec(std::span<SecondaryCmdBuffer> secondaries) {
     for(auto& secondary : secondaries)
-        _tasks.append(secondary.submitTasks());
+        task_mixin::append(secondary.submitTasks());
 
     std::vector const handles{
         std::from_range,
@@ -38,17 +38,19 @@ void PrimaryCmdBuffer::reset(bool release_memory) {
 
     _handle->reset(flags);
 
-    _tasks.discard();
+    task_mixin::discardTasks();
 }
 void PrimaryCmdBuffer::destroy() {
     _handle->destroy();
 
-    _tasks.discard();
+    task_mixin::discardTasks();
 }
 // ReSharper restore CppMemberFunctionMayBeConst
 
 bool PrimaryCmdBuffer::created() const { return _handle->created(); }
 bool PrimaryCmdBuffer::recording() const { return _handle->recording(); }
 jvk::CmdPool& PrimaryCmdBuffer::pool() const { return _handle->pool(); }
+
+
 
 }

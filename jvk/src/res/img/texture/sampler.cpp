@@ -1,7 +1,7 @@
 #include "jvk/res/img/texture/sampler.hpp"
 
 #include "jvk/base/core.hpp"
-#include "jvk/res/destruction_queue.hpp"
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
 

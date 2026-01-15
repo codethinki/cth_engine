@@ -6,8 +6,8 @@
 
 #include <volk.h>
 #include <cth/string/format.hpp>
-#include <cth/types/typ_utilty.hpp>
-#include <cth/types/typ_variadic.hpp>
+#include <cth/meta/utility.hpp>
+#include <cth/meta/variadic.hpp>
 
 namespace jvk::fmt {
 template<class T>
@@ -23,7 +23,7 @@ std::string structure_to_string(T&& to_tuple) {
 }
 
 template<class T>
-concept formattable_type = cth::type::any_of<cth::type::pure_t<T>,
+concept formattable_type = cth::mta::any_of<cth::mta::pure_t<T>,
     VkSurfaceFormatKHR,
     VkExtent2D
 >;

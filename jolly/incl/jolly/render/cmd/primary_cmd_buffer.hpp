@@ -1,5 +1,5 @@
 #pragma once
-#include "task_container.hpp"
+#include "jolly/render/cmd/utility/task_container_mixin.hpp"
 
 namespace jly {
 class SecondaryCmdBuffer;
@@ -14,11 +14,11 @@ struct CmdBufferConfig;
 
 namespace jly {
 
-class PrimaryCmdBuffer {
+class PrimaryCmdBuffer : dev::task_container_mixin {
+    using task_mixin = dev::task_container_mixin;
+
 public:
     using Config = jvk::CmdBufferConfig;
-
-    using completion_task_t = task_container::task_t;
 
     PrimaryCmdBuffer(Config const& config, jvk::CmdPool& pool);
     explicit PrimaryCmdBuffer(Config const& config);
@@ -41,30 +41,14 @@ public:
     void optDestroy() { if(created()) destroy(); }
     void destroy();
 
-    /**
-     * adds a task to execute once the buffer finished gpu execution (thread safe)
-     */
-    void add(completion_task_t task) { _tasks.append(std::move(task)); }
-
-    /**
-    * executes all added tasks. clears task list
-    */
-    void executeTasks() { _tasks.exec_clear(); }
-
-    /**
-     * discards all added tasks (thread safe)
-     */
-    void discardTasks() { _tasks.discard(); }
-
-    /**
-     * releases all tasks (thread safe)
-     */
-    task_container releaseTasks() { return std::exchange(_tasks, {}); }
+    using task_mixin::add;
+    using task_mixin::append;
+    using task_mixin::releaseTasks;
+    using task_mixin::execClearTasks;
+    using task_mixin::discardTasks;
 
 private:
     std::unique_ptr<jvk::PrimaryCmdBuffer> _handle;
-
-    task_container _tasks;
 
 public:
     [[nodiscard]] jvk::PrimaryCmdBuffer const& raw() const { return *_handle; }

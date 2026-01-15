@@ -1,4 +1,3 @@
-/vcpkg_installed/
-/cmake-build-debug/
-/out/
-/.vs/
+vcpkg_installed/
+out/
+.vs/

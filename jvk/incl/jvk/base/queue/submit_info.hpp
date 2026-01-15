@@ -31,7 +31,7 @@ struct SubmitInfo {
     /**
      * @brief advances the timeline semaphores and returns this
      */
-    [[nodiscard]] SubmitInfo& next();
+    SubmitInfo& next();
 
 private:
     void createTimelineInfo();
@@ -58,11 +58,12 @@ private:
     std::vector<size_t> _waitValues{};
     std::vector<size_t> _signalValues{};
 
-    Fence const* _fence = nullptr;
+
+    VkFence _fence = nullptr;
 
 public:
     [[nodiscard]] VkSubmitInfo const* get() const { return &_submitInfo; }
     [[nodiscard]] VkSubmitInfo const* skip() const { return &_skipSubmitInfo; }
-    [[nodiscard]] VkFence fence() const;
+    [[nodiscard]] VkFence fence() const { return _fence; }
 };
 }

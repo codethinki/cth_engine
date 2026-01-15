@@ -1,12 +1,9 @@
 #pragma once
 #include "device_table.hpp"
 
-#include "jvk/utility/constants.hpp"
 #include "jvk/utility/types.hpp"
 
 #include <volk.h>
-#include <cth/pointers.hpp>
-
 
 #include <span>
 #include <vector>

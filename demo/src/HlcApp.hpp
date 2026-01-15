@@ -2,6 +2,8 @@
 #include "render/HlcRenderSystem.hpp"
 
 //TEMP remove this once the camera and input controller are refactored
+#include "jolly/core/queue.hpp"
+
 #include "render/FrameResources.hpp"
 
 #include "jolly/render/renderer.hpp"
@@ -33,6 +35,7 @@ public:
 
     static constexpr uint32_t WIDTH = 1000;
     static constexpr uint32_t HEIGHT = 1000;
+    static constexpr size_t FRAMES_IN_FLIGHT = 2;
 
 private:
     void createRenderer3();
@@ -46,10 +49,10 @@ private:
 
 
 
-    std::vector<jvk::Queue> _queues{
-        jvk::Queue{jvk::QUEUE_FAMILY_PROPERTY_TRANSFER | jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
-        jvk::Queue{jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
-        jvk::Queue{jvk::QUEUE_FAMILY_PROPERTY_PRESENT}
+    std::vector<jly::Queue> _queues{
+        jly::Queue{jvk::QUEUE_FAMILY_PROPERTY_TRANSFER | jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
+        jly::Queue{jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
+        jly::Queue{jvk::QUEUE_FAMILY_PROPERTY_PRESENT}
     };
     std::array<jvk::Core::queue_set_t, 2> _queueSets{
         {

@@ -42,7 +42,7 @@ std::vector<window_t> create_hidden_monitor_windows() {
     cxpr std::string_view windowBaseName = "jvk::os::hiddenMonitorWindow";
 
 
-    auto const monitors = cth::win::screen::enum_monitors();
+    auto const monitors = cth::win::enum_monitors();
     JVK_STABLE_OS_THROW(monitors.empty(), "no monitors found :(") {}
 
     std::vector<window_t> windows{};
@@ -53,7 +53,7 @@ std::vector<window_t> create_hidden_monitor_windows() {
 
         try {
             windows.push_back(
-                cth::win::screen::create_window(
+                cth::win::create_window(
                     std::format("{} [{}]", windowBaseName, i),
                     {rect.x, rect.y, 0, 0},
                     false

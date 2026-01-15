@@ -5,8 +5,7 @@
 #include "jvk/utility/constants.hpp"
 #include "jvk/utility/types.hpp"
 
-#include <cth/coro/task.hpp>
-#include <cth/pointer/move_ptr.hpp>
+#include <cth/ptr/move_ptr.hpp>
 
 #include <volk.h>
 

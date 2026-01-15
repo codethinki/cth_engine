@@ -1,10 +1,7 @@
 #pragma once
 #include "queue_family.hpp"
 
-#include "jvk/utility/constants.hpp"
 #include "jvk/utility/types.hpp"
-
-#include <cth/pointers.hpp>
 
 #include <volk.h>
 
@@ -129,7 +126,8 @@ private:
     uint32_t _queueIndex = 0;
 
 public:
-    [[nodiscard]] auto created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool can_present() const { return _familyProperties & QUEUE_FAMILY_PROPERTY_PRESENT; }
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] auto get() const { return _handle.get(); }
     [[nodiscard]] auto index() const { return _queueIndex; }
 
@@ -171,7 +169,7 @@ inline void Queue::debug_check(Queue const& queue) {
 inline void Queue::debug_check_present(Queue const& queue) {
     debug_check(queue);
     CTH_CRITICAL(
-        !(queue.familyProperties() & QUEUE_FAMILY_PROPERTY_PRESENT),
+        !queue.can_present(),
         "queue is not a present queue"
     ) {}
 }

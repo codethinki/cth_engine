@@ -17,6 +17,7 @@ target_precompile_headers(
 
 find_package(volk CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
-find_package(Boost REQUIRED COMPONENTS pfr)
+find_package(Boost CONFIG REQUIRED COMPONENTS pfr)
+find_package(cth CONFIG REQUIRED COMPONENTS cth)
 
 target_link_libraries(jvk PUBLIC volk::volk glm::glm Boost::pfr cth::cth cth::win)

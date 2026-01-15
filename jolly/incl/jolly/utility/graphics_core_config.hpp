@@ -3,6 +3,8 @@
 
 namespace jly {
 struct GraphicsCoreConfig {
+    size_t framesInFlight;
     jvk::SwapchainSubpassConfig subpassConfig;
+
 };
 }

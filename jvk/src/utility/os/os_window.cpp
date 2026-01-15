@@ -1,7 +1,7 @@
 #include "jvk/utility/os/os_def.hpp"
 
 #ifdef JVK_PLATFORM_WINDOWS
-#include "win/win_window.impl"
+#include "win/win_window.hpp"
 #elifdef JVK_PLATFORM_LINUX
 #error "no window support for linux yet"
 #elifdef JVK_PLATFORM_ANDROID

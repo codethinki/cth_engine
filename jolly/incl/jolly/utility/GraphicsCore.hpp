@@ -2,7 +2,6 @@
 #include "graphics_core_config.hpp"
 
 #include "jolly/utility/GraphicsSyncConfig.hpp"
-#include "jvk/base/core.hpp"
 
 #include <cth/macro.hpp>
 
@@ -10,12 +9,15 @@
 namespace jvk {
 class AttachmentCollection;
 class Surface;
-struct Cycle;
-class RenderPass;
+class Swapchain;
 }
 
 namespace jly {
+class Queue;
 class OSWindow;
+}
+
+namespace jly {
 
 
 class GraphicsCore {
@@ -28,17 +30,14 @@ public:
     using Config = GraphicsCoreConfig;
 
 
-    /**
-     * @param core must be created
-     */
-    explicit GraphicsCore(jvk::Core const& core, Config config);
+    explicit GraphicsCore(jvk::Core const&, Config);
 
     /**
      * @brief wraps the state
      * @note calls @ref GraphicsCore(Core const&, Config)
      * @note calls @ref wrap()
      */
-    GraphicsCore(jvk::Core const& core, Config const& config, State state);
+    GraphicsCore(jvk::Core const&, Config const&, State);
 
 
     /**
@@ -47,8 +46,13 @@ public:
      * @note calls @ref create()
      * @note calls @ref GraphicsCore(Core const&, Config)
      */
-    GraphicsCore(jvk::Core const& core, Config const& config, std::string_view window_name, glm::uvec2 extent,
-        jvk::Queue const& present_queue);
+    GraphicsCore(
+        jvk::Core const&,
+        Config const&,
+        std::string_view window_name,
+        glm::uvec2 extent,
+        Queue const& present_queue
+    );
 
     /**
      * @note calls @ref optDestroy()
@@ -60,7 +64,7 @@ public:
      * @brief constructs osWindow, surface and swapchain
      * @note calls @ref optDestroy()
      */
-    void create(std::string_view window_name, glm::uvec2 extent, jvk::Queue const& present_queue);
+    void create(std::string_view window_name, glm::uvec2 extent, Queue const& present_queue);
 
     /**
      * @brief wraps the state
@@ -128,7 +132,7 @@ private:
 
     bool _resize = false;
 
-    cth::not_null<jvk::Core const*> _core;
+    not_null<jvk::Core const*> _core;
     Config _config;
 
     std::unique_ptr<GraphicsSyncConfig> _syncConfig;
@@ -137,14 +141,17 @@ private:
     std::unique_ptr<jvk::Swapchain> _swapchain; //TEMP change to Swapchain ptr once implemented
 
 public:
+    [[nodiscard]] auto framesInFlight() const { return _config.framesInFlight; }
+
     [[nodiscard]] bool created() const { return _osWindow || _surface || _swapchain; }
-    [[nodiscard]] OSWindow const* osWindow() const { return _osWindow.get(); }
-    [[nodiscard]] jvk::Surface const* surface() const { return _surface.get(); }
-    [[nodiscard]] GraphicsSyncConfig const* syncConfig() const { return _syncConfig.get(); }
-    [[nodiscard]] jvk::Swapchain const* swapchain() const { return _swapchain.get(); }
-    [[nodiscard]] VkSampleCountFlagBits msaaSamples() const;
+    [[nodiscard]] auto const* osWindow() const { return _osWindow.get(); }
+    [[nodiscard]] auto const* surface() const { return _surface.get(); }
+    [[nodiscard]] auto const* syncConfig() const { return _syncConfig.get(); }
+    [[nodiscard]] auto const* swapchain() const { return _swapchain.get(); }
 
     [[nodiscard]] bool shouldResize() const { return _resize; }
+
+    [[nodiscard]] auto const& vk_core() const { return *_core; }
 
     [[nodiscard]] jvk::AttachmentCollection const* swapchainResolveAttachments() const;
     [[nodiscard]] VkFormat swapchainImageFormat() const;
@@ -152,8 +159,6 @@ public:
     [[nodiscard]] size_t swapchainSize() const;
     [[nodiscard]] size_t swapchainImageIndex() const;
 
-    [[nodiscard]] dclauto imageAvailableWaitStages() const { return _syncConfig->imageAvailableWaitStages(); }
-    [[nodiscard]] dclauto renderFinishedSemaphores() const { return _syncConfig->renderFinishedSemaphores(); }
     [[nodiscard]] dclauto renderPulse() const { return _syncConfig->pulse(); }
     [[nodiscard]] dclauto pulseVal() const { return _syncConfig->pulseVal(); }
 

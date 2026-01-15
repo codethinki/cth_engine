@@ -13,6 +13,7 @@ namespace jvk {
 
 
 struct SwapchainConfig {
+    size_t framesInFlight;
 
     std::vector<Semaphore*> imageAvailableSemaphores;
     std::vector<Semaphore const*> renderFinishedSemaphores;
@@ -21,12 +22,12 @@ struct SwapchainConfig {
 
     static void debug_check(SwapchainConfig const& config) {
         CTH_CRITICAL(
-            config.imageAvailableSemaphores.size() != constants::FRAMES_IN_FLIGHT,
+            config.imageAvailableSemaphores.size() != config.framesInFlight,
             "imageAvailableSemaphores.size() [{}] must equal frames in flight",
             config.imageAvailableSemaphores.size()
         ) {}
         CTH_CRITICAL(
-            config.renderFinishedSemaphores.size() != constants::FRAMES_IN_FLIGHT,
+            config.renderFinishedSemaphores.size() != config.framesInFlight,
             "renderFinishedSemaphores.size() [{}] must equal frames in flight",
             config.renderFinishedSemaphores.size()
         ) {}

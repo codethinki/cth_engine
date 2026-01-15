@@ -7,7 +7,7 @@
       "environment": {
       },
       "cacheVariables": {
-        "CTH_INSTALL_PATH": "${sourceDir}/../cth/out/install/${presetName}"
+        "cth_ROOT": "${sourceDir}/../cth/out/install/${presetName}"
       },
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
     },

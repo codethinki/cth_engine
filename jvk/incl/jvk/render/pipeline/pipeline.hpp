@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 #include <volk.h>
-#include <cth/pointer/not_null.hpp>
+#include <cth/ptr/not_null.hpp>
 
 //TODO add support for more types of pipelines
 

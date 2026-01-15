@@ -2,7 +2,7 @@
 
 #include "jvk/base/core.hpp"
 #include "jvk/base/device_table.hpp"
-#include "jvk/res/destruction_queue.hpp"
+#include "jvk/base/destruction_queue.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
 #include <cth/io/file.hpp>

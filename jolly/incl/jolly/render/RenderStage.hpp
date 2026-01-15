@@ -3,19 +3,10 @@
 
 #include "jolly/utility/types.hpp"
 
-#include "jvk/render/sync/fence.hpp"
-#include "jvk/render/sync/pipeline_wait_stage.hpp"
-#include "jvk/utility/constants.hpp"
-
 
 //IMPLEMENT release and state
 namespace jvk {
-struct Cycle;
-struct PipelineWaitStage;
-struct SubmitInfo;
-
 class CmdPool;
-class Core;
 
 class Queue;
 class RenderPass;
@@ -23,6 +14,9 @@ class Semaphore;
 }
 
 namespace jly {
+class Core;
+class Fence;
+class SubmitInfo;
 class PrimaryCmdBuffer;
 class RenderPulse;
 class SecondaryCmdBuffer;
@@ -44,16 +38,14 @@ struct RenderStageCmdBuffers {
 
 class RenderStage {
 public:
-    cxpr static uint32_t GROUP_SIZE = jvk::constants::FRAMES_IN_FLIGHT;
-
     using Config = RenderStageConfig;
-    RenderStage(jvk::Core const& core, RenderPulse const& pulse, Config config);
+    RenderStage(Core const& core, RenderPulse const& pulse, Config config);
 
     /**
      * @brief create constructor
      * @details calls: @ref create()
      */
-    RenderStage(jvk::Core const& core, RenderPulse const& pulse, Config config, create_t);
+    RenderStage(Core const& core, RenderPulse const& pulse, Config config, create_t);
 
     /**
      * @details calls @ref optDestroy()
@@ -115,29 +107,20 @@ public:
     void skip();
 
     /**
-     * @brief waits for stage completion or times out
-     * @param timeout in nanoseconds
-     * @return @ref Fence::wait(size_t) const
-     */
-    [[nodiscard]] VkResult wait(size_t timeout) const;
-
-    /**
      * @brief waits for stage completion
      * @details calls @ref Fence::wait() const
      */
     void wait() const;
 
 private:
-    void reset() const;
+    void reset();
 
-    void initFences();
     void initCmdPools();
     void initCmdBuffers();
     void initSubmitInfos();
 
     void init();
 
-    void createFences();
     /**
      * @details:
         - parallel frames in flight -> pool per frame
@@ -156,17 +139,16 @@ private:
 
     void createSubmitInfos();
 
-    cth::not_null<jvk::Core const*> _core;
-    cth::not_null<RenderPulse const*> _pulse;
+    not_null<Core const*> _core;
+    not_null<RenderPulse const*> _pulse;
 
     Config _config;
 
-    std::vector<jvk::Fence> _fences; //count: GROUP_SIZE
     std::vector<jvk::CmdPool> _cmdPools;
 
     std::vector<PrimaryCmdBuffer> _primaryCmdBuffers; //count: GROUP_SIZE
     std::vector<SecondaryCmdBuffer> _secondaryCmdBuffers; //count: subStages * GROUP_SIZE
-    std::vector<jvk::SubmitInfo> _submitInfos; //count: GROUP_SIZE
+    std::vector<SubmitInfo> _submitInfos; //count: GROUP_SIZE
 
 
 
@@ -178,9 +160,11 @@ private:
 
 
     [[nodiscard]] auto& queue() const { return *_config.queue; }
-    [[nodiscard]] jvk::SubmitInfo& submitInfo();
-    [[nodiscard]] jvk::Fence const& fence() const;
+    [[nodiscard]] SubmitInfo& submitInfo();
+    [[nodiscard]] SubmitInfo const& submitInfo() const;
+
     [[nodiscard]] size_t subIndex() const;
+    [[nodiscard]] size_t framesInFlight() const;
 
 public:
     [[nodiscard]] bool created() const;

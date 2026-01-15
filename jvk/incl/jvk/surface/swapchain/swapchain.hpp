@@ -121,7 +121,7 @@ private:
     /**
      * @throws jvk::jvk_exception if no compatible image count was found
      */
-    [[nodiscard]] static uint32_t evalMinImageCount(uint32_t min, uint32_t max);
+    [[nodiscard]] uint32_t evalMinImageCount(uint32_t min, uint32_t max);
 
     void refreshSize();
 
@@ -166,6 +166,8 @@ private:
     void resizeReset();
     void reset();
 
+    void clearImageIndices();
+
     not_null<Core const*> _core;
     not_null<Queue const*> _presentQueue;
     not_null<Surface const*> _surface;
@@ -192,29 +194,30 @@ private:
     VkFormat _imageFormat = VK_FORMAT_UNDEFINED;
 
 
-    std::array<uint32_t, constants::FRAMES_IN_FLIGHT> _imageIndices{};
+    std::vector<uint32_t> _imageIndices{};
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
     [[nodiscard]] Core const& core() const { return *_core; }
 
 public:
-    [[nodiscard]] VkSwapchainKHR get() const { return _handle.get(); }
+    [[nodiscard]] auto get() const { return _handle.get(); }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
-    [[nodiscard]] float extentAspectRatio() const { return _aspectRatio; }
+    [[nodiscard]] auto extentAspectRatio() const { return _aspectRatio; }
 
     [[nodiscard]] auto imageIndex(size_t pulse_value) const {
         CTH_CRITICAL(!cth::num::in(pulse_value, 0, _imageIndices.size()), "pulse value out of bounds") {}
         return _imageIndices[pulse_value];
     }
 
-    [[nodiscard]] size_t size() const { return _imageCount; }
+    [[nodiscard]] auto framesInFlight() const { return _config.framesInFlight; }
+    [[nodiscard]] auto size() const { return _imageCount; }
     [[nodiscard]] ImageConfig imageConfig() const;
-    [[nodiscard]] VkFormat imageFormat() const { return _imageFormat; }
-    [[nodiscard]] VkSampleCountFlagBits msaaSamples() const { return _msaaSamples; }
+    [[nodiscard]] auto imageFormat() const { return _imageFormat; }
+    [[nodiscard]] auto msaaSamples() const { return _msaaSamples; }
     //TODO move this to framebuffer or render pass
-    [[nodiscard]] AttachmentCollection const* resolveAttachments() const { return _resolveAttachments.get(); }
-    [[nodiscard]] VkExtent2D extent() const { return _extent; }
+    [[nodiscard]] jvk::AttachmentCollection const* resolveAttachments() const { return _resolveAttachments.get(); }
+    [[nodiscard]] auto extent() const { return _extent; }
 
     Swapchain(Swapchain const& other) = delete;
     Swapchain& operator=(Swapchain const& other) = delete;

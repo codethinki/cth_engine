@@ -1,5 +1,7 @@
 #pragma once
 
+#include "destruction_queue_config.hpp"
+
 #include <cth/data/union_find.hpp>
 
 #include <span>
@@ -28,8 +30,8 @@ struct CoreConfig {
     std::span<queue_set_t const> queueSets{};
 
     /**
-     * @brief if true, creates a DestructionQueue
+     * creates a destruction queue if not @ref std::nullopt 
      */
-    bool destructionQueue = true;
+    std::optional<DestructionQueueConfig> destructionQueueConfig;
 };
 }

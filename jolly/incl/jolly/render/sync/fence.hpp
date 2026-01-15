@@ -1,7 +1,7 @@
 #pragma once
 #include "jolly/utility/types.hpp"
 
-#include <boost/asio/awaitable.hpp>
+#include <cth/coro/awaiters/native_handle_awaiter.hpp>
 
 namespace jvk {
 class Fence;
@@ -12,10 +12,12 @@ class Core;
 }
 
 namespace jly {
+
 class Fence {
 public:
     Fence(Core const&);
     Fence(Core const&, bool signaled);
+    ~Fence();
 
     void create(bool signaled);
     void destroy();
@@ -59,14 +61,14 @@ public:
      * @note Usage: co_await fence.withContext(io_context);
      * @note Uses platform-specific native handle for efficient waiting
      */
-    [[nodiscard]] boost::asio::awaitable<void> operator co_await() const;
+    [[nodiscard]] cth::co::native_handle_awaiter operator co_await() const;
 
 private:
     not_null<Core const*> _core;
     std::unique_ptr<jvk::Fence> _handle;
 
 public:
+    [[nodiscard]] jvk::Fence const& raw() const { return *_handle; }
     [[nodiscard]] bool created() const;
 };
 }
-

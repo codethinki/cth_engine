@@ -1,6 +1,6 @@
 #pragma once
 #include "secondary_cmd_buffer_config.hpp"
-#include "task_container.hpp"
+#include "jolly/render/cmd/utility/task_container_mixin.hpp"
 
 namespace jly {
 class PrimaryCmdBuffer;
@@ -16,11 +16,13 @@ class Framebuffer;
 
 namespace jly {
 
-class SecondaryCmdBuffer {
+
+class SecondaryCmdBuffer : dev::copyable_task_container_mixin {
+    using task_mixin = dev::copyable_task_container_mixin;
+
 public:
     using Config = SecondaryCmdBufferConfig;
 
-    using completion_task_t = task_container::task_t;
 
     SecondaryCmdBuffer(Config config, jvk::CmdPool& pool);
     explicit SecondaryCmdBuffer(Config config);
@@ -31,43 +33,32 @@ public:
     void begin(jvk::RenderPass const&, jvk::Subpass const&, jvk::Framebuffer const*);
     void end();
 
-    void exec(PrimaryCmdBuffer const& cmd_buffer);
-
 
     void reset(bool release_memory = false);
 
     void optDestroy() { if(created()) destroy(); }
     void destroy();
 
-    /**
-     * adds a task to execute once the buffer finished gpu execution (thread safe)
-     */
-    void add(completion_task_t task) { _tasks.append(std::move(task)); }
+    using task_mixin::add;
+    using task_mixin::append;
+    using task_mixin::discardTasks;
 
     /**
      * executes all added tasks. clears if not @ref Config::taskReuse
      */
-    void executeTasks() { _taskReuse ? _tasks.exec() : _tasks.exec_clear(); }
+    void executeTasks() { _taskReuse ? task_mixin::execTasks() : task_mixin::execClearTasks(); }
 
     /**
-     * discards all added tasks (thread safe)
+     * copies or moves (@ref Config::taskReuse) all tasks
      */
-    void discardTasks() { _tasks.discard(); }
-
-    /**
-     * copies or moves (@ref SecondaryCmdBufferConfig::taskReuse) all tasks (thread safe)
-     */
-    task_container submitTasks() {
-        if(_taskReuse) return _tasks;
-        return std::exchange(_tasks, {});
+    auto submitTasks() {
+        if(_taskReuse) return copyTasks();
+        return releaseTasks();
     }
 
 private:
     std::unique_ptr<jvk::SecondaryCmdBuffer> _handle;
     bool _taskReuse;
-
-
-    task_container _tasks{};
 
 public:
     [[nodiscard]] jvk::SecondaryCmdBuffer const& raw() const { return *_handle; }

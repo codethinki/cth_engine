@@ -5,7 +5,7 @@
 #include "jvk/utility/types.hpp"
 
 #include <volk.h>
-#include <cth/pointers.hpp>
+#include <cth/ptr.hpp>
 
 #include <array>
 #include <optional>
