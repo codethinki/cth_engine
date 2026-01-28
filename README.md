@@ -1,7 +1,6 @@
 # my attempt at a vulkan graphics engine
 
-do not use it
-
+## visit the dev branch to see the actual progress
 
 
 license: dont be a dick
