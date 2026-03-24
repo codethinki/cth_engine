@@ -1,6 +1,6 @@
 #pragma once
 #include "secondary_cmd_buffer_config.hpp"
-#include "jolly/render/cmd/utility/task_container_mixin.hpp"
+#include "jolly/render/submit/cmd/utility/task_container_mixin.hpp"
 
 namespace jly {
 class PrimaryCmdBuffer;

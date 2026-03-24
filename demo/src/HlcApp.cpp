@@ -1,7 +1,7 @@
 #include "HlcApp.hpp"
 
-#include "jolly/render/RenderStage.hpp"
-#include "jolly/render/cmd/primary_cmd_buffer.hpp"
+#include "jolly/render/graph/RenderStage.hpp"
+#include "jolly/render/submit/cmd/primary_cmd_buffer.hpp"
 #include "jolly/utility/CthOSWindow.hpp"
 
 #include "jolly/utility/types.hpp"

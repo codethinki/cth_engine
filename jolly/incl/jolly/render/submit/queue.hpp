@@ -1,8 +1,12 @@
 #pragma once
+#include "queue_properties.hpp"
+
 #include "jolly/utility/types.hpp"
 
-#include <memory>
 #include "jvk/base/queue/queue.hpp"
+
+#include <memory>
+
 
 namespace jvk {
 struct PresentInfo;
@@ -13,14 +17,15 @@ class SubmitInfo;
 class Core;
 }
 
+
 namespace jly {
 
 class Queue {
 public:
     using State = jvk::Queue::State;
 
-    explicit Queue(Core const&, jvk::QueueFamilyProperties);
-    Queue(Core const&, jvk::QueueFamilyProperties, State const&);
+    explicit Queue(Core const&, QueueProperties);
+    Queue(Core const&, QueueProperties, State const&);
 
     ~Queue();
 

@@ -318,8 +318,7 @@ void Swapchain::refreshSize() {
         nullptr
     );
 
-    CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to get swapchain image count")
-    throw jvk::vk_result_exception{countResult, details->exception()};
+    JVK_VK_STABLE_THROW(countResult != VK_SUCCESS, "failed to get swapchain image count") {}
 
     _imageCount = imageCount;
 }

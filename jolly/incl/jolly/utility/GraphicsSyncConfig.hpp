@@ -1,7 +1,7 @@
 #pragma once
 #include "types.hpp"
 
-#include "jolly/render/RenderPulse.hpp"
+#include "jolly/render/sync/RenderPulse.hpp"
 
 #include <cth/io/log.hpp>
 #include <cth/ptr/not_null.hpp>
@@ -132,7 +132,7 @@ public:
     /**
      * @pre @ref created()
      */
-    [[nodiscard]] dclauto pulseVal() const { return _pulse->get(); }
+    [[nodiscard]] declauto pulseVal() const { return _pulse->get(); }
 
     GraphicsSyncConfig(GraphicsSyncConfig const& other) = delete;
     GraphicsSyncConfig& operator=(GraphicsSyncConfig const& other) = delete;

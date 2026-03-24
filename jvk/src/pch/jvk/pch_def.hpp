@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cth/exception.hpp>
+#include <cth/macro.hpp>
 #include <cth/io/log.hpp>
 
 namespace jvk {

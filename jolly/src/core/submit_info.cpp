@@ -1,7 +1,7 @@
-#include "jolly/core/submit_info.hpp"
+#include "jolly/render/submit/submit_info.hpp"
 
 
-#include "jolly/render/cmd/primary_cmd_buffer.hpp"
+#include "jolly/render/submit/cmd/primary_cmd_buffer.hpp"
 #include "jolly/render/sync/fence.hpp"
 
 //impl only header

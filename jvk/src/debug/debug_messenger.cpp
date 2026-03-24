@@ -2,7 +2,7 @@
 #include "jvk/base/instance.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
-#include <cth/string/joiner.hpp>
+#include <cth/data/joiner.hpp>
 
 namespace jvk {
 
@@ -144,7 +144,7 @@ namespace {
             std::pair{VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT, "PERFORMANCE"}
         };
 
-        cth::str::joiner joiner(" | ");
+        cth::dt::joiner joiner(" | ");
 
         for(auto [vkSeverityFlagBit, name] : msgTypes)
             if(vk_msg_type & vkSeverityFlagBit)

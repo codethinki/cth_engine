@@ -1,4 +1,4 @@
-#include "jolly/core/queue.hpp"
+#include "jolly/render/submit/queue.hpp"
 #include "jolly/utility/GraphicsCore.hpp"
 
 #include "jolly/utility/CthOSWindow.hpp"

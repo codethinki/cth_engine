@@ -1,5 +1,5 @@
-glob_cpp(JOLLY_SRC "src")
-glob_cpp(JOLLY_INCL "incl")
+cth_glob_cpp(JOLLY_SRC "src")
+cth_glob_cpp(JOLLY_INCL "incl")
 
 add_library(jolly STATIC ${JOLLY_SRC} ${JOLLY_INCL})
 

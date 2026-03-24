@@ -1,11 +1,11 @@
-#include "jolly/render/RenderStage.hpp"
+#include "jolly/render/graph/RenderStage.hpp"
 
 #include "jolly/core/core.hpp"
-#include "jolly/core/queue.hpp"
-#include "jolly/core/submit_info.hpp"
-#include "jolly/render/RenderPulse.hpp"
-#include "jolly/render/cmd/primary_cmd_buffer.hpp"
-#include "jolly/render/cmd/secondary_cmd_buffer.hpp"
+#include "jolly/render/submit/queue.hpp"
+#include "jolly/render/submit/submit_info.hpp"
+#include "jolly/render/sync/RenderPulse.hpp"
+#include "jolly/render/submit/cmd/primary_cmd_buffer.hpp"
+#include "jolly/render/submit/cmd/secondary_cmd_buffer.hpp"
 #include "jolly/utility/types.hpp"
 
 #include "jvk/base/queue/queue.hpp"
@@ -210,7 +210,7 @@ SubmitInfo& RenderStage::submitInfo() { return _submitInfos[subIndex()]; }
 SubmitInfo const& RenderStage::submitInfo() const { return _submitInfos[subIndex()]; }
 
 size_t RenderStage::subIndex() const { return _pulse->get(); }
-auto RenderStage::framesInFlight() const { return _pulse->framesInFlight(); }
+size_t RenderStage::framesInFlight() const { return _pulse->framesInFlight(); }
 bool RenderStage::created() const { return !_cmdPools.empty() && _cmdPools[0].created(); }
 bool RenderStage::recording() const { return primaryCmdBuffer().recording(); }
 

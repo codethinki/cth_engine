@@ -1,4 +1,4 @@
-glob_cpp(TEST_SRC "src")
+cth_glob_cpp(TEST_SRC "src")
 
 add_executable(tests ${TEST_SRC})
 

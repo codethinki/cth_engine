@@ -1,7 +1,7 @@
-#include "jolly/render/renderer.hpp"
+#include "jolly/render/graph/renderer.hpp"
 
-#include "jolly/render/RenderPulse.hpp"
-#include "jolly/render/RenderStage.hpp"
+#include "jolly/render/graph/RenderStage.hpp"
+#include "jolly/render/sync/RenderPulse.hpp"
 
 #include "jvk/base/core.hpp"
 #include "jvk/base/queue/submit_info.hpp"

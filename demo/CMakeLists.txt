@@ -1,9 +1,9 @@
 add_subdirectory(demo_shaders)
 
-glob_cpp(DEMO_SRC "src")
+cth_glob_cpp(DEMO_SRC "src")
 add_executable(demo ${DEMO_SRC})
 
-add_resources(demo "res")
+cth_add_resources(demo "res")
 add_dependencies(demo demo_shaders)
 
 

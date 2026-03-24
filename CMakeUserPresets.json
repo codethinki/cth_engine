@@ -2,27 +2,31 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "settings",
+      "name": "win-debug-settings",
       "hidden": true,
-      "environment": {
-      },
       "cacheVariables": {
-        "cth_ROOT": "${sourceDir}/../cth/out/install/${presetName}"
-      },
-      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        "cth_ROOT": "${sourceDir}/../cth/out/install/win_clang_debug"
+      }
+    },
+    {
+      "name": "win-release-settings",
+      "hidden": true,
+      "cacheVariables": {
+        "cth_ROOT": "${sourceDir}/../cth/out/install/win_clang_release"
+      }
     },
     {
       "name": "win_msvc_debug",
       "inherits": [
         "win-msvc-debug",
-        "settings"
+        "win-debug-settings"
       ]
     },
     {
       "name": "win_msvc_release",
       "inherits": [
         "win-msvc-release",
-        "settings"
+        "win-release-settings"
       ]
     }
   ]

@@ -1,16 +1,24 @@
-include(glob_glsl)
+function(glob_glsl VAR SUB_PATH)
+    cth_glob(
+        GLSL_FILES
+        ${SUB_PATH}
+        PATTERNS
+            "*.frag"
+            "*.vert"
+    )
+    set(${VAR} ${GLSL_FILES} PARENT_SCOPE)
+    message("glsl files: ${GLSL_FILES}")
+endfunction()
 
-find_program(GLSLC_EXECUTABLE glslc
-    HINTS ENV VULKAN_SDK
-    PATH_SUFFIXES bin
-    DOC "Path to the GLSL to SPIR-V compiler")
-
-if(NOT GLSLC_EXECUTABLE)
-    message(FATAL_ERROR "glslc not found. Please ensure the Vulkan SDK glslc is in your path.")
-endif()
+cth_find_program(
+    GLSLC_EXECUTABLE    
+    glslc 
+    HINTS ENV VULKAN_SDK 
+    PATH_SUFFIXES bin 
+    DOC "Path to the GLSL SPRIR-V compiler"
+)
 
 message(STATUS "Found glslc compiler: ${GLSLC_EXECUTABLE}")
-
 
 glob_glsl(SHADER_FILES "src")
 

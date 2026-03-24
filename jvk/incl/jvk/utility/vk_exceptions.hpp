@@ -61,7 +61,7 @@ public:
     }
 
 
-    dclauto add(VkResult result) {
+    declauto add(VkResult result) {
         _vkResult = result;
         return jvk_exception::add("VkResult: ({})", result);
     }

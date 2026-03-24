@@ -2,11 +2,16 @@
   "version": 3,
   "configurePresets": [
     {
+      "name": "cth_cmake",
+      "hidden": true,
+      "toolchainFile": "${sourceDir}/lib/cth_cmake/toolchain.cmake"
+    },
+    {
       "name": "windows-msvc-base",
       "hidden": true,
+      "inherits": "cth_cmake",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "cl.exe"
       },

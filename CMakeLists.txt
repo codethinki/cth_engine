@@ -1,17 +1,15 @@
-cmake_minimum_required(VERSION 3.21)
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-
-include(setup_utilities)
-include(target_utilities)
-
-
+cmake_minimum_required(VERSION 4.0.0)
 
 project(jolly LANGUAGES CXX)
-set_compiler_specifics()
-set_cxx_standard()
 
+include(cth_target_utilities)
+include(cth_setup_utilities)
 
+cth_set_compiler_specifics()
+cth_set_latest_c_cpp_standard()
+
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+ 
 # Add subprojects
 add_subdirectory(jvk)
 add_subdirectory(jolly)

@@ -1,6 +1,6 @@
-#include "jolly/render/cmd/primary_cmd_buffer.hpp"
+#include "jolly/render/submit/cmd/primary_cmd_buffer.hpp"
 
-#include "jolly/render/cmd/secondary_cmd_buffer.hpp"
+#include "jolly/render/submit/cmd/secondary_cmd_buffer.hpp"
 
 #include "jvk/render/cmd/cmd_buffer.hpp"
 

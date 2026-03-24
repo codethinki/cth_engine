@@ -2,11 +2,11 @@
 #include "render/HlcRenderSystem.hpp"
 
 //TEMP remove this once the camera and input controller are refactored
-#include "jolly/core/queue.hpp"
+#include "jolly/render/submit/queue.hpp"
 
 #include "render/FrameResources.hpp"
 
-#include "jolly/render/renderer.hpp"
+#include "jolly/render/graph/renderer.hpp"
 #include "jolly/user/HlcCamera.hpp"
 #include "jolly/user/HlcInputController.hpp"
 #include "jolly/utility/GraphicsCore.hpp"

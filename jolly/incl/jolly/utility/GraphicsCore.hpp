@@ -159,8 +159,8 @@ public:
     [[nodiscard]] size_t swapchainSize() const;
     [[nodiscard]] size_t swapchainImageIndex() const;
 
-    [[nodiscard]] dclauto renderPulse() const { return _syncConfig->pulse(); }
-    [[nodiscard]] dclauto pulseVal() const { return _syncConfig->pulseVal(); }
+    [[nodiscard]] declauto renderPulse() const { return _syncConfig->pulse(); }
+    [[nodiscard]] declauto pulseVal() const { return _syncConfig->pulseVal(); }
 
     GraphicsCore(GraphicsCore const& other) = delete;
     GraphicsCore& operator=(GraphicsCore const& other) = delete;

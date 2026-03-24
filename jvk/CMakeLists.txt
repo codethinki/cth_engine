@@ -1,5 +1,5 @@
-glob_cpp(JVK_SRC "src")
-glob_cpp(JVK_INCL "incl")
+cth_glob_cpp(JVK_SRC "src")
+cth_glob_cpp(JVK_INCL "incl")
 
 add_library(jvk STATIC ${JVK_SRC} ${JVK_INCL})
 

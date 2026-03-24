@@ -24,14 +24,6 @@ enum class QueueFamilyProperties {
 CTH_GEN_ENUM_FLAG_OVERLOADS(jvk::QueueFamilyProperties)
 
 namespace jvk {
-//enum QueueFamilyPropertyFlagBits : uint32_t {
-//    QUEUE_FAMILY_PROPERTY_GRAPHICS = VK_QUEUE_GRAPHICS_BIT,
-//    QUEUE_FAMILY_PROPERTY_COMPUTE = VK_QUEUE_COMPUTE_BIT,
-//    QUEUE_FAMILY_PROPERTY_TRANSFER = VK_QUEUE_TRANSFER_BIT,
-//    QUEUE_FAMILY_PROPERTY_PRESENT = 8u,
-//};
-//
-//using QueueFamilyProperties = uint32_t;
 
 static QueueFamilyProperties to_queue_properties(VkQueueFlags flags, bool present_support) {
     auto result = QueueFamilyProperties::NONE;

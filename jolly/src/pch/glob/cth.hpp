@@ -8,3 +8,5 @@
 #include <cth/algorithm/combine.hpp>
 #include <cth/data/union_find.hpp>
 #include <cth/string/format.hpp>
+
+#include <cth/macro.hpp>

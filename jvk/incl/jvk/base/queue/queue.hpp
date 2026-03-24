@@ -126,7 +126,7 @@ private:
     uint32_t _queueIndex = 0;
 
 public:
-    [[nodiscard]] bool can_present() const { return _familyProperties & QUEUE_FAMILY_PROPERTY_PRESENT; }
+    [[nodiscard]] bool can_present() const { return contains(_familyProperties, QueueFamilyProperties::PRESENT); }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] auto get() const { return _handle.get(); }
     [[nodiscard]] auto index() const { return _queueIndex; }

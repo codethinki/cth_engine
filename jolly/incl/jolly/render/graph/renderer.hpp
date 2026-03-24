@@ -1,8 +1,8 @@
 #pragma once
 
-#include "jolly/render/dag.hpp"
-#include "jolly/render/RenderPulse.hpp"
-#include "jolly/render/RenderStageConfig.hpp"
+#include "jolly/render/graph/dag.hpp"
+#include "jolly/render/graph/RenderStageConfig.hpp"
+#include "jolly/render/sync/RenderPulse.hpp"
 #include "jolly/utility/types.hpp"
 
 #include "jvk/render/sync/pipeline_wait_stage.hpp"
