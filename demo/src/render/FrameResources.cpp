@@ -20,7 +20,7 @@
 namespace cth {
 
 
-FrameResources::FrameResources(jvk::Core const& core, Config config)
+FrameResources::FrameResources(jly::Core const& core, Config config)
     : _core{&core}, _config{std::move(config)} { create(); }
 
 FrameResources::~FrameResources() = default;

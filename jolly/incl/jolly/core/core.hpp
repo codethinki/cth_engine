@@ -2,22 +2,22 @@
 #include <cth/coro/executor.hpp>
 #include <cth/coro/scheduler.hpp>
 
+#include "jolly/core/core_config.hpp"
+
 namespace jvk {
 class Core;
 struct CoreConfig;
 }
 
-namespace jly {
-struct CoreConfig;
-}
 
 namespace jly {
+class Queue;
 class Core {
 public:
     using Config = CoreConfig;
     using VkConfig = jvk::CoreConfig;
 
-    Core(Config);
+    Core(Config = {});
     Core(Config, VkConfig);
 
     void create(VkConfig);
@@ -28,10 +28,14 @@ public:
     void destroy();
 
 private:
+    static std::vector<Queue> createQueues(std::span<QueueProperties const>);
+
     std::unique_ptr<jvk::Core> _handle;
-
-
+    Config _config;
     cth::co::scheduler _scheduler;
+
+
+    std::vector<jly::Queue> _queues;
 
 public:
     [[nodiscard]] bool created() const;

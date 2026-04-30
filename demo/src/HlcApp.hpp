@@ -6,6 +6,7 @@
 
 #include "render/FrameResources.hpp"
 
+#include "jolly/core/core.hpp"
 #include "jolly/render/graph/renderer.hpp"
 #include "jolly/user/HlcCamera.hpp"
 #include "jolly/user/HlcInputController.hpp"
@@ -47,35 +48,26 @@ private:
 
     void initRenderSystem(jvk::PrimaryCmdBuffer const& cmd_buffer);
 
-
-
     std::vector<jly::Queue> _queues{
-        jly::Queue{jvk::QUEUE_FAMILY_PROPERTY_TRANSFER | jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
-        jly::Queue{jvk::QUEUE_FAMILY_PROPERTY_GRAPHICS},
-        jly::Queue{jvk::QUEUE_FAMILY_PROPERTY_PRESENT}
+        
     };
-    std::array<jvk::Core::queue_set_t, 2> _queueSets{
-        {
-            {{0}, {1}, {2}},
-            {{0, 1, 2}}
+
+    std::unique_ptr<jly::Core> _core = std::make_unique<jly::Core>(
+        jly::CoreConfig{
+            "vk_app",
+            "engine",
+            {
+                jly::QueueProperty::TRANSFER | jly::QueueProperty::GRAPHICS,
+                jly::QueueProperty::GRAPHICS,
+                jly::QueueProperty::PRESENT
+            },
         }
-    };
+
+    );
 
 
 
     std::vector<std::string> _glfwExtensions = getRequiredInstanceExtensions();
-
-    std::unique_ptr<jvk::Core> _core = std::make_unique<jvk::Core>(
-        jvk::Core::Config{
-            "demo",
-            "engine",
-            _queues,
-            _glfwExtensions,
-            _queueSets,
-        }
-    );
-
-    cth::move_ptr<jvk::DestructionQueue> _destructionQueue = _core->destructionQueue();
 
 
     std::unique_ptr<FrameResources> _resources = std::make_unique<FrameResources>(

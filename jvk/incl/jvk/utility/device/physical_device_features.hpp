@@ -73,9 +73,9 @@ private:
 
     [[nodiscard]] static size_t flagCount2(VkStructureType feature_type);
     [[nodiscard]] static constexpr std::string_view indexToString(size_t index);
-    template<class T> requires(std::same_as<VkPhysicalDeviceFeatures, cth::mta::pure_t<T>>)
+    template<class T> requires(std::same_as<VkPhysicalDeviceFeatures, std::decay_t<T>>)
     [[nodiscard]] static auto to_span(T& features);
-    template<class T> requires(std::same_as<VkBaseOutStructure, cth::mta::pure_t<T>>)
+    template<class T> requires(std::same_as<VkBaseOutStructure, std::decay_t<T>>)
     [[nodiscard]] static auto to_bool_args(T* feature2);
 
     std::unique_ptr<VkPhysicalDeviceFeatures2> _features;
@@ -106,7 +106,7 @@ public:
 };
 
 
-template<class T> requires (std::same_as<VkPhysicalDeviceFeatures, cth::mta::pure_t<T>>)
+template<class T> requires (std::same_as<VkPhysicalDeviceFeatures, std::decay_t<T>>)
 auto PhysicalDeviceFeatures::to_span(T& features) {
     using bool_t = std::conditional_t<std::is_const_v<T>, VkBool32 const, VkBool32>;
 
@@ -114,7 +114,7 @@ auto PhysicalDeviceFeatures::to_span(T& features) {
     return std::span<bool_t, size>{reinterpret_cast<bool_t*>(&features), size};
 }
 
-template<class T> requires (std::same_as<VkBaseOutStructure, cth::mta::pure_t<T>>)
+template<class T> requires (std::same_as<VkBaseOutStructure, std::decay_t<T>>)
 auto PhysicalDeviceFeatures::to_bool_args(T* feature2) {
     using bool_t = std::conditional_t<std::is_const_v<T>, VkBool32 const, VkBool32>;
 

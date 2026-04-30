@@ -1,7 +1,10 @@
 #pragma once
+#include "device_config.hpp"
 #include "device_table.hpp"
 
 #include "jvk/utility/types.hpp"
+
+#include "queue/queue_family.hpp"
 
 #include <volk.h>
 
@@ -19,32 +22,39 @@ class Queue;
 
 
 class Device {
+    using queue_families_queue_counts_t = std::unordered_map<uint32_t, uint32_t>;
+
 public:
+    using Config = DeviceConfig;
     struct State;
+
 
     /**
      * @brief base constructor
-     * @param instance @ref Instance::created() required
-     * @param physical_device @ref PhysicalDevice::created() required
+     * @pre
+     *  - @ref Instance::created()
+     *  - @ref PhysicalDevice::created()
      */
-    Device(Instance const& instance, PhysicalDevice const& physical_device);
+    Device(Instance const&, PhysicalDevice const&);
 
     /**
      * @brief constructs and wraps
-     * @note calls @ref Device(Instance const&, PhysicalDevice const&)
-     * @note calls @ref wrap(State)
+     * @details calls 
+     *  - @ref Device(Instance const&, PhysicalDevice const&)
+     *  - @ref wrap(State)
      */
-    Device(Instance const& instance, PhysicalDevice const& physical_device, State state);
+    Device(Instance const&, PhysicalDevice const&, State);
 
     /**
      * @brief constructs and creates
-     * @note calls @ref Device(Instance const&, PhysicalDevice const&)
-     * @note calls @ref create(std::span<Queue>)
+     * @details calls:
+     *  - @ref Device(Instance const&, PhysicalDevice const&)
+     *  - @ref create(queue_property_view)
      */
-    Device(Instance const& instance, PhysicalDevice const& physical_device, std::span<Queue> queues);
+    Device(Instance const&, PhysicalDevice const&, Config const&);
 
     /**
-     * @note calls @ref optDestroy()
+     * @details calls @ref optDestroy()
      */
     ~Device();
 
@@ -56,15 +66,14 @@ public:
 
     /**
      * @brief creates device and queues
-     * @param[in, out] queues calls @ref Queue::wrap(VkQueue, uint32_t)
-     * @note calls @ref optDestroy()
+     * @details calls @ref optDestroy()
      */
-    void create(std::span<Queue> queues);
+    void create(Config const&);
 
     /**
      * @brief destroys and resets
-     * @attention @ref created() required
-     * @note calls @ref destroy(VkDevice)
+     * @pre @ref created() 
+     * @details calls @ref destroy(VkDevice)
      */
     void destroy();
 
@@ -75,45 +84,44 @@ public:
 
     /**
      * @brief releases ownership and resets
-     * @attention requires @ref created()
+     * @pre @ref created()
      */
     State release();
 
 
     /**
      * @brief blocks until all vkQueueSubmit operations finished
-     * @attention requires @ref created()
+     * @pre @ref created()
      */
     void waitIdle() const;
 
     /**
      * @brief destroys the device
      * @param vk_device should not be VK_NULL_HANDLE
-     * @param destroy_function
+     * @pre @ref destroy != `nullptr`
      */
-    static void destroy(VkDevice vk_device, PFN_vkDestroyDevice destroy_function);
+    static void destroy(VkDevice vk_device, PFN_vkDestroyDevice destroy);
 
 private:
     void reset();
 
-    /**
-     * @brief sets the unique family indices
-     * @return the queue family indices
-     */
-    [[nodiscard]] std::vector<uint32_t> setUniqueFamilyIndices(std::span<Queue const> queues);
+    [[nodiscard]] static queue_families_queue_counts_t calcQueueFamiliesQueueCounts(
+        std::span<uint32_t const> family_indices
+    );
+
     /**
     * @throws jvk::result_exception result of @ref vkCreateDevice()
     */
-    void createLogicalDevice();
+    void createLogicalDevice(queue_families_queue_counts_t const&);
 
     void loadFunctionTable() const;
 
     /**
      * @brief retrieves the queues from the device
      * @param family_indices family index of each queue
-     * @note calls @ref Queue::wrap(Queue::State const&)
+     * @details calls @ref Queue::wrap(Queue::State const&)
      */
-    void wrapQueues(std::span<uint32_t const> family_indices, std::span<Queue> queues) const;
+    void createQueues(std::span<unsigned const> family_indices);
 
 
     not_null<Instance const*> _instance;
@@ -122,14 +130,16 @@ private:
     move_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
     std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();
 
-    std::unordered_map<uint32_t, uint32_t> _queueFamiliesQueueCounts;
+    std::vector<Queue> _queues{};
 
 public:
+    [[nodiscard]] std::span<Queue const> queues() const { return _queues; }
+    [[nodiscard]] std::span<Queue> queues() { return _queues; }
+
     [[nodiscard]] DeviceTable table() const { return DeviceTable{_handle.get(), _functionTable.get()}; }
     [[nodiscard]] VolkDeviceTable const* functions() const { return _functionTable.get(); }
     [[nodiscard]] VkDevice get() const { return _handle.get(); }
 
-    [[nodiscard]] auto queueFamiliesQueueCounts() const { return _queueFamiliesQueueCounts; }
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
 
     Device(Device const& other) = delete;
@@ -145,7 +155,6 @@ public:
 namespace jvk {
 struct Device::State {
     jvk::vk_not_null<VkDevice> vkDevice;
-    std::unordered_map<uint32_t, uint32_t> queueFamiliesQueueCounts;
     /**
      * @brief volk function table of @ref vkDevice
      * @attention must be loaded if not nullptr

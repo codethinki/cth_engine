@@ -18,6 +18,7 @@ class RenderPass;
 class AttachmentCollection;
 class Framebuffer;
 class PrimaryCmdBuffer;
+class Semaphore;
 }
 
 //TEMP this is a temp fix this class is ugly af and should not be like that. create some proper system
@@ -28,7 +29,7 @@ class FrameResources {
 public:
     using Config = FrameResourcesConfig;
 
-    FrameResources(jvk::Core const& core, Config config);
+    FrameResources(jly::Core const& core, Config config);
 
     ~FrameResources();
 
@@ -72,8 +73,7 @@ private:
 
     VkSampleCountFlagBits _msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    not_null<jvk::Core const*>
-    _core;
+    not_null<jly::Core const*> _core;
     Config _config;
 
     std::unique_ptr<jly::GraphicsCore> _graphicsCore;

@@ -3,13 +3,14 @@
 
 #include "jolly/utility/types.hpp"
 
-#include "jvk/base/queue/queue.hpp"
 
 #include <memory>
 
 
 namespace jvk {
 struct PresentInfo;
+class Queue;
+struct QueueState;
 }
 
 namespace jly {
@@ -22,10 +23,12 @@ namespace jly {
 
 class Queue {
 public:
-    using State = jvk::Queue::State;
+    using State = jvk::QueueState;
 
-    explicit Queue(Core const&, QueueProperties);
-    Queue(Core const&, QueueProperties, State const&);
+    explicit Queue(QueueProperties);
+    explicit Queue(std::unique_ptr<jvk::Queue> vk_queue);
+
+    Queue(QueueProperties, State const&);
 
     ~Queue();
 
@@ -54,11 +57,6 @@ public:
      */
     void skip(SubmitInfo&) const;
 
-    /**
-     * @brief presents the image
-     * @return result of vkQueuePresentKHR()
-     */
-    [[nodiscard]] VkResult present(uint32_t image_index, jvk::PresentInfo&) const;
 
     /**
      * Blocks cpu until all queue gpu operations are finished
@@ -72,15 +70,15 @@ public:
     Queue& operator=(Queue&&) noexcept;
 
 private:
-    not_null<Core const*> _core;
     std::unique_ptr<jvk::Queue> _handle;
 
 public:
     [[nodiscard]] jvk::Queue const& raw() const { return *_handle; }
+    [[nodiscard]] jvk::Queue const& raw() { return *_handle; }
     [[nodiscard]] bool created() const;
     [[nodiscard]] uint32_t index() const;
     [[nodiscard]] uint32_t familyIndex() const;
-    [[nodiscard]] jvk::QueueFamilyProperties familyProperties() const;
+    [[nodiscard]] QueueProperties familyProperties() const;
 };
 
 }

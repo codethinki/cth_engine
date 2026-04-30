@@ -1,3 +1,4 @@
+#include "jolly/core/core.hpp"
 #include "jolly/render/submit/queue.hpp"
 #include "jolly/utility/GraphicsCore.hpp"
 
@@ -13,13 +14,13 @@
 
 
 namespace jly {
-GraphicsCore::GraphicsCore(jvk::Core const& core, Config config) : _core{&core}, _config{std::move(config)} {}
+GraphicsCore::GraphicsCore(jly::Core const& core, Config config) : _core{&core}, _config{std::move(config)} {}
 
-GraphicsCore::GraphicsCore(jvk::Core const& core, Config const& config, State state) :
+GraphicsCore::GraphicsCore(jly::Core const& core, Config const& config, State state) :
     GraphicsCore{core, config} { wrap(std::move(state)); }
 
 GraphicsCore::GraphicsCore(
-    jvk::Core const& core,
+    jly::Core const& core,
     Config const& config,
     std::string_view window_name,
     glm::uvec2 extent,
@@ -31,17 +32,18 @@ GraphicsCore::~GraphicsCore() { optDestroy(); }
 void GraphicsCore::create(std::string_view window_name, glm::uvec2 extent, Queue const& present_queue) {
     optDestroy();
 
+    auto& core = _core->raw();
 
-    _osWindow = std::make_unique<OSWindow>(_core->instance(), _core->destructionQueue(), window_name, extent);
+    _osWindow = std::make_unique<OSWindow>(core.instance(), core.destructionQueue(), window_name, extent);
     _surface = std::make_unique<jvk::Surface>(
-        _core->instance(),
-        _core->destructionQueue(),
+        core.instance(),
+        core.destructionQueue(),
         jvk::Surface::Config{},
         jvk::Surface::State{_osWindow->releaseSurface()}
     );
-    _syncConfig = std::make_unique<GraphicsSyncConfig>(*_core, framesInFlight());
+    _syncConfig = std::make_unique<GraphicsSyncConfig>(core, framesInFlight());
     _swapchain = std::make_unique<jvk::Swapchain>(
-        *_core,
+        core,
         present_queue.raw(),
         *_surface,
         jvk::Swapchain::Config{

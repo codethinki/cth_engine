@@ -14,11 +14,14 @@ namespace jvk {
 
 Queue::~Queue() { optDestroy(); }
 
-void Queue::wrap(State const& state) {
+void Queue::wrap(State state) {
+    State::debug_check(state);
     optDestroy();
+
 
     _handle = state.vkQueue.get();
     _device = state.device.get();
+    _handleMtx = std::move(state.vkQueueMtx);
     _familyIndex = state.familyIndex;
     _queueIndex = state.queueIndex;
 }
@@ -31,10 +34,11 @@ void Queue::destroy() {
 Queue::State Queue::release() {
     debug_check(*this);
     State const state{
-        _handle.release(),
         _device,
+        _handle.release(),
         _familyIndex,
         _queueIndex,
+        std::move(_handleMtx),
     };
     reset();
     return state;
@@ -55,8 +59,15 @@ VkResult Queue::present(uint32_t image_index, PresentInfo& present_info) const {
 VkResult Queue::raw_present(VkPresentInfoKHR const& present_info) const {
     debug_check_present(*this);
 
-    auto const result = _device->functions()->vkQueuePresentKHR(get(), &present_info);
+    VkResult result;
+    {
+        std::unique_lock<std::mutex> lock{};
+        if(_handleMtx)
+            lock = std::unique_lock{*_handleMtx};
 
+
+        result = _device->functions()->vkQueuePresentKHR(get(), &present_info);
+    }
     JVK_RESULT_STABLE_THROW(
         result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR,
         result,
@@ -73,15 +84,24 @@ void Queue::const_skip(PresentInfo const& present_info) const {
 
 
 void Queue::reset() {
-    _handle = VK_NULL_HANDLE;
     _device = nullptr;
+    _handle = VK_NULL_HANDLE;
+    _handleMtx = nullptr;
     _familyIndex = 0;
     _queueIndex = 0;
 }
 
 void Queue::raw_submit(VkSubmitInfo const& submit_info, VkFence fence) const {
     debug_check(*this);
-    auto const result = _device->functions()->vkQueueSubmit(_handle.get(), 1, &submit_info, fence);
+    VkResult result;
+    {
+        std::unique_lock<std::mutex> lock;
+        if(_handleMtx)
+            lock = std::unique_lock{*_handleMtx};
+
+
+        result = _device->functions()->vkQueueSubmit(_handle.get(), 1, &submit_info, fence);
+    }
 
     JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit info to queue");
 }

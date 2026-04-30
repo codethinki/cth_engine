@@ -1,6 +1,7 @@
 #pragma once
 #include "jvk/base/queue/queue_family.hpp"
 #include "jvk/utility/types.hpp"
+#include "jvk/utility/vk_exceptions.hpp"
 #include "jvk/utility/device/physical_device_features.hpp"
 
 #include <volk.h>
@@ -19,8 +20,10 @@ class Surface;
 
 class PhysicalDevice {
 public:
-    struct State;
+    using queue_family_map_t = std::unordered_map<queue_family_index_t, QueueFamily>;
 
+    struct State;
+    struct CreateResult;
 
 
     /**
@@ -63,9 +66,9 @@ public:
     /**
      * @brief creates if requirements are met
      * @param queue_properties passed to @ref suitable()
-     * @return if @ref suitable() returns instance, else nullopt
+     * @return if @ref suitable() returns instance and queue allocation, else nullopt
      */
-    static std::optional<PhysicalDevice> Create(
+    static std::optional<CreateResult> Create(
         Instance const& instance,
         std::span<Surface const> surface,
         std::span<QueueFamilyProperties const> queue_properties,
@@ -103,14 +106,14 @@ public:
     /**
      * @brief enumerates all available devices and picks one that fits the requirements
      * @param queue_properties required queues to support
-     * @return physical device if a suitable one is found, else nullopt
+     * @return physical device & queue family allocation if a suitable one is found, else nullopt
      * @throws cth::except::default_exception if no device is found
      * @note engine required features and extensions are added to the requirements
         - @ref jvk::constants::REQUIRED_DEVICE_FEATURES
         - @ref jvk::constants::REQUIRED_DEVICE_EXTENSIONS
      * @details a single queue set has length N (number of queues), multiple queue sets may be provided.
      */
-    [[nodiscard]] static std::optional<PhysicalDevice> AutoPick(
+    [[nodiscard]] static std::optional<CreateResult> AutoPick(
         Instance const& instance,
         std::span<Surface const> temp_surfaces,
         std::span<QueueFamilyProperties const> queue_properties,
@@ -129,7 +132,9 @@ public:
     /**
      * @return indices of missing features from utils::deviceFeaturesToArray
      */
-    [[nodiscard]] std::vector<std::variant<size_t, VkStructureType>> supports(utils::PhysicalDeviceFeatures const& required_features) const;
+    [[nodiscard]] std::vector<std::variant<size_t, VkStructureType>> supports(
+        utils::PhysicalDeviceFeatures const& required_features
+    ) const;
 
     /**
      * @return missing extensions 
@@ -146,11 +151,14 @@ public:
 
     /**
      * @brief finds a combination of queue families that support the requested queue types
-     * @param queue_properties requested queue types
+     * @param queues_properties requested queue types
+     * @pre @ref created()
      * @return order of queue types preserved
      * @return empty if no combination is possible
      */
-    [[nodiscard]] std::vector<uint32_t> queueFamilyIndices(std::span<QueueFamilyProperties const> queue_properties) const;
+    [[nodiscard]] std::vector<queue_family_index_t> queueFamilyIndices(
+        std::span<QueueFamilyProperties const> queues_properties
+    ) const;
 
 
 
@@ -194,8 +202,6 @@ public:
     );
 
 private:
-    [[nodiscard]] std::vector<uint32_t> queueSetFamilyIndices(std::span<std::vector<uint32_t> const> queues_family_candidates, std::span<size_t const> families_max_queues, std::span<size_t const> queue_set) const;
-
     Instance const* _instance;
     utils::PhysicalDeviceFeatures _requiredFeatures;
     std::vector<std::string> _requiredExtensions{};
@@ -208,7 +214,8 @@ private:
     VkSampleCountFlagBits _maxSampleCount = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
 
     VkPhysicalDeviceMemoryProperties _memProperties{};
-    std::vector<QueueFamily> _queueFamilies{};
+
+    queue_family_map_t _queueFamilies{};
 
 public:
     [[nodiscard]] bool created() const { return _handle != nullptr; }
@@ -222,6 +229,17 @@ public:
     [[nodiscard]] auto const& memProperties() const { return _memProperties; }
     [[nodiscard]] VkSampleCountFlagBits maxSampleCount() const { return _maxSampleCount; }
     [[nodiscard]] VkPhysicalDeviceLimits const& limits() const { return _properties.limits; }
+    [[nodiscard]] bool queueFamilyAvailable(queue_family_index_t idx) const { return _queueFamilies.contains(idx); }
+    /**
+     * @pre @ref queueFamilyAvailable(queue_family_index_t)
+     * @param idx queue family index
+     */
+    [[nodiscard]] QueueFamily const& queueFamily(queue_family_index_t idx) const {
+        CTH_CRITICAL(!_queueFamilies.contains(idx), "queue family doesn't exist or is unavailable") {}
+        return _queueFamilies.at(idx);
+    }
+
+    [[nodiscard]] queue_family_map_t const& queueFamilies() const { return _queueFamilies; }
 
 
     PhysicalDevice(PhysicalDevice const& other) = delete;
@@ -234,7 +252,6 @@ public:
 };
 }
 
-//State
 
 namespace jvk {
 
@@ -252,6 +269,13 @@ struct PhysicalDevice::State {
     std::optional<VkPhysicalDeviceProperties> properties = std::nullopt;
     VkSampleCountFlagBits maxSampleCount = VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
     std::optional<VkPhysicalDeviceMemoryProperties> memProperties = std::nullopt;
+};
+}
+
+namespace jvk {
+struct PhysicalDevice::CreateResult {
+    jvk::PhysicalDevice device;
+    std::vector<queue_family_index_t> queueFamilyIndices;
 };
 }
 

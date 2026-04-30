@@ -2,11 +2,11 @@
 
 #include "destruction_queue_config.hpp"
 
+#include "queue/queue_family.hpp"
+
 #include <cth/data/union_find.hpp>
 
-#include <span>
 #include <string>
-#include <string_view>
 
 
 namespace jvk {
@@ -17,21 +17,38 @@ namespace jvk {
 struct CoreConfig {
     using queue_set_t = cth::dt::union_find;
 
-    std::string_view appName;
-    std::string_view engineName;
-    std::span<Queue> queues;
-    std::span<std::string const> requiredExtensions; //TODO replace this with better extension handling
+    std::string appName;
+    std::string engineName;
+    std::vector<std::string const> requiredExtensions; //TODO replace this with better extension handling
 
-    /**
-     * groups queues, every group gets its own unique vk_queue. 
-     * @note empty -> default queue set, every queue is unique, equivalent to {0, ..., N - 1}
-     * @details each root represents a group, requirements in a group are combined
-     */
-    std::span<queue_set_t const> queueSets{};
 
     /**
      * creates a destruction queue if not @ref std::nullopt 
      */
     std::optional<DestructionQueueConfig> destructionQueueConfig;
+
+    /**
+     * defines the properties for the created queues
+     * 
+     */
+    std::vector<QueueFamilyProperties> queueProperties;
+
+    /**
+     * Groups queues, first possible queue set is accepted. Groups share the same vk_queue. 
+     * @note empty -> default queue set, every queue is unique, equivalent to {0, ..., N - 1}
+     * @details each root represents a group, requirements in a group are combined.
+     *  Groups are separated onto different queue families as much as possible.
+     */
+    std::vector<queue_set_t const> queueSets{};
+
+    static constexpr void debug_check(CoreConfig const&);
 };
+constexpr void CoreConfig::debug_check(CoreConfig const& c) {
+    auto const& sets = c.queueSets;
+
+    CTH_CRITICAL(
+        std::ranges::any_of(sets, [queues = c.queueProperties.size()](auto& set){ return set.size() != queues; }),
+        "sets must span all queues"
+    ){}
+}
 }

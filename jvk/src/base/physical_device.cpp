@@ -43,19 +43,25 @@ PhysicalDevice::PhysicalDevice(
 ) : PhysicalDevice{instance, required_features, required_extensions} { wrap(state); }
 
 
-std::optional<PhysicalDevice> PhysicalDevice::Create(
+auto PhysicalDevice::Create(
     Instance const& instance,
     std::span<Surface const> surface,
     std::span<QueueFamilyProperties const> queue_properties,
     std::span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features,
     jvk::vk_not_null<VkPhysicalDevice> vk_device
-) {
+) -> std::optional<CreateResult> {
     PhysicalDevice physicalDevice{instance, required_features, required_extensions, surface, vk_device};
 
-    if(physicalDevice.suitable(queue_properties))
-        return physicalDevice;
-    return std::nullopt;
+
+    if(!physicalDevice.suitable(queue_properties))
+        return std::nullopt;
+
+    auto indices = physicalDevice.queueFamilyIndices(queue_properties);
+    return CreateResult{
+        std::move(physicalDevice),
+        std::move(indices)
+    };
 }
 
 void PhysicalDevice::wrap(State const& state) {
@@ -139,7 +145,7 @@ auto PhysicalDevice::AutoPick(
     std::span<QueueFamilyProperties const> queue_properties,
     span<std::string const> required_extensions,
     utils::PhysicalDeviceFeatures const& required_features
-) -> std::optional<PhysicalDevice> {
+) -> std::optional<CreateResult> {
     Instance::debug_check(instance);
 
     auto const devices = enumerateVkDevices(instance.get());
@@ -153,21 +159,28 @@ auto PhysicalDevice::AutoPick(
     requiredFeatures.merge(required_features);
 
 
-    vector<PhysicalDevice> physicalDevices{};
-    for(auto& device : devices) {
-        auto deviceOpt = Create(instance, temp_surfaces, queue_properties, requiredExtensions, requiredFeatures, device);
+    std::optional<CreateResult> chosen{};
 
-        if(deviceOpt.has_value())
-            physicalDevices.emplace_back(
-                std::move(*deviceOpt)
-            );
+    for(auto& device : devices) {
+        auto createResult = Create(
+            instance,
+            temp_surfaces,
+            queue_properties,
+            requiredExtensions,
+            requiredFeatures,
+            device
+        );
+
+        if(createResult.has_value())
+            chosen = std::move(createResult);
     }
 
-    if(physicalDevices.empty()) return std::nullopt;
+    if(!chosen)
+        return std::nullopt;
 
-    cth::log::msg<except::INFO>("chosen physical device: {}", physicalDevices[0]._properties.deviceName);
+    cth::log::msg<except::INFO>("chosen physical device: {}", chosen->device._properties.deviceName);
 
-    return std::move(physicalDevices[0]);
+    return chosen;
 }
 
 
@@ -225,17 +238,22 @@ auto PhysicalDevice::findSupportedFormat(
     throw except::data_exception{features, details->exception()};
 }
 
-auto PhysicalDevice::queueFamilyIndices(span<QueueFamilyProperties const> queue_properties) const -> vector<uint32_t> {
+auto PhysicalDevice::queueFamilyIndices(
+    span<QueueFamilyProperties const> queues_properties
+) const -> vector<queue_family_index_t> {
     debug_check(*this);
 
-    vector<vector<uint32_t>> queueIndices{queue_properties.size()};
+    if(queues_properties.empty())
+        return {};
 
-    for(auto [requiredProperties, indices] : std::views::zip(queue_properties, queueIndices)) {
+    vector<vector<queue_family_index_t>> queueIndices{queues_properties.size()};
 
+    for(auto [requiredProperties, indices] : std::views::zip(queues_properties, queueIndices)) {
         for(auto const& family : _queueFamilies) {
             bool const support = (family.properties & requiredProperties) == requiredProperties;
 
-            if(support) indices.push_back(family.index);
+            if(support)
+                indices.push_back(family.index);
         }
     }
     std::vector<size_t> familiesMaxQueues(_queueFamilies.size());
@@ -387,6 +405,9 @@ VkSampleCountFlagBits PhysicalDevice::evalMaxSampleCount(VkPhysicalDevicePropert
 
     CTH_CRITICAL(true, "invalid state, sample count not supported") {}
     return VK_SAMPLE_COUNT_1_BIT;
+}
+QueueFamily const& PhysicalDevice::queueFamily(queue_family_index_t idx) const {
+    _queueFamilies | std::ranges::find_if()
 }
 
 

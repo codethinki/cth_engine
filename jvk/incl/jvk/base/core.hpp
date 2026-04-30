@@ -5,6 +5,7 @@
 #include "jvk/surface/surface.hpp"
 #include "jvk/utility/constants.hpp"
 #include "jvk/utility/types.hpp"
+#include "jvk/utility/vk_exceptions.hpp"
 
 
 
@@ -93,37 +94,52 @@ public:
     State release();
 
 private:
-    [[nodiscard]] std::map<size_t, QueueFamilyProperties> createPhysicalDevice(
-        std::span<Queue const> queues,
+    /**
+     * first: unique queues, second: queue -> unique queue mapping
+     */
+    struct queue_mappings {
+        std::vector<queue_family_index_t> uniqueQueueFamilyIndices;
+        std::vector<size_t> queuesToUniqueQueues;
+    };
+
+    /**
+     * @post if successful, sets `_queueSetIndex`
+     * @throws jvk::jvk_exception if no physical device meets the requirements
+     */
+    [[nodiscard]] queue_mappings createPhysicalDevice(
+        std::span<QueueFamilyProperties const> queues,
         std::span<queue_set_t const> queue_sets
     );
 
-    [[nodiscard]] std::map<size_t, QueueFamilyProperties> tryCreatePhysicalDevice(
+    [[nodiscard]] std::optional<queue_mappings> tryCreatePhysicalDevice(
         std::span<Surface const> surfaces,
         std::span<QueueFamilyProperties const> queue_properties,
-        queue_set_t queue_set
+        queue_set_t const& queue_set
     );
 
-    void wrapQueues(
-        std::unordered_map<size_t, Queue const*> const& physical_queues,
-        std::span<Queue> queues,
-        queue_set_t const& queue_set
-    ) const;
+    void createQueues(std::span<size_t const> queues_to_unique_queues);
 
-
-    std::unique_ptr<Device> _device;
-    std::unique_ptr<PhysicalDevice> _physicalDevice;
+    std::vector<Queue> _queues;
     std::optional<size_t> _queueSetIndex;
+    std::unique_ptr<Device> _device;
+
+    std::unique_ptr<PhysicalDevice> _physicalDevice;
 
     std::unique_ptr<Instance> _instance;
+    
     std::unique_ptr<DestructionQueue> _destructionQueue;
 
 public:
     [[nodiscard]] bool created() const {
         return _device != nullptr && _physicalDevice != nullptr && _instance != nullptr;
     }
+    /**
+     * @pre sets were provided in the config
+     * @throws jvk::jvk_exception if no sets were given
+     */
     [[nodiscard]] size_t queueSetIndex() const {
         debug_check(*this);
+        CTH_CRITICAL(_queueSetIndex.has_value(), "queue set index has no value") {}
         return *_queueSetIndex;
     }
 

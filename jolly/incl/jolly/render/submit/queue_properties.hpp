@@ -16,3 +16,4 @@ enum class QueueProperties {
 }
 
 CTH_GEN_ENUM_FLAG_OVERLOADS(jly::QueueProperties)
+

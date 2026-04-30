@@ -2,7 +2,7 @@
 #include "jvk/base/instance.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
-#include <cth/data/joiner.hpp>
+#include <cth/data/string_joiner.hpp>
 
 namespace jvk {
 
@@ -113,7 +113,11 @@ struct component_info {
 };
 }
 
-CTH_FORMAT_TYPE(jvk::dev::component_info, jvk::dev::component_info::to_string);
+CTH_FORMAT_CLASS_ATTRIBUTES(
+    jvk::dev::component_info,
+    "name: {0}, type: {1}, handle: {2:#x}",
+    [](jvk::dev::component_info const& c) { return std::tie(c.name, c.objectType, c.handle); }
+);
 
 
 namespace jvk::dev {
@@ -144,7 +148,7 @@ namespace {
             std::pair{VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT, "PERFORMANCE"}
         };
 
-        cth::dt::joiner joiner(" | ");
+        cth::dt::string_joiner joiner{" | "};
 
         for(auto [vkSeverityFlagBit, name] : msgTypes)
             if(vk_msg_type & vkSeverityFlagBit)

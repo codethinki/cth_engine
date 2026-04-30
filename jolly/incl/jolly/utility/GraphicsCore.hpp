@@ -30,14 +30,14 @@ public:
     using Config = GraphicsCoreConfig;
 
 
-    explicit GraphicsCore(jvk::Core const&, Config);
+    explicit GraphicsCore(jly::Core const&, Config);
 
     /**
      * @brief wraps the state
      * @note calls @ref GraphicsCore(Core const&, Config)
      * @note calls @ref wrap()
      */
-    GraphicsCore(jvk::Core const&, Config const&, State);
+    GraphicsCore(jly::Core const&, Config const&, State);
 
 
     /**
@@ -47,7 +47,7 @@ public:
      * @note calls @ref GraphicsCore(Core const&, Config)
      */
     GraphicsCore(
-        jvk::Core const&,
+        jly::Core const&,
         Config const&,
         std::string_view window_name,
         glm::uvec2 extent,
@@ -132,7 +132,7 @@ private:
 
     bool _resize = false;
 
-    not_null<jvk::Core const*> _core;
+    not_null<jly::Core const*> _core;
     Config _config;
 
     std::unique_ptr<GraphicsSyncConfig> _syncConfig;

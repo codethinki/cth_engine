@@ -33,28 +33,22 @@ void Core::wrap(State state) {
 }
 
 void Core::create(Config const& config) {
+    Config::debug_check(config);
+
     optDestroy();
 
     _instance = std::make_unique<Instance>(config.appName, config.requiredExtensions, std::nullopt);
 
-    auto uniqueQueues = createPhysicalDevice(config.queues, config.queueSets);
+    auto [uniqueQueueFamilyIndices, queuesToUniqueQueues] = createPhysicalDevice(config.queueProperties, config.queueSets);
 
-    //TODO very ugly code
-    std::vector<Queue> queues{};
-    queues.reserve(uniqueQueues.size());
-    std::unordered_map<size_t, Queue const*> setIndexToQueue{};
+    _device = std::make_unique<Device>(
+        *_instance,
+        *_physicalDevice,
+        Device::Config{std::move(uniqueQueueFamilyIndices)}
+    );
 
-    for(auto const& [index, properties] : uniqueQueues) {
-        queues.emplace_back(properties);
-        setIndexToQueue[index] = &queues.back();
-    }
-
-
-    _device = std::make_unique<Device>(*_instance, *_physicalDevice, queues);
-
-    wrapQueues(setIndexToQueue, config.queues, config.queueSets[*_queueSetIndex]);
-
-    if(config.destructionQueueConfig) 
+    createQueues(queuesToUniqueQueues);
+    if(config.destructionQueueConfig)
         _destructionQueue = std::make_unique<DestructionQueue>(*config.destructionQueueConfig);
 }
 
@@ -90,9 +84,9 @@ Core::State Core::release() {
     return temp;
 }
 auto Core::createPhysicalDevice(
-    std::span<Queue const> queues,
+    std::span<QueueFamilyProperties const> queues,
     std::span<queue_set_t const> queue_sets
-) -> std::map<size_t, QueueFamilyProperties> {
+) -> queue_mappings {
     auto windows = os::create_hidden_monitor_windows();
 
     JVK_STABLE_THROW(windows.empty(), "failed to create temp monitor windows") {}
@@ -104,19 +98,15 @@ auto Core::createPhysicalDevice(
         )
     };
 
-    std::vector queueProperties{
-        std::from_range,
-        queues | std::views::transform([](Queue const& queue) { return queue.familyProperties(); })
-    };
-
 
     for(size_t setIndex = 0; setIndex < queue_sets.size(); setIndex++) {
-        auto uniqueQueues = tryCreatePhysicalDevice(surfaces, queueProperties, queue_sets[setIndex]);
-        if(uniqueQueues.empty()) continue;
+        auto const uniqueQueues = tryCreatePhysicalDevice(surfaces, queues, queue_sets[setIndex]);
+        if(!uniqueQueues)
+            continue;
 
         _queueSetIndex = setIndex;
 
-        return uniqueQueues;
+        return *uniqueQueues;
     }
 
     JVK_STABLE_THROW(
@@ -126,47 +116,50 @@ auto Core::createPhysicalDevice(
 
     return {};
 }
-std::map<size_t, QueueFamilyProperties> Core::tryCreatePhysicalDevice(
+auto Core::tryCreatePhysicalDevice(
     std::span<Surface const> surfaces,
     std::span<QueueFamilyProperties const> queue_properties,
-    queue_set_t queue_set
-) {
+    queue_set_t const& queue_set
+) -> std::optional<queue_mappings> {
     CTH_CRITICAL(queue_set.size() != queue_properties.size(), "queue set must span all queues") {}
 
     using index_type = cth::dt::union_find::index_type;
-    std::map<index_type, QueueFamilyProperties> uniqueQueues{};
 
-    for(index_type i = 0; i < queue_set.size(); i++)
-        uniqueQueues[queue_set.find(i)] |= queue_properties[i];
+    auto const roots = queue_set.roots();
+    std::unordered_map<index_type, size_t> rootToQueue{};
+    for(size_t i = 0; i < roots.size(); i++)
+        rootToQueue[roots[i]] = i;
 
-    std::vector properties{std::from_range, uniqueQueues | std::views::values};
+    std::vector<QueueFamilyProperties> uniqueQueues{roots.size()};
+    std::vector queueToUniqueQueue{queue_properties.size()};
 
+    for(index_type i = 0; i < queue_set.size(); i++) {
+        auto const queueIdx = rootToQueue[queue_set.find(i)];
+        queueToUniqueQueue[i] = queueIdx;
+        uniqueQueues[queueIdx] |= queue_properties[i];
+    }
     // ReSharper disable once CppLocalVariableMayBeConst (device has no copy ctor -> moving requires non-const)
-    auto deviceOpt = PhysicalDevice::AutoPick(
+    auto resultOpt = PhysicalDevice::AutoPick(
         *_instance,
         surfaces,
-        properties
+        uniqueQueues
     );
 
-    if(!deviceOpt) return {};
+    if(!resultOpt)
+        return {};
 
-    _physicalDevice = std::make_unique<PhysicalDevice>(std::move(*deviceOpt));
+    _physicalDevice = std::make_unique<PhysicalDevice>(std::move(resultOpt->device));
 
-
-    return uniqueQueues;
+    return queue_mappings{resultOpt->queueFamilyIndices, queueToUniqueQueue};
 }
-void Core::wrapQueues(
-    std::unordered_map<size_t, Queue const*> const& physical_queues,
-    std::span<Queue> queues,
-    queue_set_t const& queue_set
-) const {
-    for(size_t i = 0; i < queues.size(); i++) {
-        auto const& uniqueQueue = physical_queues.at(queue_set.find(i));
-        //BUG this is wrong uniqueQueue has weird parameters
-        queues[i].wrap({uniqueQueue->get(), _device.get(), uniqueQueue->familyIndex(), uniqueQueue->index()});
-    }
-}
+void Core::createQueues(std::span<size_t const> queues_to_unique_queues) {
+    _queues.reserve(queues_to_unique_queues.size());
 
+    auto uniqueQueues = _device->queues();
+
+    for(auto const uniqueQueueIdx : queues_to_unique_queues)
+        _queues.emplace_back(uniqueQueues[uniqueQueueIdx]);
+}
 
 
 Device const& Core::device() const { return *_device; }

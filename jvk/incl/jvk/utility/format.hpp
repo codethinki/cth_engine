@@ -23,7 +23,8 @@ std::string structure_to_string(T&& to_tuple) {
 }
 
 template<class T>
-concept formattable_type = cth::mta::any_of<cth::mta::pure_t<T>,
+concept formattable_type = cth::mta::is_any_of<
+    std::decay_t<T>,
     VkSurfaceFormatKHR,
     VkExtent2D
 >;
@@ -32,19 +33,19 @@ concept formattable_type = cth::mta::any_of<cth::mta::pure_t<T>,
 }
 
 
-CTH_FORMAT_TYPE(VkResult, jvk::fmt::to_string);
+CTH_FORMAT_CLASS_ATTRIBUTES(VkResult, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_TYPE(VkFormat, jvk::fmt::to_string);
+CTH_FORMAT_CLASS_ATTRIBUTES(VkFormat, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_TYPE(VkStructureType, jvk::fmt::to_string);
+CTH_FORMAT_CLASS_ATTRIBUTES(VkStructureType, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_TYPE(VkDescriptorType, jvk::fmt::to_string);
+CTH_FORMAT_CLASS_ATTRIBUTES(VkDescriptorType, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_TYPE(VkColorSpaceKHR, jvk::fmt::to_string);
+CTH_FORMAT_CLASS_ATTRIBUTES(VkColorSpaceKHR, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_TYPE(VkPresentModeKHR, jvk::fmt::to_string);
+CTH_FORMAT_CLASS_ATTRIBUTES(VkPresentModeKHR, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_TYPE(VkObjectType, jvk::fmt::to_string);
+CTH_FORMAT_CLASS_ATTRIBUTES(VkObjectType, "{}", jvk::fmt::to_string);
 
 //formattable_type
 template<class T> requires (jvk::fmt::formattable_type<T>)
@@ -56,9 +57,11 @@ struct std::formatter<T> : std::formatter<int> {
     template<typename FormatContext>
     auto format(T const& obj, FormatContext& ctx) const {
         auto tuple = boost::pfr::structure_to_tuple(obj);
-        return std::apply([&ctx]<typename... U>(U&&... args) {
+        return std::apply(
+            [&ctx]<typename... U>(U&&... args) {
                 return std::format_to(ctx.out(), std::string_view{fmt_base}, std::forward<U>(args)...);
             },
-            tuple);
+            tuple
+        );
     }
 };

@@ -34,12 +34,18 @@ static QueueFamilyProperties to_queue_properties(VkQueueFlags flags, bool presen
     return result;
 }
 
+using queue_family_index_t = uint32_t;
+
 struct QueueFamily {
-    uint32_t index;
+    queue_family_index_t index;
     QueueFamilyProperties properties;
     VkQueueFamilyProperties vkProperties;
 
-    static QueueFamily Vk(uint32_t index, VkQueueFamilyProperties const& vk_properties, bool present_support) {
+    static QueueFamily Vk(
+        queue_family_index_t index,
+        VkQueueFamilyProperties const& vk_properties,
+        bool present_support
+    ) {
         return {
             .index = index,
             .properties = to_queue_properties(vk_properties.queueFlags, present_support),

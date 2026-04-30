@@ -5,14 +5,14 @@
       "name": "win-debug-settings",
       "hidden": true,
       "cacheVariables": {
-        "cth_ROOT": "${sourceDir}/../cth/out/install/win_clang_debug"
+        "cth_ROOT": "${sourceDir}/../cth/out/install/msvc_debug"
       }
     },
     {
       "name": "win-release-settings",
       "hidden": true,
       "cacheVariables": {
-        "cth_ROOT": "${sourceDir}/../cth/out/install/win_clang_release"
+        "cth_ROOT": "${sourceDir}/../cth/out/install/msvc_release"
       }
     },
     {

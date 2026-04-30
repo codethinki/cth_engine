@@ -54,14 +54,14 @@ void Shader::destroy(DeviceTable table, VkShaderModule vk_shader) {
 
 std::vector<char> Shader::loadSpv() {
     CTH_STABLE_ERR(!std::filesystem::exists(_spvPath), "file does not exist") {
-        details->add("file: {0}", _spvPath);
+        details->add("file: {0}", _spvPath.u8string());
         throw details->exception();
     }
 
 
     std::ifstream file{_spvPath, std::ios::binary};
     CTH_STABLE_ERR(!file.is_open(), "failed to open file") {
-        details->add("file: {0}", _spvPath);
+        details->add("file: {0}", _spvPath.u8string());
         throw details->exception();
     }
 
@@ -73,11 +73,11 @@ std::vector<char> Shader::loadSpv() {
     file.close();
 
     CTH_STABLE_ERR(bytecode.empty(), "failed to load bytecode") {
-        details->add("file: {0}", _spvPath);
+        details->add("file: {0}", _spvPath.u8string());
         throw details->exception();
     }
 
-    cth::log::msg("loaded shader '{0}' ({1} bytes)", _spvPath, fileSize);
+    cth::log::msg("loaded shader '{0}' ({1} bytes)", _spvPath.u8string(), fileSize);
 
     return bytecode;
 }

@@ -1,7 +1,6 @@
 #pragma once
 #include "queue_family.hpp"
-
-#include "jvk/utility/types.hpp"
+#include "queue_state.hpp"
 
 #include <volk.h>
 
@@ -22,17 +21,18 @@ class PrimaryCmdBuffer;
 
 class Queue {
 public:
-    struct State;
+    using State = QueueState;
 
 
     explicit Queue(QueueFamilyProperties family_properties) : _familyProperties{family_properties} {}
+    Queue(QueueFamilyProperties family_properties, State state) : Queue{family_properties} { wrap(std::move(state)); }
     ~Queue();
 
     /**
      * @brief wraps the vulkan queue
      * @note normally called by the device, not the user
      */
-    void wrap(State const& state);
+    void wrap(State state);
 
     /**
      * @brief destroys and resets
@@ -47,7 +47,7 @@ public:
 
     /**
      * @brief releases ownership and resets
-     * @attention requires @ref created()
+     * @pre @ref created()
      */
     State release();
 
@@ -119,9 +119,11 @@ private:
 
 
     QueueFamilyProperties _familyProperties;
+    Device const* _device = nullptr;
 
     move_ptr<VkQueue_T> _handle = VK_NULL_HANDLE;
-    Device const* _device = nullptr;
+    std::shared_ptr<std::mutex> _handleMtx{};
+
     uint32_t _familyIndex = 0;
     uint32_t _queueIndex = 0;
 
@@ -147,17 +149,7 @@ public:
 
 //State
 
-namespace jvk {
-struct Queue::State {
-    jvk::vk_not_null<VkQueue> vkQueue;
-    not_null<Device const*> device;
-    uint32_t familyIndex;
-    /**
-     * @brief index in the family
-     */
-    uint32_t queueIndex;
-};
-}
+
 
 //debug checks
 

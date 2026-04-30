@@ -24,8 +24,11 @@ Device::Device(Instance const& instance, PhysicalDevice const& physical_device, 
 Device::Device(
     Instance const& instance,
     PhysicalDevice const& physical_device,
-    std::span<Queue> queues
-) : Device{instance, physical_device} { create(queues); }
+    Config const& config
+) : Device{
+    instance,
+    physical_device
+} { create(config); }
 
 Device::~Device() { optDestroy(); }
 
@@ -33,21 +36,22 @@ void Device::wrap(State state) {
     optDestroy();
 
     _handle = state.vkDevice.get();
-    _queueFamiliesQueueCounts = state.queueFamiliesQueueCounts;
 
     _functionTable = std::move(state.functionTable);
-    if(_functionTable == nullptr) loadFunctionTable();
+    if(_functionTable == nullptr)
+        loadFunctionTable();
 }
 
-void Device::create(std::span<Queue> queues) {
+void Device::create(DeviceConfig const& config) {
     optDestroy();
 
-    auto const familyIndices = setUniqueFamilyIndices(queues);
+    auto const& familyIndices = config.queueFamilyIndices;
+    auto const queueCounts = calcQueueFamiliesQueueCounts(familyIndices);
 
-    createLogicalDevice();
+    createLogicalDevice(queueCounts);
     loadFunctionTable();
 
-    wrapQueues(familyIndices, queues);
+    createQueues(familyIndices);
 }
 
 void Device::destroy() {
@@ -57,30 +61,28 @@ void Device::destroy() {
     reset();
 }
 
-vector<uint32_t> Device::setUniqueFamilyIndices(span<Queue const> queues) {
-    auto const& queueFamilyIndices = _physicalDevice->queueFamilyIndices(
-        std::vector{
-            std::from_range,
-            queues | std::views::transform([](auto const& queue) { return queue.familyProperties(); })
-        }
-    );
 
-    for(auto const& familyIndex : queueFamilyIndices)
-        ++_queueFamiliesQueueCounts[familyIndex];
+auto Device::calcQueueFamiliesQueueCounts(
+    std::span<uint32_t const> family_indices
+) -> queue_families_queue_counts_t {
+    queue_families_queue_counts_t queueCounts{};
 
-    return queueFamilyIndices;
+    for(auto const& familyIndex : family_indices)
+        ++queueCounts[familyIndex];
+
+    return queueCounts;
 }
 
-void Device::createLogicalDevice() {
-    CTH_CRITICAL(_queueFamiliesQueueCounts.empty(), "queue family queue count must be queried first") {}
+void Device::createLogicalDevice(std::unordered_map<uint32_t, uint32_t> const& queue_families_queue_counts) {
+    CTH_CRITICAL(queue_families_queue_counts.empty(), "queue family queue count must be queried first") {}
     CTH_CRITICAL(created(), "device was already created") {}
 
     vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
-    queueCreateInfos.reserve(_queueFamiliesQueueCounts.size());
+    queueCreateInfos.reserve(queue_families_queue_counts.size());
 
     std::vector<std::vector<float>> queuePriorities{};
 
-    for(auto const [queueFamily, queueCount] : _queueFamiliesQueueCounts) {
+    for(auto const [queueFamily, queueCount] : queue_families_queue_counts) {
         queuePriorities.emplace_back(queueCount, 1.0f);
 
         queueCreateInfos.push_back(
@@ -107,38 +109,40 @@ void Device::createLogicalDevice() {
     VkDevice ptr = VK_NULL_HANDLE;
 
     VkResult const createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &ptr);
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create logical device") {
+    JVK_RESULT_STABLE_THROW(createResult != VK_SUCCESS, createResult, "failed to create logical device")
+    {
         reset();
-        throw jvk::vk_result_exception{createResult, details->exception()};
     }
     _handle = ptr;
 }
 
 void Device::loadFunctionTable() const { volkLoadDeviceTable(_functionTable.get(), get()); }
 
-void Device::wrapQueues(span<uint32_t const> family_indices, span<Queue> queues) const {
-    CTH_CRITICAL(family_indices.size() != queues.size(), "there must be a family index for every queue") {}
-
+void Device::createQueues(span<queue_family_index_t const> family_indices) {
     std::unordered_map<uint32_t, uint32_t> queueCounts{};
-    for(auto& index : family_indices) queueCounts[index] = 0;
+    for(auto& index : family_indices)
+        queueCounts[index] = 0;
 
-    for(auto [familyIndex, queue] : std::views::zip(family_indices, queues)) {
+    _queues.reserve(family_indices.size());
+
+    for(auto familyIndex : family_indices) {
         VkQueue ptr = VK_NULL_HANDLE;
         table()->vkGetDeviceQueue(_handle.get(), familyIndex, queueCounts[familyIndex], &ptr);
 
-        CTH_STABLE_ERR(ptr == VK_NULL_HANDLE, "failed to get device queue")
-        throw details->exception();
+        JVK_STABLE_THROW(ptr == VK_NULL_HANDLE, "failed to get device queue") {}
 
-        queue.wrap(Queue::State{ptr, this, familyIndex, queueCounts[familyIndex]++});
+        _queues.emplace_back(
+            _physicalDevice->queueFamily(familyIndex).properties,
+            Queue::State{this, ptr, familyIndex, queueCounts[familyIndex]++, std::make_shared<std::mutex>()}
+        );
     }
 }
 
 Device::State Device::release() {
-    Device::debug_check(*this);
+    debug_check(*this);
 
     State state{
         .vkDevice = _handle.release(),
-        .queueFamiliesQueueCounts = std::move(_queueFamiliesQueueCounts),
         .functionTable = std::move(_functionTable)
     };
     reset();
@@ -146,25 +150,23 @@ Device::State Device::release() {
 }
 
 void Device::waitIdle() const {
-    Device::debug_check(*this);
+    debug_check(*this);
 
     auto const result = table()->vkDeviceWaitIdle(_handle.get());
 
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to wait for device")
-    throw jvk::vk_result_exception{result, details->exception()};
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to wait for device") {}
 }
 
-void Device::destroy(VkDevice vk_device, PFN_vkDestroyDevice destroy_function) {
+void Device::destroy(VkDevice vk_device, PFN_vkDestroyDevice destroy) {
     CTH_CRITICAL(vk_device == VK_NULL_HANDLE, "vk_device must not be invalid (VK_NULL_HANDLE)") {}
 
-    destroy_function(vk_device, nullptr);
+    destroy(vk_device, nullptr);
 
     cth::log::msg<except::LOG>("destroyed vk_device");
 }
 
 void Device::reset() {
     _handle = nullptr;
-    _queueFamiliesQueueCounts.clear();
 
     std::memset(_functionTable.get(), 0, sizeof(decltype(*_functionTable)));
 }
