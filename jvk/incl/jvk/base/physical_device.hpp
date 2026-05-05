@@ -261,7 +261,7 @@ struct PhysicalDevice::State {
      * @brief must not be empty
      * @note query with @ref Surface::getQueueFamilies()
      */
-    std::vector<QueueFamily> queueFamilies;
+    queue_family_map_t queueFamilies;
 
 
     utils::PhysicalDeviceFeatures features{};

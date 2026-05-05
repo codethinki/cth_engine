@@ -13,7 +13,7 @@ namespace dev {
 static std::string to_string(std::filesystem::path const& path) { return path.string(); }
 }
 
-CTH_FORMAT_TYPE(std::filesystem::path, dev::to_string);
+CTH_FORMAT_CLASS(std::filesystem::path, "{}", dev::to_string);
 
 //Specialization
 
@@ -53,17 +53,14 @@ void Shader::destroy(DeviceTable table, VkShaderModule vk_shader) {
 }
 
 std::vector<char> Shader::loadSpv() {
-    CTH_STABLE_ERR(!std::filesystem::exists(_spvPath), "file does not exist") {
-        details->add("file: {0}", _spvPath.u8string());
-        throw details->exception();
-    }
+    JVK_STABLE_THROW(!std::filesystem::exists(_spvPath), "file does not exist")
+        details->add("file: {}", _spvPath.string());
 
 
     std::ifstream file{_spvPath, std::ios::binary};
-    CTH_STABLE_ERR(!file.is_open(), "failed to open file") {
-        details->add("file: {0}", _spvPath.u8string());
-        throw details->exception();
-    }
+
+    JVK_STABLE_THROW(!file.is_open(), "failed to open file")
+        details->add("file: {0}", _spvPath.string());
 
 
     size_t const fileSize = std::filesystem::file_size(_spvPath);
@@ -72,12 +69,10 @@ std::vector<char> Shader::loadSpv() {
     file.read(bytecode.data(), static_cast<std::streamsize>(fileSize));
     file.close();
 
-    CTH_STABLE_ERR(bytecode.empty(), "failed to load bytecode") {
-        details->add("file: {0}", _spvPath.u8string());
-        throw details->exception();
-    }
+    JVK_STABLE_THROW(bytecode.empty(), "failed to load bytecode")
+        details->add("file: {}", _spvPath);
 
-    cth::log::msg("loaded shader '{0}' ({1} bytes)", _spvPath.u8string(), fileSize);
+    cth::log::msg("loaded shader '{}' ({} bytes)", _spvPath, fileSize);
 
     return bytecode;
 }
@@ -99,12 +94,12 @@ void Shader::create(std::span<char const> spv) {
         &ptr
     );
 
-    CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create shader module")
-    throw jvk::vk_result_exception{createResult, details->exception()};
+    JVK_RESULT_STABLE_THROW(createResult != VK_SUCCESS, createResult, "failed to create shader module")
+        reset();
 
     _handle = ptr;
 
-    log::msg("created shader module ({0})", _spvPath);
+    log::msg("created shader module ({})", _spvPath);
 }
 
 void Shader::destroy() {
@@ -126,10 +121,8 @@ void Shader::reset() { _handle = VK_NULL_HANDLE; }
 
 #ifndef _FINAL
 void Shader::compile(path_t const& glsl_path, path_t const& compiler_path, std::string_view flags) const {
-    CTH_STABLE_ERR(!std::filesystem::exists(glsl_path), "invalid glsl path") {
+    JVK_STABLE_THROW(!std::filesystem::exists(glsl_path), "invalid glsl path")
         details->add("path: {0}", glsl_path);
-        throw details->exception();
-    }
 
     constexpr std::string_view logFile = "shader_compile_log.txt";
 
@@ -149,10 +142,9 @@ void Shader::compile(path_t const& glsl_path, path_t const& compiler_path, std::
     auto const glslFile = glsl_path.filename().string();
 
     if(debugInfo.empty()) {
-        CTH_STABLE_ERR(result != 0, "compile command failed") {
+        JVK_STABLE_THROW(result != 0, "compile command failed") {
             details->add("command: \"{0}\"", command);
             details->add("file: {}", glslFile);
-            throw details->exception();
         }
         log::msg("compiled shader ({0})", glslFile);
 
@@ -168,6 +160,7 @@ void Shader::compile(path_t const& glsl_path, path_t const& compiler_path, std::
                 line.substr(line.find(glslFile) + glslFile.size())
             );
     }
+
     CTH_STABLE_ABORT(true, "shader compilation failed") {
         details->add("file: {}", glslFile);
         details->add("{} errors:", debugInfo.size());

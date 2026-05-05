@@ -113,7 +113,7 @@ struct component_info {
 };
 }
 
-CTH_FORMAT_CLASS_ATTRIBUTES(
+CTH_FORMAT_CLASS(
     jvk::dev::component_info,
     "name: {0}, type: {1}, handle: {2:#x}",
     [](jvk::dev::component_info const& c) { return std::tie(c.name, c.objectType, c.handle); }

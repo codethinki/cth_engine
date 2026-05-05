@@ -8,6 +8,6 @@ namespace cth {
 struct FrameResourcesConfig {
     std::string_view windowName;
     glm::uvec2 windowExtent;
-    jly::Queue presentQueue;
+    jly::not_null<jly::Queue const*> presentQueue;
 };
 }

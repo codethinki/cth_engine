@@ -16,7 +16,8 @@
 
 #include <vector>
 
-
+//TEMP left off here. port GraphicsSyncConfig and Renderer to jly primitives, then see if the project compiles. 
+// after that continue implementing the memory management of the model loader with now coroutines
 
 namespace cth {
 class FrameResources;
@@ -30,7 +31,7 @@ public:
     App();
     ~App() = default;
 
-    void run();
+    void run() const;
 
 
 
@@ -48,18 +49,14 @@ private:
 
     void initRenderSystem(jvk::PrimaryCmdBuffer const& cmd_buffer);
 
-    std::vector<jly::Queue> _queues{
-        
-    };
-
     std::unique_ptr<jly::Core> _core = std::make_unique<jly::Core>(
         jly::CoreConfig{
             "vk_app",
             "engine",
             {
-                jly::QueueProperty::TRANSFER | jly::QueueProperty::GRAPHICS,
-                jly::QueueProperty::GRAPHICS,
-                jly::QueueProperty::PRESENT
+                jly::QueueProperties::TRANSFER | jly::QueueProperties::GRAPHICS,
+                jly::QueueProperties::GRAPHICS,
+                jly::QueueProperties::PRESENT
             },
         }
 
@@ -72,7 +69,7 @@ private:
 
     std::unique_ptr<FrameResources> _resources = std::make_unique<FrameResources>(
         *_core,
-        FrameResources::Config{WINDOW_NAME, {WIDTH, HEIGHT}, _queues[2]}
+        FrameResources::Config{WINDOW_NAME, {WIDTH, HEIGHT}, &_core->queue(2)}
     );
 
     std::unique_ptr<jly::Renderer> _renderer3;
@@ -92,9 +89,9 @@ private:
 
     [[nodiscard]] static std::vector<std::string> getRequiredInstanceExtensions();
 
-    [[nodiscard]] jvk::Queue& transferQueue();
-    [[nodiscard]] jvk::Queue& renderQueue();
-    [[nodiscard]] jvk::Queue& presentQueue();
+    [[nodiscard]] jly::Queue const& transferQueue() const;
+    [[nodiscard]] jly::Queue const& renderQueue() const;
+    [[nodiscard]] jly::Queue const& presentQueue() const;
 
 public
 :

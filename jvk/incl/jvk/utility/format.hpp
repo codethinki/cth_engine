@@ -33,19 +33,19 @@ concept formattable_type = cth::mta::is_any_of<
 }
 
 
-CTH_FORMAT_CLASS_ATTRIBUTES(VkResult, "{}", jvk::fmt::to_string);
+CTH_FORMAT_CLASS(VkResult, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_CLASS_ATTRIBUTES(VkFormat, "{}", jvk::fmt::to_string);
+CTH_FORMAT_CLASS(VkFormat, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_CLASS_ATTRIBUTES(VkStructureType, "{}", jvk::fmt::to_string);
+CTH_FORMAT_CLASS(VkStructureType, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_CLASS_ATTRIBUTES(VkDescriptorType, "{}", jvk::fmt::to_string);
+CTH_FORMAT_CLASS(VkDescriptorType, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_CLASS_ATTRIBUTES(VkColorSpaceKHR, "{}", jvk::fmt::to_string);
+CTH_FORMAT_CLASS(VkColorSpaceKHR, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_CLASS_ATTRIBUTES(VkPresentModeKHR, "{}", jvk::fmt::to_string);
+CTH_FORMAT_CLASS(VkPresentModeKHR, "{}", jvk::fmt::to_string);
 
-CTH_FORMAT_CLASS_ATTRIBUTES(VkObjectType, "{}", jvk::fmt::to_string);
+CTH_FORMAT_CLASS(VkObjectType, "{}", jvk::fmt::to_string);
 
 //formattable_type
 template<class T> requires (jvk::fmt::formattable_type<T>)

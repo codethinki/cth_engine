@@ -11,36 +11,31 @@
 namespace jly {
 
 namespace {
-    constexpr QueueProperty to_queue_properties(jvk::QueueFamilyProperties properties) {
-        QueueProperty out{};
+    constexpr QueueProperties to_queue_properties(jvk::QueueFamilyProperties properties) {
+        QueueProperties out{};
         using jvk::QueueFamilyProperties;
 
 
-        if(contains(properties, QueueFamilyProperties::GRAPHICS)) out |= QueueProperty::GRAPHICS;
-        if(contains(properties, QueueFamilyProperties::TRANSFER)) out |= QueueProperty::TRANSFER;
-        if(contains(properties, QueueFamilyProperties::COMPUTE)) out |= QueueProperty::COMPUTE;
-        if(contains(properties, QueueFamilyProperties::PRESENT)) out |= QueueProperty::PRESENT;
+        if(contains(properties, QueueFamilyProperties::GRAPHICS)) out |= QueueProperties::GRAPHICS;
+        if(contains(properties, QueueFamilyProperties::TRANSFER)) out |= QueueProperties::TRANSFER;
+        if(contains(properties, QueueFamilyProperties::COMPUTE)) out |= QueueProperties::COMPUTE;
+        if(contains(properties, QueueFamilyProperties::PRESENT)) out |= QueueProperties::PRESENT;
 
         return out;
     }
 }
 
-
-Queue::Queue(QueueProperty properties) :
-    Queue{std::make_unique<jvk::Queue>(to_queue_family_properties(properties))} {}
-
+Queue::Queue() = default;
 Queue::Queue(std::unique_ptr<jvk::Queue> vk_queue) : _handle{std::move(vk_queue)} {}
 
-Queue::Queue(QueueProperty properties, State const& state) : Queue{properties} {
-    _handle->wrap(state);
-}
 
 Queue::~Queue() = default;
 
-void Queue::wrap(State const& state) { _handle->wrap(state); }
+void Queue::wrap(std::unique_ptr<jvk::Queue> handle) { _handle = std::move(handle); }
 
 void Queue::destroy() { _handle->destroy(); }
 
+Queue::State Queue::release() { return {std::move(_handle)}; }
 void Queue::submit(SubmitInfo& info) const { _handle->const_submit(info.next().raw()); }
 
 void Queue::skip(SubmitInfo& info) const { _handle->const_skip(info.next().raw()); }
@@ -53,7 +48,7 @@ uint32_t Queue::index() const { return _handle->index(); }
 
 uint32_t Queue::familyIndex() const { return _handle->familyIndex(); }
 
-QueueProperty Queue::familyProperties() const { return to_queue_properties(_handle->familyProperties()); }
+QueueProperties Queue::familyProperties() const { return to_queue_properties(_handle->familyProperties()); }
 
 Queue::Queue(Queue&&) noexcept = default;
 

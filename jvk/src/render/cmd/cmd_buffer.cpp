@@ -8,6 +8,7 @@
 #include "jvk/render/pass/framebuffer/framebuffer.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
+#include <cth/meta/concepts.hpp>
 
 namespace jvk {
 CmdBuffer::CmdBuffer(Config config) : _config{config} {}
@@ -15,9 +16,9 @@ CmdBuffer::CmdBuffer(Config config) : _config{config} {}
 template<class Me>
 void CmdBuffer::destroy(this Me&& self) {
     self.reset(VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-    static_assert(cth::mta::any_of<cth::mta::pure_t<Me>, PrimaryCmdBuffer, SecondaryCmdBuffer>);
+    static_assert(cth::mta::is_any_of<std::decay_t<Me>, PrimaryCmdBuffer, SecondaryCmdBuffer>);
 
-    self._pool->template returnCmdBuffer<cth::mta::pure_t<Me>>(self._handle.get());
+    self._pool->template returnCmdBuffer<std::decay_t<Me>>(self._handle.get());
 
     self.reset();
 }
@@ -67,7 +68,7 @@ void CmdBuffer::create(this auto&& self, CmdPool& pool) {
     self.optDestroy();
     self._pool = &pool;
     self._deviceTable = pool.core().deviceTable();
-    auto const handle = self._pool->template newCmdBuffer<cth::mta::pure_t<decltype(self)>>();
+    auto const handle = self._pool->template newCmdBuffer<std::decay_t<decltype(self)>>();
     CTH_CRITICAL(handle == VK_NULL_HANDLE, "failed to create cmd buffer") {}
 
     self._handle = handle;

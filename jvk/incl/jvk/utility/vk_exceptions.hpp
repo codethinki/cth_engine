@@ -81,6 +81,15 @@ public:
 #define JVK_VK_STABLE_THROW(expression, msg, ...) \
     CTH_STABLE_THROW_T(jvk::vk_result_exception, expression, msg, __VA_ARGS__)
 
+/**
+ * acts like @ref JVK_VK_STABLE_THROW but has a dedicated result handling mechanism
+ * @param expression throws on true
+ * @param result to add to exception
+ * @param msg format string
+ * @details braces and else are consistent with previous log framework. 
+ *  uses a range for loop over a one element init list. the element is computed
+ *  via paren operator to allow the side effect execution first
+ */
 #define JVK_RESULT_STABLE_THROW(expression, result, msg, ...)\
     JVK_VK_STABLE_THROW(expression, msg, __VA_ARGS__) \
-        details->e().add(result)
+        for(auto&& _ : {(details->e().add(result), 0)})

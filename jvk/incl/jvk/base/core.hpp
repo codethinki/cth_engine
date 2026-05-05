@@ -119,15 +119,12 @@ private:
 
     void createQueues(std::span<size_t const> queues_to_unique_queues);
 
-    std::vector<Queue> _queues;
-    std::optional<size_t> _queueSetIndex;
-    std::unique_ptr<Device> _device;
-
-    std::unique_ptr<PhysicalDevice> _physicalDevice;
-
-    std::unique_ptr<Instance> _instance;
-    
     std::unique_ptr<DestructionQueue> _destructionQueue;
+    std::unique_ptr<Instance> _instance;
+    std::unique_ptr<PhysicalDevice> _physicalDevice;
+    std::unique_ptr<Device> _device;
+    std::optional<size_t> _queueSetIndex;
+    std::vector<Queue> _queues;
 
 public:
     [[nodiscard]] bool created() const {
@@ -152,6 +149,7 @@ public:
     [[nodiscard]] Instance const& instance() const;
     [[nodiscard]] VkInstance vkInstance() const;
     [[nodiscard]] DestructionQueue* destructionQueue() const;
+    [[nodiscard]] auto& queue(this auto& self, size_t idx) { return self._queues[idx]; }
 
     Core(Core const& other) = delete;
     Core(Core&& other) noexcept = default;

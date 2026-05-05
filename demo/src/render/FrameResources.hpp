@@ -1,8 +1,6 @@
 #pragma once
 #include "frame_resources_config.hpp"
 
-#include "jvk/render/pass/render_pass_begin_config.hpp"
-
 
 namespace jly {
 class RenderPulse;
@@ -19,6 +17,8 @@ class AttachmentCollection;
 class Framebuffer;
 class PrimaryCmdBuffer;
 class Semaphore;
+
+struct RenderPassBeginConfig;
 }
 
 //TEMP this is a temp fix this class is ugly af and should not be like that. create some proper system

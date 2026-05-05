@@ -13,7 +13,7 @@ struct AttachmentDescription {
     VkAttachmentLoadOp stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     VkAttachmentStoreOp stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     VkImageLayout finalLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    std::map<uint32_t, VkImageLayout> subpassLayouts{};
+    std::unordered_map<uint32_t, VkImageLayout> subpassLayouts{};
     VkAttachmentDescriptionFlags flags = 0;
 
     [[nodiscard]] static AttachmentDescription DepthBuffer(uint32_t subpass_index,

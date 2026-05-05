@@ -17,6 +17,8 @@
 
 #include "../../../jolly/src/utility/vk_convert.hpp"
 
+#include "jolly/core/core.hpp"
+
 namespace cth {
 
 
@@ -42,8 +44,8 @@ void FrameResources::beginRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) co
         .offset = {0, 0},
         .extent = {extent.x, extent.y}
     };
-    _core->functions()->vkCmdSetViewport(cmd_buffer.get(), 0, 1, &viewport);
-    _core->functions()->vkCmdSetScissor(cmd_buffer.get(), 0, 1, &scissor);
+    _core->raw().functions()->vkCmdSetViewport(cmd_buffer.get(), 0, 1, &viewport);
+    _core->raw().functions()->vkCmdSetScissor(cmd_buffer.get(), 0, 1, &scissor);
 }
 
 void FrameResources::endRenderPass(jvk::PrimaryCmdBuffer const& cmd_buffer) const { _renderPass->end(cmd_buffer); }
@@ -75,7 +77,7 @@ void FrameResources::presentFrame() const {
 void FrameResources::skipPresent() const { _graphicsCore->skipPresent(); }
 
 VkSampleCountFlagBits FrameResources::evalMsaaSampleCount() const {
-    uint32_t const maxSamples = _core->physicalDevice().maxSampleCount() / 2;
+    uint32_t const maxSamples = _core->raw().physicalDevice().maxSampleCount() / 2;
     //TODO add proper max_sample_count selection
 
     uint32_t samples = 1;
@@ -85,7 +87,7 @@ VkSampleCountFlagBits FrameResources::evalMsaaSampleCount() const {
 }
 
 VkFormat FrameResources::findDepthFormat() const {
-    auto const format = _core->physicalDevice().findSupportedFormat(
+    auto const format = _core->raw().physicalDevice().findSupportedFormat(
         std::vector{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
@@ -102,7 +104,7 @@ void FrameResources::createDepthAttachments() {
     auto const imageConfig = jvk::ImageConfig::DepthBuffer(findDepthFormat(), _msaaSamples);
 
     _depthAttachments = std::make_unique<jvk::AttachmentCollection>(
-        *_core,
+        _core->raw(),
         jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description},
         swapchainExtent()
     );
@@ -121,7 +123,7 @@ void FrameResources::createMsaaAttachments() {
     };
 
     _msaaAttachments = std::make_unique<jvk::AttachmentCollection>(
-        *_core,
+        _core->raw(),
         jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description},
         swapchainExtent()
     );
@@ -179,7 +181,7 @@ void FrameResources::createRenderPass() {
     auto const beginConfig = createRenderPassBeginConfig();
 
     _renderPass = std::make_unique<jvk::RenderPass>(
-        *_core,
+        _core->raw(),
         jvk::RenderPass::Config{
             .subpasses{_subpass.get()},
             .dependencies{subpassDependency},
@@ -192,7 +194,7 @@ void FrameResources::createRenderPass() {
 
 void FrameResources::createFramebufferCollection() {
     _framebufferCollection = std::make_unique<jvk::ScFramebufferCollection>(
-        *_core,
+        _core->raw(),
         *_graphicsCore->swapchain(),
         *_renderPass,
         jvk::FramebufferCollectionConfig::Attachments(
@@ -247,7 +249,7 @@ jly::RenderPulse const& FrameResources::renderPulse() const { return _graphicsCo
 
 jly::GraphicsSyncConfig const& FrameResources::syncConfig() const { return *_graphicsCore->syncConfig(); }
 std::vector<jvk::Semaphore*> FrameResources::renderFinishedSemaphores() const {
-    return _graphicsCore->renderFinishedSemaphores();
+    return _graphicsCore->syncConfig()->renderFinishedSemaphores();
 }
 
 }

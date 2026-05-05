@@ -109,8 +109,7 @@ void Device::createLogicalDevice(std::unordered_map<uint32_t, uint32_t> const& q
     VkDevice ptr = VK_NULL_HANDLE;
 
     VkResult const createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &ptr);
-    JVK_RESULT_STABLE_THROW(createResult != VK_SUCCESS, createResult, "failed to create logical device")
-    {
+    JVK_RESULT_STABLE_THROW(createResult != VK_SUCCESS, createResult, "failed to create logical device") {
         reset();
     }
     _handle = ptr;

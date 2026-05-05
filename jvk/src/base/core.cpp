@@ -126,7 +126,13 @@ auto Core::tryCreatePhysicalDevice(
     using index_type = cth::dt::union_find::index_type;
 
     auto const roots = queue_set.roots();
-    std::unordered_map<index_type, size_t> rootToQueue{};
+
+    std::unordered_map<index_type, size_t> rootToQueue{
+        std::from_range,
+        std::views::zip(roots, std::views::iota(0uz))
+    };
+
+
     for(size_t i = 0; i < roots.size(); i++)
         rootToQueue[roots[i]] = i;
 

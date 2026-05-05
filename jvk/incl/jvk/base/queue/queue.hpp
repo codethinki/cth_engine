@@ -19,6 +19,12 @@ class PrimaryCmdBuffer;
 
 
 
+/**
+ * wraps the vulkan queue
+ * @details 
+ *  - threadsafe
+ *  - copyable
+ */
 class Queue {
 public:
     using State = QueueState;

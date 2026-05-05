@@ -6,12 +6,15 @@
 
 #include "jvk/base/core.hpp"
 
+#include "jvk/base/destruction_queue.hpp"
+#include "jvk/base/device.hpp"
+
 
 
 namespace jly {
 namespace {
 
-    std::vector<jvk::CoreConfig::queue_set_t> createQueueSets(std::span<QueueProperties const> queues) {
+    std::vector<jvk::CoreConfig::queue_set_t> create_queue_sets(std::span<QueueProperties const> queues) {
         std::vector<jvk::CoreConfig::queue_set_t> result{};
         result.emplace_back(queues.size()); //0, ..., N
 
@@ -38,50 +41,76 @@ namespace {
             result.push_back(result.back());
             result.back().merge(current, prev);
         }
+
+        //merge all
+        result.push_back(result.back());
+        for(size_t i = 0; i < queues.size(); i++)
+            result.back().merge(0, i);
+
+        return result;
+    }
+
+    std::vector<jvk::QueueFamilyProperties> to_queue_properties(std::span<QueueProperties const> queues) {
+        return {
+            std::from_range,
+            queues | std::views::transform(
+                [](QueueProperties queue_property) { return to_queue_family_properties(queue_property); }
+            )
+        };
     }
 }
 
 
 
-Core::Core(Config config) : _handle{std::make_unique<jvk::Core>()},
+Core::Core(Config config) :
+    _handle{std::make_unique<jvk::Core>()},
     _config{std::move(config)},
     _scheduler{_config.schedulerThreads},
-    _queues{createQueues(_config.queues)} {}
-Core::Core(Config config, VkConfig vk_config) : Core{std::move(config)} { create(std::move(vk_config)); }
-void Core::create(VkConfig vk_config) {
-    VkConfig config{
-        _config.appName,
-        _config.engineName,
-        _config.requiredExtensions,
-        jvk::DestructionQueueConfig{_config.destructionQueueTickDelay},
-        {
-            std::from_range,
-            _config.queues | std::views::transform(
-                [](QueueProperties queue_property) { return to_queue_family_properties(queue_property); }
-            )
-        },
+    _queues{_config.queues.size()} {}
 
-        //TEMP left off here. queue distribution is still an issue. see https://aistudio.google.com/app/prompts/1RE4tQLGRVyz9gQGEH_mDPgKfAKt1c9-j.
-        // vk queue already has mutex now, jvk core now correctly creates requested queues & maps requested -> unique ones
-        // still need to expose created queues in the core
-        // jly core still needs to wrap them in jly queues and use the bottom up merging of equal queues documented in @ref CoreConfig
-    }
+Core::Core(Config config, create_t) : Core{std::move(config)} { create(); }
 
+Core::~Core() = default;
+void Core::tickFrame() const { _handle->destructionQueue()->next(); }
 
-    _handle->create(std::move(vk_config));
+void Core::create() {
+    createHandle();
+
     _scheduler.start();
+}
+void Core::wait() {
+    debug_check(*this);
+
+    _scheduler.request_stop();
+    _handle->device().waitIdle();
+    _scheduler.await_stop();
 }
 void Core::destroy() {
     debug_check(*this);
 
-    _scheduler.request_stop();
+    wait();
     _handle->destroy();
 }
-std::vector<Queue> Core::createQueues(std::span<QueueProperties const> properties) {
-    return {
-        std::from_range,
-        properties | std::views::transform([](auto const& p) { return Queue{p}; })
+
+void Core::createHandle() {
+    VkConfig const config{
+        _config.appName,
+        _config.engineName,
+        _config.requiredExtensions,
+        jvk::DestructionQueueConfig{_config.destructionQueueTickDelay},
+        to_queue_properties(_config.queues),
+        create_queue_sets(_config.queues),
     };
+
+    _handle->create(config);
+}
+void Core::createQueues() {
+    for(size_t i = 0; i < _queues.size(); i++)
+        _queues[i].wrap(std::make_unique<jvk::Queue>(_handle->queue(i)));
 }
 bool Core::created() const { return _handle->created(); }
+Queue const& Core::queue(size_t idx) const {
+    CTH_CRITICAL(idx >= _queues.size(), "idx({}) out of bounds({})", idx, _queues.size()) {}
+    return _queues[idx];
+}
 }

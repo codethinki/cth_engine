@@ -19,7 +19,7 @@ struct CoreConfig {
 
     std::string appName;
     std::string engineName;
-    std::vector<std::string const> requiredExtensions; //TODO replace this with better extension handling
+    std::vector<std::string> requiredExtensions; //TODO replace this with better extension handling
 
 
     /**
@@ -39,7 +39,7 @@ struct CoreConfig {
      * @details each root represents a group, requirements in a group are combined.
      *  Groups are separated onto different queue families as much as possible.
      */
-    std::vector<queue_set_t const> queueSets{};
+    std::vector<queue_set_t> queueSets{};
 
     static constexpr void debug_check(CoreConfig const&);
 };

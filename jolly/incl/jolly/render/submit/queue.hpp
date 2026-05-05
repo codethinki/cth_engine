@@ -23,19 +23,18 @@ namespace jly {
 
 class Queue {
 public:
-    using State = jvk::QueueState;
+    struct State;
 
-    explicit Queue(QueueProperties);
-    explicit Queue(std::unique_ptr<jvk::Queue> vk_queue);
+    explicit Queue();
+    explicit Queue(std::unique_ptr<jvk::Queue>);
 
-    Queue(QueueProperties, State const&);
 
     ~Queue();
 
     /**
      * @brief wraps the vulkan queue
      */
-    void wrap(State const&);
+    void wrap(std::unique_ptr<jvk::Queue>);
 
     /**
      * @brief destroys and resets the underlying queue
@@ -46,6 +45,8 @@ public:
      * @brief if @ref created() calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
+
+    State release();
 
     /**
      * @brief advances and submits the submit_info
@@ -81,4 +82,10 @@ public:
     [[nodiscard]] QueueProperties familyProperties() const;
 };
 
+}
+
+namespace jly {
+struct Queue::State {
+    std::unique_ptr<jvk::Queue> handle;
+};
 }

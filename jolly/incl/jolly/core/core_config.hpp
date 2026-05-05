@@ -20,6 +20,6 @@ struct CoreConfig {
 
     size_t schedulerThreads = 1;
     //TODO create a better system
-    std::vector<std::string const> requiredExtensions = {};
+    std::vector<std::string> requiredExtensions = {};
 };
 }

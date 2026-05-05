@@ -17,7 +17,7 @@ App::App() {
     initFrame();
 }
 
-void App::run() {
+void App::run() const {
     cth::log::msg<except::INFO>("starting...");
 
     while(!_resources->shouldClose()) {
@@ -25,12 +25,13 @@ void App::run() {
 
         renderFrame();
     }
-    _core->device().waitIdle();
+    _core->wait();
 
     cth::log::msg<except::INFO>("shutting down...");
 
     //OldModel::clearModels();
 }
+
 
 void App::createRenderer3() {
     jly::Renderer::Config const config{
@@ -47,9 +48,9 @@ void App::createRenderer3() {
                     .queue = &renderQueue(),
                     .subStages = 3,
                     .signalSemaphores{std::from_range, _resources->renderFinishedSemaphores()},
-                    .waitStages{std::from_range, _resources->syncConfig().imageAvailableWaitStages()},
-                    .flags = jly::RENDER_STAGE_PARALLEL_FRAMES_IN_FLIGHT_RECORDING |
-                    jly::RENDER_STAGE_PARALLEL_SUB_STAGE_RECORDING
+                    .waitStages{_resources->syncConfig().imageAvailableWaitStages()},
+                    .flags = jly::RenderStageFlags::PARALLEL_FRAMES_IN_FLIGHT_RECORDING
+                    | jly::RenderStageFlags::PARALLEL_SUB_STAGE_RECORDING
                 }
             }
         },
@@ -80,7 +81,7 @@ void App::initFrame() {
 
 void App::renderFrame() const {
     _graphicsStage->wait();
-    _destructionQueue->next();
+    _core->tickFrame();
 
     _resources->acquireFrame();
 
@@ -89,7 +90,6 @@ void App::renderFrame() const {
     graphicsPhase();
 
     _resources->presentFrame();
-
 }
 
 void App::graphicsPhase() const {
@@ -108,7 +108,7 @@ void App::graphicsPhase() const {
 
 void App::initRenderSystem(jvk::PrimaryCmdBuffer const& cmd_buffer) {
     _renderSystem = std::make_unique<RenderSystem>(
-        _core.get(),
+        &_core->raw(),
         cmd_buffer,
         _resources->renderPass(),
         _resources->msaaSampleCount()
@@ -124,9 +124,9 @@ std::vector<std::string> App::getRequiredInstanceExtensions() {
     return extensions;
 }
 
-jvk::Queue& App::transferQueue() { return _queues[0]; }
-jvk::Queue& App::renderQueue() { return _queues[1]; }
-jvk::Queue& App::presentQueue() { return _queues[2]; }
+jly::Queue const& App::transferQueue() const { return _core->queue(0); }
+jly::Queue const& App::renderQueue() const { return _core->queue(1); }
+jly::Queue const& App::presentQueue() const { return _core->queue(2); }
 
 }
 
