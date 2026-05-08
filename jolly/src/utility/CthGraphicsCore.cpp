@@ -10,7 +10,8 @@
 #include "jvk/utility/format.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
-#include "src/utility/vk_convert.hpp"
+//private
+#include "utility/vk_convert.hpp"
 
 
 namespace jly {

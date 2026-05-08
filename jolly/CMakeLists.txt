@@ -6,7 +6,7 @@ add_library(jolly STATIC ${JOLLY_SRC} ${JOLLY_INCL})
 target_include_directories(
         jolly
         PUBLIC incl
-        PRIVATE ./
+        PRIVATE src
 )
 target_precompile_headers(
         jolly

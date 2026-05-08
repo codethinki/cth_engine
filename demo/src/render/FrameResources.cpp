@@ -5,18 +5,13 @@
 #include "jvk/base/core.hpp"
 #include "jvk/base/physical_device.hpp"
 #include "jvk/render/cmd/cmd_buffer.hpp"
-#include "jvk/render/pass/subpass.hpp"
 #include "jvk/render/pass/render_pass.hpp"
 #include "jvk/render/pass/render_pass_config.hpp"
+#include "jvk/render/pass/subpass.hpp"
 #include "jvk/render/pass/attachment/attachment_collection.hpp"
 #include "jvk/render/pass/attachment/attachment_description.hpp"
 #include "jvk/render/pass/framebuffer/swapchain_fb_collection.hpp"
 #include "jvk/surface/swapchain/swapchain.hpp"
-#include "jvk/utility/vk_overloads.hpp"
-
-
-#include "../../../jolly/src/utility/vk_convert.hpp"
-
 #include "jolly/core/core.hpp"
 
 namespace cth {
@@ -93,8 +88,7 @@ VkFormat FrameResources::findDepthFormat() const {
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
     );
 
-    CTH_STABLE_ERR(format == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED")
-    throw details->exception();
+    CTH_STABLE_THROW(format == VK_FORMAT_UNDEFINED, "depth format must not be VK_FORMAT_UNDEFINED") {}
 
     return format;
 }
