@@ -24,7 +24,7 @@ struct SubmitInfo {
     SubmitInfo(
         std::span<PrimaryCmdBuffer const* const> cmd_buffers,
         std::span<PipelineWaitStage const> wait_stages,
-        std::span<Semaphore* const> signal_semaphores,
+        std::span<Semaphore const* const> signal_semaphores,
         Fence const* fence
     );
 
@@ -40,7 +40,7 @@ private:
     void create();
 
     void initWait(std::span<PipelineWaitStage const> wait_stages);
-    void initSignal(std::span<Semaphore* const> signal_semaphores);
+    void initSignal(std::span<Semaphore const* const> signal_semaphores);
 
     VkSubmitInfo _submitInfo{};
     VkSubmitInfo _skipSubmitInfo{};
@@ -54,7 +54,7 @@ private:
     std::vector<VkPipelineStageFlags> _pipelineWaitStages;
 
     std::vector<TimelineSemaphore const*> _waitTimelineSemaphores;
-    std::vector<TimelineSemaphore*> _signalTimelineSemaphores;
+    std::vector<TimelineSemaphore const*> _signalTimelineSemaphores;
     std::vector<size_t> _waitValues{};
     std::vector<size_t> _signalValues{};
 

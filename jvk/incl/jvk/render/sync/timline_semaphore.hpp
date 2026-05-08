@@ -32,16 +32,28 @@ public:
      */
     ~TimelineSemaphore() override = default;
 
-    void wrap(State const& state);
+    /**
+     * wraps the state
+     */
+    void wrap(State const&);
 
     // ReSharper disable once CppHidingFunction
+    /**
+     * releases state and resets
+     * @return state of object
+     */
     State release();
 
 
     void signal();
 
     [[nodiscard]] size_t value() const { return _value; }
-    [[nodiscard]] size_t next() { return ++_value; }
+
+    /**
+     * advances the cpu counter 
+     * @details thread safe
+     */
+    [[nodiscard]] size_t next() const { return ++_value; }
 
     [[nodiscard]] size_t gpuValue() const;
     [[nodiscard]] VkResult wait(uint64_t nanoseconds = UINT64_MAX) const;
@@ -53,21 +65,34 @@ protected:
 private:
     [[nodiscard]] VkSemaphoreSignalInfo signalInfo(size_t const& value) const;
 
-    [[nodiscard]] static VkTimelineSemaphoreSubmitInfo submitInfo(size_t const& wait_value,
-        size_t const& signal_value);
+    [[nodiscard]] static VkTimelineSemaphoreSubmitInfo submitInfo(
+        size_t const& wait_value,
+        size_t const& signal_value
+    );
 
     [[nodiscard]] static VkSemaphoreWaitInfo waitInfo(size_t const& value, VkSemaphore const& p_semaphore);
 
-    [[nodiscard]] static VkSemaphoreWaitInfo waitInfo(std::span<size_t const> wait_values,
-        std::span<VkSemaphore const> wait_semaphores);
+    [[nodiscard]] static VkSemaphoreWaitInfo waitInfo(
+        std::span<size_t const> wait_values,
+        std::span<VkSemaphore const> wait_semaphores
+    );
 
-    size_t _value = 0;
+    mutable std::atomic<size_t> _value = 0;
 
 public:
     TimelineSemaphore(TimelineSemaphore const& other) = delete;
     TimelineSemaphore& operator=(TimelineSemaphore const& other) = delete;
-    TimelineSemaphore(TimelineSemaphore&& other) noexcept = default;
-    TimelineSemaphore& operator=(TimelineSemaphore&& other) noexcept = default;
+    TimelineSemaphore(TimelineSemaphore&& other) noexcept : Semaphore{std::move(other)} {
+        _value.store(other._value.load(std::memory_order_relaxed));
+    }
+    TimelineSemaphore& operator=(TimelineSemaphore&& other) noexcept {
+        if(this == &other)
+            return *this;
+
+        Semaphore::operator=(std::move(other));
+        _value.store(other._value.load(std::memory_order_relaxed));
+        return *this;
+    };
 };
 } //namespace cth
 

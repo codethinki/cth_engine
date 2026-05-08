@@ -19,8 +19,7 @@ void Jvk::terminateVolk() { volkFinalize(); }
 
 void Jvk::initVolk() {
     auto const result = volkInitialize();
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to load vulkan")
-    throw vk_result_exception{result, details->exception()};
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to load vulkan") {}
 
     log::msg<except::LOG>("loaded vulkan (volk)");
 }

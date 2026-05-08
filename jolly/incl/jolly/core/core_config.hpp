@@ -18,8 +18,8 @@ struct CoreConfig {
 
     size_t destructionQueueTickDelay;
 
+    //TODO create a better system. the instance shouldn't be normal oop anyway
+    std::vector<std::string> requiredInstanceExtensions{};
     size_t schedulerThreads = 1;
-    //TODO create a better system
-    std::vector<std::string> requiredExtensions = {};
 };
 }

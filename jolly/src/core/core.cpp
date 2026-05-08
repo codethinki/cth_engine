@@ -21,7 +21,7 @@ namespace {
         auto const rbegin = static_cast<ptrdiff_t>(queues.size() - 2);
 
         //merge eq
-        for(auto i = rbegin; i >= 0; i++) {
+        for(auto i = rbegin; i >= 0; --i) {
             auto const current = static_cast<size_t>(i);
             auto const prev = static_cast<size_t>(i + 1);
 
@@ -32,7 +32,7 @@ namespace {
         }
 
         //merge subset.eq
-        for(auto i = rbegin; i >= 0; i++) {
+        for(auto i = rbegin; i >= 0; --i) {
             auto const current = i;
             auto const prev = i + 1;
 
@@ -75,6 +75,7 @@ void Core::tickFrame() const { _handle->destructionQueue()->next(); }
 
 void Core::create() {
     createHandle();
+    createQueues();
 
     _scheduler.start();
 }
@@ -96,7 +97,7 @@ void Core::createHandle() {
     VkConfig const config{
         _config.appName,
         _config.engineName,
-        _config.requiredExtensions,
+        _config.requiredInstanceExtensions,
         jvk::DestructionQueueConfig{_config.destructionQueueTickDelay},
         to_queue_properties(_config.queues),
         create_queue_sets(_config.queues),
@@ -110,6 +111,8 @@ void Core::createQueues() {
 }
 bool Core::created() const { return _handle->created(); }
 Queue const& Core::queue(size_t idx) const {
+    debug_check(*this);
+
     CTH_CRITICAL(idx >= _queues.size(), "idx({}) out of bounds({})", idx, _queues.size()) {}
     return _queues[idx];
 }

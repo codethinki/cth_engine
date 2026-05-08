@@ -36,8 +36,11 @@ public:
      * @note calls @ref Instance(std::string_view, std::span<std::string const>)
      * @note calls @ref create()
      */
-    Instance(std::string_view app_name, std::span<std::string const> required_extensions,
-        std::optional<DebugMessenger::Config> const& messenger_config);
+    Instance(
+        std::string_view app_name,
+        std::span<std::string const> required_extensions,
+        std::optional<DebugMessenger::Config> const& messenger_config
+    );
 
     /**
      * @brief constructs and wraps

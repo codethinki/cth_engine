@@ -31,7 +31,7 @@ SubmitInfo::SubmitInfo(
     Core const& core,
     cmd_buffers_span cmd_buffers,
     pipeline_wait_stage_span wait_stages,
-    std::span<jvk::Semaphore* const> signal_semaphores,
+    std::span<jvk::Semaphore const* const> signal_semaphores,
     bool fence_signaled
 ) : _cmdBuffers{std::from_range, cmd_buffers},
     _fence{core, fence_signaled},

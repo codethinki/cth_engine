@@ -131,7 +131,7 @@ void Device::createQueues(span<queue_family_index_t const> family_indices) {
         JVK_STABLE_THROW(ptr == VK_NULL_HANDLE, "failed to get device queue") {}
 
         _queues.emplace_back(
-            _physicalDevice->queueFamily(familyIndex).properties,
+            _physicalDevice->queueFamily(familyIndex)->properties,
             Queue::State{this, ptr, familyIndex, queueCounts[familyIndex]++, std::make_shared<std::mutex>()}
         );
     }

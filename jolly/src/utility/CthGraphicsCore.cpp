@@ -14,7 +14,9 @@
 
 
 namespace jly {
-GraphicsCore::GraphicsCore(jly::Core const& core, Config config) : _core{&core}, _config{std::move(config)} {}
+GraphicsCore::GraphicsCore(jly::Core const& core, Config config) : _core{&core}, _config{std::move(config)} {
+    GraphicsCoreConfig::debug_check(_config);
+}
 
 GraphicsCore::GraphicsCore(jly::Core const& core, Config const& config, State state) :
     GraphicsCore{core, config} { wrap(std::move(state)); }
@@ -23,9 +25,9 @@ GraphicsCore::GraphicsCore(
     jly::Core const& core,
     Config const& config,
     std::string_view window_name,
-    glm::uvec2 extent,
+    glm::uvec2 window_extent,
     Queue const& present_queue
-) : GraphicsCore{core, config} { create(window_name, extent, present_queue); }
+) : GraphicsCore{core, config} { create(window_name, window_extent, present_queue); }
 
 GraphicsCore::~GraphicsCore() { optDestroy(); }
 

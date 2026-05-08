@@ -171,8 +171,10 @@ auto PhysicalDevice::AutoPick(
             device
         );
 
-        if(createResult.has_value())
+        if(createResult.has_value()){
             chosen = std::move(createResult);
+            break;
+        }
     }
 
     if(!chosen)
@@ -212,8 +214,8 @@ uint32_t PhysicalDevice::findMemoryType(uint32_t type_filter, VkMemoryPropertyFl
             mem_properties)
             return i;
 
-    CTH_STABLE_ERR(true, "no suitable memory type available")
-    throw details->exception();
+    JVK_STABLE_THROW(true, "no suitable memory type available"){}
+    return -1;
 }
 
 auto PhysicalDevice::findSupportedFormat(
@@ -234,8 +236,8 @@ auto PhysicalDevice::findSupportedFormat(
             return
                 format;
     }
-    CTH_STABLE_ERR(true, "format unsupported")
-    throw except::data_exception{features, details->exception()};
+    JVK_STABLE_THROW(true, "format unsupported") {}
+    return VK_FORMAT_MAX_ENUM;
 }
 
 auto PhysicalDevice::queueFamilyIndices(
@@ -276,13 +278,11 @@ vector<VkPhysicalDevice> PhysicalDevice::enumerateVkDevices(jvk::vk_not_null<VkI
 
     uint32_t deviceCount = 0;
     auto const countResult = vkEnumeratePhysicalDevices(vk_instance.get(), &deviceCount, nullptr);
-    CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to count physical devices")
-    throw vk_result_exception{countResult, details->exception()};
+    JVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "failed to count physical devices") {}
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     auto const writeResult = vkEnumeratePhysicalDevices(vk_instance.get(), &deviceCount, devices.data());
-    CTH_STABLE_ERR(writeResult != VK_SUCCESS, "failed to write physical devices")
-    throw vk_result_exception{writeResult, details->exception()};
+    JVK_RESULT_STABLE_THROW(writeResult != VK_SUCCESS, writeResult, "failed to enumerate physical devices") {}
 
     return devices;
 }
@@ -295,8 +295,7 @@ vector<std::string> PhysicalDevice::queryExtensions(jvk::vk_not_null<VkPhysicalD
         &extensionCount,
         nullptr
     );
-    CTH_STABLE_ERR(countResult != VK_SUCCESS, "failed to count device extensions")
-    throw vk_result_exception{countResult, details->exception()};
+    JVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "failed to count device extensions") {}
 
     vector<VkExtensionProperties> availableExtensions{extensionCount};
     auto const writeResult = vkEnumerateDeviceExtensionProperties(
@@ -305,8 +304,7 @@ vector<std::string> PhysicalDevice::queryExtensions(jvk::vk_not_null<VkPhysicalD
         &extensionCount,
         availableExtensions.data()
     );
-    CTH_STABLE_ERR(writeResult != VK_SUCCESS, "failed to write device extension properties")
-    throw vk_result_exception{writeResult, details->exception()};
+    JVK_RESULT_STABLE_THROW(writeResult != VK_SUCCESS, writeResult, "failed to enumerate device extension properties") {}
 
     vector<std::string> extensions{extensionCount};
 
@@ -406,8 +404,16 @@ VkSampleCountFlagBits PhysicalDevice::evalMaxSampleCount(VkPhysicalDevicePropert
     CTH_CRITICAL(true, "invalid state, sample count not supported") {}
     return VK_SAMPLE_COUNT_1_BIT;
 }
-QueueFamily const& PhysicalDevice::queueFamily(queue_family_index_t idx) const {
-    _queueFamilies | std::ranges::find_if()
+QueueFamily const* PhysicalDevice::queueFamily(queue_family_index_t idx) const {
+    auto const it = std::ranges::find_if(
+        _queueFamilies,
+        [idx](QueueFamily const& family) { return family.index == idx; }
+    );
+
+    if(it == _queueFamilies.end())
+        return nullptr;
+
+    return &*it;
 }
 
 

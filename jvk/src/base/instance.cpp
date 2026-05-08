@@ -21,9 +21,10 @@ Instance::Instance(string_view app_name, span<string const> required_extensions)
     _requiredExt.reserve(required_extensions.size() + REQUIRED_INSTANCE_EXTENSIONS.size());
     _requiredExt.append_range(required_extensions);
     _requiredExt.append_range(
-        REQUIRED_INSTANCE_EXTENSIONS | std::views::transform([](std::string_view const& view) {
-            return std::string{view};
-        }));
+        REQUIRED_INSTANCE_EXTENSIONS | std::views::transform(
+            [](std::string_view const& view) { return std::string{view}; }
+        )
+    );
 
     checkInstanceExtensionSupport();
 
@@ -31,14 +32,20 @@ Instance::Instance(string_view app_name, span<string const> required_extensions)
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) enableValidationLayers();
 }
 
-Instance::Instance(std::string_view app_name, std::span<std::string const> required_extensions,
-    std::optional<DebugMessenger::Config> const& messenger_config) : Instance{app_name, required_extensions} {
-    create(messenger_config);
-}
+Instance::Instance(
+    std::string_view app_name,
+    std::span<std::string const> required_extensions,
+    std::optional<DebugMessenger::Config> const& messenger_config
+) : Instance{app_name, required_extensions} { create(messenger_config); }
 
-Instance::Instance(std::string_view app_name, std::span<std::string const> required_extensions,
-    State state) : Instance{app_name,
-    required_extensions} { wrap(std::move(state)); }
+Instance::Instance(
+    std::string_view app_name,
+    std::span<std::string const> required_extensions,
+    State state
+) : Instance{
+    app_name,
+    required_extensions
+} { wrap(std::move(state)); }
 
 void Instance::wrap(State state) {
     optDestroy();
@@ -92,8 +99,10 @@ void Instance::create(std::optional<DebugMessenger::Config> messenger_config) {
     loadInstanceFunctions(ptr);
 
     if(messenger_config != std::nullopt)
-        _debugMessenger = std::make_unique<DebugMessenger>(*messenger_config,
-            *this);
+        _debugMessenger = std::make_unique<DebugMessenger>(
+            *messenger_config,
+            *this
+        );
 }
 
 void Instance::destroy() {
@@ -111,9 +120,7 @@ void Instance::checkInstanceExtensionSupport() {
         if(!std::ranges::contains(_availableExt, extension)) missingExtensions.emplace_back(extension);
 
     CTH_STABLE_ERR(!missingExtensions.empty(), "instance extensions missing") {
-        std::ranges::for_each(missingExtensions, [&details](string_view extension) {
-            details->add(extension);
-        });
+        std::ranges::for_each(missingExtensions, [&details](string_view extension) { details->add(extension); });
 
         throw details->exception();
     }
@@ -123,9 +130,12 @@ void Instance::checkValidationLayerSupport() {
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         vector<string> missingLayers{};
 
-        std::ranges::for_each(VALIDATION_LAYERS, [&](string_view layer) {
-            if(!std::ranges::contains(_availableLayers, layer)) missingLayers.emplace_back(layer);
-        });
+        std::ranges::for_each(
+            VALIDATION_LAYERS,
+            [&](string_view layer) {
+                if(!std::ranges::contains(_availableLayers, layer)) missingLayers.emplace_back(layer);
+            }
+        );
         CTH_STABLE_ERR(!missingLayers.empty(), "validation layers missing") {
             std::ranges::for_each(missingLayers, [&details](string_view layer) { details->add(layer); });
 
@@ -138,8 +148,11 @@ void Instance::enableValidationLayers() {
     _availableLayers = getAvailableValidationLayers();
     checkValidationLayerSupport();
 
-    _requiredExt.insert(_requiredExt.begin(), VALIDATION_LAYER_EXTENSIONS.begin(),
-        VALIDATION_LAYER_EXTENSIONS.end());
+    _requiredExt.insert(
+        _requiredExt.begin(),
+        VALIDATION_LAYER_EXTENSIONS.begin(),
+        VALIDATION_LAYER_EXTENSIONS.end()
+    );
 }
 
 vector<string> Instance::getAvailableValidationLayers() {
@@ -150,9 +163,11 @@ vector<string> Instance::getAvailableValidationLayers() {
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
     vector<string> layers(availableLayers.size());
-    std::ranges::transform(availableLayers, layers.begin(), [](VkLayerProperties const& layer) {
-        return string(layer.layerName);
-    });
+    std::ranges::transform(
+        availableLayers,
+        layers.begin(),
+        [](VkLayerProperties const& layer) { return string(layer.layerName); }
+    );
 
     return layers;
 }
@@ -164,8 +179,11 @@ vector<string> Instance::getAvailableInstanceExtensions() {
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availableExtensions.data());
 
     vector<string> availableExtensionsStr{availableExtensions.size()};
-    std::ranges::transform(availableExtensions, availableExtensionsStr.begin(),
-        [](VkExtensionProperties const& ext) { return ext.extensionName; });
+    std::ranges::transform(
+        availableExtensions,
+        availableExtensionsStr.begin(),
+        [](VkExtensionProperties const& ext) { return ext.extensionName; }
+    );
 
 
     return availableExtensionsStr;

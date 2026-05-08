@@ -7,9 +7,7 @@
 namespace jvk {
 TimelineSemaphore::TimelineSemaphore(Core const& core) : Semaphore{core} {}
 
-TimelineSemaphore::TimelineSemaphore(Core const& core, State const& state) : TimelineSemaphore{core} {
-    wrap(state);
-}
+TimelineSemaphore::TimelineSemaphore(Core const& core, State const& state) : TimelineSemaphore{core} { wrap(state); }
 
 TimelineSemaphore::TimelineSemaphore(Core const& core, create_t) : TimelineSemaphore{core} {
     Semaphore::createHandle(TimelineSemaphore::createInfo());
@@ -21,7 +19,7 @@ void TimelineSemaphore::wrap(State const& state) {
 }
 
 TimelineSemaphore::State TimelineSemaphore::release() {
-    auto const value = _value;
+    auto const value = _value.load();
     auto const [vkSemaphore] = Semaphore::release();
 
     return State{vkSemaphore, value};
@@ -32,9 +30,7 @@ TimelineSemaphore::State TimelineSemaphore::release() {
 size_t TimelineSemaphore::gpuValue() const {
     size_t value = 0;
     auto const result = _core->functions()->vkGetSemaphoreCounterValue(_core->vkDevice(), get(), &value);
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to get semaphore counter value")
-    throw jvk::vk_result_exception{result, details->exception()};
-
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to get semaphore counter value") {}
     return value;
 }
 
@@ -42,8 +38,7 @@ void TimelineSemaphore::signal() {
     auto const info = signalInfo(++_value);
 
     auto const result = _core->functions()->vkSignalSemaphore(_core->vkDevice(), &info);
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to signal semaphore")
-    throw jvk::vk_result_exception{result, details->exception()};
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to signal semaphore") {}
 }
 
 VkResult TimelineSemaphore::wait(uint64_t nanoseconds) const {
@@ -76,11 +71,16 @@ VkSemaphoreSignalInfo TimelineSemaphore::signalInfo(size_t const& value) const {
 }
 
 
-VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(std::span<size_t const> wait_values,
-    std::span<VkSemaphore const> wait_semaphores) {
-    CTH_CRITICAL(wait_values.size() != wait_semaphores.size(),
+VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(
+    std::span<size_t const> wait_values,
+    std::span<VkSemaphore const> wait_semaphores
+) {
+    CTH_CRITICAL(
+        wait_values.size() != wait_semaphores.size(),
         "wait_values size ({0}) must equal wait_semaphores size ({1}) required",
-        wait_values.size(), wait_semaphores.size()) {}
+        wait_values.size(),
+        wait_semaphores.size()
+    ) {}
 
 
     VkSemaphoreWaitInfo const waitInfo{
@@ -92,11 +92,12 @@ VkSemaphoreWaitInfo TimelineSemaphore::waitInfo(std::span<size_t const> wait_val
         .pValues = wait_values.data(),
     };
     return waitInfo;
-
 }
 
-VkTimelineSemaphoreSubmitInfo TimelineSemaphore::submitInfo(size_t const& wait_value,
-    size_t const& signal_value) {
+VkTimelineSemaphoreSubmitInfo TimelineSemaphore::submitInfo(
+    size_t const& wait_value,
+    size_t const& signal_value
+) {
     VkTimelineSemaphoreSubmitInfo const timelineInfo{
         .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
         .pNext = nullptr,

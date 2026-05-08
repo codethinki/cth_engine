@@ -105,7 +105,7 @@ void FrameResources::createDepthAttachments() {
 
     _depthAttachments = std::make_unique<jvk::AttachmentCollection>(
         _core->raw(),
-        jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 2, imageConfig, description},
+        jvk::AttachmentCollection::Config{_config.framesInFlight, 2, imageConfig, description},
         swapchainExtent()
     );
 }
@@ -124,7 +124,7 @@ void FrameResources::createMsaaAttachments() {
 
     _msaaAttachments = std::make_unique<jvk::AttachmentCollection>(
         _core->raw(),
-        jvk::AttachmentCollection::Config{jvk::constants::FRAMES_IN_FLIGHT, 1, imageConfig, description},
+        jvk::AttachmentCollection::Config{_config.framesInFlight, 1, imageConfig, description},
         swapchainExtent()
     );
 }
@@ -211,11 +211,12 @@ void FrameResources::createGraphicsCore() {
     _graphicsCore = std::make_unique<jly::GraphicsCore>(
         *_core,
         jly::GraphicsCore::Config{
+            .framesInFlight = _config.framesInFlight,
             .subpassConfig = jvk::SwapchainSubpassConfig::ColorAttachmentOptimal(RENDER_SUBPASS_INDEX),
         },
         _config.windowName,
         _config.windowExtent,
-        _config.presentQueue
+        *_config.presentQueue
     );
 }
 
@@ -248,7 +249,7 @@ bool FrameResources::shouldClose() const { return _graphicsCore->osWindow()->sho
 jly::RenderPulse const& FrameResources::renderPulse() const { return _graphicsCore->renderPulse(); }
 
 jly::GraphicsSyncConfig const& FrameResources::syncConfig() const { return *_graphicsCore->syncConfig(); }
-std::vector<jvk::Semaphore*> FrameResources::renderFinishedSemaphores() const {
+std::vector<jvk::Semaphore const*> FrameResources::renderFinishedSemaphores() const {
     return _graphicsCore->syncConfig()->renderFinishedSemaphores();
 }
 

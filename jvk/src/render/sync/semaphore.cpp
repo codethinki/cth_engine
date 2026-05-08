@@ -1,8 +1,8 @@
 #include "jvk/render/sync/semaphore.hpp"
 
 #include "jvk/base/core.hpp"
-#include "jvk/base/device.hpp"
 #include "jvk/base/destruction_queue.hpp"
+#include "jvk/base/device.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
 
@@ -31,8 +31,10 @@ void Semaphore::destroy() {
     };
 
     auto const queue = _core->destructionQueue();
-    if(queue) queue->push(lambda);
-    else lambda();
+    if(queue)
+        queue->push(lambda);
+    else
+        lambda();
 
     reset();
 }

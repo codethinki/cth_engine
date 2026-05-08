@@ -40,8 +40,6 @@ public:
      */
     void destroy();
 
-
-
 private:
     void createHandle();
     void createQueues();

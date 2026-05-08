@@ -11,7 +11,7 @@ namespace jvk {
 SubmitInfo::SubmitInfo(
     std::span<PrimaryCmdBuffer const* const> cmd_buffers,
     std::span<PipelineWaitStage const> wait_stages,
-    std::span<Semaphore* const> signal_semaphores,
+    std::span<Semaphore const* const> signal_semaphores,
     Fence const* fence
 ) : _fence{fence->get()} {
     _cmdBuffers.resize(cmd_buffers.size());
@@ -41,7 +41,7 @@ SubmitInfo& SubmitInfo::next() {
     std::ranges::transform(
         _signalTimelineSemaphores,
         _signalValues.begin(),
-        [](TimelineSemaphore* semaphore) { return semaphore->next(); }
+        [](TimelineSemaphore const* semaphore) { return semaphore->next(); }
     );
 
     return *this;
@@ -131,7 +131,7 @@ void SubmitInfo::initWait(std::span<PipelineWaitStage const> wait_stages) {
     }
 }
 
-void SubmitInfo::initSignal(std::span<Semaphore* const> signal_semaphores) {
+void SubmitInfo::initSignal(std::span<Semaphore const* const> signal_semaphores) {
     _signalValues.resize(signal_semaphores.size());
     _signalSemaphores.reserve(signal_semaphores.size());
 
@@ -140,7 +140,7 @@ void SubmitInfo::initSignal(std::span<Semaphore* const> signal_semaphores) {
 
     for(auto& signalSemaphore : signal_semaphores) {
         Semaphore::debug_check(*signalSemaphore);
-        auto semaphore = dynamic_cast<TimelineSemaphore*>(signalSemaphore);
+        auto semaphore = dynamic_cast<TimelineSemaphore const*>(signalSemaphore);
         if(!semaphore) semaphores.push_back(signalSemaphore->get());
         else {
             _signalTimelineSemaphores.push_back(semaphore);

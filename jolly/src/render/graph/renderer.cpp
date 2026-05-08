@@ -1,6 +1,8 @@
 #include "jolly/render/graph/renderer.hpp"
 
+#include "jolly/core/core.hpp"
 #include "jolly/render/graph/RenderStage.hpp"
+#include "jolly/render/sync/pipeline_wait_stage.hpp"
 #include "jolly/render/sync/RenderPulse.hpp"
 
 #include "jvk/base/core.hpp"
@@ -20,7 +22,7 @@ void RendererConfig::removeUnusedDependencies() {
 }
 
 namespace jly {
-Renderer::Renderer(jvk::Core const& core, RenderPulse const& pulse, Config config) : _core{&core},
+Renderer::Renderer(Core const& core, RenderPulse const& pulse, Config config) : _core{&core},
     _pulse{&pulse} {
     config.removeUnusedDependencies();
     Config::debugCheck(config);
@@ -34,7 +36,7 @@ Renderer::Renderer(jvk::Core const& core, RenderPulse const& pulse, Config confi
 }
 
 Renderer::Renderer(
-    jvk::Core const& core,
+    Core const& core,
     RenderPulse const& pulse,
     Config const& config,
     create_t
@@ -43,7 +45,7 @@ Renderer::Renderer(
 Renderer::~Renderer() { optDestroy(); }
 
 auto Renderer::create() -> std::map<id_t, RenderStage*> {
-    jvk::Core::debug_check(*_core);
+    Core::debug_check(*_core);
     optDestroy();
 
     createSemaphores();
@@ -62,10 +64,11 @@ void Renderer::destroy() {
 }
 
 void Renderer::initDependencySemaphores(size_t edges) {
-    size_t const semaphores = edges * StageConfig::GROUP_SIZE;
+    size_t const semaphores = edges * _pulse->framesInFlight();
     _stageSemaphores.reserve(semaphores);
 
-    for(size_t i = 0; i < semaphores; ++i) _stageSemaphores.emplace_back(*_core);
+    for(size_t i = 0; i < semaphores; ++i)
+        _stageSemaphores.emplace_back(_core->raw());
 }
 
 void Renderer::linkStageDependencies(
@@ -81,13 +84,16 @@ void Renderer::linkStageDependencies(
 
     for(auto const [dependencyId, dependencySemaphores] : std::views::zip(
             dependencies,
-            stage_semaphores | std::views::chunk(GROUP_SIZE)
+            stage_semaphores | std::views::chunk(_pulse->framesInFlight())
         )) {
         auto& targetStage = stages.at(dependencyId);
 
         targetStage.signalSemaphores.append_range(dependencySemaphores);
-        for(auto& semaphore : dependencySemaphores)
-            stages.at(source_id).waitStages.emplace_back(dag.annotation(source_id, dependencyId), semaphore);
+        for(auto* semaphore : dependencySemaphores)
+            stages.at(source_id).waitStages.emplace_back(
+                dag.annotation(source_id, dependencyId),
+                semaphore
+            );
     }
 }
 
@@ -99,7 +105,7 @@ void Renderer::linkDependencies(Config::stage_map_t& stages, Config::dependencie
 
     for(auto const& uniqueID : stages | std::views::keys) {
         auto& dependencies = dag.at(uniqueID);
-        auto const semaphoreCount = dependencies.size() * GROUP_SIZE;
+        auto const semaphoreCount = dependencies.size() * _pulse->framesInFlight();
 
 
         auto const stageSemaphores = std::span{&semaphores[semaphoreCounter], semaphoreCount};

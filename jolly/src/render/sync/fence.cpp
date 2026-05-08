@@ -35,5 +35,6 @@ cth::co::native_handle_awaiter Fence::operator co_await() const {
     return {_core->scheduler(), _handle->extractOsHandle()};
 }
 bool Fence::created() const { return _handle->created(); }
+Fence::Fence(Fence&& other) noexcept = default;
 
 }

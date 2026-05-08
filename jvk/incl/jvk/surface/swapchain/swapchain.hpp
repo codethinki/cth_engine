@@ -210,7 +210,7 @@ public:
         return _imageIndices[pulse_value];
     }
 
-    [[nodiscard]] auto framesInFlight() const { return _config.framesInFlight; }
+    [[nodiscard]] auto framesInFlight() const { return _config.framesInFlight(); }
     [[nodiscard]] auto size() const { return _imageCount; }
     [[nodiscard]] ImageConfig imageConfig() const;
     [[nodiscard]] auto imageFormat() const { return _imageFormat; }

@@ -19,7 +19,7 @@ struct CoreConfig {
 
     std::string appName;
     std::string engineName;
-    std::vector<std::string> requiredExtensions; //TODO replace this with better extension handling
+    std::vector<std::string> requiredInstanceExtensions; //TODO replace this with better extension handling
 
 
     /**

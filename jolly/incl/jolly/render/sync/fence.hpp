@@ -3,6 +3,8 @@
 
 #include <cth/coro/awaiters/native_handle_awaiter.hpp>
 
+#include <memory>
+
 namespace jvk {
 class Fence;
 }
@@ -15,7 +17,7 @@ namespace jly {
 
 class Fence {
 public:
-    Fence(Core const&);
+    explicit Fence(Core const&);
     Fence(Core const&, bool signaled);
     ~Fence();
 
@@ -70,5 +72,10 @@ private:
 public:
     [[nodiscard]] jvk::Fence const& raw() const { return *_handle; }
     [[nodiscard]] bool created() const;
+
+    Fence(Fence const& other) = delete;
+    Fence& operator=(Fence const& other) = delete;
+    Fence(Fence&& other) noexcept;
+    Fence& operator=(Fence&& other) noexcept = default;
 };
 }

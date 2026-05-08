@@ -96,10 +96,15 @@ public:
     [[nodiscard]] jly::RenderPulse const& renderPulse() const;
     [[nodiscard]] jly::GraphicsSyncConfig const& syncConfig() const;
 
-    [[nodiscard]] std::vector<jvk::Semaphore*> renderFinishedSemaphores() const;
+    [[nodiscard]] std::vector<jvk::Semaphore const*> renderFinishedSemaphores() const;
 
 
     [[nodiscard]] auto const& core() const { return *_graphicsCore; }
     [[nodiscard]] VkSampleCountFlagBits msaaSampleCount() const { return _msaaSamples; }
+
+    FrameResources(FrameResources const& other) = delete;
+    FrameResources& operator=(FrameResources const& other) = delete;
+    FrameResources(FrameResources&& other) noexcept = default;
+    FrameResources& operator=(FrameResources&& other) noexcept = default;
 };
 }

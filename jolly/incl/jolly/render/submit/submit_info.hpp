@@ -26,8 +26,8 @@ public:
         Core const&,
         cmd_buffers_span,
         pipeline_wait_stage_span,
-        std::span<jvk::Semaphore* const> signal_semaphores,
-        bool fence_signaled
+        std::span<jvk::Semaphore const* const> signal_semaphores,
+        bool fence_signaled = false
     );
 
     auto const& cmdBuffers() const { return _cmdBuffers; }

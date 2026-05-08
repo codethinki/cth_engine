@@ -22,6 +22,7 @@ class Semaphore;
 }
 
 namespace jly {
+class Core;
 class RenderStage;
 }
 
@@ -30,7 +31,7 @@ namespace jly {
 struct RendererConfig {
     using StageConfig = RenderStageConfig;
     using id_t = size_t;
-    using dependencies_t = cth::dag<id_t, jvk::PipelineWaitStage::stage_t>;
+    using dependencies_t = cth::dag<id_t, PipelineWaitStage::stage_t>;
     using stage_map_t = std::map<id_t, StageConfig>;
 
     stage_map_t stages;
@@ -61,14 +62,14 @@ public:
      * @brief creates
      * @param config to use
      */
-    Renderer(jvk::Core const& core, RenderPulse const& pulse, Config config);
+    Renderer(Core const& core, RenderPulse const& pulse, Config config);
     /**
      * @brief constructs and creates
      * @param core requires @ref Core::created()
      * @param config to use
      * @details calls: Renderer::Render(Core const&, Config)
      */
-    Renderer(jvk::Core const& core, RenderPulse const& pulse, Config const& config, create_t);
+    Renderer(Core const& core, RenderPulse const& pulse, Config const& config, create_t);
 
     ~Renderer();
 
@@ -92,7 +93,7 @@ public:
 private:
     void initDependencySemaphores(size_t edges);
 
-    static void linkStageDependencies(
+    void linkStageDependencies(
         Config::stage_map_t& stages,
         Config::dependencies_t const& dag,
         id_t source_id,
@@ -110,8 +111,8 @@ private:
 
     bool _created = false;
 
-    cth::not_null<jvk::Core const*> _core;
-    cth::not_null<RenderPulse const*> _pulse;
+    not_null<Core const*> _core;
+    not_null<RenderPulse const*> _pulse;
 
     std::vector<jvk::Semaphore> _stageSemaphores;
     std::map<id_t, RenderStage> _renderStages;

@@ -15,7 +15,9 @@ GraphicsSyncConfig::GraphicsSyncConfig(
     State state
 ) : GraphicsSyncConfig{core} { wrap(std::move(state)); }
 
-GraphicsSyncConfig::GraphicsSyncConfig(jvk::Core const& core, size_t frames_in_flight) : GraphicsSyncConfig{core} { create(frames_in_flight); }
+GraphicsSyncConfig::GraphicsSyncConfig(jvk::Core const& core, size_t frames_in_flight) : GraphicsSyncConfig{core} {
+    create(frames_in_flight);
+}
 
 GraphicsSyncConfig::~GraphicsSyncConfig() { optDestroy(); }
 
@@ -59,18 +61,18 @@ GraphicsSyncConfig::State GraphicsSyncConfig::release() {
 }
 
 
-
-auto GraphicsSyncConfig::renderFinishedSemaphores() -> std::vector<jvk::Semaphore*> {
-    debug_check(*this);
-
-    return {std::from_range, _renderFinishedSemaphores | cth::views::to_ptr_range};
-}
-
-auto GraphicsSyncConfig::imageAvailableSemaphores() -> std::vector<jvk::Semaphore*> {
-    debug_check(*this);
-
-    return {std::from_range, _imageAvailableSemaphores | cth::views::to_ptr_range};
-}
+//TEMP
+//auto GraphicsSyncConfig::renderFinishedSemaphores() -> std::vector<jvk::Semaphore*> {
+//    debug_check(*this);
+//
+//    return {std::from_range, _renderFinishedSemaphores | cth::views::to_ptr_range};
+//}
+//
+//auto GraphicsSyncConfig::imageAvailableSemaphores() -> std::vector<jvk::Semaphore*> {
+//    debug_check(*this);
+//
+//    return {std::from_range, _imageAvailableSemaphores | cth::views::to_ptr_range};
+//}
 std::vector<jvk::Semaphore const*> GraphicsSyncConfig::renderFinishedSemaphores() const {
     debug_check(*this);
 
@@ -95,12 +97,12 @@ auto GraphicsSyncConfig::imageAvailableWaitStages() const -> std::vector<Pipelin
 jvk::Semaphore const* GraphicsSyncConfig::renderFinishedSemaphore(size_t index) const {
     return &_renderFinishedSemaphores[index];
 }
-jvk::Semaphore* GraphicsSyncConfig::renderFinishedSemaphore(size_t index) { return &_renderFinishedSemaphores[index]; }
+//jvk::Semaphore* GraphicsSyncConfig::renderFinishedSemaphore(size_t index) { return &_renderFinishedSemaphores[index]; }
 
 jvk::Semaphore const* GraphicsSyncConfig::imageAvailableSemaphore(size_t index) const {
     return &_imageAvailableSemaphores[index];
 }
-jvk::Semaphore* GraphicsSyncConfig::imageAvailableSemaphore(size_t index) { return &_imageAvailableSemaphores[index]; }
+//jvk::Semaphore* GraphicsSyncConfig::imageAvailableSemaphore(size_t index) { return &_imageAvailableSemaphores[index]; }
 
 }
 

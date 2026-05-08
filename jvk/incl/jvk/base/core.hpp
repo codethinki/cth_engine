@@ -94,13 +94,15 @@ public:
     State release();
 
 private:
-    /**
-     * first: unique queues, second: queue -> unique queue mapping
-     */
     struct queue_mappings {
         std::vector<queue_family_index_t> uniqueQueueFamilyIndices;
         std::vector<size_t> queuesToUniqueQueues;
     };
+    struct queue_set_relations {
+        std::vector<QueueFamilyProperties> uniqueQueues;
+        std::vector<size_t> queueToUniqueQueue;
+    };
+
 
     /**
      * @post if successful, sets `_queueSetIndex`
@@ -109,6 +111,11 @@ private:
     [[nodiscard]] queue_mappings createPhysicalDevice(
         std::span<QueueFamilyProperties const> queues,
         std::span<queue_set_t const> queue_sets
+    );
+
+    static queue_set_relations createQueueSetRelations(
+        queue_set_t const& queue_set,
+        std::span<QueueFamilyProperties const> queue_properties
     );
 
     [[nodiscard]] std::optional<queue_mappings> tryCreatePhysicalDevice(
@@ -120,8 +127,11 @@ private:
     void createQueues(std::span<size_t const> queues_to_unique_queues);
 
     std::unique_ptr<DestructionQueue> _destructionQueue;
+    //IMPLEMENT force a destruction queue this is optional stuff is unnecessary
     std::unique_ptr<Instance> _instance;
+    //IMPLEMENT this is technically wrong. an instance is a singleton and should be provided to the core
     std::unique_ptr<PhysicalDevice> _physicalDevice;
+    //IMPLEMENT this too a unique physical device is not correct in the api sense
     std::unique_ptr<Device> _device;
     std::optional<size_t> _queueSetIndex;
     std::vector<Queue> _queues;
@@ -140,6 +150,10 @@ public:
         return *_queueSetIndex;
     }
 
+    //TODO add this guard for all the other getters
+    /**
+     * @pre @ref created()
+     */
     [[nodiscard]] Device const& device() const;
     [[nodiscard]] DeviceTable deviceTable() const;
     [[nodiscard]] VolkDeviceTable const* functions() const;

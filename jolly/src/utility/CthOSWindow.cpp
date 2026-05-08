@@ -105,10 +105,9 @@ void OSWindow::createSurface(jvk::Instance const& instance) {
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
     auto const result = glfwCreateWindowSurface(instance.get(), _handle.get(), nullptr, &vkSurface);
 
-    _surface = vkSurface;
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to create GLFW window surface") {}
 
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create GLFW window surface")
-        throw jvk::vk_result_exception{result, details->exception()};
+    _surface = vkSurface;
 
     cth::log::msg("created surface");
 }

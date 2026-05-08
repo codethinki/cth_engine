@@ -20,8 +20,6 @@ class Surface;
 
 class PhysicalDevice {
 public:
-    using queue_family_map_t = std::unordered_map<queue_family_index_t, QueueFamily>;
-
     struct State;
     struct CreateResult;
 
@@ -215,7 +213,7 @@ private:
 
     VkPhysicalDeviceMemoryProperties _memProperties{};
 
-    queue_family_map_t _queueFamilies{};
+    std::vector<QueueFamily> _queueFamilies{};
 
 public:
     [[nodiscard]] bool created() const { return _handle != nullptr; }
@@ -229,17 +227,19 @@ public:
     [[nodiscard]] auto const& memProperties() const { return _memProperties; }
     [[nodiscard]] VkSampleCountFlagBits maxSampleCount() const { return _maxSampleCount; }
     [[nodiscard]] VkPhysicalDeviceLimits const& limits() const { return _properties.limits; }
-    [[nodiscard]] bool queueFamilyAvailable(queue_family_index_t idx) const { return _queueFamilies.contains(idx); }
-    /**
-     * @pre @ref queueFamilyAvailable(queue_family_index_t)
-     * @param idx queue family index
-     */
-    [[nodiscard]] QueueFamily const& queueFamily(queue_family_index_t idx) const {
-        CTH_CRITICAL(!_queueFamilies.contains(idx), "queue family doesn't exist or is unavailable") {}
-        return _queueFamilies.at(idx);
-    }
 
-    [[nodiscard]] queue_family_map_t const& queueFamilies() const { return _queueFamilies; }
+    /**
+     * Gets the queue family if available
+     * @param idx queue family index
+     * @return valid pointer or nullptr if not found
+     */
+    [[nodiscard]] QueueFamily const* queueFamily(queue_family_index_t idx) const;
+
+    /**
+     * 
+     * @return map of family index -> queue
+     */
+    [[nodiscard]] std::vector<QueueFamily> const& queueFamilies() const { return _queueFamilies; }
 
 
     PhysicalDevice(PhysicalDevice const& other) = delete;
@@ -258,10 +258,9 @@ namespace jvk {
 struct PhysicalDevice::State {
     jvk::vk_not_null<VkPhysicalDevice> vkDevice;
     /**
-     * @brief must not be empty
-     * @note query with @ref Surface::getQueueFamilies()
+     * @details query with @ref Surface::getQueueFamilies()
      */
-    queue_family_map_t queueFamilies;
+    std::vector<QueueFamily> queueFamilies;
 
 
     utils::PhysicalDeviceFeatures features{};

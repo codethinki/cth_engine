@@ -84,8 +84,7 @@ VkResult Fence::wait(wait_t timeout) const {
         timeout
     );
 
-    CTH_STABLE_ERR(result != VK_SUCCESS && result != VK_TIMEOUT, "failed to wait for fence")
-        throw jvk::vk_result_exception{result, details->exception()};
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS && result != VK_TIMEOUT, result, "failed to wait for fence") {}
 
     return result;
 }

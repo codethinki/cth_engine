@@ -55,7 +55,7 @@ void App::createRenderer3() {
             }
         },
         .stageDependencies = jly::Renderer::Config::dependencies_t{
-            {{1, 0, VK_PIPELINE_STAGE_TRANSFER_BIT}}
+            {{1, 0, jly::PipelineStageFlags::TRANSFER_BIT}}
         }
 
     };

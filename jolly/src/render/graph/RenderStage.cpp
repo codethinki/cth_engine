@@ -82,6 +82,7 @@ void RenderStage::skip() {
     CTH_WARN(recording(), "stage should not be recording when skipping a submit") {}
 
     wait();
+    reset();
 
     queue().skip(submitInfo());
 
@@ -183,14 +184,14 @@ void RenderStage::createCmdBuffers() {
 
 void RenderStage::createSubmitInfos() {
     for(size_t i = 0; i < framesInFlight(); i++) {
-        std::vector primaryCmdBuffers{&_primaryCmdBuffers[i].raw()};
+        std::vector primaryCmdBuffers{&_primaryCmdBuffers[i]};
         std::vector signalSemaphores{
             std::from_range,
             _config.signalSemaphores | cth::views::drop_stride(i, framesInFlight())
         };
         std::vector waitStages{std::from_range, _config.waitStages | cth::views::drop_stride(i, framesInFlight())};
 
-        _submitInfos.emplace_back(*_core, _primaryCmdBuffers, waitStages, signalSemaphores);
+        _submitInfos.emplace_back(*_core, primaryCmdBuffers, waitStages, signalSemaphores, true);
     }
 }
 

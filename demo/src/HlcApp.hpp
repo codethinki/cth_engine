@@ -58,8 +58,11 @@ private:
                 jly::QueueProperties::GRAPHICS,
                 jly::QueueProperties::PRESENT
             },
-        }
-
+            FRAMES_IN_FLIGHT + 1,
+            getRequiredInstanceExtensions(),
+            1
+        },
+        jly::create
     );
 
 
@@ -69,7 +72,7 @@ private:
 
     std::unique_ptr<FrameResources> _resources = std::make_unique<FrameResources>(
         *_core,
-        FrameResources::Config{WINDOW_NAME, {WIDTH, HEIGHT}, &_core->queue(2)}
+        FrameResources::Config{WINDOW_NAME, {WIDTH, HEIGHT}, &_core->queue(2), FRAMES_IN_FLIGHT}
     );
 
     std::unique_ptr<jly::Renderer> _renderer3;

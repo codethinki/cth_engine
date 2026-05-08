@@ -11,10 +11,13 @@
 
 #include <cth/io/log.hpp>
 
+// ReSharper disable CppNonInlineFunctionDefinitionInHeaderFile
+// this file is specifically made to pull in the definitions therefore this warning is not needed
 namespace jvk::os {
 
-
 Surface surface_from_window(Instance const& instance, window_t const& window) {
+    Instance::debug_check(instance);
+
     VkSurfaceKHR surface = VK_NULL_HANDLE;
 
     auto const hwnd = static_cast<HWND>(window.handle.get());
@@ -26,12 +29,9 @@ Surface surface_from_window(Instance const& instance, window_t const& window) {
         .hwnd = hwnd
     };
 
-
     auto const result = vkCreateWin32SurfaceKHR(instance.get(), &createInfo, nullptr, &surface);
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create temp surface") {
+    JVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to create temp surface")
         DestroyWindow(hwnd);
-        throw jvk::vk_result_exception{result, details->exception()};
-    }
 
     cth::log::msg("created temp surface");
 
@@ -68,3 +68,5 @@ std::vector<window_t> create_hidden_monitor_windows() {
     return windows;
 }
 }
+
+// ReSharper restore CppNonInlineFunctionDefinitionInHeaderFile

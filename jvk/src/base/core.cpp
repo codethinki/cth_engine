@@ -37,9 +37,12 @@ void Core::create(Config const& config) {
 
     optDestroy();
 
-    _instance = std::make_unique<Instance>(config.appName, config.requiredExtensions, std::nullopt);
+    _instance = std::make_unique<Instance>(config.appName, config.requiredInstanceExtensions, std::nullopt);
 
-    auto [uniqueQueueFamilyIndices, queuesToUniqueQueues] = createPhysicalDevice(config.queueProperties, config.queueSets);
+    auto [uniqueQueueFamilyIndices, queuesToUniqueQueues] = createPhysicalDevice(
+        config.queueProperties,
+        config.queueSets
+    );
 
     _device = std::make_unique<Device>(
         *_instance,
@@ -83,6 +86,7 @@ Core::State Core::release() {
 
     return temp;
 }
+
 auto Core::createPhysicalDevice(
     std::span<QueueFamilyProperties const> queues,
     std::span<queue_set_t const> queue_sets
@@ -116,13 +120,10 @@ auto Core::createPhysicalDevice(
 
     return {};
 }
-auto Core::tryCreatePhysicalDevice(
-    std::span<Surface const> surfaces,
-    std::span<QueueFamilyProperties const> queue_properties,
-    queue_set_t const& queue_set
-) -> std::optional<queue_mappings> {
-    CTH_CRITICAL(queue_set.size() != queue_properties.size(), "queue set must span all queues") {}
-
+Core::queue_set_relations Core::createQueueSetRelations(
+    queue_set_t const& queue_set,
+    std::span<QueueFamilyProperties const> queue_properties
+) {
     using index_type = cth::dt::union_find::index_type;
 
     auto const roots = queue_set.roots();
@@ -137,13 +138,26 @@ auto Core::tryCreatePhysicalDevice(
         rootToQueue[roots[i]] = i;
 
     std::vector<QueueFamilyProperties> uniqueQueues{roots.size()};
-    std::vector queueToUniqueQueue{queue_properties.size()};
+    std::vector<size_t> queueToUniqueQueue(queue_properties.size());
 
     for(index_type i = 0; i < queue_set.size(); i++) {
         auto const queueIdx = rootToQueue[queue_set.find(i)];
         queueToUniqueQueue[i] = queueIdx;
         uniqueQueues[queueIdx] |= queue_properties[i];
     }
+
+    return {std::move(uniqueQueues), std::move(queueToUniqueQueue)};
+}
+
+auto Core::tryCreatePhysicalDevice(
+    std::span<Surface const> surfaces,
+    std::span<QueueFamilyProperties const> queue_properties,
+    queue_set_t const& queue_set
+) -> std::optional<queue_mappings> {
+    CTH_CRITICAL(queue_set.size() != queue_properties.size(), "queue set must span all queues") {}
+
+    auto const& [uniqueQueues, queueToUniqueQueue] = createQueueSetRelations(queue_set, queue_properties);
+
     // ReSharper disable once CppLocalVariableMayBeConst (device has no copy ctor -> moving requires non-const)
     auto resultOpt = PhysicalDevice::AutoPick(
         *_instance,
@@ -168,14 +182,38 @@ void Core::createQueues(std::span<size_t const> queues_to_unique_queues) {
 }
 
 
-Device const& Core::device() const { return *_device; }
-DeviceTable Core::deviceTable() const { return _device->table(); }
-VolkDeviceTable const* Core::functions() const { return _device->functions(); }
+Device const& Core::device() const {
+    debug_check(*this);
+    return *_device;
+}
+DeviceTable Core::deviceTable() const {
+    debug_check(*this);
+    return _device->table();
+}
+VolkDeviceTable const* Core::functions() const {
+    debug_check(*this);
+    return _device->functions();
+}
 VkDevice Core::vkDevice() const { return _device->get(); }
-PhysicalDevice const& Core::physicalDevice() const { return *_physicalDevice; }
-VkPhysicalDevice Core::vkPhysicalDevice() const { return _physicalDevice->get(); }
-Instance const& Core::instance() const { return *_instance; }
-VkInstance Core::vkInstance() const { return _instance->get(); }
-DestructionQueue* Core::destructionQueue() const { return _destructionQueue.get(); }
+PhysicalDevice const& Core::physicalDevice() const {
+    debug_check(*this);
+    return *_physicalDevice;
+}
+VkPhysicalDevice Core::vkPhysicalDevice() const {
+    debug_check(*this);
+    return _physicalDevice->get();
+}
+Instance const& Core::instance() const {
+    debug_check(*this);
+    return *_instance;
+}
+VkInstance Core::vkInstance() const {
+    debug_check(*this);
+    return _instance->get();
+}
+DestructionQueue* Core::destructionQueue() const {
+    debug_check(*this);
+    return _destructionQueue.get();
+}
 
 }

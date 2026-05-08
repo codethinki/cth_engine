@@ -87,8 +87,8 @@ public:
     void next() { _pulse->next(); }
 
 
-    [[nodiscard]] std::vector<jvk::Semaphore*> renderFinishedSemaphores();
-    [[nodiscard]] std::vector<jvk::Semaphore*> imageAvailableSemaphores();
+    //TEMP [[nodiscard]] std::vector<jvk::Semaphore*> renderFinishedSemaphores();
+    //TEMP [[nodiscard]] std::vector<jvk::Semaphore*> imageAvailableSemaphores();
     [[nodiscard]] std::vector<jvk::Semaphore const*> renderFinishedSemaphores() const;
     [[nodiscard]] std::vector<jvk::Semaphore const*> imageAvailableSemaphores() const;
     [[nodiscard]] std::vector<PipelineWaitStage> imageAvailableWaitStages() const;
@@ -121,9 +121,9 @@ public:
     [[nodiscard]] auto framesInFlight() const { return _pulse->framesInFlight(); }
 
     [[nodiscard]] jvk::Semaphore const* renderFinishedSemaphore(size_t index) const;
-    [[nodiscard]] jvk::Semaphore* renderFinishedSemaphore(size_t index);
+    //TEMP [[nodiscard]] jvk::Semaphore* renderFinishedSemaphore(size_t index);
     [[nodiscard]] jvk::Semaphore const* imageAvailableSemaphore(size_t index) const;
-    [[nodiscard]] jvk::Semaphore* imageAvailableSemaphore(size_t index);
+    //TEMP [[nodiscard]] jvk::Semaphore* imageAvailableSemaphore(size_t index);
 
     /**
      * @pre @ref created()

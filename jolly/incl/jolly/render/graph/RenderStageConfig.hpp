@@ -1,15 +1,15 @@
 #pragma once
+#include "jolly/render/sync/pipeline_wait_stage.hpp"
 
 #include <cth/ptr/not_null.hpp>
-
 
 namespace jvk {
 class Semaphore;
 }
 
 namespace jly {
-class Queue;
 struct PipelineWaitStage;
+class Queue;
 
 enum class RenderStageFlags : size_t {
     NONE,
@@ -31,7 +31,7 @@ struct RenderStageConfig {
     cth::not_null<Queue const*> queue;
     uint32_t subStages = 0;
 
-    std::vector<jvk::Semaphore*> signalSemaphores{};
+    std::vector<jvk::Semaphore const*> signalSemaphores{};
     std::vector<PipelineWaitStage> waitStages{};
     RenderStageFlags flags = RenderStageFlags::PARALLEL_SUB_STAGE_RECORDING;
 

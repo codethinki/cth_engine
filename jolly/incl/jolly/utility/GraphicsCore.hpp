@@ -30,27 +30,29 @@ public:
     using Config = GraphicsCoreConfig;
 
 
-    explicit GraphicsCore(jly::Core const&, Config);
+    explicit GraphicsCore(Core const&, Config);
 
     /**
      * @brief wraps the state
      * @note calls @ref GraphicsCore(Core const&, Config)
      * @note calls @ref wrap()
      */
-    GraphicsCore(jly::Core const&, Config const&, State);
+    GraphicsCore(Core const&, Config const&, State);
 
 
     /**
      * @brief constructs and creates
+     * @param window_name utf8 window name
+     * @param window_extent window extent
      * @param present_queue must be valid
      * @note calls @ref create()
      * @note calls @ref GraphicsCore(Core const&, Config)
      */
     GraphicsCore(
-        jly::Core const&,
+        Core const&,
         Config const&,
         std::string_view window_name,
-        glm::uvec2 extent,
+        glm::uvec2 window_extent,
         Queue const& present_queue
     );
 
@@ -132,7 +134,7 @@ private:
 
     bool _resize = false;
 
-    not_null<jly::Core const*> _core;
+    not_null<Core const*> _core;
     Config _config;
 
     std::unique_ptr<GraphicsSyncConfig> _syncConfig;
