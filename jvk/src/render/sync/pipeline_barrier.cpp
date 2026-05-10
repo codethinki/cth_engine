@@ -2,8 +2,8 @@
 
 #include "jvk/base/core.hpp"
 #include "jvk/render/cmd/cmd_buffer.hpp"
-#include "jvk/res/buffer/base_buffer.hpp"
-#include "jvk/res/img/image.hpp"
+#include "jvk/data/buffer/base_buffer.hpp"
+#include "jvk/data/img/image.hpp"
 
 //ImageBarrier
 

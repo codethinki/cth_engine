@@ -3,7 +3,7 @@
 #include "jvk/base/core.hpp"
 #include "jvk/render/pass/render_pass.hpp"
 #include "jvk/base/destruction_queue.hpp"
-#include "jvk/res/img/image_view.hpp"
+#include "jvk/data/img/image_view.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
 namespace jvk {

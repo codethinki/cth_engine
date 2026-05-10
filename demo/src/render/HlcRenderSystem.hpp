@@ -7,7 +7,7 @@
 
 #include "jolly/render/model/CthVertex.hpp"
 
-#include "jvk/res/buffer/buffer.hpp"
+#include "jvk/data/buffer/buffer.hpp"
 
 #include <memory>
 

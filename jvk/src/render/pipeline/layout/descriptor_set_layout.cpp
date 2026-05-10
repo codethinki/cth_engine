@@ -1,7 +1,7 @@
 #include "jvk/render/pipeline/layout/descriptor_set_layout.hpp"
 
 #include "jvk/base/core.hpp"
-#include "jvk/res/descriptor/descriptor.hpp"
+#include "jvk/data/descriptor/descriptor.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
 

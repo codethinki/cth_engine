@@ -1,5 +1,6 @@
 #include "FrameResources.hpp"
 
+#include "jolly/core/core.hpp"
 #include "jolly/utility/CthOSWindow.hpp"
 #include "jolly/utility/GraphicsCore.hpp"
 #include "jvk/base/core.hpp"
@@ -12,7 +13,6 @@
 #include "jvk/render/pass/attachment/attachment_description.hpp"
 #include "jvk/render/pass/framebuffer/swapchain_fb_collection.hpp"
 #include "jvk/surface/swapchain/swapchain.hpp"
-#include "jolly/core/core.hpp"
 
 namespace cth {
 

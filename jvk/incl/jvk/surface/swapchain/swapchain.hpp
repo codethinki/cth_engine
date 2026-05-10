@@ -1,7 +1,7 @@
 #pragma once
 #include "jvk/base/device_table.hpp"
 #include "jvk/render/sync/semaphore.hpp"
-#include "jvk/res/img/image_config.hpp"
+#include "jvk/data/img/image_config.hpp"
 #include "jvk/surface/swapchain/swapchain_config.hpp"
 #include "jvk/utility/constants.hpp"
 

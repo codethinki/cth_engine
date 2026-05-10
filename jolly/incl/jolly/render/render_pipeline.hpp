@@ -1,5 +1,5 @@
 #pragma once
-#include "jolly/res/model/loader/gltf_utility.hpp"
+#include "jolly/data/model/loader/gltf_utility.hpp"
 
 namespace jly {
 class RenderPipeline {

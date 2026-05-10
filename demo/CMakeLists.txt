@@ -3,7 +3,7 @@ add_subdirectory(demo_shaders)
 cth_glob_cpp(DEMO_SRC "src")
 add_executable(demo ${DEMO_SRC})
 
-cth_add_resources(demo "res")
+cth_add_resources(demo "assets")
 add_dependencies(demo demo_shaders)
 
 

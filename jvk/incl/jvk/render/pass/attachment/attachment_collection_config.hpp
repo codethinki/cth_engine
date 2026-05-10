@@ -2,7 +2,7 @@
 
 #include "attachment_description.hpp"
 
-#include "jvk/res/img/image_config.hpp"
+#include "jvk/data/img/image_config.hpp"
 
 
 namespace jvk {

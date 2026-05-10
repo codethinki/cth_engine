@@ -3,8 +3,8 @@
 
 #include "attachment_collection_config.hpp"
 
-#include "jvk/res/img/image.hpp"
-#include "jvk/res/img/image_view.hpp"
+#include "jvk/data/img/image.hpp"
+#include "jvk/data/img/image_view.hpp"
 
 
 #include <vector>

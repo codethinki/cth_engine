@@ -1,5 +1,5 @@
 #pragma once
-#include "jvk/res/buffer/base_buffer.hpp"
+#include "jvk/data/buffer/base_buffer.hpp"
 
 #include <volk.h>
 

@@ -1,6 +1,10 @@
 #include "HlcRenderSystem.hpp"
 
 #include "jolly/render/graph/renderer.hpp"
+#include "jvk/data/descriptor/descriptor_pool.hpp"
+#include "jvk/data/descriptor/descriptor_set.hpp"
+#include "jvk/data/descriptor/types/image_descriptors.hpp"
+#include "jvk/data/img/texture/texture.hpp"
 #include "jvk/render/cmd/cmd_buffer.hpp"
 #include "jvk/render/pass/render_pass.hpp"
 #include "jvk/render/pipeline/pipeline.hpp"
@@ -8,10 +12,6 @@
 #include "jvk/render/pipeline/layout/descriptor_set_layout.hpp"
 #include "jvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "jvk/render/pipeline/shader/shader.hpp"
-#include "jvk/res/descriptor/descriptor_pool.hpp"
-#include "jvk/res/descriptor/descriptor_set.hpp"
-#include "jvk/res/descriptor/types/image_descriptors.hpp"
-#include "jvk/res/img/texture/texture.hpp"
 
 #include <cth/utility/image.hpp>
 

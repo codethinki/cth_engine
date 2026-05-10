@@ -2,8 +2,8 @@
 
 
 #include "jvk/render/pass/attachment/attachment_description.hpp"
-#include "jvk/res/img/image.hpp"
-#include "jvk/res/img/image_view.hpp"
+#include "jvk/data/img/image.hpp"
+#include "jvk/data/img/image_view.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
 #include <cth/numeric.hpp>
