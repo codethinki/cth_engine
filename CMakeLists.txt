@@ -9,14 +9,10 @@ cth_set_compiler_specifics()
 cth_set_latest_c_cpp_standard()
 
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
- 
-# Add subprojects
-add_subdirectory(jvk)
-add_subdirectory(jolly)
-add_subdirectory(demo)
-
 
 # Tests
-enable_testing() 
+if(JOLLY_ENABLE_TESTS)
+    enable_testing()
 
-add_subdirectory(tests)
+    add_subdirectory(tests)
+endif()
