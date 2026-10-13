@@ -2,24 +2,23 @@
 #include "base_buffer.hpp"
 
 
-
+//TODO assess if this is necessary or not redundant weight, jly namespace should provide that
 namespace jvk {
-template<typename T>
+template<class T>
 class Buffer final : public BaseBuffer {
 public:
     /**
      * @brief base constructor
-     * @param element_count of T
      * @note calls @ref BaseBuffer(Core const&, size_t, VkBufferUsageFlags)
      */
-    Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags);
+    Buffer(Core const& core, VkBufferUsageFlags usage_flags);
 
     /**
      * @brief constructs and wraps
      * @note calls @ref Buffer(Core const&, size_t, VkBufferUsageFlags)
      * @note calls @ref BaseBuffer::wrap()
      */
-    Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags, State state);
+    Buffer(Core const& core, VkBufferUsageFlags usage_flags, State state);
 
     /**
      * @brief constructs and creates
@@ -28,23 +27,32 @@ public:
      */
     Buffer(
         Core const& core,
-        size_t element_count,
         VkBufferUsageFlags usage_flags,
+        size_t element_count,
         VkMemoryPropertyFlags memory_property_flags
     );
 
 
     ~Buffer() override = default;
 
+    /**
+    * @brief creates the buffer
+    * @note calls @ref optDestroy()
+    * @note calls @ref Memory::Memory(Core const&, VkMemoryPropertyFlags, VkMemoryRequirements const&)
+    * @throws jvk::result_exception result of @ref vkCreateBuffer()
+    * @throws jvk::result_exception result of @ref vkBindBufferMemory()
+    */
+    void create(size_t element_count, VkMemoryPropertyFlags vk_memory_flags) override;
+
     // ReSharper disable CppHidingFunction
 
     /**
-     *@brief maps part of the buffer memory
-    * @param size in elements
-    * @param offset in elements
-    * @return mapped memory range
-    * @note calls @ref BaseBuffer::map(size_t, size_t)
-    */
+     * @brief maps part of the buffer memory
+     * @param size in elements
+     * @param offset in elements
+     * @return mapped memory range
+     * @note calls @ref BaseBuffer::map(size_t, size_t)
+     */
     [[nodiscard]] std::span<T> map(size_t size, size_t offset);
 
     /**
@@ -61,10 +69,10 @@ public:
     void write(std::span<T const> data, size_t mapped_offset = 0) const;
 
     /**
-    * @brief updates non-coherent host visible memory
-    * @param size in elements, Constants::WHOLE_SIZE -> whole buffer
-    * @param offset in elements
-    * @note calls @ref BaseBuffer::flush()
+     * @brief updates non-coherent host visible memory
+     * @param size in elements, Constants::WHOLE_SIZE -> whole buffer
+     * @param offset in elements
+     * @note calls @ref BaseBuffer::flush()
      */
     void flush(size_t size = constants::WHOLE_SIZE, size_t offset = 0) const;
 
@@ -78,13 +86,13 @@ public:
     // ReSharper restore CppHidingFunction
 
     /**
-    * @brief copies buffer data on the gpu
-    * @param cmd_buffer
-    * @param copy_size in elements (Constants::WHOLE_SIZE => whole buffer)
-    * @param src_offset in elements
-    * @param dst_offset in elements
-    * @note calls @ref BaseBuffer::copy()
-    */
+     * @brief copies buffer data on the gpu
+     * @param cmd_buffer
+     * @param copy_size in elements (Constants::WHOLE_SIZE => whole buffer)
+     * @param src_offset in elements
+     * @param dst_offset in elements
+     * @note calls @ref BaseBuffer::copy()
+     */
     void copy(
         CmdBuffer const& cmd_buffer,
         Buffer const& src,

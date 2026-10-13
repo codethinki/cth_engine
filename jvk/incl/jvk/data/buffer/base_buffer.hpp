@@ -24,24 +24,24 @@ public:
     /**
      * @brief base constructor
      */
-    BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags);
+    BaseBuffer(Core const&, VkBufferUsageFlags usage_flags);
 
     /**
      * @brief constructs and calls @ref wrap(State)
      * @note calls @ref BaseBuffer(Core const&, size_t, VkBufferUsageFlags)
      */
-    BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags, State state);
-
+    BaseBuffer(Core const&, VkBufferUsageFlags usage_flags, State state);
     /**
      * @brief constructs and calls @ref create()
      * @note calls @ref BaseBuffer(Core const&, size_t, VkBufferUsageFlags)
      */
     BaseBuffer(
         Core const& core,
-        size_t bytes_size,
         VkBufferUsageFlags usage_flags,
+        size_t bytes_size,
         VkMemoryPropertyFlags vk_memory_flags
     );
+
 
 
     /**
@@ -53,13 +53,13 @@ public:
     virtual void wrap(State state);
 
     /**
-    * @brief creates the image
+    * @brief creates the buffer
     * @note calls @ref optDestroy()
     * @note calls @ref Memory::Memory(Core const&, VkMemoryPropertyFlags, VkMemoryRequirements const&)
     * @throws jvk::result_exception result of @ref vkCreateBuffer()
     * @throws jvk::result_exception result of @ref vkBindBufferMemory()
     */
-    virtual void create(VkMemoryPropertyFlags vk_memory_flags);
+    virtual void create(size_t byte_size, VkMemoryPropertyFlags vk_memory_flags);
 
     /**
     * @brief destroys the buffer
@@ -208,10 +208,9 @@ private:
     void bind();
 
     not_null<Core const*> _core;
-    size_t _size;
     VkBufferUsageFlags _usage;
 
-
+    size_t _size;
     move_ptr<VkBuffer_T> _handle = VK_NULL_HANDLE;
     std::unique_ptr<Memory> _memory = nullptr;
     bool _bound = false;

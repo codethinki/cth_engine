@@ -6,30 +6,31 @@
 namespace jvk {
 
 template<class T>
-Buffer<T>::Buffer(Core const& core, size_t element_count, VkBufferUsageFlags usage_flags) : BaseBuffer{
-        core,
-        element_count * sizeof(T),
-        usage_flags
-    },
-    _elements(element_count) {}
+Buffer<T>::Buffer(Core const& core, VkBufferUsageFlags usage_flags) : BaseBuffer{
+    core,
+    usage_flags
+} {}
 
 template<class T>
 Buffer<T>::Buffer(
     Core const& core,
-    size_t element_count,
     VkBufferUsageFlags usage_flags,
     State state
-) : Buffer{core, element_count, usage_flags} { BaseBuffer::wrap(std::move(state)); }
+) : Buffer{core, usage_flags} { BaseBuffer::wrap(std::move(state)); }
 
 template<class T>
 Buffer<T>::Buffer(
     Core const& core,
-    size_t element_count,
     VkBufferUsageFlags usage_flags,
+    size_t element_count,
     VkMemoryPropertyFlags memory_property_flags
-) : Buffer{core, element_count * sizeof(T), usage_flags} { BaseBuffer::create(memory_property_flags); }
+) : Buffer{core, usage_flags} { create(element_count, memory_property_flags); }
 
 
+template<class T> void Buffer<T>::create(size_t element_count, VkMemoryPropertyFlags vk_memory_flags) {
+    _elements = element_count;
+    BaseBuffer::create(element_count * sizeof(T), vk_memory_flags);
+}
 template<typename T>
 std::span<T> Buffer<T>::map(size_t size, size_t offset) {
     auto const charSpan = BaseBuffer::map(size * sizeof(T), offset * sizeof(T));

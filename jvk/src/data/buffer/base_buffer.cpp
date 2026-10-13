@@ -1,10 +1,10 @@
 #include "jvk/data/buffer/base_buffer.hpp"
 
 #include "jvk/base/core.hpp"
-#include "jvk/base/device.hpp"
-#include "jvk/render/cmd/cmd_buffer.hpp"
 #include "jvk/base/destruction_queue.hpp"
+#include "jvk/base/device.hpp"
 #include "jvk/data/memory/memory.hpp"
+#include "jvk/render/cmd/cmd_buffer.hpp"
 #include "jvk/utility/constants.hpp"
 #include "jvk/utility/vk_exceptions.hpp"
 
@@ -14,24 +14,22 @@ using std::span;
 
 
 
-BaseBuffer::BaseBuffer(Core const& core, size_t byte_size, VkBufferUsageFlags usage_flags) :
+BaseBuffer::BaseBuffer(Core const& core, VkBufferUsageFlags usage_flags) :
     _core{&core},
-    _size{byte_size},
     _usage{usage_flags} { Core::debug_check(core); }
 
 BaseBuffer::BaseBuffer(
     Core const& core,
-    size_t byte_size,
     VkBufferUsageFlags usage_flags,
     State state
-) : BaseBuffer{core, byte_size, usage_flags} { BaseBuffer::wrap(std::move(state)); }
+) : BaseBuffer{core, usage_flags} { BaseBuffer::wrap(std::move(state)); }
 
 BaseBuffer::BaseBuffer(
     Core const& core,
-    size_t bytes_size,
     VkBufferUsageFlags usage_flags,
+    size_t bytes_size,
     VkMemoryPropertyFlags vk_memory_flags
-) : BaseBuffer{core, bytes_size, usage_flags} { BaseBuffer::create(vk_memory_flags); }
+) : BaseBuffer{core, usage_flags} { BaseBuffer::create(bytes_size, vk_memory_flags); }
 
 
 
@@ -49,8 +47,10 @@ void BaseBuffer::wrap(State state) {
     _mapped = state.mapped;
 }
 
-void BaseBuffer::create(VkMemoryPropertyFlags vk_memory_flags) {
+void BaseBuffer::create(size_t byte_size, VkMemoryPropertyFlags vk_memory_flags) {
     optDestroy();
+    _size = byte_size;
+
     createBuffer();
     createMemory(vk_memory_flags);
     bind();
@@ -61,11 +61,15 @@ void BaseBuffer::destroy() {
     debug_check(this);
 
 
-    auto const lambda = [table = _core->deviceTable(), buffer = _handle.get()] { BaseBuffer::destroy(table, buffer); };
+    auto const lambda = [table = _core->deviceTable(), buffer = _handle.get()] {
+        BaseBuffer::destroy(table, buffer);
+    };
 
     auto const queue = _core->destructionQueue();
-    if(queue) queue->push(lambda);
-    else lambda();
+    if(queue)
+        queue->push(lambda);
+    else
+        lambda();
 
     reset();
 }
@@ -93,7 +97,8 @@ std::span<char> BaseBuffer::map(size_t size, size_t offset) {
 
     auto mem = span<char>{_memory->map(size, offset).data(), size};
 
-    if(offset == 0 && mem.size() > mapped().size()) _mapped = mem;
+    if(offset == 0 && mem.size() > mapped().size())
+        _mapped = mem;
 
     return span<char>{mem.data(), size};
 }
@@ -135,8 +140,8 @@ void BaseBuffer::copy(
 
 
     size_t const copySize = copy_size == constants::WHOLE_SIZE
-                            ? std::min(src._size - src_offset, _size - dst_offset)
-                            : copy_size;
+        ? std::min(src._size - src_offset, _size - dst_offset)
+        : copy_size;
 
     CTH_CRITICAL(
         src_offset + copySize > src._size || dst_offset + copySize > _size,
@@ -176,7 +181,9 @@ void BaseBuffer::unmap() {
     _memory->unmap();
 }
 
-void BaseBuffer::stage(CmdBuffer const& cmd_buffer, BaseBuffer const& staging_buffer, size_t dst_offset) const {
+void BaseBuffer::stage(
+    CmdBuffer const& cmd_buffer, BaseBuffer const& staging_buffer, size_t dst_offset
+) const {
     debug_check(this);
     debug_check(&staging_buffer);
     this->copy(cmd_buffer, staging_buffer, staging_buffer._size, 0, dst_offset);
@@ -209,10 +216,11 @@ void BaseBuffer::destroy(DeviceTable table, VkBuffer vk_buffer) {
 
 
 void BaseBuffer::reset() {
-    _handle = VK_NULL_HANDLE;
-    _memory = nullptr;
-    _bound = false;
     _mapped = {};
+    _bound = false;
+    _memory = nullptr;
+    _handle = VK_NULL_HANDLE;
+    _size = 0;
 }
 
 void BaseBuffer::createBuffer() {
