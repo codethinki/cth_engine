@@ -153,10 +153,10 @@ public:
 
     static void destroy(DeviceTable table, VkFence);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkFence get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return _handle.core(); }
-    [[nodiscard]] VkExternalFenceHandleTypeFlags exportTypes() const { return _exportTypes; }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkFence get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr VkExternalFenceHandleTypeFlags exportTypes() const { return _exportTypes; }
 
 private:
     void forget();
@@ -170,7 +170,7 @@ public:
     Fence& operator=(Fence const& other) = delete;
     Fence& operator=(Fence&& other) noexcept = default;
 
-    static void debug_check(Fence const&);
+    static constexpr void debug_check(Fence const&);
 };
 }
 
@@ -185,7 +185,7 @@ struct Fence::State {
 }
 
 namespace cvk {
-inline void Fence::debug_check(Fence const& fence) {
+constexpr void Fence::debug_check(Fence const& fence) {
     CTH_CRITICAL(!fence.created(), "fence must be created") {}
 }
 }

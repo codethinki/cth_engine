@@ -86,14 +86,14 @@ public:
 
     static void destroy(DeviceTable table, VkSampler);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkSampler get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkSampler get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
     /**
      * @return the config, with the clamped anisotropy
      */
-    [[nodiscard]] Config const& config() const { return _config; }
+    [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
     void forget();
@@ -107,7 +107,7 @@ public:
     Sampler& operator=(Sampler const& other) = delete;
     Sampler& operator=(Sampler&& other) noexcept = default;
 
-    static void debug_check(Sampler const&);
+    static constexpr void debug_check(Sampler const&);
 };
 }
 
@@ -118,7 +118,7 @@ struct Sampler::State {
 }
 
 namespace cvk {
-inline void Sampler::debug_check(Sampler const& sampler) {
+constexpr void Sampler::debug_check(Sampler const& sampler) {
     CTH_CRITICAL(!sampler.created(), "sampler must be created") {}
 }
 }

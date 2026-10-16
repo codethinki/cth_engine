@@ -187,16 +187,16 @@ public:
 
     [[nodiscard]] static VkSampleCountFlagBits evalMaxSampleCount(VkPhysicalDeviceProperties const& properties);
 
-    [[nodiscard]] bool created() const { return _handle != nullptr; }
-    [[nodiscard]] VkPhysicalDevice get() const { return _handle.get(); }
-    [[nodiscard]] auto const& features() const { return _features; }
-    [[nodiscard]] auto const& requiredFeatures() const { return _requiredFeatures; }
-    [[nodiscard]] std::span<std::string const> extensions() const { return _extensions; }
-    [[nodiscard]] std::span<std::string const> requiredExtensions() const { return _requiredExtensions; }
-    [[nodiscard]] auto const& properties() const { return _properties; }
-    [[nodiscard]] auto const& memProperties() const { return _memProperties; }
-    [[nodiscard]] VkSampleCountFlagBits maxSampleCount() const { return _maxSampleCount; }
-    [[nodiscard]] VkPhysicalDeviceLimits const& limits() const { return _properties.limits; }
+    [[nodiscard]] constexpr bool created() const { return _handle != nullptr; }
+    [[nodiscard]] constexpr VkPhysicalDevice get() const { return _handle.get(); }
+    [[nodiscard]] constexpr auto const& features() const { return _features; }
+    [[nodiscard]] constexpr auto const& requiredFeatures() const { return _requiredFeatures; }
+    [[nodiscard]] constexpr std::span<std::string const> extensions() const { return _extensions; }
+    [[nodiscard]] constexpr std::span<std::string const> requiredExtensions() const { return _requiredExtensions; }
+    [[nodiscard]] constexpr auto const& properties() const { return _properties; }
+    [[nodiscard]] constexpr auto const& memProperties() const { return _memProperties; }
+    [[nodiscard]] constexpr VkSampleCountFlagBits maxSampleCount() const { return _maxSampleCount; }
+    [[nodiscard]] constexpr VkPhysicalDeviceLimits const& limits() const { return _properties.limits; }
 
     /**
      * @param idx queue family index
@@ -204,7 +204,7 @@ public:
      */
     [[nodiscard]] QueueFamily const* queueFamily(queue_family_index_t idx) const;
 
-    [[nodiscard]] std::span<QueueFamily const> queueFamilies() const { return _queueFamilies; }
+    [[nodiscard]] constexpr std::span<QueueFamily const> queueFamilies() const { return _queueFamilies; }
 
 private:
     not_null<Instance const*> _instance;
@@ -228,8 +228,8 @@ public:
     PhysicalDevice& operator=(PhysicalDevice const& other) = default;
     PhysicalDevice& operator=(PhysicalDevice&& other) noexcept = default;
 
-    static void debug_check(PhysicalDevice const& device);
-    static void debug_check_handle(vk_not_null<VkPhysicalDevice> vkDevice);
+    static constexpr void debug_check(PhysicalDevice const& device);
+    static constexpr void debug_check_handle(vk_not_null<VkPhysicalDevice> vkDevice);
 };
 }
 
@@ -255,10 +255,10 @@ struct PhysicalDevice::CreateResult {
 }
 
 namespace cvk {
-inline void PhysicalDevice::debug_check(PhysicalDevice const& device) {
+constexpr void PhysicalDevice::debug_check(PhysicalDevice const& device) {
     CTH_CRITICAL(!device.created(), "physical device must be created") {}
     debug_check_handle(device.get());
 }
 
-inline void PhysicalDevice::debug_check_handle([[maybe_unused]] vk_not_null<VkPhysicalDevice> vkDevice) {}
+constexpr void PhysicalDevice::debug_check_handle([[maybe_unused]] vk_not_null<VkPhysicalDevice> vkDevice) {}
 }

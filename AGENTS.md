@@ -86,6 +86,8 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 ### Language
 
 - Use `constexpr`, `consteval` and `decltype(auto)`. The macros `cxpr`, `cval` and `declauto` do not exist anymore.
+- Mark every function `constexpr` that can run at compile time, also when no code uses it there yet: accessors, `debug_check` functions, configs, value types.
+- Functions that call Vulkan, VMA or the OS are not `constexpr`. Neither are the constructors, the destructor and the lifecycle functions of a class that owns a handle: the object cannot exist at compile time.
 - Put `[[nodiscard]]` on every function that returns a value the caller must use.
 - Put `explicit` on constructors with one parameter and on tag constructors.
 - Use `auto const` for locals that do not change.

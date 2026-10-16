@@ -106,17 +106,17 @@ public:
      */
     static void destroy(VkDevice);
 
-    [[nodiscard]] std::span<Queue const> queues() const { return _queues; }
-    [[nodiscard]] std::span<Queue> queues() { return _queues; }
+    [[nodiscard]] constexpr std::span<Queue const> queues() const { return _queues; }
+    [[nodiscard]] constexpr std::span<Queue> queues() { return _queues; }
 
-    [[nodiscard]] DeviceTable table() const { return DeviceTable{_handle.get(), _functionTable.get()}; }
-    [[nodiscard]] VolkDeviceTable const* functions() const { return _functionTable.get(); }
-    [[nodiscard]] VkDevice get() const { return _handle.get(); }
+    [[nodiscard]] constexpr DeviceTable table() const { return DeviceTable{_handle.get(), _functionTable.get()}; }
+    [[nodiscard]] constexpr VolkDeviceTable const* functions() const { return _functionTable.get(); }
+    [[nodiscard]] constexpr VkDevice get() const { return _handle.get(); }
 
-    [[nodiscard]] Instance const& instance() const { return *_instance; }
-    [[nodiscard]] PhysicalDevice const& physicalDevice() const { return *_physicalDevice; }
+    [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
+    [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const { return *_physicalDevice; }
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
 
 private:
     void forget();
@@ -153,8 +153,8 @@ public:
     Device& operator=(Device const& other) = delete;
     Device& operator=(Device&& other) noexcept = default;
 
-    static void debug_check(Device const&);
-    static void debug_check_handle(vk_not_null<VkDevice>);
+    static constexpr void debug_check(Device const&);
+    static constexpr void debug_check_handle(vk_not_null<VkDevice>);
 };
 }
 
@@ -170,10 +170,10 @@ struct Device::State {
 }
 
 namespace cvk {
-inline void Device::debug_check(Device const& device) {
+constexpr void Device::debug_check(Device const& device) {
     CTH_CRITICAL(!device.created(), "device must be created") {}
     debug_check_handle(device.get());
 }
 
-inline void Device::debug_check_handle([[maybe_unused]] vk_not_null<VkDevice> vkDevice) {}
+constexpr void Device::debug_check_handle([[maybe_unused]] vk_not_null<VkDevice> vkDevice) {}
 }

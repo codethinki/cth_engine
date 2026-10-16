@@ -95,9 +95,9 @@ public:
      */
     [[nodiscard]] static VmaAllocatorCreateFlags flags(PhysicalDevice const&);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VmaAllocator get() const { return _handle.get(); }
-    [[nodiscard]] Device const& device() const { return *_device; }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VmaAllocator get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Device const& device() const { return *_device; }
 
 private:
     void forget();
@@ -111,7 +111,7 @@ public:
     Allocator& operator=(Allocator const& other) = delete;
     Allocator& operator=(Allocator&& other) noexcept = default;
 
-    static void debug_check(Allocator const&);
+    static constexpr void debug_check(Allocator const&);
 };
 }
 
@@ -122,7 +122,7 @@ struct Allocator::State {
 }
 
 namespace cvk {
-inline void Allocator::debug_check(Allocator const& allocator) {
+constexpr void Allocator::debug_check(Allocator const& allocator) {
     CTH_CRITICAL(!allocator.created(), "allocator must be created") {}
 }
 }

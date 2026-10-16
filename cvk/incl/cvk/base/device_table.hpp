@@ -9,6 +9,6 @@ struct DeviceTable {
     not_null<VolkDeviceTable const*> table;
 
     VolkDeviceTable const* operator ->() const { return table.get(); }
-    [[nodiscard]] VkDevice device() const { return vkDevice.get(); }
+    [[nodiscard]] constexpr VkDevice device() const { return vkDevice.get(); }
 };
 }

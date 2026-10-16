@@ -69,12 +69,12 @@ public:
      */
     void wait() const;
 
-    [[nodiscard]] bool can_present() const { return contains(_familyProperties, QueueFamilyProperties::PRESENT); }
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
-    [[nodiscard]] VkQueue get() const { return _handle.get(); }
-    [[nodiscard]] uint32_t index() const { return _queueIndex; }
-    [[nodiscard]] uint32_t familyIndex() const { return _familyIndex; }
-    [[nodiscard]] QueueFamilyProperties familyProperties() const { return _familyProperties; }
+    [[nodiscard]] constexpr bool can_present() const { return contains(_familyProperties, QueueFamilyProperties::PRESENT); }
+    [[nodiscard]] constexpr bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] constexpr VkQueue get() const { return _handle.get(); }
+    [[nodiscard]] constexpr uint32_t index() const { return _queueIndex; }
+    [[nodiscard]] constexpr uint32_t familyIndex() const { return _familyIndex; }
+    [[nodiscard]] constexpr QueueFamilyProperties familyProperties() const { return _familyProperties; }
 
 private:
     void forget();
@@ -94,23 +94,23 @@ public:
     Queue& operator=(Queue const& other) = default;
     Queue& operator=(Queue&& other) = default;
 
-    static void debug_check(Queue const&);
-    static void debug_check_present(Queue const&);
-    static void debug_check_handle(VkQueue);
+    static constexpr void debug_check(Queue const&);
+    static constexpr void debug_check_present(Queue const&);
+    static constexpr void debug_check_handle(VkQueue);
 };
 }
 
 namespace cvk {
-inline void Queue::debug_check(Queue const& queue) {
+constexpr void Queue::debug_check(Queue const& queue) {
     CTH_CRITICAL(!queue.created(), "queue must be created") {}
 }
 
-inline void Queue::debug_check_present(Queue const& queue) {
+constexpr void Queue::debug_check_present(Queue const& queue) {
     debug_check(queue);
     CTH_CRITICAL(!queue.can_present(), "queue is not a present queue") {}
 }
 
-inline void Queue::debug_check_handle(VkQueue vkQueue) {
+constexpr void Queue::debug_check_handle(VkQueue vkQueue) {
     CTH_CRITICAL(vkQueue == VK_NULL_HANDLE, "vkQueue must not be invalid (VK_NULL_HANDLE)") {}
 }
 }

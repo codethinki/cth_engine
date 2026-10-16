@@ -105,16 +105,16 @@ public:
 
     static void destroy(DeviceTable table, VkPipeline);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkPipeline get() const { return _handle.get(); }
-    [[nodiscard]] VkPipelineLayout layout() const { return _vkLayout.get(); }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkPipeline get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkPipelineLayout layout() const { return _vkLayout.get(); }
 
     /**
      * @return VK_NULL_HANDLE -> not a derivative pipeline
      */
-    [[nodiscard]] VkPipeline parent() const { return _vkParent; }
-    [[nodiscard]] Config const& config() const { return _config; }
-    [[nodiscard]] Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr VkPipeline parent() const { return _vkParent; }
+    [[nodiscard]] constexpr Config const& config() const { return _config; }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
 private:
     void forget();
@@ -130,7 +130,7 @@ public:
     Pipeline& operator=(Pipeline const& other) = delete;
     Pipeline& operator=(Pipeline&& other) noexcept = default;
 
-    static void debug_check(Pipeline const&);
+    static constexpr void debug_check(Pipeline const&);
 };
 }
 
@@ -141,7 +141,7 @@ struct Pipeline::State {
 }
 
 namespace cvk {
-inline void Pipeline::debug_check(Pipeline const& pipeline) {
+constexpr void Pipeline::debug_check(Pipeline const& pipeline) {
     CTH_CRITICAL(!pipeline.created(), "pipeline must be created") {}
 }
 }

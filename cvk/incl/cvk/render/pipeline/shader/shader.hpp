@@ -155,10 +155,10 @@ public:
 
     static void destroy(DeviceTable table, VkShaderModule);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkShaderModule get() const { return _handle.get(); }
-    [[nodiscard]] VkShaderStageFlagBits stage() const { return _stage; }
-    [[nodiscard]] Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkShaderModule get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkShaderStageFlagBits stage() const { return _stage; }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
 private:
     void forget();
@@ -172,7 +172,7 @@ public:
     Shader& operator=(Shader const& other) = delete;
     Shader& operator=(Shader&& other) noexcept = default;
 
-    static void debug_check(Shader const&);
+    static constexpr void debug_check(Shader const&);
 };
 }
 
@@ -183,7 +183,7 @@ struct Shader::State {
 }
 
 namespace cvk {
-inline void Shader::debug_check(Shader const& shader) {
+constexpr void Shader::debug_check(Shader const& shader) {
     CTH_CRITICAL(!shader.created(), "shader must be created") {}
 }
 }

@@ -128,10 +128,10 @@ public:
 
     static void destroy(VmaAllocator, VmaAllocation);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VmaAllocation get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return _handle.core(); }
-    [[nodiscard]] Config const& config() const { return _config; }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VmaAllocation get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     /**
      * @return the VkDeviceMemory, the offset and the size of the range
@@ -164,7 +164,7 @@ public:
     Memory& operator=(Memory const& other) = delete;
     Memory& operator=(Memory&& other) noexcept = default;
 
-    static void debug_check(Memory const&);
+    static constexpr void debug_check(Memory const&);
 };
 }
 
@@ -175,7 +175,7 @@ struct Memory::State {
 }
 
 namespace cvk {
-inline void Memory::debug_check(Memory const& memory) {
+constexpr void Memory::debug_check(Memory const& memory) {
     CTH_CRITICAL(!memory.created(), "memory must be created") {}
 }
 }

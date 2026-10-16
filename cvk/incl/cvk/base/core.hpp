@@ -96,7 +96,7 @@ public:
      */
     State release();
 
-    [[nodiscard]] bool created() const { return _device != nullptr; }
+    [[nodiscard]] constexpr bool created() const { return _device != nullptr; }
 
     /**
      * @return index of the used queue set in @ref Config::queueSets
@@ -105,7 +105,7 @@ public:
      */
     [[nodiscard]] size_t queueSetIndex() const;
 
-    [[nodiscard]] Instance const& instance() const { return *_instance; }
+    [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
     [[nodiscard]] VkInstance vkInstance() const;
 
     /**
@@ -131,12 +131,12 @@ public:
      * @param idx index in @ref Config::queueProperties
      * @pre @ref created()
      */
-    [[nodiscard]] auto& queue(this auto& self, size_t idx) {
+    [[nodiscard]] constexpr auto& queue(this auto& self, size_t idx) {
         debug_check(self);
         return self._queues[idx];
     }
 
-    [[nodiscard]] std::span<Queue const> queues() const { return _queues; }
+    [[nodiscard]] constexpr std::span<Queue const> queues() const { return _queues; }
 
 private:
     struct queue_mappings {
@@ -188,7 +188,7 @@ public:
     Core& operator=(Core const& other) = delete;
     Core& operator=(Core&& other) noexcept;
 
-    static void debug_check(Core const&);
+    static constexpr void debug_check(Core const&);
 };
 }
 
@@ -219,7 +219,7 @@ struct Core::State {
 }
 
 namespace cvk {
-inline void Core::debug_check(Core const& core) {
+constexpr void Core::debug_check(Core const& core) {
     CTH_CRITICAL(!core.created(), "core must be created") {}
 }
 }

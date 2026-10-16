@@ -88,9 +88,9 @@ public:
 
     static void destroy(DeviceTable table, VkPipelineLayout);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkPipelineLayout get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkPipelineLayout get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
 private:
     void forget();
@@ -105,7 +105,7 @@ public:
     PipelineLayout& operator=(PipelineLayout const& other) = delete;
     PipelineLayout& operator=(PipelineLayout&& other) noexcept = default;
 
-    static void debug_check(PipelineLayout const&);
+    static constexpr void debug_check(PipelineLayout const&);
 };
 }
 
@@ -125,7 +125,7 @@ struct PipelineLayout::State {
 }
 
 namespace cvk {
-inline void PipelineLayout::debug_check(PipelineLayout const& layout) {
+constexpr void PipelineLayout::debug_check(PipelineLayout const& layout) {
     CTH_CRITICAL(!layout.created(), "pipeline layout must be created") {}
 }
 }

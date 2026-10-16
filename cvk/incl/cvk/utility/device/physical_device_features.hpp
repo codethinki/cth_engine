@@ -61,12 +61,12 @@ public:
      * @tparam T one of @ref chain_t
      */
     template<class T = VkPhysicalDeviceFeatures2>
-    [[nodiscard]] auto& features(this auto& self) { return std::get<T>(self._chain); }
+    [[nodiscard]] constexpr auto& features(this auto& self) { return std::get<T>(self._chain); }
 
     /**
      * @brief start of the pNext chain, for VkDeviceCreateInfo::pNext
      */
-    [[nodiscard]] VkPhysicalDeviceFeatures2 const* get() const { return &std::get<VkPhysicalDeviceFeatures2>(_chain); }
+    [[nodiscard]] constexpr VkPhysicalDeviceFeatures2 const* get() const { return &std::get<VkPhysicalDeviceFeatures2>(_chain); }
 
 private:
     void link();

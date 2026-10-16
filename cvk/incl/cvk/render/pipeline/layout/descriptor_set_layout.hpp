@@ -87,9 +87,9 @@ public:
 
     static void destroy(DeviceTable table, VkDescriptorSetLayout);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkDescriptorSetLayout get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkDescriptorSetLayout get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
     /**
      * @return bindings, sorted by binding number
@@ -113,7 +113,7 @@ public:
     DescriptorSetLayout& operator=(DescriptorSetLayout const& other) = delete;
     DescriptorSetLayout& operator=(DescriptorSetLayout&& other) noexcept = default;
 
-    static void debug_check(DescriptorSetLayout const&);
+    static constexpr void debug_check(DescriptorSetLayout const&);
 };
 }
 
@@ -177,7 +177,7 @@ constexpr DescriptorSetLayout::Config& DescriptorSetLayout::Config::remove(uint3
 }
 
 namespace cvk {
-inline void DescriptorSetLayout::debug_check(DescriptorSetLayout const& layout) {
+constexpr void DescriptorSetLayout::debug_check(DescriptorSetLayout const& layout) {
     CTH_CRITICAL(!layout.created(), "descriptor set layout must be created") {}
 }
 }

@@ -81,9 +81,9 @@ public:
 
     static void destroy(DeviceTable table, VkSemaphore);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkSemaphore get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkSemaphore get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
 protected:
     /**
@@ -105,7 +105,7 @@ public:
     Semaphore& operator=(Semaphore const& other) = delete;
     Semaphore& operator=(Semaphore&& other) noexcept = default;
 
-    static void debug_check(Semaphore const&);
+    static constexpr void debug_check(Semaphore const&);
 };
 }
 
@@ -116,7 +116,7 @@ struct Semaphore::State {
 }
 
 namespace cvk {
-inline void Semaphore::debug_check(Semaphore const& semaphore) {
+constexpr void Semaphore::debug_check(Semaphore const& semaphore) {
     CTH_CRITICAL(!semaphore.created(), "semaphore must be created") {}
 }
 }

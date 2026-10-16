@@ -131,11 +131,11 @@ public:
      */
     static void destroy(VkInstance);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkInstance get() const { return _handle.get(); }
-    [[nodiscard]] std::vector<std::string> availableExtensions() const { return _availableExt; }
-    [[nodiscard]] std::vector<std::string> requiredExtensions() const { return _requiredExt; }
-    [[nodiscard]] std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkInstance get() const { return _handle.get(); }
+    [[nodiscard]] constexpr std::vector<std::string> availableExtensions() const { return _availableExt; }
+    [[nodiscard]] constexpr std::vector<std::string> requiredExtensions() const { return _requiredExt; }
+    [[nodiscard]] constexpr std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
 
 private:
     void forget();
@@ -158,8 +158,8 @@ public:
     Instance(Instance&& other) noexcept = default;
     Instance& operator=(Instance&& other) noexcept = default;
 
-    static void debug_check(Instance const&);
-    static void debug_check_handle(vk_not_null<VkInstance>);
+    static constexpr void debug_check(Instance const&);
+    static constexpr void debug_check_handle(vk_not_null<VkInstance>);
 };
 }
 
@@ -177,6 +177,6 @@ struct Instance::State {
 }
 
 namespace cvk {
-inline void Instance::debug_check(Instance const& instance) { debug_check_handle(instance.get()); }
-inline void Instance::debug_check_handle([[maybe_unused]] vk_not_null<VkInstance> vkInstance) {}
+constexpr void Instance::debug_check(Instance const& instance) { debug_check_handle(instance.get()); }
+constexpr void Instance::debug_check_handle([[maybe_unused]] vk_not_null<VkInstance> vkInstance) {}
 }

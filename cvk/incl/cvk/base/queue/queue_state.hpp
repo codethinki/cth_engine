@@ -32,7 +32,7 @@ struct QueueState {
     std::shared_ptr<std::mutex> vkQueueMtx = std::make_shared<std::mutex>();
 
 
-    static void debug_check(QueueState const& state) {
+    static constexpr void debug_check(QueueState const& state) {
         CTH_CRITICAL(state.vkQueueMtx == nullptr, "mutex must not be nullptr") {}
     }
 };

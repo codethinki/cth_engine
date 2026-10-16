@@ -97,12 +97,12 @@ public:
      * @return value for the next signal operation
      * @details thread safe
      */
-    [[nodiscard]] uint64_t next() const { return ++_value; }
+    [[nodiscard]] constexpr uint64_t next() const { return ++_value; }
 
     /**
      * @return the counter, value to wait for
      */
-    [[nodiscard]] uint64_t value() const { return _value; }
+    [[nodiscard]] constexpr uint64_t value() const { return _value; }
 
     /**
      * @return current value of the semaphore
@@ -129,7 +129,7 @@ public:
         return *this;
     }
 
-    static void debug_check(TimelineSemaphore const& semaphore);
+    static constexpr void debug_check(TimelineSemaphore const& semaphore);
 };
 }
 
@@ -144,5 +144,5 @@ struct TimelineSemaphore::State {
 }
 
 namespace cvk {
-inline void TimelineSemaphore::debug_check(TimelineSemaphore const& semaphore) { Semaphore::debug_check(semaphore); }
+constexpr void TimelineSemaphore::debug_check(TimelineSemaphore const& semaphore) { Semaphore::debug_check(semaphore); }
 }

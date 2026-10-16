@@ -91,9 +91,9 @@ public:
         [[nodiscard]] VkDebugUtilsMessengerCreateInfoEXT createInfo() const;
     };
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
-    [[nodiscard]] Config config() const { return _config; }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Config config() const { return _config; }
 
 protected:
     Config _config;
@@ -109,7 +109,7 @@ public:
     DebugMessenger& operator=(DebugMessenger const& other) = delete;
     DebugMessenger& operator=(DebugMessenger&& other) noexcept = default;
 
-    static void debug_check(DebugMessenger const&);
+    static constexpr void debug_check(DebugMessenger const&);
 };
 } // namespace cvk
 
@@ -120,7 +120,7 @@ struct DebugMessenger::State {
 }
 
 namespace cvk {
-inline void DebugMessenger::debug_check(DebugMessenger const& debugMessenger) {
+constexpr void DebugMessenger::debug_check(DebugMessenger const& debugMessenger) {
     CTH_CRITICAL(!debugMessenger.created(), "debug_messenger not created") {}
 }
 }

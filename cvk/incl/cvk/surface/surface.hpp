@@ -107,9 +107,9 @@ public:
 
     static void destroy(vk_not_null<VkInstance>, VkSurfaceKHR);
 
-    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] VkSurfaceKHR get() const { return _handle.get(); }
-    [[nodiscard]] Config const& config() const { return _config; }
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkSurfaceKHR get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
     void forget();
@@ -123,8 +123,8 @@ public:
     Surface& operator=(Surface const& other) = delete;
     Surface& operator=(Surface&& other) noexcept = default;
 
-    static void debug_check(Surface const&);
-    static void debug_check_handle(vk_not_null<VkSurfaceKHR>);
+    static constexpr void debug_check(Surface const&);
+    static constexpr void debug_check_handle(vk_not_null<VkSurfaceKHR>);
 };
 }
 
@@ -135,9 +135,9 @@ struct Surface::State {
 }
 
 namespace cvk {
-inline void Surface::debug_check(Surface const& surface) {
+constexpr void Surface::debug_check(Surface const& surface) {
     CTH_CRITICAL(!surface.created(), "surface must be created") {}
     debug_check_handle(surface.get());
 }
-inline void Surface::debug_check_handle([[maybe_unused]] vk_not_null<VkSurfaceKHR> vkSurface) {}
+constexpr void Surface::debug_check_handle([[maybe_unused]] vk_not_null<VkSurfaceKHR> vkSurface) {}
 }
