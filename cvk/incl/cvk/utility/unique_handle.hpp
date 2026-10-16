@@ -10,14 +10,17 @@
 #include <utility>
 
 
+struct VmaAllocator_T;
+
 namespace cvk {
 class Core;
 class Instance;
 }
 
 namespace cvk::dev {
-[[nodiscard]] DeviceTable device_table(Core const& core);
-[[nodiscard]] VkInstance vk_instance(Instance const& instance);
+[[nodiscard]] DeviceTable device_table(Core const&);
+[[nodiscard]] VkInstance vk_instance(Instance const&);
+[[nodiscard]] VmaAllocator_T* vma_allocator(Core const&);
 }
 
 namespace cvk {
@@ -38,6 +41,20 @@ public:
 
 private:
     not_null<Core const*> _core;
+};
+
+/**
+ * @brief deleter of memory objects, context: the core
+ * @details calls T::destroy(core.allocator().get(), handle)
+ * @pre the core outlives the deleter
+ */
+template<class T>
+class vma_deleter : public core_deleter<T> {
+public:
+    using core_deleter<T>::core_deleter;
+
+    template<class Handle>
+    void operator()(Handle handle) const { T::destroy(dev::vma_allocator(this->core()), handle); }
 };
 
 /**
@@ -72,7 +89,7 @@ struct handle_deleter {
 /**
  * @brief owning Vulkan handle, std::unique_ptr with a deleter that holds the destroy context
  * @tparam Handle Vulkan handle, or Deleter::pointer for handles that are not pointers
- * @tparam Deleter @ref core_deleter, @ref instance_deleter, @ref handle_deleter or a deleter derived from them
+ * @tparam Deleter @ref core_deleter, @ref vma_deleter, @ref instance_deleter, @ref handle_deleter or a deleter derived from them
  * @details a handle comes only together with its context: the constructors and reset() construct the deleter,
  *  a missing context argument does not compile,
  *  move assignment destroys the old handle with the old context, then takes handle and context

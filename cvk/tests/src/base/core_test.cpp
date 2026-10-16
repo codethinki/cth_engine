@@ -2,6 +2,7 @@
 #include "test.hpp"
 #include "validation.hpp"
 
+#include "cvk/base/allocator.hpp"
 #include "cvk/base/core.hpp"
 #include "cvk/base/device.hpp"
 #include "cvk/base/instance.hpp"
@@ -131,6 +132,7 @@ CVK_TEST(Core, release_and_wrap) {
 
     Core core{instance, {}, CONFIG};
     auto const vkDevice = core.vkDevice();
+    auto const vmaAllocator = core.allocator().get();
 
     auto state = core.release();
     EXPECT_FALSE(core.created());
@@ -140,6 +142,7 @@ CVK_TEST(Core, release_and_wrap) {
 
     ASSERT_TRUE(wrapped.created());
     EXPECT_EQ(wrapped.vkDevice(), vkDevice);
+    EXPECT_EQ(wrapped.allocator().get(), vmaAllocator);
     ASSERT_EQ(wrapped.queues().size(), CONFIG.queueProperties.size());
     wrapped.queue(0).wait();
 }
@@ -154,6 +157,19 @@ CVK_TEST(Core, wrap_without_queues_takes_the_device_queues) {
     Core const wrapped{instance, std::move(state)};
 
     EXPECT_EQ(wrapped.queues().size(), wrapped.device().queues().size());
+}
+
+CVK_TEST(Core, wrap_without_allocator_creates_one) {
+    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+
+    Core core{instance, {}, CONFIG};
+    auto state = core.release();
+    state.allocator = nullptr;
+
+    Core const wrapped{instance, std::move(state)};
+
+    EXPECT_TRUE(wrapped.allocator().created());
+    EXPECT_EQ(&wrapped.allocator().device(), &wrapped.device());
 }
 
 CVK_TEST(Core, queues_work_after_move) {

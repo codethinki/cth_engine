@@ -77,7 +77,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 | macro | `UPPER_SNAKE_CASE` with library prefix | `CVK_RESULT_STABLE_THROW` |
 | namespace | short lower case | `cvk`, `cvk::constants`, `cvk::dev` |
 
-- A raw Vulkan handle in a variable or parameter has the prefix `vk`: `vkInstance`, `vkSemaphore`.
+- A raw Vulkan handle in a variable or parameter has the prefix `vk`: `vkInstance`, `vkSemaphore`. A raw VMA handle has the prefix `vma`: `vmaAllocator`, `vmaAllocation`.
 - `_t` marks an alias that only renames a type: `callback_t` is a function pointer, `queue_set_t` a `union_find`. An alias that is a type of its own gets a plain std style name, like `std::string` for `std::basic_string<char>`.
 - A declaration leaves out a parameter name that repeats the type: `void wrap(State const&)`, `destroy(DeviceTable table, VkSemaphore)`, not `VkSemaphore vkSemaphore`. The definition keeps the name.
 - Function parameters were `snake_case` in the legacy code. New code uses `camelCase`. Rename them when you port.
@@ -160,7 +160,7 @@ public:
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
 - Classes that own a handle are move only. A class that differs (copyable, not movable, custom move) says so in its `@brief`.
 - They store the handle in `cvk::unique_handle<Handle, Deleter>` (`cvk/utility/unique_handle.hpp`): a `std::unique_ptr` with a deleter that holds the destroy context and calls the static `destroy`.
-  Deleters: `core_deleter<T>` (the core), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context) or a deleter derived from them.
+  Deleters: `core_deleter<T>` (the core), `vma_deleter<T>` (the core, destroys through its allocator), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context) or a deleter derived from them.
   Device objects use `core_handle<Handle, T>`, short for `unique_handle<Handle, core_deleter<T>>`.
 - Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
 - Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.

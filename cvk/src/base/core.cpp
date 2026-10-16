@@ -1,5 +1,6 @@
 #include "cvk/base/core.hpp"
 
+#include "cvk/base/allocator.hpp"
 #include "cvk/base/device.hpp"
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
@@ -31,11 +32,20 @@ void Core::wrap(State state) {
         &state.device->physicalDevice() != state.physicalDevice.get(),
         "device must be created with the physical device of the state"
     ) {}
+    if(state.allocator != nullptr) {
+        Allocator::debug_check(*state.allocator);
+        CTH_CRITICAL(
+            &state.allocator->device() != state.device.get(),
+            "allocator must be created with the device of the state"
+        ) {}
+    }
 
     optDestroy();
 
     _physicalDevice = state.physicalDevice.release_val();
     _device = state.device.release_val();
+    _allocator = std::move(state.allocator);
+    if(_allocator == nullptr) _allocator = std::make_unique<Allocator>(*_device, cvk::create);
     _queueSetIndex = state.queueSetIndex;
 
     if(state.queues.empty()) _queues.assign_range(_device->queues());
@@ -49,11 +59,16 @@ void Core::create(span<Surface const> surfaces, Config const& config) {
 
     auto [uniqueQueueFamilyIndices, queuesToUniqueQueues] = createPhysicalDevice(surfaces, config);
 
-    _device = std::make_unique<Device>(
+    auto device = std::make_unique<Device>(
         *_instance,
         *_physicalDevice,
         Device::Config{std::move(uniqueQueueFamilyIndices)}
     );
+    // a throw destroys the device, the core stays not created
+    auto allocator = std::make_unique<Allocator>(*device, cvk::create);
+
+    _device = std::move(device);
+    _allocator = std::move(allocator);
 
     createQueues(queuesToUniqueQueues);
 }
@@ -69,6 +84,7 @@ Core::State Core::release() {
     State state{
         .physicalDevice = std::move(_physicalDevice),
         .device = std::move(_device),
+        .allocator = std::move(_allocator),
         .queues = std::move(_queues),
         .queueSetIndex = _queueSetIndex,
     };
@@ -100,8 +116,14 @@ DeviceTable Core::deviceTable() const { return device().table(); }
 VolkDeviceTable const* Core::functions() const { return device().functions(); }
 VkDevice Core::vkDevice() const { return device().get(); }
 
+Allocator const& Core::allocator() const {
+    debug_check(*this);
+    return *_allocator;
+}
+
 void Core::forget() {
     _queues.clear();
+    _allocator = nullptr;
     _device = nullptr;
     _physicalDevice = nullptr;
     _queueSetIndex = std::nullopt;

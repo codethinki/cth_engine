@@ -16,13 +16,14 @@
 
 
 namespace cvk {
+class Allocator;
 class Device;
 class Instance;
 class PhysicalDevice;
 class Surface;
 
 /**
- * @brief picks the physical device and owns it with the device and the queues
+ * @brief picks the physical device and owns it with the device, the allocator and the queues
  * @details the instance outlives the core
  */
 class Core {
@@ -60,19 +61,21 @@ public:
 
     /**
      * @brief wraps the state
-     * @details empty @ref State::queues -> copies the queues of the device
+     * @details empty @ref State::queues -> copies the queues of the device,
+     *  nullptr @ref State::allocator -> creates the allocator
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
     void wrap(State);
 
     /**
-     * @brief picks a physical device for the first possible queue set, creates the device and the queues
+     * @brief picks a physical device for the first possible queue set, creates the device, the allocator and the queues
      * @param surfaces the present queues present to every surface
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
      * @throws cvk::vk_result_exception result of vkCreateDevice()
+     * @throws cvk::vk_result_exception result of vmaCreateAllocator()
      */
     void create(std::span<Surface const> surfaces, Config const&);
 
@@ -118,6 +121,11 @@ public:
     [[nodiscard]] DeviceTable deviceTable() const;
     [[nodiscard]] VolkDeviceTable const* functions() const;
     [[nodiscard]] VkDevice vkDevice() const;
+
+    /**
+     * @pre @ref created()
+     */
+    [[nodiscard]] Allocator const& allocator() const;
 
     /**
      * @param idx index in @ref Config::queueProperties
@@ -168,6 +176,8 @@ private:
     not_null<Instance const*> _instance;
 
     std::unique_ptr<PhysicalDevice> _physicalDevice;
+    // declared before the device: move assignment destroys the old allocator before the old device
+    std::unique_ptr<Allocator> _allocator;
     std::unique_ptr<Device> _device;
     std::optional<size_t> _queueSetIndex;
     std::vector<Queue> _queues;
@@ -193,6 +203,12 @@ struct Core::State {
      * @pre created with @ref physicalDevice
      */
     unique_not_null<Device> device;
+    /**
+     * @details nullptr -> @ref wrap() creates it
+     * @pre @ref Allocator::created()
+     * @pre created with @ref device
+     */
+    std::unique_ptr<Allocator> allocator;
     /**
      * @brief queue per entry of @ref Config::queueProperties
      * @details empty -> the queues of @ref device
