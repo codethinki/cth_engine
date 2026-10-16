@@ -42,7 +42,7 @@ namespace {
         pool_deleter(Core const& core, VkCommandPool vkPool) : core_deleter{core}, pool{vkPool} {}
 
         void operator()(VkCommandBuffer vkBuffer) const {
-            PoolOwned::destroy(dev::device_table(core()), pool, vkBuffer);
+            PoolOwned::destroy(core().deviceTable(), pool, vkBuffer);
         }
 
         VkCommandPool pool;
@@ -178,7 +178,7 @@ CVK_TEST(unique_handle, instance_deleter) {
         Instance const instance{test::APP_NAME, test::headless_extensions(), test::counting_messenger()};
         auto surface = test::headless_surface(instance);
 
-        instance_handle<VkSurfaceKHR, Surface> handle{surface.release().vkSurface.get(), instance};
+        instance_handle<VkSurfaceKHR, Surface> handle{surface.release().vkSurface.get(), instance.get()};
 
         EXPECT_EQ(handle.vkInstance(), instance.get());
     }

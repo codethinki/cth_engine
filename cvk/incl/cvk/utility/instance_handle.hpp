@@ -6,14 +6,6 @@
 
 
 namespace cvk {
-class Instance;
-}
-
-namespace cvk::dev {
-[[nodiscard]] VkInstance vk_instance(Instance const&);
-}
-
-namespace cvk {
 /**
  * @brief deleter of instance objects, context: the VkInstance
  * @details calls T::destroy(vkInstance, handle),
@@ -23,7 +15,6 @@ template<class T>
 class instance_deleter {
 public:
     explicit instance_deleter(VkInstance vkInstance) : _vkInstance{vkInstance} {}
-    explicit instance_deleter(Instance const& instance) : instance_deleter{dev::vk_instance(instance)} {}
 
     template<class Handle>
     void operator()(Handle handle) const { T::destroy(_vkInstance.get(), handle); }

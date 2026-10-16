@@ -1,16 +1,8 @@
 #pragma once
-#include "cvk/base/device_table.hpp"
+#include "cvk/base/core.hpp"
 #include "cvk/utility/types.hpp"
 #include "cvk/utility/unique_handle.hpp"
 
-
-namespace cvk {
-class Core;
-}
-
-namespace cvk::dev {
-[[nodiscard]] DeviceTable device_table(Core const&);
-}
 
 namespace cvk {
 /**
@@ -24,7 +16,7 @@ public:
     explicit core_deleter(Core const& core) : _core{&core} {}
 
     template<class Handle>
-    void operator()(Handle handle) const { T::destroy(dev::device_table(*_core), handle); }
+    void operator()(Handle handle) const { T::destroy(_core->deviceTable(), handle); }
 
     [[nodiscard]] Core const& core() const { return *_core; }
 

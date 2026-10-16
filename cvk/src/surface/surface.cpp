@@ -26,7 +26,7 @@ namespace {
     }
 }
 
-Surface::Surface(Instance const& instance, Config config) : _config{std::move(config)}, _handle{instance} {}
+Surface::Surface(Instance const& instance, Config config) : _config{std::move(config)}, _handle{instance.get()} {}
 
 Surface::Surface(Instance const& instance, Config config, State const& state) : Surface{instance, std::move(config)} {
     wrap(state);

@@ -1,14 +1,12 @@
 #pragma once
+#include "cvk/base/allocator.hpp"
+#include "cvk/base/core.hpp"
 #include "cvk/utility/core_handle.hpp"
 #include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 #include <vk_mem_alloc.h>
 
-
-namespace cvk::dev {
-[[nodiscard]] VmaAllocator vma_allocator(Core const&);
-}
 
 namespace cvk {
 /**
@@ -22,7 +20,7 @@ public:
     using core_deleter<T>::core_deleter;
 
     template<class Handle>
-    void operator()(Handle handle) const { T::destroy(dev::vma_allocator(this->core()), handle); }
+    void operator()(Handle handle) const { T::destroy(this->core().allocator().get(), handle); }
 };
 
 /**
