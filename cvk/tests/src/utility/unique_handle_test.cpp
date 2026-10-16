@@ -89,7 +89,7 @@ namespace {
 }
 
 CVK_TEST(unique_handle, a_handle_needs_its_context) {
-    using fence_handle = unique_handle<VkFence, core_deleter<Fence>>;
+    using fence_handle = core_handle<VkFence, Fence>;
     static_assert(!std::default_initializable<fence_handle>);
     static_assert(!std::constructible_from<fence_handle, VkFence>);
     static_assert(!resettable<fence_handle>);
@@ -113,7 +113,7 @@ CVK_TEST(unique_handle, a_handle_needs_its_context) {
 
 CVK_TEST(unique_handle, size) {
     static_assert(sizeof(unique_handle<VkInstance, handle_deleter<Instance>>) == sizeof(VkInstance));
-    static_assert(sizeof(unique_handle<VkFence, core_deleter<Fence>>) == sizeof(Core const*) + sizeof(VkFence));
+    static_assert(sizeof(core_handle<VkFence, Fence>) == sizeof(Core const*) + sizeof(VkFence));
     static_assert(
         sizeof(unique_handle<VkSurfaceKHR, instance_deleter<Surface>>) == sizeof(VkInstance) + sizeof(VkSurfaceKHR)
     );
@@ -122,7 +122,7 @@ CVK_TEST(unique_handle, size) {
 CVK_TEST(unique_handle, core_deleter) {
     test::Context const context{};
 
-    unique_handle<VkFence, core_deleter<Fence>> handle{context.core};
+    core_handle<VkFence, Fence> handle{context.core};
     EXPECT_FALSE(handle);
     EXPECT_EQ(&handle.core(), &context.core);
 
@@ -137,8 +137,8 @@ CVK_TEST(unique_handle, core_deleter) {
 
 CVK_TEST(unique_handle, move_assignment_destroys_the_old_handle) {
     test::Context const context{};
-    unique_handle<VkFence, core_deleter<Fence>> handle{context.core};
-    unique_handle<VkFence, core_deleter<Fence>> other{context.core};
+    core_handle<VkFence, Fence> handle{context.core};
+    core_handle<VkFence, Fence> other{context.core};
     handle.reset(create_vk_fence(context.core), context.core);
     auto const vkFence = create_vk_fence(context.core);
     other.reset(vkFence, context.core);
@@ -153,7 +153,7 @@ CVK_TEST(unique_handle, move_assignment_destroys_the_old_handle) {
 CVK_TEST(unique_handle, release_keeps_the_handle) {
     test::Context const context{};
     auto const vkFence = create_vk_fence(context.core);
-    unique_handle<VkFence, core_deleter<Fence>> handle{vkFence, context.core};
+    core_handle<VkFence, Fence> handle{vkFence, context.core};
 
     EXPECT_EQ(handle.release(), vkFence);
     EXPECT_FALSE(handle);

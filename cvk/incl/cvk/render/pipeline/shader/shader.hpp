@@ -163,7 +163,7 @@ public:
 private:
     void invalidate();
 
-    unique_handle<VkShaderModule, core_deleter<Shader>> _handle;
+    core_handle<VkShaderModule, Shader> _handle;
     VkShaderStageFlagBits _stage;
 
 public:

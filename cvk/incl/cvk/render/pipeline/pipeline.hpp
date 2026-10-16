@@ -119,7 +119,7 @@ public:
 private:
     void invalidate();
 
-    unique_handle<VkPipeline, core_deleter<Pipeline>> _handle;
+    core_handle<VkPipeline, Pipeline> _handle;
     vk_not_null<VkPipelineLayout> _vkLayout;
     VkPipeline _vkParent = VK_NULL_HANDLE;
     Config _config;

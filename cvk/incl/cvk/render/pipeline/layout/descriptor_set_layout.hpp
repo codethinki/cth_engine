@@ -103,7 +103,7 @@ public:
 private:
     void invalidate();
 
-    unique_handle<VkDescriptorSetLayout, core_deleter<DescriptorSetLayout>> _handle;
+    core_handle<VkDescriptorSetLayout, DescriptorSetLayout> _handle;
     std::vector<VkDescriptorSetLayoutBinding> _bindings;
 
 public:

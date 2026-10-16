@@ -152,4 +152,11 @@ public:
     unique_handle& operator=(unique_handle const& other) = delete;
     unique_handle& operator=(unique_handle&& other) noexcept = default;
 };
+
+/**
+ * @brief @ref unique_handle of a device object, the deleter stores the core
+ * @tparam T owner class with a static destroy(DeviceTable, Handle)
+ */
+template<class Handle, class T>
+using core_handle = unique_handle<Handle, core_deleter<T>>;
 }

@@ -95,7 +95,7 @@ public:
 private:
     void invalidate();
 
-    unique_handle<VkPipelineLayout, core_deleter<PipelineLayout>> _handle;
+    core_handle<VkPipelineLayout, PipelineLayout> _handle;
     std::vector<VkDescriptorSetLayout> _vkSetLayouts;
     std::vector<VkPushConstantRange> _pushConstantRanges;
 

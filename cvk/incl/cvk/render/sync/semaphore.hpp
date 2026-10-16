@@ -97,7 +97,7 @@ protected:
 private:
     void invalidate();
 
-    unique_handle<VkSemaphore, core_deleter<Semaphore>> _handle;
+    core_handle<VkSemaphore, Semaphore> _handle;
 
 public:
     Semaphore(Semaphore const& other) = delete;

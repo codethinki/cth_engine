@@ -98,7 +98,7 @@ public:
 private:
     void invalidate();
 
-    unique_handle<VkSampler, core_deleter<Sampler>> _handle;
+    core_handle<VkSampler, Sampler> _handle;
     Config _config;
 
 public:
