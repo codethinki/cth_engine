@@ -13,7 +13,7 @@
 
 
 namespace cvk {
-Shader::Shader(Core const& core, VkShaderStageFlagBits stage) : _core{&core}, _stage{stage} {
+Shader::Shader(Core const& core, VkShaderStageFlagBits stage) : _handle{core}, _stage{stage} {
     Core::debug_check(core);
 }
 
@@ -45,7 +45,7 @@ Shader::Shader(
 void Shader::wrap(State const& state) {
     optDestroy();
 
-    _handle = state.vkShader.get();
+    _handle.reset(state.vkShader.get(), core());
 }
 
 void Shader::create(std::span<uint32_t const> spv) {
@@ -62,14 +62,14 @@ void Shader::create(std::span<uint32_t const> spv) {
     };
 
     VkShaderModule ptr = VK_NULL_HANDLE;
-    auto const result = _core->functions()->vkCreateShaderModule(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreateShaderModule(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create shader module") {
         invalidate();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
-    _handle = ptr;
+    _handle.reset(ptr, core());
 }
 
 void Shader::create(path_t const& spvPath) {
@@ -80,7 +80,7 @@ void Shader::create(path_t const& spvPath) {
 void Shader::destroy() {
     debug_check(*this);
 
-    destroy(_core->deviceTable(), _handle.get());
+    _handle.reset();
 
     invalidate();
 }
@@ -88,7 +88,7 @@ void Shader::destroy() {
 Shader::State Shader::release() {
     debug_check(*this);
 
-    State const state{_handle.get()};
+    State const state{_handle.release()};
     invalidate();
     return state;
 }
@@ -188,5 +188,5 @@ void Shader::destroy(DeviceTable table, VkShaderModule vkShader) {
     table->vkDestroyShaderModule(table.device(), vkShader, nullptr);
 }
 
-void Shader::invalidate() { _handle = VK_NULL_HANDLE; }
+void Shader::invalidate() {}
 }

@@ -2,11 +2,11 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/utility.hpp>
 
 #include <vector>
 
@@ -88,23 +88,22 @@ public:
 
     static void destroy(DeviceTable table, VkPipelineLayout);
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkPipelineLayout get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return *_core; }
+    [[nodiscard]] Core const& core() const { return _handle.core(); }
 
 private:
     void invalidate();
 
-    not_null<Core const*> _core;
+    unique_handle<VkPipelineLayout, core_deleter<PipelineLayout>> _handle;
     std::vector<VkDescriptorSetLayout> _vkSetLayouts;
     std::vector<VkPushConstantRange> _pushConstantRanges;
-    move_ptr<VkPipelineLayout_T> _handle = VK_NULL_HANDLE;
 
 public:
     PipelineLayout(PipelineLayout const& other) = delete;
     PipelineLayout(PipelineLayout&& other) noexcept = default;
     PipelineLayout& operator=(PipelineLayout const& other) = delete;
-    PipelineLayout& operator=(PipelineLayout&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    PipelineLayout& operator=(PipelineLayout&& other) noexcept = default;
 
     static void debug_check(PipelineLayout const&);
 };

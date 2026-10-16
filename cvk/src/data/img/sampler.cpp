@@ -8,7 +8,7 @@
 
 
 namespace cvk {
-Sampler::Sampler(Core const& core, Config const& config) : _core{&core}, _config{config} {
+Sampler::Sampler(Core const& core, Config const& config) : _handle{core}, _config{config} {
     Core::debug_check(core);
     _config.maxAnisotropy = std::min(_config.maxAnisotropy, core.physicalDevice().limits().maxSamplerAnisotropy);
 }
@@ -20,7 +20,7 @@ Sampler::Sampler(Core const& core, Config const& config, create_t) : Sampler{cor
 void Sampler::wrap(State const& state) {
     optDestroy();
 
-    _handle = state.vkSampler.get();
+    _handle.reset(state.vkSampler.get(), core());
 }
 
 void Sampler::create() {
@@ -29,20 +29,20 @@ void Sampler::create() {
     auto const info = _config.createInfo();
 
     VkSampler ptr = VK_NULL_HANDLE;
-    auto const result = _core->functions()->vkCreateSampler(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreateSampler(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create sampler") {
         invalidate();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
-    _handle = ptr;
+    _handle.reset(ptr, core());
 }
 
 void Sampler::destroy() {
     debug_check(*this);
 
-    destroy(_core->deviceTable(), _handle.get());
+    _handle.reset();
 
     invalidate();
 }
@@ -50,7 +50,7 @@ void Sampler::destroy() {
 Sampler::State Sampler::release() {
     debug_check(*this);
 
-    State const state{_handle.get()};
+    State const state{_handle.release()};
     invalidate();
     return state;
 }
@@ -61,5 +61,5 @@ void Sampler::destroy(DeviceTable table, VkSampler vkSampler) {
     table->vkDestroySampler(table.device(), vkSampler, nullptr);
 }
 
-void Sampler::invalidate() { _handle = VK_NULL_HANDLE; }
+void Sampler::invalidate() {}
 }

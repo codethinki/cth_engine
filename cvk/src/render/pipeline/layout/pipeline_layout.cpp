@@ -9,7 +9,7 @@
 
 
 namespace cvk {
-PipelineLayout::PipelineLayout(Core const& core, Config const& config) : _core{&core},
+PipelineLayout::PipelineLayout(Core const& core, Config const& config) : _handle{core},
     _pushConstantRanges{config.pushConstantRanges} {
     Core::debug_check(core);
     auto const maxSets = core.physicalDevice().limits().maxBoundDescriptorSets;
@@ -37,7 +37,7 @@ PipelineLayout::PipelineLayout(Core const& core, Config const& config, create_t)
 void PipelineLayout::wrap(State const& state) {
     optDestroy();
 
-    _handle = state.vkLayout.get();
+    _handle.reset(state.vkLayout.get(), core());
 }
 
 void PipelineLayout::create() {
@@ -54,20 +54,20 @@ void PipelineLayout::create() {
     };
 
     VkPipelineLayout ptr = VK_NULL_HANDLE;
-    auto const result = _core->functions()->vkCreatePipelineLayout(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreatePipelineLayout(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline layout") {
         invalidate();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
-    _handle = ptr;
+    _handle.reset(ptr, core());
 }
 
 void PipelineLayout::destroy() {
     debug_check(*this);
 
-    destroy(_core->deviceTable(), _handle.get());
+    _handle.reset();
 
     invalidate();
 }
@@ -75,7 +75,7 @@ void PipelineLayout::destroy() {
 PipelineLayout::State PipelineLayout::release() {
     debug_check(*this);
 
-    State const state{_handle.get()};
+    State const state{_handle.release()};
     invalidate();
     return state;
 }
@@ -86,5 +86,5 @@ void PipelineLayout::destroy(DeviceTable table, VkPipelineLayout vkLayout) {
     table->vkDestroyPipelineLayout(table.device(), vkLayout, nullptr);
 }
 
-void PipelineLayout::invalidate() { _handle = VK_NULL_HANDLE; }
+void PipelineLayout::invalidate() {}
 }

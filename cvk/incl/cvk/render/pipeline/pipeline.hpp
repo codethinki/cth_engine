@@ -4,11 +4,11 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/utility.hpp>
 
 
 
@@ -105,7 +105,7 @@ public:
 
     static void destroy(DeviceTable table, VkPipeline);
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkPipeline get() const { return _handle.get(); }
     [[nodiscard]] VkPipelineLayout layout() const { return _vkLayout.get(); }
 
@@ -114,22 +114,21 @@ public:
      */
     [[nodiscard]] VkPipeline parent() const { return _vkParent; }
     [[nodiscard]] Config const& config() const { return _config; }
-    [[nodiscard]] Core const& core() const { return *_core; }
+    [[nodiscard]] Core const& core() const { return _handle.core(); }
 
 private:
     void invalidate();
 
-    not_null<Core const*> _core;
+    unique_handle<VkPipeline, core_deleter<Pipeline>> _handle;
     vk_not_null<VkPipelineLayout> _vkLayout;
     VkPipeline _vkParent = VK_NULL_HANDLE;
     Config _config;
-    move_ptr<VkPipeline_T> _handle = VK_NULL_HANDLE;
 
 public:
     Pipeline(Pipeline const& other) = delete;
     Pipeline(Pipeline&& other) noexcept = default;
     Pipeline& operator=(Pipeline const& other) = delete;
-    Pipeline& operator=(Pipeline&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    Pipeline& operator=(Pipeline&& other) noexcept = default;
 
     static void debug_check(Pipeline const&);
 };

@@ -1,8 +1,6 @@
 #pragma once
 #include "semaphore.hpp"
 
-#include <cth/utility.hpp>
-
 #include <atomic>
 #include <cstdint>
 
@@ -126,7 +124,9 @@ public:
         _value{other._value.exchange(0)} {}
     TimelineSemaphore& operator=(TimelineSemaphore const& other) = delete;
     TimelineSemaphore& operator=(TimelineSemaphore&& other) noexcept {
-        return cth::reconstruct_at(*this, std::move(other));
+        Semaphore::operator=(std::move(other));
+        _value = other._value.exchange(0);
+        return *this;
     }
 
     static void debug_check(TimelineSemaphore const& semaphore);

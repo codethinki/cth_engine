@@ -158,10 +158,12 @@ public:
 - The first public section holds the API: types, constants, lifecycle, operations, accessors.
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
 - Classes that own a handle are move only. A class that differs (copyable, not movable, custom move) says so in its `@brief`.
-- Their move assignment destroys the old handle: `X& operator=(X&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }`.
-  `= default` leaks the old handle, `cth::move_ptr` does not destroy on assignment.
-- A class derived from a handle class defines its move assignment with `cth::reconstruct_at` too.
-  `= default` calls the base move assignment on the base class subobject, there `reconstruct_at` is undefined behavior.
+- They store the handle in `cvk::unique_handle<Handle, Deleter>` (`cvk/utility/unique_handle.hpp`): a `std::unique_ptr` with a deleter that holds the destroy context and calls the static `destroy`.
+  Deleters: `core_deleter<T>` (the core), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context) or a deleter derived from them.
+- Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
+- Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.
+- A class that owns more than one object declares the objects that depend on its handle first. `= default` assigns in declaration order: `Instance` declares `_debugMessenger` before `_handle`.
+- Classes that do not own their handle (`Queue`, `PhysicalDevice`) keep `cth::move_ptr`.
 
 After the class, in the same header:
 
@@ -189,12 +191,12 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 | `destroy()` | destroys the Vulkan object now and invalidates, requires `created()` |
 | `optDestroy()` | calls `destroy()` if `created()` |
 | `release()` | gives the `State` to the caller and invalidates, does not destroy |
-| `static destroy(...)` | destroys the raw handles, used by `destroy()` |
+| `static destroy(...)` | destroys the raw handles, used by the deleter |
 | `invalidate()` | sets the members to the not created state, does not destroy |
 
 - The destructor calls `optDestroy()`.
 - `reset` keeps its std meaning (`std::unique_ptr::reset` destroys) and names Vulkan operations (`vkResetFences`). The lifecycle uses `invalidate()`.
-- Device objects take `Core const&` in the base constructor and store `not_null<Core const*> _core`.
+- Device objects take `Core const&` in the base constructor. The `core_deleter` of the handle stores it, `core()` returns it.
 - A parent (instance, core, device, pool, ...) does not move and is not destroyed while objects depend on it. Code does not have to support it.
 - A failed `create()` calls `invalidate()` before it throws.
 - `release()` exists so that an owner can use an object it must not destroy (for example swapchain images).

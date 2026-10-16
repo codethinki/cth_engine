@@ -1,11 +1,11 @@
 #pragma once
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/utility.hpp>
 
 #include <cstdint>
 #include <filesystem>
@@ -155,23 +155,22 @@ public:
 
     static void destroy(DeviceTable table, VkShaderModule);
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkShaderModule get() const { return _handle.get(); }
     [[nodiscard]] VkShaderStageFlagBits stage() const { return _stage; }
-    [[nodiscard]] Core const& core() const { return *_core; }
+    [[nodiscard]] Core const& core() const { return _handle.core(); }
 
 private:
     void invalidate();
 
-    not_null<Core const*> _core;
+    unique_handle<VkShaderModule, core_deleter<Shader>> _handle;
     VkShaderStageFlagBits _stage;
-    move_ptr<VkShaderModule_T> _handle = VK_NULL_HANDLE;
 
 public:
     Shader(Shader const& other) = delete;
     Shader(Shader&& other) noexcept = default;
     Shader& operator=(Shader const& other) = delete;
-    Shader& operator=(Shader&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    Shader& operator=(Shader&& other) noexcept = default;
 
     static void debug_check(Shader const&);
 };

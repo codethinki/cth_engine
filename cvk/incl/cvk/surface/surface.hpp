@@ -115,7 +115,7 @@ private:
     void invalidate();
 
     Config _config;
-    unique_handle<Surface, VkSurfaceKHR> _handle;
+    unique_handle<VkSurfaceKHR, instance_deleter<Surface>> _handle;
 
 public:
     Surface(Surface const& other) = delete;

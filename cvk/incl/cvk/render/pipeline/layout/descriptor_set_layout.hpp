@@ -2,11 +2,11 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/utility.hpp>
 
 #include <cstdint>
 #include <span>
@@ -86,9 +86,9 @@ public:
 
     static void destroy(DeviceTable table, VkDescriptorSetLayout);
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkDescriptorSetLayout get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return *_core; }
+    [[nodiscard]] Core const& core() const { return _handle.core(); }
 
     /**
      * @return bindings, sorted by binding number
@@ -103,17 +103,14 @@ public:
 private:
     void invalidate();
 
-    not_null<Core const*> _core;
+    unique_handle<VkDescriptorSetLayout, core_deleter<DescriptorSetLayout>> _handle;
     std::vector<VkDescriptorSetLayoutBinding> _bindings;
-    move_ptr<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
 
 public:
     DescriptorSetLayout(DescriptorSetLayout const& other) = delete;
     DescriptorSetLayout(DescriptorSetLayout&& other) noexcept = default;
     DescriptorSetLayout& operator=(DescriptorSetLayout const& other) = delete;
-    DescriptorSetLayout& operator=(DescriptorSetLayout&& other) noexcept {
-        return cth::reconstruct_at(*this, std::move(other));
-    }
+    DescriptorSetLayout& operator=(DescriptorSetLayout&& other) noexcept = default;
 
     static void debug_check(DescriptorSetLayout const&);
 };

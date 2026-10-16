@@ -161,7 +161,7 @@ public:
 private:
     void invalidate();
 
-    unique_handle<Fence, VkFence> _handle;
+    unique_handle<VkFence, core_deleter<Fence>> _handle;
     VkExternalFenceHandleTypeFlags _exportTypes = 0;
 
 public:

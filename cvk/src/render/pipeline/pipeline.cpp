@@ -6,7 +6,7 @@
 
 
 namespace cvk {
-Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config) : _core{&core},
+Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config) : _handle{core},
     _vkLayout{layout.get()},
     _config{std::move(config)} { Core::debug_check(core); }
 
@@ -22,7 +22,7 @@ Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config
     std::move(config)
 } { create(); }
 
-Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config) : _core{&core},
+Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config) : _handle{core},
     _vkLayout{parent.layout()},
     _vkParent{parent.get()},
     _config{std::move(config)} {
@@ -43,7 +43,7 @@ Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config, crea
 void Pipeline::wrap(State const& state) {
     optDestroy();
 
-    _handle = state.vkPipeline.get();
+    _handle.reset(state.vkPipeline.get(), core());
 }
 
 void Pipeline::create() {
@@ -121,8 +121,8 @@ void Pipeline::create() {
     };
 
     VkPipeline ptr = VK_NULL_HANDLE;
-    auto const result = _core->functions()->vkCreateGraphicsPipelines(
-        _core->vkDevice(),
+    auto const result = core().functions()->vkCreateGraphicsPipelines(
+        core().vkDevice(),
         VK_NULL_HANDLE,
         1,
         &info,
@@ -135,13 +135,13 @@ void Pipeline::create() {
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
-    _handle = ptr;
+    _handle.reset(ptr, core());
 }
 
 void Pipeline::destroy() {
     debug_check(*this);
 
-    destroy(_core->deviceTable(), _handle.get());
+    _handle.reset();
 
     invalidate();
 }
@@ -149,7 +149,7 @@ void Pipeline::destroy() {
 Pipeline::State Pipeline::release() {
     debug_check(*this);
 
-    State const state{_handle.get()};
+    State const state{_handle.release()};
     invalidate();
     return state;
 }
@@ -160,5 +160,5 @@ void Pipeline::destroy(DeviceTable table, VkPipeline vkPipeline) {
     table->vkDestroyPipeline(table.device(), vkPipeline, nullptr);
 }
 
-void Pipeline::invalidate() { _handle = VK_NULL_HANDLE; }
+void Pipeline::invalidate() {}
 }

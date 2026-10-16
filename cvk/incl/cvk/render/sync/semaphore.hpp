@@ -2,11 +2,11 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/utility.hpp>
 
 
 namespace cvk {
@@ -81,9 +81,9 @@ public:
 
     static void destroy(DeviceTable table, VkSemaphore);
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkSemaphore get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return *_core; }
+    [[nodiscard]] Core const& core() const { return _handle.core(); }
 
 protected:
     /**
@@ -97,14 +97,13 @@ protected:
 private:
     void invalidate();
 
-    not_null<Core const*> _core;
-    move_ptr<VkSemaphore_T> _handle = VK_NULL_HANDLE;
+    unique_handle<VkSemaphore, core_deleter<Semaphore>> _handle;
 
 public:
     Semaphore(Semaphore const& other) = delete;
     Semaphore(Semaphore&& other) noexcept = default;
     Semaphore& operator=(Semaphore const& other) = delete;
-    Semaphore& operator=(Semaphore&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    Semaphore& operator=(Semaphore&& other) noexcept = default;
 
     static void debug_check(Semaphore const&);
 };

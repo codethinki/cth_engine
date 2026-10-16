@@ -101,7 +101,7 @@ protected:
 private:
     void invalidate();
 
-    unique_handle<DebugMessenger, VkDebugUtilsMessengerEXT> _handle;
+    unique_handle<VkDebugUtilsMessengerEXT, instance_deleter<DebugMessenger>> _handle;
 
 public:
     DebugMessenger(DebugMessenger const& other) = delete;

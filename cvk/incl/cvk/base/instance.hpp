@@ -101,6 +101,12 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
+     * @brief releases ownership of the instance and the messenger, returns the state and invalidates
+     * @pre @ref created()
+     */
+    State release();
+
+    /**
      * @throws cth::except::default_exception reason: required extension missing
      */
     void checkInstanceExtensionSupport();
@@ -139,7 +145,7 @@ private:
 
     // declared before the handle: move assignment destroys the old messenger before the old instance
     std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
-    unique_handle<Instance, VkInstance> _handle;
+    unique_handle<VkInstance, handle_deleter<Instance>> _handle;
 
     static void loadInstanceFunctions(vk_not_null<VkInstance>);
 

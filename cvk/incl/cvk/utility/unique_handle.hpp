@@ -22,25 +22,6 @@ namespace cvk::dev {
 
 namespace cvk {
 /**
- * @brief T::destroy(DeviceTable, Handle) exists
- */
-template<class T, class Handle>
-concept core_destroyable = requires(DeviceTable table, Handle handle) { T::destroy(table, handle); };
-
-/**
- * @brief T::destroy(VkInstance, Handle) exists
- */
-template<class T, class Handle>
-concept instance_destroyable = requires(VkInstance vkInstance, Handle handle) { T::destroy(vkInstance, handle); };
-
-/**
- * @brief T::destroy(Handle) exists
- */
-template<class T, class Handle>
-concept handle_destroyable = requires(Handle handle) { T::destroy(handle); };
-
-
-/**
  * @brief deleter of device objects, context: the core
  * @details calls T::destroy(core.deviceTable(), handle)
  * @pre the core outlives the deleter
@@ -88,49 +69,16 @@ struct handle_deleter {
     void operator()(Handle handle) const { T::destroy(handle); }
 };
 
-namespace dev {
-    /**
-     * @brief T::destroy fits no default deleter
-     */
-    struct no_default_deleter {};
-}
-
-/**
- * @brief deleter that fits the static destroy of T
- * @details first match:
- * - T::destroy(DeviceTable, Handle) -> @ref core_deleter
- * - T::destroy(VkInstance, Handle) -> @ref instance_deleter
- * - T::destroy(Handle) -> @ref handle_deleter
- * @attention inside T: declare T::destroy before the member that uses this, else no deleter fits
- */
-template<class T, class Handle>
-using default_deleter_t = std::conditional_t<
-    core_destroyable<T, Handle>,
-    core_deleter<T>,
-    std::conditional_t<
-        instance_destroyable<T, Handle>,
-        instance_deleter<T>,
-        std::conditional_t<handle_destroyable<T, Handle>, handle_deleter<T>, dev::no_default_deleter>
-    >
->;
-
-
 /**
  * @brief owning Vulkan handle, std::unique_ptr with a deleter that holds the destroy context
- * @tparam T owner class, its static destroy picks the default deleter
  * @tparam Handle Vulkan handle, or Deleter::pointer for handles that are not pointers
- * @tparam Deleter custom deleters derive from @ref core_deleter, @ref instance_deleter or @ref handle_deleter
+ * @tparam Deleter @ref core_deleter, @ref instance_deleter, @ref handle_deleter or a deleter derived from them
  * @details a handle comes only together with its context: the constructors and reset() construct the deleter,
  *  a missing context argument does not compile,
  *  move assignment destroys the old handle with the old context, then takes handle and context
  */
-template<class T, class Handle, class Deleter = default_deleter_t<T, Handle>>
+template<class Handle, class Deleter>
 class unique_handle {
-    static_assert(
-        !std::same_as<Deleter, dev::no_default_deleter>,
-        "T::destroy fits no default deleter: declare it before the member or supply a deleter"
-    );
-
     using ptr_t = std::unique_ptr<std::remove_pointer_t<Handle>, Deleter>;
     static_assert(std::same_as<typename ptr_t::pointer, Handle>, "Handle must be a pointer or Deleter::pointer");
 

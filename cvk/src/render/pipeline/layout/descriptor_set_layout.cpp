@@ -7,7 +7,7 @@
 
 
 namespace cvk {
-DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config) : _core{&core},
+DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config) : _handle{core},
     _bindings{std::move(config.bindings)} { Core::debug_check(core); }
 
 DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config, State const& state) : DescriptorSetLayout{
@@ -23,7 +23,7 @@ DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config, create
 void DescriptorSetLayout::wrap(State const& state) {
     optDestroy();
 
-    _handle = state.vkLayout.get();
+    _handle.reset(state.vkLayout.get(), core());
 }
 
 void DescriptorSetLayout::create() {
@@ -38,20 +38,20 @@ void DescriptorSetLayout::create() {
     };
 
     VkDescriptorSetLayout ptr = VK_NULL_HANDLE;
-    auto const result = _core->functions()->vkCreateDescriptorSetLayout(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreateDescriptorSetLayout(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create descriptor set layout") {
         invalidate();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
-    _handle = ptr;
+    _handle.reset(ptr, core());
 }
 
 void DescriptorSetLayout::destroy() {
     debug_check(*this);
 
-    destroy(_core->deviceTable(), _handle.get());
+    _handle.reset();
 
     invalidate();
 }
@@ -59,7 +59,7 @@ void DescriptorSetLayout::destroy() {
 DescriptorSetLayout::State DescriptorSetLayout::release() {
     debug_check(*this);
 
-    State const state{_handle.get()};
+    State const state{_handle.release()};
     invalidate();
     return state;
 }
@@ -77,7 +77,7 @@ VkDescriptorSetLayoutBinding const* DescriptorSetLayout::binding(uint32_t bindin
     return it != _bindings.end() && it->binding == binding ? std::to_address(it) : nullptr;
 }
 
-void DescriptorSetLayout::invalidate() { _handle = VK_NULL_HANDLE; }
+void DescriptorSetLayout::invalidate() {}
 }
 
 namespace cvk {

@@ -142,7 +142,7 @@ private:
     not_null<Instance const*> _instance;
     not_null<PhysicalDevice const*> _physicalDevice;
 
-    unique_handle<Device, VkDevice> _handle;
+    unique_handle<VkDevice, handle_deleter<Device>> _handle;
     std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();
 
     std::vector<Queue> _queues{};

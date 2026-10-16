@@ -4,11 +4,11 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/utility.hpp>
 
 
 namespace cvk {
@@ -86,9 +86,9 @@ public:
 
     static void destroy(DeviceTable table, VkSampler);
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkSampler get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return *_core; }
+    [[nodiscard]] Core const& core() const { return _handle.core(); }
 
     /**
      * @return the config, with the clamped anisotropy
@@ -98,15 +98,14 @@ public:
 private:
     void invalidate();
 
-    not_null<Core const*> _core;
+    unique_handle<VkSampler, core_deleter<Sampler>> _handle;
     Config _config;
-    move_ptr<VkSampler_T> _handle = VK_NULL_HANDLE;
 
 public:
     Sampler(Sampler const& other) = delete;
     Sampler(Sampler&& other) noexcept = default;
     Sampler& operator=(Sampler const& other) = delete;
-    Sampler& operator=(Sampler&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    Sampler& operator=(Sampler&& other) noexcept = default;
 
     static void debug_check(Sampler const&);
 };

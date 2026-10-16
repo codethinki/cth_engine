@@ -114,6 +114,14 @@ void Instance::destroy() {
     invalidate();
 }
 
+Instance::State Instance::release() {
+    debug_check(*this);
+
+    State state{_handle.release(), std::move(_debugMessenger)};
+    invalidate();
+    return state;
+}
+
 
 void Instance::checkInstanceExtensionSupport() {
     vector<string> missingExtensions{};

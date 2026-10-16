@@ -107,4 +107,17 @@ CVK_TEST(Instance, move_assignment_takes_the_other_instance) {
     }
     EXPECT_EQ(test::validation_errors(), 0);
 }
+
+CVK_TEST(Instance, release_and_wrap) {
+    Instance instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    auto const vkInstance = instance.get();
+
+    auto state = instance.release();
+    EXPECT_FALSE(instance.created());
+    EXPECT_EQ(state.vkInstance.get(), vkInstance);
+
+    Instance const wrapped{APP_NAME, NO_EXTENSIONS, std::move(state)};
+    ASSERT_TRUE(wrapped.created());
+    EXPECT_EQ(wrapped.get(), vkInstance);
+}
 }
