@@ -65,7 +65,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 | class, struct of `cvk` / `jvk` | `PascalCase` | `Semaphore`, `DeviceTable`, `DestructionQueue` |
 | nested config and state | `Config`, `State` | `Instance::State` |
 | generic library type, trait, concept | `snake_case` | `basic_deletable`, `handle_t`, `destroyable` |
-| type alias | `snake_case_t` | `callback_t`, `queue_set_t` |
+| type alias that renames a type | `snake_case_t` | `callback_t`, `queue_set_t` |
 | member function | `camelCase` | `optDestroy()`, `createInfo()` |
 | free function | `snake_case` | `to_queue_properties()`, `default_debug_callback()` |
 | static check function | `debug_check`, `debug_check_handle` | |
@@ -78,6 +78,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 | namespace | short lower case | `cvk`, `cvk::constants`, `cvk::dev` |
 
 - A raw Vulkan handle in a variable or parameter has the prefix `vk`: `vkInstance`, `vkSemaphore`.
+- `_t` marks an alias that only renames a type: `callback_t` is a function pointer, `queue_set_t` a `union_find`. An alias that is a type of its own gets a plain std style name, like `std::string` for `std::basic_string<char>`.
 - A declaration leaves out a parameter name that repeats the type: `void wrap(State const&)`, `destroy(DeviceTable table, VkSemaphore)`, not `VkSemaphore vkSemaphore`. The definition keeps the name.
 - Function parameters were `snake_case` in the legacy code. New code uses `camelCase`. Rename them when you port.
 - `cvk::dev` holds implementation details that are not part of the API.
