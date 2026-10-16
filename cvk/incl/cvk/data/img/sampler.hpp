@@ -88,7 +88,7 @@ public:
 
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkSampler get() const { return _handle.get(); }
-    [[nodiscard]] DeviceTable deviceTable() const { return _deviceTable; }
+    [[nodiscard]] Core const& core() const { return *_core; }
 
     /**
      * @return the config, with the clamped anisotropy
@@ -98,7 +98,7 @@ public:
 private:
     void reset();
 
-    DeviceTable _deviceTable;
+    not_null<Core const*> _core;
     Config _config;
     move_ptr<VkSampler_T> _handle = VK_NULL_HANDLE;
 

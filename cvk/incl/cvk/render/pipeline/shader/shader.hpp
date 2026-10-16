@@ -158,12 +158,12 @@ public:
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkShaderModule get() const { return _handle.get(); }
     [[nodiscard]] VkShaderStageFlagBits stage() const { return _stage; }
-    [[nodiscard]] DeviceTable deviceTable() const { return _deviceTable; }
+    [[nodiscard]] Core const& core() const { return *_core; }
 
 private:
     void reset();
 
-    DeviceTable _deviceTable;
+    not_null<Core const*> _core;
     VkShaderStageFlagBits _stage;
     move_ptr<VkShaderModule_T> _handle = VK_NULL_HANDLE;
 

@@ -83,7 +83,7 @@ public:
 
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkSemaphore get() const { return _handle.get(); }
-    [[nodiscard]] DeviceTable deviceTable() const { return _deviceTable; }
+    [[nodiscard]] Core const& core() const { return *_core; }
 
 protected:
     /**
@@ -97,7 +97,7 @@ protected:
 private:
     void reset();
 
-    DeviceTable _deviceTable;
+    not_null<Core const*> _core;
     move_ptr<VkSemaphore_T> _handle = VK_NULL_HANDLE;
 
 public:

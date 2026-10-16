@@ -9,8 +9,9 @@
 
 
 namespace cvk {
-PipelineLayout::PipelineLayout(Core const& core, Config const& config) : _deviceTable{core.deviceTable()},
+PipelineLayout::PipelineLayout(Core const& core, Config const& config) : _core{&core},
     _pushConstantRanges{config.pushConstantRanges} {
+    Core::debug_check(core);
     auto const maxSets = core.physicalDevice().limits().maxBoundDescriptorSets;
     CTH_STABLE_ERR(config.setLayouts.size() > maxSets, "more set layouts than maxBoundDescriptorSets") {
         details->add("set layouts: {}, max: {}", config.setLayouts.size(), maxSets);
@@ -53,7 +54,7 @@ void PipelineLayout::create() {
     };
 
     VkPipelineLayout ptr = VK_NULL_HANDLE;
-    auto const result = _deviceTable->vkCreatePipelineLayout(_deviceTable.device(), &info, nullptr, &ptr);
+    auto const result = _core->functions()->vkCreatePipelineLayout(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline layout") {
         reset();
@@ -66,7 +67,7 @@ void PipelineLayout::create() {
 void PipelineLayout::destroy() {
     debug_check(*this);
 
-    destroy(_deviceTable, _handle.get());
+    destroy(_core->deviceTable(), _handle.get());
 
     reset();
 }

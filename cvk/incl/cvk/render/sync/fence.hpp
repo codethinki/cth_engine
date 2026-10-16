@@ -155,13 +155,13 @@ public:
 
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkFence get() const { return _handle.get(); }
-    [[nodiscard]] DeviceTable deviceTable() const { return _deviceTable; }
+    [[nodiscard]] Core const& core() const { return *_core; }
     [[nodiscard]] VkExternalFenceHandleTypeFlags exportTypes() const { return _exportTypes; }
 
 private:
     void resetState();
 
-    DeviceTable _deviceTable;
+    not_null<Core const*> _core;
     move_ptr<VkFence_T> _handle = VK_NULL_HANDLE;
     VkExternalFenceHandleTypeFlags _exportTypes = 0;
 

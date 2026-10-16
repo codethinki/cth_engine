@@ -194,7 +194,8 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 
 - The destructor calls `optDestroy()`.
 - Vulkan has its own reset for some objects (`vkResetFences`, `vkResetCommandBuffer`). There the public `reset()` is the Vulkan operation and the private member reset is `resetState()`.
-- Device objects take `Core const&` in the base constructor and store `core.deviceTable()`, not the core. The core can move, the device table stays valid.
+- Device objects take `Core const&` in the base constructor and store `not_null<Core const*> _core`.
+- A parent (instance, core, device, pool, ...) does not move and is not destroyed while objects depend on it. Code does not have to support it.
 - A failed `create()` calls `reset()` before it throws.
 - `release()` exists so that an owner can use an object it must not destroy (for example swapchain images).
 

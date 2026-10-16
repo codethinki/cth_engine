@@ -32,7 +32,7 @@ CVK_TEST(Semaphore, create_and_destroy) {
     Semaphore semaphore{context.core, create};
 
     ASSERT_TRUE(semaphore.created());
-    EXPECT_EQ(semaphore.deviceTable().device(), context.core.vkDevice());
+    EXPECT_EQ(&semaphore.core(), &context.core);
 
     semaphore.destroy();
     EXPECT_FALSE(semaphore.created());

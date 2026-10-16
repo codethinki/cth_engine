@@ -90,12 +90,12 @@ public:
 
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkPipelineLayout get() const { return _handle.get(); }
-    [[nodiscard]] DeviceTable deviceTable() const { return _deviceTable; }
+    [[nodiscard]] Core const& core() const { return *_core; }
 
 private:
     void reset();
 
-    DeviceTable _deviceTable;
+    not_null<Core const*> _core;
     std::vector<VkDescriptorSetLayout> _vkSetLayouts;
     std::vector<VkPushConstantRange> _pushConstantRanges;
     move_ptr<VkPipelineLayout_T> _handle = VK_NULL_HANDLE;

@@ -1,5 +1,6 @@
 #include "cvk/render/sync/timeline_semaphore.hpp"
 
+#include "cvk/base/core.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <limits>
@@ -44,7 +45,7 @@ TimelineSemaphore::State TimelineSemaphore::release() {
 uint64_t TimelineSemaphore::signal() {
     debug_check(*this);
 
-    auto const table = deviceTable();
+    auto const table = core().deviceTable();
     VkSemaphoreSignalInfo const info{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
         .pNext = nullptr,
@@ -61,7 +62,7 @@ uint64_t TimelineSemaphore::signal() {
 VkResult TimelineSemaphore::wait(uint64_t timeout) const {
     debug_check(*this);
 
-    auto const table = deviceTable();
+    auto const table = core().deviceTable();
     auto const vkSemaphore = get();
     uint64_t const value = _value;
 
@@ -91,7 +92,7 @@ void TimelineSemaphore::wait() const {
 uint64_t TimelineSemaphore::gpuValue() const {
     debug_check(*this);
 
-    auto const table = deviceTable();
+    auto const table = core().deviceTable();
     uint64_t value = 0;
     auto const result = table->vkGetSemaphoreCounterValue(table.device(), get(), &value);
 

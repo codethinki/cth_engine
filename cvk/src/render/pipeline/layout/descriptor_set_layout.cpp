@@ -7,8 +7,8 @@
 
 
 namespace cvk {
-DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config) : _deviceTable{core.deviceTable()},
-    _bindings{std::move(config.bindings)} {}
+DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config) : _core{&core},
+    _bindings{std::move(config.bindings)} { Core::debug_check(core); }
 
 DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config, State const& state) : DescriptorSetLayout{
     core,
@@ -38,7 +38,7 @@ void DescriptorSetLayout::create() {
     };
 
     VkDescriptorSetLayout ptr = VK_NULL_HANDLE;
-    auto const result = _deviceTable->vkCreateDescriptorSetLayout(_deviceTable.device(), &info, nullptr, &ptr);
+    auto const result = _core->functions()->vkCreateDescriptorSetLayout(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create descriptor set layout") {
         reset();
@@ -51,7 +51,7 @@ void DescriptorSetLayout::create() {
 void DescriptorSetLayout::destroy() {
     debug_check(*this);
 
-    destroy(_deviceTable, _handle.get());
+    destroy(_core->deviceTable(), _handle.get());
 
     reset();
 }

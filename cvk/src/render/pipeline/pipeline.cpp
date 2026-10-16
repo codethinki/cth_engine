@@ -6,9 +6,9 @@
 
 
 namespace cvk {
-Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config) : _deviceTable{core.deviceTable()},
+Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config) : _core{&core},
     _vkLayout{layout.get()},
-    _config{std::move(config)} {}
+    _config{std::move(config)} { Core::debug_check(core); }
 
 Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config, State const& state) : Pipeline{
     core,
@@ -22,10 +22,11 @@ Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config
     std::move(config)
 } { create(); }
 
-Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config) : _deviceTable{core.deviceTable()},
+Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config) : _core{&core},
     _vkLayout{parent.layout()},
     _vkParent{parent.get()},
     _config{std::move(config)} {
+    Core::debug_check(core);
     debug_check(parent);
     CTH_CRITICAL(
         (parent.config().flags & VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT) == 0,
@@ -120,8 +121,8 @@ void Pipeline::create() {
     };
 
     VkPipeline ptr = VK_NULL_HANDLE;
-    auto const result = _deviceTable->vkCreateGraphicsPipelines(
-        _deviceTable.device(),
+    auto const result = _core->functions()->vkCreateGraphicsPipelines(
+        _core->vkDevice(),
         VK_NULL_HANDLE,
         1,
         &info,
@@ -140,7 +141,7 @@ void Pipeline::create() {
 void Pipeline::destroy() {
     debug_check(*this);
 
-    destroy(_deviceTable, _handle.get());
+    destroy(_core->deviceTable(), _handle.get());
 
     reset();
 }

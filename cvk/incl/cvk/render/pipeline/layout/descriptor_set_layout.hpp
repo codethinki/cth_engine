@@ -88,7 +88,7 @@ public:
 
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkDescriptorSetLayout get() const { return _handle.get(); }
-    [[nodiscard]] DeviceTable deviceTable() const { return _deviceTable; }
+    [[nodiscard]] Core const& core() const { return *_core; }
 
     /**
      * @return bindings, sorted by binding number
@@ -103,7 +103,7 @@ public:
 private:
     void reset();
 
-    DeviceTable _deviceTable;
+    not_null<Core const*> _core;
     std::vector<VkDescriptorSetLayoutBinding> _bindings;
     move_ptr<VkDescriptorSetLayout_T> _handle = VK_NULL_HANDLE;
 

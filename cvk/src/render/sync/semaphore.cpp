@@ -5,7 +5,7 @@
 
 
 namespace cvk {
-Semaphore::Semaphore(Core const& core) : _deviceTable{core.deviceTable()} {}
+Semaphore::Semaphore(Core const& core) : _core{&core} { Core::debug_check(core); }
 
 Semaphore::Semaphore(Core const& core, State const& state) : Semaphore{core} { wrap(state); }
 
@@ -29,7 +29,7 @@ void Semaphore::create() {
 void Semaphore::destroy() {
     debug_check(*this);
 
-    destroy(_deviceTable, _handle.get());
+    destroy(_core->deviceTable(), _handle.get());
 
     reset();
 }
@@ -52,7 +52,7 @@ void Semaphore::create(VkSemaphoreCreateInfo const& info) {
     optDestroy();
 
     VkSemaphore ptr = VK_NULL_HANDLE;
-    auto const result = _deviceTable->vkCreateSemaphore(_deviceTable.device(), &info, nullptr, &ptr);
+    auto const result = _core->functions()->vkCreateSemaphore(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create semaphore") {
         reset();

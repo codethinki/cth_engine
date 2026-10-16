@@ -113,8 +113,8 @@ public:
      */
     [[nodiscard]] uint64_t gpuValue() const;
 
+    using Semaphore::core;
     using Semaphore::created;
-    using Semaphore::deviceTable;
     using Semaphore::get;
 
 private:

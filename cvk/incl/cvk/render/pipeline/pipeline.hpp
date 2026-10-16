@@ -114,12 +114,12 @@ public:
      */
     [[nodiscard]] VkPipeline parent() const { return _vkParent; }
     [[nodiscard]] Config const& config() const { return _config; }
-    [[nodiscard]] DeviceTable deviceTable() const { return _deviceTable; }
+    [[nodiscard]] Core const& core() const { return *_core; }
 
 private:
     void reset();
 
-    DeviceTable _deviceTable;
+    not_null<Core const*> _core;
     vk_not_null<VkPipelineLayout> _vkLayout;
     VkPipeline _vkParent = VK_NULL_HANDLE;
     Config _config;
