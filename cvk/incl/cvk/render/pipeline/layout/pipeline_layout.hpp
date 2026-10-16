@@ -1,8 +1,8 @@
 #pragma once
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/core_handle.hpp"
 #include "cvk/utility/types.hpp"
-#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 

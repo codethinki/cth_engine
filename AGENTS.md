@@ -161,8 +161,8 @@ public:
 - Classes that own a handle are move only. A class that differs (copyable, not movable, custom move) says so in its `@brief`.
 - They store the handle in `cvk::unique_handle<Handle, Deleter>` (`cvk/utility/unique_handle.hpp`): a `std::unique_ptr` with a deleter that holds the destroy context and calls the static `destroy`.
   Deleters: `core_deleter<T>` (the core), `vma_deleter<T>` (the core, destroys through its allocator), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context) or a deleter derived from them.
-  Device objects use `core_handle<Handle, T>`, short for `unique_handle<Handle, core_deleter<T>>`.
-  Objects with VMA memory use `vma_handle<Handle, T>`, short for `unique_handle<Handle, vma_deleter<T>>`.
+  Device objects use `core_handle<Handle, T>` (`cvk/utility/core_handle.hpp`), short for `unique_handle<Handle, core_deleter<T>>`.
+  Objects with VMA memory use `vma_handle<Handle, T>` (`cvk/utility/vma_handle.hpp`), short for `unique_handle<Handle, vma_deleter<T>>`.
 - Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
 - Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.
 - A class that owns more than one object declares the objects that depend on its handle first. `= default` assigns in declaration order: `Instance` declares `_debugMessenger` before `_handle`.

@@ -8,7 +8,9 @@
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/core_handle.hpp"
 #include "cvk/utility/unique_handle.hpp"
+#include "cvk/utility/vma_handle.hpp"
 
 #include <concepts>
 #include <cstddef>

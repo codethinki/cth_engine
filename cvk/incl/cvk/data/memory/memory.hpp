@@ -2,7 +2,7 @@
 #include "memory_config.hpp"
 
 #include "cvk/utility/types.hpp"
-#include "cvk/utility/unique_handle.hpp"
+#include "cvk/utility/vma_handle.hpp"
 
 #include <volk.h>
 #include <vk_mem_alloc.h>

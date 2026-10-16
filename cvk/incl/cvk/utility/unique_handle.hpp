@@ -1,5 +1,4 @@
 #pragma once
-#include "cvk/base/device_table.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -10,53 +9,15 @@
 #include <utility>
 
 
-struct VmaAllocator_T;
-
 namespace cvk {
-class Core;
 class Instance;
 }
 
 namespace cvk::dev {
-[[nodiscard]] DeviceTable device_table(Core const&);
 [[nodiscard]] VkInstance vk_instance(Instance const&);
-[[nodiscard]] VmaAllocator_T* vma_allocator(Core const&);
 }
 
 namespace cvk {
-/**
- * @brief deleter of device objects, context: the core
- * @details calls T::destroy(core.deviceTable(), handle)
- * @pre the core outlives the deleter
- */
-template<class T>
-class core_deleter {
-public:
-    explicit core_deleter(Core const& core) : _core{&core} {}
-
-    template<class Handle>
-    void operator()(Handle handle) const { T::destroy(dev::device_table(*_core), handle); }
-
-    [[nodiscard]] Core const& core() const { return *_core; }
-
-private:
-    not_null<Core const*> _core;
-};
-
-/**
- * @brief deleter of memory objects, context: the core
- * @details calls T::destroy(core.allocator().get(), handle)
- * @pre the core outlives the deleter
- */
-template<class T>
-class vma_deleter : public core_deleter<T> {
-public:
-    using core_deleter<T>::core_deleter;
-
-    template<class Handle>
-    void operator()(Handle handle) const { T::destroy(dev::vma_allocator(this->core()), handle); }
-};
-
 /**
  * @brief deleter of instance objects, context: the VkInstance
  * @details calls T::destroy(vkInstance, handle),
@@ -169,18 +130,4 @@ public:
     unique_handle& operator=(unique_handle const& other) = delete;
     unique_handle& operator=(unique_handle&& other) noexcept = default;
 };
-
-/**
- * @brief @ref unique_handle of a device object, the deleter stores the core
- * @tparam T owner class with a static destroy(DeviceTable, Handle)
- */
-template<class Handle, class T>
-using core_handle = unique_handle<Handle, core_deleter<T>>;
-
-/**
- * @brief @ref unique_handle of a memory object, the deleter stores the core and frees through its allocator
- * @tparam T owner class with a static destroy(VmaAllocator, Handle)
- */
-template<class Handle, class T>
-using vma_handle = unique_handle<Handle, vma_deleter<T>>;
 }
