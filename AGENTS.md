@@ -17,8 +17,16 @@ Read it before you change a file. Match the existing code.
 - Use the Vulkan C API through volk. Do not use Vulkan-Hpp.
 - Memory comes from VMA.
 - `cvk` destroys immediately. It has no destruction queue. Deferred destruction belongs to `jvk`.
-- Work happens on a local branch. Do not open pull requests for single steps.
 - Commits have no `Co-Authored-By` or "Generated with" lines.
+
+## Branches
+
+- `master` is the main branch. The rebuild goes into it when it is finished.
+- `v2` is the main branch of the rebuild until then.
+- `_v2/jvk_rebuild` is the current work branch. It goes into `v2`.
+- Topic branches off the work branch are named `_v2/_jvk_rebuild/<topic>`.
+- `dev` and the `_dev/...` branches are old. Do not use them.
+- Work locally. Do not open pull requests for single steps.
 
 ## Build and test
 
