@@ -18,7 +18,8 @@ void BaseCmdBuffer::wrap(State const& state) {
     optDestroy();
 
     _handle.reset(state.vkBuffer.get(), pool());
-    ++pool()._buffers;
+    pool().add();
+    _recording = false;
 }
 
 void BaseCmdBuffer::create() {
@@ -43,7 +44,8 @@ void BaseCmdBuffer::create() {
     }
 
     _handle.reset(ptr, pool());
-    ++pool()._buffers;
+    pool().add();
+    _recording = false;
 }
 
 void BaseCmdBuffer::destroy() {
@@ -58,7 +60,7 @@ BaseCmdBuffer::State BaseCmdBuffer::release() {
     debug_check(*this);
 
     State const state{_handle.release()};
-    --pool()._buffers;
+    pool().remove();
 
     forget();
     return state;
@@ -107,12 +109,13 @@ void BaseCmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to begin command buffer") {}
 
     _recording = true;
+    _beginResets = pool().resets();
 }
 
 void BaseCmdBuffer::forget() { _recording = false; }
 
 void BaseCmdBuffer::pool_deleter::operator()(VkCommandBuffer vkBuffer) const {
-    --_pool->_buffers;
+    _pool->remove();
     destroy(_pool->core().deviceTable(), _pool->get(), vkBuffer);
 }
 }

@@ -5,6 +5,7 @@
 #include "cvk/render/sync/fence.hpp"
 
 #include <array>
+#include <type_traits>
 
 
 namespace cvk {
@@ -50,6 +51,12 @@ CVK_TEST(CmdBuffer, inheritance_rendering_info) {
         return info.colorAttachmentCount == 1 && info.pColorAttachmentFormats == inheritance.colorFormats.data()
             && info.depthAttachmentFormat == VK_FORMAT_D16_UNORM && info.rasterizationSamples == VK_SAMPLE_COUNT_4_BIT;
     }());
+}
+
+CVK_TEST(CmdBuffer, delete_only_through_the_derived_class) {
+    static_assert(!std::is_destructible_v<BaseCmdBuffer>);
+    static_assert(std::is_destructible_v<PrimaryCmdBuffer>);
+    static_assert(std::is_destructible_v<SecondaryCmdBuffer>);
 }
 
 CVK_TEST(CmdBuffer, base_constructor_does_not_create) {
@@ -163,6 +170,23 @@ CVK_TEST(CmdBuffer, release_and_wrap) {
     PrimaryCmdBuffer const wrapped{pool, state};
     EXPECT_EQ(wrapped.get(), vkBuffer);
     EXPECT_FALSE(pool.unused());
+}
+
+CVK_TEST(CmdBuffer, moved_from_buffer_does_not_record) {
+    test::Context const context{};
+    CmdPool const pool{context.core, pool_config(context), create};
+    PrimaryCmdBuffer primary{pool, create};
+    primary.begin();
+
+    PrimaryCmdBuffer moved{std::move(primary)};
+
+    EXPECT_FALSE(primary.recording());
+    EXPECT_TRUE(moved.recording());
+
+    primary.create();
+    EXPECT_FALSE(primary.recording());
+
+    moved.end();
 }
 
 CVK_TEST(CmdBuffer, move_assignment_frees_the_old_buffer) {

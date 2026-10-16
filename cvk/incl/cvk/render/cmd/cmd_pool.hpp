@@ -12,11 +12,10 @@
 
 
 namespace cvk {
-class BaseCmdBuffer;
 class Core;
 
 /**
- * @brief VkCommandPool wrapper, counts its command buffers
+ * @brief VkCommandPool wrapper, counts its command buffers and its resets
  * @details the pool and its command buffers are used by one thread at a time
  */
 class CmdPool {
@@ -90,10 +89,26 @@ public:
      * @brief resets every command buffer of the pool to the initial state
      * @param flags VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT -> returns the memory of the pool to the system
      * @pre @ref created()
-     * @pre no command buffer of the pool is recording or pending
+     * @pre no command buffer of the pool is pending
+     * @post @ref BaseCmdBuffer::recording() of every command buffer of the pool is false
      * @throws cvk::vk_result_exception result of vkResetCommandPool()
      */
     void reset(VkCommandPoolResetFlags flags = 0) const;
+
+    /**
+     * @brief counts a command buffer of the pool
+     * @details @ref BaseCmdBuffer::create() and @ref BaseCmdBuffer::wrap() call it,
+     *  code that keeps a released command buffer of the pool may call it too
+     */
+    void add() const;
+
+    /**
+     * @brief stops to count a command buffer of the pool
+     * @details @ref BaseCmdBuffer::destroy() and @ref BaseCmdBuffer::release() call it,
+     *  code that frees a counted command buffer itself calls it too
+     * @pre !@ref unused()
+     */
+    void remove() const;
 
     static void destroy(DeviceTable table, VkCommandPool);
 
@@ -107,18 +122,19 @@ public:
      */
     [[nodiscard]] constexpr bool unused() const { return _buffers == 0; }
 
+    /**
+     * @return number of @ref reset() calls
+     */
+    [[nodiscard]] constexpr uint64_t resets() const { return _resets; }
+
 private:
     void forget();
 
     core_handle<VkCommandPool, CmdPool> _handle;
     Config _config;
 
-    /**
-     * @brief command buffers of the pool, @ref BaseCmdBuffer counts them
-     */
     mutable size_t _buffers = 0;
-
-    friend BaseCmdBuffer;
+    mutable uint64_t _resets = 0;
 
 public:
     CmdPool(CmdPool const& other) = delete;

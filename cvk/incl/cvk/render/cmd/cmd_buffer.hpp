@@ -19,16 +19,12 @@ class Core;
 
 /**
  * @brief VkCommandBuffer wrapper, allocated from its pool, base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer
- * @details the derived classes add the begin of the recording and their commands, no members
+ * @details the derived classes add the begin of the recording and their commands, no members,
+ *  the destructor is protected: delete through the derived class
  */
 class BaseCmdBuffer {
 public:
     struct State;
-
-    /**
-     * @note calls @ref optDestroy()
-     */
-    ~BaseCmdBuffer() { optDestroy(); }
 
     /**
      * @brief wraps the state
@@ -94,7 +90,13 @@ public:
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr CmdPool const& pool() const { return _handle.deleter().pool(); }
     [[nodiscard]] constexpr VkCommandBufferLevel level() const { return _level; }
-    [[nodiscard]] constexpr bool recording() const { return _recording; }
+
+    /**
+     * @return recording, a reset of the pool ends it
+     */
+    [[nodiscard]] constexpr bool recording() const {
+        return created() && _recording && _beginResets == pool().resets();
+    }
 
 protected:
     /**
@@ -102,6 +104,11 @@ protected:
      * @pre @ref CmdPool::created()
      */
     BaseCmdBuffer(CmdPool const&, VkCommandBufferLevel);
+
+    /**
+     * @note calls @ref optDestroy()
+     */
+    ~BaseCmdBuffer() { optDestroy(); }
 
     /**
      * @brief begins the recording
@@ -114,7 +121,7 @@ protected:
 
 private:
     /**
-     * @brief frees the command buffer through its pool and counts the command buffers of the pool
+     * @brief frees the command buffer through its pool, the pool stops to count it
      */
     class pool_deleter {
     public:
@@ -134,6 +141,7 @@ private:
     unique_handle<VkCommandBuffer, pool_deleter> _handle;
     VkCommandBufferLevel _level;
     bool _recording = false;
+    uint64_t _beginResets = 0;
 
 public:
     BaseCmdBuffer(BaseCmdBuffer const& other) = delete;

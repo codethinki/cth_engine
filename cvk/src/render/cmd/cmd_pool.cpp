@@ -62,6 +62,15 @@ void CmdPool::reset(VkCommandPoolResetFlags flags) const {
 
     auto const result = core().functions()->vkResetCommandPool(core().vkDevice(), get(), flags);
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to reset command pool") {}
+
+    ++_resets;
+}
+
+void CmdPool::add() const { ++_buffers; }
+
+void CmdPool::remove() const {
+    CTH_CRITICAL(unused(), "the pool counts no command buffer") {}
+    --_buffers;
 }
 
 void CmdPool::destroy(DeviceTable table, VkCommandPool vkPool) {

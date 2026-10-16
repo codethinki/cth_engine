@@ -77,6 +77,20 @@ CVK_TEST(CmdPool, release_of_a_buffer_stops_the_count) {
     BaseCmdBuffer::destroy(context.core.deviceTable(), pool.get(), state.vkBuffer.get());
 }
 
+CVK_TEST(CmdPool, owner_of_a_released_buffer_counts_it) {
+    test::Context const context{};
+    CmdPool const pool{context.core, pool_config(context), create};
+    PrimaryCmdBuffer primary{pool, create};
+
+    auto const state = primary.release();
+    pool.add();
+    EXPECT_FALSE(pool.unused());
+
+    BaseCmdBuffer::destroy(context.core.deviceTable(), pool.get(), state.vkBuffer.get());
+    pool.remove();
+    EXPECT_TRUE(pool.unused());
+}
+
 CVK_TEST(CmdPool, reset_returns_the_buffers_to_the_initial_state) {
     test::Context const context{};
     CmdPool const pool{context.core, pool_config(context), create};
@@ -85,8 +99,27 @@ CVK_TEST(CmdPool, reset_returns_the_buffers_to_the_initial_state) {
     primary.end();
 
     pool.reset();
+    EXPECT_EQ(pool.resets(), 1);
 
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    primary.end();
+}
+
+CVK_TEST(CmdPool, reset_ends_the_recording) {
+    test::Context const context{};
+    CmdPool const pool{context.core, pool_config(context), create};
+    PrimaryCmdBuffer primary{pool, create};
+    SecondaryCmdBuffer secondary{pool, create};
+    primary.begin();
+    secondary.begin();
+
+    pool.reset();
+
+    EXPECT_FALSE(primary.recording());
+    EXPECT_FALSE(secondary.recording());
+
+    primary.begin();
+    EXPECT_TRUE(primary.recording());
     primary.end();
 }
 
