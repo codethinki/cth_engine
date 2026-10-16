@@ -1,6 +1,8 @@
 #pragma once
 #include <volk.h>
 
+#include <cth/io/log.hpp>
+
 #include <span>
 #include <vector>
 
@@ -32,7 +34,7 @@ struct PipelineConfig {
      * @brief config with one @ref ALPHA_BLENDING attachment per color format
      * @param depthFormat VK_FORMAT_UNDEFINED -> no depth attachment
      */
-    [[nodiscard]] static PipelineConfig Default(
+    [[nodiscard]] static constexpr PipelineConfig Default(
         std::span<VkFormat const> colorFormats,
         VkFormat depthFormat = VK_FORMAT_UNDEFINED
     );
@@ -49,7 +51,7 @@ struct PipelineConfig {
     /**
      * @pre a stage of the type exists
      */
-    PipelineConfig& removeStage(VkShaderStageFlagBits stage);
+    constexpr PipelineConfig& removeStage(VkShaderStageFlagBits stage);
 
     /**
      * @brief VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT -> the pipeline can be a parent
@@ -145,4 +147,24 @@ struct PipelineConfig {
     VkFormat stencilFormat = VK_FORMAT_UNDEFINED;
     uint32_t viewMask = 0;
 };
+}
+
+namespace cvk {
+constexpr PipelineConfig PipelineConfig::Default(std::span<VkFormat const> colorFormats, VkFormat depthFormat) {
+    PipelineConfig config{};
+    config.colorFormats.assign_range(colorFormats);
+    config.colorBlendAttachments.assign(colorFormats.size(), ALPHA_BLENDING);
+    config.depthFormat = depthFormat;
+    return config;
+}
+
+constexpr PipelineConfig& PipelineConfig::removeStage(VkShaderStageFlagBits stage) {
+    auto const removed = std::erase_if(
+        stages,
+        [stage](VkPipelineShaderStageCreateInfo const& info) { return info.stage == stage; }
+    );
+    CTH_CRITICAL(removed == 0, "stage not added") {}
+
+    return *this;
+}
 }

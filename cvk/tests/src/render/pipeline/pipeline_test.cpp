@@ -66,6 +66,25 @@ CVK_TEST(Pipeline, config_default) {
     EXPECT_EQ(config.depthFormat, DEPTH_FORMAT);
 }
 
+CVK_TEST(Pipeline, config_is_constexpr) {
+    static_assert([] {
+        auto config = Pipeline::Config::Default(COLOR_FORMATS, DEPTH_FORMAT);
+        config.stages.push_back(
+            VkPipelineShaderStageCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .stage = VK_SHADER_STAGE_VERTEX_BIT,
+                .module = VK_NULL_HANDLE,
+                .pName = "main",
+                .pSpecializationInfo = nullptr,
+            }
+        );
+        config.removeStage(VK_SHADER_STAGE_VERTEX_BIT);
+        return config.colorBlendAttachments.size() == 1 && config.stages.empty();
+    }());
+}
+
 CVK_TEST(Pipeline, config_stages) {
     test::Context const context{};
     Triangle const triangle{context.core};

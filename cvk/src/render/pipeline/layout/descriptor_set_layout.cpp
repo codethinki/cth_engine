@@ -79,35 +79,3 @@ VkDescriptorSetLayoutBinding const* DescriptorSetLayout::binding(uint32_t bindin
 
 void DescriptorSetLayout::forget() {}
 }
-
-namespace cvk {
-DescriptorSetLayout::Config& DescriptorSetLayout::Config::add(
-    uint32_t binding,
-    VkDescriptorType type,
-    VkShaderStageFlags stages,
-    uint32_t count
-) {
-    auto const it = std::ranges::lower_bound(bindings, binding, {}, &VkDescriptorSetLayoutBinding::binding);
-    CTH_CRITICAL(it != bindings.end() && it->binding == binding, "binding {} already exists", binding) {}
-
-    bindings.insert(
-        it,
-        VkDescriptorSetLayoutBinding{
-            .binding = binding,
-            .descriptorType = type,
-            .descriptorCount = count,
-            .stageFlags = stages,
-            .pImmutableSamplers = nullptr,
-        }
-    );
-    return *this;
-}
-
-DescriptorSetLayout::Config& DescriptorSetLayout::Config::remove(uint32_t binding) {
-    auto const it = std::ranges::lower_bound(bindings, binding, {}, &VkDescriptorSetLayoutBinding::binding);
-    CTH_CRITICAL(it == bindings.end() || it->binding != binding, "binding {} does not exist", binding) {}
-
-    bindings.erase(it);
-    return *this;
-}
-}

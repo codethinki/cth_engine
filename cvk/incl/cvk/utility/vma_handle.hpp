@@ -20,7 +20,7 @@ public:
     using core_deleter<T>::core_deleter;
 
     template<class Handle>
-    void operator()(Handle handle) const { T::destroy(this->core().allocator().get(), handle); }
+    constexpr void operator()(Handle handle) const { T::destroy(this->core().allocator().get(), handle); }
 };
 
 /**

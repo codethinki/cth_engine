@@ -38,12 +38,12 @@ struct CoreConfig {
      */
     utils::PhysicalDeviceFeatures requiredFeatures{};
 
-    static void debug_check(CoreConfig const& config);
+    static constexpr void debug_check(CoreConfig const& config);
 };
 }
 
 namespace cvk {
-inline void CoreConfig::debug_check(CoreConfig const& config) {
+constexpr void CoreConfig::debug_check(CoreConfig const& config) {
     CTH_CRITICAL(config.queueProperties.empty(), "at least one queue is required") {}
     CTH_CRITICAL(
         std::ranges::any_of(

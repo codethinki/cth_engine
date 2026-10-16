@@ -11,7 +11,7 @@ namespace {
     /**
      * @brief bindings 0 and 2, gap at 1
      */
-    DescriptorSetLayout::Config gap_config() {
+    constexpr DescriptorSetLayout::Config gap_config() {
         DescriptorSetLayout::Config config{};
         config.add(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
               .add(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 2);
@@ -35,6 +35,14 @@ CVK_TEST(DescriptorSetLayout, config_remove) {
 
     ASSERT_EQ(config.bindings.size(), 1);
     EXPECT_EQ(config.bindings[0].binding, 2);
+}
+
+CVK_TEST(DescriptorSetLayout, config_is_constexpr) {
+    static_assert([] {
+        auto config = gap_config();
+        config.remove(0);
+        return config.bindings.size() == 1 && config.bindings[0].binding == 2;
+    }());
 }
 
 CVK_TEST(DescriptorSetLayout, create_with_gaps) {

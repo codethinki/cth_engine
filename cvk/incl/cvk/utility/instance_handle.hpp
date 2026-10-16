@@ -14,12 +14,12 @@ namespace cvk {
 template<class T>
 class instance_deleter {
 public:
-    explicit instance_deleter(VkInstance vkInstance) : _vkInstance{vkInstance} {}
+    constexpr explicit instance_deleter(VkInstance vkInstance) : _vkInstance{vkInstance} {}
 
     template<class Handle>
-    void operator()(Handle handle) const { T::destroy(_vkInstance.get(), handle); }
+    constexpr void operator()(Handle handle) const { T::destroy(_vkInstance.get(), handle); }
 
-    [[nodiscard]] VkInstance vkInstance() const { return _vkInstance.get(); }
+    [[nodiscard]] constexpr VkInstance vkInstance() const { return _vkInstance.get(); }
 
 private:
     vk_not_null<VkInstance> _vkInstance;

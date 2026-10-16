@@ -8,6 +8,7 @@
 
 #include <cth/io/log.hpp>
 
+#include <algorithm>
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -124,13 +125,13 @@ struct DescriptorSetLayout::Config {
      * @param count of descriptors, 0 -> the binding is reserved without descriptors
      * @pre no binding with the same number
      */
-    Config& add(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stages, uint32_t count = 1);
+    constexpr Config& add(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stages, uint32_t count = 1);
 
     /**
      * @brief removes a binding
      * @pre a binding with the number exists
      */
-    Config& remove(uint32_t binding);
+    constexpr Config& remove(uint32_t binding);
 
     /**
      * @brief bindings sorted by binding number
@@ -141,6 +142,38 @@ struct DescriptorSetLayout::Config {
 struct DescriptorSetLayout::State {
     vk_not_null<VkDescriptorSetLayout> vkLayout;
 };
+}
+
+namespace cvk {
+constexpr DescriptorSetLayout::Config& DescriptorSetLayout::Config::add(
+    uint32_t binding,
+    VkDescriptorType type,
+    VkShaderStageFlags stages,
+    uint32_t count
+) {
+    auto const it = std::ranges::lower_bound(bindings, binding, {}, &VkDescriptorSetLayoutBinding::binding);
+    CTH_CRITICAL(it != bindings.end() && it->binding == binding, "binding {} already exists", binding) {}
+
+    bindings.insert(
+        it,
+        VkDescriptorSetLayoutBinding{
+            .binding = binding,
+            .descriptorType = type,
+            .descriptorCount = count,
+            .stageFlags = stages,
+            .pImmutableSamplers = nullptr,
+        }
+    );
+    return *this;
+}
+
+constexpr DescriptorSetLayout::Config& DescriptorSetLayout::Config::remove(uint32_t binding) {
+    auto const it = std::ranges::lower_bound(bindings, binding, {}, &VkDescriptorSetLayoutBinding::binding);
+    CTH_CRITICAL(it == bindings.end() || it->binding != binding, "binding {} does not exist", binding) {}
+
+    bindings.erase(it);
+    return *this;
+}
 }
 
 namespace cvk {

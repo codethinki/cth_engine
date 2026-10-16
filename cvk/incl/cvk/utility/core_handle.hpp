@@ -13,12 +13,12 @@ namespace cvk {
 template<class T>
 class core_deleter {
 public:
-    explicit core_deleter(Core const& core) : _core{&core} {}
+    constexpr explicit core_deleter(Core const& core) : _core{&core} {}
 
     template<class Handle>
-    void operator()(Handle handle) const { T::destroy(_core->deviceTable(), handle); }
+    constexpr void operator()(Handle handle) const { T::destroy(_core->deviceTable(), handle); }
 
-    [[nodiscard]] Core const& core() const { return *_core; }
+    [[nodiscard]] constexpr Core const& core() const { return *_core; }
 
 private:
     not_null<Core const*> _core;

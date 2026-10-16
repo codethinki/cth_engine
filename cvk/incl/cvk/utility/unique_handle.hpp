@@ -16,7 +16,7 @@ namespace cvk {
 template<class T>
 struct handle_deleter {
     template<class Handle>
-    void operator()(Handle handle) const { T::destroy(handle); }
+    constexpr void operator()(Handle handle) const { T::destroy(handle); }
 };
 
 /**
@@ -41,29 +41,29 @@ public:
      * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
-    explicit unique_handle(Args&&... context) : _ptr{Handle{}, Deleter{std::forward<Args>(context)...}} {}
+    constexpr explicit unique_handle(Args&&... context) : _ptr{Handle{}, Deleter{std::forward<Args>(context)...}} {}
 
     /**
      * @brief owns @ref handle
      * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
-    explicit unique_handle(Handle handle, Args&&... context) :
+    constexpr explicit unique_handle(Handle handle, Args&&... context) :
         _ptr{handle, Deleter{std::forward<Args>(context)...}} {}
 
-    ~unique_handle() = default;
+    constexpr ~unique_handle() = default;
 
     /**
      * @brief destroys the owned handle, keeps the context
      */
-    void reset() noexcept { _ptr.reset(); }
+    constexpr void reset() noexcept { _ptr.reset(); }
 
     /**
      * @brief destroys the owned handle with the old context, then owns @ref handle with the new context
      * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
-    void reset(Handle handle, Args&&... context) noexcept {
+    constexpr void reset(Handle handle, Args&&... context) noexcept {
         _ptr.reset();
         _ptr.get_deleter() = Deleter{std::forward<Args>(context)...};
         _ptr.reset(handle);
@@ -72,24 +72,24 @@ public:
     /**
      * @brief gives up the handle without destroying, keeps the context
      */
-    [[nodiscard]] Handle release() noexcept { return _ptr.release(); }
+    [[nodiscard]] constexpr Handle release() noexcept { return _ptr.release(); }
 
-    [[nodiscard]] Handle get() const noexcept { return _ptr.get(); }
-    [[nodiscard]] explicit operator bool() const noexcept { return static_cast<bool>(_ptr); }
+    [[nodiscard]] constexpr Handle get() const noexcept { return _ptr.get(); }
+    [[nodiscard]] constexpr explicit operator bool() const noexcept { return static_cast<bool>(_ptr); }
 
-    [[nodiscard]] Deleter const& deleter() const noexcept { return _ptr.get_deleter(); }
+    [[nodiscard]] constexpr Deleter const& deleter() const noexcept { return _ptr.get_deleter(); }
 
     /**
      * @pre the deleter has core()
      */
-    [[nodiscard]] decltype(auto) core() const requires requires(Deleter const& d) { d.core(); } {
+    [[nodiscard]] constexpr decltype(auto) core() const requires requires(Deleter const& d) { d.core(); } {
         return deleter().core();
     }
 
     /**
      * @pre the deleter has vkInstance()
      */
-    [[nodiscard]] VkInstance vkInstance() const requires requires(Deleter const& d) { d.vkInstance(); } {
+    [[nodiscard]] constexpr VkInstance vkInstance() const requires requires(Deleter const& d) { d.vkInstance(); } {
         return deleter().vkInstance();
     }
 
@@ -98,8 +98,8 @@ private:
 
 public:
     unique_handle(unique_handle const& other) = delete;
-    unique_handle(unique_handle&& other) noexcept = default;
+    constexpr unique_handle(unique_handle&& other) noexcept = default;
     unique_handle& operator=(unique_handle const& other) = delete;
-    unique_handle& operator=(unique_handle&& other) noexcept = default;
+    constexpr unique_handle& operator=(unique_handle&& other) noexcept = default;
 };
 }

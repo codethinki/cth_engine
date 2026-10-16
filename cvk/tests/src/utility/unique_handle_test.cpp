@@ -81,6 +81,33 @@ namespace {
     };
 
     /**
+     * @brief owner of heap memory, constant evaluation rejects leaks and double frees
+     */
+    struct HeapOwned {
+        static constexpr void destroy(int* ptr) { delete ptr; }
+    };
+
+    using heap_handle = unique_handle<int*, handle_deleter<HeapOwned>>;
+
+    consteval int move_assigned_value() {
+        heap_handle handle{};
+        handle.reset(new int{1});
+        heap_handle other{new int{2}};
+
+        handle = std::move(other);
+        return *handle.get();
+    }
+
+    consteval int released_value() {
+        heap_handle handle{new int{3}};
+        int* const ptr = handle.release();
+
+        int const value = *ptr;
+        delete ptr;
+        return value;
+    }
+
+    /**
      * @brief reset(handle, context...) compiles
      */
     template<class H, class... Context>
@@ -117,6 +144,11 @@ CVK_TEST(unique_handle, a_handle_needs_its_context) {
 
     // the context of a handle cannot change on its own
     static_assert(!deleter_assignable<fence_handle>);
+}
+
+CVK_TEST(unique_handle, constexpr) {
+    static_assert(move_assigned_value() == 2);
+    static_assert(released_value() == 3);
 }
 
 CVK_TEST(unique_handle, size) {
