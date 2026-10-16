@@ -66,7 +66,6 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 | nested config and state | `Config`, `State` | `Instance::State` |
 | generic library type, trait, concept | `snake_case` | `basic_deletable`, `handle_t`, `destroyable` |
 | type alias | `snake_case_t` | `callback_t`, `queue_set_t` |
-| alias that names a type of its own | `snake_case` | `core_handle` |
 | member function | `camelCase` | `optDestroy()`, `createInfo()` |
 | free function | `snake_case` | `to_queue_properties()`, `default_debug_callback()` |
 | static check function | `debug_check`, `debug_check_handle` | |
