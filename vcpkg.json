@@ -1,5 +1,6 @@
 {
   "dependencies": [
+    "boost-pfr",
     "gtest",
     "volk",
     "vulkan-memory-allocator",

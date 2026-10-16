@@ -20,8 +20,10 @@ target_precompile_headers(
 find_package(volk CONFIG REQUIRED)
 find_package(VulkanUtilityLibraries CONFIG REQUIRED)
 find_package(cth CONFIG REQUIRED COMPONENTS cth)
+# cth/hash/hash_aggregates.hpp includes boost/pfr.hpp, the cth package does not export it
+find_package(boost_pfr CONFIG REQUIRED)
 
-target_link_libraries(cvk PUBLIC volk::volk Vulkan::UtilityHeaders cth::cth)
+target_link_libraries(cvk PUBLIC volk::volk Vulkan::UtilityHeaders cth::cth Boost::pfr)
 
 # tests
 if(JOLLY_ENABLE_TESTS)
