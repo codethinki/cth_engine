@@ -2,11 +2,11 @@
 #include "surface_config.hpp"
 
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/utility.hpp>
 
 #include <vector>
 
@@ -107,23 +107,21 @@ public:
 
     static void destroy(vk_not_null<VkInstance>, VkSurfaceKHR);
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkSurfaceKHR get() const { return _handle.get(); }
     [[nodiscard]] Config const& config() const { return _config; }
 
 private:
     void reset();
 
-    not_null<Instance const*> _instance;
     Config _config;
-
-    move_ptr<VkSurfaceKHR_T> _handle = VK_NULL_HANDLE;
+    unique_handle<Surface, VkSurfaceKHR> _handle;
 
 public:
     Surface(Surface const& other) = delete;
     Surface(Surface&& other) noexcept = default;
     Surface& operator=(Surface const& other) = delete;
-    Surface& operator=(Surface&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    Surface& operator=(Surface&& other) noexcept = default;
 
     static void debug_check(Surface const&);
     static void debug_check_handle(vk_not_null<VkSurfaceKHR>);

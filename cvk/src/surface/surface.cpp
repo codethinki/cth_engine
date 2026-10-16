@@ -26,7 +26,7 @@ namespace {
     }
 }
 
-Surface::Surface(Instance const& instance, Config config) : _instance{&instance}, _config{std::move(config)} {}
+Surface::Surface(Instance const& instance, Config config) : _config{std::move(config)}, _handle{instance} {}
 
 Surface::Surface(Instance const& instance, Config config, State const& state) : Surface{instance, std::move(config)} {
     wrap(state);
@@ -36,20 +36,20 @@ void Surface::wrap(State const& state) {
     debug_check_handle(state.vkSurface);
     optDestroy();
 
-    _handle = state.vkSurface.get();
+    _handle.reset(state.vkSurface.get());
 }
 
 void Surface::destroy() {
     debug_check(*this);
 
-    destroy(_instance->get(), _handle.get());
+    _handle.reset();
 
     reset();
 }
 
 Surface::State Surface::release() {
     debug_check(*this);
-    State const state{_handle.get()};
+    State const state{_handle.release()};
 
     reset();
     return state;
@@ -158,5 +158,5 @@ void Surface::destroy(vk_not_null<VkInstance> vkInstance, VkSurfaceKHR vkSurface
     log::msg<except::LOG>("destroyed surface");
 }
 
-void Surface::reset() { _handle = VK_NULL_HANDLE; }
+void Surface::reset() {}
 }

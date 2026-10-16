@@ -17,28 +17,26 @@ void DebugMessenger::create(Instance const& instance) {
 
     optDestroy();
 
-    _vkInstance = instance.get();
-
-
     auto const info = _config.createInfo();
 
 
     VkDebugUtilsMessengerEXT ptr = VK_NULL_HANDLE;
 
-    auto const createResult = vkCreateDebugUtilsMessengerEXT(_vkInstance, &info, nullptr, &ptr);
+    auto const createResult = vkCreateDebugUtilsMessengerEXT(instance.get(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to set up debug messenger") {
         reset();
         throw cvk::vk_result_exception{createResult, details->exception()};
     }
 
-    _handle = ptr;
+    _handle.deleter().vkInstance = instance.get();
+    _handle.reset(ptr);
 }
 
 void DebugMessenger::destroy() {
     debug_check(*this);
 
-    destroy(_vkInstance, _handle.get());
+    _handle.reset();
 
     reset();
 }
@@ -54,14 +52,15 @@ void DebugMessenger::destroy(vk_not_null<VkInstance> vkInstance, VkDebugUtilsMes
 DebugMessenger::State DebugMessenger::release() {
     debug_check(*this);
 
-    State const state{_vkInstance, _handle.get()};
+    State const state{_handle.deleter().vkInstance, _handle.release()};
     reset();
     return state;
 }
 
-void DebugMessenger::reset() {
-    _vkInstance = VK_NULL_HANDLE;
-    _handle = VK_NULL_HANDLE;
+void DebugMessenger::reset() { _handle.deleter().vkInstance = VK_NULL_HANDLE; }
+
+void DebugMessenger::Deleter::operator()(VkDebugUtilsMessengerEXT vkMessenger) const {
+    DebugMessenger::destroy(vkInstance, vkMessenger);
 }
 } // namespace cvk
 

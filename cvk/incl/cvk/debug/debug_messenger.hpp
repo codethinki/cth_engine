@@ -1,12 +1,12 @@
 #pragma once
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
 #include <cth/ptr.hpp>
-#include <cth/utility.hpp>
 
 
 namespace cvk {
@@ -93,27 +93,32 @@ public:
         [[nodiscard]] VkDebugUtilsMessengerCreateInfoEXT createInfo() const;
     };
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
     [[nodiscard]] Config config() const { return _config; }
 
 protected:
-    /**
-     * @brief handle, not the wrapper: the instance can move
-     */
-    VkInstance _vkInstance = VK_NULL_HANDLE;
     Config _config;
 
 private:
+    /**
+     * @brief the instance comes with @ref create(), not with the base constructor
+     */
+    struct Deleter : handle_deleter<DebugMessenger> {
+        VkInstance vkInstance = VK_NULL_HANDLE;
+
+        void operator()(VkDebugUtilsMessengerEXT vkMessenger) const;
+    };
+
     void reset();
 
-    move_ptr<VkDebugUtilsMessengerEXT_T> _handle = VK_NULL_HANDLE;
+    unique_handle<DebugMessenger, VkDebugUtilsMessengerEXT, Deleter> _handle;
 
 public:
     DebugMessenger(DebugMessenger const& other) = delete;
     DebugMessenger(DebugMessenger&& other) noexcept = default;
     DebugMessenger& operator=(DebugMessenger const& other) = delete;
-    DebugMessenger& operator=(DebugMessenger&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    DebugMessenger& operator=(DebugMessenger&& other) noexcept = default;
 
     static void debug_check(DebugMessenger const&);
 };

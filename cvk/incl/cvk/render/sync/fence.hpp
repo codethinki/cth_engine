@@ -1,12 +1,12 @@
 #pragma once
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
 #include <cth/os/native_handle.hpp>
-#include <cth/utility.hpp>
 
 #include <cstdint>
 
@@ -153,23 +153,22 @@ public:
 
     static void destroy(DeviceTable table, VkFence);
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkFence get() const { return _handle.get(); }
-    [[nodiscard]] Core const& core() const { return *_core; }
+    [[nodiscard]] Core const& core() const { return _handle.core(); }
     [[nodiscard]] VkExternalFenceHandleTypeFlags exportTypes() const { return _exportTypes; }
 
 private:
     void resetState();
 
-    not_null<Core const*> _core;
-    move_ptr<VkFence_T> _handle = VK_NULL_HANDLE;
+    unique_handle<Fence, VkFence> _handle;
     VkExternalFenceHandleTypeFlags _exportTypes = 0;
 
 public:
     Fence(Fence const& other) = delete;
     Fence(Fence&& other) noexcept = default;
     Fence& operator=(Fence const& other) = delete;
-    Fence& operator=(Fence&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    Fence& operator=(Fence&& other) noexcept = default;
 
     static void debug_check(Fence const&);
 };

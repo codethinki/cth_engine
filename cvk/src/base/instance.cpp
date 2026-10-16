@@ -49,7 +49,7 @@ Instance::Instance(
 void Instance::wrap(State state) {
     optDestroy();
 
-    _handle = state.vkInstance.get();
+    _handle.reset(state.vkInstance.get());
     _debugMessenger = std::move(state.debugMessenger);
 
     loadInstanceFunctions(state.vkInstance);
@@ -97,7 +97,7 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
         throw cvk::vk_result_exception{createInstanceResult, details->exception()};
     }
 
-    _handle = ptr;
+    _handle.reset(ptr);
     loadInstanceFunctions(ptr);
 
     if constexpr(constants::ENABLE_VALIDATION_LAYERS)
@@ -112,7 +112,7 @@ void Instance::destroy() {
     debug_check(*this);
 
     _debugMessenger = nullptr;
-    destroy(_handle.get());
+    _handle.reset();
 
     reset();
 }
@@ -214,10 +214,7 @@ void Instance::destroy(VkInstance vkInstance) {
     log::msg<except::LOG>("destroyed instance");
 }
 
-void Instance::reset() {
-    _debugMessenger = nullptr;
-    _handle = VK_NULL_HANDLE;
-}
+void Instance::reset() { _debugMessenger = nullptr; }
 
 void Instance::loadInstanceFunctions(vk_not_null<VkInstance> vkInstance) { volkLoadInstanceOnly(vkInstance.get()); }
 }

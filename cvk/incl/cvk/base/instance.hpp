@@ -3,11 +3,11 @@
 #include "cvk/debug/debug_messenger.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/ptr.hpp>
-#include <cth/utility.hpp>
 
 #include <array>
 #include <memory>
@@ -122,7 +122,7 @@ public:
 
     static void destroy(VkInstance);
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] VkInstance get() const { return _handle.get(); }
     [[nodiscard]] std::vector<std::string> availableExtensions() const { return _availableExt; }
     [[nodiscard]] std::vector<std::string> requiredExtensions() const { return _requiredExt; }
@@ -137,8 +137,9 @@ private:
     std::vector<std::string> _availableExt;
     std::vector<std::string> _availableLayers{};
 
+    // declared before the handle: move assignment destroys the old messenger before the old instance
     std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
-    move_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
+    unique_handle<Instance, VkInstance> _handle;
 
     static void loadInstanceFunctions(vk_not_null<VkInstance>);
 
@@ -146,7 +147,7 @@ public:
     Instance(Instance const& other) = delete;
     Instance& operator=(Instance const& other) = delete;
     Instance(Instance&& other) noexcept = default;
-    Instance& operator=(Instance&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    Instance& operator=(Instance&& other) noexcept = default;
 
     static void debug_check(Instance const&);
     static void debug_check_handle(vk_not_null<VkInstance>);

@@ -1,4 +1,5 @@
 #include "test.hpp"
+#include "validation.hpp"
 
 #include "cvk/base/instance.hpp"
 
@@ -93,13 +94,17 @@ CVK_TEST(Instance, wrap_takes_ownership) {
 }
 
 CVK_TEST(Instance, move_assignment_takes_the_other_instance) {
-    Instance instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
-    Instance other{APP_NAME, NO_EXTENSIONS, std::nullopt};
-    auto const vkInstance = other.get();
+    test::reset_validation_errors();
+    {
+        Instance instance{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
+        Instance other{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
+        auto const vkInstance = other.get();
 
-    instance = std::move(other);
+        instance = std::move(other);
 
-    EXPECT_EQ(instance.get(), vkInstance);
-    EXPECT_FALSE(other.created());
+        EXPECT_EQ(instance.get(), vkInstance);
+        EXPECT_FALSE(other.created());
+    }
+    EXPECT_EQ(test::validation_errors(), 0);
 }
 }

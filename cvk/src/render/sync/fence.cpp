@@ -16,7 +16,7 @@
 
 
 namespace cvk {
-Fence::Fence(Core const& core) : _core{&core} { Core::debug_check(core); }
+Fence::Fence(Core const& core) : _handle{core} { Core::debug_check(core); }
 
 Fence::Fence(Core const& core, State const& state) : Fence{core} { wrap(state); }
 
@@ -27,7 +27,7 @@ Fence::Fence(Core const& core, VkFenceCreateFlags flags, VkExternalFenceHandleTy
 void Fence::wrap(State const& state) {
     optDestroy();
 
-    _handle = state.vkFence.get();
+    _handle.reset(state.vkFence.get());
     _exportTypes = state.exportTypes;
 }
 
@@ -46,21 +46,21 @@ void Fence::create(VkFenceCreateFlags flags, VkExternalFenceHandleTypeFlags expo
     };
 
     VkFence ptr = VK_NULL_HANDLE;
-    auto const result = _core->functions()->vkCreateFence(_core->vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreateFence(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create fence") {
         resetState();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
-    _handle = ptr;
+    _handle.reset(ptr);
     _exportTypes = exportTypes;
 }
 
 void Fence::destroy() {
     debug_check(*this);
 
-    destroy(_core->deviceTable(), _handle.get());
+    _handle.reset();
 
     resetState();
 }
@@ -68,7 +68,7 @@ void Fence::destroy() {
 Fence::State Fence::release() {
     debug_check(*this);
 
-    State const state{_handle.get(), _exportTypes};
+    State const state{_handle.release(), _exportTypes};
     resetState();
     return state;
 }
@@ -76,7 +76,7 @@ Fence::State Fence::release() {
 VkResult Fence::status() const {
     debug_check(*this);
 
-    auto const result = _core->functions()->vkGetFenceStatus(_core->vkDevice(), _handle.get());
+    auto const result = core().functions()->vkGetFenceStatus(core().vkDevice(), _handle.get());
 
     CVK_RESULT_STABLE_THROW(
         result != VK_SUCCESS && result != VK_NOT_READY,
@@ -91,7 +91,7 @@ void Fence::reset() const {
     debug_check(*this);
 
     auto const vkFence = _handle.get();
-    auto const result = _core->functions()->vkResetFences(_core->vkDevice(), 1, &vkFence);
+    auto const result = core().functions()->vkResetFences(core().vkDevice(), 1, &vkFence);
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to reset fence") {}
 }
@@ -100,7 +100,7 @@ VkResult Fence::wait(uint64_t timeout) const {
     debug_check(*this);
 
     auto const vkFence = _handle.get();
-    auto const result = _core->functions()->vkWaitForFences(_core->vkDevice(), 1, &vkFence, VK_TRUE, timeout);
+    auto const result = core().functions()->vkWaitForFences(core().vkDevice(), 1, &vkFence, VK_TRUE, timeout);
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS && result != VK_TIMEOUT, result, "failed to wait for fence") {}
 
@@ -132,7 +132,7 @@ cth::os::unique_native_handle Fence::extractOsHandle() const {
 #ifdef CTH_PLATFORM_WINDOWS
     // volk loads platform functions only if it was built with the platform define
     auto const getHandle = reinterpret_cast<PFN_vkGetFenceWin32HandleKHR>(
-        vkGetDeviceProcAddr(_core->vkDevice(), "vkGetFenceWin32HandleKHR")
+        vkGetDeviceProcAddr(core().vkDevice(), "vkGetFenceWin32HandleKHR")
     );
     CVK_STABLE_THROW(getHandle == nullptr, "vkGetFenceWin32HandleKHR not available") {}
 
@@ -143,7 +143,7 @@ cth::os::unique_native_handle Fence::extractOsHandle() const {
         .handleType = constants::OS_FENCE_HANDLE_TYPE,
     };
     HANDLE handle = nullptr;
-    auto const result = getHandle(_core->vkDevice(), &info, &handle);
+    auto const result = getHandle(core().vkDevice(), &info, &handle);
 #else
     VkFenceGetFdInfoKHR const info{
         .sType = VK_STRUCTURE_TYPE_FENCE_GET_FD_INFO_KHR,
@@ -152,7 +152,7 @@ cth::os::unique_native_handle Fence::extractOsHandle() const {
         .handleType = constants::OS_FENCE_HANDLE_TYPE,
     };
     int handle = cth::os::invalid_handle();
-    auto const result = _core->functions()->vkGetFenceFdKHR(_core->vkDevice(), &info, &handle);
+    auto const result = core().functions()->vkGetFenceFdKHR(core().vkDevice(), &info, &handle);
 #endif
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to export the fence") {}
@@ -166,8 +166,5 @@ void Fence::destroy(DeviceTable table, VkFence vkFence) {
     table->vkDestroyFence(table.device(), vkFence, nullptr);
 }
 
-void Fence::resetState() {
-    _handle = VK_NULL_HANDLE;
-    _exportTypes = 0;
-}
+void Fence::resetState() { _exportTypes = 0; }
 }

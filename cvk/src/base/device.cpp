@@ -34,13 +34,14 @@ Device::Device(
 void Device::wrap(State state) {
     optDestroy();
 
-    _handle = state.vkDevice.get();
-
     _functionTable = std::move(state.functionTable);
     if(_functionTable == nullptr) {
         _functionTable = std::make_unique<VolkDeviceTable>();
-        loadFunctionTable();
+        loadFunctionTable(state.vkDevice.get());
     }
+
+    _handle.deleter().destroyFunction = _functionTable->vkDestroyDevice;
+    _handle.reset(state.vkDevice.get());
 }
 
 void Device::create(Config const& config) {
@@ -50,7 +51,6 @@ void Device::create(Config const& config) {
     auto const queueCounts = calcQueueFamiliesQueueCounts(familyIndices);
 
     createLogicalDevice(queueCounts);
-    loadFunctionTable();
 
     createQueues(familyIndices);
 }
@@ -58,7 +58,7 @@ void Device::create(Config const& config) {
 void Device::destroy() {
     debug_check(*this);
 
-    destroy(_handle.release(), functions()->vkDestroyDevice);
+    _handle.reset();
     reset();
 }
 
@@ -89,7 +89,7 @@ void Device::destroy(VkDevice vkDevice, PFN_vkDestroyDevice destroy) {
 }
 
 void Device::reset() {
-    _handle = nullptr;
+    _handle.deleter().destroyFunction = nullptr;
     _queues.clear();
 
     if(_functionTable == nullptr) _functionTable = std::make_unique<VolkDeviceTable>();
@@ -163,10 +163,13 @@ void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamil
         reset();
         throw cvk::vk_result_exception{createResult, details->exception()};
     }
-    _handle = ptr;
+
+    loadFunctionTable(ptr);
+    _handle.deleter().destroyFunction = _functionTable->vkDestroyDevice;
+    _handle.reset(ptr);
 }
 
-void Device::loadFunctionTable() const { volkLoadDeviceTable(_functionTable.get(), get()); }
+void Device::loadFunctionTable(VkDevice vkDevice) const { volkLoadDeviceTable(_functionTable.get(), vkDevice); }
 
 void Device::createQueues(span<queue_family_index_t const> familyIndices) {
     std::unordered_map<uint32_t, uint32_t> queueCounts{};

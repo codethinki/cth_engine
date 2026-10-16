@@ -4,11 +4,11 @@
 
 #include "cvk/base/queue/queue.hpp"
 #include "cvk/utility/types.hpp"
+#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/utility.hpp>
 
 #include <memory>
 #include <span>
@@ -116,7 +116,7 @@ public:
     [[nodiscard]] Instance const& instance() const { return *_instance; }
     [[nodiscard]] PhysicalDevice const& physicalDevice() const { return *_physicalDevice; }
 
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
 
 private:
     void reset();
@@ -130,7 +130,7 @@ private:
      */
     void createLogicalDevice(queue_families_queue_counts_t const& queueFamiliesQueueCounts);
 
-    void loadFunctionTable() const;
+    void loadFunctionTable(VkDevice vkDevice) const;
 
     /**
      * @brief retrieves the queues
@@ -142,7 +142,16 @@ private:
     not_null<Instance const*> _instance;
     not_null<PhysicalDevice const*> _physicalDevice;
 
-    move_ptr<VkDevice_T> _handle = VK_NULL_HANDLE;
+    /**
+     * @brief vkDestroyDevice comes from the function table, it is loaded with @ref create() or @ref wrap()
+     */
+    struct Deleter : handle_deleter<Device> {
+        PFN_vkDestroyDevice destroyFunction = nullptr;
+
+        void operator()(VkDevice vkDevice) const { destroy(vkDevice, destroyFunction); }
+    };
+
+    unique_handle<Device, VkDevice, Deleter> _handle;
     std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();
 
     std::vector<Queue> _queues{};
@@ -151,7 +160,7 @@ public:
     Device(Device const& other) = delete;
     Device(Device&& other) noexcept = default;
     Device& operator=(Device const& other) = delete;
-    Device& operator=(Device&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
+    Device& operator=(Device&& other) noexcept = default;
 
     static void debug_check(Device const&);
     static void debug_check_handle(vk_not_null<VkDevice>);
