@@ -32,7 +32,7 @@ void Sampler::create() {
     auto const result = core().functions()->vkCreateSampler(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create sampler") {
-        invalidate();
+        forget();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
@@ -44,14 +44,14 @@ void Sampler::destroy() {
 
     _handle.reset();
 
-    invalidate();
+    forget();
 }
 
 Sampler::State Sampler::release() {
     debug_check(*this);
 
     State const state{_handle.release()};
-    invalidate();
+    forget();
     return state;
 }
 
@@ -61,5 +61,5 @@ void Sampler::destroy(DeviceTable table, VkSampler vkSampler) {
     table->vkDestroySampler(table.device(), vkSampler, nullptr);
 }
 
-void Sampler::invalidate() {}
+void Sampler::forget() {}
 }

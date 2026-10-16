@@ -65,7 +65,7 @@ void Shader::create(std::span<uint32_t const> spv) {
     auto const result = core().functions()->vkCreateShaderModule(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create shader module") {
-        invalidate();
+        forget();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
@@ -82,14 +82,14 @@ void Shader::destroy() {
 
     _handle.reset();
 
-    invalidate();
+    forget();
 }
 
 Shader::State Shader::release() {
     debug_check(*this);
 
     State const state{_handle.release()};
-    invalidate();
+    forget();
     return state;
 }
 
@@ -188,5 +188,5 @@ void Shader::destroy(DeviceTable table, VkShaderModule vkShader) {
     table->vkDestroyShaderModule(table.device(), vkShader, nullptr);
 }
 
-void Shader::invalidate() {}
+void Shader::forget() {}
 }

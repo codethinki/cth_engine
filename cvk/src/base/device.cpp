@@ -58,7 +58,7 @@ void Device::destroy() {
     debug_check(*this);
 
     _handle.reset();
-    invalidate();
+    forget();
 }
 
 Device::State Device::release() {
@@ -68,7 +68,7 @@ Device::State Device::release() {
         .vkDevice = _handle.release(),
         .functionTable = std::move(_functionTable)
     };
-    invalidate();
+    forget();
     return state;
 }
 
@@ -88,7 +88,7 @@ void Device::destroy(VkDevice vkDevice) {
     log::msg<except::LOG>("destroyed device");
 }
 
-void Device::invalidate() {
+void Device::forget() {
     _queues.clear();
 
     if(_functionTable == nullptr) _functionTable = std::make_unique<VolkDeviceTable>();
@@ -159,7 +159,7 @@ void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamil
 
     auto const createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create logical device") {
-        invalidate();
+        forget();
         throw cvk::vk_result_exception{createResult, details->exception()};
     }
 

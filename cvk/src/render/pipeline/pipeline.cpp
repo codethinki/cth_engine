@@ -131,7 +131,7 @@ void Pipeline::create() {
     );
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create graphics pipeline") {
-        invalidate();
+        forget();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
@@ -143,14 +143,14 @@ void Pipeline::destroy() {
 
     _handle.reset();
 
-    invalidate();
+    forget();
 }
 
 Pipeline::State Pipeline::release() {
     debug_check(*this);
 
     State const state{_handle.release()};
-    invalidate();
+    forget();
     return state;
 }
 
@@ -160,5 +160,5 @@ void Pipeline::destroy(DeviceTable table, VkPipeline vkPipeline) {
     table->vkDestroyPipeline(table.device(), vkPipeline, nullptr);
 }
 
-void Pipeline::invalidate() {}
+void Pipeline::forget() {}
 }

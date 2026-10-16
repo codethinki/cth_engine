@@ -44,14 +44,14 @@ void Surface::destroy() {
 
     _handle.reset();
 
-    invalidate();
+    forget();
 }
 
 Surface::State Surface::release() {
     debug_check(*this);
     State const state{_handle.release()};
 
-    invalidate();
+    forget();
     return state;
 }
 
@@ -158,5 +158,5 @@ void Surface::destroy(vk_not_null<VkInstance> vkInstance, VkSurfaceKHR vkSurface
     log::msg<except::LOG>("destroyed surface");
 }
 
-void Surface::invalidate() {}
+void Surface::forget() {}
 }

@@ -68,7 +68,7 @@ public:
     void create();
 
     /**
-     * @brief destroys and invalidates
+     * @brief destroys and forgets
      * @pre @ref created()
      */
     void destroy();
@@ -79,7 +79,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and invalidates
+     * @brief releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -101,7 +101,7 @@ public:
     [[nodiscard]] VkDescriptorSetLayoutBinding const* binding(uint32_t binding) const;
 
 private:
-    void invalidate();
+    void forget();
 
     core_handle<VkDescriptorSetLayout, DescriptorSetLayout> _handle;
     std::vector<VkDescriptorSetLayoutBinding> _bindings;

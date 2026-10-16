@@ -78,7 +78,7 @@ public:
     void create(Config const&);
 
     /**
-     * @brief destroys and invalidates
+     * @brief destroys and forgets
      * @pre @ref created()
      */
     void destroy();
@@ -89,7 +89,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and invalidates
+     * @brief releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -119,7 +119,7 @@ public:
     [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }
 
 private:
-    void invalidate();
+    void forget();
 
     [[nodiscard]] static queue_families_queue_counts_t calcQueueFamiliesQueueCounts(
         std::span<uint32_t const> familyIndices

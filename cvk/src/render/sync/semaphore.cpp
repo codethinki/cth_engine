@@ -31,14 +31,14 @@ void Semaphore::destroy() {
 
     _handle.reset();
 
-    invalidate();
+    forget();
 }
 
 Semaphore::State Semaphore::release() {
     debug_check(*this);
 
     State const state{_handle.release()};
-    invalidate();
+    forget();
     return state;
 }
 
@@ -55,12 +55,12 @@ void Semaphore::create(VkSemaphoreCreateInfo const& info) {
     auto const result = core().functions()->vkCreateSemaphore(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create semaphore") {
-        invalidate();
+        forget();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
     _handle.reset(ptr, core());
 }
 
-void Semaphore::invalidate() {}
+void Semaphore::forget() {}
 }

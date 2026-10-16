@@ -70,7 +70,7 @@ public:
     void create();
 
     /**
-     * @brief destroys and invalidates
+     * @brief destroys and forgets
      * @pre @ref created()
      */
     void destroy();
@@ -81,7 +81,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and invalidates
+     * @brief releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -93,7 +93,7 @@ public:
     [[nodiscard]] Core const& core() const { return _handle.core(); }
 
 private:
-    void invalidate();
+    void forget();
 
     core_handle<VkPipelineLayout, PipelineLayout> _handle;
     std::vector<VkDescriptorSetLayout> _vkSetLayouts;

@@ -17,7 +17,7 @@ void Queue::wrap(State state) {
 
 void Queue::destroy() {
     debug_check(*this);
-    invalidate();
+    forget();
 }
 
 Queue::State Queue::release() {
@@ -29,7 +29,7 @@ Queue::State Queue::release() {
         _queueIndex,
         std::move(_handleMtx),
     };
-    invalidate();
+    forget();
     return state;
 }
 
@@ -75,7 +75,7 @@ void Queue::wait() const {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to wait for queue") {}
 }
 
-void Queue::invalidate() {
+void Queue::forget() {
     _functions = nullptr;
     _handle = VK_NULL_HANDLE;
     _handleMtx = nullptr;

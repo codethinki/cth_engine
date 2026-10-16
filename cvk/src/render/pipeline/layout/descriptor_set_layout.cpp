@@ -41,7 +41,7 @@ void DescriptorSetLayout::create() {
     auto const result = core().functions()->vkCreateDescriptorSetLayout(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create descriptor set layout") {
-        invalidate();
+        forget();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
@@ -53,14 +53,14 @@ void DescriptorSetLayout::destroy() {
 
     _handle.reset();
 
-    invalidate();
+    forget();
 }
 
 DescriptorSetLayout::State DescriptorSetLayout::release() {
     debug_check(*this);
 
     State const state{_handle.release()};
-    invalidate();
+    forget();
     return state;
 }
 
@@ -77,7 +77,7 @@ VkDescriptorSetLayoutBinding const* DescriptorSetLayout::binding(uint32_t bindin
     return it != _bindings.end() && it->binding == binding ? std::to_address(it) : nullptr;
 }
 
-void DescriptorSetLayout::invalidate() {}
+void DescriptorSetLayout::forget() {}
 }
 
 namespace cvk {

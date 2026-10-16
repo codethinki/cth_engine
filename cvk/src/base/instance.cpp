@@ -93,7 +93,7 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
     auto const createInstanceResult = vkCreateInstance(&createInfo, nullptr, &ptr);
 
     CTH_STABLE_ERR(createInstanceResult != VK_SUCCESS, "failed to create instance!") {
-        invalidate();
+        forget();
         throw cvk::vk_result_exception{createInstanceResult, details->exception()};
     }
 
@@ -111,14 +111,14 @@ void Instance::destroy() {
     _debugMessenger = nullptr;
     _handle.reset();
 
-    invalidate();
+    forget();
 }
 
 Instance::State Instance::release() {
     debug_check(*this);
 
     State state{_handle.release(), std::move(_debugMessenger)};
-    invalidate();
+    forget();
     return state;
 }
 
@@ -219,7 +219,7 @@ void Instance::destroy(VkInstance vkInstance) {
     log::msg<except::LOG>("destroyed instance");
 }
 
-void Instance::invalidate() { _debugMessenger = nullptr; }
+void Instance::forget() { _debugMessenger = nullptr; }
 
 void Instance::loadInstanceFunctions(vk_not_null<VkInstance> vkInstance) { volkLoadInstanceOnly(vkInstance.get()); }
 }

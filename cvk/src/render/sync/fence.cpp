@@ -49,7 +49,7 @@ void Fence::create(VkFenceCreateFlags flags, VkExternalFenceHandleTypeFlags expo
     auto const result = core().functions()->vkCreateFence(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create fence") {
-        invalidate();
+        forget();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
@@ -62,14 +62,14 @@ void Fence::destroy() {
 
     _handle.reset();
 
-    invalidate();
+    forget();
 }
 
 Fence::State Fence::release() {
     debug_check(*this);
 
     State const state{_handle.release(), _exportTypes};
-    invalidate();
+    forget();
     return state;
 }
 
@@ -166,5 +166,5 @@ void Fence::destroy(DeviceTable table, VkFence vkFence) {
     table->vkDestroyFence(table.device(), vkFence, nullptr);
 }
 
-void Fence::invalidate() { _exportTypes = 0; }
+void Fence::forget() { _exportTypes = 0; }
 }

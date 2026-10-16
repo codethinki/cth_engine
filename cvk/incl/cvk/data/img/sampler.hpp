@@ -67,7 +67,7 @@ public:
     void create();
 
     /**
-     * @brief destroys and invalidates
+     * @brief destroys and forgets
      * @pre @ref created()
      * @pre the gpu does not use the sampler
      */
@@ -79,7 +79,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and invalidates
+     * @brief releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -96,7 +96,7 @@ public:
     [[nodiscard]] Config const& config() const { return _config; }
 
 private:
-    void invalidate();
+    void forget();
 
     core_handle<VkSampler, Sampler> _handle;
     Config _config;

@@ -77,7 +77,7 @@ public:
     void create(std::span<Surface const> surfaces, Config const&);
 
     /**
-     * @brief destroys and invalidates
+     * @brief destroys and forgets
      * @pre @ref created()
      */
     void destroy();
@@ -88,7 +88,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and invalidates
+     * @brief releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -140,7 +140,7 @@ private:
         std::vector<size_t> queueToUniqueQueue;
     };
 
-    void invalidate();
+    void forget();
 
     /**
      * @post sets @ref _physicalDevice and @ref _queueSetIndex

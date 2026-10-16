@@ -90,7 +90,7 @@ public:
     void create(std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
 
     /**
-     * @brief destroys the messenger and the instance and invalidates
+     * @brief destroys the messenger and the instance and forgets
      * @pre @ref created()
      */
     void destroy();
@@ -101,7 +101,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership of the instance and the messenger, returns the state and invalidates
+     * @brief releases ownership of the instance and the messenger, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -135,7 +135,7 @@ public:
     [[nodiscard]] std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
 
 private:
-    void invalidate();
+    void forget();
 
     std::string _name;
 
