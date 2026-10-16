@@ -6,6 +6,7 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/utility.hpp>
 
 #include <vector>
 
@@ -122,7 +123,7 @@ public:
     Surface(Surface const& other) = delete;
     Surface(Surface&& other) noexcept = default;
     Surface& operator=(Surface const& other) = delete;
-    Surface& operator=(Surface&& other) noexcept = default;
+    Surface& operator=(Surface&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
 
     static void debug_check(Surface const& surface);
     static void debug_check_handle(vk_not_null<VkSurfaceKHR> vkSurface);

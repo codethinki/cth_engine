@@ -1,4 +1,5 @@
 #include "test.hpp"
+#include "validation.hpp"
 
 #include "cvk/base/instance.hpp"
 #include "cvk/debug/debug_messenger.hpp"
@@ -114,5 +115,27 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
     EXPECT_EQ(received, 1);
 
     DebugMessenger::destroy(state.vkInstance, state.vkMessenger.get());
+}
+
+CVK_TEST(DebugMessenger, move_assignment_destroys_the_old_messenger) {
+    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
+
+    test::reset_validation_errors();
+    {
+        Instance const instance{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
+        DebugMessenger messenger{DebugMessenger::Config::Default(count_test_messages), instance};
+        DebugMessenger other{DebugMessenger::Config::Default(count_test_messages), instance};
+        auto const vkMessenger = other.get();
+
+        messenger = std::move(other);
+
+        EXPECT_EQ(messenger.get(), vkMessenger);
+        EXPECT_FALSE(other.created());
+
+        received = 0;
+        submit_test_message(instance);
+        EXPECT_EQ(received, 1);
+    }
+    EXPECT_EQ(test::validation_errors(), 0);
 }
 }

@@ -91,4 +91,15 @@ CVK_TEST(Instance, wrap_takes_ownership) {
     instance.destroy();
     EXPECT_FALSE(instance.created());
 }
+
+CVK_TEST(Instance, move_assignment_takes_the_other_instance) {
+    Instance instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance other{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    auto const vkInstance = other.get();
+
+    instance = std::move(other);
+
+    EXPECT_EQ(instance.get(), vkInstance);
+    EXPECT_FALSE(other.created());
+}
 }

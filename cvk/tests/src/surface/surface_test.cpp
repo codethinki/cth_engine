@@ -1,9 +1,11 @@
 #include "headless.hpp"
 #include "test.hpp"
+#include "validation.hpp"
 
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
 #include "cvk/surface/surface.hpp"
+#include "cvk/utility/constants.hpp"
 
 #include <array>
 #include <vector>
@@ -99,5 +101,23 @@ CVK_TEST(Surface, capabilities) {
     auto const capabilities = surfaces[0].capabilities(device);
 
     EXPECT_GE(capabilities.minImageCount, 1);
+}
+
+CVK_TEST(Surface, move_assignment_destroys_the_old_surface) {
+    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
+
+    test::reset_validation_errors();
+    {
+        Instance const instance{APP_NAME, test::headless_extensions(), test::counting_messenger()};
+        auto surface = test::headless_surface(instance);
+        auto other = test::headless_surface(instance);
+        auto const vkSurface = other.get();
+
+        surface = std::move(other);
+
+        EXPECT_EQ(surface.get(), vkSurface);
+        EXPECT_FALSE(other.created());
+    }
+    EXPECT_EQ(test::validation_errors(), 0);
 }
 }

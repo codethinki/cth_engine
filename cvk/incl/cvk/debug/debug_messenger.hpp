@@ -4,8 +4,9 @@
 
 #include <volk.h>
 
-#include <cth/ptr.hpp>
 #include <cth/io/log.hpp>
+#include <cth/ptr.hpp>
+#include <cth/utility.hpp>
 
 
 namespace cvk {
@@ -112,7 +113,7 @@ public:
     DebugMessenger(DebugMessenger const& other) = delete;
     DebugMessenger(DebugMessenger&& other) noexcept = default;
     DebugMessenger& operator=(DebugMessenger const& other) = delete;
-    DebugMessenger& operator=(DebugMessenger&& other) noexcept = default;
+    DebugMessenger& operator=(DebugMessenger&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
 
     static void debug_check(DebugMessenger const& debugMessenger);
 };

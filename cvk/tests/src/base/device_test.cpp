@@ -1,9 +1,11 @@
 #include "headless.hpp"
 #include "test.hpp"
+#include "validation.hpp"
 
 #include "cvk/base/device.hpp"
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/utility/constants.hpp"
 
 #include <array>
 #include <map>
@@ -182,5 +184,28 @@ CVK_TEST(Device, present_enables_swapchain_maintenance1) {
     EXPECT_TRUE(device.queues()[0].can_present());
     EXPECT_NE(device.functions()->vkCreateSwapchainKHR, nullptr);
     EXPECT_NE(device.functions()->vkReleaseSwapchainImagesKHR, nullptr);
+}
+
+CVK_TEST(Device, move_assignment_destroys_the_old_device) {
+    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
+
+    test::reset_validation_errors();
+    {
+        Instance const instance{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
+        auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
+
+        Device device{instance, physicalDevice, Device::Config{familyIndices}};
+        Device other{instance, physicalDevice, Device::Config{familyIndices}};
+        auto const vkDevice = other.get();
+
+        device = std::move(other);
+
+        ASSERT_EQ(device.get(), vkDevice);
+        EXPECT_FALSE(other.created());
+        ASSERT_EQ(device.queues().size(), 1);
+        device.queues()[0].wait();
+        device.waitIdle();
+    }
+    EXPECT_EQ(test::validation_errors(), 0);
 }
 }

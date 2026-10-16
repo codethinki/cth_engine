@@ -24,7 +24,8 @@ namespace {
         EXPECT_EQ(features.features<VkPhysicalDeviceVulkan13Features>().pNext, nullptr);
     }
 
-    constexpr size_t SAMPLER_ANISOTROPY_INDEX = offsetof(VkPhysicalDeviceFeatures, samplerAnisotropy) / sizeof(VkBool32);
+    constexpr size_t SAMPLER_ANISOTROPY_INDEX =
+        offsetof(VkPhysicalDeviceFeatures, samplerAnisotropy) / sizeof(VkBool32);
     constexpr size_t SYNCHRONIZATION2_INDEX =
         (offsetof(VkPhysicalDeviceVulkan13Features, synchronization2)
             - dev::feature_flags<VkPhysicalDeviceVulkan13Features>::OFFSET) / sizeof(VkBool32);

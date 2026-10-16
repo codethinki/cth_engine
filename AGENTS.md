@@ -39,6 +39,8 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Presets: `gcc_debug`, `gcc_release`, `clang_debug`, `clang_release`, `msvc_debug`, `msvc_release`.
 - `cth_ROOT` points at `../cth/out/install/<preset>`. That install must exist.
 - Debug builds enable the validation layers. Run the tests in a debug build before you report a change as done.
+- Tests that need more queues than the device has skip. Mesa Intel devices get more queues with `ANV_QUEUE_OVERRIDE=gc=2,c=1`.
+- After a new cth install, build with `--clean-first`. The precompiled header does not see the changed cth headers.
 - `VCPKG_ROOT` must point at vcpkg.
 
 ## Code style
@@ -154,6 +156,10 @@ public:
 - The first public section holds the API: types, constants, lifecycle, operations, accessors.
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
 - Classes that own a handle are move only. A class that differs (copyable, not movable, custom move) says so in its `@brief`.
+- Their move assignment destroys the old handle: `X& operator=(X&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }`.
+  `= default` leaks the old handle, `cth::move_ptr` does not destroy on assignment.
+- A class derived from a handle class defines its move assignment with `cth::reconstruct_at` too.
+  `= default` calls the base move assignment on the base class subobject, there `reconstruct_at` is undefined behavior.
 
 After the class, in the same header:
 

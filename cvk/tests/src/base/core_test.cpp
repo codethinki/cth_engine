@@ -1,10 +1,12 @@
 #include "headless.hpp"
 #include "test.hpp"
+#include "validation.hpp"
 
 #include "cvk/base/core.hpp"
 #include "cvk/base/device.hpp"
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/utility/constants.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <array>
@@ -179,5 +181,25 @@ CVK_TEST(Core, present_queue_with_headless_surface) {
     ASSERT_TRUE(core.created());
     EXPECT_TRUE(core.queue(0).can_present());
     EXPECT_TRUE(surfaces[0].supportsFamily(core.physicalDevice(), core.queue(0).familyIndex()));
+}
+
+CVK_TEST(Core, move_assignment_destroys_the_old_core) {
+    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
+
+    test::reset_validation_errors();
+    {
+        Instance const instance{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
+
+        Core core{instance, {}, CONFIG};
+        Core other{instance, {}, CONFIG};
+        auto const vkDevice = other.vkDevice();
+
+        core = std::move(other);
+
+        ASSERT_EQ(core.vkDevice(), vkDevice);
+        EXPECT_FALSE(other.created());
+        core.queue(0).wait();
+    }
+    EXPECT_EQ(test::validation_errors(), 0);
 }
 }

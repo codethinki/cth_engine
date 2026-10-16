@@ -8,6 +8,7 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/utility.hpp>
 
 #include <memory>
 #include <span>
@@ -150,7 +151,7 @@ public:
     Device(Device const& other) = delete;
     Device(Device&& other) noexcept = default;
     Device& operator=(Device const& other) = delete;
-    Device& operator=(Device&& other) noexcept = default;
+    Device& operator=(Device&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
 
     static void debug_check(Device const& device);
     static void debug_check_handle(vk_not_null<VkDevice> vkDevice);

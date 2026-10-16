@@ -7,6 +7,7 @@
 #include <volk.h>
 
 #include <cth/ptr.hpp>
+#include <cth/utility.hpp>
 
 #include <array>
 #include <memory>
@@ -145,7 +146,7 @@ public:
     Instance(Instance const& other) = delete;
     Instance& operator=(Instance const& other) = delete;
     Instance(Instance&& other) noexcept = default;
-    Instance& operator=(Instance&& other) noexcept = default;
+    Instance& operator=(Instance&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
 
     static void debug_check(Instance const& instance);
     static void debug_check_handle(vk_not_null<VkInstance> vkInstance);
