@@ -97,7 +97,10 @@ public:
     [[nodiscard]] Config config() const { return _config; }
 
 protected:
-    Instance const* _instance = nullptr;
+    /**
+     * @brief handle, not the wrapper: the instance can move
+     */
+    VkInstance _vkInstance = VK_NULL_HANDLE;
     Config _config;
 
 private:
@@ -117,7 +120,7 @@ public:
 
 namespace cvk {
 struct DebugMessenger::State {
-    not_null<Instance const*> instance;
+    vk_not_null<VkInstance> vkInstance;
     vk_not_null<VkDebugUtilsMessengerEXT> vkMessenger;
 };
 }
