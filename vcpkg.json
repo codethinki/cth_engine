@@ -2,6 +2,7 @@
   "dependencies": [
     "gtest",
     "volk",
-    "vulkan-memory-allocator"
+    "vulkan-memory-allocator",
+    "vulkan-utility-libraries"
   ]
 }
