@@ -9,6 +9,7 @@
 
 #include <cth/io/log.hpp>
 
+#include <algorithm>
 #include <span>
 
 
@@ -126,6 +127,24 @@ public:
      */
     void invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
 
+    /**
+     * @brief copies the data to the memory
+     * @details maps, copies, flushes and unmaps
+     * @param offset from the start of the memory
+     * @pre @ref created()
+     * @pre @ref properties() has VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+     * @pre offset + data.size() <= @ref size()
+     * @throws cvk::vk_result_exception result of vmaMapMemory()
+     * @throws cvk::vk_result_exception result of vmaFlushAllocation()
+     */
+    void write(std::span<char const> data, size_t offset = 0) const;
+
+    /**
+     * @brief copies the data to the mapped range
+     * @pre data.size() <= mapped.size()
+     */
+    static constexpr void write(std::span<char const> data, std::span<char> mapped);
+
     static void destroy(VmaAllocator, VmaAllocation);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
@@ -150,6 +169,13 @@ public:
      */
     [[nodiscard]] size_t size() const { return info().size; }
 
+    /**
+     * @return the whole memory if mapped, not mapped -> empty
+     * @details @ref map() or VMA_ALLOCATION_CREATE_MAPPED_BIT maps it
+     * @pre @ref created()
+     */
+    [[nodiscard]] std::span<char> mapped() const;
+
 private:
     void forget();
 
@@ -172,6 +198,13 @@ namespace cvk {
 struct Memory::State {
     vk_not_null<VmaAllocation> vmaAllocation;
 };
+}
+
+namespace cvk {
+constexpr void Memory::write(std::span<char const> data, std::span<char> mapped) {
+    CTH_CRITICAL(data.size() > mapped.size(), "data must fit into the mapped range") {}
+    std::ranges::copy(data, mapped.begin());
+}
 }
 
 namespace cvk {

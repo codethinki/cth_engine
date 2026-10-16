@@ -4,6 +4,7 @@
 #include "cvk/data/memory/memory.hpp"
 
 #include <algorithm>
+#include <array>
 #include <ranges>
 
 
@@ -107,6 +108,52 @@ CVK_TEST(Memory, map_a_range) {
     memory.unmap();
     memory.unmap();
     memory.unmap();
+}
+
+CVK_TEST(Memory, write_copies_the_data) {
+    test::Context const context{};
+    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
+    std::array<char, 16> data{};
+    std::ranges::fill(data, 'y');
+
+    memory.write(data, 32);
+
+    auto const mapped = memory.map(data.size(), 32);
+    EXPECT_TRUE(std::ranges::equal(mapped, data));
+    memory.unmap();
+}
+
+CVK_TEST(Memory, mapped_follows_map_and_unmap) {
+    test::Context const context{};
+    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
+
+    EXPECT_TRUE(memory.mapped().empty());
+
+    auto const data = memory.map();
+    EXPECT_EQ(memory.mapped().data(), data.data());
+    EXPECT_EQ(memory.mapped().size(), memory.size());
+
+    memory.unmap();
+    EXPECT_TRUE(memory.mapped().empty());
+}
+
+CVK_TEST(Memory, mapped_bit_maps_persistently) {
+    test::Context const context{};
+    auto config = HOST_CONFIG;
+    config.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    Memory const memory{context.core, config, REQUIREMENTS};
+
+    EXPECT_FALSE(memory.mapped().empty());
+}
+
+CVK_TEST(Memory, write_to_a_mapped_range_is_constexpr) {
+    static_assert([] {
+        std::array<char, 4> mapped{};
+        std::array<char const, 2> const data{'a', 'b'};
+        Memory::write(data, mapped);
+        return mapped[0] == 'a' && mapped[1] == 'b' && mapped[2] == 0;
+    }());
 }
 
 CVK_TEST(Memory, release_and_wrap) {

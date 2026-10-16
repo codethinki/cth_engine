@@ -92,6 +92,21 @@ void Memory::invalidate(size_t size, size_t offset) const {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to invalidate memory") {}
 }
 
+void Memory::write(std::span<char const> data, size_t offset) const {
+    debug_check(*this);
+    CTH_CRITICAL((properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == 0, "memory must be host visible") {}
+    CTH_CRITICAL(offset > size() || data.size() > size() - offset, "range must lie in the memory") {}
+
+    if(data.empty()) return;
+
+    // not vmaCopyMemoryToAllocation(): it flushes after the unmap, non coherent memory must be mapped to flush
+    write(data, map(data.size(), offset));
+    auto const result = vmaFlushAllocation(allocator(), get(), offset, data.size());
+    unmap();
+
+    CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to flush memory") {}
+}
+
 void Memory::destroy(VmaAllocator vmaAllocator, VmaAllocation vmaAllocation) {
     CTH_WARN(vmaAllocation == VK_NULL_HANDLE, "vmaAllocation invalid (VK_NULL_HANDLE)") {}
 
@@ -104,6 +119,13 @@ VmaAllocationInfo Memory::info() const {
     VmaAllocationInfo info{};
     vmaGetAllocationInfo(allocator(), get(), &info);
     return info;
+}
+
+std::span<char> Memory::mapped() const {
+    auto const allocationInfo = info();
+    if(allocationInfo.pMappedData == nullptr) return {};
+
+    return {static_cast<char*>(allocationInfo.pMappedData), allocationInfo.size};
 }
 
 VkMemoryPropertyFlags Memory::properties() const {
