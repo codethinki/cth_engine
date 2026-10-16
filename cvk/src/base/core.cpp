@@ -1,0 +1,187 @@
+#include "cvk/base/core.hpp"
+
+#include "cvk/base/device.hpp"
+#include "cvk/base/instance.hpp"
+#include "cvk/base/physical_device.hpp"
+#include "cvk/surface/surface.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
+
+#include <ranges>
+#include <unordered_map>
+
+
+namespace cvk {
+using std::span;
+using std::vector;
+
+Core::Core(Instance const& instance) : _instance{&instance} {}
+
+Core::Core(Instance const& instance, span<Surface const> surfaces, Config const& config) : Core{instance} {
+    create(surfaces, config);
+}
+
+Core::Core(Instance const& instance, State state) : Core{instance} { wrap(std::move(state)); }
+
+Core::~Core() { optDestroy(); }
+
+void Core::wrap(State state) {
+    PhysicalDevice::debug_check(*state.physicalDevice);
+    Device::debug_check(*state.device);
+    CTH_CRITICAL(
+        &state.device->physicalDevice() != state.physicalDevice.get(),
+        "device must be created with the physical device of the state"
+    ) {}
+
+    optDestroy();
+
+    _physicalDevice = state.physicalDevice.release_val();
+    _device = state.device.release_val();
+    _queueSetIndex = state.queueSetIndex;
+
+    if(state.queues.empty()) _queues.assign_range(_device->queues());
+    else _queues = std::move(state.queues);
+}
+
+void Core::create(span<Surface const> surfaces, Config const& config) {
+    Config::debug_check(config);
+
+    optDestroy();
+
+    auto [uniqueQueueFamilyIndices, queuesToUniqueQueues] = createPhysicalDevice(surfaces, config);
+
+    _device = std::make_unique<Device>(
+        *_instance,
+        *_physicalDevice,
+        Device::Config{std::move(uniqueQueueFamilyIndices)}
+    );
+
+    createQueues(queuesToUniqueQueues);
+}
+
+void Core::destroy() {
+    debug_check(*this);
+    reset();
+}
+
+Core::State Core::release() {
+    debug_check(*this);
+
+    State state{
+        .physicalDevice = std::move(_physicalDevice),
+        .device = std::move(_device),
+        .queues = std::move(_queues),
+        .queueSetIndex = _queueSetIndex,
+    };
+    reset();
+    return state;
+}
+
+size_t Core::queueSetIndex() const {
+    debug_check(*this);
+    CTH_CRITICAL(!_queueSetIndex.has_value(), "queue set index has no value, the config had no queue sets") {}
+    return *_queueSetIndex;
+}
+
+VkInstance Core::vkInstance() const { return _instance->get(); }
+
+PhysicalDevice const& Core::physicalDevice() const {
+    debug_check(*this);
+    return *_physicalDevice;
+}
+
+VkPhysicalDevice Core::vkPhysicalDevice() const { return physicalDevice().get(); }
+
+Device const& Core::device() const {
+    debug_check(*this);
+    return *_device;
+}
+
+DeviceTable Core::deviceTable() const { return device().table(); }
+VolkDeviceTable const* Core::functions() const { return device().functions(); }
+VkDevice Core::vkDevice() const { return device().get(); }
+
+void Core::reset() {
+    _queues.clear();
+    _device = nullptr;
+    _physicalDevice = nullptr;
+    _queueSetIndex = std::nullopt;
+}
+
+auto Core::createPhysicalDevice(span<Surface const> surfaces, Config const& config) -> queue_mappings {
+    if(config.queueSets.empty()) {
+        auto mappings = tryCreatePhysicalDevice(surfaces, config, queue_set_t{config.queueProperties.size()});
+        CVK_STABLE_THROW(!mappings, "no physical device supports the queues") {}
+        return *std::move(mappings);
+    }
+
+    for(auto const& [setIndex, queueSet] : std::views::enumerate(config.queueSets)) {
+        auto mappings = tryCreatePhysicalDevice(surfaces, config, queueSet);
+        if(!mappings) continue;
+
+        _queueSetIndex = static_cast<size_t>(setIndex);
+        return *std::move(mappings);
+    }
+
+    CVK_STABLE_THROW(true, "no physical device supports any queue set") {}
+    std::unreachable();
+}
+
+auto Core::createQueueSetRelations(
+    queue_set_t const& queueSet,
+    span<QueueFamilyProperties const> queueProperties
+) -> queue_set_relations {
+    using index_type = queue_set_t::index_type;
+
+    auto const roots = queueSet.roots();
+
+    std::unordered_map<index_type, size_t> const rootToQueue{
+        std::from_range,
+        std::views::zip(roots, std::views::iota(0uz))
+    };
+
+    vector<QueueFamilyProperties> uniqueQueues(roots.size());
+    vector<size_t> queueToUniqueQueue(queueProperties.size());
+
+    for(index_type i = 0; i < queueSet.size(); i++) {
+        auto const queueIdx = rootToQueue.at(queueSet.find(i));
+        queueToUniqueQueue[i] = queueIdx;
+        uniqueQueues[queueIdx] |= queueProperties[i];
+    }
+
+    return {std::move(uniqueQueues), std::move(queueToUniqueQueue)};
+}
+
+auto Core::tryCreatePhysicalDevice(
+    span<Surface const> surfaces,
+    Config const& config,
+    queue_set_t const& queueSet
+) -> std::optional<queue_mappings> {
+    CTH_CRITICAL(queueSet.size() != config.queueProperties.size(), "queue set must span all queues") {}
+
+    auto [uniqueQueues, queueToUniqueQueue] = createQueueSetRelations(queueSet, config.queueProperties);
+
+    auto result = PhysicalDevice::AutoPick(
+        *_instance,
+        surfaces,
+        uniqueQueues,
+        config.requiredExtensions,
+        config.requiredFeatures
+    );
+    if(!result) return std::nullopt;
+
+    _physicalDevice = std::make_unique<PhysicalDevice>(std::move(result->device));
+
+    return queue_mappings{std::move(result->queueFamilyIndices), std::move(queueToUniqueQueue)};
+}
+
+void Core::createQueues(span<size_t const> queuesToUniqueQueues) {
+    auto const uniqueQueues = _device->queues();
+
+    _queues.reserve(queuesToUniqueQueues.size());
+    for(auto const uniqueQueueIdx : queuesToUniqueQueues)
+        _queues.push_back(uniqueQueues[uniqueQueueIdx]);
+}
+
+Core::Core(Core&& other) noexcept = default;
+Core& Core::operator=(Core&& other) noexcept = default;
+}
