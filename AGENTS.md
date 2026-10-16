@@ -162,7 +162,7 @@ public:
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
 - Classes that own a handle are move only. A class that differs (copyable, not movable, custom move) says so in its `@brief`.
 - They store the handle in `cvk::unique_handle<Handle, Deleter>` (`cvk/utility/unique_handle.hpp`): a `std::unique_ptr` with a deleter that holds the destroy context and calls the static `destroy`.
-  Deleters: `core_deleter<T>` (the core), `vma_deleter<T>` (the core, destroys through its allocator), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context) or a deleter derived from them.
+  Deleters: `core_deleter<T>` (the core), `vma_deleter<T>` (the core, destroys through its allocator), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context), a deleter derived from them or one of its own (`BaseCmdBuffer` frees through its pool).
   Device objects use `core_handle<Handle, T>` (`cvk/utility/core_handle.hpp`), short for `unique_handle<Handle, core_deleter<T>>`.
   Objects with VMA memory use `vma_handle<Handle, T>` (`cvk/utility/vma_handle.hpp`), short for `unique_handle<Handle, vma_deleter<T>>`.
   Instance objects use `instance_handle<Handle, T>` (`cvk/utility/instance_handle.hpp`), short for `unique_handle<Handle, instance_deleter<T>>`.
