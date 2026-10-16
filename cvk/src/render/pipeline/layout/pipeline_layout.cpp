@@ -57,7 +57,7 @@ void PipelineLayout::create() {
     auto const result = _core->functions()->vkCreatePipelineLayout(_core->vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create pipeline layout") {
-        reset();
+        invalidate();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
@@ -69,14 +69,14 @@ void PipelineLayout::destroy() {
 
     destroy(_core->deviceTable(), _handle.get());
 
-    reset();
+    invalidate();
 }
 
 PipelineLayout::State PipelineLayout::release() {
     debug_check(*this);
 
     State const state{_handle.get()};
-    reset();
+    invalidate();
     return state;
 }
 
@@ -86,5 +86,5 @@ void PipelineLayout::destroy(DeviceTable table, VkPipelineLayout vkLayout) {
     table->vkDestroyPipelineLayout(table.device(), vkLayout, nullptr);
 }
 
-void PipelineLayout::reset() { _handle = VK_NULL_HANDLE; }
+void PipelineLayout::invalidate() { _handle = VK_NULL_HANDLE; }
 }

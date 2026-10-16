@@ -186,23 +186,23 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 | base constructor | stores the configuration, does not create a Vulkan object |
 | `wrap(State)` | takes ownership of an existing Vulkan object, calls `optDestroy()` first |
 | `create(...)` | creates a new Vulkan object, calls `optDestroy()` first |
-| `destroy()` | destroys the Vulkan object now and resets, requires `created()` |
+| `destroy()` | destroys the Vulkan object now and invalidates, requires `created()` |
 | `optDestroy()` | calls `destroy()` if `created()` |
-| `release()` | gives the `State` to the caller and resets, does not destroy |
+| `release()` | gives the `State` to the caller and invalidates, does not destroy |
 | `static destroy(...)` | destroys the raw handles, used by `destroy()` |
-| `reset()` | sets the members to the not created state, does not destroy |
+| `invalidate()` | sets the members to the not created state, does not destroy |
 
 - The destructor calls `optDestroy()`.
-- Vulkan has its own reset for some objects (`vkResetFences`, `vkResetCommandBuffer`). There the public `reset()` is the Vulkan operation and the private member reset is `resetState()`.
+- `reset` keeps its std meaning (`std::unique_ptr::reset` destroys) and names Vulkan operations (`vkResetFences`). The lifecycle uses `invalidate()`.
 - Device objects take `Core const&` in the base constructor and store `not_null<Core const*> _core`.
 - A parent (instance, core, device, pool, ...) does not move and is not destroyed while objects depend on it. Code does not have to support it.
-- A failed `create()` calls `reset()` before it throws.
+- A failed `create()` calls `invalidate()` before it throws.
 - `release()` exists so that an owner can use an object it must not destroy (for example swapchain images).
 
 ### Errors
 
 - `CTH_CRITICAL(condition, "message") {}`: precondition check, active in debug builds only.
-- `CTH_STABLE_ERR(condition, "message") { reset(); throw details->exception(); }`: error that can happen at run time.
+- `CTH_STABLE_ERR(condition, "message") { invalidate(); throw details->exception(); }`: error that can happen at run time.
 - `CTH_WARN(condition, "message") {}`: suspicious state that is not an error.
 - `CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "message") {}`: throws `cvk::vk_result_exception` with the `VkResult`.
 - The condition is the error case: `CTH_CRITICAL(!created(), ...)`, not the expected case.
@@ -224,7 +224,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 - Use `/** ... */` blocks with one tag per line.
 - Start after the tag with a lower case letter.
 - Do not put a period at the end of a line.
-- Write short fragments, not full sentences. Start them with a verb in the present tense: `creates the instance`, `destroys and resets`.
+- Write short fragments, not full sentences. Start them with a verb in the present tense: `creates the instance`, `destroys and invalidates`.
 - Fragments win over STE100: where STE100 asks for a full sentence or an article, write the shorter fragment.
 - Use `@ref` for every name of code: `@ref create()`, `@ref Core::created()`.
 - Do not document what the signature already tells. A getter without conditions needs no comment.
@@ -274,7 +274,7 @@ Use symbols when they are shorter and clearer than words:
 | destroy | the Vulkan object stops to exist |
 | wrap | take ownership of an existing Vulkan object |
 | release | give the ownership to the caller without destroying |
-| reset | set the members to the not created state |
+| invalidate | set the members to the not created state |
 | handle | the raw Vulkan handle, for example `VkInstance` |
 | state | the `State` struct: everything that `wrap` needs |
 

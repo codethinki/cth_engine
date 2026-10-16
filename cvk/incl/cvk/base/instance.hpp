@@ -90,7 +90,7 @@ public:
     void create(std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
 
     /**
-     * @brief destroys the messenger and the instance and resets
+     * @brief destroys the messenger and the instance and invalidates
      * @pre @ref created()
      */
     void destroy();
@@ -129,7 +129,7 @@ public:
     [[nodiscard]] std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
 
 private:
-    void reset();
+    void invalidate();
 
     std::string _name;
 

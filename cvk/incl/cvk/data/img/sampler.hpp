@@ -67,7 +67,7 @@ public:
     void create();
 
     /**
-     * @brief destroys and resets
+     * @brief destroys and invalidates
      * @pre @ref created()
      * @pre the gpu does not use the sampler
      */
@@ -79,7 +79,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and resets
+     * @brief releases ownership, returns the state and invalidates
      * @pre @ref created()
      */
     State release();
@@ -96,7 +96,7 @@ public:
     [[nodiscard]] Config const& config() const { return _config; }
 
 private:
-    void reset();
+    void invalidate();
 
     not_null<Core const*> _core;
     Config _config;

@@ -65,7 +65,7 @@ public:
     using Semaphore::optDestroy;
 
     /**
-     * @brief releases ownership, returns the state and resets
+     * @brief releases ownership, returns the state and invalidates
      * @pre @ref created()
      */
     State release();

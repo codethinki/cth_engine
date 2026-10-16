@@ -60,7 +60,7 @@ void Core::create(span<Surface const> surfaces, Config const& config) {
 
 void Core::destroy() {
     debug_check(*this);
-    reset();
+    invalidate();
 }
 
 Core::State Core::release() {
@@ -72,7 +72,7 @@ Core::State Core::release() {
         .queues = std::move(_queues),
         .queueSetIndex = _queueSetIndex,
     };
-    reset();
+    invalidate();
     return state;
 }
 
@@ -100,7 +100,7 @@ DeviceTable Core::deviceTable() const { return device().table(); }
 VolkDeviceTable const* Core::functions() const { return device().functions(); }
 VkDevice Core::vkDevice() const { return device().get(); }
 
-void Core::reset() {
+void Core::invalidate() {
     _queues.clear();
     _device = nullptr;
     _physicalDevice = nullptr;

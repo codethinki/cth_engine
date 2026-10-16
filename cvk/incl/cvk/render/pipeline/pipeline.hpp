@@ -86,7 +86,7 @@ public:
     void create();
 
     /**
-     * @brief destroys and resets
+     * @brief destroys and invalidates
      * @pre @ref created()
      * @pre the gpu does not use the pipeline
      */
@@ -98,7 +98,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and resets
+     * @brief releases ownership, returns the state and invalidates
      * @pre @ref created()
      */
     State release();
@@ -117,7 +117,7 @@ public:
     [[nodiscard]] Core const& core() const { return *_core; }
 
 private:
-    void reset();
+    void invalidate();
 
     not_null<Core const*> _core;
     vk_not_null<VkPipelineLayout> _vkLayout;

@@ -105,7 +105,7 @@ public:
     void create(path_t const& spvPath);
 
     /**
-     * @brief destroys and resets
+     * @brief destroys and invalidates
      * @pre @ref created()
      */
     void destroy();
@@ -116,7 +116,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and resets
+     * @brief releases ownership, returns the state and invalidates
      * @pre @ref created()
      */
     State release();
@@ -161,7 +161,7 @@ public:
     [[nodiscard]] Core const& core() const { return *_core; }
 
 private:
-    void reset();
+    void invalidate();
 
     not_null<Core const*> _core;
     VkShaderStageFlagBits _stage;

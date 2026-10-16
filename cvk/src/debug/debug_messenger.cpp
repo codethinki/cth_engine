@@ -26,7 +26,7 @@ void DebugMessenger::create() {
     auto const createResult = vkCreateDebugUtilsMessengerEXT(_handle.vkInstance(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to set up debug messenger") {
-        reset();
+        invalidate();
         throw cvk::vk_result_exception{createResult, details->exception()};
     }
 
@@ -38,7 +38,7 @@ void DebugMessenger::destroy() {
 
     _handle.reset();
 
-    reset();
+    invalidate();
 }
 
 
@@ -53,11 +53,11 @@ DebugMessenger::State DebugMessenger::release() {
     debug_check(*this);
 
     State const state{_handle.release()};
-    reset();
+    invalidate();
     return state;
 }
 
-void DebugMessenger::reset() {}
+void DebugMessenger::invalidate() {}
 } // namespace cvk
 
 namespace cvk::dev {

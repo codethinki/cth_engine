@@ -67,7 +67,7 @@ public:
     void create(VkFenceCreateFlags flags = 0, VkExternalFenceHandleTypeFlags exportTypes = 0);
 
     /**
-     * @brief destroys and resets
+     * @brief destroys and invalidates
      * @pre @ref created()
      * @pre the gpu does not use the fence
      */
@@ -79,7 +79,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and resets
+     * @brief releases ownership, returns the state and invalidates
      * @pre @ref created()
      */
     State release();
@@ -130,7 +130,7 @@ public:
     [[nodiscard]] VkResult waitReset(uint64_t timeout) const;
 
     /**
-     * @brief waits and resets
+     * @brief waits and invalidates
      * @details calls:
      * - @ref wait() const
      * - @ref reset()
@@ -159,7 +159,7 @@ public:
     [[nodiscard]] VkExternalFenceHandleTypeFlags exportTypes() const { return _exportTypes; }
 
 private:
-    void resetState();
+    void invalidate();
 
     unique_handle<Fence, VkFence> _handle;
     VkExternalFenceHandleTypeFlags _exportTypes = 0;

@@ -53,7 +53,7 @@ public:
 
 
     /**
-     * @brief destroys and resets
+     * @brief destroys and invalidates
      * @pre @ref created()
      */
     void destroy();
@@ -67,7 +67,7 @@ public:
     static void destroy(vk_not_null<VkInstance>, VkDebugUtilsMessengerEXT vkMessenger);
 
     /**
-     * @brief releases ownership, returns state and resets
+     * @brief releases ownership, returns state and invalidates
      * @pre @ref created()
      */
     State release();
@@ -99,7 +99,7 @@ protected:
     Config _config;
 
 private:
-    void reset();
+    void invalidate();
 
     unique_handle<DebugMessenger, VkDebugUtilsMessengerEXT> _handle;
 

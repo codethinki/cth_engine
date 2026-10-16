@@ -53,7 +53,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief destroys and resets
+     * @brief destroys and invalidates
      * @pre @ref created()
      */
     void destroy();
@@ -64,7 +64,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and resets
+     * @brief releases ownership, returns the state and invalidates
      * @pre @ref created()
      */
     State release();
@@ -112,7 +112,7 @@ public:
     [[nodiscard]] Config const& config() const { return _config; }
 
 private:
-    void reset();
+    void invalidate();
 
     Config _config;
     unique_handle<Surface, VkSurfaceKHR> _handle;

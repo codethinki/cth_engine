@@ -29,7 +29,7 @@ public:
     void wrap(State);
 
     /**
-     * @brief resets, the device owns the vulkan queue
+     * @brief invalidates, the device owns the vulkan queue
      * @pre @ref created()
      */
     void destroy();
@@ -40,7 +40,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and resets
+     * @brief releases ownership, returns the state and invalidates
      * @pre @ref created()
      */
     State release();
@@ -77,7 +77,7 @@ public:
     [[nodiscard]] QueueFamilyProperties familyProperties() const { return _familyProperties; }
 
 private:
-    void reset();
+    void invalidate();
 
     QueueFamilyProperties _familyProperties;
     VolkDeviceTable const* _functions = nullptr;

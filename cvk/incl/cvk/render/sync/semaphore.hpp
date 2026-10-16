@@ -62,7 +62,7 @@ public:
     void create();
 
     /**
-     * @brief destroys and resets
+     * @brief destroys and invalidates
      * @pre @ref created()
      * @pre the gpu does not use the semaphore
      */
@@ -74,7 +74,7 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and resets
+     * @brief releases ownership, returns the state and invalidates
      * @pre @ref created()
      */
     State release();
@@ -95,7 +95,7 @@ protected:
     void create(VkSemaphoreCreateInfo const& info);
 
 private:
-    void reset();
+    void invalidate();
 
     not_null<Core const*> _core;
     move_ptr<VkSemaphore_T> _handle = VK_NULL_HANDLE;
