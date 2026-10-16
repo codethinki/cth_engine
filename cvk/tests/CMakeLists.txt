@@ -9,6 +9,8 @@ target_include_directories(
         PRIVATE src
 )
 
+target_compile_definitions(cvk_tests PRIVATE CVK_TEST_SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+
 find_package(GTest CONFIG REQUIRED)
 
 target_link_libraries(cvk_tests PRIVATE GTest::gtest_main cvk)

@@ -51,6 +51,11 @@ struct PipelineConfig {
      */
     PipelineConfig& removeStage(VkShaderStageFlagBits stage);
 
+    /**
+     * @brief VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT -> the pipeline can be a parent
+     */
+    VkPipelineCreateFlags flags = 0;
+
     std::vector<VkPipelineShaderStageCreateInfo> stages{};
 
     std::vector<VkVertexInputBindingDescription> vertexBindings{};

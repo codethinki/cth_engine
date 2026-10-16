@@ -147,4 +147,22 @@ CVK_TEST(Pipeline, move_assignment_destroys_the_old_pipeline) {
     EXPECT_EQ(pipeline.get(), vkPipeline);
     EXPECT_FALSE(other.created());
 }
+
+CVK_TEST(Pipeline, derivative) {
+    test::Context const context{};
+    Triangle const triangle{context.core};
+
+    auto parentConfig = triangle.config();
+    parentConfig.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+    Pipeline const parent{context.core, triangle.layout, std::move(parentConfig), create};
+
+    auto childConfig = triangle.config();
+    childConfig.rasterization.cullMode = VK_CULL_MODE_NONE;
+    Pipeline const child{context.core, parent, std::move(childConfig), create};
+
+    ASSERT_TRUE(child.created());
+    EXPECT_EQ(child.parent(), parent.get());
+    EXPECT_EQ(child.layout(), triangle.layout.get());
+    EXPECT_EQ(parent.parent(), VK_NULL_HANDLE);
+}
 }

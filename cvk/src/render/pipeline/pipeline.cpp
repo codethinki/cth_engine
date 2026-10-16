@@ -22,6 +22,23 @@ Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config
     std::move(config)
 } { create(); }
 
+Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config) : _deviceTable{core.deviceTable()},
+    _vkLayout{parent.layout()},
+    _vkParent{parent.get()},
+    _config{std::move(config)} {
+    debug_check(parent);
+    CTH_CRITICAL(
+        (parent.config().flags & VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT) == 0,
+        "parent must allow derivatives (VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT)"
+    ) {}
+}
+
+Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config, create_t) : Pipeline{
+    core,
+    parent,
+    std::move(config)
+} { create(); }
+
 void Pipeline::wrap(State const& state) {
     optDestroy();
 
@@ -83,7 +100,7 @@ void Pipeline::create() {
     VkGraphicsPipelineCreateInfo const info{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .pNext = &rendering,
-        .flags = 0,
+        .flags = config.flags | (_vkParent != VK_NULL_HANDLE ? VK_PIPELINE_CREATE_DERIVATIVE_BIT : 0u),
         .stageCount = static_cast<uint32_t>(config.stages.size()),
         .pStages = config.stages.data(),
         .pVertexInputState = &vertexInput,
@@ -98,7 +115,7 @@ void Pipeline::create() {
         .layout = _vkLayout.get(),
         .renderPass = VK_NULL_HANDLE,
         .subpass = 0,
-        .basePipelineHandle = VK_NULL_HANDLE,
+        .basePipelineHandle = _vkParent,
         .basePipelineIndex = -1,
     };
 

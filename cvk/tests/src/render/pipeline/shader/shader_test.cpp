@@ -5,8 +5,15 @@
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+
+#ifdef _WIN32
+#define CVK_NULL_DEVICE "NUL"
+#else
+#define CVK_NULL_DEVICE "/dev/null"
+#endif
 
 
 namespace cvk {
@@ -99,5 +106,36 @@ CVK_TEST(Shader, move_assignment_destroys_the_old_shader) {
     EXPECT_EQ(shader.get(), vkShader);
     EXPECT_EQ(shader.stage(), VK_SHADER_STAGE_FRAGMENT_BIT);
     EXPECT_FALSE(other.created());
+}
+
+CVK_TEST(Shader, compile_and_create) {
+    if(std::system("glslc --version >" CVK_NULL_DEVICE " 2>&1") != 0) GTEST_SKIP() << "glslc not found";
+    test::Context const context{};
+    auto const spvPath = std::filesystem::temp_directory_path() / "cvk_test_compiled.vert.spv";
+
+    Shader const shader{context.core, VK_SHADER_STAGE_VERTEX_BIT, spvPath, test::SHADER_DIR / "triangle.vert"};
+
+    EXPECT_TRUE(shader.created());
+    EXPECT_TRUE(std::filesystem::exists(spvPath));
+
+    std::filesystem::remove(spvPath);
+}
+
+CVK_TEST(Shader, compile_error_throws) {
+    if(std::system("glslc --version >" CVK_NULL_DEVICE " 2>&1") != 0) GTEST_SKIP() << "glslc not found";
+    constexpr std::string_view broken = "#version 450\nvoid main() { undeclared = 1; }\n";
+    auto const glslPath = write_temp("cvk_test_broken.vert", broken);
+    auto const spvPath = std::filesystem::temp_directory_path() / "cvk_test_broken.vert.spv";
+
+    EXPECT_THROW(Shader::compile(glslPath, spvPath), cvk_exception);
+
+    std::filesystem::remove(glslPath);
+}
+
+CVK_TEST(Shader, compile_missing_glsl_throws) {
+    auto const missing = std::filesystem::temp_directory_path() / "cvk_test_missing.vert";
+    std::filesystem::remove(missing);
+
+    EXPECT_THROW(Shader::compile(missing, missing.string() + ".spv"), cvk_exception);
 }
 }

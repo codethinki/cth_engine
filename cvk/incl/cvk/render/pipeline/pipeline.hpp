@@ -48,6 +48,21 @@ public:
     explicit Pipeline(Core const&, PipelineLayout const&, Config, create_t);
 
     /**
+     * @brief base constructor of a derivative pipeline, copies the handle and the layout of the parent
+     * @pre @ref Core::created()
+     * @pre @ref created() of the parent, with VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT in its flags
+     */
+    Pipeline(Core const&, Pipeline const& parent, Config);
+
+    /**
+     * @brief constructs and creates a derivative pipeline
+     * @details calls:
+     * - @ref Pipeline(Core const&, Pipeline const&, Config)
+     * - @ref create()
+     */
+    explicit Pipeline(Core const&, Pipeline const& parent, Config, create_t);
+
+    /**
      * @note calls @ref optDestroy()
      */
     ~Pipeline() { optDestroy(); }
@@ -62,7 +77,8 @@ public:
 
     /**
      * @brief creates the pipeline
-     * @pre the layout and the shader modules of the config are not destroyed
+     * @details derivative pipeline -> adds VK_PIPELINE_CREATE_DERIVATIVE_BIT
+     * @pre the layout, the parent and the shader modules of the config are not destroyed
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateGraphicsPipelines()
@@ -92,6 +108,11 @@ public:
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkPipeline get() const { return _handle.get(); }
     [[nodiscard]] VkPipelineLayout layout() const { return _vkLayout.get(); }
+
+    /**
+     * @return VK_NULL_HANDLE -> not a derivative pipeline
+     */
+    [[nodiscard]] VkPipeline parent() const { return _vkParent; }
     [[nodiscard]] Config const& config() const { return _config; }
     [[nodiscard]] DeviceTable deviceTable() const { return _deviceTable; }
 
@@ -100,6 +121,7 @@ private:
 
     DeviceTable _deviceTable;
     vk_not_null<VkPipelineLayout> _vkLayout;
+    VkPipeline _vkParent = VK_NULL_HANDLE;
     Config _config;
     move_ptr<VkPipeline_T> _handle = VK_NULL_HANDLE;
 
