@@ -117,6 +117,8 @@ class Semaphore {
 public:
     struct State;
 
+    // constants
+
     explicit Semaphore(Core const& core);                    // base constructor
     Semaphore(Core const& core, State const& state);         // constructs and wraps
     explicit Semaphore(Core const& core, create_t);          // constructs and creates
@@ -133,6 +135,8 @@ public:
 
     static void destroy(DeviceTable table, VkSemaphore vkSemaphore);
 
+    // accessors: created(), get(), ...
+
 protected:
     // helpers that derived classes use
 
@@ -141,12 +145,13 @@ private:
     // members
 
 public:
-    // accessors: created(), get(), ...
-    // constants
     // copy and move members
     // static debug_check functions
 };
 ```
+
+- The first public section holds the API: types, constants, lifecycle, operations, accessors.
+- The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
 
 After the class, in the same header:
 

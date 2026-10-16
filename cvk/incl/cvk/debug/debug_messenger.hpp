@@ -92,6 +92,10 @@ public:
         [[nodiscard]] VkDebugUtilsMessengerCreateInfoEXT createInfo() const;
     };
 
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
+    [[nodiscard]] Config config() const { return _config; }
+
 protected:
     Instance const* _instance = nullptr;
     Config _config;
@@ -102,10 +106,6 @@ private:
     move_ptr<VkDebugUtilsMessengerEXT_T> _handle = VK_NULL_HANDLE;
 
 public:
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
-    [[nodiscard]] VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
-    [[nodiscard]] Config config() const { return _config; }
-
     DebugMessenger(DebugMessenger const& other) = delete;
     DebugMessenger(DebugMessenger&& other) noexcept = default;
     DebugMessenger& operator=(DebugMessenger const& other) = delete;

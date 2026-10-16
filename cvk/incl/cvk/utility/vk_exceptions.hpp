@@ -71,11 +71,10 @@ public:
         return cvk_exception::add("VkResult: ({})", result);
     }
 
+    [[nodiscard]] VkResult vkResult() const noexcept { return _vkResult; }
+
 private:
     VkResult _vkResult = VK_RESULT_MAX_ENUM;
-
-public:
-    [[nodiscard]] VkResult vkResult() const noexcept { return _vkResult; }
 };
 }
 

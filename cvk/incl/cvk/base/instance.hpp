@@ -26,6 +26,15 @@ class Instance {
 public:
     struct State;
 
+    static constexpr std::array<char const*, 1> VALIDATION_LAYERS = {
+        "VK_LAYER_KHRONOS_validation"
+    };
+    static constexpr std::array<char const*, 1> VALIDATION_LAYER_EXTENSIONS{
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+    };
+
+    static constexpr std::array<std::string_view, 0> REQUIRED_INSTANCE_EXTENSIONS{};
+
     /**
      * @brief base constructor
      * @details debug builds enable the validation layers
@@ -112,6 +121,12 @@ public:
 
     static void destroy(VkInstance vkInstance);
 
+    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
+    [[nodiscard]] VkInstance get() const { return _handle.get(); }
+    [[nodiscard]] std::vector<std::string> availableExtensions() const { return _availableExt; }
+    [[nodiscard]] std::vector<std::string> requiredExtensions() const { return _requiredExt; }
+    [[nodiscard]] std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
+
 private:
     void reset();
 
@@ -127,26 +142,10 @@ private:
     static void loadInstanceFunctions(vk_not_null<VkInstance> vkInstance);
 
 public:
-    [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
-    [[nodiscard]] VkInstance get() const { return _handle.get(); }
-    [[nodiscard]] std::vector<std::string> availableExtensions() const { return _availableExt; }
-    [[nodiscard]] std::vector<std::string> requiredExtensions() const { return _requiredExt; }
-    [[nodiscard]] std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
-
-    static constexpr std::array<char const*, 1> VALIDATION_LAYERS = {
-        "VK_LAYER_KHRONOS_validation"
-    };
-    static constexpr std::array<char const*, 1> VALIDATION_LAYER_EXTENSIONS{
-        VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-    };
-
-    static constexpr std::array<std::string_view, 0> REQUIRED_INSTANCE_EXTENSIONS{};
-
     Instance(Instance const& other) = delete;
     Instance& operator=(Instance const& other) = delete;
     Instance(Instance&& other) noexcept = default;
     Instance& operator=(Instance&& other) noexcept = default;
-
 
     static void debug_check(Instance const& instance);
     static void debug_check_handle(vk_not_null<VkInstance> vkInstance);
