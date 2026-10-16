@@ -202,7 +202,8 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 - Use `/** ... */` blocks with one tag per line.
 - Start after the tag with a lower case letter.
 - Do not put a period at the end of a line.
-- Write short fragments. Start them with a verb in the present tense: `creates the instance`, `destroys and resets`.
+- Write short fragments, not full sentences. Start them with a verb in the present tense: `creates the instance`, `destroys and resets`.
+- Fragments win over STE100: where STE100 asks for a full sentence or an article, write the shorter fragment.
 - Use `@ref` for every name of code: `@ref create()`, `@ref Core::created()`.
 - Do not document what the signature already tells. A getter without conditions needs no comment.
 
