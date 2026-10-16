@@ -2,10 +2,7 @@
 
 #include "cvk/base/allocator.hpp"
 #include "cvk/base/core.hpp"
-#include "cvk/base/physical_device.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
-
-#include <algorithm>
 
 
 namespace cvk {
@@ -13,15 +10,6 @@ Buffer::Buffer(Core const& core, Config const& config) : _handle{core}, _memory{
     _config{config} {
     Core::debug_check(core);
     Config::debug_check(config);
-    CTH_CRITICAL(
-        std::ranges::any_of(
-            config.queueFamilies,
-            [familyCount = core.physicalDevice().queueFamilies().size()](queue_family_index_t family) {
-                return family >= familyCount;
-            }
-        ),
-        "queue families must exist on the physical device"
-    ) {}
 }
 
 Buffer::Buffer(Core const& core, Config const& config, State const& state) : Buffer{core, config} { wrap(state); }

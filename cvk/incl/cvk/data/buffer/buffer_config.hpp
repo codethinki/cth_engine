@@ -42,17 +42,15 @@ struct BufferConfig {
      * @attention pQueueFamilyIndices points into @ref queueFamilies
      */
     [[nodiscard]] constexpr VkBufferCreateInfo createInfo(size_t size) const {
-        bool const concurrent = queueFamilies.size() >= 2;
-
         return VkBufferCreateInfo{
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext = nullptr,
             .flags = flags,
             .size = size,
             .usage = usage,
-            .sharingMode = concurrent ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = concurrent ? static_cast<uint32_t>(queueFamilies.size()) : 0,
-            .pQueueFamilyIndices = concurrent ? queueFamilies.data() : nullptr,
+            .sharingMode = queueFamilies.size() >= 2 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = static_cast<uint32_t>(queueFamilies.size()),
+            .pQueueFamilyIndices = queueFamilies.data(),
         };
     }
 

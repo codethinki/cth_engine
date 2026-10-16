@@ -49,7 +49,7 @@ CVK_TEST(Buffer, config_one_queue_family_is_exclusive) {
     static_assert([] {
         Buffer::Config config{.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .queueFamilies = {2}};
         auto const info = config.createInfo(SIZE);
-        return info.sharingMode == VK_SHARING_MODE_EXCLUSIVE && info.queueFamilyIndexCount == 0;
+        return info.sharingMode == VK_SHARING_MODE_EXCLUSIVE && info.queueFamilyIndexCount == 1;
     }());
 }
 

@@ -29,7 +29,6 @@ public:
     /**
      * @brief base constructor
      * @pre @ref Core::created()
-     * @pre the queue families of the config exist on the physical device
      */
     Buffer(Core const&, Config const&);
 
