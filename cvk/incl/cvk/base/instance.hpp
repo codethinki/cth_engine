@@ -126,6 +126,9 @@ public:
     [[nodiscard]] static std::vector<std::string> getAvailableInstanceExtensions();
     [[nodiscard]] VkApplicationInfo appInfo() const;
 
+    /**
+     * @pre volk loaded the instance functions, @ref create() and @ref wrap() load them
+     */
     static void destroy(VkInstance);
 
     [[nodiscard]] bool created() const { return static_cast<bool>(_handle); }

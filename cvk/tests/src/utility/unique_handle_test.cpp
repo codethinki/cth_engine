@@ -198,6 +198,8 @@ CVK_TEST(unique_handle, handle_deleter) {
     };
     VkInstance vkInstance = VK_NULL_HANDLE;
     ASSERT_EQ(vkCreateInstance(&info, nullptr, &vkInstance), VK_SUCCESS);
+    // Instance::destroy() calls vkDestroyInstance through volk
+    volkLoadInstanceOnly(vkInstance);
 
     unique_handle<VkInstance, handle_deleter<Instance>> handle{};
     handle.reset(vkInstance);
