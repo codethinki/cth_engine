@@ -151,7 +151,12 @@ private:
      */
     [[nodiscard]] static std::span<T> as_elements(std::span<char> mapped) {
         size_t const count = mapped.size() / sizeof(T);
+#ifdef __cpp_lib_start_lifetime_as
         return {std::start_lifetime_as_array<T>(mapped.data(), count), count};
+#else
+        //TODO remove when the MSVC STL has start_lifetime_as on clang (microsoft/STL GH-6169)
+        return {reinterpret_cast<T*>(mapped.data()), count};
+#endif
     }
 
 public:
