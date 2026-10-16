@@ -4,6 +4,7 @@
 #include "validation.hpp"
 
 #include "cvk/base/instance.hpp"
+#include "cvk/data/memory/memory.hpp"
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
@@ -103,6 +104,10 @@ CVK_TEST(unique_handle, a_handle_needs_its_context) {
     static_assert(std::default_initializable<instance_handle>);
     static_assert(resettable<instance_handle>);
 
+    using memory_handle = vma_handle<VmaAllocation, Memory>;
+    static_assert(!resettable<memory_handle>);
+    static_assert(resettable<memory_handle, Core const&>);
+
     using pool_handle = unique_handle<VkCommandBuffer, pool_deleter>;
     static_assert(!resettable<pool_handle, Core const&>);
     static_assert(resettable<pool_handle, Core const&, VkCommandPool>);
@@ -114,6 +119,7 @@ CVK_TEST(unique_handle, a_handle_needs_its_context) {
 CVK_TEST(unique_handle, size) {
     static_assert(sizeof(unique_handle<VkInstance, handle_deleter<Instance>>) == sizeof(VkInstance));
     static_assert(sizeof(core_handle<VkFence, Fence>) == sizeof(Core const*) + sizeof(VkFence));
+    static_assert(sizeof(vma_handle<VmaAllocation, Memory>) == sizeof(Core const*) + sizeof(VmaAllocation));
     static_assert(
         sizeof(unique_handle<VkSurfaceKHR, instance_deleter<Surface>>) == sizeof(VkInstance) + sizeof(VkSurfaceKHR)
     );

@@ -176,4 +176,11 @@ public:
  */
 template<class Handle, class T>
 using core_handle = unique_handle<Handle, core_deleter<T>>;
+
+/**
+ * @brief @ref unique_handle of a memory object, the deleter stores the core and frees through its allocator
+ * @tparam T owner class with a static destroy(VmaAllocator, Handle)
+ */
+template<class Handle, class T>
+using vma_handle = unique_handle<Handle, vma_deleter<T>>;
 }

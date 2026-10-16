@@ -155,7 +155,7 @@ private:
 
     [[nodiscard]] VmaAllocator allocator() const;
 
-    unique_handle<VmaAllocation, vma_deleter<Memory>> _handle;
+    vma_handle<VmaAllocation, Memory> _handle;
     Config _config;
 
 public:
