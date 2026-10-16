@@ -9,7 +9,6 @@
 
 
 namespace cvk {
-
 using std::span;
 using std::string;
 using std::string_view;
@@ -221,5 +220,4 @@ void Instance::reset() {
 }
 
 void Instance::loadInstanceFunctions(vk_not_null<VkInstance> vkInstance) { volkLoadInstanceOnly(vkInstance.get()); }
-
 }

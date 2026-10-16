@@ -9,7 +9,6 @@
 
 
 namespace cvk {
-
 DebugMessenger::DebugMessenger(Config config) : _config{std::move(config)} {}
 
 void DebugMessenger::create(Instance const& instance) {
@@ -64,10 +63,7 @@ void DebugMessenger::reset() {
     _instance = nullptr;
     _handle = VK_NULL_HANDLE;
 }
-
 } // namespace cvk
-
-//Config
 
 namespace cvk::dev {
 VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
@@ -96,7 +92,6 @@ VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::Config::createInfo() const {
         .pUserData = nullptr,
     };
 }
-
 }
 
 
@@ -116,7 +111,6 @@ CTH_FORMAT_CLASS_CUSTOM(
 
 
 namespace cvk::dev {
-
 namespace {
     auto to_severity(VkDebugUtilsMessageSeverityFlagsEXT vkSeverity) {
         constexpr std::array severities{
@@ -149,7 +143,6 @@ namespace {
 
         return joiner;
     }
-
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(

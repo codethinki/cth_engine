@@ -19,7 +19,6 @@
 
 
 namespace cvk {
-
 /**
  * @brief VkInstance wrapper, owns the debug messenger
  */
@@ -152,12 +151,8 @@ public:
     static void debug_check(Instance const& instance);
     static void debug_check_handle(vk_not_null<VkInstance> vkInstance);
 };
-
-
 }
 
-
-//State
 
 namespace cvk {
 struct Instance::State {
@@ -169,13 +164,9 @@ struct Instance::State {
      */
     std::unique_ptr<DebugMessenger> debugMessenger;
 };
-
 }
 
-//debug checks
-
 namespace cvk {
-
 inline void Instance::debug_check(Instance const& instance) { debug_check_handle(instance.get()); }
 inline void Instance::debug_check_handle([[maybe_unused]] vk_not_null<VkInstance> vkInstance) {}
 }

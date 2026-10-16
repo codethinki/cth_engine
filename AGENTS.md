@@ -53,6 +53,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Pointer and reference bind left: `T* ptr`, `T const& ref`.
 - `const` comes after the type: `T const&`, `auto const`.
 - Nested namespaces inside a file are indented one level (`namespace dev { ... }`).
+- No empty line right after `namespace x {` and no empty line right before its closing `}`.
 
 ### Naming
 
@@ -150,15 +151,11 @@ public:
 After the class, in the same header:
 
 ```cpp
-//State
-
 namespace cvk {
 struct Semaphore::State {
     cvk::vk_not_null<VkSemaphore> vkSemaphore;
 };
 }
-
-//debug checks
 
 namespace cvk {
 inline void Semaphore::debug_check(Semaphore const& semaphore) {
@@ -197,9 +194,8 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 - `//TODO` work that is still open
 - `//TEMP` code that must change before it is final
 - `//IMPLEMENT` a planned change of the design
-- `//State`, `//debug checks`, `//Config` mark the sections after a class
 
-No space after `//` in markers.
+No space after `//` in markers. Do not put section comments above namespaces.
 
 ## Documentation style
 

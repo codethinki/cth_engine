@@ -8,7 +8,6 @@
 
 
 namespace cvk {
-
 /**
  * @brief exception of cvk, the message starts with "cvk: "
  */
@@ -78,7 +77,6 @@ private:
 public:
     [[nodiscard]] VkResult vkResult() const noexcept { return _vkResult; }
 };
-
 }
 
 #define CVK_STABLE_THROW(expression, msg, ...) \

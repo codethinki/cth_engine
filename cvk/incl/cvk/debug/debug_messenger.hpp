@@ -115,17 +115,12 @@ public:
 };
 } // namespace cvk
 
-//State
-
 namespace cvk {
 struct DebugMessenger::State {
     not_null<Instance const*> instance;
     vk_not_null<VkDebugUtilsMessengerEXT> vkMessenger;
 };
-
 }
-
-//debug checks
 
 namespace cvk {
 inline void DebugMessenger::debug_check(DebugMessenger const& debugMessenger) {

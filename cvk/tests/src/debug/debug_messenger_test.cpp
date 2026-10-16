@@ -115,5 +115,4 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
 
     DebugMessenger::destroy(state.instance->get(), state.vkMessenger.get());
 }
-
 }

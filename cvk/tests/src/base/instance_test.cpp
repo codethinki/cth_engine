@@ -91,5 +91,4 @@ CVK_TEST(Instance, wrap_takes_ownership) {
     instance.destroy();
     EXPECT_FALSE(instance.created());
 }
-
 }

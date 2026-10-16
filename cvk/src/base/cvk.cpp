@@ -31,6 +31,4 @@ void Cvk::init() {
     log::msg<except::INFO>("cvk initialized");
     _initialized = true;
 }
-
-
 }
