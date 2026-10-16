@@ -152,6 +152,7 @@ public:
 
 - The first public section holds the API: types, constants, lifecycle, operations, accessors.
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
+- Classes that own a handle are move only. A class that differs (copyable, not movable, custom move) says so in its `@brief`.
 
 After the class, in the same header:
 
