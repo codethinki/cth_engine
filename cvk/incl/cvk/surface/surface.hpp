@@ -1,8 +1,8 @@
 #pragma once
 #include "surface_config.hpp"
 
+#include "cvk/utility/instance_handle.hpp"
 #include "cvk/utility/types.hpp"
-#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
@@ -115,7 +115,7 @@ private:
     void forget();
 
     Config _config;
-    unique_handle<VkSurfaceKHR, instance_deleter<Surface>> _handle;
+    instance_handle<VkSurfaceKHR, Surface> _handle;
 
 public:
     Surface(Surface const& other) = delete;

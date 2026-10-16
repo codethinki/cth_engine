@@ -10,34 +10,6 @@
 
 
 namespace cvk {
-class Instance;
-}
-
-namespace cvk::dev {
-[[nodiscard]] VkInstance vk_instance(Instance const&);
-}
-
-namespace cvk {
-/**
- * @brief deleter of instance objects, context: the VkInstance
- * @details calls T::destroy(vkInstance, handle),
- *  stores the handle, not the Instance: the instance owns its messenger and can move
- */
-template<class T>
-class instance_deleter {
-public:
-    explicit instance_deleter(VkInstance vkInstance) : _vkInstance{vkInstance} {}
-    explicit instance_deleter(Instance const& instance) : instance_deleter{dev::vk_instance(instance)} {}
-
-    template<class Handle>
-    void operator()(Handle handle) const { T::destroy(_vkInstance.get(), handle); }
-
-    [[nodiscard]] VkInstance vkInstance() const { return _vkInstance.get(); }
-
-private:
-    vk_not_null<VkInstance> _vkInstance;
-};
-
 /**
  * @brief deleter without context, calls T::destroy(handle)
  */

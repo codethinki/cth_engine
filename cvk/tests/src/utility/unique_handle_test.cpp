@@ -9,6 +9,7 @@
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/core_handle.hpp"
+#include "cvk/utility/instance_handle.hpp"
 #include "cvk/utility/unique_handle.hpp"
 #include "cvk/utility/vma_handle.hpp"
 
@@ -98,7 +99,7 @@ CVK_TEST(unique_handle, a_handle_needs_its_context) {
     static_assert(!resettable<fence_handle>);
     static_assert(resettable<fence_handle, Core const&>);
 
-    using surface_handle = unique_handle<VkSurfaceKHR, instance_deleter<Surface>>;
+    using surface_handle = instance_handle<VkSurfaceKHR, Surface>;
     static_assert(!resettable<surface_handle>);
     static_assert(resettable<surface_handle, VkInstance>);
 
@@ -123,7 +124,7 @@ CVK_TEST(unique_handle, size) {
     static_assert(sizeof(core_handle<VkFence, Fence>) == sizeof(Core const*) + sizeof(VkFence));
     static_assert(sizeof(vma_handle<VmaAllocation, Memory>) == sizeof(Core const*) + sizeof(VmaAllocation));
     static_assert(
-        sizeof(unique_handle<VkSurfaceKHR, instance_deleter<Surface>>) == sizeof(VkInstance) + sizeof(VkSurfaceKHR)
+        sizeof(instance_handle<VkSurfaceKHR, Surface>) == sizeof(VkInstance) + sizeof(VkSurfaceKHR)
     );
 }
 
@@ -177,7 +178,7 @@ CVK_TEST(unique_handle, instance_deleter) {
         Instance const instance{test::APP_NAME, test::headless_extensions(), test::counting_messenger()};
         auto surface = test::headless_surface(instance);
 
-        unique_handle<VkSurfaceKHR, instance_deleter<Surface>> handle{surface.release().vkSurface.get(), instance};
+        instance_handle<VkSurfaceKHR, Surface> handle{surface.release().vkSurface.get(), instance};
 
         EXPECT_EQ(handle.vkInstance(), instance.get());
     }

@@ -1,7 +1,7 @@
 #pragma once
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/instance_handle.hpp"
 #include "cvk/utility/types.hpp"
-#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
@@ -101,7 +101,7 @@ protected:
 private:
     void forget();
 
-    unique_handle<VkDebugUtilsMessengerEXT, instance_deleter<DebugMessenger>> _handle;
+    instance_handle<VkDebugUtilsMessengerEXT, DebugMessenger> _handle;
 
 public:
     DebugMessenger(DebugMessenger const& other) = delete;

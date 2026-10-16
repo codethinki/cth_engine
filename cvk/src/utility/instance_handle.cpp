@@ -1,4 +1,4 @@
-#include "cvk/utility/unique_handle.hpp"
+#include "cvk/utility/instance_handle.hpp"
 
 #include "cvk/base/instance.hpp"
 

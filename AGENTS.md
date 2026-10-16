@@ -163,6 +163,7 @@ public:
   Deleters: `core_deleter<T>` (the core), `vma_deleter<T>` (the core, destroys through its allocator), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context) or a deleter derived from them.
   Device objects use `core_handle<Handle, T>` (`cvk/utility/core_handle.hpp`), short for `unique_handle<Handle, core_deleter<T>>`.
   Objects with VMA memory use `vma_handle<Handle, T>` (`cvk/utility/vma_handle.hpp`), short for `unique_handle<Handle, vma_deleter<T>>`.
+  Instance objects use `instance_handle<Handle, T>` (`cvk/utility/instance_handle.hpp`), short for `unique_handle<Handle, instance_deleter<T>>`.
 - Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
 - Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.
 - A class that owns more than one object declares the objects that depend on its handle first. `= default` assigns in declaration order: `Instance` declares `_debugMessenger` before `_handle`.
