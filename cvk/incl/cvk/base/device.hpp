@@ -102,9 +102,9 @@ public:
     void waitIdle() const;
 
     /**
-     * @param destroy vkDestroyDevice of the function table of the device
+     * @brief destroys the device, gets vkDestroyDevice through vkGetDeviceProcAddr()
      */
-    static void destroy(VkDevice, PFN_vkDestroyDevice destroy);
+    static void destroy(VkDevice);
 
     [[nodiscard]] std::span<Queue const> queues() const { return _queues; }
     [[nodiscard]] std::span<Queue> queues() { return _queues; }
@@ -142,16 +142,7 @@ private:
     not_null<Instance const*> _instance;
     not_null<PhysicalDevice const*> _physicalDevice;
 
-    /**
-     * @brief vkDestroyDevice comes from the function table, it is loaded with @ref create() or @ref wrap()
-     */
-    struct Deleter : handle_deleter<Device> {
-        PFN_vkDestroyDevice destroyFunction = nullptr;
-
-        void operator()(VkDevice vkDevice) const { destroy(vkDevice, destroyFunction); }
-    };
-
-    unique_handle<Device, VkDevice, Deleter> _handle;
+    unique_handle<Device, VkDevice> _handle;
     std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();
 
     std::vector<Queue> _queues{};

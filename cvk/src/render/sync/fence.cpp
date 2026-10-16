@@ -27,7 +27,7 @@ Fence::Fence(Core const& core, VkFenceCreateFlags flags, VkExternalFenceHandleTy
 void Fence::wrap(State const& state) {
     optDestroy();
 
-    _handle.reset(state.vkFence.get());
+    _handle.reset(state.vkFence.get(), core());
     _exportTypes = state.exportTypes;
 }
 
@@ -53,7 +53,7 @@ void Fence::create(VkFenceCreateFlags flags, VkExternalFenceHandleTypeFlags expo
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
-    _handle.reset(ptr);
+    _handle.reset(ptr, core());
     _exportTypes = exportTypes;
 }
 

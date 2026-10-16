@@ -40,7 +40,6 @@ void Device::wrap(State state) {
         loadFunctionTable(state.vkDevice.get());
     }
 
-    _handle.deleter().destroyFunction = _functionTable->vkDestroyDevice;
     _handle.reset(state.vkDevice.get());
 }
 
@@ -80,16 +79,16 @@ void Device::waitIdle() const {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to wait for device") {}
 }
 
-void Device::destroy(VkDevice vkDevice, PFN_vkDestroyDevice destroy) {
+void Device::destroy(VkDevice vkDevice) {
     CTH_WARN(vkDevice == VK_NULL_HANDLE, "vkDevice invalid (VK_NULL_HANDLE)") {}
 
-    destroy(vkDevice, nullptr);
+    auto const destroyDevice = reinterpret_cast<PFN_vkDestroyDevice>(vkGetDeviceProcAddr(vkDevice, "vkDestroyDevice"));
+    destroyDevice(vkDevice, nullptr);
 
     log::msg<except::LOG>("destroyed device");
 }
 
 void Device::reset() {
-    _handle.deleter().destroyFunction = nullptr;
     _queues.clear();
 
     if(_functionTable == nullptr) _functionTable = std::make_unique<VolkDeviceTable>();
@@ -165,7 +164,6 @@ void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamil
     }
 
     loadFunctionTable(ptr);
-    _handle.deleter().destroyFunction = _functionTable->vkDestroyDevice;
     _handle.reset(ptr);
 }
 

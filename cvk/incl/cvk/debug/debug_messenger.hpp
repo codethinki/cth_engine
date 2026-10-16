@@ -24,18 +24,17 @@ public:
 
     /**
      * @brief base constructor
+     * @pre @ref Instance::created()
      */
-    explicit DebugMessenger(Config);
+    DebugMessenger(Instance const&, Config);
 
     /**
      * @brief constructs and creates
      * @details calls:
-     * - @ref DebugMessenger(Config)
+     * - @ref DebugMessenger(Instance const&, Config)
      * - @ref create()
      */
-    explicit DebugMessenger(Config const& config, Instance const& instance) : DebugMessenger{config} {
-        create(instance);
-    }
+    explicit DebugMessenger(Instance const&, Config, create_t);
 
 
     /**
@@ -45,13 +44,12 @@ public:
 
     /**
      * @brief creates the messenger
-     * @pre @ref Instance::created()
      * @pre the instance enables VK_EXT_debug_utils
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
      */
-    void create(Instance const&);
+    void create();
 
 
     /**
@@ -101,18 +99,9 @@ protected:
     Config _config;
 
 private:
-    /**
-     * @brief the instance comes with @ref create(), not with the base constructor
-     */
-    struct Deleter : handle_deleter<DebugMessenger> {
-        VkInstance vkInstance = VK_NULL_HANDLE;
-
-        void operator()(VkDebugUtilsMessengerEXT vkMessenger) const;
-    };
-
     void reset();
 
-    unique_handle<DebugMessenger, VkDebugUtilsMessengerEXT, Deleter> _handle;
+    unique_handle<DebugMessenger, VkDebugUtilsMessengerEXT> _handle;
 
 public:
     DebugMessenger(DebugMessenger const& other) = delete;
@@ -126,7 +115,6 @@ public:
 
 namespace cvk {
 struct DebugMessenger::State {
-    vk_not_null<VkInstance> vkInstance;
     vk_not_null<VkDebugUtilsMessengerEXT> vkMessenger;
 };
 }

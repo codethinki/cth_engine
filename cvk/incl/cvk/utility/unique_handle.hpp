@@ -41,8 +41,8 @@ concept handle_destroyable = requires(Handle handle) { T::destroy(handle); };
 
 
 /**
- * @brief deleter of device objects, stores the core
- * @details calls T::destroy(core.deviceTable(), handle), derive from it for destroy functions that need more
+ * @brief deleter of device objects, context: the core
+ * @details calls T::destroy(core.deviceTable(), handle)
  * @pre the core outlives the deleter
  */
 template<class T>
@@ -60,22 +60,23 @@ private:
 };
 
 /**
- * @brief deleter of instance objects, stores the instance
- * @details calls T::destroy(instance.get(), handle), derive from it for destroy functions that need more
- * @pre the instance outlives the deleter
+ * @brief deleter of instance objects, context: the VkInstance
+ * @details calls T::destroy(vkInstance, handle),
+ *  stores the handle, not the Instance: the instance owns its messenger and can move
  */
 template<class T>
 class instance_deleter {
 public:
-    explicit instance_deleter(Instance const& instance) : _instance{&instance} {}
+    explicit instance_deleter(VkInstance vkInstance) : _vkInstance{vkInstance} {}
+    explicit instance_deleter(Instance const& instance) : instance_deleter{dev::vk_instance(instance)} {}
 
     template<class Handle>
-    void operator()(Handle handle) const { T::destroy(dev::vk_instance(*_instance), handle); }
+    void operator()(Handle handle) const { T::destroy(_vkInstance.get(), handle); }
 
-    [[nodiscard]] Instance const& instance() const { return *_instance; }
+    [[nodiscard]] VkInstance vkInstance() const { return _vkInstance.get(); }
 
 private:
-    not_null<Instance const*> _instance;
+    vk_not_null<VkInstance> _vkInstance;
 };
 
 /**
@@ -115,11 +116,13 @@ using default_deleter_t = std::conditional_t<
 
 
 /**
- * @brief owning Vulkan handle, std::unique_ptr with a deleter that stores the destroy context
+ * @brief owning Vulkan handle, std::unique_ptr with a deleter that holds the destroy context
  * @tparam T owner class, its static destroy picks the default deleter
  * @tparam Handle Vulkan handle, or Deleter::pointer for handles that are not pointers
  * @tparam Deleter custom deleters derive from @ref core_deleter, @ref instance_deleter or @ref handle_deleter
- * @details move assignment destroys the old handle with the old deleter, then takes handle and deleter
+ * @details a handle comes only together with its context: the constructors and reset() construct the deleter,
+ *  a missing context argument does not compile,
+ *  move assignment destroys the old handle with the old context, then takes handle and context
  */
 template<class T, class Handle, class Deleter = default_deleter_t<T, Handle>>
 class unique_handle {
@@ -136,20 +139,40 @@ public:
     using deleter_t = Deleter;
 
     /**
-     * @brief constructs the deleter, owns no handle
+     * @brief owns no handle
+     * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
-    explicit unique_handle(Args&&... args) : _ptr{Handle{}, Deleter{std::forward<Args>(args)...}} {}
+    explicit unique_handle(Args&&... context) : _ptr{Handle{}, Deleter{std::forward<Args>(context)...}} {}
+
+    /**
+     * @brief owns @ref handle
+     * @param context to construct the deleter
+     */
+    template<class... Args> requires std::constructible_from<Deleter, Args...>
+    explicit unique_handle(Handle handle, Args&&... context) :
+        _ptr{handle, Deleter{std::forward<Args>(context)...}} {}
 
     ~unique_handle() = default;
 
     /**
-     * @brief destroys the owned handle, then owns @ref handle
+     * @brief destroys the owned handle, keeps the context
      */
-    void reset(Handle handle = Handle{}) noexcept { _ptr.reset(handle); }
+    void reset() noexcept { _ptr.reset(); }
 
     /**
-     * @brief gives up the handle without destroying, keeps the deleter
+     * @brief destroys the owned handle with the old context, then owns @ref handle with the new context
+     * @param context to construct the deleter
+     */
+    template<class... Args> requires std::constructible_from<Deleter, Args...>
+    void reset(Handle handle, Args&&... context) noexcept {
+        _ptr.reset();
+        _ptr.get_deleter() = Deleter{std::forward<Args>(context)...};
+        _ptr.reset(handle);
+    }
+
+    /**
+     * @brief gives up the handle without destroying, keeps the context
      */
     [[nodiscard]] Handle release() noexcept { return _ptr.release(); }
 
@@ -157,7 +180,6 @@ public:
     [[nodiscard]] explicit operator bool() const noexcept { return static_cast<bool>(_ptr); }
 
     [[nodiscard]] Deleter const& deleter() const noexcept { return _ptr.get_deleter(); }
-    [[nodiscard]] Deleter& deleter() noexcept { return _ptr.get_deleter(); }
 
     /**
      * @pre the deleter has core()
@@ -167,10 +189,10 @@ public:
     }
 
     /**
-     * @pre the deleter has instance()
+     * @pre the deleter has vkInstance()
      */
-    [[nodiscard]] decltype(auto) instance() const requires requires(Deleter const& d) { d.instance(); } {
-        return deleter().instance();
+    [[nodiscard]] VkInstance vkInstance() const requires requires(Deleter const& d) { d.vkInstance(); } {
+        return deleter().vkInstance();
     }
 
 private:

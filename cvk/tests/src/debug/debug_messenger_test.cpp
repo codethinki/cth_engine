@@ -55,7 +55,7 @@ CVK_TEST(DebugMessenger, forwards_messages_to_the_callback) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
-    DebugMessenger const messenger{DebugMessenger::Config::Default(count_test_messages), instance};
+    DebugMessenger const messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
     ASSERT_TRUE(messenger.created());
 
     received = 0;
@@ -78,7 +78,7 @@ CVK_TEST(DebugMessenger, accepts_a_lambda) {
         if(callbackData->pMessage == TEST_MESSAGE) ++received;
         return VK_FALSE;
     };
-    DebugMessenger const messenger{DebugMessenger::Config::Default(callback), instance};
+    DebugMessenger const messenger{instance, DebugMessenger::Config::Default(callback), create};
 
     received = 0;
     submit_test_message(instance);
@@ -90,7 +90,7 @@ CVK_TEST(DebugMessenger, destroy_resets) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
-    DebugMessenger messenger{DebugMessenger::Config::Default(count_test_messages), instance};
+    DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
 
     messenger.destroy();
     EXPECT_FALSE(messenger.created());
@@ -105,7 +105,7 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
-    DebugMessenger messenger{DebugMessenger::Config::Default(count_test_messages), instance};
+    DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
 
     auto const state = messenger.release();
     EXPECT_FALSE(messenger.created());
@@ -114,7 +114,7 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
     submit_test_message(instance);
     EXPECT_EQ(received, 1);
 
-    DebugMessenger::destroy(state.vkInstance, state.vkMessenger.get());
+    DebugMessenger::destroy(instance.get(), state.vkMessenger.get());
 }
 
 CVK_TEST(DebugMessenger, move_assignment_destroys_the_old_messenger) {
@@ -123,8 +123,8 @@ CVK_TEST(DebugMessenger, move_assignment_destroys_the_old_messenger) {
     test::reset_validation_errors();
     {
         Instance const instance{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
-        DebugMessenger messenger{DebugMessenger::Config::Default(count_test_messages), instance};
-        DebugMessenger other{DebugMessenger::Config::Default(count_test_messages), instance};
+        DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
+        DebugMessenger other{instance, DebugMessenger::Config::Default(count_test_messages), create};
         auto const vkMessenger = other.get();
 
         messenger = std::move(other);

@@ -36,7 +36,7 @@ void Surface::wrap(State const& state) {
     debug_check_handle(state.vkSurface);
     optDestroy();
 
-    _handle.reset(state.vkSurface.get());
+    _handle.reset(state.vkSurface.get(), _handle.vkInstance());
 }
 
 void Surface::destroy() {

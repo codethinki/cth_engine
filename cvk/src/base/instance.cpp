@@ -102,10 +102,7 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
 
     if constexpr(constants::ENABLE_VALIDATION_LAYERS)
         if(messengerConfig != std::nullopt)
-            _debugMessenger = std::make_unique<DebugMessenger>(
-                *messengerConfig,
-                *this
-            );
+            _debugMessenger = std::make_unique<DebugMessenger>(*this, *messengerConfig, cvk::create);
 }
 
 void Instance::destroy() {
