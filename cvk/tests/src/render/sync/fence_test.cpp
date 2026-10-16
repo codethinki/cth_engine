@@ -1,7 +1,16 @@
 #include "context.hpp"
 #include "test.hpp"
 
+#include "cvk/base/physical_device.hpp"
 #include "cvk/render/sync/fence.hpp"
+#include "cvk/utility/constant/os_constants.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
+
+#include <cth/os/wait.hpp>
+
+#include <chrono>
+#include <optional>
+#include <ranges>
 
 
 namespace cvk {
@@ -17,6 +26,30 @@ namespace {
         .signalSemaphoreInfoCount = 0,
         .pSignalSemaphoreInfos = nullptr,
     };
+
+    Core::Config os_fence_config() {
+        auto config = test::Context::CONFIG;
+        config.requiredExtensions.append_range(
+            constants::OS_FENCE_DEVICE_EXTENSIONS | std::views::transform(
+                [](std::string_view extension) { return std::string{extension}; }
+            )
+        );
+        return config;
+    }
+
+    /**
+     * @return the device can export @ref constants::OS_FENCE_HANDLE_TYPE
+     */
+    bool os_fence_exportable(Core const& core) {
+        VkPhysicalDeviceExternalFenceInfo const info{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_FENCE_INFO,
+            .pNext = nullptr,
+            .handleType = constants::OS_FENCE_HANDLE_TYPE,
+        };
+        VkExternalFenceProperties properties{.sType = VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, .pNext = nullptr};
+        vkGetPhysicalDeviceExternalFenceProperties(core.vkPhysicalDevice(), &info, &properties);
+        return (properties.externalFenceFeatures & VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT) != 0;
+    }
 }
 
 CVK_TEST(Fence, base_constructor_does_not_create) {
@@ -102,5 +135,52 @@ CVK_TEST(Fence, move_assignment_destroys_the_old_fence) {
     EXPECT_EQ(fence.get(), vkFence);
     EXPECT_FALSE(other.created());
     EXPECT_TRUE(fence.signaled());
+}
+
+CVK_TEST(Fence, extract_os_handle_waits_for_the_submit) {
+    std::optional<test::Context> context{};
+    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
+    if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
+
+    Fence const fence{context->core, 0, constants::OS_FENCE_HANDLE_TYPE};
+    EXPECT_EQ(fence.exportTypes(), constants::OS_FENCE_HANDLE_TYPE);
+
+    auto const& queue = context->core.queue(0);
+    queue.raw_submit(EMPTY_SUBMIT, fence.get());
+
+    auto const handle = fence.extractOsHandle();
+    if(handle) EXPECT_EQ(cth::os::wait(handle.get(), std::chrono::seconds{5}), cth::os::wait_result::WAITED);
+
+#ifndef CTH_PLATFORM_WINDOWS
+    // sync fd export resets the fence
+    EXPECT_FALSE(fence.signaled());
+#endif
+
+    queue.wait();
+}
+
+CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence) {
+    std::optional<test::Context> context{};
+    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
+    if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
+
+    Fence const fence{context->core, VK_FENCE_CREATE_SIGNALED_BIT, constants::OS_FENCE_HANDLE_TYPE};
+
+    auto const handle = fence.extractOsHandle();
+
+    // invalid handle -> already signaled
+    EXPECT_TRUE(!handle || cth::os::check_ready(handle.get()));
+}
+
+CVK_TEST(Fence, release_and_wrap_keep_the_export_types) {
+    test::Context const context{};
+    Fence fence{context.core, 0, constants::OS_FENCE_HANDLE_TYPE};
+
+    auto const state = fence.release();
+    EXPECT_EQ(state.exportTypes, constants::OS_FENCE_HANDLE_TYPE);
+    EXPECT_EQ(fence.exportTypes(), 0);
+
+    Fence const wrapped{context.core, state};
+    EXPECT_EQ(wrapped.exportTypes(), constants::OS_FENCE_HANDLE_TYPE);
 }
 }

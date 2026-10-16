@@ -5,6 +5,7 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/os/native_handle.hpp>
 #include <cth/utility.hpp>
 
 #include <cstdint>
@@ -40,7 +41,7 @@ public:
      * - @ref Fence(Core const&)
      * - @ref create()
      */
-    Fence(Core const&, VkFenceCreateFlags flags);
+    Fence(Core const&, VkFenceCreateFlags flags, VkExternalFenceHandleTypeFlags exportTypes = 0);
 
     /**
      * @note calls @ref optDestroy()
@@ -57,11 +58,13 @@ public:
     /**
      * @brief creates the fence
      * @param flags VK_FENCE_CREATE_SIGNALED_BIT -> created signaled
+     * @param exportTypes handle types the fence can export, 0 -> not exportable,
+     *  @ref constants::OS_FENCE_HANDLE_TYPE for @ref extractOsHandle()
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateFence()
      */
-    void create(VkFenceCreateFlags flags = 0);
+    void create(VkFenceCreateFlags flags = 0, VkExternalFenceHandleTypeFlags exportTypes = 0);
 
     /**
      * @brief destroys and resets
@@ -134,19 +137,33 @@ public:
      */
     void waitReset() const;
 
+    /**
+     * @brief exports the fence as an OS handle, see @ref constants::OS_FENCE_HANDLE_TYPE
+     * @details windows: the fence keeps its state,
+     *  posix: the export resets the fence (sync fd, copy transference), invalid handle -> already signaled
+     * @return handle, waitable with cth::os::wait() or a scheduler
+     * @pre @ref created() with @ref constants::OS_FENCE_HANDLE_TYPE in the export types
+     * @pre the device enables @ref constants::OS_FENCE_DEVICE_EXTENSIONS
+     * @pre posix: the fence is signaled or a signal operation is pending
+     * @attention posix: blocks until the pending work reaches the kernel, e.g. a wait before signal on a timeline
+     *  semaphore that the host signals later -> deadlock
+     * @throws cvk::vk_result_exception result of vkGetFenceWin32HandleKHR() or vkGetFenceFdKHR()
+     */
+    [[nodiscard]] cth::os::unique_native_handle extractOsHandle() const;
+
     static void destroy(DeviceTable table, VkFence);
 
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkFence get() const { return _handle.get(); }
     [[nodiscard]] DeviceTable deviceTable() const { return _deviceTable; }
+    [[nodiscard]] VkExternalFenceHandleTypeFlags exportTypes() const { return _exportTypes; }
 
 private:
     void resetState();
 
-    [[nodiscard]] static VkFenceCreateInfo createInfo(VkFenceCreateFlags flags);
-
     DeviceTable _deviceTable;
     move_ptr<VkFence_T> _handle = VK_NULL_HANDLE;
+    VkExternalFenceHandleTypeFlags _exportTypes = 0;
 
 public:
     Fence(Fence const& other) = delete;
@@ -161,6 +178,10 @@ public:
 namespace cvk {
 struct Fence::State {
     vk_not_null<VkFence> vkFence;
+    /**
+     * @brief handle types the fence was created to export
+     */
+    VkExternalFenceHandleTypeFlags exportTypes = 0;
 };
 }
 
