@@ -41,6 +41,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Debug builds enable the validation layers. Run the tests in a debug build before you report a change as done.
 - Tests that need more queues than the device has skip. Mesa Intel devices get more queues with `ANV_QUEUE_OVERRIDE=gc=2,c=1`.
 - After a new cth install, build with `--clean-first`. The precompiled header does not see the changed cth headers.
+- Tests that need a device use `test::Context` (`cvk/tests/src/context.hpp`). It fails the test on validation errors, leaked objects included.
 - `VCPKG_ROOT` must point at vcpkg.
 
 ## Code style
@@ -191,6 +192,8 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 | `reset()` | sets the members to the not created state, does not destroy |
 
 - The destructor calls `optDestroy()`.
+- Vulkan has its own reset for some objects (`vkResetFences`, `vkResetCommandBuffer`). There the public `reset()` is the Vulkan operation and the private member reset is `resetState()`.
+- Device objects take `Core const&` in the base constructor and store `core.deviceTable()`, not the core. The core can move, the device table stays valid.
 - A failed `create()` calls `reset()` before it throws.
 - `release()` exists so that an owner can use an object it must not destroy (for example swapchain images).
 
