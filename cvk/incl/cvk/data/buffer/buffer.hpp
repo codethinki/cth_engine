@@ -1,36 +1,30 @@
 #pragma once
-#include "buffer_config.hpp"
-
-#include "cvk/base/device_table.hpp"
-#include "cvk/data/memory/memory.hpp"
-#include "cvk/utility/core_handle.hpp"
-#include "cvk/utility/types.hpp"
+#include "base_buffer.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
 
-#include <optional>
+#include <algorithm>
+#include <memory>
+#include <span>
+#include <type_traits>
 
 
 namespace cvk {
-class Core;
-
 /**
- * @brief VkBuffer wrapper, owns the buffer and its memory
- * @details @ref create() creates both with vmaCreateBuffer(),
- *  map, flush and write through @ref memory()
+ * @brief @ref BaseBuffer with an element type, sizes and offsets in elements
+ * @tparam T element, the gpu copies it byte by byte
+ * @details adds no members: a @ref BaseBuffer reference to it sees the same buffer in bytes
  */
-class Buffer {
+template<class T> requires std::is_trivially_copyable_v<T>
+class Buffer : public BaseBuffer {
 public:
-    using Config = BufferConfig;
-    struct State;
-
     /**
      * @brief base constructor
      * @pre @ref Core::created()
      */
-    Buffer(Core const&, Config const&);
+    Buffer(Core const& core, Config const& config) : BaseBuffer{core, config} {}
 
     /**
      * @brief constructs and wraps
@@ -38,7 +32,7 @@ public:
      * - @ref Buffer(Core const&, Config const&)
      * - @ref wrap()
      */
-    Buffer(Core const&, Config const&, State const&);
+    Buffer(Core const& core, Config const& config, State const& state) : Buffer{core, config} { wrap(state); }
 
     /**
      * @brief constructs and creates
@@ -46,124 +40,128 @@ public:
      * - @ref Buffer(Core const&, Config const&)
      * - @ref create()
      */
-    Buffer(Core const&, Config const&, size_t size);
-
-    /**
-     * @note calls @ref optDestroy()
-     */
-    ~Buffer() { optDestroy(); }
+    Buffer(Core const& core, Config const& config, size_t count) : Buffer{core, config} { create(count); }
 
     /**
      * @brief wraps the state
-     * @details std::nullopt @ref State::memory -> @ref destroy() only destroys the buffer
-     * @pre the buffer is bound to its memory
-     * @pre the buffer was created with the usage of the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @pre @ref State::size is a multiple of sizeof(T)
+     * @details calls @ref BaseBuffer::wrap()
      */
-    void wrap(State const&);
+    void wrap(State const& state) {
+        CTH_CRITICAL(state.size % sizeof(T) != 0, "size must be a multiple of the element size") {}
+        BaseBuffer::wrap(state);
+    }
 
     /**
      * @brief creates the buffer and its memory
-     * @param size in bytes
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vmaCreateBuffer()
+     * @param count of elements
+     * @details calls @ref BaseBuffer::create()
      */
-    void create(size_t size);
+    void create(size_t count) { BaseBuffer::create(count * sizeof(T)); }
 
     /**
-     * @brief destroys the buffer, then its memory, and forgets
-     * @pre @ref created()
-     * @pre the gpu does not use the buffer
+     * @brief maps the memory as elements
+     * @param count (VK_WHOLE_SIZE => to the end)
+     * @param offset in elements
+     * @return the mapped elements
+     * @pre offset + count <= @ref elements()
+     * @note each call needs one @ref unmap()
+     * @details calls @ref Memory::map()
      */
-    void destroy();
+    [[nodiscard]] std::span<T> map(size_t count = VK_WHOLE_SIZE, size_t offset = 0) const {
+        CTH_CRITICAL(offset > elements(), "offset must lie in the buffer") {}
+        size_t const mapCount = count == VK_WHOLE_SIZE ? elements() - offset : count;
+        CTH_CRITICAL(mapCount > elements() - offset, "range must lie in the buffer") {}
+
+        return as_elements(memory().map(mapCount * sizeof(T), offset * sizeof(T)));
+    }
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * @brief unmaps the memory once
+     * @details calls @ref Memory::unmap()
      */
-    void optDestroy() { if(created()) destroy(); }
+    void unmap() const { memory().unmap(); }
 
     /**
-     * @brief releases ownership of the buffer and its memory, returns the state and forgets
-     * @pre @ref created()
+     * @brief copies the data to the buffer
+     * @param offset in elements
+     * @pre offset + data.size() <= @ref elements()
+     * @details calls @ref Memory::write()
      */
-    State release();
+    void write(std::span<T const> data, size_t offset = 0) const {
+        CTH_CRITICAL(offset > elements() || data.size() > elements() - offset, "range must lie in the buffer") {}
+
+        memory().write(std::span{reinterpret_cast<char const*>(data.data()), data.size_bytes()}, offset * sizeof(T));
+    }
 
     /**
-     * @param size in bytes (VK_WHOLE_SIZE => to the end)
-     * @param offset in bytes
-     * @pre @ref created()
-     * @pre offset + size <= @ref size()
+     * @brief makes host writes visible to the device
+     * @param count (VK_WHOLE_SIZE => to the end)
+     * @param offset in elements
+     * @details calls @ref Memory::flush()
      */
-    [[nodiscard]] constexpr VkDescriptorBufferInfo descriptorInfo(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
-
-    static void destroy(DeviceTable table, VkBuffer);
-
-    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkBuffer get() const { return _handle.get(); }
-    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
-    [[nodiscard]] constexpr Config const& config() const { return _config; }
+    void flush(size_t count = VK_WHOLE_SIZE, size_t offset = 0) const {
+        memory().flush(bytes(count), offset * sizeof(T));
+    }
 
     /**
-     * @return size in bytes
+     * @brief makes device writes visible to the host
+     * @param count (VK_WHOLE_SIZE => to the end)
+     * @param offset in elements
+     * @details calls @ref Memory::invalidate()
      */
-    [[nodiscard]] constexpr size_t size() const { return _size; }
+    void invalidate(size_t count = VK_WHOLE_SIZE, size_t offset = 0) const {
+        memory().invalidate(bytes(count), offset * sizeof(T));
+    }
 
     /**
-     * @return the memory of the buffer, not created -> the buffer does not own its memory
+     * @param count (VK_WHOLE_SIZE => to the end)
+     * @param offset in elements
+     * @pre offset + count <= @ref elements()
+     * @details calls @ref BaseBuffer::descriptorInfo()
      */
-    [[nodiscard]] constexpr Memory const& memory() const { return _memory; }
+    [[nodiscard]] constexpr VkDescriptorBufferInfo descriptorInfo(
+        size_t count = VK_WHOLE_SIZE,
+        size_t offset = 0
+    ) const {
+        return BaseBuffer::descriptorInfo(bytes(count), offset * sizeof(T));
+    }
+
+    /**
+     * @brief copies the data to the mapped elements
+     * @pre data.size() <= mapped.size()
+     */
+    static constexpr void write(std::span<T const> data, std::span<T> mapped) {
+        CTH_CRITICAL(data.size() > mapped.size(), "data must fit into the mapped range") {}
+        std::ranges::copy(data, mapped.begin());
+    }
+
+    [[nodiscard]] constexpr size_t elements() const { return size() / sizeof(T); }
 
 private:
-    void forget();
+    /**
+     * @param count (VK_WHOLE_SIZE => VK_WHOLE_SIZE)
+     */
+    [[nodiscard]] static constexpr size_t bytes(size_t count) {
+        return count == VK_WHOLE_SIZE ? VK_WHOLE_SIZE : count * sizeof(T);
+    }
 
-    // declared before the memory: move assignment destroys the old buffer before its memory
-    core_handle<VkBuffer, Buffer> _handle;
-    Memory _memory;
-    Config _config;
-    size_t _size = 0;
+    /**
+     * @brief starts the lifetime of the elements in the mapped bytes, keeps their values
+     */
+    [[nodiscard]] static std::span<T> as_elements(std::span<char> mapped) {
+        size_t const count = mapped.size() / sizeof(T);
+#ifdef __cpp_lib_start_lifetime_as
+        return {std::start_lifetime_as_array<T>(mapped.data(), count), count};
+#else
+        return {reinterpret_cast<T*>(mapped.data()), count};
+#endif
+    }
 
 public:
     Buffer(Buffer const& other) = delete;
     Buffer(Buffer&& other) noexcept = default;
     Buffer& operator=(Buffer const& other) = delete;
     Buffer& operator=(Buffer&& other) noexcept = default;
-
-    static constexpr void debug_check(Buffer const&);
 };
-}
-
-namespace cvk {
-struct Buffer::State {
-    vk_not_null<VkBuffer> vkBuffer;
-    /**
-     * @brief in bytes
-     */
-    size_t size;
-    /**
-     * @brief std::nullopt -> the buffer does not own its memory
-     */
-    std::optional<Memory::State> memory = std::nullopt;
-};
-}
-
-namespace cvk {
-constexpr VkDescriptorBufferInfo Buffer::descriptorInfo(size_t size, size_t offset) const {
-    debug_check(*this);
-    CTH_CRITICAL(offset > _size, "offset must lie in the buffer") {}
-    CTH_CRITICAL(size != VK_WHOLE_SIZE && size > _size - offset, "range must lie in the buffer") {}
-
-    return VkDescriptorBufferInfo{
-        .buffer = get(),
-        .offset = offset,
-        .range = size == VK_WHOLE_SIZE ? _size - offset : size,
-    };
-}
-}
-
-namespace cvk {
-constexpr void Buffer::debug_check(Buffer const& buffer) {
-    CTH_CRITICAL(!buffer.created(), "buffer must be created") {}
-}
 }

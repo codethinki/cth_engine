@@ -1,201 +1,146 @@
 #include "context.hpp"
 #include "test.hpp"
 
-#include "cvk/base/physical_device.hpp"
 #include "cvk/data/buffer/buffer.hpp"
 
 #include <algorithm>
 #include <array>
+#include <string>
 
 
 namespace cvk {
 namespace {
-    constexpr size_t SIZE = 256;
+    struct Vertex {
+        float x, y, z;
+        uint32_t color;
 
-    /**
-     * @brief staging buffer, the cpu writes it once
-     */
-    constexpr Buffer::Config STAGING_CONFIG{
-        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
+        friend constexpr bool operator==(Vertex const&, Vertex const&) = default;
+    };
+
+    constexpr size_t COUNT = 8;
+
+    constexpr std::array<Vertex, 3> TRIANGLE{
+        Vertex{0.f, 1.f, 0.f, 0xff0000ff},
+        Vertex{1.f, 0.f, 0.f, 0x00ff00ff},
+        Vertex{0.f, 0.f, 1.f, 0x0000ffff},
     };
 
     /**
-     * @brief buffer the cpu reads back
+     * @brief the cpu writes and reads
      */
-    constexpr Buffer::Config READBACK_CONFIG{
-        .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    constexpr Buffer<Vertex>::Config HOST_CONFIG{
+        .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
     };
 
     /**
-     * @brief gpu only buffer
+     * @brief Buffer<T> is a valid type
      */
-    constexpr Buffer::Config DEVICE_CONFIG{.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT};
+    template<class T>
+    concept valid_buffer = requires { sizeof(Buffer<T>); };
+
+    void take_base(BaseBuffer const& buffer, size_t size) { EXPECT_EQ(buffer.size(), size); }
 }
 
-CVK_TEST(Buffer, config_create_info) {
-    constexpr auto info = STAGING_CONFIG.createInfo(SIZE);
-
-    static_assert(info.size == SIZE);
-    static_assert(info.usage == VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    static_assert(info.flags == 0);
-    static_assert(info.sharingMode == VK_SHARING_MODE_EXCLUSIVE);
-    static_assert(info.queueFamilyIndexCount == 0 && info.pQueueFamilyIndices == nullptr);
-    static_assert(STAGING_CONFIG.memory.autoUsage());
+CVK_TEST(Buffer, elements_must_be_trivially_copyable) {
+    static_assert(valid_buffer<Vertex>);
+    static_assert(valid_buffer<char>);
+    static_assert(!valid_buffer<std::string>);
 }
 
-CVK_TEST(Buffer, config_one_queue_family_is_exclusive) {
+CVK_TEST(Buffer, adds_no_members) { static_assert(sizeof(Buffer<Vertex>) == sizeof(BaseBuffer)); }
+
+CVK_TEST(Buffer, write_to_mapped_elements_is_constexpr) {
     static_assert([] {
-        Buffer::Config config{.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .queueFamilies = {2}};
-        auto const info = config.createInfo(SIZE);
-        return info.sharingMode == VK_SHARING_MODE_EXCLUSIVE && info.queueFamilyIndexCount == 1;
+        std::array<Vertex, 4> mapped{};
+        Buffer<Vertex>::write(TRIANGLE, mapped);
+        return mapped[2] == TRIANGLE[2] && mapped[3] == Vertex{};
     }());
 }
 
-CVK_TEST(Buffer, config_queue_families_are_concurrent) {
-    static_assert([] {
-        Buffer::Config config{
-            .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            .flags = VK_BUFFER_CREATE_PROTECTED_BIT,
-            .queueFamilies = {0, 2},
-        };
-        auto const info = config.createInfo(SIZE);
-        return info.sharingMode == VK_SHARING_MODE_CONCURRENT && info.queueFamilyIndexCount == 2
-            && info.pQueueFamilyIndices == config.queueFamilies.data() && info.flags == VK_BUFFER_CREATE_PROTECTED_BIT;
-    }());
-}
-
-CVK_TEST(Buffer, config_debug_check_is_constexpr) {
-    static_assert([] {
-        Buffer::Config::debug_check({.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .queueFamilies = {1, 0}});
-        return true;
-    }());
-}
-
-CVK_TEST(Buffer, base_constructor_does_not_create) {
+CVK_TEST(Buffer, create_counts_elements) {
     test::Context const context{};
 
-    Buffer const buffer{context.core, STAGING_CONFIG};
-
-    EXPECT_FALSE(buffer.created());
-    EXPECT_FALSE(buffer.memory().created());
-}
-
-CVK_TEST(Buffer, create_and_destroy) {
-    test::Context const context{};
-    Buffer buffer{context.core, DEVICE_CONFIG, SIZE};
+    Buffer<Vertex> const buffer{context.core, HOST_CONFIG, COUNT};
 
     ASSERT_TRUE(buffer.created());
-    EXPECT_EQ(&buffer.core(), &context.core);
-    EXPECT_EQ(buffer.size(), SIZE);
-    ASSERT_TRUE(buffer.memory().created());
-    EXPECT_GE(buffer.memory().size(), SIZE);
-
-    buffer.destroy();
-    EXPECT_FALSE(buffer.created());
-    EXPECT_FALSE(buffer.memory().created());
-    EXPECT_EQ(buffer.size(), 0);
+    EXPECT_EQ(buffer.elements(), COUNT);
+    EXPECT_EQ(buffer.size(), COUNT * sizeof(Vertex));
+    take_base(buffer, COUNT * sizeof(Vertex));
 }
 
-CVK_TEST(Buffer, create_concurrent) {
+CVK_TEST(Buffer, write_and_map) {
     test::Context const context{};
-    auto const familyCount = context.core.physicalDevice().queueFamilies().size();
-    if(familyCount < 2) GTEST_SKIP() << "needs 2 queue families";
+    Buffer<Vertex> const buffer{context.core, HOST_CONFIG, COUNT};
 
-    auto config = DEVICE_CONFIG;
-    config.queueFamilies = {0, 1};
+    buffer.write(TRIANGLE, 2);
 
-    Buffer const buffer{context.core, config, SIZE};
-
-    EXPECT_TRUE(buffer.created());
+    auto const mapped = buffer.map(TRIANGLE.size(), 2);
+    buffer.invalidate();
+    EXPECT_TRUE(std::ranges::equal(mapped, TRIANGLE));
+    buffer.unmap();
 }
 
-CVK_TEST(Buffer, auto_usage_picks_host_visible_memory_for_host_access) {
+CVK_TEST(Buffer, map_whole_buffer) {
     test::Context const context{};
+    Buffer<Vertex> const buffer{context.core, HOST_CONFIG, COUNT};
 
-    Buffer const buffer{context.core, STAGING_CONFIG, SIZE};
+    auto const whole = buffer.map();
+    EXPECT_EQ(whole.size(), COUNT);
 
-    EXPECT_NE(buffer.memory().properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0u);
+    Buffer<Vertex>::write(TRIANGLE, whole);
+    buffer.flush();
+    buffer.flush(1, 2);
+
+    auto const end = buffer.map(VK_WHOLE_SIZE, 5);
+    EXPECT_EQ(end.size(), COUNT - 5);
+    EXPECT_EQ(end.data(), whole.data() + 5);
+
+    buffer.unmap();
+    buffer.unmap();
 }
 
-CVK_TEST(Buffer, write_and_read_through_the_memory) {
+CVK_TEST(Buffer, descriptor_info_in_elements) {
     test::Context const context{};
-    Buffer const buffer{context.core, READBACK_CONFIG, SIZE};
-    std::array<char, SIZE> data{};
-    std::ranges::fill(data, 'x');
-
-    buffer.memory().write(data);
-
-    auto const mapped = buffer.memory().map(SIZE);
-    buffer.memory().invalidate();
-    EXPECT_TRUE(std::ranges::equal(mapped, data));
-    buffer.memory().unmap();
-}
-
-CVK_TEST(Buffer, descriptor_info) {
-    test::Context const context{};
-    Buffer const buffer{context.core, DEVICE_CONFIG, SIZE};
+    Buffer<Vertex> const buffer{context.core, HOST_CONFIG, COUNT};
 
     auto const whole = buffer.descriptorInfo();
-    EXPECT_EQ(whole.buffer, buffer.get());
     EXPECT_EQ(whole.offset, 0);
-    EXPECT_EQ(whole.range, SIZE);
+    EXPECT_EQ(whole.range, COUNT * sizeof(Vertex));
 
-    auto const end = buffer.descriptorInfo(VK_WHOLE_SIZE, 64);
-    EXPECT_EQ(end.offset, 64);
-    EXPECT_EQ(end.range, SIZE - 64);
+    auto const end = buffer.descriptorInfo(VK_WHOLE_SIZE, 3);
+    EXPECT_EQ(end.offset, 3 * sizeof(Vertex));
+    EXPECT_EQ(end.range, (COUNT - 3) * sizeof(Vertex));
 
-    auto const part = buffer.descriptorInfo(16, 32);
-    EXPECT_EQ(part.range, 16);
+    auto const part = buffer.descriptorInfo(2, 1);
+    EXPECT_EQ(part.offset, sizeof(Vertex));
+    EXPECT_EQ(part.range, 2 * sizeof(Vertex));
 }
 
-CVK_TEST(Buffer, release_and_wrap) {
+CVK_TEST(Buffer, release_and_wrap_as_bytes) {
     test::Context const context{};
-    Buffer buffer{context.core, DEVICE_CONFIG, SIZE};
+    Buffer<Vertex> buffer{context.core, HOST_CONFIG, COUNT};
+    buffer.write(TRIANGLE);
     auto const vkBuffer = buffer.get();
-    auto const vmaAllocation = buffer.memory().get();
 
     auto const state = buffer.release();
     EXPECT_FALSE(buffer.created());
-    EXPECT_FALSE(buffer.memory().created());
-    ASSERT_TRUE(state.memory.has_value());
 
-    Buffer const wrapped{context.core, DEVICE_CONFIG, state};
-    EXPECT_EQ(wrapped.get(), vkBuffer);
-    EXPECT_EQ(wrapped.memory().get(), vmaAllocation);
-    EXPECT_EQ(wrapped.size(), SIZE);
-}
-
-CVK_TEST(Buffer, wrap_without_memory_destroys_only_the_buffer) {
-    test::Context const context{};
-    Buffer buffer{context.core, DEVICE_CONFIG, SIZE};
-    auto state = buffer.release();
-
-    // another owner frees the memory, after the buffer
-    Memory const memory{context.core, DEVICE_CONFIG.memory, *state.memory};
-    state.memory = std::nullopt;
-
-    {
-        Buffer const wrapped{context.core, DEVICE_CONFIG, state};
-        EXPECT_FALSE(wrapped.memory().created());
-        EXPECT_EQ(wrapped.size(), SIZE);
-    }
-
-    EXPECT_TRUE(memory.created());
+    Buffer<char> const bytes{context.core, HOST_CONFIG, state};
+    EXPECT_EQ(bytes.get(), vkBuffer);
+    EXPECT_EQ(bytes.elements(), COUNT * sizeof(Vertex));
 }
 
 CVK_TEST(Buffer, move_assignment_destroys_the_old_buffer) {
     test::Context const context{};
-    Buffer buffer{context.core, DEVICE_CONFIG, SIZE};
-    Buffer other{context.core, DEVICE_CONFIG, SIZE};
+    Buffer<Vertex> buffer{context.core, HOST_CONFIG, COUNT};
+    Buffer<Vertex> other{context.core, HOST_CONFIG, 2 * COUNT};
     auto const vkBuffer = other.get();
 
     buffer = std::move(other);
 
     EXPECT_EQ(buffer.get(), vkBuffer);
-    EXPECT_TRUE(buffer.memory().created());
+    EXPECT_EQ(buffer.elements(), 2 * COUNT);
     EXPECT_FALSE(other.created());
-    EXPECT_FALSE(other.memory().created());
 }
 }

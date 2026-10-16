@@ -1,4 +1,4 @@
-#include "cvk/data/buffer/buffer.hpp"
+#include "cvk/data/buffer/base_buffer.hpp"
 
 #include "cvk/base/allocator.hpp"
 #include "cvk/base/core.hpp"
@@ -6,17 +6,17 @@
 
 
 namespace cvk {
-Buffer::Buffer(Core const& core, Config const& config) : _handle{core}, _memory{core, config.memory},
+BaseBuffer::BaseBuffer(Core const& core, Config const& config) : _handle{core}, _memory{core, config.memory},
     _config{config} {
     Core::debug_check(core);
     Config::debug_check(config);
 }
 
-Buffer::Buffer(Core const& core, Config const& config, State const& state) : Buffer{core, config} { wrap(state); }
+BaseBuffer::BaseBuffer(Core const& core, Config const& config, State const& state) : BaseBuffer{core, config} { wrap(state); }
 
-Buffer::Buffer(Core const& core, Config const& config, size_t size) : Buffer{core, config} { create(size); }
+BaseBuffer::BaseBuffer(Core const& core, Config const& config, size_t size) : BaseBuffer{core, config} { create(size); }
 
-void Buffer::wrap(State const& state) {
+void BaseBuffer::wrap(State const& state) {
     optDestroy();
 
     _handle.reset(state.vkBuffer.get(), core());
@@ -24,7 +24,7 @@ void Buffer::wrap(State const& state) {
     _size = state.size;
 }
 
-void Buffer::create(size_t size) {
+void BaseBuffer::create(size_t size) {
     optDestroy();
 
     auto const bufferInfo = _config.createInfo(size);
@@ -51,7 +51,7 @@ void Buffer::create(size_t size) {
     _size = size;
 }
 
-void Buffer::destroy() {
+void BaseBuffer::destroy() {
     debug_check(*this);
 
     _handle.reset();
@@ -60,7 +60,7 @@ void Buffer::destroy() {
     forget();
 }
 
-Buffer::State Buffer::release() {
+BaseBuffer::State BaseBuffer::release() {
     debug_check(*this);
 
     State state{.vkBuffer = _handle.release(), .size = _size, .memory = std::nullopt};
@@ -70,11 +70,11 @@ Buffer::State Buffer::release() {
     return state;
 }
 
-void Buffer::destroy(DeviceTable table, VkBuffer vkBuffer) {
+void BaseBuffer::destroy(DeviceTable table, VkBuffer vkBuffer) {
     CTH_WARN(vkBuffer == VK_NULL_HANDLE, "vkBuffer invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyBuffer(table.device(), vkBuffer, nullptr);
 }
 
-void Buffer::forget() { _size = 0; }
+void BaseBuffer::forget() { _size = 0; }
 }
