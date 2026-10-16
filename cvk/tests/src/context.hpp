@@ -16,7 +16,7 @@ struct Context {
      */
     static Core::Config const CONFIG;
 
-    explicit Context(Core::Config const& config = CONFIG);
+    explicit Context(Core::Config const& = CONFIG);
 
     struct ValidationCheck {
         ValidationCheck();

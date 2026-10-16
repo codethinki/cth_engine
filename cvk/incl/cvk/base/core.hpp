@@ -35,7 +35,7 @@ public:
      * @brief base constructor
      * @pre @ref Instance::created()
      */
-    explicit Core(Instance const& instance);
+    explicit Core(Instance const&);
 
     /**
      * @brief constructs and creates
@@ -43,7 +43,7 @@ public:
      * - @ref Core(Instance const&)
      * - @ref create()
      */
-    Core(Instance const& instance, std::span<Surface const> surfaces, Config const& config);
+    Core(Instance const&, std::span<Surface const> surfaces, Config const&);
 
     /**
      * @brief constructs and wraps
@@ -51,7 +51,7 @@ public:
      * - @ref Core(Instance const&)
      * - @ref wrap()
      */
-    Core(Instance const& instance, State state);
+    Core(Instance const&, State);
 
     /**
      * @note calls @ref optDestroy()
@@ -64,7 +64,7 @@ public:
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
-    void wrap(State state);
+    void wrap(State);
 
     /**
      * @brief picks a physical device for the first possible queue set, creates the device and the queues
@@ -74,7 +74,7 @@ public:
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
      * @throws cvk::vk_result_exception result of vkCreateDevice()
      */
-    void create(std::span<Surface const> surfaces, Config const& config);
+    void create(std::span<Surface const> surfaces, Config const&);
 
     /**
      * @brief destroys and resets
@@ -146,7 +146,7 @@ private:
      * @post sets @ref _physicalDevice and @ref _queueSetIndex
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
      */
-    [[nodiscard]] queue_mappings createPhysicalDevice(std::span<Surface const> surfaces, Config const& config);
+    [[nodiscard]] queue_mappings createPhysicalDevice(std::span<Surface const> surfaces, Config const&);
 
     [[nodiscard]] static queue_set_relations createQueueSetRelations(
         queue_set_t const& queueSet,
@@ -158,7 +158,7 @@ private:
      */
     [[nodiscard]] std::optional<queue_mappings> tryCreatePhysicalDevice(
         std::span<Surface const> surfaces,
-        Config const& config,
+        Config const&,
         queue_set_t const& queueSet
     );
 
@@ -178,7 +178,7 @@ public:
     Core& operator=(Core const& other) = delete;
     Core& operator=(Core&& other) noexcept;
 
-    static void debug_check(Core const& core);
+    static void debug_check(Core const&);
 };
 }
 

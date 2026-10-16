@@ -26,7 +26,7 @@ public:
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
-    void wrap(State state);
+    void wrap(State);
 
     /**
      * @brief resets, the device owns the vulkan queue
@@ -94,9 +94,9 @@ public:
     Queue& operator=(Queue const& other) = default;
     Queue& operator=(Queue&& other) = default;
 
-    static void debug_check(Queue const& queue);
-    static void debug_check_present(Queue const& queue);
-    static void debug_check_handle(VkQueue vkQueue);
+    static void debug_check(Queue const&);
+    static void debug_check_present(Queue const&);
+    static void debug_check_handle(VkQueue);
 };
 }
 

@@ -16,16 +16,16 @@ namespace cvk::test {
 
 /**
  * @brief creates a headless surface
- * @pre @ref instance enables @ref headless_extensions()
+ * @pre the instance enables @ref headless_extensions()
  */
-[[nodiscard]] Surface headless_surface(Instance const& instance, Surface::Config config = {});
+[[nodiscard]] Surface headless_surface(Instance const&, Surface::Config = {});
 
 /**
  * @brief @ref PhysicalDevice::AutoPick() for tests
  * @throws std::bad_optional_access no device meets the requirements
  */
 [[nodiscard]] PhysicalDevice::CreateResult pick(
-    Instance const& instance,
+    Instance const&,
     std::span<QueueFamilyProperties const> queueProperties,
     std::span<Surface const> surfaces = {}
 );

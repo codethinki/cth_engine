@@ -62,7 +62,7 @@ public:
      * - @ref Instance(std::string_view, std::span<std::string const>)
      * - @ref wrap()
      */
-    Instance(std::string_view appName, std::span<std::string const> requiredExtensions, State state);
+    Instance(std::string_view appName, std::span<std::string const> requiredExtensions, State);
 
     /**
      * @note calls @ref optDestroy()
@@ -75,7 +75,7 @@ public:
      * @post volk uses the functions of this instance
      * @note calls @ref optDestroy()
      */
-    void wrap(State state);
+    void wrap(State);
 
     /**
      * @brief creates the instance
@@ -120,7 +120,7 @@ public:
     [[nodiscard]] static std::vector<std::string> getAvailableInstanceExtensions();
     [[nodiscard]] VkApplicationInfo appInfo() const;
 
-    static void destroy(VkInstance vkInstance);
+    static void destroy(VkInstance);
 
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkInstance get() const { return _handle.get(); }
@@ -140,7 +140,7 @@ private:
     std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
     move_ptr<VkInstance_T> _handle = VK_NULL_HANDLE;
 
-    static void loadInstanceFunctions(vk_not_null<VkInstance> vkInstance);
+    static void loadInstanceFunctions(vk_not_null<VkInstance>);
 
 public:
     Instance(Instance const& other) = delete;
@@ -148,8 +148,8 @@ public:
     Instance(Instance&& other) noexcept = default;
     Instance& operator=(Instance&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
 
-    static void debug_check(Instance const& instance);
-    static void debug_check_handle(vk_not_null<VkInstance> vkInstance);
+    static void debug_check(Instance const&);
+    static void debug_check_handle(vk_not_null<VkInstance>);
 };
 }
 

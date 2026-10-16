@@ -31,7 +31,7 @@ public:
      * @pre @ref Instance::created()
      */
     explicit PhysicalDevice(
-        Instance const& instance,
+        Instance const&,
         utils::PhysicalDeviceFeatures requiredFeatures,
         std::span<std::string const> requiredExtensions
     );
@@ -43,7 +43,7 @@ public:
      * - @ref create(std::span<Surface const>, vk_not_null<VkPhysicalDevice>)
      */
     explicit PhysicalDevice(
-        Instance const& instance,
+        Instance const&,
         utils::PhysicalDeviceFeatures const& requiredFeatures,
         std::span<std::string const> requiredExtensions,
         std::span<Surface const> surfaces,
@@ -57,10 +57,10 @@ public:
      * - @ref wrap()
      */
     explicit PhysicalDevice(
-        Instance const& instance,
+        Instance const&,
         utils::PhysicalDeviceFeatures const& requiredFeatures,
         std::span<std::string const> requiredExtensions,
-        State const& state
+        State const&
     );
 
     ~PhysicalDevice() = default;
@@ -71,7 +71,7 @@ public:
      * @return std::nullopt -> not @ref suitable()
      */
     [[nodiscard]] static std::optional<CreateResult> Create(
-        Instance const& instance,
+        Instance const&,
         std::span<Surface const> surfaces,
         std::span<QueueFamilyProperties const> queueProperties,
         std::span<std::string const> requiredExtensions,
@@ -81,10 +81,10 @@ public:
 
     /**
      * @brief wraps the state
-     * @details empty or std::nullopt members of @ref state -> queries them
+     * @details empty or std::nullopt members of the state -> queries them
      * @post @ref created()
      */
-    void wrap(State const& state);
+    void wrap(State const&);
 
     /**
      * @brief queries the device
@@ -109,7 +109,7 @@ public:
      * - a PRESENT queue -> @ref constants::PRESENT_DEVICE_EXTENSIONS
      */
     [[nodiscard]] static std::optional<CreateResult> AutoPick(
-        Instance const& instance,
+        Instance const&,
         std::span<Surface const> surfaces,
         std::span<QueueFamilyProperties const> queueProperties,
         std::span<std::string const> requiredExtensions = {},
@@ -164,7 +164,7 @@ public:
     /**
      * @throws cvk::vk_result_exception result of vkEnumeratePhysicalDevices()
      */
-    [[nodiscard]] static std::vector<VkPhysicalDevice> enumerateVkDevices(vk_not_null<VkInstance> vkInstance);
+    [[nodiscard]] static std::vector<VkPhysicalDevice> enumerateVkDevices(vk_not_null<VkInstance>);
 
     /**
      * @throws cvk::vk_result_exception result of vkEnumerateDeviceExtensionProperties()

@@ -25,7 +25,7 @@ public:
     /**
      * @brief base constructor
      */
-    explicit DebugMessenger(Config config);
+    explicit DebugMessenger(Config);
 
     /**
      * @brief constructs and creates
@@ -51,7 +51,7 @@ public:
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
      */
-    void create(Instance const& instance);
+    void create(Instance const&);
 
 
     /**
@@ -66,7 +66,7 @@ public:
      */
     void optDestroy() { if(created()) destroy(); }
 
-    static void destroy(vk_not_null<VkInstance> vkInstance, VkDebugUtilsMessengerEXT vkMessenger);
+    static void destroy(vk_not_null<VkInstance>, VkDebugUtilsMessengerEXT vkMessenger);
 
     /**
      * @brief releases ownership, returns state and resets
@@ -115,7 +115,7 @@ public:
     DebugMessenger& operator=(DebugMessenger const& other) = delete;
     DebugMessenger& operator=(DebugMessenger&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
 
-    static void debug_check(DebugMessenger const& debugMessenger);
+    static void debug_check(DebugMessenger const&);
 };
 } // namespace cvk
 

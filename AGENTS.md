@@ -78,6 +78,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 | namespace | short lower case | `cvk`, `cvk::constants`, `cvk::dev` |
 
 - A raw Vulkan handle in a variable or parameter has the prefix `vk`: `vkInstance`, `vkSemaphore`.
+- A declaration leaves out a parameter name that repeats the type: `void wrap(State const&)`, `destroy(DeviceTable table, VkSemaphore)`, not `VkSemaphore vkSemaphore`. The definition keeps the name.
 - Function parameters were `snake_case` in the legacy code. New code uses `camelCase`. Rename them when you port.
 - `cvk::dev` holds implementation details that are not part of the API.
 
@@ -123,9 +124,9 @@ public:
 
     // constants
 
-    explicit Semaphore(Core const& core);                    // base constructor
-    Semaphore(Core const& core, State const& state);         // constructs and wraps
-    explicit Semaphore(Core const& core, create_t);          // constructs and creates
+    explicit Semaphore(Core const&);                         // base constructor
+    Semaphore(Core const&, State const&);                    // constructs and wraps
+    explicit Semaphore(Core const&, create_t);               // constructs and creates
 
     ~Semaphore() { optDestroy(); }
 
@@ -137,7 +138,7 @@ public:
 
     // operations
 
-    static void destroy(DeviceTable table, VkSemaphore vkSemaphore);
+    static void destroy(DeviceTable table, VkSemaphore);
 
     // accessors: created(), get(), ...
 

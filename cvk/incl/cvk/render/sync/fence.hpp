@@ -24,7 +24,7 @@ public:
      * @brief base constructor
      * @pre @ref Core::created()
      */
-    explicit Fence(Core const& core);
+    explicit Fence(Core const&);
 
     /**
      * @brief constructs and wraps
@@ -32,7 +32,7 @@ public:
      * - @ref Fence(Core const&)
      * - @ref wrap()
      */
-    Fence(Core const& core, State const& state);
+    Fence(Core const&, State const&);
 
     /**
      * @brief constructs and creates
@@ -40,7 +40,7 @@ public:
      * - @ref Fence(Core const&)
      * - @ref create()
      */
-    Fence(Core const& core, VkFenceCreateFlags flags);
+    Fence(Core const&, VkFenceCreateFlags flags);
 
     /**
      * @note calls @ref optDestroy()
@@ -52,7 +52,7 @@ public:
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
-    void wrap(State const& state);
+    void wrap(State const&);
 
     /**
      * @brief creates the fence
@@ -134,7 +134,7 @@ public:
      */
     void waitReset() const;
 
-    static void destroy(DeviceTable table, VkFence vkFence);
+    static void destroy(DeviceTable table, VkFence);
 
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkFence get() const { return _handle.get(); }
@@ -154,7 +154,7 @@ public:
     Fence& operator=(Fence const& other) = delete;
     Fence& operator=(Fence&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
 
-    static void debug_check(Fence const& fence);
+    static void debug_check(Fence const&);
 };
 }
 

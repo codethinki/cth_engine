@@ -35,7 +35,7 @@ public:
      * @pre @ref Instance::created()
      * @pre @ref PhysicalDevice::created()
      */
-    Device(Instance const& instance, PhysicalDevice const& physicalDevice);
+    Device(Instance const&, PhysicalDevice const&);
 
     /**
      * @brief constructs and wraps
@@ -43,7 +43,7 @@ public:
      * - @ref Device(Instance const&, PhysicalDevice const&)
      * - @ref wrap()
      */
-    Device(Instance const& instance, PhysicalDevice const& physicalDevice, State state);
+    Device(Instance const&, PhysicalDevice const&, State);
 
     /**
      * @brief constructs and creates
@@ -51,7 +51,7 @@ public:
      * - @ref Device(Instance const&, PhysicalDevice const&)
      * - @ref create()
      */
-    Device(Instance const& instance, PhysicalDevice const& physicalDevice, Config const& config);
+    Device(Instance const&, PhysicalDevice const&, Config const&);
 
     /**
      * @note calls @ref optDestroy()
@@ -65,7 +65,7 @@ public:
      * @note calls @ref optDestroy()
      * @note does not retrieve queues
      */
-    void wrap(State state);
+    void wrap(State);
 
     /**
      * @brief creates the device and retrieves the queues
@@ -75,7 +75,7 @@ public:
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateDevice()
      */
-    void create(Config const& config);
+    void create(Config const&);
 
     /**
      * @brief destroys and resets
@@ -102,9 +102,9 @@ public:
     void waitIdle() const;
 
     /**
-     * @param destroy vkDestroyDevice of the function table of @ref vkDevice
+     * @param destroy vkDestroyDevice of the function table of the device
      */
-    static void destroy(VkDevice vkDevice, PFN_vkDestroyDevice destroy);
+    static void destroy(VkDevice, PFN_vkDestroyDevice destroy);
 
     [[nodiscard]] std::span<Queue const> queues() const { return _queues; }
     [[nodiscard]] std::span<Queue> queues() { return _queues; }
@@ -153,8 +153,8 @@ public:
     Device& operator=(Device const& other) = delete;
     Device& operator=(Device&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
 
-    static void debug_check(Device const& device);
-    static void debug_check_handle(vk_not_null<VkDevice> vkDevice);
+    static void debug_check(Device const&);
+    static void debug_check_handle(vk_not_null<VkDevice>);
 };
 }
 

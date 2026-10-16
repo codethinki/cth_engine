@@ -22,7 +22,7 @@ public:
      * @brief base constructor
      * @pre @ref Core::created()
      */
-    explicit TimelineSemaphore(Core const& core);
+    explicit TimelineSemaphore(Core const&);
 
     /**
      * @brief constructs and wraps
@@ -30,7 +30,7 @@ public:
      * - @ref TimelineSemaphore(Core const&)
      * - @ref wrap()
      */
-    TimelineSemaphore(Core const& core, State const& state);
+    TimelineSemaphore(Core const&, State const&);
 
     /**
      * @brief constructs and creates
@@ -38,7 +38,7 @@ public:
      * - @ref TimelineSemaphore(Core const&)
      * - @ref create()
      */
-    TimelineSemaphore(Core const& core, create_t);
+    explicit TimelineSemaphore(Core const&, create_t);
 
     /**
      * @note calls @ref optDestroy()
@@ -50,7 +50,7 @@ public:
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
-    void wrap(State const& state);
+    void wrap(State const&);
 
     /**
      * @brief creates the semaphore

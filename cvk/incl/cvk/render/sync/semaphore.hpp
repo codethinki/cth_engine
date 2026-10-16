@@ -23,7 +23,7 @@ public:
      * @brief base constructor
      * @pre @ref Core::created()
      */
-    explicit Semaphore(Core const& core);
+    explicit Semaphore(Core const&);
 
     /**
      * @brief constructs and wraps
@@ -31,7 +31,7 @@ public:
      * - @ref Semaphore(Core const&)
      * - @ref wrap()
      */
-    Semaphore(Core const& core, State const& state);
+    Semaphore(Core const&, State const&);
 
     /**
      * @brief constructs and creates
@@ -39,7 +39,7 @@ public:
      * - @ref Semaphore(Core const&)
      * - @ref create()
      */
-    Semaphore(Core const& core, create_t);
+    explicit Semaphore(Core const&, create_t);
 
     /**
      * @note calls @ref optDestroy()
@@ -51,7 +51,7 @@ public:
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
-    void wrap(State const& state);
+    void wrap(State const&);
 
     /**
      * @brief creates the semaphore
@@ -79,7 +79,7 @@ public:
      */
     State release();
 
-    static void destroy(DeviceTable table, VkSemaphore vkSemaphore);
+    static void destroy(DeviceTable table, VkSemaphore);
 
     [[nodiscard]] bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] VkSemaphore get() const { return _handle.get(); }
@@ -106,7 +106,7 @@ public:
     Semaphore& operator=(Semaphore const& other) = delete;
     Semaphore& operator=(Semaphore&& other) noexcept { return cth::reconstruct_at(*this, std::move(other)); }
 
-    static void debug_check(Semaphore const& semaphore);
+    static void debug_check(Semaphore const&);
 };
 }
 
