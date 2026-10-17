@@ -6,12 +6,26 @@
 #include <cth/io/log.hpp>
 
 #include <algorithm>
+#include <concepts>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <type_traits>
 
 
 namespace cvk {
+/**
+ * @brief T is an index type of Vulkan 1.3 (VK_INDEX_TYPE_UINT8 needs an extension)
+ */
+template<class T>
+concept index_element = std::same_as<T, uint16_t> || std::same_as<T, uint32_t>;
+
+/**
+ * @brief VkIndexType of T
+ */
+template<index_element T>
+constexpr VkIndexType index_type = std::same_as<T, uint16_t> ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+
 /**
  * @brief @ref BaseBuffer with an element type, sizes and offsets in elements
  * @tparam T element, the gpu copies it byte by byte

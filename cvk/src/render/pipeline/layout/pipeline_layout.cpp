@@ -2,6 +2,7 @@
 
 #include "cvk/base/core.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -78,6 +79,27 @@ PipelineLayout::State PipelineLayout::release() {
     State const state{_handle.release()};
     forget();
     return state;
+}
+
+void PipelineLayout::pushConstants(
+    BaseCmdBuffer const& cmdBuffer,
+    VkShaderStageFlags stages,
+    std::span<char const> data,
+    uint32_t offset
+) const {
+    debug_check(*this);
+    CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(data.empty(), "push constants must not be empty") {}
+    CTH_CRITICAL(offset % 4 != 0 || data.size() % 4 != 0, "offset and size must be multiples of 4") {}
+
+    core().functions()->vkCmdPushConstants(
+        cmdBuffer.get(),
+        get(),
+        stages,
+        offset,
+        static_cast<uint32_t>(data.size()),
+        data.data()
+    );
 }
 
 void PipelineLayout::destroy(DeviceTable table, VkPipelineLayout vkLayout) {

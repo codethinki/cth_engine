@@ -37,6 +37,30 @@ namespace {
             : range.levelCount;
     }
 
+    void debug_check_draw(BaseCmdBuffer const& cmdBuffer) {
+        BaseCmdBuffer::debug_check(cmdBuffer);
+        CTH_CRITICAL(cmdBuffer.rendering() == nullptr, "draws need a rendering") {}
+    }
+
+    void debug_check_indirect(
+        BaseBuffer const& buffer,
+        size_t offset,
+        uint32_t drawCount,
+        uint32_t stride,
+        size_t size
+    ) {
+        BaseBuffer::debug_check(buffer);
+        CTH_CRITICAL(
+            (buffer.config().usage & VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT) == 0,
+            "buffer usage must have VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT"
+        ) {}
+        CTH_CRITICAL(offset % 4 != 0, "offset must be a multiple of 4") {}
+        CTH_CRITICAL(
+            drawCount > 0 && offset + size_t{drawCount - 1} * stride + size > buffer.size(),
+            "the commands must lie in the buffer"
+        ) {}
+    }
+
     VkExtent2D view_extent(ImageView const& view) {
         auto const mip = view.range().baseMipLevel;
         auto const extent = view.image().extent();
@@ -214,6 +238,7 @@ void BaseCmdBuffer::beginRendering(RenderingConfig const& config) {
     };
     core().functions()->vkCmdBeginRendering(get(), &info);
 
+    rendering.area = info.renderArea;
     _rendering = std::move(rendering);
 }
 
@@ -264,6 +289,118 @@ void BaseCmdBuffer::setInputAttachmentIndices(
         .pStencilInputAttachmentIndex = stencilIndex.has_value() ? &*stencilIndex : nullptr,
     };
     core().functions()->vkCmdSetRenderingInputAttachmentIndicesKHR(get(), &info);
+}
+
+void BaseCmdBuffer::setViewport() const {
+    debug_check(*this);
+    CTH_CRITICAL(rendering() == nullptr || rendering()->inherited, "command buffer must be inside its own rendering") {}
+
+    auto const& area = rendering()->area;
+    setViewport(
+        VkViewport{
+            .x = static_cast<float>(area.offset.x),
+            .y = static_cast<float>(area.offset.y),
+            .width = static_cast<float>(area.extent.width),
+            .height = static_cast<float>(area.extent.height),
+            .minDepth = 0.f,
+            .maxDepth = 1.f,
+        }
+    );
+}
+
+void BaseCmdBuffer::setViewport(VkViewport const& viewport) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+
+    core().functions()->vkCmdSetViewport(get(), 0, 1, &viewport);
+}
+
+void BaseCmdBuffer::setScissor() const {
+    debug_check(*this);
+    CTH_CRITICAL(rendering() == nullptr || rendering()->inherited, "command buffer must be inside its own rendering") {}
+
+    setScissor(rendering()->area);
+}
+
+void BaseCmdBuffer::setScissor(VkRect2D const& scissor) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+
+    core().functions()->vkCmdSetScissor(get(), 0, 1, &scissor);
+}
+
+void BaseCmdBuffer::bindVertexBuffer(uint32_t binding, BaseBuffer const& buffer, size_t offset) const {
+    debug_check(*this);
+    BaseBuffer::debug_check(buffer);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(
+        (buffer.config().usage & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) == 0,
+        "buffer usage must have VK_BUFFER_USAGE_VERTEX_BUFFER_BIT"
+    ) {}
+    CTH_CRITICAL(offset >= buffer.size(), "offset must lie in the buffer") {}
+
+    VkBuffer const vkBuffer = buffer.get();
+    VkDeviceSize const vkOffset = offset;
+    core().functions()->vkCmdBindVertexBuffers(get(), binding, 1, &vkBuffer, &vkOffset);
+}
+
+void BaseCmdBuffer::bindIndexBuffer(BaseBuffer const& buffer, VkIndexType type, size_t offset) const {
+    debug_check(*this);
+    BaseBuffer::debug_check(buffer);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(
+        (buffer.config().usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT) == 0,
+        "buffer usage must have VK_BUFFER_USAGE_INDEX_BUFFER_BIT"
+    ) {}
+    CTH_CRITICAL(offset >= buffer.size(), "offset must lie in the buffer") {}
+    CTH_CRITICAL(
+        offset % (type == VK_INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t)) != 0,
+        "offset must be a multiple of the index size"
+    ) {}
+
+    core().functions()->vkCmdBindIndexBuffer(get(), buffer.get(), offset, type);
+}
+
+void BaseCmdBuffer::draw(
+    uint32_t vertexCount,
+    uint32_t instanceCount,
+    uint32_t firstVertex,
+    uint32_t firstInstance
+) const {
+    debug_check_draw(*this);
+
+    core().functions()->vkCmdDraw(get(), vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void BaseCmdBuffer::drawIndexed(
+    uint32_t indexCount,
+    uint32_t instanceCount,
+    uint32_t firstIndex,
+    int32_t vertexOffset,
+    uint32_t firstInstance
+) const {
+    debug_check_draw(*this);
+
+    core().functions()->vkCmdDrawIndexed(get(), indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
+void BaseCmdBuffer::drawIndirect(BaseBuffer const& buffer, size_t offset, uint32_t drawCount, uint32_t stride) const {
+    debug_check_draw(*this);
+    debug_check_indirect(buffer, offset, drawCount, stride, sizeof(VkDrawIndirectCommand));
+
+    core().functions()->vkCmdDrawIndirect(get(), buffer.get(), offset, drawCount, stride);
+}
+
+void BaseCmdBuffer::drawIndexedIndirect(
+    BaseBuffer const& buffer,
+    size_t offset,
+    uint32_t drawCount,
+    uint32_t stride
+) const {
+    debug_check_draw(*this);
+    debug_check_indirect(buffer, offset, drawCount, stride, sizeof(VkDrawIndexedIndirectCommand));
+
+    core().functions()->vkCmdDrawIndexedIndirect(get(), buffer.get(), offset, drawCount, stride);
 }
 
 void BaseCmdBuffer::destroy(DeviceTable table, VkCommandPool vkPool, VkCommandBuffer vkBuffer) {

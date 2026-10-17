@@ -2,6 +2,8 @@
 #include "cmd_pool.hpp"
 #include "rendering_config.hpp"
 
+#include "cvk/data/buffer/buffer.hpp"
+
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/types.hpp"
@@ -53,6 +55,11 @@ public:
          * @brief true -> a secondary that inherits the rendering of its primary
          */
         bool inherited = false;
+
+        /**
+         * @brief render area, inherited -> unknown
+         */
+        VkRect2D area{};
     };
 
     /**
@@ -142,6 +149,112 @@ public:
         std::span<uint32_t const> colorIndices,
         std::optional<uint32_t> depthIndex = std::nullopt,
         std::optional<uint32_t> stencilIndex = std::nullopt
+    ) const;
+
+    /**
+     * @brief sets viewport 0 to the area of the rendering, depth 0 to 1
+     * @pre @ref rendering() began with @ref beginRendering()
+     */
+    void setViewport() const;
+
+    /**
+     * @brief sets viewport 0
+     * @pre @ref recording()
+     */
+    void setViewport(VkViewport const&) const;
+
+    /**
+     * @brief sets scissor 0 to the area of the rendering
+     * @pre @ref rendering() began with @ref beginRendering()
+     */
+    void setScissor() const;
+
+    /**
+     * @brief sets scissor 0
+     * @pre @ref recording()
+     */
+    void setScissor(VkRect2D const&) const;
+
+    /**
+     * @brief binds the buffer to the vertex input binding
+     * @param offset in bytes
+     * @pre @ref recording(), buffer created with VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+     */
+    void bindVertexBuffer(uint32_t binding, BaseBuffer const&, size_t offset = 0) const;
+
+    /**
+     * @brief binds the buffer to the vertex input binding
+     * @param firstVertex offset in elements
+     * @details calls @ref bindVertexBuffer(uint32_t, BaseBuffer const&, size_t)
+     */
+    template<class T>
+    void bindVertexBuffer(uint32_t binding, Buffer<T> const& buffer, size_t firstVertex = 0) const {
+        bindVertexBuffer(binding, static_cast<BaseBuffer const&>(buffer), firstVertex * sizeof(T));
+    }
+
+    /**
+     * @brief binds the index buffer
+     * @param offset in bytes
+     * @pre @ref recording(), buffer created with VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+     * @pre offset is a multiple of the index size
+     */
+    void bindIndexBuffer(BaseBuffer const&, VkIndexType, size_t offset = 0) const;
+
+    /**
+     * @brief binds the index buffer, the index type follows from T
+     * @param firstIndex offset in elements
+     * @details calls @ref bindIndexBuffer(BaseBuffer const&, VkIndexType, size_t)
+     */
+    template<index_element T>
+    void bindIndexBuffer(Buffer<T> const& buffer, size_t firstIndex = 0) const {
+        bindIndexBuffer(static_cast<BaseBuffer const&>(buffer), index_type<T>, firstIndex * sizeof(T));
+    }
+
+    /**
+     * @pre @ref rendering()
+     */
+    void draw(
+        uint32_t vertexCount,
+        uint32_t instanceCount = 1,
+        uint32_t firstVertex = 0,
+        uint32_t firstInstance = 0
+    ) const;
+
+    /**
+     * @pre @ref rendering(), an index buffer is bound
+     */
+    void drawIndexed(
+        uint32_t indexCount,
+        uint32_t instanceCount = 1,
+        uint32_t firstIndex = 0,
+        int32_t vertexOffset = 0,
+        uint32_t firstInstance = 0
+    ) const;
+
+    /**
+     * @brief draws with the VkDrawIndirectCommands in the buffer
+     * @param offset in bytes
+     * @pre @ref rendering(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
+     * @pre the commands lie in the buffer
+     */
+    void drawIndirect(
+        BaseBuffer const&,
+        size_t offset = 0,
+        uint32_t drawCount = 1,
+        uint32_t stride = sizeof(VkDrawIndirectCommand)
+    ) const;
+
+    /**
+     * @brief draws with the VkDrawIndexedIndirectCommands in the buffer
+     * @param offset in bytes
+     * @pre @ref rendering(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, an index buffer is bound
+     * @pre the commands lie in the buffer
+     */
+    void drawIndexedIndirect(
+        BaseBuffer const&,
+        size_t offset = 0,
+        uint32_t drawCount = 1,
+        uint32_t stride = sizeof(VkDrawIndexedIndirectCommand)
     ) const;
 
     static void destroy(DeviceTable table, VkCommandPool, VkCommandBuffer);
