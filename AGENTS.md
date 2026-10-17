@@ -14,6 +14,7 @@ Read it before you change a file. Match the existing code.
 | `lib/cth_cmake` | cmake utilities (submodule) |
 
 - Vulkan 1.3 is the baseline. Do not port code that 1.3 makes unnecessary (render passes, framebuffers, the old sync API).
+- Functionality beyond 1.3 comes from required extensions, not from a higher version: `VK_KHR_dynamic_rendering_local_read` gives tile-based GPUs subpass-like local reads in a dynamic rendering. Extension feature structs go into `utils::PhysicalDeviceFeatures`, `link()` puts them in the chain only with their extension.
 - Use the Vulkan C API through volk. Do not use Vulkan-Hpp.
 - Memory comes from VMA.
 - `cvk` destroys immediately. It has no destruction queue. Deferred destruction belongs to `jvk`.

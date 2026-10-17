@@ -1,6 +1,8 @@
 #include "cvk/utility/device/physical_device_features.hpp"
 
+#include <algorithm>
 #include <ranges>
+#include <utility>
 
 
 namespace cvk::utils {
@@ -9,9 +11,23 @@ PhysicalDeviceFeatures::PhysicalDeviceFeatures() : _chain{
     VkPhysicalDeviceVulkan11Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES, .pNext = nullptr},
     VkPhysicalDeviceVulkan12Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES, .pNext = nullptr},
     VkPhysicalDeviceVulkan13Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES, .pNext = nullptr},
-} { link(); }
+    VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR,
+        .pNext = nullptr,
+        .swapchainMaintenance1 = VK_FALSE,
+    },
+    VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR,
+        .pNext = nullptr,
+        .dynamicRenderingLocalRead = VK_FALSE,
+    },
+} { link({}); }
 
-PhysicalDeviceFeatures::PhysicalDeviceFeatures(vk_not_null<VkPhysicalDevice> vkDevice) : PhysicalDeviceFeatures{} {
+PhysicalDeviceFeatures::PhysicalDeviceFeatures(
+    vk_not_null<VkPhysicalDevice> vkDevice,
+    std::span<std::string const> extensions
+) : PhysicalDeviceFeatures{} {
+    link(extensions);
     vkGetPhysicalDeviceFeatures2(vkDevice.get(), &features());
 }
 
@@ -45,12 +61,29 @@ void PhysicalDeviceFeatures::merge(PhysicalDeviceFeatures const& other) {
     std::apply([&]<class... Ts>(Ts&... to) { (merge(to, std::get<Ts>(other._chain)), ...); }, _chain);
 }
 
-void PhysicalDeviceFeatures::link() {
-    auto& [features2, features11, features12, features13] = _chain;
+void PhysicalDeviceFeatures::link(std::span<std::string const> extensions) {
+    [&]<size_t... Is>(std::index_sequence<Is...>) {
+        ((_linked[Is] = [&] {
+            constexpr auto name = dev::feature_extension<std::tuple_element_t<Is, chain_t>>::NAME;
+            return name.empty() || std::ranges::contains(extensions, name);
+        }()), ...);
+    }(std::make_index_sequence<STRUCTS>{});
 
-    features2.pNext = &features11;
-    features11.pNext = &features12;
-    features12.pNext = &features13;
-    features13.pNext = nullptr;
+    relink();
+}
+
+void PhysicalDeviceFeatures::relink() {
+    void* next = nullptr;
+
+    // back to front: each linked struct points to the next linked one
+    [&]<size_t... Is>(std::index_sequence<Is...>) {
+        ([&] {
+            constexpr size_t index = STRUCTS - 1 - Is;
+            auto& features = std::get<index>(_chain);
+
+            features.pNext = _linked[index] ? next : nullptr;
+            if(_linked[index]) next = &features;
+        }(), ...);
+    }(std::make_index_sequence<STRUCTS>{});
 }
 }

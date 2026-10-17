@@ -57,6 +57,18 @@ CVK_TEST(PhysicalDevice, auto_pick_adds_the_defaults) {
 
     for(auto const extension : constants::PRESENT_DEVICE_EXTENSIONS)
         EXPECT_FALSE(requires_extension(device, extension)) << extension;
+    for(auto const extension : constants::REQUIRED_DEVICE_EXTENSIONS)
+        EXPECT_TRUE(requires_extension(device, extension)) << extension;
+}
+
+CVK_TEST(PhysicalDevice, queries_the_features_of_its_extensions) {
+    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+
+    auto const [device, _] = test::pick(instance, QUEUES);
+
+    using local_read_t = VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR;
+    EXPECT_TRUE(device.features().linked<local_read_t>());
+    EXPECT_TRUE(device.features().features<local_read_t>().dynamicRenderingLocalRead);
 }
 
 CVK_TEST(PhysicalDevice, auto_pick_present_without_surfaces_finds_nothing) {

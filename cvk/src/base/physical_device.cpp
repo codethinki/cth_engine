@@ -66,8 +66,8 @@ void PhysicalDevice::wrap(State const& state) {
 
     _handle = device.get();
 
-    _features = state.features.has_value() ? *state.features : utils::PhysicalDeviceFeatures{device};
     _extensions = !state.extensions.empty() ? state.extensions : queryExtensions(device);
+    _features = state.features.has_value() ? *state.features : utils::PhysicalDeviceFeatures{device, _extensions};
     _properties = state.properties.has_value() ? *state.properties : queryProperties(device);
 
     _maxSampleCount = state.maxSampleCount != VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM
@@ -86,8 +86,8 @@ void PhysicalDevice::create(span<QueueFamily const> queueFamilies, vk_not_null<V
     debug_check_handle(vkDevice);
 
     _handle = vkDevice.get();
-    _features = utils::PhysicalDeviceFeatures{vkDevice};
     _extensions = queryExtensions(vkDevice);
+    _features = utils::PhysicalDeviceFeatures{vkDevice, _extensions};
     _properties = queryProperties(vkDevice);
     _maxSampleCount = evalMaxSampleCount(_properties);
     _memProperties = queryMemoryProperties(vkDevice);

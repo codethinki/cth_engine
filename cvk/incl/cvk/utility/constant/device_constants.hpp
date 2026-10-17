@@ -9,8 +9,11 @@
 namespace cvk::constants {
 /**
  * @brief extensions that every device enables
+ * @details VK_KHR_dynamic_rendering_local_read: tile local reads in a dynamic rendering, like subpasses
  */
-inline constexpr std::array<std::string_view, 0> REQUIRED_DEVICE_EXTENSIONS{};
+inline constexpr std::array<std::string_view, 1> REQUIRED_DEVICE_EXTENSIONS{
+    VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME,
+};
 
 /**
  * @brief extensions that a device with a present queue enables
@@ -42,6 +45,8 @@ inline constexpr std::array<std::string_view, 3> PRESENT_INSTANCE_EXTENSIONS{
     auto& features13 = features.features<VkPhysicalDeviceVulkan13Features>();
     features13.synchronization2 = VK_TRUE;
     features13.dynamicRendering = VK_TRUE;
+
+    features.features<VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR>().dynamicRenderingLocalRead = VK_TRUE;
 
     return features;
 }

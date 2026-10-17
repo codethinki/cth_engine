@@ -132,16 +132,14 @@ void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamil
 
     auto features = _physicalDevice->requiredFeatures();
 
-    VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR swapchainMaintenance{
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR,
-        .pNext = nullptr,
-        .swapchainMaintenance1 = VK_TRUE,
-    };
     bool const maintenance1 = std::ranges::contains(
         _physicalDevice->requiredExtensions(),
         std::string_view{VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME}
     );
-    if(maintenance1) features.features<VkPhysicalDeviceVulkan13Features>().pNext = &swapchainMaintenance;
+    if(maintenance1)
+        features.features<VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR>().swapchainMaintenance1 = VK_TRUE;
+
+    features.link(_physicalDevice->requiredExtensions());
 
     VkDeviceCreateInfo const createInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
