@@ -1,5 +1,6 @@
 #pragma once
 #include "cmd_pool.hpp"
+#include "rendering_config.hpp"
 
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
@@ -10,12 +11,14 @@
 
 #include <cth/io/log.hpp>
 
+#include <optional>
 #include <span>
 #include <vector>
 
 
 namespace cvk {
 class Core;
+class Image;
 
 /**
  * @brief VkCommandBuffer wrapper, allocated from its pool, base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer
@@ -26,6 +29,31 @@ class BaseCmdBuffer {
 public:
     using vk_handle_t = VkCommandBuffer;
     struct State;
+
+    /**
+     * @brief the rendering the command buffer is inside
+     */
+    struct Rendering {
+        /**
+         * @brief what a secondary inherits, the flags without VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
+         */
+        RenderingInheritance inheritance;
+
+        /**
+         * @brief flags of the rendering
+         */
+        VkRenderingFlags flags = 0;
+
+        /**
+         * @brief images of the attachments, empty if inherited
+         */
+        std::vector<not_null<Image const*>> attachments{};
+
+        /**
+         * @brief true -> a secondary that inherits the rendering of its primary
+         */
+        bool inherited = false;
+    };
 
     /**
      * @brief wraps the state
@@ -79,6 +107,43 @@ public:
      */
     void reset(VkCommandBufferResetFlags flags = 0);
 
+    /**
+     * @brief begins a dynamic rendering
+     * @details the layouts of the attachments come from the layout tracking of their images,
+     *  std::nullopt @ref RenderingConfig::area -> the extent that fits every attachment
+     * @pre @ref recording(), !@ref rendering()
+     * @pre the attachment views are created and have one mip level
+     * @pre the attachment layouts are attachment layouts (not undefined, transfer, shader read or present)
+     * @post @ref rendering()
+     */
+    void beginRendering(RenderingConfig const&);
+
+    /**
+     * @brief ends the dynamic rendering
+     * @pre @ref rendering() began with @ref beginRendering()
+     */
+    void endRendering();
+
+    /**
+     * @brief maps the color attachments to the fragment shader outputs
+     * @param locations output location of each color attachment (VK_ATTACHMENT_UNUSED => no output)
+     * @pre @ref rendering() with one location per color attachment
+     */
+    void setAttachmentLocations(std::span<uint32_t const> locations) const;
+
+    /**
+     * @brief maps the attachments to the input attachments of the fragment shader
+     * @param colorIndices input attachment index of each color attachment (VK_ATTACHMENT_UNUSED => no input)
+     * @param depthIndex std::nullopt -> the depth attachment is an input attachment without index
+     * @param stencilIndex std::nullopt -> the stencil attachment is an input attachment without index
+     * @pre @ref rendering() with one index per color attachment
+     */
+    void setInputAttachmentIndices(
+        std::span<uint32_t const> colorIndices,
+        std::optional<uint32_t> depthIndex = std::nullopt,
+        std::optional<uint32_t> stencilIndex = std::nullopt
+    ) const;
+
     static void destroy(DeviceTable table, VkCommandPool, VkCommandBuffer);
 
     /**
@@ -99,6 +164,13 @@ public:
         return created() && _recording && _beginResets == pool().resets();
     }
 
+    /**
+     * @return the rendering the command buffer records into, nullptr -> outside of a rendering
+     */
+    [[nodiscard]] constexpr Rendering const* rendering() const {
+        return recording() && _rendering.has_value() ? &*_rendering : nullptr;
+    }
+
 protected:
     /**
      * @brief base constructor
@@ -113,12 +185,13 @@ protected:
 
     /**
      * @brief begins the recording
+     * @param inherited nullptr -> outside of a rendering, else the rendering of the primary
      * @pre @ref created()
      * @pre !@ref recording()
      * @post @ref recording()
      * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
      */
-    void begin(VkCommandBufferBeginInfo const&);
+    void begin(VkCommandBufferBeginInfo const&, RenderingInheritance const* inherited = nullptr);
 
 private:
     /**
@@ -143,6 +216,7 @@ private:
     VkCommandBufferLevel _level;
     bool _recording = false;
     uint64_t _beginResets = 0;
+    std::optional<Rendering> _rendering = std::nullopt;
 
 public:
     BaseCmdBuffer(BaseCmdBuffer const& other) = delete;
@@ -223,7 +297,7 @@ namespace cvk {
  */
 class SecondaryCmdBuffer : public BaseCmdBuffer {
 public:
-    struct Inheritance;
+    using Inheritance = RenderingInheritance;
 
     /**
      * @brief base constructor
@@ -267,36 +341,5 @@ public:
      * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
      */
     void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0);
-};
-}
-
-namespace cvk {
-/**
- * @brief attachments of the rendering that executes the secondary command buffer
- */
-struct SecondaryCmdBuffer::Inheritance {
-    std::vector<VkFormat> colorFormats{};
-    VkFormat depthFormat = VK_FORMAT_UNDEFINED;
-    VkFormat stencilFormat = VK_FORMAT_UNDEFINED;
-    VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
-    uint32_t viewMask = 0;
-    VkRenderingFlags flags = 0;
-
-    /**
-     * @attention pColorAttachmentFormats points into @ref colorFormats
-     */
-    [[nodiscard]] constexpr VkCommandBufferInheritanceRenderingInfo renderingInfo() const {
-        return VkCommandBufferInheritanceRenderingInfo{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO,
-            .pNext = nullptr,
-            .flags = flags,
-            .viewMask = viewMask,
-            .colorAttachmentCount = static_cast<uint32_t>(colorFormats.size()),
-            .pColorAttachmentFormats = colorFormats.data(),
-            .depthAttachmentFormat = depthFormat,
-            .stencilAttachmentFormat = stencilFormat,
-            .rasterizationSamples = samples,
-        };
-    }
 };
 }

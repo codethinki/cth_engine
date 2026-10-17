@@ -65,4 +65,34 @@ void host_read_barrier(Context const& context, BaseCmdBuffer const& cmdBuffer) {
     };
     context.core.functions()->vkCmdPipelineBarrier2(cmdBuffer.get(), &dependency);
 }
+
+void copy_to_buffer(
+    Context const& context,
+    BaseCmdBuffer const& cmdBuffer,
+    Image const& image,
+    BaseBuffer const& dst,
+    size_t dstOffset,
+    uint32_t mipLevel
+) {
+    VkBufferImageCopy2 const region{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
+        .pNext = nullptr,
+        .bufferOffset = dstOffset,
+        .bufferRowLength = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, mipLevel, 0, 1},
+        .imageOffset = {0, 0, 0},
+        .imageExtent = {image.extent().width >> mipLevel, image.extent().height >> mipLevel, 1},
+    };
+    VkCopyImageToBufferInfo2 const info{
+        .sType = VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2,
+        .pNext = nullptr,
+        .srcImage = image.get(),
+        .srcImageLayout = image.layout(mipLevel),
+        .dstBuffer = dst.get(),
+        .regionCount = 1,
+        .pRegions = &region,
+    };
+    context.core.functions()->vkCmdCopyImageToBuffer2(cmdBuffer.get(), &info);
+}
 }

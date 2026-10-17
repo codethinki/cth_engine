@@ -8,11 +8,21 @@
 #include <cth/io/log.hpp>
 
 #include <algorithm>
+#include <bit>
 #include <span>
 
 
 namespace cvk {
 namespace {
+    constexpr VkPipelineStageFlags2 FRAMEBUFFER_STAGES = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
+        | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
+        | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT
+        | VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    [[nodiscard]] constexpr bool framebuffer_space(VkPipelineStageFlags2 srcStages, VkPipelineStageFlags2 dstStages) {
+        return ((srcStages | dstStages) & ~FRAMEBUFFER_STAGES) == 0;
+    }
+
     VkBufferMemoryBarrier2 buffer_barrier(BaseBuffer const& buffer, BufferBarrierInfo const& info) {
         BaseBuffer::debug_check(buffer);
 
@@ -99,6 +109,63 @@ void Barrier::add(BaseBuffer const& buffer, BufferInfo const& info) {
     _buffers.emplace_back(&buffer, info);
 }
 
+void Barrier::debug_check_rendering(
+    BaseCmdBuffer::Rendering const& rendering,
+    std::span<VkBufferMemoryBarrier2 const> bufferBarriers,
+    std::span<VkImageMemoryBarrier2 const> imageBarriers
+) const {
+    bool srcStages = false;
+    bool framebufferSpace = true;
+    auto const check = [&](VkPipelineStageFlags2 src, VkPipelineStageFlags2 dst) {
+        srcStages |= src != VK_PIPELINE_STAGE_2_NONE;
+        framebufferSpace &= framebuffer_space(src, dst);
+    };
+
+    for(auto const& barrier : _memoryBarriers)
+        check(barrier.srcStageMask, barrier.dstStageMask);
+    for(auto const& barrier : bufferBarriers)
+        check(barrier.srcStageMask, barrier.dstStageMask);
+    for(auto const& barrier : imageBarriers)
+        check(barrier.srcStageMask, barrier.dstStageMask);
+
+    CTH_CRITICAL(!framebufferSpace, "barriers inside a rendering must only use framebuffer space stages") {}
+    CTH_CRITICAL(
+        srcStages && (_flags & VK_DEPENDENCY_BY_REGION_BIT) == 0,
+        "barriers inside a rendering need VK_DEPENDENCY_BY_REGION_BIT"
+    ) {}
+    CTH_CRITICAL(
+        std::popcount(rendering.inheritance.viewMask) > 1 && (_flags & VK_DEPENDENCY_VIEW_LOCAL_BIT) == 0,
+        "barriers inside a rendering with more than one view need VK_DEPENDENCY_VIEW_LOCAL_BIT"
+    ) {}
+    auto const transfer = [](VkBufferMemoryBarrier2 const& barrier) {
+        return barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex;
+    };
+    CTH_CRITICAL(
+        std::ranges::any_of(bufferBarriers, transfer),
+        "barriers inside a rendering have no queue family ownership transfer"
+    ) {}
+
+    for(auto const [barrier, entry] : std::views::zip(imageBarriers, _images)) {
+        CTH_CRITICAL(barrier.oldLayout != barrier.newLayout, "barriers inside a rendering have no layout transition") {}
+        CTH_CRITICAL(
+            barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex,
+            "barriers inside a rendering have no queue family ownership transfer"
+        ) {}
+        bool const attachment = std::ranges::contains(
+            rendering.attachments,
+            static_cast<Image const*>(entry.image.get()),
+            &not_null<Image const*>::get
+        );
+        CTH_CRITICAL(
+            attachment && barrier.newLayout != VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
+            && barrier.newLayout != VK_IMAGE_LAYOUT_GENERAL,
+            "attachments inside a rendering must be in the rendering local read or general layout"
+        ) {
+            details->add("layout: {}", barrier.newLayout);
+        }
+    }
+}
+
 void Barrier::execute(BaseCmdBuffer const& cmdBuffer) {
     BaseCmdBuffer::debug_check(cmdBuffer);
     CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
@@ -112,6 +179,8 @@ void Barrier::execute(BaseCmdBuffer const& cmdBuffer) {
     imageBarriers.reserve(_images.size());
     for(auto const& [image, info] : _images)
         imageBarriers.push_back(image_barrier(*image, info));
+
+    if(auto const* rendering = cmdBuffer.rendering()) debug_check_rendering(*rendering, bufferBarriers, imageBarriers);
 
     VkDependencyInfo const dependency{
         .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,

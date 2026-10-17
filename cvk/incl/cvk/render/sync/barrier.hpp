@@ -1,5 +1,6 @@
 #pragma once
 #include "cvk/base/queue/queue_family.hpp"
+#include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -9,12 +10,12 @@
 #include <algorithm>
 #include <array>
 #include <optional>
+#include <span>
 #include <vector>
 
 
 namespace cvk {
 class BaseBuffer;
-class BaseCmdBuffer;
 class Image;
 
 /**
@@ -159,9 +160,12 @@ public:
 
     /**
      * @brief records the barriers, then updates the layout tracking of the images
+     * @details inside a rendering: checks the rules of barriers inside a dynamic rendering
      * @pre @ref BaseCmdBuffer::recording()
      * @pre every image range has one layout
      * @pre a new layout is not VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
+     * @pre inside a rendering: framebuffer space stages, VK_DEPENDENCY_BY_REGION_BIT,
+     *  no layout transition, no queue family ownership transfer, attachments in local read or general layout
      */
     void execute(BaseCmdBuffer const&);
 
@@ -180,6 +184,15 @@ public:
     }
 
 private:
+    /**
+     * @brief checks the rules of barriers inside a dynamic rendering
+     */
+    void debug_check_rendering(
+        BaseCmdBuffer::Rendering const&,
+        std::span<VkBufferMemoryBarrier2 const>,
+        std::span<VkImageMemoryBarrier2 const>
+    ) const;
+
     struct BufferEntry {
         not_null<BaseBuffer const*> buffer;
         BufferInfo info;

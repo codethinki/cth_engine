@@ -42,39 +42,6 @@ namespace {
         .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
     };
 
-    /**
-     * @brief records a copy of the mip level into the buffer, without cvk: the image test needs a second path
-     */
-    void copy_to_buffer(
-        test::Context const& context,
-        BaseCmdBuffer const& cmdBuffer,
-        Image const& image,
-        BaseBuffer const& dst,
-        size_t dstOffset,
-        uint32_t mipLevel
-    ) {
-        VkBufferImageCopy2 const region{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
-            .pNext = nullptr,
-            .bufferOffset = dstOffset,
-            .bufferRowLength = 0,
-            .bufferImageHeight = 0,
-            .imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, mipLevel, 0, 1},
-            .imageOffset = {0, 0, 0},
-            .imageExtent = {image.extent().width >> mipLevel, image.extent().height >> mipLevel, 1},
-        };
-        VkCopyImageToBufferInfo2 const info{
-            .sType = VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2,
-            .pNext = nullptr,
-            .srcImage = image.get(),
-            .srcImageLayout = image.layout(mipLevel),
-            .dstBuffer = dst.get(),
-            .regionCount = 1,
-            .pRegions = &region,
-        };
-        context.core.functions()->vkCmdCopyImageToBuffer2(cmdBuffer.get(), &info);
-    }
-
     bool all_layouts(Image const& image, VkImageLayout layout) {
         return std::ranges::all_of(image.layouts(), [layout](VkImageLayout l) { return l == layout; });
     }
@@ -175,8 +142,8 @@ CVK_TEST(Image, copy_from_a_buffer_into_two_mip_levels) {
         image.copy(primary, staging, mip0, 1);
 
         image.transitionLayout(primary, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-        copy_to_buffer(context, primary, image, readback, 0, 0);
-        copy_to_buffer(context, primary, image, readback, mip0, 1);
+        test::copy_to_buffer(context, primary, image, readback, 0, 0);
+        test::copy_to_buffer(context, primary, image, readback, mip0, 1);
         test::host_read_barrier(context, primary);
     });
 
