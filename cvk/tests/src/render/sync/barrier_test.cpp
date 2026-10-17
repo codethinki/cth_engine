@@ -68,7 +68,7 @@ CVK_TEST(Barrier, memory_barriers_are_constexpr) {
 
 CVK_TEST(Barrier, aggregate_is_constexpr) {
     static_assert([] {
-        // not const: gcc rejects the destructor of a const vector in a constant expression
+        //TEMP not const: gcc 16 rejects a const aggregate with a vector and another member in a constant expression
         Barrier barrier{
             .flags = VK_DEPENDENCY_BY_REGION_BIT,
             .memory = {{TRANSFER_WRITE, FRAGMENT_READ}},

@@ -34,13 +34,16 @@ inline constexpr std::array<std::string_view, 3> PRESENT_INSTANCE_EXTENSIONS{
 
 /**
  * @brief features that every device enables
+ * @details descriptorIndexing: the device supports the minimum set of descriptor indexing features, for bindless
  */
 [[nodiscard]] inline utils::PhysicalDeviceFeatures required_device_features() {
     utils::PhysicalDeviceFeatures features{};
 
     features.features().features.samplerAnisotropy = VK_TRUE;
 
-    features.features<VkPhysicalDeviceVulkan12Features>().timelineSemaphore = VK_TRUE;
+    auto& features12 = features.features<VkPhysicalDeviceVulkan12Features>();
+    features12.timelineSemaphore = VK_TRUE;
+    features12.descriptorIndexing = VK_TRUE;
 
     auto& features13 = features.features<VkPhysicalDeviceVulkan13Features>();
     features13.synchronization2 = VK_TRUE;
