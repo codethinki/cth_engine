@@ -6,6 +6,7 @@
 #include "cvk/base/instance.hpp"
 #include "cvk/data/memory/memory.hpp"
 #include "cvk/render/sync/fence.hpp"
+#include "cvk/render/sync/timeline_semaphore.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/core_handle.hpp"
@@ -30,6 +31,8 @@ namespace {
      * @brief owner with a destroy that needs the pool, like a command buffer
      */
     struct PoolOwned {
+        using vk_handle_t = VkCommandBuffer;
+
         static void destroy(DeviceTable table, VkCommandPool vkPool, VkCommandBuffer vkBuffer) {
             table->vkFreeCommandBuffers(table.device(), vkPool, 1, &vkBuffer);
         }
@@ -67,6 +70,8 @@ namespace {
     };
 
     struct PairOwned {
+        using vk_handle_t = pair_handle;
+
         static inline int destroyed = 0;
 
         static void destroy(pair_handle handle) {
@@ -84,6 +89,8 @@ namespace {
      * @brief owner of heap memory, constant evaluation rejects leaks and double frees
      */
     struct HeapOwned {
+        using vk_handle_t = int*;
+
         static constexpr void destroy(int* ptr) { delete ptr; }
     };
 
@@ -119,14 +126,36 @@ namespace {
     concept deleter_assignable = requires(H& handle, typename H::deleter_t deleter) { handle.deleter() = deleter; };
 }
 
+namespace {
+    /**
+     * @brief a class without vk_handle_t
+     */
+    struct Unnamed {
+        static void destroy(DeviceTable, VkFence) {}
+    };
+
+    template<class T>
+    concept core_deleter_of = requires { typename core_deleter<T>; };
+}
+
+CVK_TEST(unique_handle, owner_names_its_handle) {
+    static_assert(vk_handle_owner<Fence>);
+    static_assert(vk_handle_owner<TimelineSemaphore>);
+    static_assert(std::same_as<Fence::vk_handle_t, VkFence>);
+    static_assert(std::same_as<core_handle<Fence>::handle_t, VkFence>);
+
+    static_assert(!vk_handle_owner<Unnamed>);
+    static_assert(!core_deleter_of<Unnamed>);
+}
+
 CVK_TEST(unique_handle, a_handle_needs_its_context) {
-    using fence_handle = core_handle<VkFence, Fence>;
+    using fence_handle = core_handle<Fence>;
     static_assert(!std::default_initializable<fence_handle>);
     static_assert(!std::constructible_from<fence_handle, VkFence>);
     static_assert(!resettable<fence_handle>);
     static_assert(resettable<fence_handle, Core const&>);
 
-    using surface_handle = instance_handle<VkSurfaceKHR, Surface>;
+    using surface_handle = instance_handle<Surface>;
     static_assert(!resettable<surface_handle>);
     static_assert(resettable<surface_handle, VkInstance>);
 
@@ -134,7 +163,7 @@ CVK_TEST(unique_handle, a_handle_needs_its_context) {
     static_assert(std::default_initializable<instance_handle>);
     static_assert(resettable<instance_handle>);
 
-    using memory_handle = vma_handle<VmaAllocation, Memory>;
+    using memory_handle = vma_handle<Memory>;
     static_assert(!resettable<memory_handle>);
     static_assert(resettable<memory_handle, Core const&>);
 
@@ -153,17 +182,17 @@ CVK_TEST(unique_handle, constexpr) {
 
 CVK_TEST(unique_handle, size) {
     static_assert(sizeof(unique_handle<VkInstance, handle_deleter<Instance>>) == sizeof(VkInstance));
-    static_assert(sizeof(core_handle<VkFence, Fence>) == sizeof(Core const*) + sizeof(VkFence));
-    static_assert(sizeof(vma_handle<VmaAllocation, Memory>) == sizeof(Core const*) + sizeof(VmaAllocation));
+    static_assert(sizeof(core_handle<Fence>) == sizeof(Core const*) + sizeof(VkFence));
+    static_assert(sizeof(vma_handle<Memory>) == sizeof(Core const*) + sizeof(VmaAllocation));
     static_assert(
-        sizeof(instance_handle<VkSurfaceKHR, Surface>) == sizeof(VkInstance) + sizeof(VkSurfaceKHR)
+        sizeof(instance_handle<Surface>) == sizeof(VkInstance) + sizeof(VkSurfaceKHR)
     );
 }
 
 CVK_TEST(unique_handle, core_deleter) {
     test::Context const context{};
 
-    core_handle<VkFence, Fence> handle{context.core};
+    core_handle<Fence> handle{context.core};
     EXPECT_FALSE(handle);
     EXPECT_EQ(&handle.core(), &context.core);
 
@@ -178,8 +207,8 @@ CVK_TEST(unique_handle, core_deleter) {
 
 CVK_TEST(unique_handle, move_assignment_destroys_the_old_handle) {
     test::Context const context{};
-    core_handle<VkFence, Fence> handle{context.core};
-    core_handle<VkFence, Fence> other{context.core};
+    core_handle<Fence> handle{context.core};
+    core_handle<Fence> other{context.core};
     handle.reset(create_vk_fence(context.core), context.core);
     auto const vkFence = create_vk_fence(context.core);
     other.reset(vkFence, context.core);
@@ -194,7 +223,7 @@ CVK_TEST(unique_handle, move_assignment_destroys_the_old_handle) {
 CVK_TEST(unique_handle, release_keeps_the_handle) {
     test::Context const context{};
     auto const vkFence = create_vk_fence(context.core);
-    core_handle<VkFence, Fence> handle{vkFence, context.core};
+    core_handle<Fence> handle{vkFence, context.core};
 
     EXPECT_EQ(handle.release(), vkFence);
     EXPECT_FALSE(handle);
@@ -210,7 +239,7 @@ CVK_TEST(unique_handle, instance_deleter) {
         Instance const instance{test::APP_NAME, test::headless_extensions(), test::counting_messenger()};
         auto surface = test::headless_surface(instance);
 
-        instance_handle<VkSurfaceKHR, Surface> handle{surface.release().vkSurface.get(), instance.get()};
+        instance_handle<Surface> handle{surface.release().vkSurface.get(), instance.get()};
 
         EXPECT_EQ(handle.vkInstance(), instance.get());
     }

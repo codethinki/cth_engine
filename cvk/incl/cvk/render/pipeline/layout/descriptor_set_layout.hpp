@@ -22,6 +22,7 @@ class Core;
  */
 class DescriptorSetLayout {
 public:
+    using vk_handle_t = VkDescriptorSetLayout;
     struct Config;
     struct State;
 
@@ -88,7 +89,7 @@ public:
     static void destroy(DeviceTable table, VkDescriptorSetLayout);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkDescriptorSetLayout get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
     /**
@@ -104,7 +105,7 @@ public:
 private:
     void forget();
 
-    core_handle<VkDescriptorSetLayout, DescriptorSetLayout> _handle;
+    core_handle<DescriptorSetLayout> _handle;
     std::vector<VkDescriptorSetLayoutBinding> _bindings;
 
 public:

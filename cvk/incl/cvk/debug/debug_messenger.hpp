@@ -17,6 +17,7 @@ class Instance;
  */
 class DebugMessenger {
 public:
+    using vk_handle_t = VkDebugUtilsMessengerEXT;
     struct Config;
     struct State;
     using callback_t = PFN_vkDebugUtilsMessengerCallbackEXT;
@@ -92,7 +93,7 @@ public:
     };
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Config config() const { return _config; }
 
 protected:
@@ -101,7 +102,7 @@ protected:
 private:
     void forget();
 
-    instance_handle<VkDebugUtilsMessengerEXT, DebugMessenger> _handle;
+    instance_handle<DebugMessenger> _handle;
 
 public:
     DebugMessenger(DebugMessenger const& other) = delete;

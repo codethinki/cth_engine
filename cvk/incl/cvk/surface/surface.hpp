@@ -21,6 +21,7 @@ class PhysicalDevice;
  */
 class Surface {
 public:
+    using vk_handle_t = VkSurfaceKHR;
     using Config = SurfaceConfig;
     using format_t = Config::format_t;
     using present_mode_t = Config::present_mode_t;
@@ -108,14 +109,14 @@ public:
     static void destroy(vk_not_null<VkInstance>, VkSurfaceKHR);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkSurfaceKHR get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
     void forget();
 
     Config _config;
-    instance_handle<VkSurfaceKHR, Surface> _handle;
+    instance_handle<Surface> _handle;
 
 public:
     Surface(Surface const& other) = delete;

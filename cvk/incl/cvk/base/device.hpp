@@ -27,6 +27,7 @@ class Device {
     using queue_families_queue_counts_t = std::unordered_map<uint32_t, uint32_t>;
 
 public:
+    using vk_handle_t = VkDevice;
     using Config = DeviceConfig;
     struct State;
 
@@ -111,7 +112,7 @@ public:
 
     [[nodiscard]] constexpr DeviceTable table() const { return DeviceTable{_handle.get(), _functionTable.get()}; }
     [[nodiscard]] constexpr VolkDeviceTable const* functions() const { return _functionTable.get(); }
-    [[nodiscard]] constexpr VkDevice get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
 
     [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
     [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const { return *_physicalDevice; }
@@ -142,7 +143,7 @@ private:
     not_null<Instance const*> _instance;
     not_null<PhysicalDevice const*> _physicalDevice;
 
-    unique_handle<VkDevice, handle_deleter<Device>> _handle;
+    unique_handle<vk_handle_t, handle_deleter<Device>> _handle;
     std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();
 
     std::vector<Queue> _queues{};

@@ -17,6 +17,7 @@ class Core;
  */
 class Semaphore {
 public:
+    using vk_handle_t = VkSemaphore;
     struct State;
 
     /**
@@ -82,7 +83,7 @@ public:
     static void destroy(DeviceTable table, VkSemaphore);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkSemaphore get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
 protected:
@@ -97,7 +98,7 @@ protected:
 private:
     void forget();
 
-    core_handle<VkSemaphore, Semaphore> _handle;
+    core_handle<Semaphore> _handle;
 
 public:
     Semaphore(Semaphore const& other) = delete;

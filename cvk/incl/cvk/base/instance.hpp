@@ -25,6 +25,7 @@ namespace cvk {
  */
 class Instance {
 public:
+    using vk_handle_t = VkInstance;
     struct State;
 
     static constexpr std::array<char const*, 1> VALIDATION_LAYERS = {
@@ -132,7 +133,7 @@ public:
     static void destroy(VkInstance);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkInstance get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr std::vector<std::string> availableExtensions() const { return _availableExt; }
     [[nodiscard]] constexpr std::vector<std::string> requiredExtensions() const { return _requiredExt; }
     [[nodiscard]] constexpr std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
@@ -148,7 +149,7 @@ private:
 
     // declared before the handle: move assignment destroys the old messenger before the old instance
     std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
-    unique_handle<VkInstance, handle_deleter<Instance>> _handle;
+    unique_handle<vk_handle_t, handle_deleter<Instance>> _handle;
 
     static void loadInstanceFunctions(vk_not_null<VkInstance>);
 

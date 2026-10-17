@@ -14,7 +14,7 @@ namespace cvk {
  * @details calls T::destroy(core.allocator().get(), handle)
  * @pre the core outlives the deleter
  */
-template<class T>
+template<vk_handle_owner T>
 class vma_deleter : public core_deleter<T> {
 public:
     using core_deleter<T>::core_deleter;
@@ -25,8 +25,8 @@ public:
 
 /**
  * @brief @ref unique_handle of a memory object, the deleter stores the core and frees through its allocator
- * @tparam T owner class with a static destroy(VmaAllocator, Handle)
+ * @tparam T owner class with vk_handle_t and a static destroy(VmaAllocator, vk_handle_t)
  */
-template<class Handle, class T>
-using vma_handle = unique_handle<Handle, vma_deleter<T>>;
+template<vk_handle_owner T>
+using vma_handle = unique_handle<typename T::vk_handle_t, vma_deleter<T>>;
 }

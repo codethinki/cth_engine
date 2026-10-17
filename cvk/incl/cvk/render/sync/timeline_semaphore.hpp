@@ -14,6 +14,7 @@ namespace cvk {
  */
 class TimelineSemaphore : Semaphore {
 public:
+    using Semaphore::vk_handle_t;
     struct State;
 
     /**

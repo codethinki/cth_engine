@@ -14,6 +14,7 @@ namespace cvk {
  */
 class Queue {
 public:
+    using vk_handle_t = VkQueue;
     using State = QueueState;
 
     explicit Queue(QueueFamilyProperties familyProperties) : _familyProperties{familyProperties} {}
@@ -71,7 +72,7 @@ public:
 
     [[nodiscard]] constexpr bool can_present() const { return contains(_familyProperties, QueueFamilyProperties::PRESENT); }
     [[nodiscard]] constexpr bool created() const { return _handle != VK_NULL_HANDLE; }
-    [[nodiscard]] constexpr VkQueue get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr uint32_t index() const { return _queueIndex; }
     [[nodiscard]] constexpr uint32_t familyIndex() const { return _familyIndex; }
     [[nodiscard]] constexpr QueueFamilyProperties familyProperties() const { return _familyProperties; }

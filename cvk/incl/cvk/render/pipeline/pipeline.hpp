@@ -21,6 +21,7 @@ class PipelineLayout;
  */
 class Pipeline {
 public:
+    using vk_handle_t = VkPipeline;
     using Config = PipelineConfig;
     struct State;
 
@@ -106,7 +107,7 @@ public:
     static void destroy(DeviceTable table, VkPipeline);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkPipeline get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr VkPipelineLayout layout() const { return _vkLayout.get(); }
 
     /**
@@ -119,7 +120,7 @@ public:
 private:
     void forget();
 
-    core_handle<VkPipeline, Pipeline> _handle;
+    core_handle<Pipeline> _handle;
     vk_not_null<VkPipelineLayout> _vkLayout;
     VkPipeline _vkParent = VK_NULL_HANDLE;
     Config _config;

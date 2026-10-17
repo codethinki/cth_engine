@@ -23,6 +23,7 @@ class Surface;
  */
 class PhysicalDevice {
 public:
+    using vk_handle_t = VkPhysicalDevice;
     struct State;
     struct CreateResult;
 
@@ -188,7 +189,7 @@ public:
     [[nodiscard]] static VkSampleCountFlagBits evalMaxSampleCount(VkPhysicalDeviceProperties const& properties);
 
     [[nodiscard]] constexpr bool created() const { return _handle != nullptr; }
-    [[nodiscard]] constexpr VkPhysicalDevice get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr auto const& features() const { return _features; }
     [[nodiscard]] constexpr auto const& requiredFeatures() const { return _requiredFeatures; }
     [[nodiscard]] constexpr std::span<std::string const> extensions() const { return _extensions; }

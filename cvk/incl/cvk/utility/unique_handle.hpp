@@ -11,9 +11,15 @@
 
 namespace cvk {
 /**
- * @brief deleter without context, calls T::destroy(handle)
+ * @brief T names the Vulkan handle it holds: using vk_handle_t = VkX
  */
 template<class T>
+concept vk_handle_owner = requires { typename T::vk_handle_t; };
+
+/**
+ * @brief deleter without context, calls T::destroy(handle)
+ */
+template<vk_handle_owner T>
 struct handle_deleter {
     template<class Handle>
     constexpr void operator()(Handle handle) const { T::destroy(handle); }

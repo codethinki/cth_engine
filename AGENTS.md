@@ -123,6 +123,7 @@ Classes that own a Vulkan handle follow this order:
 ```cpp
 class Semaphore {
 public:
+    using vk_handle_t = VkSemaphore;
     struct State;
 
     // constants
@@ -143,7 +144,7 @@ public:
 
     static void destroy(DeviceTable table, VkSemaphore);
 
-    // accessors: created(), get(), ...
+    // accessors: created(), get() returns vk_handle_t, ...
 
 protected:
     // helpers that derived classes use
@@ -161,11 +162,14 @@ public:
 - The first public section holds the API: types, constants, lifecycle, operations, accessors.
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
 - Classes that own a handle are move only. A class that differs (copyable, not movable, custom move) says so in its `@brief`.
+- Every class of a Vulkan or VMA object declares `using vk_handle_t = VkX;` as its first type, also classes that do not own their handle. `get()` returns `vk_handle_t`.
 - They store the handle in `cvk::unique_handle<Handle, Deleter>` (`cvk/utility/unique_handle.hpp`): a `std::unique_ptr` with a deleter that holds the destroy context and calls the static `destroy`.
   Deleters: `core_deleter<T>` (the core), `vma_deleter<T>` (the core, destroys through its allocator), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context), a deleter derived from them or one of its own (`BaseCmdBuffer` frees through its pool).
-  Device objects use `core_handle<Handle, T>` (`cvk/utility/core_handle.hpp`), short for `unique_handle<Handle, core_deleter<T>>`.
-  Objects with VMA memory use `vma_handle<Handle, T>` (`cvk/utility/vma_handle.hpp`), short for `unique_handle<Handle, vma_deleter<T>>`.
-  Instance objects use `instance_handle<Handle, T>` (`cvk/utility/instance_handle.hpp`), short for `unique_handle<Handle, instance_deleter<T>>`.
+  The deleters require `vk_handle_owner<T>`: `T` declares `vk_handle_t`.
+  Device objects use `core_handle<T>` (`cvk/utility/core_handle.hpp`), short for `unique_handle<T::vk_handle_t, core_deleter<T>>`.
+  Objects with VMA memory use `vma_handle<T>` (`cvk/utility/vma_handle.hpp`), short for `unique_handle<T::vk_handle_t, vma_deleter<T>>`.
+  Instance objects use `instance_handle<T>` (`cvk/utility/instance_handle.hpp`), short for `unique_handle<T::vk_handle_t, instance_deleter<T>>`.
+  Other deleters: `unique_handle<vk_handle_t, handle_deleter<Instance>>`.
 - Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
 - Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.
 - A class that owns more than one object declares the objects that depend on its handle first. `= default` assigns in declaration order: `Instance` declares `_debugMessenger` before `_handle`.

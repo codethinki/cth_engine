@@ -24,6 +24,7 @@ class Core;
  */
 class BaseCmdBuffer {
 public:
+    using vk_handle_t = VkCommandBuffer;
     struct State;
 
     /**
@@ -86,7 +87,7 @@ public:
     static void destroy(DeviceTable table, VkCommandPool, std::span<VkCommandBuffer const> vkBuffers);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkCommandBuffer get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr CmdPool const& pool() const { return _handle.deleter().pool(); }
     [[nodiscard]] constexpr VkCommandBufferLevel level() const { return _level; }
@@ -138,7 +139,7 @@ private:
 
     void forget();
 
-    unique_handle<VkCommandBuffer, pool_deleter> _handle;
+    unique_handle<vk_handle_t, pool_deleter> _handle;
     VkCommandBufferLevel _level;
     bool _recording = false;
     uint64_t _beginResets = 0;

@@ -20,6 +20,7 @@ class DescriptorSetLayout;
  */
 class PipelineLayout {
 public:
+    using vk_handle_t = VkPipelineLayout;
     struct Config;
     struct State;
 
@@ -89,13 +90,13 @@ public:
     static void destroy(DeviceTable table, VkPipelineLayout);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkPipelineLayout get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
 private:
     void forget();
 
-    core_handle<VkPipelineLayout, PipelineLayout> _handle;
+    core_handle<PipelineLayout> _handle;
     std::vector<VkDescriptorSetLayout> _vkSetLayouts;
     std::vector<VkPushConstantRange> _pushConstantRanges;
 

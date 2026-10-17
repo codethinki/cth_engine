@@ -24,6 +24,7 @@ class Core;
  */
 class BaseBuffer {
 public:
+    using vk_handle_t = VkBuffer;
     using Config = BufferConfig;
     struct State;
 
@@ -102,7 +103,7 @@ public:
     static void destroy(DeviceTable table, VkBuffer);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkBuffer get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
@@ -120,7 +121,7 @@ private:
     void forget();
 
     // declared before the memory: move assignment destroys the old buffer before its memory
-    core_handle<VkBuffer, BaseBuffer> _handle;
+    core_handle<BaseBuffer> _handle;
     Memory _memory;
     Config _config;
     size_t _size = 0;

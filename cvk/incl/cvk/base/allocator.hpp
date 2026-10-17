@@ -21,6 +21,7 @@ class PhysicalDevice;
  */
 class Allocator {
 public:
+    using vk_handle_t = VmaAllocator;
     struct State;
 
     /**
@@ -96,14 +97,14 @@ public:
     [[nodiscard]] static VmaAllocatorCreateFlags flags(PhysicalDevice const&);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VmaAllocator get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Device const& device() const { return *_device; }
 
 private:
     void forget();
 
     not_null<Device const*> _device;
-    unique_handle<VmaAllocator, handle_deleter<Allocator>> _handle;
+    unique_handle<vk_handle_t, handle_deleter<Allocator>> _handle;
 
 public:
     Allocator(Allocator const& other) = delete;

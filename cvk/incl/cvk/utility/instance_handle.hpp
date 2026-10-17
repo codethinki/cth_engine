@@ -11,7 +11,7 @@ namespace cvk {
  * @details calls T::destroy(vkInstance, handle),
  *  stores the handle, not the Instance: the instance owns its messenger and can move
  */
-template<class T>
+template<vk_handle_owner T>
 class instance_deleter {
 public:
     constexpr explicit instance_deleter(VkInstance vkInstance) : _vkInstance{vkInstance} {}
@@ -27,8 +27,8 @@ private:
 
 /**
  * @brief @ref unique_handle of an instance object, the deleter stores the VkInstance
- * @tparam T owner class with a static destroy(VkInstance, Handle)
+ * @tparam T owner class with vk_handle_t and a static destroy(VkInstance, vk_handle_t)
  */
-template<class Handle, class T>
-using instance_handle = unique_handle<Handle, instance_deleter<T>>;
+template<vk_handle_owner T>
+using instance_handle = unique_handle<typename T::vk_handle_t, instance_deleter<T>>;
 }

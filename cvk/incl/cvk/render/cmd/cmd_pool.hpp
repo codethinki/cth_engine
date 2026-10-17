@@ -20,6 +20,7 @@ class Core;
  */
 class CmdPool {
 public:
+    using vk_handle_t = VkCommandPool;
     using Config = CmdPoolConfig;
     struct State;
 
@@ -113,7 +114,7 @@ public:
     static void destroy(DeviceTable table, VkCommandPool);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkCommandPool get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
@@ -130,7 +131,7 @@ public:
 private:
     void forget();
 
-    core_handle<VkCommandPool, CmdPool> _handle;
+    core_handle<CmdPool> _handle;
     Config _config;
 
     mutable size_t _buffers = 0;

@@ -23,6 +23,7 @@ class Core;
  */
 class Memory {
 public:
+    using vk_handle_t = VmaAllocation;
     using Config = MemoryConfig;
     struct State;
 
@@ -148,7 +149,7 @@ public:
     static void destroy(VmaAllocator, VmaAllocation);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VmaAllocation get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
@@ -181,7 +182,7 @@ private:
 
     [[nodiscard]] VmaAllocator allocator() const;
 
-    vma_handle<VmaAllocation, Memory> _handle;
+    vma_handle<Memory> _handle;
     Config _config;
 
 public:

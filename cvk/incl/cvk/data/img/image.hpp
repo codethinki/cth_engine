@@ -27,6 +27,7 @@ class Core;
  */
 class Image {
 public:
+    using vk_handle_t = VkImage;
     using Config = ImageConfig;
     struct State;
 
@@ -106,7 +107,7 @@ public:
     static void destroy(DeviceTable table, VkImage);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkImage get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
@@ -130,7 +131,7 @@ private:
     void forget();
 
     // declared before the memory: move assignment destroys the old image before its memory
-    core_handle<VkImage, Image> _handle;
+    core_handle<Image> _handle;
     Memory _memory;
     Config _config;
     VkExtent2D _extent{};

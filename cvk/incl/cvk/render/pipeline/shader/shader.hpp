@@ -23,6 +23,7 @@ class Core;
  */
 class Shader {
 public:
+    using vk_handle_t = VkShaderModule;
     struct State;
     using path_t = std::filesystem::path;
 
@@ -156,14 +157,14 @@ public:
     static void destroy(DeviceTable table, VkShaderModule);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr VkShaderModule get() const { return _handle.get(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr VkShaderStageFlagBits stage() const { return _stage; }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
 private:
     void forget();
 
-    core_handle<VkShaderModule, Shader> _handle;
+    core_handle<Shader> _handle;
     VkShaderStageFlagBits _stage;
 
 public:
