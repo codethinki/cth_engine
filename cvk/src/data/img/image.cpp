@@ -4,7 +4,6 @@
 #include "cvk/base/core.hpp"
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
-#include "cvk/render/sync/barrier.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
@@ -13,7 +12,7 @@
 
 namespace cvk {
 Image::Image(Core const& core, Config const& config) : _handle{core}, _memory{core, config.memory},
-    _config{config}, _levelLayouts(config.mipLevels, config.initialLayout) {
+    _config{config} {
     Core::debug_check(core);
     Config::debug_check(config);
 }
@@ -23,15 +22,11 @@ Image::Image(Core const& core, Config const& config, State const& state) : Image
 Image::Image(Core const& core, Config const& config, VkExtent2D extent) : Image{core, config} { create(extent); }
 
 void Image::wrap(State const& state) {
-    CTH_CRITICAL(state.levelLayouts.size() > _config.mipLevels, "more level layouts than mip levels") {}
-
     optDestroy();
 
     _handle.reset(state.vkImage.get(), core());
     if(state.memory.has_value()) _memory.wrap(*state.memory);
     _extent = state.extent;
-    _levelLayouts.assign(_config.mipLevels, _config.initialLayout);
-    std::ranges::copy(state.levelLayouts, _levelLayouts.begin());
 }
 
 void Image::create(VkExtent2D extent) {
@@ -59,7 +54,6 @@ void Image::create(VkExtent2D extent) {
     _handle.reset(vkImage, core());
     _memory.wrap(Memory::State{vmaAllocation});
     _extent = extent;
-    _levelLayouts.assign(_config.mipLevels, _config.initialLayout);
 }
 
 void Image::destroy() {
@@ -78,7 +72,6 @@ Image::State Image::release() {
         .vkImage = _handle.release(),
         .extent = _extent,
         .memory = std::nullopt,
-        .levelLayouts = std::move(_levelLayouts),
     };
     if(_memory.created()) state.memory = _memory.release();
 
@@ -86,7 +79,13 @@ Image::State Image::release() {
     return state;
 }
 
-void Image::copy(BaseCmdBuffer const& cmdBuffer, BaseBuffer const& src, size_t srcOffset, uint32_t mipLevel) const {
+void Image::copy(
+    BaseCmdBuffer const& cmdBuffer,
+    BaseBuffer const& src,
+    size_t srcOffset,
+    uint32_t mipLevel,
+    VkImageLayout layout
+) const {
     debug_check(*this);
     BaseBuffer::debug_check(src);
     CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
@@ -101,7 +100,6 @@ void Image::copy(BaseCmdBuffer const& cmdBuffer, BaseBuffer const& src, size_t s
         "image usage must have VK_IMAGE_USAGE_TRANSFER_DST_BIT"
     ) {}
 
-    auto const layout = _levelLayouts[mipLevel];
     CTH_CRITICAL(
         layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && layout != VK_IMAGE_LAYOUT_GENERAL,
         "mip level must be in VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL"
@@ -136,45 +134,11 @@ void Image::copy(BaseCmdBuffer const& cmdBuffer, BaseBuffer const& src, size_t s
     core().functions()->vkCmdCopyBufferToImage2(cmdBuffer.get(), &info);
 }
 
-void Image::transitionLayout(
-    BaseCmdBuffer const& cmdBuffer,
-    VkImageLayout newLayout,
-    uint32_t firstMipLevel,
-    uint32_t mipLevels
-) {
-    debug_check(*this);
-
-    auto const oldLayout = layout(firstMipLevel);
-    auto const transition = layout_transition(oldLayout, newLayout);
-    CTH_CRITICAL(!transition.has_value(), "layout transition has no table entry, use a Barrier") {
-        details->add("transition: {} -> {}", oldLayout, newLayout);
-    }
-
-    Barrier barrier{};
-    barrier.add(
-        *this,
-        ImageBarrierInfo::LayoutTransition(newLayout, transition->src, transition->dst, firstMipLevel, mipLevels)
-    );
-    barrier.execute(cmdBuffer);
-}
-
-void Image::setLayout(uint32_t firstMipLevel, uint32_t mipLevels, VkImageLayout layout) {
-    CTH_CRITICAL(firstMipLevel >= _levelLayouts.size(), "first mip level must lie in the image") {}
-
-    size_t const count = mipLevels == VK_REMAINING_MIP_LEVELS ? _levelLayouts.size() - firstMipLevel : mipLevels;
-    CTH_CRITICAL(count > _levelLayouts.size() - firstMipLevel, "mip levels must lie in the image") {}
-
-    std::ranges::fill_n(_levelLayouts.begin() + firstMipLevel, static_cast<ptrdiff_t>(count), layout);
-}
-
 void Image::destroy(DeviceTable table, VkImage vkImage) {
     CTH_WARN(vkImage == VK_NULL_HANDLE, "vkImage invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyImage(table.device(), vkImage, nullptr);
 }
 
-void Image::forget() {
-    _extent = {};
-    _levelLayouts.assign(_config.mipLevels, _config.initialLayout);
-}
+void Image::forget() { _extent = {}; }
 }

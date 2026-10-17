@@ -81,7 +81,7 @@ namespace {
      */
     template<class Draw>
     void expect_filled(test::Context const& context, Fill const& fill, Draw draw) {
-        Image image{
+        Image const image{
             context.core,
             {
                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -94,7 +94,9 @@ namespace {
         BaseBuffer const readback{context.core, READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
 
         test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-            image.transitionLayout(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            Barrier transition{};
+            transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+            transition.execute(cmd);
             cmd.beginRendering(
                 {
                     .colorAttachments = {
@@ -122,6 +124,7 @@ namespace {
                 image,
                 ImageBarrierInfo::LayoutTransition(
                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                     {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT},
                     {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT}
                 )

@@ -3,6 +3,7 @@
 
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/data/img/image.hpp"
+#include "cvk/render/sync/barrier.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -41,10 +42,6 @@ namespace {
         .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
     };
-
-    bool all_layouts(Image const& image, VkImageLayout layout) {
-        return std::ranges::all_of(image.layouts(), [layout](VkImageLayout l) { return l == layout; });
-    }
 }
 
 CVK_TEST(Image, eval_mip_level_count) {
@@ -91,8 +88,6 @@ CVK_TEST(Image, base_constructor_does_not_create) {
 
     EXPECT_FALSE(image.created());
     EXPECT_FALSE(image.memory().created());
-    EXPECT_EQ(image.layouts().size(), TEXTURE_CONFIG.mipLevels);
-    EXPECT_TRUE(all_layouts(image, VK_IMAGE_LAYOUT_UNDEFINED));
 }
 
 CVK_TEST(Image, create_and_destroy) {
@@ -105,7 +100,6 @@ CVK_TEST(Image, create_and_destroy) {
     EXPECT_EQ(image.extent().height, EXTENT.height);
     EXPECT_EQ(image.mipLevels(), 7);
     EXPECT_TRUE(image.memory().created());
-    EXPECT_TRUE(all_layouts(image, VK_IMAGE_LAYOUT_UNDEFINED));
 
     image.destroy();
     EXPECT_FALSE(image.created());
@@ -124,7 +118,7 @@ CVK_TEST(Image, create_depth_buffer) {
 
 CVK_TEST(Image, copy_from_a_buffer_into_two_mip_levels) {
     test::Context const context{};
-    Image image{context.core, COPY_CONFIG, EXTENT};
+    Image const image{context.core, COPY_CONFIG, EXTENT};
 
     size_t const mip0 = size_t{EXTENT.width} * EXTENT.height * 4;
     size_t const mip1 = mip0 / 4;
@@ -137,11 +131,16 @@ CVK_TEST(Image, copy_from_a_buffer_into_two_mip_levels) {
     staging.memory().write(pixels);
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        image.transitionLayout(primary, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        Barrier toDst{};
+        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        toDst.execute(primary);
+
         image.copy(primary, staging, 0, 0);
         image.copy(primary, staging, mip0, 1);
 
-        image.transitionLayout(primary, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        Barrier toSrc{};
+        toSrc.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        toSrc.execute(primary);
         test::copy_to_buffer(context, primary, image, readback, 0, 0);
         test::copy_to_buffer(context, primary, image, readback, mip0, 1);
         test::host_read_barrier(context, primary);
@@ -151,8 +150,6 @@ CVK_TEST(Image, copy_from_a_buffer_into_two_mip_levels) {
     readback.memory().invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, pixels));
     readback.memory().unmap();
-
-    EXPECT_EQ(image.layout(1), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 }
 
 CVK_TEST(Image, release_and_wrap) {
@@ -165,25 +162,11 @@ CVK_TEST(Image, release_and_wrap) {
     EXPECT_FALSE(image.created());
     EXPECT_FALSE(image.memory().created());
     ASSERT_TRUE(state.memory.has_value());
-    EXPECT_EQ(state.levelLayouts.size(), TEXTURE_CONFIG.mipLevels);
 
     Image const wrapped{context.core, TEXTURE_CONFIG, state};
     EXPECT_EQ(wrapped.get(), vkImage);
     EXPECT_EQ(wrapped.memory().get(), vmaAllocation);
     EXPECT_EQ(wrapped.extent().width, EXTENT.width);
-}
-
-CVK_TEST(Image, wrap_fills_missing_layouts) {
-    test::Context const context{};
-    Image image{context.core, TEXTURE_CONFIG, EXTENT};
-    auto state = image.release();
-    state.levelLayouts = {VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL};
-
-    Image const wrapped{context.core, TEXTURE_CONFIG, state};
-
-    ASSERT_EQ(wrapped.layouts().size(), TEXTURE_CONFIG.mipLevels);
-    EXPECT_EQ(wrapped.layout(1), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    EXPECT_EQ(wrapped.layout(2), VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
 CVK_TEST(Image, wrap_without_memory_destroys_only_the_image) {

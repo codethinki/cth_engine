@@ -6,8 +6,6 @@
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
-#include <algorithm>
-
 
 namespace cvk {
 namespace {
@@ -22,10 +20,6 @@ namespace {
 
     constexpr BarrierScope TRANSFER_WRITE{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
     constexpr BarrierScope FRAGMENT_READ{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
-
-    bool all_layouts(Image const& image, VkImageLayout layout) {
-        return std::ranges::all_of(image.layouts(), [layout](VkImageLayout l) { return l == layout; });
-    }
 }
 
 CVK_TEST(Barrier, layout_transition_table) {
@@ -44,12 +38,22 @@ CVK_TEST(Barrier, layout_transition_table) {
 CVK_TEST(Barrier, layout_transition_info_covers_the_remaining_mip_levels) {
     constexpr auto info = ImageBarrierInfo::LayoutTransition(
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_UNDEFINED,
         BarrierScope{},
         TRANSFER_WRITE
     );
 
+    static_assert(info.firstMipLevel == 0);
     static_assert(info.mipLevels == VK_REMAINING_MIP_LEVELS);
     static_assert(info.newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    static_assert(info.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED);
+}
+
+CVK_TEST(Barrier, queue_transition_info_keeps_the_layout) {
+    constexpr auto info = ImageBarrierInfo::QueueTransition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {}, {});
+
+    static_assert(info.newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    static_assert(info.oldLayout == info.newLayout);
 }
 
 CVK_TEST(Barrier, memory_barriers_are_constexpr) {
@@ -88,43 +92,56 @@ CVK_TEST(Barrier, execute_memory_and_buffer_barriers) {
     EXPECT_EQ(barrier.flags(), VK_DEPENDENCY_BY_REGION_BIT);
 }
 
-CVK_TEST(Barrier, image_barrier_updates_the_layout_tracking) {
+CVK_TEST(Barrier, image_layout_transition) {
     test::Context const context{};
-    Image image{context.core, IMAGE_CONFIG, EXTENT};
+    Image const image{context.core, IMAGE_CONFIG, EXTENT};
 
     Barrier barrier{};
-    barrier.add(image, ImageBarrierInfo::LayoutTransition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {}, TRANSFER_WRITE));
+    barrier.add(
+        image,
+        ImageBarrierInfo::LayoutTransition(
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            {},
+            TRANSFER_WRITE
+        )
+    );
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { barrier.execute(primary); });
-
-    EXPECT_TRUE(all_layouts(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL));
 }
 
-CVK_TEST(Barrier, image_barrier_on_a_mip_range) {
+CVK_TEST(Barrier, add_transition_on_a_mip_range) {
     test::Context const context{};
-    Image image{context.core, IMAGE_CONFIG, EXTENT};
+    Image const image{context.core, IMAGE_CONFIG, EXTENT};
 
+    // the validation layers check every old layout
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        image.transitionLayout(primary, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        image.transitionLayout(primary, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, 2);
-    });
+        Barrier toTransfer{};
+        toTransfer.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        toTransfer.execute(primary);
 
-    EXPECT_EQ(image.layout(0), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    EXPECT_EQ(image.layout(1), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    EXPECT_EQ(image.layout(2), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    EXPECT_EQ(image.layout(3), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        Barrier toRead{};
+        toRead.addTransition(
+            image,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            2
+        );
+        toRead.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 3);
+        toRead.execute(primary);
+
+        Barrier back{};
+        back.addTransition(image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 3);
+        back.execute(primary);
+    });
 }
 
-CVK_TEST(Barrier, execute_twice_starts_from_the_new_layout) {
+CVK_TEST(Barrier, memory_only_image_barrier) {
     test::Context const context{};
-    Image image{context.core, IMAGE_CONFIG, EXTENT};
+    Image const image{context.core, IMAGE_CONFIG, EXTENT};
+
     Barrier barrier{};
-    barrier.add(image, ImageBarrierInfo::LayoutTransition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, {}, TRANSFER_WRITE));
-
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        barrier.execute(primary);
-        barrier.execute(primary);
-    });
-
-    EXPECT_TRUE(all_layouts(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL));
+    barrier.add(image, {.src = TRANSFER_WRITE, .dst = TRANSFER_WRITE});
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { barrier.execute(primary); });
 }
 }

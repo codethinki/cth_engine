@@ -13,8 +13,6 @@
 #include <algorithm>
 #include <bit>
 #include <optional>
-#include <span>
-#include <vector>
 
 
 namespace cvk {
@@ -23,9 +21,10 @@ class BaseCmdBuffer;
 class Core;
 
 /**
- * @brief VkImage wrapper, owns the image and its memory, tracks the layout of each mip level
+ * @brief VkImage wrapper, owns the image and its memory
  * @details @ref create() creates both with vmaCreateImage(),
- *  swapchain images are wrapped without memory
+ *  swapchain images are wrapped without memory,
+ *  the image holds no layout, the commands take it as a value
  */
 class Image {
 public:
@@ -65,7 +64,6 @@ public:
      * @details std::nullopt @ref State::memory -> @ref destroy() only destroys the image
      * @pre the image is bound to its memory
      * @pre the image was created with the config
-     * @pre @ref State::levelLayouts size <= @ref Config::mipLevels
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
@@ -74,7 +72,6 @@ public:
     /**
      * @brief creates the image and its memory
      * @post @ref created()
-     * @post every mip level has @ref Config::initialLayout
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vmaCreateImage()
      */
@@ -101,35 +98,20 @@ public:
     /**
      * @brief records a copy from the buffer into the mip level
      * @param srcOffset in bytes
+     * @param layout of the mip level, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
      * @pre @ref created() and src created
      * @pre @ref BaseCmdBuffer::recording()
      * @pre mipLevel < @ref mipLevels()
-     * @pre the layout of the mip level is VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
      * @pre @ref aspectMask() has one bit
      * @pre src usage has VK_BUFFER_USAGE_TRANSFER_SRC_BIT, the usage has VK_IMAGE_USAGE_TRANSFER_DST_BIT
      */
-    void copy(BaseCmdBuffer const&, BaseBuffer const& src, size_t srcOffset = 0, uint32_t mipLevel = 0) const;
-
-    /**
-     * @brief records a layout transition of the mip levels with the scopes of @ref layout_transition()
-     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
-     * @pre @ref layout_transition() knows the transition from the layout of firstMipLevel
-     * @details calls @ref Barrier::execute()
-     */
-    void transitionLayout(
+    void copy(
         BaseCmdBuffer const&,
-        VkImageLayout newLayout,
-        uint32_t firstMipLevel = 0,
-        uint32_t mipLevels = VK_REMAINING_MIP_LEVELS
-    );
-
-    /**
-     * @brief records the layout of the mip levels in the layout tracking
-     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
-     * @details @ref Barrier::execute() calls it after a layout transition
-     * @pre the mip range lies in the image
-     */
-    void setLayout(uint32_t firstMipLevel, uint32_t mipLevels, VkImageLayout);
+        BaseBuffer const& src,
+        size_t srcOffset = 0,
+        uint32_t mipLevel = 0,
+        VkImageLayout layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+    ) const;
 
     /**
      * @return mip levels down to 1x1
@@ -152,12 +134,6 @@ public:
     [[nodiscard]] constexpr uint32_t mipLevels() const { return _config.mipLevels; }
 
     /**
-     * @pre mipLevel < @ref mipLevels()
-     */
-    [[nodiscard]] constexpr VkImageLayout layout(uint32_t mipLevel) const { return _levelLayouts[mipLevel]; }
-    [[nodiscard]] constexpr std::span<VkImageLayout const> layouts() const { return _levelLayouts; }
-
-    /**
      * @return the memory of the image, not created -> the image does not own its memory
      */
     [[nodiscard]] constexpr Memory const& memory() const { return _memory; }
@@ -170,7 +146,6 @@ private:
     Memory _memory;
     Config _config;
     VkExtent2D _extent{};
-    std::vector<VkImageLayout> _levelLayouts;
 
 public:
     Image(Image const& other) = delete;
@@ -190,11 +165,6 @@ struct Image::State {
      * @brief std::nullopt -> the image does not own its memory, e.g. swapchain images
      */
     std::optional<Memory::State> memory = std::nullopt;
-    /**
-     * @brief current layout of each mip level
-     * @details size < @ref Config::mipLevels -> the other levels have @ref Config::initialLayout
-     */
-    std::vector<VkImageLayout> levelLayouts{};
 };
 }
 

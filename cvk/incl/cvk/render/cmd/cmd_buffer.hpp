@@ -1,6 +1,6 @@
 #pragma once
 #include "cmd_pool.hpp"
-#include "rendering_config.hpp"
+#include "rendering_info.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
 
@@ -116,14 +116,14 @@ public:
 
     /**
      * @brief begins a dynamic rendering
-     * @details the layouts of the attachments come from the layout tracking of their images,
-     *  std::nullopt @ref RenderingConfig::area -> the extent that fits every attachment
+     * @details std::nullopt @ref RenderingInfo::area -> the extent that fits every attachment
      * @pre @ref recording(), !@ref rendering()
      * @pre the attachment views are created and have one mip level
+     * @pre the attachment layouts are the layouts of the views
      * @pre the attachment layouts are attachment layouts (not undefined, transfer, shader read or present)
      * @post @ref rendering()
      */
-    void beginRendering(RenderingConfig const&);
+    void beginRendering(RenderingInfo const&);
 
     /**
      * @brief ends the dynamic rendering

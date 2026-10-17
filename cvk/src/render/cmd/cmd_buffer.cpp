@@ -13,12 +13,7 @@ namespace cvk {
 using std::span;
 
 namespace {
-    /**
-     * @brief layout of the view from the layout tracking of its image
-     */
-    VkImageLayout attachment_layout(ImageView const& view) {
-        auto const layout = view.image().layout(view.range().baseMipLevel);
-
+    void debug_check_attachment_layout(VkImageLayout layout) {
         CTH_CRITICAL(
             layout == VK_IMAGE_LAYOUT_UNDEFINED || layout == VK_IMAGE_LAYOUT_PREINITIALIZED
             || layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL || layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
@@ -27,8 +22,6 @@ namespace {
         ) {
             details->add("layout: {}", layout);
         }
-
-        return layout;
     }
 
     uint32_t view_mip_levels(ImageView const& view) {
@@ -152,17 +145,17 @@ void BaseCmdBuffer::reset(VkCommandBufferResetFlags flags) {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to reset command buffer") {}
 }
 
-void BaseCmdBuffer::beginRendering(RenderingConfig const& config) {
+void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
     debug_check(*this);
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
     CTH_CRITICAL(rendering() != nullptr, "command buffer must be outside of a rendering") {}
 
     Rendering rendering{
         .inheritance = {
-            .viewMask = config.viewMask,
-            .flags = config.flags & ~VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
+            .viewMask = info.viewMask,
+            .flags = info.flags & ~VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
         },
-        .flags = config.flags,
+        .flags = info.flags,
     };
     std::optional<VkExtent2D> extent{};
 
@@ -177,6 +170,7 @@ void BaseCmdBuffer::beginRendering(RenderingConfig const& config) {
             : viewExtent;
         rendering.inheritance.samples = view.image().config().samples;
         rendering.attachments.emplace_back(&view.image());
+        debug_check_attachment_layout(attachment.layout);
 
         VkImageView resolveView = VK_NULL_HANDLE;
         VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -184,8 +178,10 @@ void BaseCmdBuffer::beginRendering(RenderingConfig const& config) {
             ImageView::debug_check(*attachment.resolveView);
             CTH_CRITICAL(attachment.resolveMode == VK_RESOLVE_MODE_NONE, "a resolve view needs a resolve mode") {}
 
+            debug_check_attachment_layout(attachment.resolveLayout);
+
             resolveView = attachment.resolveView->get();
-            resolveLayout = attachment_layout(*attachment.resolveView);
+            resolveLayout = attachment.resolveLayout;
             rendering.attachments.emplace_back(&attachment.resolveView->image());
         }
 
@@ -193,7 +189,7 @@ void BaseCmdBuffer::beginRendering(RenderingConfig const& config) {
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
             .pNext = nullptr,
             .imageView = view.get(),
-            .imageLayout = attachment_layout(view),
+            .imageLayout = attachment.layout,
             .resolveMode = attachment.resolveMode,
             .resolveImageView = resolveView,
             .resolveImageLayout = resolveLayout,
@@ -204,41 +200,41 @@ void BaseCmdBuffer::beginRendering(RenderingConfig const& config) {
     };
 
     std::vector<VkRenderingAttachmentInfo> colors{};
-    colors.reserve(config.colorAttachments.size());
-    for(auto const& attachment : config.colorAttachments) {
+    colors.reserve(info.colorAttachments.size());
+    for(auto const& attachment : info.colorAttachments) {
         colors.push_back(attachmentInfo(attachment));
         rendering.inheritance.colorFormats.push_back(attachment.view->image().format());
     }
 
     std::optional<VkRenderingAttachmentInfo> depth{};
-    if(config.depthAttachment.has_value()) {
-        depth = attachmentInfo(*config.depthAttachment);
-        rendering.inheritance.depthFormat = config.depthAttachment->view->image().format();
+    if(info.depthAttachment.has_value()) {
+        depth = attachmentInfo(*info.depthAttachment);
+        rendering.inheritance.depthFormat = info.depthAttachment->view->image().format();
     }
 
     std::optional<VkRenderingAttachmentInfo> stencil{};
-    if(config.stencilAttachment.has_value()) {
-        stencil = attachmentInfo(*config.stencilAttachment);
-        rendering.inheritance.stencilFormat = config.stencilAttachment->view->image().format();
+    if(info.stencilAttachment.has_value()) {
+        stencil = attachmentInfo(*info.stencilAttachment);
+        rendering.inheritance.stencilFormat = info.stencilAttachment->view->image().format();
     }
 
-    CTH_CRITICAL(!extent.has_value() && !config.area.has_value(), "a rendering without attachments needs an area") {}
+    CTH_CRITICAL(!extent.has_value() && !info.area.has_value(), "a rendering without attachments needs an area") {}
 
-    VkRenderingInfo const info{
+    VkRenderingInfo const renderingInfo{
         .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
         .pNext = nullptr,
-        .flags = config.flags,
-        .renderArea = config.area.value_or(VkRect2D{.offset = {0, 0}, .extent = extent.value_or(VkExtent2D{})}),
+        .flags = info.flags,
+        .renderArea = info.area.value_or(VkRect2D{.offset = {0, 0}, .extent = extent.value_or(VkExtent2D{})}),
         .layerCount = 1,
-        .viewMask = config.viewMask,
+        .viewMask = info.viewMask,
         .colorAttachmentCount = static_cast<uint32_t>(colors.size()),
         .pColorAttachments = colors.data(),
         .pDepthAttachment = depth.has_value() ? &*depth : nullptr,
         .pStencilAttachment = stencil.has_value() ? &*stencil : nullptr,
     };
-    core().functions()->vkCmdBeginRendering(get(), &info);
+    core().functions()->vkCmdBeginRendering(get(), &renderingInfo);
 
-    rendering.area = info.renderArea;
+    rendering.area = renderingInfo.renderArea;
     _rendering = std::move(rendering);
 }
 

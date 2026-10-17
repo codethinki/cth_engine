@@ -9,6 +9,7 @@ Read it before you change a file. Match the existing code.
 |---|---|
 | `cvk/` | C++ wrapper of the Vulkan C API: one class per Vulkan object, objects own their handle |
 | `jvk/` | coroutine layer on top of `cvk` (not started) |
+| `jvk/prework/` | parts for `jvk` that left `cvk`, not built |
 | `legacy/` | the old `jvk`, `jolly` and `demo` code, reference only, not built |
 | `tests/` | loader smoke tests |
 | `lib/cth_cmake` | cmake utilities (submodule) |
@@ -18,6 +19,8 @@ Read it before you change a file. Match the existing code.
 - Use the Vulkan C API through volk. Do not use Vulkan-Hpp.
 - Memory comes from VMA.
 - `cvk` destroys immediately. It has no destruction queue. Deferred destruction belongs to `jvk`.
+- `cvk` tracks no image layouts. Every function that uses a layout takes it as a value, with a default where the use fixes it. Layout tracking belongs to `jvk` (`jvk/prework/image_layouts.hpp`).
+- Hash maps come from gtl (`jvk/prework/flat_hash_map.hpp`). gtl installs no cmake package, `lib/gtl.cmake` creates the target `gtl::gtl`.
 - Commits have no `Co-Authored-By` or "Generated with" lines.
 
 ## Branches

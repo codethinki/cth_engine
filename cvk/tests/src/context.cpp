@@ -72,7 +72,8 @@ void copy_to_buffer(
     Image const& image,
     BaseBuffer const& dst,
     size_t dstOffset,
-    uint32_t mipLevel
+    uint32_t mipLevel,
+    VkImageLayout layout
 ) {
     VkBufferImageCopy2 const region{
         .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
@@ -88,7 +89,7 @@ void copy_to_buffer(
         .sType = VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2,
         .pNext = nullptr,
         .srcImage = image.get(),
-        .srcImageLayout = image.layout(mipLevel),
+        .srcImageLayout = layout,
         .dstBuffer = dst.get(),
         .regionCount = 1,
         .pRegions = &region,

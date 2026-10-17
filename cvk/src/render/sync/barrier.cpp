@@ -41,28 +41,8 @@ namespace {
         };
     }
 
-    /**
-     * @brief image barrier from the current layout of the mip range
-     */
     VkImageMemoryBarrier2 image_barrier(Image const& image, ImageBarrierInfo const& info) {
         Image::debug_check(image);
-
-        size_t const count = info.mipLevels == VK_REMAINING_MIP_LEVELS ? std::dynamic_extent : info.mipLevels;
-        auto const layouts = image.layouts().subspan(info.firstMipLevel, count);
-        auto const oldLayout = layouts.front();
-
-        CTH_CRITICAL(
-            std::ranges::any_of(layouts, [oldLayout](VkImageLayout layout) { return layout != oldLayout; }),
-            "every mip level of the range must have one layout"
-        ) {}
-
-        auto const newLayout = info.newLayout.value_or(oldLayout);
-        CTH_CRITICAL(
-            newLayout == VK_IMAGE_LAYOUT_UNDEFINED || newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED,
-            "new layout must not be undefined or preinitialized"
-        ) {
-            details->add("image layout: {}", oldLayout);
-        }
 
         return VkImageMemoryBarrier2{
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -71,8 +51,8 @@ namespace {
             .srcAccessMask = info.src.access,
             .dstStageMask = info.dst.stages,
             .dstAccessMask = info.dst.access,
-            .oldLayout = oldLayout,
-            .newLayout = newLayout,
+            .oldLayout = info.oldLayout,
+            .newLayout = info.newLayout,
             .srcQueueFamilyIndex = info.src.queueFamilyIndex,
             .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
             .image = image.get(),
@@ -87,7 +67,7 @@ namespace {
     }
 }
 
-void Barrier::add(Image& image, ImageInfo const& info) {
+void Barrier::add(Image const& image, ImageInfo const& info) {
     Image::debug_check(image);
     CTH_CRITICAL(info.mipLevels == 0, "mip levels must not be 0") {}
     CTH_CRITICAL(info.firstMipLevel >= image.mipLevels(), "first mip level must lie in the image") {}
@@ -96,7 +76,34 @@ void Barrier::add(Image& image, ImageInfo const& info) {
         "mip levels must lie in the image"
     ) {}
 
+    bool const transfer = info.src.queueFamilyIndex != info.dst.queueFamilyIndex;
+    CTH_CRITICAL(
+        (info.oldLayout != info.newLayout || transfer)
+        && (info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED || info.newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED),
+        "a transition or queue family transfer must not have an undefined or preinitialized new layout"
+    ) {
+        details->add("transition: {} -> {}", info.oldLayout, info.newLayout);
+    }
+
     _images.emplace_back(&image, info);
+}
+
+void Barrier::addTransition(
+    Image const& image,
+    VkImageLayout newLayout,
+    VkImageLayout oldLayout,
+    uint32_t firstMipLevel,
+    uint32_t mipLevels
+) {
+    auto const transition = layout_transition(oldLayout, newLayout);
+    CTH_CRITICAL(!transition.has_value(), "layout transition has no table entry, use add() with scopes") {
+        details->add("transition: {} -> {}", oldLayout, newLayout);
+    }
+
+    add(
+        image,
+        ImageInfo::LayoutTransition(newLayout, oldLayout, transition->src, transition->dst, firstMipLevel, mipLevels)
+    );
 }
 
 void Barrier::add(BaseBuffer const& buffer, BufferInfo const& info) {
@@ -153,7 +160,7 @@ void Barrier::debug_check_rendering(
         ) {}
         bool const attachment = std::ranges::contains(
             rendering.attachments,
-            static_cast<Image const*>(entry.image.get()),
+            entry.image.get(),
             &not_null<Image const*>::get
         );
         CTH_CRITICAL(
@@ -166,7 +173,7 @@ void Barrier::debug_check_rendering(
     }
 }
 
-void Barrier::execute(BaseCmdBuffer const& cmdBuffer) {
+void Barrier::execute(BaseCmdBuffer const& cmdBuffer) const {
     BaseCmdBuffer::debug_check(cmdBuffer);
     CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
 
@@ -194,8 +201,5 @@ void Barrier::execute(BaseCmdBuffer const& cmdBuffer) {
         .pImageMemoryBarriers = imageBarriers.data(),
     };
     cmdBuffer.core().functions()->vkCmdPipelineBarrier2(cmdBuffer.get(), &dependency);
-
-    for(auto const& [image, info] : _images)
-        if(info.newLayout.has_value()) image->setLayout(info.firstMipLevel, info.mipLevels, *info.newLayout);
 }
 }

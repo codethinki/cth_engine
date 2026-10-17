@@ -39,9 +39,15 @@ struct ImageBarrierInfo {
     BarrierScope dst{};
 
     /**
-     * @brief std::nullopt -> no layout transition
+     * @brief == @ref oldLayout -> no layout transition
      */
-    std::optional<VkImageLayout> newLayout = std::nullopt;
+    VkImageLayout newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    /**
+     * @brief layout of the mip range before the barrier
+     * @attention VK_IMAGE_LAYOUT_UNDEFINED discards the contents, the validation layers do not report it
+     */
+    VkImageLayout oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     uint32_t firstMipLevel = 0;
 
@@ -57,6 +63,7 @@ struct ImageBarrierInfo {
 
     [[nodiscard]] static constexpr ImageBarrierInfo LayoutTransition(
         VkImageLayout newLayout,
+        VkImageLayout oldLayout,
         BarrierScope const& src,
         BarrierScope const& dst,
         uint32_t firstMipLevel = 0,
@@ -66,16 +73,22 @@ struct ImageBarrierInfo {
             .src = src,
             .dst = dst,
             .newLayout = newLayout,
+            .oldLayout = oldLayout,
             .firstMipLevel = firstMipLevel,
             .mipLevels = mipLevels,
         };
     }
 
     /**
-     * @brief queue family ownership transfer, src and dst name the families
+     * @brief queue family ownership transfer without layout transition, src and dst name the families
+     * @param layout of the image
      */
-    [[nodiscard]] static constexpr ImageBarrierInfo QueueTransition(BarrierScope const& src, BarrierScope const& dst) {
-        return ImageBarrierInfo{.src = src, .dst = dst};
+    [[nodiscard]] static constexpr ImageBarrierInfo QueueTransition(
+        VkImageLayout layout,
+        BarrierScope const& src,
+        BarrierScope const& dst
+    ) {
+        return ImageBarrierInfo{.src = src, .dst = dst, .newLayout = layout, .oldLayout = layout};
     }
 };
 
@@ -123,7 +136,6 @@ struct LayoutTransition {
 
 /**
  * @brief pipeline barrier: memory, buffer and image barriers in one vkCmdPipelineBarrier2()
- * @details @ref execute() updates the layout tracking of the images
  * @attention the images and buffers do not move until @ref execute()
  */
 class Barrier {
@@ -144,11 +156,24 @@ public:
 
     /**
      * @brief adds an image barrier
-     * @details the old layout comes from the layout tracking of the image at @ref execute()
      * @pre @ref Image::created()
      * @pre the mip range lies in the image
      */
-    void add(Image&, ImageInfo const&);
+    void add(Image const&, ImageInfo const&);
+
+    /**
+     * @brief adds a layout transition with the scopes of @ref layout_transition()
+     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
+     * @pre @ref layout_transition() knows the transition
+     * @pre the preconditions of @ref add(Image const&, ImageInfo const&)
+     */
+    void addTransition(
+        Image const&,
+        VkImageLayout newLayout,
+        VkImageLayout oldLayout,
+        uint32_t firstMipLevel = 0,
+        uint32_t mipLevels = VK_REMAINING_MIP_LEVELS
+    );
 
     /**
      * @brief adds a buffer barrier
@@ -159,15 +184,15 @@ public:
     void add(BaseBuffer const&, BufferInfo const&);
 
     /**
-     * @brief records the barriers, then updates the layout tracking of the images
+     * @brief records the barriers
      * @details inside a rendering: checks the rules of barriers inside a dynamic rendering
      * @pre @ref BaseCmdBuffer::recording()
-     * @pre every image range has one layout
-     * @pre a new layout is not VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
+     * @pre the new layout of a layout transition or queue family ownership transfer
+     *  is not VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
      * @pre inside a rendering: framebuffer space stages, VK_DEPENDENCY_BY_REGION_BIT,
      *  no layout transition, no queue family ownership transfer, attachments in local read or general layout
      */
-    void execute(BaseCmdBuffer const&);
+    void execute(BaseCmdBuffer const&) const;
 
     /**
      * @brief removes every barrier
@@ -199,7 +224,7 @@ private:
     };
 
     struct ImageEntry {
-        not_null<Image*> image;
+        not_null<Image const*> image;
         ImageInfo info;
     };
 

@@ -34,9 +34,10 @@ namespace {
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     };
 
-    RenderingAttachment clear_red(ImageView const& view) {
+    RenderingAttachment clear_red(ImageView const& view, VkImageLayout layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL) {
         return RenderingAttachment{
             .view = &view,
+            .layout = layout,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
             .clearValue = {.color = {.float32 = {1.f, 0.f, 0.f, 1.f}}},
@@ -46,7 +47,7 @@ namespace {
 
 CVK_TEST(Rendering, clear_a_color_attachment) {
     test::Context const context{};
-    Image image{context.core, COLOR_CONFIG, EXTENT};
+    Image const image{context.core, COLOR_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
     BaseBuffer const readback{
         context.core,
@@ -55,7 +56,9 @@ CVK_TEST(Rendering, clear_a_color_attachment) {
     };
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        image.transitionLayout(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        Barrier transition{};
+        transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        transition.execute(cmd);
 
         cmd.beginRendering({.colorAttachments = {clear_red(view)}});
         cmd.endRendering();
@@ -65,6 +68,7 @@ CVK_TEST(Rendering, clear_a_color_attachment) {
             image,
             ImageBarrierInfo::LayoutTransition(
                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 COLOR_WRITE,
                 {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT}
             )
@@ -85,11 +89,13 @@ CVK_TEST(Rendering, clear_a_color_attachment) {
 
 CVK_TEST(Rendering, tracks_the_current_rendering) {
     test::Context const context{};
-    Image image{context.core, COLOR_CONFIG, EXTENT};
+    Image const image{context.core, COLOR_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        image.transitionLayout(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        Barrier transition{};
+        transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        transition.execute(cmd);
         EXPECT_EQ(cmd.rendering(), nullptr);
 
         cmd.beginRendering({.colorAttachments = {clear_red(view)}});
@@ -108,11 +114,13 @@ CVK_TEST(Rendering, tracks_the_current_rendering) {
 
 CVK_TEST(Rendering, clear_a_depth_attachment) {
     test::Context const context{};
-    Image image{context.core, Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT), EXTENT};
+    Image const image{context.core, Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT), EXTENT};
     ImageView const view{image, {}, create};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        image.transitionLayout(cmd, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
+        Barrier transition{};
+        transition.addTransition(image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        transition.execute(cmd);
 
         cmd.beginRendering(
             {
@@ -131,13 +139,15 @@ CVK_TEST(Rendering, clear_a_depth_attachment) {
 
 CVK_TEST(Rendering, secondary_inherits_the_rendering) {
     test::Context const context{};
-    Image image{context.core, COLOR_CONFIG, EXTENT};
+    Image const image{context.core, COLOR_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
     CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
     std::array<SecondaryCmdBuffer, 1> secondaries{SecondaryCmdBuffer{pool, create}};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        image.transitionLayout(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        Barrier transition{};
+        transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        transition.execute(cmd);
         cmd.beginRendering(
             {.colorAttachments = {clear_red(view)}, .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT}
         );
@@ -155,14 +165,16 @@ CVK_TEST(Rendering, secondary_inherits_the_rendering) {
 
 CVK_TEST(Rendering, local_read_inside_the_rendering) {
     test::Context const context{};
-    Image image{context.core, LOCAL_READ_CONFIG, EXTENT};
+    Image const image{context.core, LOCAL_READ_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
     constexpr std::array<uint32_t, 1> FIRST{0};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        image.transitionLayout(cmd, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR);
+        Barrier transition{};
+        transition.addTransition(image, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_LAYOUT_UNDEFINED);
+        transition.execute(cmd);
 
-        cmd.beginRendering({.colorAttachments = {clear_red(view)}});
+        cmd.beginRendering({.colorAttachments = {clear_red(view, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)}});
         cmd.setAttachmentLocations(FIRST);
         cmd.setInputAttachmentIndices(FIRST);
 
@@ -172,13 +184,13 @@ CVK_TEST(Rendering, local_read_inside_the_rendering) {
             {
                 .src = COLOR_WRITE,
                 .dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT},
+                .newLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                .oldLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
             }
         );
         barrier.execute(cmd);
 
         cmd.endRendering();
     });
-
-    EXPECT_EQ(image.layout(0), VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR);
 }
 }

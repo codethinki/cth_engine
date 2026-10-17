@@ -48,6 +48,11 @@ struct RenderingAttachment {
      */
     not_null<ImageView const*> view;
 
+    /**
+     * @brief layout of the view during the rendering, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL fits every aspect
+     */
+    VkImageLayout layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+
     VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
@@ -62,6 +67,11 @@ struct RenderingAttachment {
     ImageView const* resolveView = nullptr;
 
     /**
+     * @brief layout of @ref resolveView during the rendering
+     */
+    VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+
+    /**
      * @pre != VK_RESOLVE_MODE_NONE if @ref resolveView
      */
     VkResolveModeFlagBits resolveMode = VK_RESOLVE_MODE_NONE;
@@ -70,7 +80,7 @@ struct RenderingAttachment {
 /**
  * @brief attachments, area and flags of a dynamic rendering
  */
-struct RenderingConfig {
+struct RenderingInfo {
     std::vector<RenderingAttachment> colorAttachments{};
     std::optional<RenderingAttachment> depthAttachment = std::nullopt;
     std::optional<RenderingAttachment> stencilAttachment = std::nullopt;

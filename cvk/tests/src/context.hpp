@@ -51,7 +51,8 @@ void host_read_barrier(Context const&, BaseCmdBuffer const&);
 
 /**
  * @brief records a copy of the mip level into the buffer, without cvk: tests need a second path
- * @pre the mip level is in a transfer src layout, the image has a color aspect
+ * @param layout of the mip level, a transfer src layout
+ * @pre the image has a color aspect
  */
 void copy_to_buffer(
     Context const&,
@@ -59,7 +60,8 @@ void copy_to_buffer(
     Image const&,
     BaseBuffer const& dst,
     size_t dstOffset,
-    uint32_t mipLevel
+    uint32_t mipLevel,
+    VkImageLayout layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
 );
 
 /**
