@@ -1,13 +1,18 @@
 #pragma once
 #include "queue_family.hpp"
 #include "queue_state.hpp"
+#include "submit_info.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
 
+#include <span>
+
 
 namespace cvk {
+class Fence;
+
 /**
  * @brief VkQueue wrapper
  * @details copyable, thread safe, copies share the mutex of the vulkan queue
@@ -45,6 +50,23 @@ public:
      * @pre @ref created()
      */
     State release();
+
+    /**
+     * @brief submits the infos in one vkQueueSubmit2()
+     * @param fence nullptr -> no fence
+     * @details resolves the std::nullopt timeline values in order: the waits, then the signals of each info
+     * @pre @ref created()
+     * @pre the command buffers ended their recording
+     * @pre the semaphores and the fence are created, the fence is unsignaled
+     * @throws cvk::vk_result_exception result of vkQueueSubmit2()
+     */
+    void submit(std::span<SubmitInfo const> infos, Fence const* fence = nullptr) const;
+
+    /**
+     * @brief submits the info
+     * @details calls @ref submit(std::span<SubmitInfo const>, Fence const*) const
+     */
+    void submit(SubmitInfo const& info, Fence const* fence = nullptr) const { submit({&info, 1}, fence); }
 
     /**
      * @brief submits to the vulkan queue

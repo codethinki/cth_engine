@@ -42,7 +42,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 
 - Presets: `gcc_debug`, `gcc_release`, `clang_debug`, `clang_release`, `msvc_debug`, `msvc_release`.
 - `cth_ROOT` points at `../cth/out/install/<preset>`. That install must exist.
-- Debug builds enable the validation layers. Run the tests in a debug build before you report a change as done.
+- Debug builds enable the validation layers with synchronization validation (`Instance::VALIDATION_LAYER_SETTINGS`). Run the tests in a debug build before you report a change as done.
 - Tests that need more queues than the device has skip. Mesa Intel devices get more queues with `ANV_QUEUE_OVERRIDE=gc=2,c=1`.
 - After a new cth install, build with `--clean-first`. The precompiled header does not see the changed cth headers.
 - Tests that need a device use `test::Context` (`cvk/tests/src/context.hpp`). It fails the test on validation errors, leaked objects included.
@@ -96,6 +96,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Put `explicit` on constructors with one parameter and on tag constructors.
 - Use `auto const` for locals that do not change.
 - Initialize Vulkan structs with designated initializers. Always write `.sType` and `.pNext`.
+- Data structs (`SubmitInfo`, `Barrier`, the info structs) are aggregates: the caller can set everything with designated initializers. Member functions like `add()` are optional shortcuts, checks run where the data is used.
 - Use deducing `this` (`this auto& self`) where a function must work on the derived type.
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.

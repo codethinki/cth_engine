@@ -35,11 +35,27 @@ public:
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
     };
 
+    static constexpr VkBool32 VALIDATE_SYNC = VK_TRUE;
+
+    /**
+     * @brief settings of the validation layers
+     * @details validate_sync: reports missing and too narrow barriers, semaphores and other dependencies
+     */
+    static constexpr std::array<VkLayerSettingEXT, 1> VALIDATION_LAYER_SETTINGS{
+        VkLayerSettingEXT{
+            .pLayerName = VALIDATION_LAYERS[0],
+            .pSettingName = "validate_sync",
+            .type = VK_LAYER_SETTING_TYPE_BOOL32_EXT,
+            .valueCount = 1,
+            .pValues = &VALIDATE_SYNC,
+        },
+    };
+
     static constexpr std::array<std::string_view, 0> REQUIRED_INSTANCE_EXTENSIONS{};
 
     /**
      * @brief base constructor
-     * @details debug builds enable the validation layers
+     * @details debug builds enable the validation layers with @ref VALIDATION_LAYER_SETTINGS
      * @throws cth::except::default_exception reason: required instance extension missing
      * @throws cth::except::default_exception reason: required validation layer missing
      */

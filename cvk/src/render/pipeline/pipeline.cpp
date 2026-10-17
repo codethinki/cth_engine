@@ -8,7 +8,7 @@
 
 namespace cvk {
 Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config) : _handle{core},
-    _vkLayout{layout.get()},
+    _layout{&layout},
     _config{std::move(config)} { Core::debug_check(core); }
 
 Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config, State const& state) : Pipeline{
@@ -24,7 +24,7 @@ Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config
 } { create(); }
 
 Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config) : _handle{core},
-    _vkLayout{parent.layout()},
+    _layout{&parent.layout()},
     _vkParent{parent.get()},
     _config{std::move(config)} {
     Core::debug_check(core);
@@ -48,6 +48,7 @@ void Pipeline::wrap(State const& state) {
 }
 
 void Pipeline::create() {
+    PipelineLayout::debug_check(*_layout);
     CTH_CRITICAL(
         _config.colorBlendAttachments.size() != _config.colorFormats.size(),
         "one color blend attachment per color format required"
@@ -114,7 +115,7 @@ void Pipeline::create() {
         .pDepthStencilState = &config.depthStencil,
         .pColorBlendState = &colorBlend,
         .pDynamicState = &dynamicState,
-        .layout = _vkLayout.get(),
+        .layout = _layout->get(),
         .renderPass = VK_NULL_HANDLE,
         .subpass = 0,
         .basePipelineHandle = _vkParent,

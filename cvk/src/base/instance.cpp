@@ -67,6 +67,12 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
 
     auto const appInfo = this->appInfo();
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+    VkLayerSettingsCreateInfoEXT const layerSettings{
+        .sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT,
+        .pNext = nullptr,
+        .settingCount = static_cast<uint32_t>(VALIDATION_LAYER_SETTINGS.size()),
+        .pSettings = VALIDATION_LAYER_SETTINGS.data(),
+    };
 
     VkInstanceCreateInfo createInfo{
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -86,6 +92,7 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
             createInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
 
             debugCreateInfo = messengerConfig->createInfo();
+            debugCreateInfo.pNext = &layerSettings;
             createInfo.pNext = &debugCreateInfo;
         }
 

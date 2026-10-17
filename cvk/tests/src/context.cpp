@@ -21,25 +21,7 @@ Context::ValidationCheck::~ValidationCheck() { EXPECT_EQ(validation_errors(), 0)
 void submit_and_wait(Context const& context, PrimaryCmdBuffer const& primary) {
     Fence const fence{context.core, 0};
 
-    VkCommandBufferSubmitInfo const bufferInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-        .pNext = nullptr,
-        .commandBuffer = primary.get(),
-        .deviceMask = 0,
-    };
-    VkSubmitInfo2 const submitInfo{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-        .pNext = nullptr,
-        .flags = 0,
-        .waitSemaphoreInfoCount = 0,
-        .pWaitSemaphoreInfos = nullptr,
-        .commandBufferInfoCount = 1,
-        .pCommandBufferInfos = &bufferInfo,
-        .signalSemaphoreInfoCount = 0,
-        .pSignalSemaphoreInfos = nullptr,
-    };
-
-    context.core.queue(0).raw_submit(submitInfo, fence.get());
+    context.core.queue(0).submit({.cmdBuffers = {&primary}}, &fence);
     fence.wait();
 }
 

@@ -66,6 +66,17 @@ CVK_TEST(Barrier, memory_barriers_are_constexpr) {
     }());
 }
 
+CVK_TEST(Barrier, aggregate_is_constexpr) {
+    static_assert([] {
+        // not const: gcc rejects the destructor of a const vector in a constant expression
+        Barrier barrier{
+            .flags = VK_DEPENDENCY_BY_REGION_BIT,
+            .memory = {{TRANSFER_WRITE, FRAGMENT_READ}},
+        };
+        return !barrier.empty() && barrier.memory.size() == 1 && barrier.buffers.empty();
+    }());
+}
+
 CVK_TEST(Barrier, add_and_clear) {
     test::Context const context{};
     BaseBuffer const buffer{context.core, {.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT}, 64};
@@ -89,23 +100,26 @@ CVK_TEST(Barrier, execute_memory_and_buffer_barriers) {
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { barrier.execute(primary); });
 
-    EXPECT_EQ(barrier.flags(), VK_DEPENDENCY_BY_REGION_BIT);
+    EXPECT_EQ(barrier.flags, VK_DEPENDENCY_BY_REGION_BIT);
 }
 
 CVK_TEST(Barrier, image_layout_transition) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
 
-    Barrier barrier{};
-    barrier.add(
-        image,
-        ImageBarrierInfo::LayoutTransition(
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            {},
-            TRANSFER_WRITE
-        )
-    );
+    Barrier const barrier{
+        .images = {
+            {
+                &image,
+                ImageBarrierInfo::LayoutTransition(
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_IMAGE_LAYOUT_UNDEFINED,
+                    {},
+                    TRANSFER_WRITE
+                ),
+            },
+        },
+    };
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { barrier.execute(primary); });
 }
 

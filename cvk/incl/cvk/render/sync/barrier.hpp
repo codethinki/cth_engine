@@ -1,6 +1,7 @@
 #pragma once
 #include "cvk/base/queue/queue_family.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
+#include "cvk/utility/format.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -135,88 +136,23 @@ struct LayoutTransition {
 
 
 /**
+ * @brief global memory part of a barrier
+ */
+struct MemoryBarrierInfo {
+    BarrierScope src{};
+    BarrierScope dst{};
+};
+
+/**
  * @brief pipeline barrier: memory, buffer and image barriers in one vkCmdPipelineBarrier2()
+ * @details aggregate, the add functions are shortcuts,
+ *  @ref execute() checks the barriers
  * @attention the images and buffers do not move until @ref execute()
  */
-class Barrier {
-public:
+struct Barrier {
+    using MemoryInfo = MemoryBarrierInfo;
     using ImageInfo = ImageBarrierInfo;
     using BufferInfo = BufferBarrierInfo;
-
-    /**
-     * @param flags VK_DEPENDENCY_BY_REGION_BIT -> the dependency is per framebuffer region, e.g. per tile
-     */
-    constexpr explicit Barrier(VkDependencyFlags flags = 0) : _flags{flags} {}
-
-    /**
-     * @brief adds a global memory barrier
-     * @pre no queue family ownership transfer
-     */
-    constexpr void add(BarrierScope const& src, BarrierScope const& dst);
-
-    /**
-     * @brief adds an image barrier
-     * @pre @ref Image::created()
-     * @pre the mip range lies in the image
-     */
-    void add(Image const&, ImageInfo const&);
-
-    /**
-     * @brief adds a layout transition with the scopes of @ref layout_transition()
-     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
-     * @pre @ref layout_transition() knows the transition
-     * @pre the preconditions of @ref add(Image const&, ImageInfo const&)
-     */
-    void addTransition(
-        Image const&,
-        VkImageLayout newLayout,
-        VkImageLayout oldLayout,
-        uint32_t firstMipLevel = 0,
-        uint32_t mipLevels = VK_REMAINING_MIP_LEVELS
-    );
-
-    /**
-     * @brief adds a buffer barrier
-     * @details the buffer handle comes from the buffer at @ref execute()
-     * @pre @ref BaseBuffer::created()
-     * @pre the range lies in the buffer
-     */
-    void add(BaseBuffer const&, BufferInfo const&);
-
-    /**
-     * @brief records the barriers
-     * @details inside a rendering: checks the rules of barriers inside a dynamic rendering
-     * @pre @ref BaseCmdBuffer::recording()
-     * @pre the new layout of a layout transition or queue family ownership transfer
-     *  is not VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
-     * @pre inside a rendering: framebuffer space stages, VK_DEPENDENCY_BY_REGION_BIT,
-     *  no layout transition, no queue family ownership transfer, attachments in local read or general layout
-     */
-    void execute(BaseCmdBuffer const&) const;
-
-    /**
-     * @brief removes every barrier
-     */
-    constexpr void clear() {
-        _memoryBarriers.clear();
-        _buffers.clear();
-        _images.clear();
-    }
-
-    [[nodiscard]] constexpr VkDependencyFlags flags() const { return _flags; }
-    [[nodiscard]] constexpr bool empty() const {
-        return _memoryBarriers.empty() && _buffers.empty() && _images.empty();
-    }
-
-private:
-    /**
-     * @brief checks the rules of barriers inside a dynamic rendering
-     */
-    void debug_check_rendering(
-        BaseCmdBuffer::Rendering const&,
-        std::span<VkBufferMemoryBarrier2 const>,
-        std::span<VkImageMemoryBarrier2 const>
-    ) const;
 
     struct BufferEntry {
         not_null<BaseBuffer const*> buffer;
@@ -228,29 +164,96 @@ private:
         ImageInfo info;
     };
 
-    VkDependencyFlags _flags;
-    std::vector<VkMemoryBarrier2> _memoryBarriers{};
-    std::vector<BufferEntry> _buffers{};
-    std::vector<ImageEntry> _images{};
+    /**
+     * @brief VK_DEPENDENCY_BY_REGION_BIT -> the dependency is per framebuffer region, e.g. per tile
+     */
+    VkDependencyFlags flags = 0;
+
+    std::vector<MemoryInfo> memory{};
+    std::vector<BufferEntry> buffers{};
+    std::vector<ImageEntry> images{};
+
+    /**
+     * @brief adds a global memory barrier
+     */
+    constexpr void add(BarrierScope const& src, BarrierScope const& dst) { memory.push_back({src, dst}); }
+
+    /**
+     * @brief adds an image barrier
+     */
+    constexpr void add(Image const& image, ImageInfo const& info) { images.push_back({&image, info}); }
+
+    /**
+     * @brief adds a layout transition with the scopes of @ref layout_transition()
+     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
+     * @pre @ref layout_transition() knows the transition
+     */
+    constexpr void addTransition(
+        Image const&,
+        VkImageLayout newLayout,
+        VkImageLayout oldLayout,
+        uint32_t firstMipLevel = 0,
+        uint32_t mipLevels = VK_REMAINING_MIP_LEVELS
+    );
+
+    /**
+     * @brief adds a buffer barrier
+     */
+    constexpr void add(BaseBuffer const& buffer, BufferInfo const& info) { buffers.push_back({&buffer, info}); }
+
+    /**
+     * @brief records the barriers
+     * @details inside a rendering: checks the rules of barriers inside a dynamic rendering
+     * @pre @ref BaseCmdBuffer::recording()
+     * @pre the images and buffers are created and the ranges lie in them
+     * @pre memory barriers have no queue family ownership transfer
+     * @pre the new layout of a layout transition or queue family ownership transfer
+     *  is not VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
+     * @pre inside a rendering: framebuffer space stages, VK_DEPENDENCY_BY_REGION_BIT,
+     *  no layout transition, no queue family ownership transfer, attachments in local read or general layout
+     */
+    void execute(BaseCmdBuffer const&) const;
+
+    /**
+     * @brief removes every barrier, keeps the flags
+     */
+    constexpr void clear() {
+        memory.clear();
+        buffers.clear();
+        images.clear();
+    }
+
+    [[nodiscard]] constexpr bool empty() const { return memory.empty() && buffers.empty() && images.empty(); }
+
+private:
+    /**
+     * @brief checks the rules of barriers inside a dynamic rendering
+     */
+    void debug_check_rendering(
+        BaseCmdBuffer::Rendering const&,
+        std::span<VkMemoryBarrier2 const>,
+        std::span<VkBufferMemoryBarrier2 const>,
+        std::span<VkImageMemoryBarrier2 const>
+    ) const;
 };
 }
 
 namespace cvk {
-constexpr void Barrier::add(BarrierScope const& src, BarrierScope const& dst) {
-    CTH_CRITICAL(
-        src.queueFamilyIndex != VK_QUEUE_FAMILY_IGNORED || dst.queueFamilyIndex != VK_QUEUE_FAMILY_IGNORED,
-        "memory barriers have no queue family ownership transfer"
-    ) {}
+constexpr void Barrier::addTransition(
+    Image const& image,
+    VkImageLayout newLayout,
+    VkImageLayout oldLayout,
+    uint32_t firstMipLevel,
+    uint32_t mipLevels
+) {
+    auto const transition = layout_transition(oldLayout, newLayout);
+    CTH_CRITICAL(!transition.has_value(), "layout transition has no table entry, use add() with scopes") {
+        details->add("transition: {} -> {}", oldLayout, newLayout);
+    }
 
-    _memoryBarriers.push_back(
-        VkMemoryBarrier2{
-            .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-            .pNext = nullptr,
-            .srcStageMask = src.stages,
-            .srcAccessMask = src.access,
-            .dstStageMask = dst.stages,
-            .dstAccessMask = dst.access,
-        }
+    add(
+        image,
+        ImageInfo::LayoutTransition(newLayout, oldLayout, transition->src, transition->dst, firstMipLevel, mipLevels)
     );
 }
 }

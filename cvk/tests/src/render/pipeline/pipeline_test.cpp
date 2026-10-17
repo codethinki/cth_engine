@@ -120,7 +120,7 @@ CVK_TEST(Pipeline, base_constructor_does_not_create) {
     Pipeline const pipeline{context.core, triangle.layout, triangle.config()};
 
     EXPECT_FALSE(pipeline.created());
-    EXPECT_EQ(pipeline.layout(), triangle.layout.get());
+    EXPECT_EQ(&pipeline.layout(), &triangle.layout);
 }
 
 CVK_TEST(Pipeline, create) {
@@ -196,7 +196,7 @@ CVK_TEST(Pipeline, derivative) {
 
     ASSERT_TRUE(child.created());
     EXPECT_EQ(child.parent(), parent.get());
-    EXPECT_EQ(child.layout(), triangle.layout.get());
+    EXPECT_EQ(&child.layout(), &triangle.layout);
     EXPECT_EQ(parent.parent(), VK_NULL_HANDLE);
 }
 }

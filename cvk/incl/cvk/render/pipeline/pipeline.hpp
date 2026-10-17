@@ -19,6 +19,7 @@ class PipelineLayout;
 
 /**
  * @brief graphics VkPipeline wrapper for dynamic rendering
+ * @details the layout is a parent of the pipeline: it outlives the pipeline
  */
 class Pipeline {
 public:
@@ -27,9 +28,8 @@ public:
     struct State;
 
     /**
-     * @brief base constructor, copies the handle of the layout
+     * @brief base constructor, keeps the layout
      * @pre @ref Core::created()
-     * @pre @ref PipelineLayout::created()
      */
     Pipeline(Core const&, PipelineLayout const&, Config);
 
@@ -50,7 +50,7 @@ public:
     explicit Pipeline(Core const&, PipelineLayout const&, Config, create_t);
 
     /**
-     * @brief base constructor of a derivative pipeline, copies the handle and the layout of the parent
+     * @brief base constructor of a derivative pipeline, keeps the layout and copies the handle of the parent
      * @pre @ref Core::created()
      * @pre @ref created() of the parent, with VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT in its flags
      */
@@ -116,7 +116,7 @@ public:
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
-    [[nodiscard]] constexpr VkPipelineLayout layout() const { return _vkLayout.get(); }
+    [[nodiscard]] constexpr PipelineLayout const& layout() const { return *_layout; }
 
     /**
      * @return VK_NULL_HANDLE -> not a derivative pipeline
@@ -129,7 +129,7 @@ private:
     void forget();
 
     core_handle<Pipeline> _handle;
-    vk_not_null<VkPipelineLayout> _vkLayout;
+    not_null<PipelineLayout const*> _layout;
     VkPipeline _vkParent = VK_NULL_HANDLE;
     Config _config;
 
