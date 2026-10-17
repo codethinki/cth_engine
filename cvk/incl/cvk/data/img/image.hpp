@@ -18,6 +18,8 @@
 
 
 namespace cvk {
+class BaseBuffer;
+class BaseCmdBuffer;
 class Core;
 
 /**
@@ -95,6 +97,39 @@ public:
      * @pre @ref created()
      */
     State release();
+
+    /**
+     * @brief records a copy from the buffer into the mip level
+     * @param srcOffset in bytes
+     * @pre @ref created() and src created
+     * @pre @ref BaseCmdBuffer::recording()
+     * @pre mipLevel < @ref mipLevels()
+     * @pre the layout of the mip level is VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
+     * @pre @ref aspectMask() has one bit
+     * @pre src usage has VK_BUFFER_USAGE_TRANSFER_SRC_BIT, the usage has VK_IMAGE_USAGE_TRANSFER_DST_BIT
+     */
+    void copy(BaseCmdBuffer const&, BaseBuffer const& src, size_t srcOffset = 0, uint32_t mipLevel = 0) const;
+
+    /**
+     * @brief records a layout transition of the mip levels with the scopes of @ref layout_transition()
+     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
+     * @pre @ref layout_transition() knows the transition from the layout of firstMipLevel
+     * @details calls @ref Barrier::execute()
+     */
+    void transitionLayout(
+        BaseCmdBuffer const&,
+        VkImageLayout newLayout,
+        uint32_t firstMipLevel = 0,
+        uint32_t mipLevels = VK_REMAINING_MIP_LEVELS
+    );
+
+    /**
+     * @brief records the layout of the mip levels in the layout tracking
+     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
+     * @details @ref Barrier::execute() calls it after a layout transition
+     * @pre the mip range lies in the image
+     */
+    void setLayout(uint32_t firstMipLevel, uint32_t mipLevels, VkImageLayout);
 
     /**
      * @return mip levels down to 1x1

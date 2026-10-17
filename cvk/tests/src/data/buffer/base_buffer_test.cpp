@@ -22,22 +22,6 @@ namespace {
     };
 
     /**
-     * @brief records into a primary command buffer, submits and waits
-     */
-    template<class Record>
-    void record_and_submit(test::Context const& context, Record record) {
-        CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
-        PrimaryCmdBuffer primary{pool, create};
-
-        primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        record(primary);
-        test::host_read_barrier(context, primary);
-        primary.end();
-
-        test::submit_and_wait(context, primary);
-    }
-
-    /**
      * @brief buffer the cpu reads back
      */
     constexpr BaseBuffer::Config READBACK_CONFIG{
@@ -158,8 +142,9 @@ CVK_TEST(BaseBuffer, copy_a_range) {
     std::ranges::fill(data, 'c');
     staging.memory().write(data, 16);
 
-    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
         readback.copy(primary, staging, data.size(), 16, 32);
+        test::host_read_barrier(context, primary);
     });
 
     auto const mapped = readback.memory().map(data.size(), 32);
@@ -176,7 +161,10 @@ CVK_TEST(BaseBuffer, copy_whole_size_fits_both_buffers) {
     std::ranges::fill(data, 'w');
     staging.memory().write(data);
 
-    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { readback.copy(primary, staging); });
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        readback.copy(primary, staging);
+        test::host_read_barrier(context, primary);
+    });
 
     auto const mapped = readback.memory().map(SIZE / 2);
     readback.memory().invalidate();
@@ -192,7 +180,10 @@ CVK_TEST(BaseBuffer, stage_the_whole_staging_buffer) {
     std::ranges::fill(data, 's');
     staging.memory().write(data);
 
-    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { readback.stage(primary, staging, 8); });
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        readback.stage(primary, staging, 8);
+        test::host_read_barrier(context, primary);
+    });
 
     auto const mapped = readback.memory().map(data.size(), 8);
     readback.memory().invalidate();

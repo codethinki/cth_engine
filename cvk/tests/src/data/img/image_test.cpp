@@ -1,9 +1,11 @@
 #include "context.hpp"
 #include "test.hpp"
 
+#include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/data/img/image.hpp"
 
 #include <algorithm>
+#include <vector>
 
 
 namespace cvk {
@@ -19,6 +21,59 @@ namespace {
         .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         .mipLevels = Image::evalMipLevelCount(EXTENT),
     };
+
+    /**
+     * @brief image that the gpu copies into and out of, two mip levels
+     */
+    constexpr Image::Config COPY_CONFIG{
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .format = VK_FORMAT_R8G8B8A8_UNORM,
+        .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        .mipLevels = 2,
+    };
+
+    constexpr BaseBuffer::Config STAGING_CONFIG{
+        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
+    };
+
+    constexpr BaseBuffer::Config READBACK_CONFIG{
+        .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
+    };
+
+    /**
+     * @brief records a copy of the mip level into the buffer, without cvk: the image test needs a second path
+     */
+    void copy_to_buffer(
+        test::Context const& context,
+        BaseCmdBuffer const& cmdBuffer,
+        Image const& image,
+        BaseBuffer const& dst,
+        size_t dstOffset,
+        uint32_t mipLevel
+    ) {
+        VkBufferImageCopy2 const region{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
+            .pNext = nullptr,
+            .bufferOffset = dstOffset,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, mipLevel, 0, 1},
+            .imageOffset = {0, 0, 0},
+            .imageExtent = {image.extent().width >> mipLevel, image.extent().height >> mipLevel, 1},
+        };
+        VkCopyImageToBufferInfo2 const info{
+            .sType = VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2,
+            .pNext = nullptr,
+            .srcImage = image.get(),
+            .srcImageLayout = image.layout(mipLevel),
+            .dstBuffer = dst.get(),
+            .regionCount = 1,
+            .pRegions = &region,
+        };
+        context.core.functions()->vkCmdCopyImageToBuffer2(cmdBuffer.get(), &info);
+    }
 
     bool all_layouts(Image const& image, VkImageLayout layout) {
         return std::ranges::all_of(image.layouts(), [layout](VkImageLayout l) { return l == layout; });
@@ -98,6 +153,39 @@ CVK_TEST(Image, create_depth_buffer) {
 
     EXPECT_TRUE(image.created());
     EXPECT_EQ(image.aspectMask(), VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
+CVK_TEST(Image, copy_from_a_buffer_into_two_mip_levels) {
+    test::Context const context{};
+    Image image{context.core, COPY_CONFIG, EXTENT};
+
+    size_t const mip0 = size_t{EXTENT.width} * EXTENT.height * 4;
+    size_t const mip1 = mip0 / 4;
+    BaseBuffer const staging{context.core, STAGING_CONFIG, mip0 + mip1};
+    BaseBuffer const readback{context.core, READBACK_CONFIG, mip0 + mip1};
+
+    std::vector<char> pixels(mip0 + mip1);
+    for(size_t i = 0; i < pixels.size(); ++i)
+        pixels[i] = static_cast<char>(i % 251);
+    staging.memory().write(pixels);
+
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        image.transitionLayout(primary, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        image.copy(primary, staging, 0, 0);
+        image.copy(primary, staging, mip0, 1);
+
+        image.transitionLayout(primary, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        copy_to_buffer(context, primary, image, readback, 0, 0);
+        copy_to_buffer(context, primary, image, readback, mip0, 1);
+        test::host_read_barrier(context, primary);
+    });
+
+    auto const mapped = readback.memory().map(pixels.size());
+    readback.memory().invalidate();
+    EXPECT_TRUE(std::ranges::equal(mapped, pixels));
+    readback.memory().unmap();
+
+    EXPECT_EQ(image.layout(1), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 }
 
 CVK_TEST(Image, release_and_wrap) {

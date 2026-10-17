@@ -45,22 +45,6 @@ namespace {
     };
 
     /**
-     * @brief records into a primary command buffer, submits and waits
-     */
-    template<class Record>
-    void record_and_submit(test::Context const& context, Record record) {
-        CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
-        PrimaryCmdBuffer primary{pool, create};
-
-        primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        record(primary);
-        test::host_read_barrier(context, primary);
-        primary.end();
-
-        test::submit_and_wait(context, primary);
-    }
-
-    /**
      * @brief Buffer<T> is a valid type
      */
     template<class T>
@@ -133,8 +117,9 @@ CVK_TEST(Buffer, copy_elements) {
     Buffer<Vertex> const readback{context.core, READBACK_CONFIG, COUNT};
     staging.write(TRIANGLE, 1);
 
-    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
         readback.copy(primary, staging, TRIANGLE.size(), 1, 4);
+        test::host_read_barrier(context, primary);
     });
 
     auto const mapped = readback.map(TRIANGLE.size(), 4);
@@ -149,7 +134,10 @@ CVK_TEST(Buffer, stage_elements) {
     Buffer<Vertex> const readback{context.core, READBACK_CONFIG, COUNT};
     staging.write(TRIANGLE);
 
-    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { readback.stage(primary, staging, 5); });
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        readback.stage(primary, staging, 5);
+        test::host_read_barrier(context, primary);
+    });
 
     auto const mapped = readback.map(TRIANGLE.size(), 5);
     readback.invalidate();

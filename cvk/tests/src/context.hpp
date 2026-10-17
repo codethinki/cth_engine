@@ -3,12 +3,10 @@
 
 #include "cvk/base/core.hpp"
 #include "cvk/base/instance.hpp"
+#include "cvk/render/cmd/cmd_buffer.hpp"
 
+#include <utility>
 
-namespace cvk {
-class BaseCmdBuffer;
-class PrimaryCmdBuffer;
-}
 
 namespace cvk::test {
 /**
@@ -48,4 +46,20 @@ void submit_and_wait(Context const&, PrimaryCmdBuffer const&);
  * @pre the command buffer is recording
  */
 void host_read_barrier(Context const&, BaseCmdBuffer const&);
+
+/**
+ * @brief records into a primary command buffer of a new pool, submits it and waits for the gpu
+ * @param record called with the recording PrimaryCmdBuffer const&
+ */
+template<class Record>
+void record_and_submit(Context const& context, Record&& record) {
+    CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
+    PrimaryCmdBuffer primary{pool, create};
+
+    primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    std::forward<Record>(record)(std::as_const(primary));
+    primary.end();
+
+    submit_and_wait(context, primary);
+}
 }

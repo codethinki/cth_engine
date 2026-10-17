@@ -23,6 +23,8 @@ CTH_FORMAT_ALIAS(VkPresentModeKHR, std::string_view, string_VkPresentModeKHR);
 
 CTH_FORMAT_ALIAS(VkObjectType, std::string_view, string_VkObjectType);
 
+CTH_FORMAT_ALIAS(VkImageLayout, std::string_view, string_VkImageLayout);
+
 CTH_FORMAT_CLASS(
     VkSurfaceFormatKHR,
     "{}, {}",
