@@ -2,6 +2,7 @@
 #include "test.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
+#include "cvk/render/cmd/cmd_buffer.hpp"
 
 #include <algorithm>
 #include <array>
@@ -32,6 +33,32 @@ namespace {
         .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
     };
+
+    constexpr Buffer<Vertex>::Config STAGING_CONFIG{
+        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
+    };
+
+    constexpr Buffer<Vertex>::Config READBACK_CONFIG{
+        .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
+    };
+
+    /**
+     * @brief records into a primary command buffer, submits and waits
+     */
+    template<class Record>
+    void record_and_submit(test::Context const& context, Record record) {
+        CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
+        PrimaryCmdBuffer primary{pool, create};
+
+        primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        record(primary);
+        test::host_read_barrier(context, primary);
+        primary.end();
+
+        test::submit_and_wait(context, primary);
+    }
 
     /**
      * @brief Buffer<T> is a valid type
@@ -98,6 +125,36 @@ CVK_TEST(Buffer, map_whole_buffer) {
 
     buffer.unmap();
     buffer.unmap();
+}
+
+CVK_TEST(Buffer, copy_elements) {
+    test::Context const context{};
+    Buffer<Vertex> const staging{context.core, STAGING_CONFIG, COUNT};
+    Buffer<Vertex> const readback{context.core, READBACK_CONFIG, COUNT};
+    staging.write(TRIANGLE, 1);
+
+    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        readback.copy(primary, staging, TRIANGLE.size(), 1, 4);
+    });
+
+    auto const mapped = readback.map(TRIANGLE.size(), 4);
+    readback.invalidate();
+    EXPECT_TRUE(std::ranges::equal(mapped, TRIANGLE));
+    readback.unmap();
+}
+
+CVK_TEST(Buffer, stage_elements) {
+    test::Context const context{};
+    Buffer<Vertex> const staging{context.core, STAGING_CONFIG, TRIANGLE.size()};
+    Buffer<Vertex> const readback{context.core, READBACK_CONFIG, COUNT};
+    staging.write(TRIANGLE);
+
+    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { readback.stage(primary, staging, 5); });
+
+    auto const mapped = readback.map(TRIANGLE.size(), 5);
+    readback.invalidate();
+    EXPECT_TRUE(std::ranges::equal(mapped, TRIANGLE));
+    readback.unmap();
 }
 
 CVK_TEST(Buffer, descriptor_info_in_elements) {

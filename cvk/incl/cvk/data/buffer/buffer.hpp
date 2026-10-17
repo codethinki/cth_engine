@@ -115,6 +115,32 @@ public:
     }
 
     /**
+     * @brief records a copy from the source buffer
+     * @param count (VK_WHOLE_SIZE => as much as fits into both buffers)
+     * @param srcOffset in elements
+     * @param dstOffset in elements
+     * @details calls @ref BaseBuffer::copy()
+     */
+    void copy(
+        BaseCmdBuffer const& cmdBuffer,
+        Buffer const& src,
+        size_t count = VK_WHOLE_SIZE,
+        size_t srcOffset = 0,
+        size_t dstOffset = 0
+    ) const {
+        BaseBuffer::copy(cmdBuffer, src, bytes(count), srcOffset * sizeof(T), dstOffset * sizeof(T));
+    }
+
+    /**
+     * @brief records a copy of the whole staging buffer
+     * @param dstOffset in elements
+     * @details calls @ref BaseBuffer::stage()
+     */
+    void stage(BaseCmdBuffer const& cmdBuffer, Buffer const& stagingBuffer, size_t dstOffset = 0) const {
+        BaseBuffer::stage(cmdBuffer, stagingBuffer, dstOffset * sizeof(T));
+    }
+
+    /**
      * @param count (VK_WHOLE_SIZE => to the end)
      * @param offset in elements
      * @pre offset + count <= @ref elements()

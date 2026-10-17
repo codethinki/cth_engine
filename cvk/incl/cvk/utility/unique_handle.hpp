@@ -28,7 +28,8 @@ struct handle_deleter {
 /**
  * @brief owning Vulkan handle, std::unique_ptr with a deleter that holds the destroy context
  * @tparam Handle Vulkan handle, or Deleter::pointer for handles that are not pointers
- * @tparam Deleter @ref core_deleter, @ref vma_deleter, @ref instance_deleter, @ref handle_deleter or a deleter derived from them
+ * @tparam Deleter @ref core_deleter, @ref vma_deleter, @ref instance_deleter, @ref handle_deleter,
+ *  a deleter derived from them or one of its own
  * @details a handle comes only together with its context: the constructors and reset() construct the deleter,
  *  a missing context argument does not compile,
  *  move assignment destroys the old handle with the old context, then takes handle and context

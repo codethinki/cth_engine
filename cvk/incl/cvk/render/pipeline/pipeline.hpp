@@ -14,6 +14,7 @@
 
 namespace cvk {
 class Core;
+class BaseCmdBuffer;
 class PipelineLayout;
 
 /**
@@ -103,6 +104,13 @@ public:
      * @pre @ref created()
      */
     State release();
+
+    /**
+     * @brief records the bind of the pipeline to the graphics bind point
+     * @pre @ref created()
+     * @pre @ref BaseCmdBuffer::recording()
+     */
+    void bind(BaseCmdBuffer const&) const;
 
     static void destroy(DeviceTable table, VkPipeline);
 

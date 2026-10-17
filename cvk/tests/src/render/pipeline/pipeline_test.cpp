@@ -2,6 +2,7 @@
 #include "shaders.hpp"
 #include "test.hpp"
 
+#include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/render/pipeline/pipeline.hpp"
@@ -96,6 +97,20 @@ CVK_TEST(Pipeline, config_stages) {
     config.removeStage(VK_SHADER_STAGE_VERTEX_BIT);
     ASSERT_EQ(config.stages.size(), 1);
     EXPECT_EQ(config.stages[0].stage, VK_SHADER_STAGE_FRAGMENT_BIT);
+}
+
+CVK_TEST(Pipeline, bind) {
+    test::Context const context{};
+    Triangle const triangle{context.core};
+    Pipeline const pipeline{context.core, triangle.layout, triangle.config(), create};
+    CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
+    PrimaryCmdBuffer primary{pool, create};
+
+    primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    pipeline.bind(primary);
+    primary.end();
+
+    test::submit_and_wait(context, primary);
 }
 
 CVK_TEST(Pipeline, base_constructor_does_not_create) {

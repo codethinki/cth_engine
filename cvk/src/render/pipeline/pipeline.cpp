@@ -1,6 +1,7 @@
 #include "cvk/render/pipeline/pipeline.hpp"
 
 #include "cvk/base/core.hpp"
+#include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -152,6 +153,13 @@ Pipeline::State Pipeline::release() {
     State const state{_handle.release()};
     forget();
     return state;
+}
+
+void Pipeline::bind(BaseCmdBuffer const& cmdBuffer) const {
+    debug_check(*this);
+    CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
+
+    core().functions()->vkCmdBindPipeline(cmdBuffer.get(), VK_PIPELINE_BIND_POINT_GRAPHICS, get());
 }
 
 void Pipeline::destroy(DeviceTable table, VkPipeline vkPipeline) {

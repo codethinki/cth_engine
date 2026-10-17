@@ -2,7 +2,6 @@
 #include "test.hpp"
 
 #include "cvk/render/cmd/cmd_buffer.hpp"
-#include "cvk/render/sync/fence.hpp"
 
 #include <array>
 #include <type_traits>
@@ -12,31 +11,6 @@ namespace cvk {
 namespace {
     CmdPool::Config pool_config(test::Context const& context) {
         return CmdPool::Config::Default(context.core.queue(0));
-    }
-
-    void submit_and_wait(test::Context const& context, PrimaryCmdBuffer const& primary) {
-        Fence const fence{context.core, 0};
-
-        VkCommandBufferSubmitInfo const bufferInfo{
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-            .pNext = nullptr,
-            .commandBuffer = primary.get(),
-            .deviceMask = 0,
-        };
-        VkSubmitInfo2 const submitInfo{
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-            .pNext = nullptr,
-            .flags = 0,
-            .waitSemaphoreInfoCount = 0,
-            .pWaitSemaphoreInfos = nullptr,
-            .commandBufferInfoCount = 1,
-            .pCommandBufferInfos = &bufferInfo,
-            .signalSemaphoreInfoCount = 0,
-            .pSignalSemaphoreInfos = nullptr,
-        };
-
-        context.core.queue(0).raw_submit(submitInfo, fence.get());
-        fence.wait();
     }
 }
 
@@ -105,7 +79,7 @@ CVK_TEST(CmdBuffer, submit) {
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     primary.end();
 
-    submit_and_wait(context, primary);
+    test::submit_and_wait(context, primary);
 }
 
 CVK_TEST(CmdBuffer, reset_and_record_again) {
@@ -119,7 +93,7 @@ CVK_TEST(CmdBuffer, reset_and_record_again) {
 
     primary.begin();
     primary.end();
-    submit_and_wait(context, primary);
+    test::submit_and_wait(context, primary);
 }
 
 CVK_TEST(CmdBuffer, execute_secondaries) {
@@ -139,7 +113,7 @@ CVK_TEST(CmdBuffer, execute_secondaries) {
     primary.execute(secondaries);
     primary.end();
 
-    submit_and_wait(context, primary);
+    test::submit_and_wait(context, primary);
 }
 
 CVK_TEST(CmdBuffer, secondary_begin_with_rendering_inheritance) {

@@ -5,6 +5,11 @@
 #include "cvk/base/instance.hpp"
 
 
+namespace cvk {
+class BaseCmdBuffer;
+class PrimaryCmdBuffer;
+}
+
 namespace cvk::test {
 /**
  * @brief instance and core for tests, fails the test on validation errors
@@ -31,4 +36,16 @@ struct Context {
     Context& operator=(Context const& other) = delete;
     Context& operator=(Context&& other) = delete;
 };
+
+/**
+ * @brief submits the command buffer to the first queue and waits for the gpu
+ * @pre the command buffer is executable
+ */
+void submit_and_wait(Context const&, PrimaryCmdBuffer const&);
+
+/**
+ * @brief records a memory barrier: transfer writes -> host reads
+ * @pre the command buffer is recording
+ */
+void host_read_barrier(Context const&, BaseCmdBuffer const&);
 }

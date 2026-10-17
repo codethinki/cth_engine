@@ -70,7 +70,9 @@ public:
      */
     void wait() const;
 
-    [[nodiscard]] constexpr bool can_present() const { return contains(_familyProperties, QueueFamilyProperties::PRESENT); }
+    [[nodiscard]] constexpr bool can_present() const {
+        return contains(_familyProperties, QueueFamilyProperties::PRESENT);
+    }
     [[nodiscard]] constexpr bool created() const { return _handle != VK_NULL_HANDLE; }
     [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr uint32_t index() const { return _queueIndex; }

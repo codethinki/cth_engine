@@ -3,6 +3,7 @@
 
 #include "cvk/base/physical_device.hpp"
 #include "cvk/data/buffer/base_buffer.hpp"
+#include "cvk/render/cmd/cmd_buffer.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +20,22 @@ namespace {
         .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
     };
+
+    /**
+     * @brief records into a primary command buffer, submits and waits
+     */
+    template<class Record>
+    void record_and_submit(test::Context const& context, Record record) {
+        CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
+        PrimaryCmdBuffer primary{pool, create};
+
+        primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        record(primary);
+        test::host_read_barrier(context, primary);
+        primary.end();
+
+        test::submit_and_wait(context, primary);
+    }
 
     /**
      * @brief buffer the cpu reads back
@@ -131,6 +148,56 @@ CVK_TEST(BaseBuffer, write_and_read_through_the_memory) {
     buffer.memory().invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, data));
     buffer.memory().unmap();
+}
+
+CVK_TEST(BaseBuffer, copy_a_range) {
+    test::Context const context{};
+    BaseBuffer const staging{context.core, STAGING_CONFIG, SIZE};
+    BaseBuffer const readback{context.core, READBACK_CONFIG, SIZE};
+    std::array<char, 64> data{};
+    std::ranges::fill(data, 'c');
+    staging.memory().write(data, 16);
+
+    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        readback.copy(primary, staging, data.size(), 16, 32);
+    });
+
+    auto const mapped = readback.memory().map(data.size(), 32);
+    readback.memory().invalidate();
+    EXPECT_TRUE(std::ranges::equal(mapped, data));
+    readback.memory().unmap();
+}
+
+CVK_TEST(BaseBuffer, copy_whole_size_fits_both_buffers) {
+    test::Context const context{};
+    BaseBuffer const staging{context.core, STAGING_CONFIG, SIZE};
+    BaseBuffer const readback{context.core, READBACK_CONFIG, SIZE / 2};
+    std::array<char, SIZE> data{};
+    std::ranges::fill(data, 'w');
+    staging.memory().write(data);
+
+    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { readback.copy(primary, staging); });
+
+    auto const mapped = readback.memory().map(SIZE / 2);
+    readback.memory().invalidate();
+    EXPECT_TRUE(std::ranges::all_of(mapped, [](char const c) { return c == 'w'; }));
+    readback.memory().unmap();
+}
+
+CVK_TEST(BaseBuffer, stage_the_whole_staging_buffer) {
+    test::Context const context{};
+    BaseBuffer const staging{context.core, STAGING_CONFIG, 64};
+    BaseBuffer const readback{context.core, READBACK_CONFIG, SIZE};
+    std::array<char, 64> data{};
+    std::ranges::fill(data, 's');
+    staging.memory().write(data);
+
+    record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { readback.stage(primary, staging, 8); });
+
+    auto const mapped = readback.memory().map(data.size(), 8);
+    readback.memory().invalidate();
+    EXPECT_TRUE(std::ranges::equal(mapped, data));
+    readback.memory().unmap();
 }
 
 CVK_TEST(BaseBuffer, descriptor_info) {

@@ -14,6 +14,7 @@
 
 
 namespace cvk {
+class BaseCmdBuffer;
 class Core;
 
 /**
@@ -91,6 +92,31 @@ public:
      * @pre @ref created()
      */
     State release();
+
+    /**
+     * @brief records a copy from the source buffer
+     * @param size in bytes (VK_WHOLE_SIZE => as much as fits into both buffers)
+     * @param srcOffset in bytes
+     * @param dstOffset in bytes
+     * @pre @ref created() and src created
+     * @pre @ref BaseCmdBuffer::recording()
+     * @pre src usage has VK_BUFFER_USAGE_TRANSFER_SRC_BIT, the usage has VK_BUFFER_USAGE_TRANSFER_DST_BIT
+     * @pre 0 < copied size, the ranges lie in the buffers
+     */
+    void copy(
+        BaseCmdBuffer const&,
+        BaseBuffer const& src,
+        size_t size = VK_WHOLE_SIZE,
+        size_t srcOffset = 0,
+        size_t dstOffset = 0
+    ) const;
+
+    /**
+     * @brief records a copy of the whole staging buffer
+     * @param dstOffset in bytes
+     * @details calls @ref copy()
+     */
+    void stage(BaseCmdBuffer const&, BaseBuffer const& stagingBuffer, size_t dstOffset = 0) const;
 
     /**
      * @param size in bytes (VK_WHOLE_SIZE => to the end)

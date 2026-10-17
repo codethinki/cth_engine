@@ -66,7 +66,9 @@ public:
     /**
      * @brief start of the pNext chain, for VkDeviceCreateInfo::pNext
      */
-    [[nodiscard]] constexpr VkPhysicalDeviceFeatures2 const* get() const { return &std::get<VkPhysicalDeviceFeatures2>(_chain); }
+    [[nodiscard]] constexpr VkPhysicalDeviceFeatures2 const* get() const {
+        return &std::get<VkPhysicalDeviceFeatures2>(_chain);
+    }
 
 private:
     void link();
