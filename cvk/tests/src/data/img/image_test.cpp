@@ -52,6 +52,38 @@ CVK_TEST(Image, eval_mip_level_count) {
     static_assert(Image::evalMipLevelCount({1, 1024}) == 11);
 }
 
+CVK_TEST(Image, format_aspects) {
+    static_assert(format_aspects(VK_FORMAT_R8G8B8A8_UNORM) == VK_IMAGE_ASPECT_COLOR_BIT);
+    static_assert(format_aspects(VK_FORMAT_D32_SFLOAT) == VK_IMAGE_ASPECT_DEPTH_BIT);
+    static_assert(format_aspects(VK_FORMAT_S8_UINT) == VK_IMAGE_ASPECT_STENCIL_BIT);
+    static_assert(
+        format_aspects(VK_FORMAT_D24_UNORM_S8_UINT) == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
+    );
+}
+
+CVK_TEST(Image, config_aspect_mask_fits_the_format) {
+    static_assert([] {
+        Image::Config const config{.format = VK_FORMAT_D24_UNORM_S8_UINT, .usage = VK_IMAGE_USAGE_SAMPLED_BIT};
+        Image::Config::debug_check(config);
+        return true;
+    }());
+    constexpr auto depthBuffer = Image::Config::DepthBuffer(VK_FORMAT_D24_UNORM_S8_UINT, VK_SAMPLE_COUNT_1_BIT);
+    static_assert((Image::Config::debug_check(depthBuffer), true));
+}
+
+CVK_TEST(Image, aspect_mask_comes_from_the_format) {
+    test::Context const context{};
+
+    Image const color{context.core, {.format = VK_FORMAT_R8G8B8A8_UNORM, .usage = VK_IMAGE_USAGE_SAMPLED_BIT}};
+    Image const depth{
+        context.core,
+        {.format = VK_FORMAT_D16_UNORM, .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT}
+    };
+
+    EXPECT_EQ(color.aspectMask(), VK_IMAGE_ASPECT_COLOR_BIT);
+    EXPECT_EQ(depth.aspectMask(), VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
 CVK_TEST(Image, config_create_info) {
     constexpr auto info = TEXTURE_CONFIG.createInfo(EXTENT);
 

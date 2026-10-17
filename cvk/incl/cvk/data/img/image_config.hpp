@@ -1,4 +1,6 @@
 #pragma once
+#include "image_format.hpp"
+
 #include "cvk/base/queue/queue_family.hpp"
 #include "cvk/data/memory/memory_config.hpp"
 
@@ -16,7 +18,8 @@ namespace cvk {
  */
 struct ImageConfig {
     /**
-     * @pre != 0
+     * @brief 0 -> the aspects of @ref format, see @ref format_aspects()
+     * @pre the aspects of @ref format contain it
      */
     VkImageAspectFlags aspectMask = 0;
 
@@ -102,8 +105,11 @@ struct ImageConfig {
 
 namespace cvk {
 constexpr void ImageConfig::debug_check(ImageConfig const& config) {
-    CTH_CRITICAL(config.aspectMask == 0, "aspect mask must not be 0") {}
     CTH_CRITICAL(config.format == VK_FORMAT_UNDEFINED, "format must not be undefined") {}
+    CTH_CRITICAL(
+        (config.aspectMask & ~format_aspects(config.format)) != 0,
+        "the aspects of the format must contain the aspect mask"
+    ) {}
     CTH_CRITICAL(config.usage == 0, "usage must not be 0") {}
     CTH_CRITICAL(config.mipLevels == 0, "at least one mip level is required") {}
     CTH_CRITICAL(

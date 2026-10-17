@@ -2,6 +2,7 @@
 
 #include "cvk/base/core.hpp"
 #include "cvk/data/img/image.hpp"
+#include "cvk/data/img/image_format.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -203,19 +204,40 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
     colors.reserve(info.colorAttachments.size());
     for(auto const& attachment : info.colorAttachments) {
         colors.push_back(attachmentInfo(attachment));
-        rendering.inheritance.colorFormats.push_back(attachment.view->image().format());
+
+        auto const format = attachment.view->image().format();
+        CTH_CRITICAL(format_aspects(format) != VK_IMAGE_ASPECT_COLOR_BIT, "color attachments need a color format") {
+            details->add("format: {}", format);
+        }
+        rendering.inheritance.colorFormats.push_back(format);
     }
 
     std::optional<VkRenderingAttachmentInfo> depth{};
     if(info.depthAttachment.has_value()) {
         depth = attachmentInfo(*info.depthAttachment);
-        rendering.inheritance.depthFormat = info.depthAttachment->view->image().format();
+
+        auto const format = info.depthAttachment->view->image().format();
+        CTH_CRITICAL(
+            (format_aspects(format) & VK_IMAGE_ASPECT_DEPTH_BIT) == 0,
+            "the depth attachment needs a depth format"
+        ) {
+            details->add("format: {}", format);
+        }
+        rendering.inheritance.depthFormat = format;
     }
 
     std::optional<VkRenderingAttachmentInfo> stencil{};
     if(info.stencilAttachment.has_value()) {
         stencil = attachmentInfo(*info.stencilAttachment);
-        rendering.inheritance.stencilFormat = info.stencilAttachment->view->image().format();
+
+        auto const format = info.stencilAttachment->view->image().format();
+        CTH_CRITICAL(
+            (format_aspects(format) & VK_IMAGE_ASPECT_STENCIL_BIT) == 0,
+            "the stencil attachment needs a stencil format"
+        ) {
+            details->add("format: {}", format);
+        }
+        rendering.inheritance.stencilFormat = format;
     }
 
     CTH_CRITICAL(!extent.has_value() && !info.area.has_value(), "a rendering without attachments needs an area") {}

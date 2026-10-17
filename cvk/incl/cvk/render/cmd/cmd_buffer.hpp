@@ -121,6 +121,7 @@ public:
      * @pre the attachment views are created and have one mip level
      * @pre the attachment layouts are the layouts of the views
      * @pre the attachment layouts are attachment layouts (not undefined, transfer, shader read or present)
+     * @pre color attachments have color formats, the depth and stencil attachments depth and stencil formats
      * @post @ref rendering()
      */
     void beginRendering(RenderingInfo const&);

@@ -1,5 +1,6 @@
 #pragma once
 #include "image_config.hpp"
+#include "image_format.hpp"
 
 #include "cvk/base/device_table.hpp"
 #include "cvk/data/memory/memory.hpp"
@@ -130,7 +131,12 @@ public:
 
     [[nodiscard]] constexpr VkExtent2D extent() const { return _extent; }
     [[nodiscard]] constexpr VkFormat format() const { return _config.format; }
-    [[nodiscard]] constexpr VkImageAspectFlags aspectMask() const { return _config.aspectMask; }
+    /**
+     * @return @ref Config::aspectMask, 0 -> the aspects of the format
+     */
+    [[nodiscard]] constexpr VkImageAspectFlags aspectMask() const {
+        return _config.aspectMask != 0 ? _config.aspectMask : format_aspects(_config.format);
+    }
     [[nodiscard]] constexpr uint32_t mipLevels() const { return _config.mipLevels; }
 
     /**
