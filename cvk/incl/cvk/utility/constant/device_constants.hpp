@@ -34,16 +34,34 @@ inline constexpr std::array<std::string_view, 3> PRESENT_INSTANCE_EXTENSIONS{
 
 /**
  * @brief features that every device enables
- * @details descriptorIndexing: the device supports the minimum set of descriptor indexing features, for bindless
+ * @details bindless: descriptorIndexing guarantees the minimum set of descriptor indexing features, they are enabled,
+ *  descriptorBindingVariableDescriptorCount is not part of the set, the one extra requirement
  */
 [[nodiscard]] inline utils::PhysicalDeviceFeatures required_device_features() {
     utils::PhysicalDeviceFeatures features{};
 
-    features.features().features.samplerAnisotropy = VK_TRUE;
+    auto& features10 = features.features().features;
+    features10.samplerAnisotropy = VK_TRUE;
+    features10.shaderSampledImageArrayDynamicIndexing = VK_TRUE;
+    features10.shaderStorageBufferArrayDynamicIndexing = VK_TRUE;
 
     auto& features12 = features.features<VkPhysicalDeviceVulkan12Features>();
     features12.timelineSemaphore = VK_TRUE;
     features12.descriptorIndexing = VK_TRUE;
+    features12.shaderUniformTexelBufferArrayDynamicIndexing = VK_TRUE;
+    features12.shaderStorageTexelBufferArrayDynamicIndexing = VK_TRUE;
+    features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    features12.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+    features12.shaderUniformTexelBufferArrayNonUniformIndexing = VK_TRUE;
+    features12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+    features12.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+    features12.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+    features12.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
+    features12.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_TRUE;
+    features12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+    features12.descriptorBindingPartiallyBound = VK_TRUE;
+    features12.runtimeDescriptorArray = VK_TRUE;
+    features12.descriptorBindingVariableDescriptorCount = VK_TRUE;
 
     auto& features13 = features.features<VkPhysicalDeviceVulkan13Features>();
     features13.synchronization2 = VK_TRUE;

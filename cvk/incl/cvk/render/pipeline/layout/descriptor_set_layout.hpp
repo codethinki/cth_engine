@@ -10,6 +10,8 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <memory>
+#include <ranges>
 #include <span>
 #include <vector>
 
@@ -19,6 +21,8 @@ class Core;
 
 /**
  * @brief VkDescriptorSetLayout wrapper
+ * @details a binding with VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT -> the layout has
+ *  VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT
  */
 class DescriptorSetLayout {
 public:
@@ -63,6 +67,7 @@ public:
 
     /**
      * @brief creates the layout
+     * @pre @ref Config::debug_check() of the config
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateDescriptorSetLayout()
@@ -95,18 +100,34 @@ public:
     /**
      * @return bindings, sorted by binding number
      */
-    [[nodiscard]] std::span<VkDescriptorSetLayoutBinding const> bindings() const;
+    [[nodiscard]] constexpr std::span<VkDescriptorSetLayoutBinding const> bindings() const { return _bindings; }
 
     /**
      * @return nullptr -> no binding with that number
      */
-    [[nodiscard]] VkDescriptorSetLayoutBinding const* binding(uint32_t binding) const;
+    [[nodiscard]] constexpr VkDescriptorSetLayoutBinding const* binding(uint32_t binding) const;
+
+    /**
+     * @return flags of the binding, no binding with that number -> 0
+     */
+    [[nodiscard]] constexpr VkDescriptorBindingFlags bindingFlags(uint32_t binding) const;
+
+    /**
+     * @return a binding has VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+     */
+    [[nodiscard]] constexpr bool updateAfterBind() const;
+
+    /**
+     * @return binding with VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT, nullptr -> none
+     */
+    [[nodiscard]] constexpr VkDescriptorSetLayoutBinding const* variableBinding() const;
 
 private:
     void forget();
 
     core_handle<DescriptorSetLayout> _handle;
     std::vector<VkDescriptorSetLayoutBinding> _bindings;
+    std::vector<VkDescriptorBindingFlags> _bindingFlags;
 
 public:
     DescriptorSetLayout(DescriptorSetLayout const& other) = delete;
@@ -123,10 +144,18 @@ struct DescriptorSetLayout::Config {
     /**
      * @brief adds a binding, the numbers may have gaps
      * @param binding number of the binding
-     * @param count of descriptors, 0 -> the binding is reserved without descriptors
+     * @param count of descriptors, 0 -> the binding is reserved without descriptors,
+     *  VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT -> the maximum count
+     * @param flags VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT, VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT, ...
      * @pre no binding with the same number
      */
-    constexpr Config& add(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stages, uint32_t count = 1);
+    constexpr Config& add(
+        uint32_t binding,
+        VkDescriptorType type,
+        VkShaderStageFlags stages,
+        uint32_t count = 1,
+        VkDescriptorBindingFlags flags = 0
+    );
 
     /**
      * @brief removes a binding
@@ -138,6 +167,13 @@ struct DescriptorSetLayout::Config {
      * @brief bindings sorted by binding number
      */
     std::vector<VkDescriptorSetLayoutBinding> bindings{};
+
+    /**
+     * @brief flags per binding in the order of @ref bindings, empty -> no flags
+     */
+    std::vector<VkDescriptorBindingFlags> bindingFlags{};
+
+    static constexpr void debug_check(Config const&);
 };
 
 struct DescriptorSetLayout::State {
@@ -150,10 +186,18 @@ constexpr DescriptorSetLayout::Config& DescriptorSetLayout::Config::add(
     uint32_t binding,
     VkDescriptorType type,
     VkShaderStageFlags stages,
-    uint32_t count
+    uint32_t count,
+    VkDescriptorBindingFlags flags
 ) {
     auto const it = std::ranges::lower_bound(bindings, binding, {}, &VkDescriptorSetLayoutBinding::binding);
     CTH_CRITICAL(it != bindings.end() && it->binding == binding, "binding {} already exists", binding) {}
+
+    // flags are stored for every binding once one binding has flags
+    if(flags != 0 || !bindingFlags.empty()) {
+        auto const index = it - bindings.begin();
+        bindingFlags.resize(bindings.size(), 0);
+        bindingFlags.insert(bindingFlags.begin() + index, flags);
+    }
 
     bindings.insert(
         it,
@@ -172,12 +216,66 @@ constexpr DescriptorSetLayout::Config& DescriptorSetLayout::Config::remove(uint3
     auto const it = std::ranges::lower_bound(bindings, binding, {}, &VkDescriptorSetLayoutBinding::binding);
     CTH_CRITICAL(it == bindings.end() || it->binding != binding, "binding {} does not exist", binding) {}
 
+    if(!bindingFlags.empty()) bindingFlags.erase(bindingFlags.begin() + (it - bindings.begin()));
     bindings.erase(it);
     return *this;
 }
 }
 
 namespace cvk {
+constexpr void DescriptorSetLayout::Config::debug_check(Config const& config) {
+    CTH_CRITICAL(
+        !config.bindingFlags.empty() && config.bindingFlags.size() != config.bindings.size(),
+        "binding flags must be empty or one per binding"
+    ) {}
+    if(config.bindingFlags.empty()) return;
+
+    for(auto const [index, flags] : config.bindingFlags | std::views::enumerate) {
+        auto const& binding = config.bindings[index];
+        bool const dynamic = binding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+            || binding.descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+
+        CTH_CRITICAL(
+            (flags & VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT) != 0
+            && static_cast<size_t>(index) + 1 != config.bindings.size(),
+            "only the binding with the highest number can have a variable descriptor count"
+        ) {
+            details->add("binding: {}", binding.binding);
+        }
+        CTH_CRITICAL(
+            dynamic && (flags & (VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+                | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT)) != 0,
+            "dynamic buffer bindings cannot update after bind or have a variable descriptor count"
+        ) {
+            details->add("binding: {}", binding.binding);
+        }
+    }
+}
+
+constexpr VkDescriptorSetLayoutBinding const* DescriptorSetLayout::binding(uint32_t binding) const {
+    auto const it = std::ranges::lower_bound(_bindings, binding, {}, &VkDescriptorSetLayoutBinding::binding);
+    return it != _bindings.end() && it->binding == binding ? std::to_address(it) : nullptr;
+}
+
+constexpr VkDescriptorBindingFlags DescriptorSetLayout::bindingFlags(uint32_t binding) const {
+    if(_bindingFlags.empty()) return 0;
+
+    auto const it = std::ranges::lower_bound(_bindings, binding, {}, &VkDescriptorSetLayoutBinding::binding);
+    return it != _bindings.end() && it->binding == binding ? _bindingFlags[it - _bindings.begin()] : 0;
+}
+
+constexpr bool DescriptorSetLayout::updateAfterBind() const {
+    return std::ranges::any_of(_bindingFlags, [](VkDescriptorBindingFlags flags) {
+        return (flags & VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT) != 0;
+    });
+}
+
+constexpr VkDescriptorSetLayoutBinding const* DescriptorSetLayout::variableBinding() const {
+    if(_bindingFlags.empty() || (_bindingFlags.back() & VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT) == 0)
+        return nullptr;
+    return &_bindings.back();
+}
+
 constexpr void DescriptorSetLayout::debug_check(DescriptorSetLayout const& layout) {
     CTH_CRITICAL(!layout.created(), "descriptor set layout must be created") {}
 }

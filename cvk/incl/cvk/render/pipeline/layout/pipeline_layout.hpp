@@ -124,6 +124,11 @@ public:
     [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
+    /**
+     * @return handle of the set layout per set number
+     */
+    [[nodiscard]] constexpr std::span<VkDescriptorSetLayout const> setLayouts() const { return _vkSetLayouts; }
+
 private:
     void forget();
 

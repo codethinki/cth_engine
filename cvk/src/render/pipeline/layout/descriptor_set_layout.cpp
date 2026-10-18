@@ -7,8 +7,13 @@
 
 
 namespace cvk {
-DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config) : _handle{core},
-    _bindings{std::move(config.bindings)} { Core::debug_check(core); }
+DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config) : _handle{core} {
+    Core::debug_check(core);
+    Config::debug_check(config);
+
+    _bindings = std::move(config.bindings);
+    _bindingFlags = std::move(config.bindingFlags);
+}
 
 DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config, State const& state) : DescriptorSetLayout{
     core,
@@ -29,10 +34,16 @@ void DescriptorSetLayout::wrap(State const& state) {
 void DescriptorSetLayout::create() {
     optDestroy();
 
+    VkDescriptorSetLayoutBindingFlagsCreateInfo const flagsInfo{
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+        .pNext = nullptr,
+        .bindingCount = static_cast<uint32_t>(_bindingFlags.size()),
+        .pBindingFlags = _bindingFlags.data(),
+    };
     VkDescriptorSetLayoutCreateInfo const info{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
+        .pNext = _bindingFlags.empty() ? nullptr : &flagsInfo,
+        .flags = updateAfterBind() ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT : 0u,
         .bindingCount = static_cast<uint32_t>(_bindings.size()),
         .pBindings = _bindings.data(),
     };
@@ -68,13 +79,6 @@ void DescriptorSetLayout::destroy(DeviceTable table, VkDescriptorSetLayout vkLay
     CTH_WARN(vkLayout == VK_NULL_HANDLE, "vkLayout invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyDescriptorSetLayout(table.device(), vkLayout, nullptr);
-}
-
-std::span<VkDescriptorSetLayoutBinding const> DescriptorSetLayout::bindings() const { return _bindings; }
-
-VkDescriptorSetLayoutBinding const* DescriptorSetLayout::binding(uint32_t binding) const {
-    auto const it = std::ranges::lower_bound(_bindings, binding, {}, &VkDescriptorSetLayoutBinding::binding);
-    return it != _bindings.end() && it->binding == binding ? std::to_address(it) : nullptr;
 }
 
 void DescriptorSetLayout::forget() {}
