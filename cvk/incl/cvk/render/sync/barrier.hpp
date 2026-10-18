@@ -292,11 +292,15 @@ constexpr std::optional<LayoutTransition> layout_transition(VkImageLayout oldLay
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
     };
 
+    // from VK_IMAGE_LAYOUT_UNDEFINED: src waits for the dst stages without access,
+    // orders the transition after their last use and after an acquire semaphore wait on these stages
+    constexpr auto stagesOf = [](BarrierScope const& scope) { return BarrierScope{scope.stages}; };
+
     constexpr std::array entries{
         Entry{
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            {none, transferWrite},
+            {stagesOf(transferWrite), transferWrite},
         },
         Entry{
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -317,12 +321,12 @@ constexpr std::optional<LayoutTransition> layout_transition(VkImageLayout oldLay
         Entry{
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            {none, color},
+            {stagesOf(color), color},
         },
         Entry{
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-            {none, depth},
+            {stagesOf(depth), depth},
         },
         Entry{
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -338,7 +342,7 @@ constexpr std::optional<LayoutTransition> layout_transition(VkImageLayout oldLay
         Entry{
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-            {none, localRead},
+            {stagesOf(localRead), localRead},
         },
         Entry{
             VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,

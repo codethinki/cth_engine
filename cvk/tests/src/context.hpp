@@ -1,4 +1,5 @@
 #pragma once
+#include "headless.hpp"
 #include "test.hpp"
 
 #include "cvk/base/core.hpp"
@@ -7,6 +8,7 @@
 #include "cvk/data/img/image.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 
+#include <array>
 #include <utility>
 
 
@@ -35,6 +37,32 @@ struct Context {
     Context(Context&& other) = delete;
     Context& operator=(Context const& other) = delete;
     Context& operator=(Context&& other) = delete;
+};
+
+/**
+ * @brief instance, headless surface and core with a present queue, fails the test on validation errors
+ */
+struct PresentContext {
+    /**
+     * @brief one graphics queue that presents
+     */
+    static Core::Config const CONFIG;
+
+    PresentContext();
+
+    Context::ValidationCheck validationCheck;
+
+    Instance instance;
+    std::array<Surface, 1> surfaces;
+    Core core;
+
+    [[nodiscard]] Surface const& surface() const { return surfaces[0]; }
+    [[nodiscard]] Queue const& queue() const { return core.queue(0); }
+
+    PresentContext(PresentContext const& other) = delete;
+    PresentContext(PresentContext&& other) = delete;
+    PresentContext& operator=(PresentContext const& other) = delete;
+    PresentContext& operator=(PresentContext&& other) = delete;
 };
 
 /**

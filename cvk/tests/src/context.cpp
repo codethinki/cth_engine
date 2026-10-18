@@ -14,6 +14,13 @@ Core::Config const Context::CONFIG{
 Context::Context(Core::Config const& config) : instance{APP_NAME, NO_EXTENSIONS, counting_messenger()},
     core{instance, {}, config} {}
 
+Core::Config const PresentContext::CONFIG{
+    .queueProperties = {QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT},
+};
+
+PresentContext::PresentContext() : instance{APP_NAME, headless_extensions(), counting_messenger()},
+    surfaces{headless_surface(instance)}, core{instance, surfaces, CONFIG} {}
+
 Context::ValidationCheck::ValidationCheck() { reset_validation_errors(); }
 
 Context::ValidationCheck::~ValidationCheck() { EXPECT_EQ(validation_errors(), 0); }

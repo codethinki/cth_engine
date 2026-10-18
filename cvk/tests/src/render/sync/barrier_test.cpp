@@ -25,6 +25,7 @@ namespace {
 CVK_TEST(Barrier, layout_transition_table) {
     constexpr auto toTransfer = layout_transition(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     static_assert(toTransfer.has_value());
+    static_assert(toTransfer->src.stages == VK_PIPELINE_STAGE_2_TRANSFER_BIT);
     static_assert(toTransfer->src.access == VK_ACCESS_2_NONE);
     static_assert(toTransfer->dst.access == VK_ACCESS_2_TRANSFER_WRITE_BIT);
 
