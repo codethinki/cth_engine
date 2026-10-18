@@ -273,6 +273,7 @@ public:
     Swapchain(Swapchain const& other) = delete;
     Swapchain(Swapchain&& other) noexcept = default;
     Swapchain& operator=(Swapchain const& other) = delete;
+    //TODO the custom move assignment is ugly, find a design where the default one works
     Swapchain& operator=(Swapchain&& other) noexcept;
 
     static constexpr void debug_check(Swapchain const&);
