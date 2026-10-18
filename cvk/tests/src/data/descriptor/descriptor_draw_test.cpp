@@ -181,7 +181,7 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
     };
     color.write(std::array<std::array<float, 4>, 1>{GREEN});
 
-    DescriptorPool const pool{context.core, DescriptorPool::Config{}.add(setLayout), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config{{&setLayout}}, create};
     DescriptorSet const set{pool, setLayout, create};
     set.write(std::array{DescriptorWrite{.binding = 0, .buffers = {{&color}}}});
 
@@ -225,7 +225,7 @@ CVK_TEST(DescriptorDraw, bindless_texture_written_after_bind) {
     Buffer<unsigned char> staging{context.core, host_written<unsigned char>(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), 4};
     staging.write(GREEN_PIXEL);
 
-    DescriptorPool const pool{context.core, DescriptorPool::Config{}.add(setLayout, 1, 32), create};
+    DescriptorPool const pool{context.core, {{&setLayout, 1, 32}}, create};
     DescriptorSet const set{pool, setLayout, 32, create};
 
     CmdPool const cmdPool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};

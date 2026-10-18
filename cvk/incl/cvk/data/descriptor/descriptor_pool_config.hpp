@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <initializer_list>
 #include <vector>
 
 
@@ -15,6 +16,32 @@ namespace cvk {
  * @brief set count, descriptor counts and flags of a descriptor pool
  */
 struct DescriptorPoolConfig {
+    /**
+     * @brief count sets of one layout
+     */
+    struct Sets {
+        not_null<DescriptorSetLayout const*> layout;
+        uint32_t count = 1;
+
+        /**
+         * @brief descriptors of the variable count binding per set (0 => its maximum count)
+         */
+        uint32_t variableCount = 0;
+    };
+
+    constexpr DescriptorPoolConfig() = default;
+
+    /**
+     * @brief counts the sets and descriptors of the layouts
+     * @param flags update after bind layouts add VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
+     * @details calls @ref add() per entry
+     */
+    constexpr DescriptorPoolConfig(std::initializer_list<Sets> sets, VkDescriptorPoolCreateFlags flags = 0) :
+        flags{flags} {
+        for(auto const& [layout, count, variableCount] : sets)
+            add(*layout, count, variableCount);
+    }
+
     /**
      * @pre > 0
      */

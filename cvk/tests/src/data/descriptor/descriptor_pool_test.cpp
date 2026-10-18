@@ -64,11 +64,28 @@ CVK_TEST(DescriptorPool, config_add_takes_the_variable_count_and_update_after_bi
     EXPECT_NE(config.flags & VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, 0);
 }
 
+CVK_TEST(DescriptorPool, constructor_counts_every_layout) {
+    test::Context const context{};
+    DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
+    DescriptorSetLayout const textures{context.core, bindless(), create};
+
+    DescriptorPool::Config const config{
+        {{&layout, 2}, {&textures, 1, 100}},
+        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
+    };
+
+    EXPECT_EQ(config.maxSets, 3);
+    EXPECT_EQ(count_of(config, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER), 4);
+    EXPECT_EQ(count_of(config, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER), 102);
+    EXPECT_NE(config.flags & VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 0);
+    EXPECT_NE(config.flags & VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, 0);
+}
+
 CVK_TEST(DescriptorPool, create_and_destroy) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
 
-    DescriptorPool pool{context.core, DescriptorPool::Config{}.add(layout, 4), create};
+    DescriptorPool pool{context.core, DescriptorPool::Config{{&layout, 4}}, create};
 
     ASSERT_TRUE(pool.created());
     EXPECT_TRUE(pool.unused());
@@ -81,7 +98,7 @@ CVK_TEST(DescriptorPool, create_and_destroy) {
 CVK_TEST(DescriptorPool, reset_counts) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
-    DescriptorPool const pool{context.core, DescriptorPool::Config{}.add(layout), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config{{&layout}}, create};
 
     pool.reset();
     pool.reset();
@@ -92,7 +109,7 @@ CVK_TEST(DescriptorPool, reset_counts) {
 CVK_TEST(DescriptorPool, release_and_wrap) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
-    auto const config = DescriptorPool::Config{}.add(layout);
+    auto const config = DescriptorPool::Config{{&layout}};
     DescriptorPool pool{context.core, config, create};
     auto const vkPool = pool.get();
 
