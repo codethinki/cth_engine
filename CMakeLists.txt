@@ -10,7 +10,8 @@ cth_set_latest_c_cpp_standard()
 
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
-include(lib/gtl.cmake)
+include(lib/cmake/cth.cmake)
+include(lib/cmake/gtl.cmake)
 
 if(JOLLY_ENABLE_TESTS)
     enable_testing()

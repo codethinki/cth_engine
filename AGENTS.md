@@ -12,7 +12,9 @@ Read it before you change a file. Match the existing code.
 | `jvk/prework/` | parts for `jvk` that left `cvk`, not built |
 | `legacy/` | the old `jvk`, `jolly` and `demo` code, reference only, not built |
 | `tests/` | loader smoke tests |
+| `lib/cth` | cth (submodule), `lib/cmake/cth.cmake` adds it with only the components the engine needs |
 | `lib/cth_cmake` | cmake utilities (submodule) |
+| `lib/cmake` | one cmake file per library that adds it: `<libname>.cmake` |
 
 - Vulkan 1.3 is the baseline. Do not port code that 1.3 makes unnecessary (render passes, framebuffers, the old sync API).
 - Functionality beyond 1.3 comes from required extensions, not from a higher version: `VK_KHR_dynamic_rendering_local_read` gives tile-based GPUs subpass-like local reads in a dynamic rendering. Extension feature structs go into `utils::PhysicalDeviceFeatures`, `link()` puts them in the chain only with their extension.
@@ -20,7 +22,7 @@ Read it before you change a file. Match the existing code.
 - Memory comes from VMA.
 - `cvk` destroys immediately. It has no destruction queue. Deferred destruction belongs to `jvk`.
 - `cvk` tracks no image layouts. Every function that uses a layout takes it as a value, with a default where the use fixes it. Layout tracking belongs to `jvk` (`jvk/prework/image_layouts.hpp`).
-- Hash maps come from gtl (`jvk/prework/flat_hash_map.hpp`). gtl installs no cmake package, `lib/gtl.cmake` creates the target `gtl::gtl`.
+- Hash maps come from gtl (`jvk/prework/flat_hash_map.hpp`). gtl installs no cmake package, `lib/cmake/gtl.cmake` creates the target `gtl::gtl`.
 - Commits have no `Co-Authored-By` or "Generated with" lines.
 
 ## Branches
@@ -41,10 +43,10 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 ```
 
 - Presets: `gcc_debug`, `gcc_release`, `clang_debug`, `clang_release`, `msvc_debug`, `msvc_release`.
-- `cth_ROOT` points at `../cth/out/install/<preset>`. That install must exist.
+- cth comes from the submodule `lib/cth`: clone with `--recursive` or run `git submodule update --init`.
 - Debug builds enable the validation layers with synchronization validation (`Instance::VALIDATION_LAYER_SETTINGS`). Run the tests in a debug build before you report a change as done.
 - Tests that need more queues than the device has skip. Mesa Intel devices get more queues with `ANV_QUEUE_OVERRIDE=gc=2,c=1`.
-- After a new cth install, build with `--clean-first`. The precompiled header does not see the changed cth headers.
+- After a new cth version in `lib/cth`, build with `--clean-first`. The precompiled header does not see the changed cth headers.
 - Tests that need a device use `test::Context` (`cvk/tests/src/context.hpp`). It fails the test on validation errors, leaked objects included.
 - `VCPKG_ROOT` must point at vcpkg.
 

@@ -5,8 +5,7 @@
       "name": "base",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/lib/cth_cmake/toolchain.cmake",
-        "cth_ROOT": "${sourceDir}/../cth/out/install/${presetName}"
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/lib/cth_cmake/toolchain.cmake"
       }
     },
     {

@@ -20,13 +20,10 @@ target_precompile_headers(
 find_package(volk CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(VulkanUtilityLibraries CONFIG REQUIRED)
-find_package(cth CONFIG REQUIRED COMPONENTS cth os)
-# cth/hash/hash_aggregates.hpp includes boost/pfr.hpp, the cth package does not export it
-find_package(boost_pfr CONFIG REQUIRED)
 
 target_link_libraries(
         cvk
-        PUBLIC volk::volk Vulkan::UtilityHeaders GPUOpen::VulkanMemoryAllocator cth::cth cth::os Boost::pfr
+        PUBLIC volk::volk Vulkan::UtilityHeaders GPUOpen::VulkanMemoryAllocator cth::cth cth::os
 )
 
 # tests

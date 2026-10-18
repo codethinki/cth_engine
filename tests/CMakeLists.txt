@@ -4,7 +4,6 @@ add_executable(tests ${TEST_SRC})
 
 find_package(GTest CONFIG REQUIRED)
 find_package(volk CONFIG REQUIRED)
-find_package(cth CONFIG REQUIRED COMPONENTS cth)
 
 target_link_libraries(tests PRIVATE GTest::gtest_main volk::volk cth::cth)
 
