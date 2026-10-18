@@ -34,7 +34,7 @@ namespace {
             fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG} {}
 
         [[nodiscard]] Pipeline::Config config() const {
-            auto config = Pipeline::Config::Default(COLOR_FORMATS, DEPTH_FORMAT);
+            Pipeline::Config config{COLOR_FORMATS, DEPTH_FORMAT};
             config.addStage(vertex).addStage(fragment);
             config.vertexBindings = {
                 {.binding = 0, .stride = 3 * sizeof(float), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
@@ -58,8 +58,8 @@ namespace {
     };
 }
 
-CVK_TEST(Pipeline, config_default) {
-    auto const config = Pipeline::Config::Default(COLOR_FORMATS, DEPTH_FORMAT);
+CVK_TEST(Pipeline, config_from_the_formats) {
+    Pipeline::Config const config{COLOR_FORMATS, DEPTH_FORMAT};
 
     EXPECT_TRUE(std::ranges::equal(config.colorFormats, COLOR_FORMATS));
     ASSERT_EQ(config.colorBlendAttachments.size(), 1);
@@ -69,7 +69,7 @@ CVK_TEST(Pipeline, config_default) {
 
 CVK_TEST(Pipeline, config_is_constexpr) {
     static_assert([] {
-        auto config = Pipeline::Config::Default(COLOR_FORMATS, DEPTH_FORMAT);
+        Pipeline::Config config{COLOR_FORMATS, DEPTH_FORMAT};
         config.stages.push_back(
             VkPipelineShaderStageCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -103,7 +103,7 @@ CVK_TEST(Pipeline, bind) {
     test::Context const context{};
     Triangle const triangle{context.core};
     Pipeline const pipeline{context.core, triangle.layout, triangle.config(), create};
-    CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
+    CmdPool const pool{context.core, CmdPool::Config{context.core.queue(0)}, create};
     PrimaryCmdBuffer primary{pool, create};
 
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);

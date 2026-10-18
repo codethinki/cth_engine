@@ -168,7 +168,7 @@ private:
         [[nodiscard]] constexpr uint64_t resets() const { return _resets; }
 
     private:
-        not_null<DescriptorPool const*> _pool;
+        not_null_ptr<DescriptorPool const> _pool;
         uint64_t _resets;
     };
 
@@ -180,7 +180,7 @@ private:
     void forget();
 
     unique_handle<vk_handle_t, pool_deleter> _handle;
-    not_null<DescriptorSetLayout const*> _layout;
+    not_null_ptr<DescriptorSetLayout const> _layout;
     uint32_t _variableCount;
 
 public:

@@ -253,8 +253,8 @@ private:
 
     void forget();
 
-    not_null<Queue const*> _presentQueue;
-    not_null<Surface const*> _surface;
+    not_null_ptr<Queue const> _presentQueue;
+    not_null_ptr<Surface const> _surface;
     Config _config;
 
     core_handle<Swapchain> _handle;

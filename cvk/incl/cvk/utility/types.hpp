@@ -8,7 +8,7 @@ namespace cvk {
 template<class T>
 using vk_not_null = cth::not_null<T, VK_NULL_HANDLE>;
 template<class T>
-using not_null = cth::not_null<T>;
+using not_null_ptr = cth::not_null_ptr<T>;
 
 template<class T>
 using move_ptr = cth::move_ptr<T>;

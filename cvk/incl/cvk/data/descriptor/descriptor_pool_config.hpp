@@ -20,7 +20,7 @@ struct DescriptorPoolConfig {
      * @brief count sets of one layout
      */
     struct Sets {
-        not_null<DescriptorSetLayout const*> layout;
+        not_null_ptr<DescriptorSetLayout const> layout;
         uint32_t count = 1;
 
         /**

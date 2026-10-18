@@ -98,7 +98,7 @@ void copy_to_buffer(
  */
 template<class Record>
 void record_and_submit(Context const& context, Record&& record) {
-    CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
+    CmdPool const pool{context.core, CmdPool::Config{context.core.queue(0)}, create};
     PrimaryCmdBuffer primary{pool, create};
 
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);

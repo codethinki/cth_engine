@@ -21,7 +21,7 @@ public:
     [[nodiscard]] constexpr Core const& core() const { return *_core; }
 
 private:
-    not_null<Core const*> _core;
+    not_null_ptr<Core const> _core;
 };
 
 /**

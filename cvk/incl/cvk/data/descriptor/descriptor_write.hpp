@@ -44,7 +44,7 @@ struct ImageDescriptor {
  * @brief buffer range for a buffer descriptor, the binding decides the descriptor type
  */
 struct BufferDescriptor {
-    not_null<BaseBuffer const*> buffer;
+    not_null_ptr<BaseBuffer const> buffer;
 
     /**
      * @brief in bytes

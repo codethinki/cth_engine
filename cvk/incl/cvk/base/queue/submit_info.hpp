@@ -38,7 +38,7 @@ struct SemaphoreSubmitInfo {
         std::optional<uint64_t> value = std::nullopt
     ) : semaphore{&semaphore}, stages{stages}, value{value} {}
 
-    std::variant<not_null<Semaphore const*>, not_null<TimelineSemaphore const*>> semaphore;
+    std::variant<not_null_ptr<Semaphore const>, not_null_ptr<TimelineSemaphore const>> semaphore;
     VkPipelineStageFlags2 stages;
 
     /**
@@ -55,7 +55,7 @@ struct SubmitInfo {
     /**
      * @brief the gpu executes them in order
      */
-    std::vector<not_null<PrimaryCmdBuffer const*>> cmdBuffers{};
+    std::vector<not_null_ptr<PrimaryCmdBuffer const>> cmdBuffers{};
 
     std::vector<SemaphoreSubmitInfo> waits{};
     std::vector<SemaphoreSubmitInfo> signals{};

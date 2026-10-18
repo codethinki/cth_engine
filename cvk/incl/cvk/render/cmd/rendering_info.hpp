@@ -46,7 +46,7 @@ struct RenderingAttachment {
     /**
      * @pre one mip level
      */
-    not_null<ImageView const*> view;
+    not_null_ptr<ImageView const> view;
 
     /**
      * @brief layout of the view during the rendering, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL fits every aspect

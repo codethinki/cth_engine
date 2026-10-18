@@ -6,7 +6,7 @@
 namespace cvk {
 struct DeviceTable {
     vk_not_null<VkDevice> vkDevice;
-    not_null<VolkDeviceTable const*> table;
+    not_null_ptr<VolkDeviceTable const> table;
 
     VolkDeviceTable const* operator ->() const { return table.get(); }
     [[nodiscard]] constexpr VkDevice device() const { return vkDevice.get(); }

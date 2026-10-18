@@ -102,7 +102,7 @@ private:
     void forget();
 
     core_handle<ImageView> _handle;
-    not_null<Image const*> _image;
+    not_null_ptr<Image const> _image;
     Config _config;
 
 public:

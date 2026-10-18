@@ -59,7 +59,7 @@ namespace {
         }
 
         [[nodiscard]] Pipeline::Config config() const {
-            auto config = Pipeline::Config::Default(COLOR_FORMATS);
+            Pipeline::Config config{COLOR_FORMATS};
             config.addStage(vertex).addStage(fragment);
             config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
             config.vertexAttributes = {

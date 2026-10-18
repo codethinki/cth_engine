@@ -63,7 +63,7 @@ namespace {
         }
 
         [[nodiscard]] Pipeline::Config config() const {
-            auto config = Pipeline::Config::Default(COLOR_FORMATS);
+            Pipeline::Config config{COLOR_FORMATS};
             config.addStage(vertex).addStage(fragment);
             config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
             config.vertexAttributes = {
@@ -228,7 +228,7 @@ CVK_TEST(DescriptorDraw, bindless_texture_written_after_bind) {
     DescriptorPool const pool{context.core, {{&setLayout, 1, 32}}, create};
     DescriptorSet const set{pool, setLayout, 32, create};
 
-    CmdPool const cmdPool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
+    CmdPool const cmdPool{context.core, CmdPool::Config{context.core.queue(0)}, create};
     PrimaryCmdBuffer cmd{cmdPool, create};
     cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 

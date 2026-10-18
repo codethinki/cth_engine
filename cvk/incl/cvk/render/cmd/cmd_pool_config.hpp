@@ -10,6 +10,22 @@ namespace cvk {
  * @brief queue family and flags of a command pool
  */
 struct CmdPoolConfig {
+    static constexpr VkCommandPoolCreateFlags DEFAULT_FLAGS = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
+        | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    constexpr CmdPoolConfig() = default;
+
+    explicit constexpr CmdPoolConfig(
+        queue_family_index_t queueFamilyIndex,
+        VkCommandPoolCreateFlags flags = DEFAULT_FLAGS
+    ) : queueFamilyIndex{queueFamilyIndex}, flags{flags} {}
+
+    /**
+     * @brief config for the family of the queue
+     */
+    explicit constexpr CmdPoolConfig(Queue const& queue, VkCommandPoolCreateFlags flags = DEFAULT_FLAGS) :
+        CmdPoolConfig{queue.familyIndex(), flags} {}
+
     /**
      * @brief the command buffers of the pool are submitted to queues of this family
      */
@@ -18,15 +34,7 @@ struct CmdPoolConfig {
     /**
      * @brief VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT -> @ref BaseCmdBuffer::reset() is allowed
      */
-    VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
-        | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-    /**
-     * @brief config for the family of the queue, default flags
-     */
-    [[nodiscard]] static constexpr CmdPoolConfig Default(Queue const& queue) {
-        return CmdPoolConfig{.queueFamilyIndex = queue.familyIndex()};
-    }
+    VkCommandPoolCreateFlags flags = DEFAULT_FLAGS;
 
     [[nodiscard]] constexpr VkCommandPoolCreateInfo createInfo() const {
         return VkCommandPoolCreateInfo{

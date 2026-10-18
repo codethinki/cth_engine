@@ -51,7 +51,7 @@ namespace {
         if(!index.has_value()) return result;
 
         auto const& image = swapchain.images()[*index];
-        CmdPool const pool{context.core, CmdPool::Config::Default(context.queue()), create};
+        CmdPool const pool{context.core, CmdPool::Config{context.queue()}, create};
         PrimaryCmdBuffer cmd{pool, create};
 
         cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);

@@ -155,12 +155,12 @@ struct Barrier {
     using BufferInfo = BufferBarrierInfo;
 
     struct BufferEntry {
-        not_null<BaseBuffer const*> buffer;
+        not_null_ptr<BaseBuffer const> buffer;
         BufferInfo info;
     };
 
     struct ImageEntry {
-        not_null<Image const*> image;
+        not_null_ptr<Image const> image;
         ImageInfo info;
     };
 

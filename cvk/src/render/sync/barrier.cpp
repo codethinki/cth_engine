@@ -147,7 +147,7 @@ void Barrier::debug_check_rendering(
         bool const attachment = std::ranges::contains(
             rendering.attachments,
             entry.image.get(),
-            &not_null<Image const*>::get
+            &not_null_ptr<Image const>::get
         );
         CTH_CRITICAL(
             attachment && barrier.newLayout != VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR

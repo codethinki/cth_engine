@@ -103,7 +103,7 @@ public:
 private:
     void forget();
 
-    not_null<Device const*> _device;
+    not_null_ptr<Device const> _device;
     unique_handle<vk_handle_t, handle_deleter<Allocator>> _handle;
 
 public:

@@ -151,7 +151,7 @@ struct PipelineLayout::Config {
     /**
      * @brief set layout per set number, index == set number
      */
-    std::vector<not_null<DescriptorSetLayout const*>> setLayouts{};
+    std::vector<not_null_ptr<DescriptorSetLayout const>> setLayouts{};
 
     std::vector<VkPushConstantRange> pushConstantRanges{};
 };

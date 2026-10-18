@@ -208,7 +208,7 @@ public:
     [[nodiscard]] constexpr std::span<QueueFamily const> queueFamilies() const { return _queueFamilies; }
 
 private:
-    not_null<Instance const*> _instance;
+    not_null_ptr<Instance const> _instance;
     utils::PhysicalDeviceFeatures _requiredFeatures;
     std::vector<std::string> _requiredExtensions{};
 

@@ -129,7 +129,7 @@ private:
     void forget();
 
     core_handle<Pipeline> _handle;
-    not_null<PipelineLayout const*> _layout;
+    not_null_ptr<PipelineLayout const> _layout;
     VkPipeline _vkParent = VK_NULL_HANDLE;
     Config _config;
 

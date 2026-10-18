@@ -140,8 +140,8 @@ private:
     void createQueues(std::span<queue_family_index_t const> familyIndices);
 
 
-    not_null<Instance const*> _instance;
-    not_null<PhysicalDevice const*> _physicalDevice;
+    not_null_ptr<Instance const> _instance;
+    not_null_ptr<PhysicalDevice const> _physicalDevice;
 
     unique_handle<vk_handle_t, handle_deleter<Device>> _handle;
     std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();

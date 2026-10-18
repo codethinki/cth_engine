@@ -32,7 +32,7 @@ namespace {
     template<class Resolve>
     VkSemaphoreSubmitInfo semaphore_info(SemaphoreSubmitInfo const& info, Resolve resolve) {
         return std::visit(
-            [&]<class T>(not_null<T const*> semaphore) {
+            [&]<class T>(not_null_ptr<T const> semaphore) {
                 T::debug_check(*semaphore);
 
                 if constexpr(std::same_as<T, TimelineSemaphore>) {

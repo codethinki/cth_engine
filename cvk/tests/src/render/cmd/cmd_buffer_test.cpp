@@ -10,7 +10,7 @@
 namespace cvk {
 namespace {
     CmdPool::Config pool_config(test::Context const& context) {
-        return CmdPool::Config::Default(context.core.queue(0));
+        return CmdPool::Config{context.core.queue(0)};
     }
 }
 

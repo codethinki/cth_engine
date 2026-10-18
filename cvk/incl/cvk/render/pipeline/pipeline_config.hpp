@@ -3,6 +3,7 @@
 
 #include <cth/io/log.hpp>
 
+#include <ranges>
 #include <span>
 #include <vector>
 
@@ -30,11 +31,13 @@ struct PipelineConfig {
         | VK_COLOR_COMPONENT_A_BIT,
     };
 
+    constexpr PipelineConfig() = default;
+
     /**
-     * @brief config with one @ref ALPHA_BLENDING attachment per color format
+     * @brief one @ref ALPHA_BLENDING attachment per color format
      * @param depthFormat VK_FORMAT_UNDEFINED -> no depth attachment
      */
-    [[nodiscard]] static constexpr PipelineConfig Default(
+    explicit constexpr PipelineConfig(
         std::span<VkFormat const> colorFormats,
         VkFormat depthFormat = VK_FORMAT_UNDEFINED
     );
@@ -150,13 +153,10 @@ struct PipelineConfig {
 }
 
 namespace cvk {
-constexpr PipelineConfig PipelineConfig::Default(std::span<VkFormat const> colorFormats, VkFormat depthFormat) {
-    PipelineConfig config{};
-    config.colorFormats.assign_range(colorFormats);
-    config.colorBlendAttachments.assign(colorFormats.size(), ALPHA_BLENDING);
-    config.depthFormat = depthFormat;
-    return config;
-}
+constexpr PipelineConfig::PipelineConfig(std::span<VkFormat const> colorFormats, VkFormat depthFormat) :
+    colorBlendAttachments(colorFormats.size(), ALPHA_BLENDING),
+    colorFormats{std::from_range, colorFormats},
+    depthFormat{depthFormat} {}
 
 constexpr PipelineConfig& PipelineConfig::removeStage(VkShaderStageFlagBits stage) {
     auto const removed = std::erase_if(

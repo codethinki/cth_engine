@@ -173,7 +173,7 @@ private:
     void createQueues(std::span<size_t const> queuesToUniqueQueues);
 
 
-    not_null<Instance const*> _instance;
+    not_null_ptr<Instance const> _instance;
 
     std::unique_ptr<PhysicalDevice> _physicalDevice;
     // declared before the device: move assignment destroys the old allocator before the old device

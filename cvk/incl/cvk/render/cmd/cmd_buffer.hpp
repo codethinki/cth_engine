@@ -49,7 +49,7 @@ public:
         /**
          * @brief images of the attachments, empty if inherited
          */
-        std::vector<not_null<Image const*>> attachments{};
+        std::vector<not_null_ptr<Image const>> attachments{};
 
         /**
          * @brief true -> a secondary that inherits the rendering of its primary
@@ -321,7 +321,7 @@ private:
         [[nodiscard]] constexpr Core const& core() const { return _pool->core(); }
 
     private:
-        not_null<CmdPool const*> _pool;
+        not_null_ptr<CmdPool const> _pool;
     };
 
     void forget();

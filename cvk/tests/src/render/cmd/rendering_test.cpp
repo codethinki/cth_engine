@@ -141,7 +141,7 @@ CVK_TEST(Rendering, secondary_inherits_the_rendering) {
     test::Context const context{};
     Image const image{context.core, COLOR_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
-    CmdPool const pool{context.core, CmdPool::Config::Default(context.core.queue(0)), create};
+    CmdPool const pool{context.core, CmdPool::Config{context.core.queue(0)}, create};
     std::array<SecondaryCmdBuffer, 1> secondaries{SecondaryCmdBuffer{pool, create}};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {

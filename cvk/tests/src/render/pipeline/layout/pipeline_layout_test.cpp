@@ -44,7 +44,7 @@ CVK_TEST(PipelineLayout, too_many_sets_throws) {
 
     auto const maxSets = context.core.physicalDevice().limits().maxBoundDescriptorSets;
     PipelineLayout::Config const config{
-        .setLayouts = std::vector<not_null<DescriptorSetLayout const*>>(maxSets + 1, &set),
+        .setLayouts = std::vector<not_null_ptr<DescriptorSetLayout const>>(maxSets + 1, &set),
     };
 
     auto const construct = [&] { PipelineLayout const layout{context.core, config}; };
