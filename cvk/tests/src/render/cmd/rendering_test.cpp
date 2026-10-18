@@ -167,7 +167,6 @@ CVK_TEST(Rendering, local_read_inside_the_rendering) {
     test::Context const context{};
     Image const image{context.core, LOCAL_READ_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
-    constexpr std::array<uint32_t, 1> FIRST{0};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         Barrier transition{};
@@ -175,8 +174,7 @@ CVK_TEST(Rendering, local_read_inside_the_rendering) {
         transition.execute(cmd);
 
         cmd.beginRendering({.colorAttachments = {clear_red(view, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)}});
-        cmd.setAttachmentLocations(FIRST);
-        cmd.setInputAttachmentIndices(FIRST);
+        cmd.setAttachmentMapping({.locations = {0}, .colorInputIndices = {0}});
 
         Barrier barrier{VK_DEPENDENCY_BY_REGION_BIT};
         barrier.add(

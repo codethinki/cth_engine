@@ -15,12 +15,16 @@
 
 #include <optional>
 #include <span>
+#include <type_traits>
 #include <vector>
 
 
 namespace cvk {
 class Core;
+class DescriptorSet;
 class Image;
+class Pipeline;
+class PipelineLayout;
 
 /**
  * @brief VkCommandBuffer wrapper, allocated from its pool, base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer
@@ -133,24 +137,13 @@ public:
     void endRendering();
 
     /**
-     * @brief maps the color attachments to the fragment shader outputs
-     * @param locations output location of each color attachment (VK_ATTACHMENT_UNUSED => no output)
-     * @pre @ref rendering() with one location per color attachment
+     * @brief maps the attachments of the rendering to the fragment shader outputs and input attachments
+     * @details @ref beginRendering() sets the default mapping, the mapping holds until the next call
+     * @pre @ref rendering() began with @ref beginRendering()
+     * @pre @ref AttachmentMapping::debug_check() passes for the color attachments of the rendering
+     * @post the inheritance of @ref rendering() has the mapping
      */
-    void setAttachmentLocations(std::span<uint32_t const> locations) const;
-
-    /**
-     * @brief maps the attachments to the input attachments of the fragment shader
-     * @param colorIndices input attachment index of each color attachment (VK_ATTACHMENT_UNUSED => no input)
-     * @param depthIndex std::nullopt -> the depth attachment is an input attachment without index
-     * @param stencilIndex std::nullopt -> the stencil attachment is an input attachment without index
-     * @pre @ref rendering() with one index per color attachment
-     */
-    void setInputAttachmentIndices(
-        std::span<uint32_t const> colorIndices,
-        std::optional<uint32_t> depthIndex = std::nullopt,
-        std::optional<uint32_t> stencilIndex = std::nullopt
-    ) const;
+    void setAttachmentMapping(AttachmentMapping const&);
 
     /**
      * @brief sets viewport 0 to the area of the rendering, depth 0 to 1
@@ -175,6 +168,58 @@ public:
      * @pre @ref recording()
      */
     void setScissor(VkRect2D const&) const;
+
+    /**
+     * @brief binds the pipeline to the graphics bind point
+     * @details inside the own rendering: sets the attachment mapping of the pipeline if the current one differs
+     * @pre @ref recording(), @ref Pipeline::created()
+     * @pre inside an inherited rendering: the attachment mapping of the pipeline == the inherited one
+     * @note outside of a rendering: sets no attachment mapping, the draws need the default of @ref beginRendering()
+     */
+    void bindPipeline(Pipeline const&);
+
+    /**
+     * @brief binds the set to the set number of the pipeline layout
+     * @param setIndex set number in the pipeline layout
+     * @param dynamicOffsets one per dynamic buffer descriptor of the set
+     * @pre @ref recording(), @ref DescriptorSet::created()
+     * @pre the set layout of setIndex in the pipeline layout is compatible with the layout of the set
+     */
+    void bindDescriptorSet(
+        DescriptorSet const&,
+        PipelineLayout const&,
+        uint32_t setIndex,
+        VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        std::span<uint32_t const> dynamicOffsets = {}
+    ) const;
+
+    /**
+     * @brief records push constants
+     * @param offset in bytes
+     * @pre @ref recording(), @ref PipelineLayout::created()
+     * @pre 0 < data.size(), offset and data.size() are multiples of 4
+     * @pre the push constant ranges of the layout cover the bytes for the stages
+     */
+    void pushConstants(
+        PipelineLayout const&,
+        VkShaderStageFlags stages,
+        std::span<char const> data,
+        uint32_t offset = 0
+    ) const;
+
+    /**
+     * @brief records the value as push constants
+     * @details calls @ref pushConstants(PipelineLayout const&, VkShaderStageFlags, std::span<char const>, uint32_t)
+     */
+    template<class T> requires std::is_trivially_copyable_v<T>
+    void pushConstants(
+        PipelineLayout const& layout,
+        VkShaderStageFlags stages,
+        T const& value,
+        uint32_t offset = 0
+    ) const {
+        pushConstants(layout, stages, std::span{reinterpret_cast<char const*>(&value), sizeof(T)}, offset);
+    }
 
     /**
      * @brief binds the buffer to the vertex input binding

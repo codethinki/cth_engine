@@ -132,7 +132,7 @@ namespace {
                 },
             }
         );
-        fill.pipeline.bind(cmd);
+        cmd.bindPipeline(fill.pipeline);
         cmd.setViewport();
         cmd.setScissor();
         cmd.bindVertexBuffer(0, fill.vertices);
@@ -186,7 +186,7 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
     set.write(std::array{DescriptorWrite{.binding = 0, .buffers = {{&color}}}});
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        record_fill(context, cmd, fill, target, [&](BaseCmdBuffer& c) { set.bind(c, fill.layout, 0); });
+        record_fill(context, cmd, fill, target, [&](BaseCmdBuffer& c) { c.bindDescriptorSet(set, fill.layout, 0); });
     });
 
     expect_green(target);
@@ -241,8 +241,8 @@ CVK_TEST(DescriptorDraw, bindless_texture_written_after_bind) {
     toShader.execute(cmd);
 
     record_fill(context, cmd, fill, target, [&](BaseCmdBuffer& c) {
-        set.bind(c, fill.layout, 0);
-        fill.layout.pushConstants(c, VK_SHADER_STAGE_FRAGMENT_BIT, INDEX);
+        c.bindDescriptorSet(set, fill.layout, 0);
+        c.pushConstants(fill.layout, VK_SHADER_STAGE_FRAGMENT_BIT, INDEX);
     });
     cmd.end();
 

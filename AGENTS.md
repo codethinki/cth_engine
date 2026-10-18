@@ -98,6 +98,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Use `auto const` for locals that do not change.
 - Initialize Vulkan structs with designated initializers. Always write `.sType` and `.pNext`.
 - Data structs (`SubmitInfo`, `Barrier`, the info structs) are aggregates: the caller can set everything with designated initializers. Member functions like `add()` are optional shortcuts, checks run where the data is used.
+- Commands that change the state of a command buffer (binds, dynamic state, push constants, renderings, draws) are members of the command buffer: `cmd.bindPipeline(pipeline)`. Commands on the data of an object (barriers, copies, uploads) are members of the object and take the command buffer: `barrier.execute(cmd)`, `image.copy(cmd, staging)`.
 - Use deducing `this` (`this auto& self`) where a function must work on the derived type.
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.

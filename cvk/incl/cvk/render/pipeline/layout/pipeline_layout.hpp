@@ -9,12 +9,10 @@
 #include <cth/io/log.hpp>
 
 #include <span>
-#include <type_traits>
 #include <vector>
 
 
 namespace cvk {
-class BaseCmdBuffer;
 class Core;
 class DescriptorSetLayout;
 
@@ -89,34 +87,6 @@ public:
      * @pre @ref created()
      */
     State release();
-
-    /**
-     * @brief records push constants
-     * @param offset in bytes
-     * @pre @ref created(), @ref BaseCmdBuffer::recording()
-     * @pre 0 < data.size(), offset and data.size() are multiples of 4
-     * @pre the push constant ranges of the config cover the bytes for the stages
-     */
-    void pushConstants(
-        BaseCmdBuffer const&,
-        VkShaderStageFlags stages,
-        std::span<char const> data,
-        uint32_t offset = 0
-    ) const;
-
-    /**
-     * @brief records the value as push constants
-     * @details calls @ref pushConstants(BaseCmdBuffer const&, VkShaderStageFlags, std::span<char const>, uint32_t)
-     */
-    template<class T> requires std::is_trivially_copyable_v<T>
-    void pushConstants(
-        BaseCmdBuffer const& cmdBuffer,
-        VkShaderStageFlags stages,
-        T const& value,
-        uint32_t offset = 0
-    ) const {
-        pushConstants(cmdBuffer, stages, std::span{reinterpret_cast<char const*>(&value), sizeof(T)}, offset);
-    }
 
     static void destroy(DeviceTable table, VkPipelineLayout);
 

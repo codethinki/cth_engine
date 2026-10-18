@@ -107,7 +107,7 @@ CVK_TEST(Pipeline, bind) {
     PrimaryCmdBuffer primary{pool, create};
 
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    pipeline.bind(primary);
+    primary.bindPipeline(pipeline);
     primary.end();
 
     test::submit_and_wait(context, primary);

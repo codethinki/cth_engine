@@ -1,4 +1,6 @@
 #pragma once
+#include "cvk/render/cmd/rendering_info.hpp"
+
 #include <volk.h>
 
 #include <cth/io/log.hpp>
@@ -149,6 +151,12 @@ struct PipelineConfig {
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
     VkFormat stencilFormat = VK_FORMAT_UNDEFINED;
     uint32_t viewMask = 0;
+
+    /**
+     * @brief == the mapping of the command buffer at a draw, see @ref BaseCmdBuffer::setAttachmentMapping()
+     * @pre @ref AttachmentMapping::debug_check() passes for @ref colorFormats
+     */
+    AttachmentMapping attachmentMapping{};
 };
 }
 

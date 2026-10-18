@@ -1,7 +1,6 @@
 #include "cvk/render/pipeline/pipeline.hpp"
 
 #include "cvk/base/core.hpp"
-#include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -53,6 +52,7 @@ void Pipeline::create() {
         _config.colorBlendAttachments.size() != _config.colorFormats.size(),
         "one color blend attachment per color format required"
     ) {}
+    AttachmentMapping::debug_check(_config.attachmentMapping, _config.colorFormats.size());
 
     optDestroy();
 
@@ -90,11 +90,16 @@ void Pipeline::create() {
         .pDynamicStates = config.dynamicStates.data(),
     };
 
+    auto const colorAttachments = static_cast<uint32_t>(config.colorFormats.size());
+    auto const inputIndices = config.attachmentMapping.inputIndexInfo(colorAttachments);
+    auto locations = config.attachmentMapping.locationInfo(colorAttachments);
+    locations.pNext = &inputIndices;
+
     VkPipelineRenderingCreateInfo const rendering{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-        .pNext = nullptr,
+        .pNext = &locations,
         .viewMask = config.viewMask,
-        .colorAttachmentCount = static_cast<uint32_t>(config.colorFormats.size()),
+        .colorAttachmentCount = colorAttachments,
         .pColorAttachmentFormats = config.colorFormats.data(),
         .depthAttachmentFormat = config.depthFormat,
         .stencilAttachmentFormat = config.stencilFormat,
@@ -154,13 +159,6 @@ Pipeline::State Pipeline::release() {
     State const state{_handle.release()};
     forget();
     return state;
-}
-
-void Pipeline::bind(BaseCmdBuffer const& cmdBuffer) const {
-    debug_check(*this);
-    CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
-
-    core().functions()->vkCmdBindPipeline(cmdBuffer.get(), VK_PIPELINE_BIND_POINT_GRAPHICS, get());
 }
 
 void Pipeline::destroy(DeviceTable table, VkPipeline vkPipeline) {

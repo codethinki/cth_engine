@@ -1,11 +1,8 @@
 #include "cvk/data/descriptor/descriptor_set.hpp"
 
 #include "cvk/base/core.hpp"
-#include "cvk/render/cmd/cmd_buffer.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
-#include <algorithm>
 #include <vector>
 
 
@@ -32,10 +29,6 @@ namespace {
             case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return DescriptorKind::BUFFER;
             default: return DescriptorKind::UNSUPPORTED;
         }
-    }
-
-    constexpr bool dynamic_buffer(VkDescriptorType type) {
-        return type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
     }
 
     void debug_check_image(ImageDescriptor const& descriptor, VkDescriptorType type) {
@@ -224,43 +217,6 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
         vkWrites.data(),
         0,
         nullptr
-    );
-}
-
-void DescriptorSet::bind(
-    BaseCmdBuffer const& cmdBuffer,
-    PipelineLayout const& layout,
-    uint32_t setIndex,
-    VkPipelineBindPoint bindPoint,
-    span<uint32_t const> dynamicOffsets
-) const {
-    debug_check(*this);
-    BaseCmdBuffer::debug_check(cmdBuffer);
-    CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
-    PipelineLayout::debug_check(layout);
-    CTH_CRITICAL(setIndex >= layout.setLayouts().size(), "the pipeline layout has no set {}", setIndex) {}
-
-    auto const dynamicCount = std::ranges::fold_left(
-        _layout->bindings(),
-        uint32_t{0},
-        [](uint32_t sum, VkDescriptorSetLayoutBinding const& binding) {
-            return dynamic_buffer(binding.descriptorType) ? sum + binding.descriptorCount : sum;
-        }
-    );
-    CTH_CRITICAL(dynamicOffsets.size() != dynamicCount, "one dynamic offset per dynamic buffer descriptor") {
-        details->add("dynamic descriptors: {}, offsets: {}", dynamicCount, dynamicOffsets.size());
-    }
-
-    VkDescriptorSet const vkSet = get();
-    core().functions()->vkCmdBindDescriptorSets(
-        cmdBuffer.get(),
-        bindPoint,
-        layout.get(),
-        setIndex,
-        1,
-        &vkSet,
-        static_cast<uint32_t>(dynamicOffsets.size()),
-        dynamicOffsets.data()
     );
 }
 

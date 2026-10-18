@@ -17,9 +17,7 @@
 
 
 namespace cvk {
-class BaseCmdBuffer;
 class Core;
-class PipelineLayout;
 
 /**
  * @brief VkDescriptorSet wrapper, allocated from its pool with its layout
@@ -115,22 +113,6 @@ public:
      * @attention texel buffer, inline uniform block and acceleration structure descriptors are not supported
      */
     void write(std::span<DescriptorWrite const>) const;
-
-    /**
-     * @brief records the bind of the set
-     * @param setIndex set number in the pipeline layout
-     * @param dynamicOffsets one per dynamic buffer descriptor of the set
-     * @pre @ref created()
-     * @pre @ref BaseCmdBuffer::recording()
-     * @pre the set layout of setIndex in the pipeline layout is compatible with the layout of the set
-     */
-    void bind(
-        BaseCmdBuffer const&,
-        PipelineLayout const&,
-        uint32_t setIndex,
-        VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        std::span<uint32_t const> dynamicOffsets = {}
-    ) const;
 
     static void destroy(DeviceTable table, VkDescriptorPool, VkDescriptorSet);
 

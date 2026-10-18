@@ -1,9 +1,12 @@
 #include "cvk/render/cmd/cmd_buffer.hpp"
 
 #include "cvk/base/core.hpp"
+#include "cvk/data/descriptor/descriptor_set.hpp"
 #include "cvk/data/img/image.hpp"
 #include "cvk/data/img/image_format.hpp"
 #include "cvk/data/img/image_view.hpp"
+#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
+#include "cvk/render/pipeline/pipeline.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
@@ -23,6 +26,10 @@ namespace {
         ) {
             details->add("layout: {}", layout);
         }
+    }
+
+    constexpr bool dynamic_buffer(VkDescriptorType type) {
+        return type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
     }
 
     uint32_t view_mip_levels(ImageView const& view) {
@@ -269,44 +276,20 @@ void BaseCmdBuffer::endRendering() {
     _rendering.reset();
 }
 
-void BaseCmdBuffer::setAttachmentLocations(span<uint32_t const> locations) const {
+void BaseCmdBuffer::setAttachmentMapping(AttachmentMapping const& mapping) {
     debug_check(*this);
-    CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside a rendering") {}
-    CTH_CRITICAL(
-        locations.size() != rendering()->inheritance.colorFormats.size(),
-        "one location per color attachment"
-    ) {}
+    CTH_CRITICAL(rendering() == nullptr || rendering()->inherited, "command buffer must be inside its own rendering") {}
 
-    VkRenderingAttachmentLocationInfoKHR const info{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR,
-        .pNext = nullptr,
-        .colorAttachmentCount = static_cast<uint32_t>(locations.size()),
-        .pColorAttachmentLocations = locations.data(),
-    };
-    core().functions()->vkCmdSetRenderingAttachmentLocationsKHR(get(), &info);
-}
+    auto& inheritance = _rendering->inheritance;
+    AttachmentMapping::debug_check(mapping, inheritance.colorFormats.size());
 
-void BaseCmdBuffer::setInputAttachmentIndices(
-    span<uint32_t const> colorIndices,
-    std::optional<uint32_t> depthIndex,
-    std::optional<uint32_t> stencilIndex
-) const {
-    debug_check(*this);
-    CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside a rendering") {}
-    CTH_CRITICAL(
-        colorIndices.size() != rendering()->inheritance.colorFormats.size(),
-        "one input attachment index per color attachment"
-    ) {}
+    inheritance.attachmentMapping = mapping;
 
-    VkRenderingInputAttachmentIndexInfoKHR const info{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR,
-        .pNext = nullptr,
-        .colorAttachmentCount = static_cast<uint32_t>(colorIndices.size()),
-        .pColorAttachmentInputIndices = colorIndices.data(),
-        .pDepthInputAttachmentIndex = depthIndex.has_value() ? &*depthIndex : nullptr,
-        .pStencilInputAttachmentIndex = stencilIndex.has_value() ? &*stencilIndex : nullptr,
-    };
-    core().functions()->vkCmdSetRenderingInputAttachmentIndicesKHR(get(), &info);
+    auto const colorAttachments = static_cast<uint32_t>(inheritance.colorFormats.size());
+    auto const locations = inheritance.attachmentMapping.locationInfo(colorAttachments);
+    auto const inputIndices = inheritance.attachmentMapping.inputIndexInfo(colorAttachments);
+    core().functions()->vkCmdSetRenderingAttachmentLocationsKHR(get(), &locations);
+    core().functions()->vkCmdSetRenderingInputAttachmentIndicesKHR(get(), &inputIndices);
 }
 
 void BaseCmdBuffer::setViewport() const {
@@ -345,6 +328,82 @@ void BaseCmdBuffer::setScissor(VkRect2D const& scissor) const {
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
 
     core().functions()->vkCmdSetScissor(get(), 0, 1, &scissor);
+}
+
+void BaseCmdBuffer::bindPipeline(Pipeline const& pipeline) {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    Pipeline::debug_check(pipeline);
+
+    auto const* current = rendering();
+    auto const& mapping = pipeline.config().attachmentMapping;
+    CTH_CRITICAL(
+        current != nullptr && current->inherited && mapping != current->inheritance.attachmentMapping,
+        "the attachment mapping of the pipeline must match the inherited mapping"
+    ) {}
+    if(current != nullptr && !current->inherited && mapping != current->inheritance.attachmentMapping)
+        setAttachmentMapping(mapping);
+
+    core().functions()->vkCmdBindPipeline(get(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get());
+}
+
+void BaseCmdBuffer::bindDescriptorSet(
+    DescriptorSet const& set,
+    PipelineLayout const& layout,
+    uint32_t setIndex,
+    VkPipelineBindPoint bindPoint,
+    span<uint32_t const> dynamicOffsets
+) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    DescriptorSet::debug_check(set);
+    PipelineLayout::debug_check(layout);
+    CTH_CRITICAL(setIndex >= layout.setLayouts().size(), "the pipeline layout has no set {}", setIndex) {}
+
+    auto const dynamicCount = std::ranges::fold_left(
+        set.layout().bindings(),
+        uint32_t{0},
+        [](uint32_t sum, VkDescriptorSetLayoutBinding const& binding) {
+            return dynamic_buffer(binding.descriptorType) ? sum + binding.descriptorCount : sum;
+        }
+    );
+    CTH_CRITICAL(dynamicOffsets.size() != dynamicCount, "one dynamic offset per dynamic buffer descriptor") {
+        details->add("dynamic descriptors: {}, offsets: {}", dynamicCount, dynamicOffsets.size());
+    }
+
+    VkDescriptorSet const vkSet = set.get();
+    core().functions()->vkCmdBindDescriptorSets(
+        get(),
+        bindPoint,
+        layout.get(),
+        setIndex,
+        1,
+        &vkSet,
+        static_cast<uint32_t>(dynamicOffsets.size()),
+        dynamicOffsets.data()
+    );
+}
+
+void BaseCmdBuffer::pushConstants(
+    PipelineLayout const& layout,
+    VkShaderStageFlags stages,
+    span<char const> data,
+    uint32_t offset
+) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    PipelineLayout::debug_check(layout);
+    CTH_CRITICAL(data.empty(), "push constants must not be empty") {}
+    CTH_CRITICAL(offset % 4 != 0 || data.size() % 4 != 0, "offset and size must be multiples of 4") {}
+
+    core().functions()->vkCmdPushConstants(
+        get(),
+        layout.get(),
+        stages,
+        offset,
+        static_cast<uint32_t>(data.size()),
+        data.data()
+    );
 }
 
 void BaseCmdBuffer::bindVertexBuffer(uint32_t binding, BaseBuffer const& buffer, size_t offset) const {
@@ -526,7 +585,15 @@ void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
 }
 
 void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUsageFlags usage) {
-    auto const renderingInfo = inheritance.renderingInfo();
+    auto const colorAttachments = static_cast<uint32_t>(inheritance.colorFormats.size());
+    AttachmentMapping::debug_check(inheritance.attachmentMapping, colorAttachments);
+
+    auto const inputIndices = inheritance.attachmentMapping.inputIndexInfo(colorAttachments);
+    auto locations = inheritance.attachmentMapping.locationInfo(colorAttachments);
+    locations.pNext = &inputIndices;
+    auto renderingInfo = inheritance.renderingInfo();
+    renderingInfo.pNext = &locations;
+
     VkCommandBufferInheritanceInfo const inheritanceInfo{
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
         .pNext = &renderingInfo,

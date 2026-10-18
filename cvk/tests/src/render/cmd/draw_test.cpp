@@ -110,11 +110,11 @@ namespace {
                 }
             );
 
-            fill.pipeline.bind(cmd);
+            cmd.bindPipeline(fill.pipeline);
             cmd.setViewport();
             cmd.setScissor();
             cmd.bindVertexBuffer(0, fill.vertices);
-            fill.layout.pushConstants(cmd, VK_SHADER_STAGE_FRAGMENT_BIT, GREEN);
+            cmd.pushConstants(fill.layout, VK_SHADER_STAGE_FRAGMENT_BIT, GREEN);
             draw(cmd);
 
             cmd.endRendering();
