@@ -9,6 +9,12 @@ target_include_directories(
         PRIVATE src
 )
 
+target_precompile_headers(
+        cvk_tests
+        PRIVATE
+        src/pch/pch.hpp
+)
+
 target_compile_definitions(cvk_tests PRIVATE CVK_TEST_SHADER_DIR="${CMAKE_CURRENT_SOURCE_DIR}/shaders")
 
 find_package(GTest CONFIG REQUIRED)

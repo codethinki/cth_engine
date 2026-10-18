@@ -46,7 +46,6 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - cth comes from the submodule `lib/cth`: clone with `--recursive` or run `git submodule update --init`.
 - Debug builds enable the validation layers with synchronization validation (`Instance::VALIDATION_LAYER_SETTINGS`). Run the tests in a debug build before you report a change as done.
 - Tests that need more queues than the device has skip. Mesa Intel devices get more queues with `ANV_QUEUE_OVERRIDE=gc=2,c=1`.
-- After a new cth version in `lib/cth`, build with `--clean-first`. The precompiled header does not see the changed cth headers.
 - Tests that need a device use `test::Context` (`cvk/tests/src/context.hpp`). It fails the test on validation errors, leaked objects included.
 - `VCPKG_ROOT` must point at vcpkg.
 
@@ -120,7 +119,7 @@ Separate the groups with one empty line. Forward declare a class when a header o
 
 - Headers go to `incl/<lib>/<area>/<name>.hpp`, sources to `src/<area>/<name>.cpp`. The folders match.
 - Config structs that are large get their own `<name>_config.hpp`.
-- Every library has a precompiled header in `src/pch/`.
+- Every library and its tests have a precompiled header in `src/pch/`: `pch.hpp` includes one `glob/<lib>.hpp` per external library.
 - Every header starts with `#pragma once`.
 
 ### Class layout
