@@ -133,8 +133,6 @@ namespace {
             }
         );
         cmd.bindPipeline(fill.pipeline);
-        cmd.setViewport();
-        cmd.setScissor();
         cmd.bindVertexBuffer(0, fill.vertices);
         draw(cmd);
         cmd.draw(3);

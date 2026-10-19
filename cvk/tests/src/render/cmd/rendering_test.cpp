@@ -101,11 +101,15 @@ CVK_TEST(Rendering, tracks_the_current_rendering) {
         cmd.beginRendering({.colorAttachments = {clear_red(view)}});
         auto const* rendering = cmd.rendering();
         ASSERT_NE(rendering, nullptr);
-        EXPECT_FALSE(rendering->inherited);
-        ASSERT_EQ(rendering->inheritance.colorFormats.size(), 1);
-        EXPECT_EQ(rendering->inheritance.colorFormats[0], COLOR_CONFIG.format);
-        ASSERT_EQ(rendering->attachments.size(), 1);
-        EXPECT_EQ(rendering->attachments[0].get(), &image);
+        ASSERT_EQ(rendering->colorAttachments.size(), 1);
+        EXPECT_EQ(rendering->colorAttachments[0].view.get(), &view);
+        ASSERT_TRUE(rendering->area.has_value());
+        EXPECT_EQ(rendering->area->extent.width, EXTENT.width);
+        EXPECT_EQ(rendering->area->extent.height, EXTENT.height);
+
+        auto const inheritance = cmd.inheritance();
+        ASSERT_EQ(inheritance.colorFormats.size(), 1);
+        EXPECT_EQ(inheritance.colorFormats[0], COLOR_CONFIG.format);
 
         cmd.endRendering();
         EXPECT_EQ(cmd.rendering(), nullptr);
@@ -132,7 +136,7 @@ CVK_TEST(Rendering, clear_a_depth_attachment) {
                 },
             }
         );
-        EXPECT_EQ(cmd.rendering()->inheritance.depthFormat, VK_FORMAT_D16_UNORM);
+        EXPECT_EQ(cmd.inheritance().depthFormat, VK_FORMAT_D16_UNORM);
         cmd.endRendering();
     });
 }
@@ -153,9 +157,9 @@ CVK_TEST(Rendering, secondary_inherits_the_rendering) {
         );
 
         auto& secondary = secondaries[0];
-        secondary.begin(cmd.rendering()->inheritance, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        ASSERT_NE(secondary.rendering(), nullptr);
-        EXPECT_TRUE(secondary.rendering()->inherited);
+        secondary.begin(cmd.inheritance(), VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        EXPECT_TRUE(secondary.recording());
+        EXPECT_EQ(secondary.rendering(), nullptr);
         secondary.end();
 
         cmd.execute(secondaries);

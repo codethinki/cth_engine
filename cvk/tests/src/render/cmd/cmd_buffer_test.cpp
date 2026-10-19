@@ -4,7 +4,10 @@
 #include "cvk/render/cmd/cmd_buffer.hpp"
 
 #include <array>
+#include <span>
+#include <string>
 #include <type_traits>
+#include <vector>
 
 
 namespace cvk {
@@ -25,6 +28,18 @@ CVK_TEST(CmdBuffer, inheritance_rendering_info) {
         return info.colorAttachmentCount == 1 && info.pColorAttachmentFormats == inheritance.colorFormats.data()
             && info.depthAttachmentFormat == VK_FORMAT_D16_UNORM && info.rasterizationSamples == VK_SAMPLE_COUNT_4_BIT;
     }());
+}
+
+CVK_TEST(CmdBuffer, push_constant_data) {
+    static_assert(push_constant_range<std::array<float, 4>>);
+    static_assert(push_constant_range<std::span<float const>>);
+    static_assert(push_constant_range<std::vector<uint32_t>>);
+    static_assert(!push_constant_range<std::vector<std::string>>);
+
+    static_assert(push_constant_data<uint32_t>);
+    static_assert(push_constant_data<std::span<float const>>);
+    static_assert(!push_constant_data<float const*>);
+    static_assert(!push_constant_data<std::vector<std::string>>);
 }
 
 CVK_TEST(CmdBuffer, delete_only_through_the_derived_class) {

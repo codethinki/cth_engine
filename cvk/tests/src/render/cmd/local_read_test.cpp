@@ -91,7 +91,7 @@ namespace {
         /**
          * @brief both attachments cleared to black
          */
-        [[nodiscard]] RenderingInfo renderingInfo(VkRenderingFlags flags = 0) const {
+        [[nodiscard]] RenderingInfo renderingInfo(VkRenderingFlags flags = 0, AttachmentMapping mapping = {}) const {
             auto const clear = [](ImageView const& view, VkImageLayout layout) {
                 return RenderingAttachment{
                     .view = &view,
@@ -107,6 +107,7 @@ namespace {
                     clear(secondView, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL),
                 },
                 .flags = flags,
+                .attachmentMapping = std::move(mapping),
             };
         }
 
@@ -250,13 +251,11 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         attachments.toRendering(cmd);
 
-        cmd.beginRendering(attachments.renderingInfo());
-        cmd.setViewport();
-        cmd.setScissor();
+        // the begin sets the mapping of the first draw, the bind of the second pipeline its own
+        cmd.beginRendering(attachments.renderingInfo(0, write_first()));
+        EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
 
-        // the binds set the attachment mapping of the pipelines
         draws.drawWrite(cmd);
-        EXPECT_EQ(cmd.rendering()->inheritance.attachmentMapping, write_first());
 
         Barrier toInput{VK_DEPENDENCY_BY_REGION_BIT};
         toInput.add(
@@ -271,7 +270,7 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
         toInput.execute(cmd);
 
         cmd.bindPipeline(draws.read);
-        EXPECT_EQ(cmd.rendering()->inheritance.attachmentMapping, copy_first_to_second());
+        EXPECT_EQ(cmd.rendering()->attachmentMapping, copy_first_to_second());
         cmd.bindDescriptorSet(draws.input, draws.readLayout, 0);
         cmd.draw(3);
         cmd.endRendering();
@@ -310,15 +309,16 @@ CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         attachments.toRendering(cmd);
         cmd.beginRendering(attachments.renderingInfo(VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT));
-        EXPECT_EQ(cmd.rendering()->inheritance.attachmentMapping, AttachmentMapping{});
+        EXPECT_EQ(cmd.rendering()->attachmentMapping, AttachmentMapping{});
 
         cmd.setAttachmentMapping(write_first());
-        EXPECT_EQ(cmd.rendering()->inheritance.attachmentMapping, write_first());
+        EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
 
         // the draw needs the mapping of the write pipeline in the secondary
         auto& secondary = secondaries[0];
-        secondary.begin(cmd.rendering()->inheritance, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        EXPECT_EQ(secondary.rendering()->inheritance.attachmentMapping, write_first());
+        auto const inheritance = cmd.inheritance();
+        EXPECT_EQ(inheritance.attachmentMapping, write_first());
+        secondary.begin(inheritance, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         secondary.setViewport(
             {0.f, 0.f, static_cast<float>(EXTENT.width), static_cast<float>(EXTENT.height), 0.f, 1.f}
         );

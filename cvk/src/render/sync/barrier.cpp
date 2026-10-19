@@ -3,6 +3,7 @@
 #include "cvk/base/core.hpp"
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/data/img/image.hpp"
+#include "cvk/data/img/image_view.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 
 #include <cth/io/log.hpp>
@@ -102,7 +103,7 @@ namespace {
 }
 
 void Barrier::debug_check_rendering(
-    BaseCmdBuffer::Rendering const& rendering,
+    RenderingInfo const& rendering,
     std::span<VkMemoryBarrier2 const> memoryBarriers,
     std::span<VkBufferMemoryBarrier2 const> bufferBarriers,
     std::span<VkImageMemoryBarrier2 const> imageBarriers
@@ -127,7 +128,7 @@ void Barrier::debug_check_rendering(
         "barriers inside a rendering need VK_DEPENDENCY_BY_REGION_BIT"
     ) {}
     CTH_CRITICAL(
-        std::popcount(rendering.inheritance.viewMask) > 1 && (flags & VK_DEPENDENCY_VIEW_LOCAL_BIT) == 0,
+        std::popcount(rendering.viewMask) > 1 && (flags & VK_DEPENDENCY_VIEW_LOCAL_BIT) == 0,
         "barriers inside a rendering with more than one view need VK_DEPENDENCY_VIEW_LOCAL_BIT"
     ) {}
     auto const transfer = [](VkBufferMemoryBarrier2 const& barrier) {
@@ -138,19 +139,24 @@ void Barrier::debug_check_rendering(
         "barriers inside a rendering have no queue family ownership transfer"
     ) {}
 
+    auto const attached = [&rendering](Image const& image) {
+        auto const uses = [&image](RenderingAttachment const& attachment) {
+            return &attachment.view->image() == &image
+                || (attachment.resolveView != nullptr && &attachment.resolveView->image() == &image);
+        };
+        return std::ranges::any_of(rendering.colorAttachments, uses)
+            || (rendering.depthAttachment.has_value() && uses(*rendering.depthAttachment))
+            || (rendering.stencilAttachment.has_value() && uses(*rendering.stencilAttachment));
+    };
+
     for(auto const [barrier, entry] : std::views::zip(imageBarriers, images)) {
         CTH_CRITICAL(barrier.oldLayout != barrier.newLayout, "barriers inside a rendering have no layout transition") {}
         CTH_CRITICAL(
             barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex,
             "barriers inside a rendering have no queue family ownership transfer"
         ) {}
-        bool const attachment = std::ranges::contains(
-            rendering.attachments,
-            entry.image.get(),
-            &not_null_ptr<Image const>::get
-        );
         CTH_CRITICAL(
-            attachment && barrier.newLayout != VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
+            attached(*entry.image) && barrier.newLayout != VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
             && barrier.newLayout != VK_IMAGE_LAYOUT_GENERAL,
             "attachments inside a rendering must be in the rendering local read or general layout"
         ) {

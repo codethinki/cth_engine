@@ -15,6 +15,7 @@
 #include <array>
 #include <cstdint>
 #include <ranges>
+#include <span>
 
 
 namespace cvk {
@@ -111,10 +112,9 @@ namespace {
             );
 
             cmd.bindPipeline(fill.pipeline);
-            cmd.setViewport();
-            cmd.setScissor();
             cmd.bindVertexBuffer(0, fill.vertices);
-            cmd.pushConstants(fill.layout, VK_SHADER_STAGE_FRAGMENT_BIT, GREEN);
+            // a span pushes its elements, not itself
+            cmd.pushConstants(fill.layout, VK_SHADER_STAGE_FRAGMENT_BIT, std::span<float const>{GREEN});
             draw(cmd);
 
             cmd.endRendering();

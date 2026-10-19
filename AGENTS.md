@@ -223,6 +223,7 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 - `CTH_CRITICAL(condition, "message") {}`: precondition check, active in debug builds only.
 - `CTH_STABLE_ERR(condition, "message") { forget(); throw details->exception(); }`: error that can happen at run time.
 - `CTH_WARN(condition, "message") {}`: suspicious state that is not an error.
+- `cvk` stores state only where it needs the state to work. A check that needs more state is left to the validation layers.
 - `CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "message") {}`: throws `cvk::vk_result_exception` with the `VkResult`.
 - The condition is the error case: `CTH_CRITICAL(!created(), ...)`, not the expected case.
 

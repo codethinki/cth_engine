@@ -12,8 +12,11 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/meta/ranges.hpp>
 
+#include <cstddef>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <type_traits>
 #include <vector>
@@ -22,49 +25,31 @@
 namespace cvk {
 class Core;
 class DescriptorSet;
-class Image;
 class Pipeline;
 class PipelineLayout;
 
 /**
+ * @brief contiguous range of trivially copyable elements
+ */
+template<class T>
+concept push_constant_range = std::ranges::contiguous_range<T const&>
+    && cth::mta::range_over_cpt<T, CPT(cth::mta::trivially_copyable)>;
+
+/**
+ * @brief @ref push_constant_range or trivially copyable value that is no pointer
+ */
+template<class T>
+concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copyable<T> && !std::is_pointer_v<T>);
+
+/**
  * @brief VkCommandBuffer wrapper, allocated from its pool, base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer
- * @details the derived classes add the begin of the recording and their commands, no members,
+ * @details the derived classes add the begin of the recording and their commands,
  *  the destructor is protected: delete through the derived class
  */
 class BaseCmdBuffer {
 public:
     using vk_handle_t = VkCommandBuffer;
     struct State;
-
-    /**
-     * @brief the rendering the command buffer is inside
-     */
-    struct Rendering {
-        /**
-         * @brief what a secondary inherits, the flags without VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
-         */
-        RenderingInheritance inheritance;
-
-        /**
-         * @brief flags of the rendering
-         */
-        VkRenderingFlags flags = 0;
-
-        /**
-         * @brief images of the attachments, empty if inherited
-         */
-        std::vector<not_null_ptr<Image const>> attachments{};
-
-        /**
-         * @brief true -> a secondary that inherits the rendering of its primary
-         */
-        bool inherited = false;
-
-        /**
-         * @brief render area, inherited -> unknown
-         */
-        VkRect2D area{};
-    };
 
     /**
      * @brief wraps the state
@@ -121,47 +106,38 @@ public:
     /**
      * @brief begins a dynamic rendering
      * @details std::nullopt @ref RenderingInfo::area -> the extent that fits every attachment
-     * @pre @ref recording(), !@ref rendering()
+     * @pre @ref recording(), outside of a rendering
      * @pre the attachment views are created and have one mip level
      * @pre the attachment layouts are the layouts of the views
      * @pre the attachment layouts are attachment layouts (not undefined, transfer, shader read or present)
      * @pre color attachments have color formats, the depth and stencil attachments depth and stencil formats
-     * @post @ref rendering()
+     * @pre @ref AttachmentMapping::debug_check() passes for the color attachments
+     * @post @ref rendering() is the info with the area
+     * @note inline contents -> sets viewport 0 and scissor 0 to the area, depth 0 to 1
+     * @note a mapping other than the default -> sets it after the begin
      */
     void beginRendering(RenderingInfo const&);
 
     /**
      * @brief ends the dynamic rendering
-     * @pre @ref rendering() began with @ref beginRendering()
+     * @pre @ref rendering()
      */
     void endRendering();
 
     /**
      * @brief maps the attachments of the rendering to the fragment shader outputs and input attachments
-     * @details @ref beginRendering() sets the default mapping, the mapping holds until the next call
-     * @pre @ref rendering() began with @ref beginRendering()
+     * @details the mapping holds until the next call or the end of the rendering
+     * @pre @ref rendering()
      * @pre @ref AttachmentMapping::debug_check() passes for the color attachments of the rendering
-     * @post the inheritance of @ref rendering() has the mapping
+     * @post @ref rendering() has the mapping
      */
     void setAttachmentMapping(AttachmentMapping const&);
-
-    /**
-     * @brief sets viewport 0 to the area of the rendering, depth 0 to 1
-     * @pre @ref rendering() began with @ref beginRendering()
-     */
-    void setViewport() const;
 
     /**
      * @brief sets viewport 0
      * @pre @ref recording()
      */
     void setViewport(VkViewport const&) const;
-
-    /**
-     * @brief sets scissor 0 to the area of the rendering
-     * @pre @ref rendering() began with @ref beginRendering()
-     */
-    void setScissor() const;
 
     /**
      * @brief sets scissor 0
@@ -171,9 +147,9 @@ public:
 
     /**
      * @brief binds the pipeline to the graphics bind point
-     * @details inside the own rendering: sets the attachment mapping of the pipeline if the current one differs
+     * @details @ref rendering() -> sets the attachment mapping of the pipeline if the current one differs
      * @pre @ref recording(), @ref Pipeline::created()
-     * @pre inside an inherited rendering: the attachment mapping of the pipeline == the inherited one
+     * @pre a secondary inside the rendering of a primary -> the attachment mapping of the pipeline == the inherited one
      * @note outside of a rendering: sets no attachment mapping, the draws need the default of @ref beginRendering()
      */
     void bindPipeline(Pipeline const&);
@@ -195,30 +171,21 @@ public:
 
     /**
      * @brief records push constants
+     * @param data @ref push_constant_range -> the bytes of the elements, else the bytes of the value
      * @param offset in bytes
      * @pre @ref recording(), @ref PipelineLayout::created()
-     * @pre 0 < data.size(), offset and data.size() are multiples of 4
+     * @pre data has bytes, offset and the byte count are multiples of 4
      * @pre the push constant ranges of the layout cover the bytes for the stages
      */
-    void pushConstants(
-        PipelineLayout const&,
-        VkShaderStageFlags stages,
-        std::span<char const> data,
-        uint32_t offset = 0
-    ) const;
-
-    /**
-     * @brief records the value as push constants
-     * @details calls @ref pushConstants(PipelineLayout const&, VkShaderStageFlags, std::span<char const>, uint32_t)
-     */
-    template<class T> requires std::is_trivially_copyable_v<T>
+    template<push_constant_data T>
     void pushConstants(
         PipelineLayout const& layout,
         VkShaderStageFlags stages,
-        T const& value,
+        T const& data,
         uint32_t offset = 0
     ) const {
-        pushConstants(layout, stages, std::span{reinterpret_cast<char const*>(&value), sizeof(T)}, offset);
+        if constexpr(push_constant_range<T>) pushConstantBytes(layout, stages, std::as_bytes(std::span{data}), offset);
+        else pushConstantBytes(layout, stages, std::as_bytes(std::span{&data, 1}), offset);
     }
 
     /**
@@ -227,16 +194,6 @@ public:
      * @pre @ref recording(), buffer created with VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
      */
     void bindVertexBuffer(uint32_t binding, BaseBuffer const&, size_t offset = 0) const;
-
-    /**
-     * @brief binds the buffer to the vertex input binding
-     * @param firstVertex offset in elements
-     * @details calls @ref bindVertexBuffer(uint32_t, BaseBuffer const&, size_t)
-     */
-    template<class T>
-    void bindVertexBuffer(uint32_t binding, Buffer<T> const& buffer, size_t firstVertex = 0) const {
-        bindVertexBuffer(binding, static_cast<BaseBuffer const&>(buffer), firstVertex * sizeof(T));
-    }
 
     /**
      * @brief binds the index buffer
@@ -248,16 +205,17 @@ public:
 
     /**
      * @brief binds the index buffer, the index type follows from T
-     * @param firstIndex offset in elements
+     * @param offset in bytes
      * @details calls @ref bindIndexBuffer(BaseBuffer const&, VkIndexType, size_t)
      */
     template<index_element T>
-    void bindIndexBuffer(Buffer<T> const& buffer, size_t firstIndex = 0) const {
-        bindIndexBuffer(static_cast<BaseBuffer const&>(buffer), index_type<T>, firstIndex * sizeof(T));
+    void bindIndexBuffer(Buffer<T> const& buffer, size_t offset = 0) const {
+        bindIndexBuffer(static_cast<BaseBuffer const&>(buffer), index_type<T>, offset);
     }
 
     /**
-     * @pre @ref rendering()
+     * @pre @ref rendering() or a secondary inside the rendering of a primary
+     * @pre @ref rendering() -> without VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
      */
     void draw(
         uint32_t vertexCount,
@@ -267,7 +225,7 @@ public:
     ) const;
 
     /**
-     * @pre @ref rendering(), an index buffer is bound
+     * @pre the preconditions of @ref draw(), an index buffer is bound
      */
     void drawIndexed(
         uint32_t indexCount,
@@ -280,7 +238,7 @@ public:
     /**
      * @brief draws with the VkDrawIndirectCommands in the buffer
      * @param offset in bytes
-     * @pre @ref rendering(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
+     * @pre the preconditions of @ref draw(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
      * @pre the commands lie in the buffer
      */
     void drawIndirect(
@@ -293,7 +251,8 @@ public:
     /**
      * @brief draws with the VkDrawIndexedIndirectCommands in the buffer
      * @param offset in bytes
-     * @pre @ref rendering(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, an index buffer is bound
+     * @pre the preconditions of @ref draw(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
+     * @pre an index buffer is bound
      * @pre the commands lie in the buffer
      */
     void drawIndexedIndirect(
@@ -324,9 +283,10 @@ public:
     }
 
     /**
-     * @return the rendering the command buffer records into, nullptr -> outside of a rendering
+     * @return info of the rendering the command buffer began, with the area and the current attachment mapping
+     * @return nullptr -> no rendering of the command buffer
      */
-    [[nodiscard]] constexpr Rendering const* rendering() const {
+    [[nodiscard]] constexpr RenderingInfo const* rendering() const {
         return recording() && _rendering.has_value() ? &*_rendering : nullptr;
     }
 
@@ -344,13 +304,12 @@ protected:
 
     /**
      * @brief begins the recording
-     * @param inherited nullptr -> outside of a rendering, else the rendering of the primary
      * @pre @ref created()
      * @pre !@ref recording()
      * @post @ref recording()
      * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
      */
-    void begin(VkCommandBufferBeginInfo const&, RenderingInheritance const* inherited = nullptr);
+    void begin(VkCommandBufferBeginInfo const&);
 
 private:
     /**
@@ -369,13 +328,28 @@ private:
         not_null_ptr<CmdPool const> _pool;
     };
 
+    /**
+     * @brief records the attachment mapping of @ref rendering()
+     */
+    void recordAttachmentMapping() const;
+
+    /**
+     * @brief records the bytes as push constants
+     */
+    void pushConstantBytes(
+        PipelineLayout const&,
+        VkShaderStageFlags stages,
+        std::span<std::byte const> data,
+        uint32_t offset
+    ) const;
+
     void forget();
 
     unique_handle<vk_handle_t, pool_deleter> _handle;
     VkCommandBufferLevel _level;
     bool _recording = false;
     uint64_t _beginResets = 0;
-    std::optional<Rendering> _rendering = std::nullopt;
+    std::optional<RenderingInfo> _rendering = std::nullopt;
 
 public:
     BaseCmdBuffer(BaseCmdBuffer const& other) = delete;
@@ -444,8 +418,19 @@ public:
      * @brief records the secondary command buffers
      * @pre @ref recording()
      * @pre the secondaries are created and not recording
+     * @pre @ref rendering() -> VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
+     * @pre @ref rendering() -> the secondaries continue it with the current attachment mapping
+     * @pre outside of a rendering -> the secondaries continue no rendering
      */
     void execute(std::span<SecondaryCmdBuffer const> secondaries) const;
+
+    /**
+     * @brief what a secondary inherits from the rendering
+     * @details the formats and samples of the attachments, the flags without
+     *  VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT, the current attachment mapping
+     * @pre @ref rendering()
+     */
+    [[nodiscard]] RenderingInheritance inheritance() const;
 };
 }
 
@@ -491,10 +476,11 @@ public:
     void begin(VkCommandBufferUsageFlags usage = 0);
 
     /**
-     * @brief begins the recording for use inside a rendering with the attachments of the inheritance
+     * @brief begins the recording for use inside the rendering of a primary
      * @param usage VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, ...
      * @pre @ref created()
      * @pre !@ref recording()
+     * @pre @ref AttachmentMapping::debug_check() passes for the color formats
      * @post @ref recording()
      * @note adds VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT
      * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()

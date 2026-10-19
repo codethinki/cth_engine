@@ -84,7 +84,7 @@ struct AttachmentMapping {
 };
 
 /**
- * @brief formats, samples, view mask and attachment mapping of a rendering, what a secondary command buffer inherits
+ * @brief formats, samples, view mask, flags and attachment mapping of a rendering, what a secondary inherits from it
  */
 struct RenderingInheritance {
     std::vector<VkFormat> colorFormats{};
@@ -157,7 +157,7 @@ struct RenderingAttachment {
 };
 
 /**
- * @brief attachments, area and flags of a dynamic rendering
+ * @brief attachments, area, flags and attachment mapping of a dynamic rendering
  */
 struct RenderingInfo {
     std::vector<RenderingAttachment> colorAttachments{};
@@ -175,6 +175,11 @@ struct RenderingInfo {
      * @brief VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT -> secondaries record the rendering
      */
     VkRenderingFlags flags = 0;
+
+    /**
+     * @brief mapping at the begin, @ref BaseCmdBuffer::setAttachmentMapping() changes it inside the rendering
+     */
+    AttachmentMapping attachmentMapping{};
 };
 }
 

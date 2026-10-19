@@ -228,9 +228,10 @@ struct Barrier {
 private:
     /**
      * @brief checks the rules of barriers inside a dynamic rendering
+     * @param rendering the command buffer began
      */
     void debug_check_rendering(
-        BaseCmdBuffer::Rendering const&,
+        RenderingInfo const& rendering,
         std::span<VkMemoryBarrier2 const>,
         std::span<VkBufferMemoryBarrier2 const>,
         std::span<VkImageMemoryBarrier2 const>
