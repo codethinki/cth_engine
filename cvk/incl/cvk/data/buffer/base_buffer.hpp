@@ -118,14 +118,6 @@ public:
      */
     void stage(BaseCmdBuffer const&, BaseBuffer const& stagingBuffer, size_t dstOffset = 0) const;
 
-    /**
-     * @param size in bytes (VK_WHOLE_SIZE => to the end)
-     * @param offset in bytes
-     * @pre @ref created()
-     * @pre offset + size <= @ref size()
-     */
-    [[nodiscard]] constexpr VkDescriptorBufferInfo descriptorInfo(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
-
     static void destroy(DeviceTable table, VkBuffer);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
@@ -174,20 +166,6 @@ struct BaseBuffer::State {
      */
     std::optional<Memory::State> memory = std::nullopt;
 };
-}
-
-namespace cvk {
-constexpr VkDescriptorBufferInfo BaseBuffer::descriptorInfo(size_t size, size_t offset) const {
-    debug_check(*this);
-    CTH_CRITICAL(offset > _size, "offset must lie in the buffer") {}
-    CTH_CRITICAL(size != VK_WHOLE_SIZE && size > _size - offset, "range must lie in the buffer") {}
-
-    return VkDescriptorBufferInfo{
-        .buffer = get(),
-        .offset = offset,
-        .range = size == VK_WHOLE_SIZE ? _size - offset : size,
-    };
-}
 }
 
 namespace cvk {

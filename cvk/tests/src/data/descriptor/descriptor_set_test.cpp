@@ -115,11 +115,29 @@ CVK_TEST(DescriptorSet, write_buffer_and_image) {
     Sampler const sampler{context.core, {}, create};
 
     set.write(
-        std::array{
-            DescriptorWrite{.binding = 0, .buffers = {{&buffer, 0, 16}}},
-            DescriptorWrite{.binding = 1, .images = {{.view = &view, .sampler = &sampler}}},
+        std::array<DescriptorWrite, 2>{
+            BufferDescriptorWrite{.binding = 0, .buffers = {{&buffer, 0, 16}}},
+            ImageDescriptorWrite{.binding = 1, .images = {{.view = &view, .sampler = &sampler}}},
         }
     );
+}
+
+CVK_TEST(DescriptorSet, buffer_descriptor_info) {
+    test::Context const context{};
+    BaseBuffer const buffer{context.core, {.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT}, 256};
+
+    auto const whole = BufferDescriptor{&buffer}.info();
+    EXPECT_EQ(whole.buffer, buffer.get());
+    EXPECT_EQ(whole.offset, 0);
+    EXPECT_EQ(whole.range, 256);
+
+    auto const end = BufferDescriptor{.buffer = &buffer, .offset = 64}.info();
+    EXPECT_EQ(end.offset, 64);
+    EXPECT_EQ(end.range, 256 - 64);
+
+    auto const part = BufferDescriptor{.buffer = &buffer, .offset = 32, .size = 16}.info();
+    EXPECT_EQ(part.offset, 32);
+    EXPECT_EQ(part.range, 16);
 }
 
 CVK_TEST(DescriptorSet, variable_count) {
@@ -134,12 +152,10 @@ CVK_TEST(DescriptorSet, variable_count) {
 
     EXPECT_EQ(set.variableCount(), 8);
     set.write(
-        std::array{
-            DescriptorWrite{
-                .binding = 0,
-                .arrayElement = 6,
-                .images = {{.view = &view, .sampler = &sampler}, {.view = &view, .sampler = &sampler}},
-            },
+        ImageDescriptorWrite{
+            .binding = 0,
+            .arrayElement = 6,
+            .images = {{.view = &view, .sampler = &sampler}, {.view = &view, .sampler = &sampler}},
         }
     );
 }

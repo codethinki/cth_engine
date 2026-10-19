@@ -114,6 +114,12 @@ public:
      */
     void write(std::span<DescriptorWrite const>) const;
 
+    /**
+     * @brief writes the descriptors into the set
+     * @details calls @ref write(std::span<DescriptorWrite const>) const
+     */
+    void write(DescriptorWrite const& descriptorWrite) const { write({&descriptorWrite, 1}); }
+
     static void destroy(DeviceTable table, VkDescriptorPool, VkDescriptorSet);
 
     /**

@@ -145,23 +145,6 @@ CVK_TEST(Buffer, stage_elements) {
     readback.unmap();
 }
 
-CVK_TEST(Buffer, descriptor_info_in_elements) {
-    test::Context const context{};
-    Buffer<Vertex> const buffer{context.core, HOST_CONFIG, COUNT};
-
-    auto const whole = buffer.descriptorInfo();
-    EXPECT_EQ(whole.offset, 0);
-    EXPECT_EQ(whole.range, COUNT * sizeof(Vertex));
-
-    auto const end = buffer.descriptorInfo(VK_WHOLE_SIZE, 3);
-    EXPECT_EQ(end.offset, 3 * sizeof(Vertex));
-    EXPECT_EQ(end.range, (COUNT - 3) * sizeof(Vertex));
-
-    auto const part = buffer.descriptorInfo(2, 1);
-    EXPECT_EQ(part.offset, sizeof(Vertex));
-    EXPECT_EQ(part.range, 2 * sizeof(Vertex));
-}
-
 CVK_TEST(Buffer, release_and_wrap_as_bytes) {
     test::Context const context{};
     Buffer<Vertex> buffer{context.core, HOST_CONFIG, COUNT};

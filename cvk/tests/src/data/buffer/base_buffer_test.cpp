@@ -191,23 +191,6 @@ CVK_TEST(BaseBuffer, stage_the_whole_staging_buffer) {
     readback.memory().unmap();
 }
 
-CVK_TEST(BaseBuffer, descriptor_info) {
-    test::Context const context{};
-    BaseBuffer const buffer{context.core, DEVICE_CONFIG, SIZE};
-
-    auto const whole = buffer.descriptorInfo();
-    EXPECT_EQ(whole.buffer, buffer.get());
-    EXPECT_EQ(whole.offset, 0);
-    EXPECT_EQ(whole.range, SIZE);
-
-    auto const end = buffer.descriptorInfo(VK_WHOLE_SIZE, 64);
-    EXPECT_EQ(end.offset, 64);
-    EXPECT_EQ(end.range, SIZE - 64);
-
-    auto const part = buffer.descriptorInfo(16, 32);
-    EXPECT_EQ(part.range, 16);
-}
-
 CVK_TEST(BaseBuffer, release_and_wrap) {
     test::Context const context{};
     BaseBuffer buffer{context.core, DEVICE_CONFIG, SIZE};

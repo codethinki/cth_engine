@@ -6,7 +6,10 @@
 
 #include <volk.h>
 
+#include <cth/io/log.hpp>
+
 #include <cstdint>
+#include <variant>
 #include <vector>
 
 
@@ -56,18 +59,43 @@ struct BufferDescriptor {
      */
     size_t size = VK_WHOLE_SIZE;
 
-    [[nodiscard]] constexpr VkDescriptorBufferInfo info() const { return buffer->descriptorInfo(size, offset); }
+    /**
+     * @pre @ref BaseBuffer::created()
+     * @pre the range lies in the buffer
+     */
+    [[nodiscard]] constexpr VkDescriptorBufferInfo info() const {
+        BaseBuffer::debug_check(*buffer);
+        CTH_CRITICAL(offset > buffer->size(), "offset must lie in the buffer") {}
+        CTH_CRITICAL(size != VK_WHOLE_SIZE && size > buffer->size() - offset, "range must lie in the buffer") {}
+
+        return VkDescriptorBufferInfo{
+            .buffer = buffer->get(),
+            .offset = offset,
+            .range = size == VK_WHOLE_SIZE ? buffer->size() - offset : size,
+        };
+    }
 };
 
 /**
- * @brief descriptors for consecutive array elements of one binding
- * @details image bindings take @ref images, buffer bindings take @ref buffers
+ * @brief image descriptors for consecutive array elements of one image binding
  */
-struct DescriptorWrite {
+struct ImageDescriptorWrite {
     uint32_t binding = 0;
     uint32_t arrayElement = 0;
-
     std::vector<ImageDescriptor> images{};
+};
+
+/**
+ * @brief buffer descriptors for consecutive array elements of one buffer binding
+ */
+struct BufferDescriptorWrite {
+    uint32_t binding = 0;
+    uint32_t arrayElement = 0;
     std::vector<BufferDescriptor> buffers{};
 };
+
+/**
+ * @brief descriptors for consecutive array elements of one binding, the kind matches the binding type
+ */
+using DescriptorWrite = std::variant<ImageDescriptorWrite, BufferDescriptorWrite>;
 }

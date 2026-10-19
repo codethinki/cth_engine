@@ -163,11 +163,9 @@ namespace {
                 FULLSCREEN.size()
             } {
             input.write(
-                std::array{
-                    DescriptorWrite{
-                        .binding = 0,
-                        .images = {{.view = &first, .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR}},
-                    },
+                ImageDescriptorWrite{
+                    .binding = 0,
+                    .images = {{.view = &first, .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR}},
                 }
             );
             vertices.write(FULLSCREEN);

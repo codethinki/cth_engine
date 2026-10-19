@@ -99,13 +99,15 @@ public:
 
     /**
      * @brief counts a set of the pool
-     * @details @ref DescriptorSet::create() and @ref DescriptorSet::wrap() call it
+     * @details @ref DescriptorSet::create() and @ref DescriptorSet::wrap() call it,
+     *  code that keeps a released set of the pool may call it too
      */
     void add() const;
 
     /**
      * @brief stops to count a set of the pool
-     * @details @ref DescriptorSet::destroy() and @ref DescriptorSet::release() call it
+     * @details @ref DescriptorSet::destroy() and @ref DescriptorSet::release() call it,
+     *  code that frees a counted set itself calls it too
      * @pre !@ref unused()
      */
     void remove() const;

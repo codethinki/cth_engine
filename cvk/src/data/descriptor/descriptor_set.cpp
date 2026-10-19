@@ -3,6 +3,9 @@
 #include "cvk/base/core.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
+#include <span>
+#include <utility>
+#include <variant>
 #include <vector>
 
 
@@ -144,11 +147,20 @@ DescriptorSet::State DescriptorSet::release() {
 void DescriptorSet::write(span<DescriptorWrite const> writes) const {
     debug_check(*this);
 
+    auto const images = [](DescriptorWrite const& write) -> std::span<ImageDescriptor const> {
+        auto const* imageWrite = std::get_if<ImageDescriptorWrite>(&write);
+        return imageWrite != nullptr ? imageWrite->images : std::span<ImageDescriptor const>{};
+    };
+    auto const buffers = [](DescriptorWrite const& write) -> std::span<BufferDescriptor const> {
+        auto const* bufferWrite = std::get_if<BufferDescriptorWrite>(&write);
+        return bufferWrite != nullptr ? bufferWrite->buffers : std::span<BufferDescriptor const>{};
+    };
+
     size_t imageCount = 0;
     size_t bufferCount = 0;
     for(auto const& write : writes) {
-        imageCount += write.images.size();
-        bufferCount += write.buffers.size();
+        imageCount += images(write).size();
+        bufferCount += buffers(write).size();
     }
 
     // reserved: the writes point into the infos
@@ -160,35 +172,38 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
     vkWrites.reserve(writes.size());
 
     for(auto const& write : writes) {
-        auto const* binding = _layout->binding(write.binding);
-        CTH_CRITICAL(binding == nullptr, "the layout has no binding {}", write.binding) {}
+        auto const [bindingIndex, arrayElement] = std::visit(
+            [](auto const& w) { return std::pair{w.binding, w.arrayElement}; },
+            write
+        );
+        auto const* binding = _layout->binding(bindingIndex);
+        CTH_CRITICAL(binding == nullptr, "the layout has no binding {}", bindingIndex) {}
 
         auto const type = binding->descriptorType;
         auto const kind = descriptor_kind(type);
-        auto const count = static_cast<uint32_t>(kind == DescriptorKind::IMAGE ? write.images.size()
-            : write.buffers.size());
+        bool const imageWrite = std::holds_alternative<ImageDescriptorWrite>(write);
+        auto const count = static_cast<uint32_t>(imageWrite ? images(write).size() : buffers(write).size());
 
         CTH_CRITICAL(kind == DescriptorKind::UNSUPPORTED, "descriptor type not supported") {
-            details->add("binding: {}, type: {}", write.binding, type);
+            details->add("binding: {}, type: {}", bindingIndex, type);
         }
         CTH_CRITICAL(
-            (kind == DescriptorKind::IMAGE && !write.buffers.empty())
-            || (kind == DescriptorKind::BUFFER && !write.images.empty()),
-            "the descriptors must match the type of the binding"
+            (kind == DescriptorKind::IMAGE) != imageWrite,
+            "the kind of the write must match the type of the binding"
         ) {
-            details->add("binding: {}, type: {}", write.binding, type);
+            details->add("binding: {}, type: {}", bindingIndex, type);
         }
         CTH_CRITICAL(count == 0, "a write needs descriptors") {}
-        CTH_CRITICAL(write.arrayElement + count > capacity(*binding), "the descriptors must lie in the binding") {
-            details->add("binding: {}, first: {}, count: {}", write.binding, write.arrayElement, count);
+        CTH_CRITICAL(arrayElement + count > capacity(*binding), "the descriptors must lie in the binding") {
+            details->add("binding: {}, first: {}, count: {}", bindingIndex, arrayElement, count);
         }
 
         VkWriteDescriptorSet vkWrite{
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .pNext = nullptr,
             .dstSet = get(),
-            .dstBinding = write.binding,
-            .dstArrayElement = write.arrayElement,
+            .dstBinding = bindingIndex,
+            .dstArrayElement = arrayElement,
             .descriptorCount = count,
             .descriptorType = type,
             .pImageInfo = nullptr,
@@ -196,15 +211,15 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
             .pTexelBufferView = nullptr,
         };
 
-        if(kind == DescriptorKind::IMAGE) {
+        if(imageWrite) {
             vkWrite.pImageInfo = imageInfos.data() + imageInfos.size();
-            for(auto const& descriptor : write.images) {
+            for(auto const& descriptor : images(write)) {
                 debug_check_image(descriptor, type);
                 imageInfos.push_back(descriptor.info());
             }
         } else {
             vkWrite.pBufferInfo = bufferInfos.data() + bufferInfos.size();
-            for(auto const& descriptor : write.buffers)
+            for(auto const& descriptor : buffers(write))
                 bufferInfos.push_back(descriptor.info());
         }
 

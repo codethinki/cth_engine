@@ -155,19 +155,6 @@ public:
     }
 
     /**
-     * @param count (VK_WHOLE_SIZE => to the end)
-     * @param offset in elements
-     * @pre offset + count <= @ref elements()
-     * @details calls @ref BaseBuffer::descriptorInfo()
-     */
-    [[nodiscard]] constexpr VkDescriptorBufferInfo descriptorInfo(
-        size_t count = VK_WHOLE_SIZE,
-        size_t offset = 0
-    ) const {
-        return BaseBuffer::descriptorInfo(bytes(count), offset * sizeof(T));
-    }
-
-    /**
      * @brief copies the data to the mapped elements
      * @pre data.size() <= mapped.size()
      */
