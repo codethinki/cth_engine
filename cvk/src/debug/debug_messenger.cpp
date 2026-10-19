@@ -12,10 +12,21 @@ namespace cvk {
 DebugMessenger::DebugMessenger(Instance const& instance, Config config) : _config{std::move(config)},
     _handle{instance.get()} { Instance::debug_check(instance); }
 
+DebugMessenger::DebugMessenger(Instance const& instance, Config config, State const& state) : DebugMessenger{
+    instance,
+    std::move(config)
+} { wrap(state); }
+
 DebugMessenger::DebugMessenger(Instance const& instance, Config config, create_t) : DebugMessenger{
     instance,
     std::move(config)
 } { create(); }
+
+void DebugMessenger::wrap(State const& state) {
+    optDestroy();
+
+    _handle.reset(state.vkMessenger.get(), _handle.vkInstance());
+}
 
 void DebugMessenger::create() {
     optDestroy();

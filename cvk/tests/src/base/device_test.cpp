@@ -131,13 +131,15 @@ CVK_TEST(Device, release_and_wrap) {
     EXPECT_TRUE(device.queues().empty());
     EXPECT_EQ(state.vkDevice.get(), vkDevice);
     ASSERT_NE(state.functionTable, nullptr);
+    EXPECT_EQ(state.queueFamilyIndices, familyIndices);
 
     Device const wrapped{instance, physicalDevice, std::move(state)};
 
     ASSERT_TRUE(wrapped.created());
     EXPECT_EQ(wrapped.get(), vkDevice);
-    EXPECT_TRUE(wrapped.queues().empty());
-    wrapped.waitIdle();
+    ASSERT_EQ(wrapped.queues().size(), familyIndices.size());
+    for(auto const& queue : wrapped.queues())
+        queue.wait();
 }
 
 CVK_TEST(Device, wrap_without_table_loads_it) {

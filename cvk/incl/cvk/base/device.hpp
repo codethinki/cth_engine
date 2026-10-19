@@ -60,11 +60,11 @@ public:
     ~Device() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * @brief wraps the state and retrieves the queues of @ref State::queueFamilyIndices
      * @details nullptr @ref State::functionTable -> loads the functions
+     * @pre the device has the queues of @ref State::queueFamilyIndices
      * @post @ref created()
      * @note calls @ref optDestroy()
-     * @note does not retrieve queues
      */
     void wrap(State);
 
@@ -136,6 +136,7 @@ private:
     /**
      * @brief retrieves the queues
      * @param familyIndices family index of each queue
+     * @pre the device has the queues
      */
     void createQueues(std::span<queue_family_index_t const> familyIndices);
 
@@ -167,6 +168,11 @@ struct Device::State {
      * @details nullptr -> @ref wrap() loads it
      */
     std::unique_ptr<VolkDeviceTable> functionTable;
+
+    /**
+     * @brief family index of each queue, see @ref Config::queueFamilyIndices
+     */
+    std::vector<queue_family_index_t> queueFamilyIndices{};
 };
 }
 

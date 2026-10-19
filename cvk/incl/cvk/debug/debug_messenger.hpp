@@ -30,6 +30,14 @@ public:
     DebugMessenger(Instance const&, Config);
 
     /**
+     * @brief constructs and wraps
+     * @details calls:
+     * - @ref DebugMessenger(Instance const&, Config)
+     * - @ref wrap()
+     */
+    DebugMessenger(Instance const&, Config, State const&);
+
+    /**
      * @brief constructs and creates
      * @details calls:
      * - @ref DebugMessenger(Instance const&, Config)
@@ -42,6 +50,14 @@ public:
      * @note calls @ref optDestroy()
      */
     ~DebugMessenger() { optDestroy(); }
+
+    /**
+     * @brief wraps the state
+     * @pre the instance created the messenger
+     * @post @ref created()
+     * @note calls @ref optDestroy()
+     */
+    void wrap(State const&);
 
     /**
      * @brief creates the messenger

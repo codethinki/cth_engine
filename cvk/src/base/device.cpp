@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <ranges>
 
 
 namespace cvk {
@@ -41,6 +42,7 @@ void Device::wrap(State state) {
     }
 
     _handle.reset(state.vkDevice.get());
+    createQueues(state.queueFamilyIndices);
 }
 
 void Device::create(Config const& config) {
@@ -66,7 +68,8 @@ Device::State Device::release() {
 
     State state{
         .vkDevice = _handle.release(),
-        .functionTable = std::move(_functionTable)
+        .functionTable = std::move(_functionTable),
+        .queueFamilyIndices = {std::from_range, _queues | std::views::transform(&Queue::familyIndex)},
     };
     forget();
     return state;
@@ -178,7 +181,8 @@ void Device::createQueues(span<queue_family_index_t const> familyIndices) {
         VkQueue ptr = VK_NULL_HANDLE;
         table()->vkGetDeviceQueue(_handle.get(), familyIndex, queueIndex, &ptr);
 
-        CVK_STABLE_THROW(ptr == VK_NULL_HANDLE, "failed to get device queue") {}
+        // vkGetDeviceQueue() has no failure, a null queue means the device has no such queue
+        CTH_CRITICAL(ptr == VK_NULL_HANDLE, "the device has no queue {} in family {}", queueIndex, familyIndex) {}
 
         _queues.emplace_back(
             _physicalDevice->queueFamily(familyIndex)->properties,

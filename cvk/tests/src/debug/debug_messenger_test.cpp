@@ -117,6 +117,24 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
     DebugMessenger::destroy(instance.get(), state.vkMessenger.get());
 }
 
+CVK_TEST(DebugMessenger, release_and_wrap) {
+    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
+
+    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
+    auto const vkMessenger = messenger.get();
+
+    auto const state = messenger.release();
+    DebugMessenger const wrapped{instance, messenger.config(), state};
+
+    ASSERT_TRUE(wrapped.created());
+    EXPECT_EQ(wrapped.get(), vkMessenger);
+
+    received = 0;
+    submit_test_message(instance);
+    EXPECT_EQ(received, 1);
+}
+
 CVK_TEST(DebugMessenger, move_assignment_destroys_the_old_messenger) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 

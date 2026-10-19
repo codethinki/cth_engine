@@ -139,9 +139,18 @@ public:
     [[nodiscard]] constexpr std::span<Queue const> queues() const { return _queues; }
 
 private:
-    struct queue_mappings {
+    /**
+     * @brief physical device for a queue set and the mapping of the queues
+     */
+    struct device_pick {
+        std::unique_ptr<PhysicalDevice> physicalDevice;
         std::vector<queue_family_index_t> uniqueQueueFamilyIndices;
         std::vector<size_t> queuesToUniqueQueues;
+
+        /**
+         * @brief std::nullopt -> the config had no queue sets
+         */
+        std::optional<size_t> queueSetIndex = std::nullopt;
     };
     struct queue_set_relations {
         std::vector<QueueFamilyProperties> uniqueQueues;
@@ -151,10 +160,10 @@ private:
     void forget();
 
     /**
-     * @post sets @ref _physicalDevice and @ref _queueSetIndex
+     * @brief picks a physical device for the first possible queue set
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
      */
-    [[nodiscard]] queue_mappings createPhysicalDevice(std::span<Surface const> surfaces, Config const&);
+    [[nodiscard]] device_pick pickPhysicalDevice(std::span<Surface const> surfaces, Config const&) const;
 
     [[nodiscard]] static queue_set_relations createQueueSetRelations(
         queue_set_t const& queueSet,
@@ -164,11 +173,11 @@ private:
     /**
      * @return std::nullopt -> no physical device supports the queue set
      */
-    [[nodiscard]] std::optional<queue_mappings> tryCreatePhysicalDevice(
+    [[nodiscard]] std::optional<device_pick> tryPickPhysicalDevice(
         std::span<Surface const> surfaces,
         Config const&,
         queue_set_t const& queueSet
-    );
+    ) const;
 
     void createQueues(std::span<size_t const> queuesToUniqueQueues);
 
