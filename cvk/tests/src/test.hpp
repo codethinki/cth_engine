@@ -1,4 +1,6 @@
 #pragma once
+#include "cvk/base/instance_config.hpp"
+
 #include <cth/test.hpp>
 
 #include <filesystem>
@@ -11,7 +13,12 @@
 namespace cvk::test {
 constexpr std::string_view APP_NAME = "cvk_tests";
 
-inline std::vector<std::string> const NO_EXTENSIONS{};
+/**
+ * @brief instance config with @ref APP_NAME
+ */
+[[nodiscard]] inline InstanceConfig instance_config(std::vector<std::string> extensions = {}) {
+    return InstanceConfig{.appName = std::string{APP_NAME}, .extensions = std::move(extensions)};
+}
 
 /**
  * @brief glsl sources of the test shaders

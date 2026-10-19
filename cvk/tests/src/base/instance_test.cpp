@@ -2,6 +2,7 @@
 #include "validation.hpp"
 
 #include "cvk/base/instance.hpp"
+#include "cvk/utility/constants.hpp"
 
 #include <algorithm>
 #include <string>
@@ -10,16 +11,15 @@
 
 namespace cvk {
 using test::APP_NAME;
-using test::NO_EXTENSIONS;
 
 CVK_TEST(Instance, base_constructor_does_not_create) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS};
+    Instance const instance{test::instance_config()};
 
     EXPECT_FALSE(instance.created());
 }
 
 CVK_TEST(Instance, create_and_destroy) {
-    Instance instance{APP_NAME, NO_EXTENSIONS};
+    Instance instance{test::instance_config()};
 
     instance.create();
     ASSERT_TRUE(instance.created());
@@ -30,13 +30,13 @@ CVK_TEST(Instance, create_and_destroy) {
 }
 
 CVK_TEST(Instance, constructor_creates) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     EXPECT_TRUE(instance.created());
 }
 
 CVK_TEST(Instance, create_twice_loads_the_new_instance) {
-    Instance instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance instance{test::instance_config(), create};
 
     instance.create();
 
@@ -44,20 +44,29 @@ CVK_TEST(Instance, create_twice_loads_the_new_instance) {
     EXPECT_EQ(volkGetLoadedInstance(), instance.get());
 }
 
-CVK_TEST(Instance, reports_required_extensions) {
-    std::vector<std::string> const required{VK_KHR_SURFACE_EXTENSION_NAME};
+CVK_TEST(Instance, create_enables_the_extensions_of_the_config) {
+    std::string const surface{VK_KHR_SURFACE_EXTENSION_NAME};
+    Instance const instance{test::instance_config({surface}), create};
 
-    Instance const instance{APP_NAME, required};
-
-    EXPECT_TRUE(std::ranges::contains(instance.requiredExtensions(), std::string{VK_KHR_SURFACE_EXTENSION_NAME}));
+    EXPECT_TRUE(std::ranges::contains(instance.extensions(), surface));
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
+        std::string const debugUtils{VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
+        EXPECT_TRUE(std::ranges::contains(instance.extensions(), debugUtils));
+        EXPECT_NE(instance.debugMessenger(), nullptr);
+    }
 }
 
-CVK_TEST(Instance, missing_extension_throws) {
-    std::vector<std::string> const required{"VK_CVK_extension_that_does_not_exist"};
+CVK_TEST(Instance, create_with_a_missing_extension_throws_and_forgets) {
+    Instance instance{test::instance_config({"VK_CVK_extension_that_does_not_exist"})};
 
-    auto const construct = [&] { Instance const instance{APP_NAME, required}; };
+    EXPECT_THROW(instance.create(), cth::except::default_exception);
+    EXPECT_FALSE(instance.created());
+    EXPECT_TRUE(instance.extensions().empty());
+}
 
-    EXPECT_THROW(construct(), cth::except::default_exception);
+CVK_TEST(Instance, available_extensions_contain_the_surface) {
+    std::string const surface{VK_KHR_SURFACE_EXTENSION_NAME};
+    EXPECT_TRUE(std::ranges::contains(available_instance_extensions(), surface));
 }
 
 CVK_TEST(Instance, wrap_takes_ownership) {
@@ -83,7 +92,7 @@ CVK_TEST(Instance, wrap_takes_ownership) {
     VkInstance vkInstance = VK_NULL_HANDLE;
     ASSERT_EQ(vkCreateInstance(&createInfo, nullptr, &vkInstance), VK_SUCCESS);
 
-    Instance instance{APP_NAME, NO_EXTENSIONS, Instance::State{vkInstance, nullptr}};
+    Instance instance{test::instance_config(), Instance::State{vkInstance}};
 
     ASSERT_TRUE(instance.created());
     EXPECT_EQ(instance.get(), vkInstance);
@@ -96,8 +105,8 @@ CVK_TEST(Instance, wrap_takes_ownership) {
 CVK_TEST(Instance, move_assignment_takes_the_other_instance) {
     test::reset_validation_errors();
     {
-        Instance instance{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
-        Instance other{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
+        Instance instance{test::instance_config(), create, test::counting_messenger()};
+        Instance other{test::instance_config(), create, test::counting_messenger()};
         auto const vkInstance = other.get();
 
         instance = std::move(other);
@@ -109,15 +118,21 @@ CVK_TEST(Instance, move_assignment_takes_the_other_instance) {
 }
 
 CVK_TEST(Instance, release_and_wrap) {
-    Instance instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance instance{test::instance_config(), create};
     auto const vkInstance = instance.get();
+
+    auto const extensions = std::vector<std::string>{std::from_range, instance.extensions()};
 
     auto state = instance.release();
     EXPECT_FALSE(instance.created());
+    EXPECT_EQ(instance.debugMessenger(), nullptr);
     EXPECT_EQ(state.vkInstance.get(), vkInstance);
+    EXPECT_EQ(state.extensions, extensions);
 
-    Instance const wrapped{APP_NAME, NO_EXTENSIONS, std::move(state)};
+    Instance const wrapped{test::instance_config(), std::move(state)};
     ASSERT_TRUE(wrapped.created());
     EXPECT_EQ(wrapped.get(), vkInstance);
+    EXPECT_TRUE(std::ranges::equal(wrapped.extensions(), extensions));
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS) EXPECT_NE(wrapped.debugMessenger(), nullptr);
 }
 }

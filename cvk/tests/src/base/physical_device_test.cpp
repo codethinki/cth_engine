@@ -12,9 +12,6 @@
 
 
 namespace cvk {
-using test::APP_NAME;
-using test::NO_EXTENSIONS;
-
 namespace {
     /**
      * @brief one queue, some devices have one queue only
@@ -28,7 +25,7 @@ namespace {
 }
 
 CVK_TEST(PhysicalDevice, pick_finds_the_queues) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     auto const pick = pick_physical_device(instance, {}, QUEUES, constants::BASE_DEVICE_FEATURES);
 
@@ -44,7 +41,7 @@ CVK_TEST(PhysicalDevice, pick_finds_the_queues) {
 }
 
 CVK_TEST(PhysicalDevice, picked_device_has_the_features) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     auto const [device, _] = test::pick(instance, QUEUES);
 
@@ -55,26 +52,26 @@ CVK_TEST(PhysicalDevice, picked_device_has_the_features) {
 }
 
 CVK_TEST(PhysicalDevice, missing_names_the_extensions) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [device, _] = test::pick(instance, QUEUES);
 
     EXPECT_EQ(device.missing({}, UNKNOWN_EXTENSION), UNKNOWN_EXTENSION);
 }
 
 CVK_TEST(PhysicalDevice, pick_with_a_missing_extension_finds_nothing) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     EXPECT_FALSE(pick_physical_device(instance, {}, QUEUES, {}, UNKNOWN_EXTENSION).has_value());
 }
 
 CVK_TEST(PhysicalDevice, pick_present_without_surfaces_finds_nothing) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     EXPECT_FALSE(pick_physical_device(instance, {}, PRESENT_QUEUES, {}).has_value());
 }
 
 CVK_TEST(PhysicalDevice, pick_present_finds_a_family_of_the_surface) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
     std::array const surfaces{test::headless_surface(instance)};
 
     auto const [device, familyIndices] = test::pick(instance, PRESENT_QUEUES, surfaces);
@@ -85,7 +82,7 @@ CVK_TEST(PhysicalDevice, pick_present_finds_a_family_of_the_surface) {
 }
 
 CVK_TEST(PhysicalDevice, enumerate_without_surfaces_has_no_present) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     for(auto const& device : enumerate_physical_devices(instance))
         for(auto const& family : device.queueFamilies())
@@ -93,7 +90,7 @@ CVK_TEST(PhysicalDevice, enumerate_without_surfaces_has_no_present) {
 }
 
 CVK_TEST(PhysicalDevice, copy_keeps_the_queried_members) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [device, _] = test::pick(instance, QUEUES);
 
     PhysicalDevice const copy{device};
@@ -107,7 +104,7 @@ CVK_TEST(PhysicalDevice, copy_keeps_the_queried_members) {
 }
 
 CVK_TEST(PhysicalDevice, find_supported_format) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [device, _] = test::pick(instance, QUEUES);
 
     // R8G8B8A8_UNORM sampled images with optimal tiling are mandatory

@@ -236,7 +236,7 @@ CVK_TEST(unique_handle, instance_deleter) {
 
     test::reset_validation_errors();
     {
-        Instance const instance{test::APP_NAME, test::headless_extensions(), test::counting_messenger()};
+        Instance const instance{test::instance_config(test::headless_extensions()), create, test::counting_messenger()};
         auto surface = test::headless_surface(instance);
 
         instance_handle<Surface> handle{surface.release().vkSurface.get(), instance.get()};

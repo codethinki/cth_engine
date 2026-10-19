@@ -15,9 +15,6 @@
 
 
 namespace cvk {
-using test::APP_NAME;
-using test::NO_EXTENSIONS;
-
 namespace {
     /**
      * @brief one queue, some devices have one queue only
@@ -33,7 +30,7 @@ namespace {
 }
 
 CVK_TEST(Device, base_constructor_does_not_create) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, _] = test::pick(instance, QUEUES);
 
     Device const device{instance, physicalDevice};
@@ -43,7 +40,7 @@ CVK_TEST(Device, base_constructor_does_not_create) {
 }
 
 CVK_TEST(Device, create_retrieves_the_queue) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
 
     Device const device{instance, physicalDevice, Device::Config{familyIndices}};
@@ -64,7 +61,7 @@ CVK_TEST(Device, create_retrieves_the_queue) {
 }
 
 CVK_TEST(Device, create_retrieves_the_queues) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     auto const result = pick_physical_device(instance, {}, THREE_QUEUES, {});
     if(!result) GTEST_SKIP() << "needs a device with three queues";
@@ -88,7 +85,7 @@ CVK_TEST(Device, create_retrieves_the_queues) {
 }
 
 CVK_TEST(Device, queues_of_one_family_get_increasing_indices) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, _] = test::pick(instance, QUEUES);
 
     auto const families = physicalDevice.queueFamilies();
@@ -104,7 +101,7 @@ CVK_TEST(Device, queues_of_one_family_get_increasing_indices) {
 }
 
 CVK_TEST(Device, queues_work_after_move) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
 
     Device device{instance, physicalDevice, Device::Config{familyIndices}};
@@ -121,7 +118,7 @@ CVK_TEST(Device, queues_work_after_move) {
 }
 
 CVK_TEST(Device, release_and_wrap) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
 
     Device device{instance, physicalDevice, Device::Config{familyIndices}};
@@ -145,7 +142,7 @@ CVK_TEST(Device, release_and_wrap) {
 }
 
 CVK_TEST(Device, wrap_without_table_loads_it) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
 
     Device device{instance, physicalDevice, Device::Config{familyIndices}};
@@ -160,7 +157,7 @@ CVK_TEST(Device, wrap_without_table_loads_it) {
 }
 
 CVK_TEST(Device, release_twice_is_safe) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
 
     Device device{instance, physicalDevice, Device::Config{familyIndices}};
@@ -175,7 +172,7 @@ CVK_TEST(Device, release_twice_is_safe) {
 }
 
 CVK_TEST(Device, present_enables_swapchain_maintenance1) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
     std::array const surfaces{test::headless_surface(instance)};
     std::array const queues{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
 
@@ -208,7 +205,7 @@ CVK_TEST(Device, move_assignment_destroys_the_old_device) {
 
     test::reset_validation_errors();
     {
-        Instance const instance{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
+        Instance const instance{test::instance_config(), create, test::counting_messenger()};
         auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
 
         Device device{instance, physicalDevice, Device::Config{familyIndices}};

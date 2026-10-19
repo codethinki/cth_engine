@@ -17,9 +17,6 @@
 
 
 namespace cvk {
-using test::APP_NAME;
-using test::NO_EXTENSIONS;
-
 namespace {
     /**
      * @brief one queue, some devices have one queue only
@@ -38,7 +35,7 @@ namespace {
 }
 
 CVK_TEST(Core, base_constructor_does_not_create) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     Core const core{instance};
 
@@ -47,7 +44,7 @@ CVK_TEST(Core, base_constructor_does_not_create) {
 }
 
 CVK_TEST(Core, create_without_queue_sets) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     Core const core{instance, {}, CONFIG};
 
@@ -71,7 +68,7 @@ CVK_TEST(Core, create_without_queue_sets) {
 }
 
 CVK_TEST(Core, create_one_queue_per_entry) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     if(!pick_physical_device(instance, {}, TWO_QUEUES.queueProperties, constants::BASE_DEVICE_FEATURES))
         GTEST_SKIP() << "needs a device with two queues";
@@ -84,7 +81,7 @@ CVK_TEST(Core, create_one_queue_per_entry) {
 }
 
 CVK_TEST(Core, queue_set_group_shares_a_queue) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     auto config = TWO_QUEUES;
     config.queueSets.push_back(one_group(config.queueProperties.size()));
@@ -101,7 +98,7 @@ CVK_TEST(Core, queue_set_group_shares_a_queue) {
 }
 
 CVK_TEST(Core, first_possible_queue_set_wins) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     // no device has this many compute queues
     constexpr size_t queues = 256;
@@ -120,7 +117,7 @@ CVK_TEST(Core, first_possible_queue_set_wins) {
 }
 
 CVK_TEST(Core, no_suitable_device_throws) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     Core::Config const config{.queueProperties = {QueueFamilyProperties::PRESENT}};
 
     auto const construct = [&] { Core const core{instance, {}, config}; };
@@ -129,7 +126,7 @@ CVK_TEST(Core, no_suitable_device_throws) {
 }
 
 CVK_TEST(Core, release_and_wrap) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     Core core{instance, {}, CONFIG};
     auto const vkDevice = core.vkDevice();
@@ -149,7 +146,7 @@ CVK_TEST(Core, release_and_wrap) {
 }
 
 CVK_TEST(Core, wrap_without_queues_takes_the_device_queues) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     Core core{instance, {}, CONFIG};
     auto state = core.release();
@@ -161,7 +158,7 @@ CVK_TEST(Core, wrap_without_queues_takes_the_device_queues) {
 }
 
 CVK_TEST(Core, wrap_without_allocator_creates_one) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     Core core{instance, {}, CONFIG};
     auto state = core.release();
@@ -174,7 +171,7 @@ CVK_TEST(Core, wrap_without_allocator_creates_one) {
 }
 
 CVK_TEST(Core, queues_work_after_move) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     Core core{instance, {}, CONFIG};
     Core const moved{std::move(core)};
@@ -186,7 +183,7 @@ CVK_TEST(Core, queues_work_after_move) {
 }
 
 CVK_TEST(Core, present_queue_with_headless_surface) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
     std::array const surfaces{test::headless_surface(instance)};
 
     Core::Config const config{
@@ -205,7 +202,7 @@ CVK_TEST(Core, move_assignment_destroys_the_old_core) {
 
     test::reset_validation_errors();
     {
-        Instance const instance{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
+        Instance const instance{test::instance_config(), create, test::counting_messenger()};
 
         Core core{instance, {}, CONFIG};
         Core other{instance, {}, CONFIG};

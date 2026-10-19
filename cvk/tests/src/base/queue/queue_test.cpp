@@ -10,9 +10,6 @@
 
 
 namespace cvk {
-using test::APP_NAME;
-using test::NO_EXTENSIONS;
-
 namespace {
     constexpr std::array QUEUES{QueueFamilyProperties::GRAPHICS};
 
@@ -37,7 +34,7 @@ CVK_TEST(Queue, base_constructor_does_not_create) {
 }
 
 CVK_TEST(Queue, copies_share_the_queue) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
     Device const device{instance, physicalDevice, Device::Config{familyIndices}};
 
@@ -52,7 +49,7 @@ CVK_TEST(Queue, copies_share_the_queue) {
 }
 
 CVK_TEST(Queue, raw_submit_signals_the_fence) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
     Device const device{instance, physicalDevice, Device::Config{familyIndices}};
     auto const table = device.table();
@@ -70,7 +67,7 @@ CVK_TEST(Queue, raw_submit_signals_the_fence) {
 }
 
 CVK_TEST(Queue, raw_submit_without_fence) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
     Device const device{instance, physicalDevice, Device::Config{familyIndices}};
 
@@ -80,7 +77,7 @@ CVK_TEST(Queue, raw_submit_without_fence) {
 }
 
 CVK_TEST(Queue, release_and_wrap) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
     Device const device{instance, physicalDevice, Device::Config{familyIndices}};
 
@@ -98,7 +95,7 @@ CVK_TEST(Queue, release_and_wrap) {
 }
 
 CVK_TEST(Queue, present_family_can_present) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
     std::array const surfaces{test::headless_surface(instance)};
     std::array const queues{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
 

@@ -12,8 +12,6 @@
 
 
 namespace cvk {
-using test::APP_NAME;
-
 namespace {
     constexpr std::array PRESENT_QUEUES{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
 
@@ -24,7 +22,7 @@ namespace {
 }
 
 CVK_TEST(Surface, wrap_takes_ownership) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
 
     auto surface = test::headless_surface(instance);
 
@@ -36,7 +34,7 @@ CVK_TEST(Surface, wrap_takes_ownership) {
 }
 
 CVK_TEST(Surface, release_keeps_the_surface) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
     auto surface = test::headless_surface(instance);
 
     auto const state = surface.release();
@@ -46,7 +44,7 @@ CVK_TEST(Surface, release_keeps_the_surface) {
 }
 
 CVK_TEST(Surface, empty_config_allows_everything) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
     std::array const surfaces{test::headless_surface(instance, ALLOW_ALL)};
     auto const [device, _] = test::pick(instance, PRESENT_QUEUES, surfaces);
 
@@ -58,7 +56,7 @@ CVK_TEST(Surface, empty_config_allows_everything) {
 }
 
 CVK_TEST(Surface, formats_keep_the_allowed_order) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
     std::array const surfaces{test::headless_surface(instance, ALLOW_ALL)};
     auto const [device, _] = test::pick(instance, PRESENT_QUEUES, surfaces);
 
@@ -79,7 +77,7 @@ CVK_TEST(Surface, formats_keep_the_allowed_order) {
 }
 
 CVK_TEST(Surface, no_allowed_format_throws) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
     std::array const surfaces{test::headless_surface(instance, ALLOW_ALL)};
     auto const [device, _] = test::pick(instance, PRESENT_QUEUES, surfaces);
 
@@ -94,7 +92,7 @@ CVK_TEST(Surface, no_allowed_format_throws) {
 }
 
 CVK_TEST(Surface, capabilities) {
-    Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
+    Instance const instance{test::instance_config(test::headless_extensions()), create};
     std::array const surfaces{test::headless_surface(instance)};
     auto const [device, _] = test::pick(instance, PRESENT_QUEUES, surfaces);
 
@@ -108,7 +106,7 @@ CVK_TEST(Surface, move_assignment_destroys_the_old_surface) {
 
     test::reset_validation_errors();
     {
-        Instance const instance{APP_NAME, test::headless_extensions(), test::counting_messenger()};
+        Instance const instance{test::instance_config(test::headless_extensions()), create, test::counting_messenger()};
         auto surface = test::headless_surface(instance);
         auto other = test::headless_surface(instance);
         auto const vkSurface = other.get();

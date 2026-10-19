@@ -1,4 +1,5 @@
 #pragma once
+#include "instance_config.hpp"
 
 #include "cvk/debug/debug_messenger.hpp"
 #include "cvk/utility/constants.hpp"
@@ -10,13 +11,10 @@
 #include <cth/ptr.hpp>
 
 #include <array>
-#include <memory>
 #include <optional>
 #include <span>
 #include <string>
-#include <string_view>
 #include <vector>
-
 
 
 namespace cvk {
@@ -26,6 +24,7 @@ namespace cvk {
 class Instance {
 public:
     using vk_handle_t = VkInstance;
+    using Config = InstanceConfig;
     struct State;
 
     static constexpr std::array<char const*, 1> VALIDATION_LAYERS = {
@@ -51,35 +50,26 @@ public:
         },
     };
 
-    static constexpr std::array<std::string_view, 0> REQUIRED_INSTANCE_EXTENSIONS{};
-
     /**
      * @brief base constructor
-     * @details debug builds enable the validation layers with @ref VALIDATION_LAYER_SETTINGS
-     * @throws cth::except::default_exception reason: required instance extension missing
-     * @throws cth::except::default_exception reason: required validation layer missing
      */
-    Instance(std::string_view appName, std::span<std::string const> requiredExtensions);
-
-    /**
-     * @brief constructs and creates
-     * @details calls:
-     * - @ref Instance(std::string_view, std::span<std::string const>)
-     * - @ref create()
-     */
-    Instance(
-        std::string_view appName,
-        std::span<std::string const> requiredExtensions,
-        std::optional<DebugMessenger::Config> const& messengerConfig
-    );
+    explicit Instance(Config);
 
     /**
      * @brief constructs and wraps
      * @details calls:
-     * - @ref Instance(std::string_view, std::span<std::string const>)
+     * - @ref Instance(Config)
      * - @ref wrap()
      */
-    Instance(std::string_view appName, std::span<std::string const> requiredExtensions, State);
+    Instance(Config, State);
+
+    /**
+     * @brief constructs and creates
+     * @details calls:
+     * - @ref Instance(Config)
+     * - @ref create()
+     */
+    explicit Instance(Config, create_t, std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
 
     /**
      * @note calls @ref optDestroy()
@@ -95,13 +85,15 @@ public:
     void wrap(State);
 
     /**
-     * @brief creates the instance
+     * @brief creates the instance with the extensions of the config, debug builds with the validation layers
      * @param messengerConfig std::nullopt -> no messenger, debug builds use @ref DebugMessenger::Config::Default()
      * @pre @ref Cvk::initialized()
      * @post @ref created()
      * @post volk uses the functions of this instance
      * @note calls @ref optDestroy()
      * @note no validation layers -> no messenger
+     * @throws cvk::cvk_exception reason: instance extension missing
+     * @throws cvk::cvk_exception reason: validation layer missing
      * @throws cvk::vk_result_exception result of vkCreateInstance()
      */
     void create(std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
@@ -124,50 +116,37 @@ public:
     State release();
 
     /**
-     * @throws cth::except::default_exception reason: required extension missing
-     */
-    void checkInstanceExtensionSupport();
-
-    /**
-     * @throws cth::except::default_exception reason: required validation layer missing
-     */
-    void checkValidationLayerSupport();
-
-    /**
-     * @brief adds the extensions of the validation layers to the required extensions
-     * @note calls @ref checkValidationLayerSupport()
-     */
-    void enableValidationLayers();
-
-    [[nodiscard]] static std::vector<std::string> getAvailableValidationLayers();
-    [[nodiscard]] static std::vector<std::string> getAvailableInstanceExtensions();
-    [[nodiscard]] VkApplicationInfo appInfo() const;
-
-    /**
      * @pre volk loaded the instance functions, @ref create() and @ref wrap() load them
      */
     static void destroy(VkInstance);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
-    [[nodiscard]] constexpr std::vector<std::string> availableExtensions() const { return _availableExt; }
-    [[nodiscard]] constexpr std::vector<std::string> requiredExtensions() const { return _requiredExt; }
-    [[nodiscard]] constexpr std::vector<std::string> availableValidationLayers() const { return _availableLayers; }
+    [[nodiscard]] constexpr Config const& config() const { return _config; }
+
+    /**
+     * @return the enabled extensions, debug builds include @ref VALIDATION_LAYER_EXTENSIONS
+     */
+    [[nodiscard]] constexpr std::span<std::string const> extensions() const { return _extensions; }
+
+    /**
+     * @return nullptr -> no messenger
+     */
+    [[nodiscard]] constexpr DebugMessenger const* debugMessenger() const {
+        return _debugMessenger.has_value() ? &*_debugMessenger : nullptr;
+    }
 
 private:
     void forget();
 
-    std::string _name;
+    static void loadInstanceFunctions(vk_not_null<VkInstance>);
 
-    std::vector<std::string> _requiredExt{};
-    std::vector<std::string> _availableExt;
-    std::vector<std::string> _availableLayers{};
+    Config _config;
+    std::vector<std::string> _extensions{};
 
     // declared before the handle: move assignment destroys the old messenger before the old instance
-    std::unique_ptr<DebugMessenger> _debugMessenger = nullptr;
+    std::optional<DebugMessenger> _debugMessenger = std::nullopt;
     unique_handle<vk_handle_t, handle_deleter<Instance>> _handle;
-
-    static void loadInstanceFunctions(vk_not_null<VkInstance>);
 
 public:
     Instance(Instance const& other) = delete;
@@ -178,6 +157,18 @@ public:
     static constexpr void debug_check(Instance const&);
     static constexpr void debug_check_handle(vk_not_null<VkInstance>);
 };
+
+/**
+ * @brief queries the instance extensions of the loader and the implicit layers
+ * @pre @ref Cvk::initialized()
+ */
+[[nodiscard]] std::vector<std::string> available_instance_extensions();
+
+/**
+ * @brief queries the instance layers
+ * @pre @ref Cvk::initialized()
+ */
+[[nodiscard]] std::vector<std::string> available_layers();
 }
 
 
@@ -186,14 +177,20 @@ struct Instance::State {
     vk_not_null<VkInstance> vkInstance;
 
     /**
-     * @brief messenger of @ref vkInstance
-     * @note may be nullptr
+     * @brief messenger of @ref vkInstance, std::nullopt -> no messenger
      */
-    std::unique_ptr<DebugMessenger> debugMessenger;
+    std::optional<DebugMessenger> debugMessenger = std::nullopt;
+
+    /**
+     * @brief the extensions that the instance enables
+     */
+    std::vector<std::string> extensions{};
 };
 }
 
 namespace cvk {
-constexpr void Instance::debug_check(Instance const& instance) { debug_check_handle(instance.get()); }
+constexpr void Instance::debug_check(Instance const& instance) {
+    CTH_CRITICAL(!instance.created(), "instance must be created") {}
+}
 constexpr void Instance::debug_check_handle([[maybe_unused]] vk_not_null<VkInstance> vkInstance) {}
 }

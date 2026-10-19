@@ -8,9 +8,6 @@
 
 
 namespace cvk {
-using test::APP_NAME;
-using test::NO_EXTENSIONS;
-
 namespace {
     constexpr std::string_view TEST_MESSAGE = "cvk test message";
 
@@ -54,7 +51,7 @@ namespace {
 CVK_TEST(DebugMessenger, forwards_messages_to_the_callback) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     DebugMessenger const messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
     ASSERT_TRUE(messenger.created());
 
@@ -67,7 +64,7 @@ CVK_TEST(DebugMessenger, forwards_messages_to_the_callback) {
 CVK_TEST(DebugMessenger, accepts_a_lambda) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
 
     DebugMessenger::callback_t const callback = [](
         VkDebugUtilsMessageSeverityFlagBitsEXT,
@@ -89,7 +86,7 @@ CVK_TEST(DebugMessenger, accepts_a_lambda) {
 CVK_TEST(DebugMessenger, destroy_resets) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
 
     messenger.destroy();
@@ -104,7 +101,7 @@ CVK_TEST(DebugMessenger, destroy_resets) {
 CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
 
     auto const state = messenger.release();
@@ -120,7 +117,7 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
 CVK_TEST(DebugMessenger, release_and_wrap) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+    Instance const instance{test::instance_config(), create};
     DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
     auto const vkMessenger = messenger.get();
 
@@ -140,7 +137,7 @@ CVK_TEST(DebugMessenger, move_assignment_destroys_the_old_messenger) {
 
     test::reset_validation_errors();
     {
-        Instance const instance{APP_NAME, NO_EXTENSIONS, test::counting_messenger()};
+        Instance const instance{test::instance_config(), create, test::counting_messenger()};
         DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
         DebugMessenger other{instance, DebugMessenger::Config::Default(count_test_messages), create};
         auto const vkMessenger = other.get();
