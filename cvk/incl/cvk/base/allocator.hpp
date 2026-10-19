@@ -1,7 +1,7 @@
 #pragma once
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/handle/unique_handle.hpp"
 #include "cvk/utility/types.hpp"
-#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 #include <vk_mem_alloc.h>

@@ -6,7 +6,7 @@
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/render/sync/semaphore.hpp"
-#include "cvk/utility/core_handle.hpp"
+#include "cvk/utility/handle/core_handle.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>

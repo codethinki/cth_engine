@@ -1,7 +1,7 @@
 #pragma once
 #include "surface_config.hpp"
 
-#include "cvk/utility/instance_handle.hpp"
+#include "cvk/utility/handle/instance_handle.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>

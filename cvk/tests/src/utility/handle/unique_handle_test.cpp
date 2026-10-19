@@ -9,10 +9,10 @@
 #include "cvk/render/sync/timeline_semaphore.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
-#include "cvk/utility/core_handle.hpp"
-#include "cvk/utility/instance_handle.hpp"
-#include "cvk/utility/unique_handle.hpp"
-#include "cvk/utility/vma_handle.hpp"
+#include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/instance_handle.hpp"
+#include "cvk/utility/handle/unique_handle.hpp"
+#include "cvk/utility/handle/vma_handle.hpp"
 
 #include <concepts>
 #include <cstddef>

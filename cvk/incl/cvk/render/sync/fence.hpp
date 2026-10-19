@@ -1,6 +1,6 @@
 #pragma once
 #include "cvk/base/device_table.hpp"
-#include "cvk/utility/core_handle.hpp"
+#include "cvk/utility/handle/core_handle.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>

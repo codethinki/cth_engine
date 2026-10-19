@@ -1,8 +1,8 @@
 #pragma once
 #include "memory_config.hpp"
 
+#include "cvk/utility/handle/vma_handle.hpp"
 #include "cvk/utility/types.hpp"
-#include "cvk/utility/vma_handle.hpp"
 
 #include <volk.h>
 #include <vk_mem_alloc.h>

@@ -1,8 +1,9 @@
 #pragma once
+#include "core_handle.hpp"
+#include "unique_handle.hpp"
+
 #include "cvk/base/allocator.hpp"
 #include "cvk/base/core.hpp"
-#include "cvk/utility/core_handle.hpp"
-#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 #include <vk_mem_alloc.h>

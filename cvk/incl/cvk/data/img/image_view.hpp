@@ -4,7 +4,7 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/data/img/image.hpp"
 #include "cvk/utility/constants.hpp"
-#include "cvk/utility/core_handle.hpp"
+#include "cvk/utility/handle/core_handle.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>

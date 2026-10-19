@@ -5,8 +5,8 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/handle/unique_handle.hpp"
 #include "cvk/utility/types.hpp"
-#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 

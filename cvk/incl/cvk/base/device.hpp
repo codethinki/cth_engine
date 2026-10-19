@@ -3,8 +3,8 @@
 #include "device_table.hpp"
 
 #include "cvk/base/queue/queue.hpp"
+#include "cvk/utility/handle/unique_handle.hpp"
 #include "cvk/utility/types.hpp"
-#include "cvk/utility/unique_handle.hpp"
 
 #include <volk.h>
 
