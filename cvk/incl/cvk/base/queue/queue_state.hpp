@@ -29,7 +29,7 @@ struct QueueState {
      * @brief guards the vulkan queue, shared by every copy of the queue
      * @pre not nullptr
      */
-    std::shared_ptr<std::mutex> vkQueueMtx = std::make_shared<std::mutex>();
+    std::shared_ptr<std::mutex> vkQueueMtx;
 
 
     static constexpr void debug_check(QueueState const& state) {

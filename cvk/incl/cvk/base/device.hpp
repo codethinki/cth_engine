@@ -11,6 +11,7 @@
 #include <cth/io/log.hpp>
 
 #include <memory>
+#include <mutex>
 #include <span>
 #include <string>
 #include <unordered_map>
@@ -63,7 +64,9 @@ public:
     /**
      * @brief wraps the state and retrieves the queues of @ref State::queueFamilyIndices
      * @details nullptr @ref State::functionTable -> loads the functions
+     * @details empty @ref State::queueMutexes -> creates a mutex per queue
      * @pre the device has the queues of @ref State::queueFamilyIndices
+     * @pre empty @ref State::queueMutexes or one per queue
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
@@ -97,6 +100,7 @@ public:
 
     /**
      * @brief blocks until every queue of the device finished its work
+     * @details locks the mutexes of every queue, Vulkan requires it
      * @pre @ref created()
      * @throws cvk::vk_result_exception result of vkDeviceWaitIdle()
      */
@@ -147,9 +151,14 @@ private:
     /**
      * @brief retrieves the queues
      * @param familyIndices family index of each queue
+     * @param mutexes mutex of each queue, empty -> creates one per queue
      * @pre the device has the queues
+     * @pre empty mutexes or one per queue
      */
-    void createQueues(std::span<queue_family_index_t const> familyIndices);
+    void createQueues(
+        std::span<queue_family_index_t const> familyIndices,
+        std::span<std::shared_ptr<std::mutex> const> mutexes = {}
+    );
 
 
     not_null_ptr<Instance const> _instance;
@@ -186,6 +195,13 @@ struct Device::State {
      * @brief family index of each queue, see @ref Config::queueFamilyIndices
      */
     std::vector<queue_family_index_t> queueFamilyIndices{};
+
+    /**
+     * @brief mutex of each queue, the copies of a released queue keep locking the same mutex
+     * @details empty -> @ref wrap() creates a mutex per queue
+     * @pre empty or one per entry of @ref queueFamilyIndices
+     */
+    std::vector<std::shared_ptr<std::mutex>> queueMutexes{};
 
     /**
      * @brief the features that the device enables

@@ -61,9 +61,9 @@ CVK_TEST(Core, create_without_queue_sets) {
 
     for(size_t i = 0; i < CONFIG.queueProperties.size(); i++) {
         auto const& queue = core.queue(i);
-        ASSERT_TRUE(queue.created());
+        ASSERT_NE(queue.get(), VK_NULL_HANDLE);
         EXPECT_TRUE(contains(queue.familyProperties(), CONFIG.queueProperties[i]));
-        queue.wait();
+        queue.waitIdle();
     }
 }
 
@@ -142,7 +142,7 @@ CVK_TEST(Core, release_and_wrap) {
     EXPECT_EQ(wrapped.vkDevice(), vkDevice);
     EXPECT_EQ(wrapped.allocator().get(), vmaAllocator);
     ASSERT_EQ(wrapped.queues().size(), CONFIG.queueProperties.size());
-    wrapped.queue(0).wait();
+    wrapped.queue(0).waitIdle();
 }
 
 CVK_TEST(Core, wrap_without_queues_takes_the_device_queues) {
@@ -179,7 +179,7 @@ CVK_TEST(Core, queues_work_after_move) {
     EXPECT_FALSE(core.created());
     ASSERT_TRUE(moved.created());
     for(auto const& queue : moved.queues())
-        queue.wait();
+        queue.waitIdle();
 }
 
 CVK_TEST(Core, present_queue_with_headless_surface) {
@@ -193,7 +193,7 @@ CVK_TEST(Core, present_queue_with_headless_surface) {
     Core const core{instance, surfaces, config};
 
     ASSERT_TRUE(core.created());
-    EXPECT_TRUE(core.queue(0).can_present());
+    EXPECT_TRUE(core.queue(0).canPresent());
     EXPECT_TRUE(surfaces[0].supportsFamily(core.physicalDevice(), core.queue(0).familyIndex()));
 }
 
@@ -212,7 +212,7 @@ CVK_TEST(Core, move_assignment_destroys_the_old_core) {
 
         ASSERT_EQ(core.vkDevice(), vkDevice);
         EXPECT_FALSE(other.created());
-        core.queue(0).wait();
+        core.queue(0).waitIdle();
     }
     EXPECT_EQ(test::validation_errors(), 0);
 }

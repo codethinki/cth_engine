@@ -174,7 +174,7 @@ VkResult Swapchain::present(uint32_t imageIndex) {
         .pResults = nullptr,
     };
 
-    auto const result = _presentQueue->raw_present(info);
+    auto const result = _presentQueue->rawPresent(info);
     _acquired[imageIndex] = false;
     return result;
 }

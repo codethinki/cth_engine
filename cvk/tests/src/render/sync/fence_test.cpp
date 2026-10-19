@@ -87,7 +87,7 @@ CVK_TEST(Fence, submit_signals) {
     test::Context const context{};
     Fence const fence{context.core, 0};
 
-    context.core.queue(0).raw_submit(EMPTY_SUBMIT, fence.get());
+    context.core.queue(0).rawSubmit(EMPTY_SUBMIT, fence.get());
 
     fence.wait();
     EXPECT_TRUE(fence.signaled());
@@ -103,7 +103,7 @@ CVK_TEST(Fence, wait_reset_timeout_keeps_the_state) {
     EXPECT_EQ(fence.waitReset(0), VK_TIMEOUT);
     EXPECT_FALSE(fence.signaled());
 
-    context.core.queue(0).raw_submit(EMPTY_SUBMIT, fence.get());
+    context.core.queue(0).rawSubmit(EMPTY_SUBMIT, fence.get());
 
     EXPECT_EQ(fence.waitReset(UINT64_MAX), VK_SUCCESS);
     EXPECT_FALSE(fence.signaled());
@@ -146,7 +146,7 @@ CVK_TEST(Fence, extract_os_handle_waits_for_the_submit) {
     EXPECT_EQ(fence.exportTypes(), constants::OS_FENCE_HANDLE_TYPE);
 
     auto const& queue = context->core.queue(0);
-    queue.raw_submit(EMPTY_SUBMIT, fence.get());
+    queue.rawSubmit(EMPTY_SUBMIT, fence.get());
 
     auto const handle = fence.extractOsHandle();
     if(handle) EXPECT_EQ(cth::os::wait(handle.get(), std::chrono::seconds{5}), cth::os::wait_result::WAITED);
@@ -156,7 +156,7 @@ CVK_TEST(Fence, extract_os_handle_waits_for_the_submit) {
     EXPECT_FALSE(fence.signaled());
 #endif
 
-    queue.wait();
+    queue.waitIdle();
 }
 
 CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence) {

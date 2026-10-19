@@ -48,33 +48,13 @@ namespace {
     }
 }
 
-void Queue::wrap(State state) {
+Queue::Queue(QueueFamilyProperties familyProperties, State const& state) : _familyProperties{familyProperties},
+    _functions{state.functions.get()},
+    _handle{state.vkQueue.get()},
+    _handleMtx{state.vkQueueMtx},
+    _familyIndex{state.familyIndex},
+    _queueIndex{state.queueIndex} {
     State::debug_check(state);
-    optDestroy();
-
-    _handle = state.vkQueue.get();
-    _functions = state.functions.get();
-    _handleMtx = std::move(state.vkQueueMtx);
-    _familyIndex = state.familyIndex;
-    _queueIndex = state.queueIndex;
-}
-
-void Queue::destroy() {
-    debug_check(*this);
-    forget();
-}
-
-Queue::State Queue::release() {
-    debug_check(*this);
-    State state{
-        _functions,
-        _handle.get(),
-        _familyIndex,
-        _queueIndex,
-        std::move(_handleMtx),
-    };
-    forget();
-    return state;
 }
 
 void Queue::submit(span<SubmitInfo const> infos, Fence const* fence) const {
@@ -152,7 +132,7 @@ void Queue::submit(span<SubmitInfo const> infos, Fence const* fence) const {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit to queue") {}
 }
 
-void Queue::raw_submit(VkSubmitInfo2 const& submitInfo, VkFence fence) const {
+void Queue::rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence fence) const {
     debug_check(*this);
 
     VkResult result;
@@ -164,7 +144,7 @@ void Queue::raw_submit(VkSubmitInfo2 const& submitInfo, VkFence fence) const {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit to queue") {}
 }
 
-VkResult Queue::raw_present(VkPresentInfoKHR const& presentInfo) const {
+VkResult Queue::rawPresent(VkPresentInfoKHR const& presentInfo) const {
     debug_check_present(*this);
 
     VkResult result;
@@ -182,7 +162,7 @@ VkResult Queue::raw_present(VkPresentInfoKHR const& presentInfo) const {
     return result;
 }
 
-void Queue::wait() const {
+void Queue::waitIdle() const {
     debug_check(*this);
 
     VkResult result;
@@ -192,13 +172,5 @@ void Queue::wait() const {
     }
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to wait for queue") {}
-}
-
-void Queue::forget() {
-    _functions = nullptr;
-    _handle = VK_NULL_HANDLE;
-    _handleMtx = nullptr;
-    _familyIndex = 0;
-    _queueIndex = 0;
 }
 }

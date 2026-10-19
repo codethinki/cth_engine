@@ -71,7 +71,7 @@ CVK_TEST(TimelineSemaphore, submit_signals_the_next_value) {
         .pSignalSemaphoreInfos = &signalInfo,
     };
 
-    context.core.queue(0).raw_submit(submit);
+    context.core.queue(0).rawSubmit(submit);
 
     semaphore.wait();
     EXPECT_EQ(semaphore.gpuValue(), signalInfo.value);

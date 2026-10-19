@@ -69,8 +69,8 @@ CVK_TEST(Semaphore, submit_signals_and_waits) {
         .pSignalSemaphoreInfos = nullptr,
     };
 
-    queue.raw_submit(signalSubmit);
-    queue.raw_submit(waitSubmit, fence.get());
+    queue.rawSubmit(signalSubmit);
+    queue.rawSubmit(waitSubmit, fence.get());
 
     fence.wait();
 }

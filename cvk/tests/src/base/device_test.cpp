@@ -51,11 +51,11 @@ CVK_TEST(Device, create_retrieves_the_queue) {
     ASSERT_EQ(device.queues().size(), 1);
 
     auto const& queue = device.queues()[0];
-    ASSERT_TRUE(queue.created());
+    ASSERT_NE(queue.get(), VK_NULL_HANDLE);
     EXPECT_EQ(queue.familyIndex(), familyIndices[0]);
     EXPECT_EQ(queue.index(), 0);
     EXPECT_TRUE(contains(queue.familyProperties(), QUEUES[0]));
-    queue.wait();
+    queue.waitIdle();
 
     device.waitIdle();
 }
@@ -74,11 +74,11 @@ CVK_TEST(Device, create_retrieves_the_queues) {
 
     std::map<queue_family_index_t, uint32_t> queueIndices{};
     for(auto const& [queue, familyIndex, properties] : std::views::zip(device.queues(), familyIndices, THREE_QUEUES)) {
-        ASSERT_TRUE(queue.created());
+        ASSERT_NE(queue.get(), VK_NULL_HANDLE);
         EXPECT_EQ(queue.familyIndex(), familyIndex);
         EXPECT_EQ(queue.index(), queueIndices[familyIndex]++);
         EXPECT_TRUE(contains(queue.familyProperties(), properties));
-        queue.wait();
+        queue.waitIdle();
     }
 
     device.waitIdle();
@@ -114,7 +114,7 @@ CVK_TEST(Device, queues_work_after_move) {
     EXPECT_EQ(moved.get(), vkDevice);
 
     for(auto const& queue : moved.queues())
-        queue.wait();
+        queue.waitIdle();
 }
 
 CVK_TEST(Device, release_and_wrap) {
@@ -138,7 +138,7 @@ CVK_TEST(Device, release_and_wrap) {
     EXPECT_EQ(wrapped.get(), vkDevice);
     ASSERT_EQ(wrapped.queues().size(), familyIndices.size());
     for(auto const& queue : wrapped.queues())
-        queue.wait();
+        queue.waitIdle();
 }
 
 CVK_TEST(Device, wrap_without_table_loads_it) {
@@ -190,7 +190,7 @@ CVK_TEST(Device, present_enables_swapchain_maintenance1) {
 
     ASSERT_TRUE(device.created());
     ASSERT_EQ(device.queues().size(), 1);
-    EXPECT_TRUE(device.queues()[0].can_present());
+    EXPECT_TRUE(device.queues()[0].canPresent());
     EXPECT_TRUE(device.features().swapchainMaintenance1);
 
     // the feature bit adds its extension
@@ -217,7 +217,7 @@ CVK_TEST(Device, move_assignment_destroys_the_old_device) {
         ASSERT_EQ(device.get(), vkDevice);
         EXPECT_FALSE(other.created());
         ASSERT_EQ(device.queues().size(), 1);
-        device.queues()[0].wait();
+        device.queues()[0].waitIdle();
         device.waitIdle();
     }
     EXPECT_EQ(test::validation_errors(), 0);

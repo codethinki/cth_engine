@@ -8,14 +8,12 @@
 
 
 namespace cvk {
-using cth::en::flag_val;
-
 enum class QueueFamilyProperties {
     NONE = 0,
-    GRAPHICS = flag_val(0),
-    COMPUTE = flag_val(1),
-    TRANSFER = flag_val(2),
-    PRESENT = flag_val(3)
+    GRAPHICS = cth::en::flag_val(0),
+    COMPUTE = cth::en::flag_val(1),
+    TRANSFER = cth::en::flag_val(2),
+    PRESENT = cth::en::flag_val(3)
 };
 }
 
@@ -49,11 +47,9 @@ struct QueueFamily {
             .vkProperties = vkProperties
         };
     }
-};
 
-constexpr bool operator==(QueueFamily const& l, QueueFamily const& r) {
-    return l.index == r.index && l.properties == r.properties && l.vkProperties == r.vkProperties;
-}
+    [[nodiscard]] constexpr bool operator==(QueueFamily const&) const = default;
+};
 }
 
 CTH_HASH_AGGREGATE(cvk::QueueFamily)

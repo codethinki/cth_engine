@@ -26,13 +26,6 @@ namespace {
     };
 }
 
-CVK_TEST(Queue, base_constructor_does_not_create) {
-    Queue const queue{QueueFamilyProperties::GRAPHICS};
-
-    EXPECT_FALSE(queue.created());
-    EXPECT_FALSE(queue.can_present());
-}
-
 CVK_TEST(Queue, copies_share_the_queue) {
     Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
@@ -41,11 +34,11 @@ CVK_TEST(Queue, copies_share_the_queue) {
     auto const& queue = device.queues()[0];
     Queue const copy{queue};
 
-    ASSERT_TRUE(copy.created());
     EXPECT_EQ(copy.get(), queue.get());
+    EXPECT_EQ(copy.mutex(), queue.mutex());
     EXPECT_EQ(copy.familyIndex(), queue.familyIndex());
     EXPECT_EQ(copy.index(), queue.index());
-    copy.wait();
+    copy.waitIdle();
 }
 
 CVK_TEST(Queue, raw_submit_signals_the_fence) {
@@ -59,7 +52,7 @@ CVK_TEST(Queue, raw_submit_signals_the_fence) {
     ASSERT_EQ(table->vkCreateFence(table.device(), &fenceInfo, nullptr, &fence), VK_SUCCESS);
 
     auto const& queue = device.queues()[0];
-    queue.raw_submit(EMPTY_SUBMIT, fence);
+    queue.rawSubmit(EMPTY_SUBMIT, fence);
 
     EXPECT_EQ(table->vkWaitForFences(table.device(), 1, &fence, VK_TRUE, UINT64_MAX), VK_SUCCESS);
 
@@ -72,26 +65,36 @@ CVK_TEST(Queue, raw_submit_without_fence) {
     Device const device{instance, physicalDevice, Device::Config{familyIndices}};
 
     auto const& queue = device.queues()[0];
-    queue.raw_submit(EMPTY_SUBMIT);
-    queue.wait();
+    queue.rawSubmit(EMPTY_SUBMIT);
+    queue.waitIdle();
 }
 
-CVK_TEST(Queue, release_and_wrap) {
+CVK_TEST(Queue, copies_keep_their_mutex_through_a_device_release_and_wrap) {
     Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
-    Device const device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device device{instance, physicalDevice, Device::Config{familyIndices}};
 
-    Queue copy{device.queues()[0]};
-    auto const vkQueue = copy.get();
+    Queue const copy{device.queues()[0]};
+    Device const wrapped{instance, physicalDevice, device.release()};
 
-    auto state = copy.release();
-    EXPECT_FALSE(copy.created());
+    ASSERT_EQ(wrapped.queues().size(), 1);
+    EXPECT_EQ(wrapped.queues()[0].get(), copy.get());
+    EXPECT_EQ(wrapped.queues()[0].mutex(), copy.mutex());
+    copy.waitIdle();
+}
 
-    Queue const wrapped{copy.familyProperties(), std::move(state)};
+CVK_TEST(Queue, wrap_without_mutexes_creates_them) {
+    Instance const instance{test::instance_config(), create};
+    auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
+    Device device{instance, physicalDevice, Device::Config{familyIndices}};
 
-    ASSERT_TRUE(wrapped.created());
-    EXPECT_EQ(wrapped.get(), vkQueue);
-    wrapped.wait();
+    auto state = device.release();
+    state.queueMutexes.clear();
+    Device const wrapped{instance, physicalDevice, std::move(state)};
+
+    ASSERT_EQ(wrapped.queues().size(), 1);
+    EXPECT_NE(wrapped.queues()[0].mutex(), nullptr);
+    wrapped.waitIdle();
 }
 
 CVK_TEST(Queue, present_family_can_present) {
@@ -102,6 +105,6 @@ CVK_TEST(Queue, present_family_can_present) {
     auto const [physicalDevice, familyIndices] = test::pick(instance, queues, surfaces);
     Device const device{instance, physicalDevice, Device::Config{familyIndices}};
 
-    EXPECT_TRUE(device.queues()[0].can_present());
+    EXPECT_TRUE(device.queues()[0].canPresent());
 }
 }

@@ -39,7 +39,7 @@ CVK_TEST(Submit, command_buffer_without_fence) {
 
     context.core.queue(0).submit({.cmdBuffers = {&primary}});
 
-    context.core.queue(0).wait();
+    context.core.queue(0).waitIdle();
 }
 
 CVK_TEST(Submit, binary_semaphore_orders_two_infos) {
@@ -90,7 +90,7 @@ CVK_TEST(Submit, explicit_timeline_value_keeps_the_counter) {
 
     context.core.queue(0).submit({.signals = {{timeline, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 5}}});
 
-    context.core.queue(0).wait();
+    context.core.queue(0).waitIdle();
     EXPECT_EQ(timeline.gpuValue(), 5);
     EXPECT_EQ(timeline.value(), 0);
 }
