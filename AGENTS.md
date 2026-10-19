@@ -169,7 +169,7 @@ public:
 
 - The first public section holds the API: types, constants, lifecycle, operations, accessors.
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
-- Classes that own a handle are move only. A class that differs (copyable, not movable, custom move) says so in its `@brief`.
+- Classes that own a handle are move only. A class that differs says so in its `@brief`: copyable, neither copyable nor movable, or a custom move.
 - Every class of a Vulkan or VMA object declares `using vk_handle_t = VkX;` as its first type, also classes that do not own their handle. `get()` returns `vk_handle_t`.
 - They store the handle in `cvk::unique_handle<Handle, Deleter>` (`cvk/utility/handle/unique_handle.hpp`): a `std::unique_ptr` with a deleter that holds the destroy context and calls the static `destroy`.
   Deleters: `core_deleter<T>` (the core), `vma_deleter<T>` (the core, destroys through its allocator), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context), a deleter derived from them or one of its own (`BaseCmdBuffer` frees through its pool).
