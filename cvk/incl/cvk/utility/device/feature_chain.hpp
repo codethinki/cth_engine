@@ -42,7 +42,7 @@ struct feature_struct;
 
 template<>
 struct feature_struct<VkPhysicalDeviceFeatures2> {
-    static constexpr VkStructureType TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
     static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceFeatures2, features);
     static constexpr size_t COUNT = sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32);
     static constexpr std::string_view EXTENSION{};
@@ -50,7 +50,7 @@ struct feature_struct<VkPhysicalDeviceFeatures2> {
 
 template<>
 struct feature_struct<VkPhysicalDeviceVulkan11Features> {
-    static constexpr VkStructureType TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
     static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceVulkan11Features, storageBuffer16BitAccess);
     static constexpr size_t COUNT =
         (offsetof(VkPhysicalDeviceVulkan11Features, shaderDrawParameters) - OFFSET) / sizeof(VkBool32) + 1;
@@ -59,7 +59,7 @@ struct feature_struct<VkPhysicalDeviceVulkan11Features> {
 
 template<>
 struct feature_struct<VkPhysicalDeviceVulkan12Features> {
-    static constexpr VkStructureType TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceVulkan12Features, samplerMirrorClampToEdge);
     static constexpr size_t COUNT =
         (offsetof(VkPhysicalDeviceVulkan12Features, subgroupBroadcastDynamicId) - OFFSET) / sizeof(VkBool32) + 1;
@@ -68,7 +68,7 @@ struct feature_struct<VkPhysicalDeviceVulkan12Features> {
 
 template<>
 struct feature_struct<VkPhysicalDeviceVulkan13Features> {
-    static constexpr VkStructureType TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceVulkan13Features, robustImageAccess);
     static constexpr size_t COUNT =
         (offsetof(VkPhysicalDeviceVulkan13Features, maintenance4) - OFFSET) / sizeof(VkBool32) + 1;
@@ -77,7 +77,7 @@ struct feature_struct<VkPhysicalDeviceVulkan13Features> {
 
 template<>
 struct feature_struct<VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR> {
-    static constexpr VkStructureType TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR;
+    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR;
     static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR, swapchainMaintenance1);
     static constexpr size_t COUNT = 1;
     static constexpr std::string_view EXTENSION = VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME;
@@ -85,7 +85,7 @@ struct feature_struct<VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR> {
 
 template<>
 struct feature_struct<VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR> {
-    static constexpr VkStructureType TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
+    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
     static constexpr size_t OFFSET =
         offsetof(VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR, dynamicRenderingLocalRead);
     static constexpr size_t COUNT = 1;
@@ -136,9 +136,8 @@ static_assert(alignof(DeviceFeatures) == 1, "DeviceFeatures must have bool field
 }
 
 /**
- * @brief the feature structs as one pNext chain for Vulkan
- * @details copyable, copy and move link the chain again,
- *  an extension struct is in the chain only with its extension
+ * @brief the feature structs as one pNext chain for Vulkan, not copyable, not movable: the chain points into the object
+ * @details an extension struct is in the chain only with its extension
  */
 class FeatureChain {
 public:
@@ -178,26 +177,16 @@ private:
     /**
      * @brief links the pNext members of the structs in @ref _linked
      */
-    void relink();
+    void link();
 
     feature_structs_t _structs;
     std::array<bool, FEATURE_STRUCTS> _linked{};
 
 public:
-    FeatureChain(FeatureChain const& other) : _structs{other._structs}, _linked{other._linked} { relink(); }
-    FeatureChain(FeatureChain&& other) noexcept : _structs{other._structs}, _linked{other._linked} { relink(); }
-    FeatureChain& operator=(FeatureChain const& other) {
-        _structs = other._structs;
-        _linked = other._linked;
-        relink();
-        return *this;
-    }
-    FeatureChain& operator=(FeatureChain&& other) noexcept {
-        _structs = other._structs;
-        _linked = other._linked;
-        relink();
-        return *this;
-    }
+    FeatureChain(FeatureChain const& other) = delete;
+    FeatureChain(FeatureChain&& other) = delete;
+    FeatureChain& operator=(FeatureChain const& other) = delete;
+    FeatureChain& operator=(FeatureChain&& other) = delete;
 };
 
 /**

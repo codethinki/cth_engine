@@ -4,6 +4,7 @@
 #include "cvk/utility/device/feature_chain.hpp"
 
 #include <string>
+#include <type_traits>
 #include <vector>
 
 
@@ -78,18 +79,9 @@ CVK_TEST(FeatureChain, links_the_structs_of_the_extensions) {
     EXPECT_EQ(chain_types(both), expected);
 }
 
-CVK_TEST(FeatureChain, copy_and_move_link_their_own_chain) {
-    FeatureChain const chain{DeviceFeatures{.multiview = true}, LOCAL_READ};
-
-    FeatureChain const copy{chain};
-    EXPECT_EQ(chain_types(copy), chain_types(chain));
-    EXPECT_EQ(copy.features(), chain.features());
-
-    FeatureChain moved{FeatureChain{chain}};
-    EXPECT_EQ(chain_types(moved), chain_types(chain));
-
-    moved = copy;
-    EXPECT_EQ(chain_types(moved), chain_types(chain));
+CVK_TEST(FeatureChain, is_not_copyable_or_movable) {
+    static_assert(!std::is_copy_constructible_v<FeatureChain> && !std::is_move_constructible_v<FeatureChain>);
+    static_assert(!std::is_copy_assignable_v<FeatureChain> && !std::is_move_assignable_v<FeatureChain>);
 }
 
 CVK_TEST(FeatureChain, bits_go_into_their_vulkan_member) {

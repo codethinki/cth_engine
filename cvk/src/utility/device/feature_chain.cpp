@@ -39,7 +39,7 @@ FeatureChain::FeatureChain(span<std::string const> extensions) :
         }()), ...);
     }(std::make_index_sequence<FEATURE_STRUCTS>{});
 
-    relink();
+    link();
 }
 
 FeatureChain::FeatureChain(DeviceFeatures const& features, span<std::string const> extensions) :
@@ -73,7 +73,7 @@ DeviceFeatures FeatureChain::features() const {
     return to_features(bits);
 }
 
-void FeatureChain::relink() {
+void FeatureChain::link() {
     void* next = nullptr;
 
     // back to front: each linked struct points to the next linked one
