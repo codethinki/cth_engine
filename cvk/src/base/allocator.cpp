@@ -25,11 +25,9 @@ void Allocator::wrap(State const& state) {
 void Allocator::create() {
     optDestroy();
 
-    auto const& physicalDevice = _device->physicalDevice();
-
     VmaAllocatorCreateInfo info{
-        .flags = flags(physicalDevice),
-        .physicalDevice = physicalDevice.get(),
+        .flags = flags(*_device),
+        .physicalDevice = _device->physicalDevice().get(),
         .device = _device->get(),
         .preferredLargeHeapBlockSize = 0,
         .pAllocationCallbacks = nullptr,
@@ -82,23 +80,14 @@ void Allocator::destroy(VmaAllocator vmaAllocator) {
     vmaDestroyAllocator(vmaAllocator);
 }
 
-VmaAllocatorCreateFlags Allocator::flags(PhysicalDevice const& physicalDevice) {
-    auto const& requiredFeatures = physicalDevice.requiredFeatures();
-    auto const requiredExtensions = physicalDevice.requiredExtensions();
-
-    auto const enabled = [requiredExtensions](std::string_view extension) {
-        return std::ranges::contains(requiredExtensions, extension);
-    };
+VmaAllocatorCreateFlags Allocator::flags(Device const& device) {
+    auto const& features = device.features();
 
     VmaAllocatorCreateFlags flags = 0;
-
-    if(requiredFeatures.features<VkPhysicalDeviceVulkan12Features>().bufferDeviceAddress == VK_TRUE)
-        flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-
-    if(requiredFeatures.features<VkPhysicalDeviceVulkan13Features>().maintenance4 == VK_TRUE)
-        flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
-
-    if(enabled(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME)) flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+    if(features.bufferDeviceAddress) flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    if(features.maintenance4) flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
+    if(std::ranges::contains(device.extensions(), std::string_view{VK_EXT_MEMORY_BUDGET_EXTENSION_NAME}))
+        flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
 
     return flags;
 }

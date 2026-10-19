@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <span>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
@@ -69,9 +70,8 @@ public:
     void wrap(State);
 
     /**
-     * @brief creates the device and retrieves the queues
-     * @details enables the required extensions and features of the physical device,
-     *  VK_KHR_swapchain_maintenance1 required -> enables the swapchainMaintenance1 feature
+     * @brief creates the device with the features and extensions of the config and retrieves the queues
+     * @pre the physical device has the features and the extensions of the config
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateDevice()
@@ -117,6 +117,16 @@ public:
     [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
     [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const { return *_physicalDevice; }
 
+    /**
+     * @return the enabled features
+     */
+    [[nodiscard]] constexpr DeviceFeatures const& features() const { return _features; }
+
+    /**
+     * @return the enabled extensions, the extensions of the features included
+     */
+    [[nodiscard]] constexpr std::span<std::string const> extensions() const { return _extensions; }
+
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
 
 private:
@@ -127,6 +137,7 @@ private:
     );
 
     /**
+     * @brief creates the device with @ref _features and @ref _extensions
      * @throws cvk::vk_result_exception result of vkCreateDevice()
      */
     void createLogicalDevice(queue_families_queue_counts_t const& queueFamiliesQueueCounts);
@@ -147,6 +158,8 @@ private:
     unique_handle<vk_handle_t, handle_deleter<Device>> _handle;
     std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();
 
+    DeviceFeatures _features{};
+    std::vector<std::string> _extensions{};
     std::vector<Queue> _queues{};
 
 public:
@@ -173,6 +186,16 @@ struct Device::State {
      * @brief family index of each queue, see @ref Config::queueFamilyIndices
      */
     std::vector<queue_family_index_t> queueFamilyIndices{};
+
+    /**
+     * @brief the features that the device enables
+     */
+    DeviceFeatures features{};
+
+    /**
+     * @brief the extensions that the device enables, the extensions of the features included
+     */
+    std::vector<std::string> extensions{};
 };
 }
 

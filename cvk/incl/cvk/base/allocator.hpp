@@ -11,7 +11,6 @@
 
 namespace cvk {
 class Device;
-class PhysicalDevice;
 
 /**
  * @brief VmaAllocator wrapper, allocates the memory of one device
@@ -61,8 +60,7 @@ public:
 
     /**
      * @brief creates the allocator
-     * @details the flags follow the device: @ref flags()
-     * @pre the device enabled the required extensions and features of its physical device
+     * @details the flags follow the enabled features and extensions of the device: @ref flags()
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vmaImportVulkanFunctionsFromVolk()
@@ -91,10 +89,10 @@ public:
     static void destroy(VmaAllocator);
 
     /**
-     * @return VMA flags for the required extensions and features of the physical device
+     * @return VMA flags for the enabled features and extensions of the device
      * @details bufferDeviceAddress, maintenance4, VK_EXT_memory_budget
      */
-    [[nodiscard]] static VmaAllocatorCreateFlags flags(PhysicalDevice const&);
+    [[nodiscard]] static VmaAllocatorCreateFlags flags(Device const&);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }

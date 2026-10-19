@@ -21,10 +21,11 @@ namespace cvk::test {
 [[nodiscard]] Surface headless_surface(Instance const&, Surface::Config = {});
 
 /**
- * @brief @ref PhysicalDevice::AutoPick() for tests
+ * @brief @ref pick_physical_device() with @ref constants::BASE_DEVICE_FEATURES
+ * @details a present queue adds @ref constants::PRESENT_DEVICE_FEATURES and @ref constants::PRESENT_DEVICE_EXTENSIONS
  * @throws std::bad_optional_access no device meets the requirements
  */
-[[nodiscard]] PhysicalDevice::CreateResult pick(
+[[nodiscard]] PhysicalDevicePick pick(
     Instance const&,
     std::span<QueueFamilyProperties const> queueProperties,
     std::span<Surface const> surfaces = {}

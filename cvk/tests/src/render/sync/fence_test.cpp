@@ -29,7 +29,7 @@ namespace {
 
     Core::Config os_fence_config() {
         auto config = test::Context::CONFIG;
-        config.requiredExtensions.append_range(
+        config.extensions.append_range(
             constants::OS_FENCE_DEVICE_EXTENSIONS | std::views::transform(
                 [](std::string_view extension) { return std::string{extension}; }
             )

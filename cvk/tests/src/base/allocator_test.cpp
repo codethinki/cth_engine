@@ -58,12 +58,12 @@ CVK_TEST(Allocator, move_assignment_destroys_the_old_allocator) {
     EXPECT_FALSE(other.created());
 }
 
-CVK_TEST(Allocator, flags_follow_the_required_features) {
+CVK_TEST(Allocator, flags_follow_the_enabled_features) {
     auto config = test::Context::CONFIG;
-    config.requiredFeatures.features<VkPhysicalDeviceVulkan12Features>().bufferDeviceAddress = VK_TRUE;
+    config.features.bufferDeviceAddress = true;
     test::Context const context{config};
 
-    auto const flags = Allocator::flags(context.core.physicalDevice());
+    auto const flags = Allocator::flags(context.core.device());
 
     EXPECT_NE(flags & VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, 0u);
 }
@@ -71,7 +71,7 @@ CVK_TEST(Allocator, flags_follow_the_required_features) {
 CVK_TEST(Allocator, no_flags_without_the_features) {
     test::Context const context{};
 
-    auto const flags = Allocator::flags(context.core.physicalDevice());
+    auto const flags = Allocator::flags(context.core.device());
 
     EXPECT_EQ(flags & VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, 0u);
 }

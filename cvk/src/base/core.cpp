@@ -5,6 +5,7 @@
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
 #include "cvk/surface/surface.hpp"
+#include "cvk/utility/constant/device_constants.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <ranges>
@@ -58,11 +59,16 @@ void Core::create(span<Surface const> surfaces, Config const& config) {
     optDestroy();
 
     // the members change after the last step that can throw, a throw leaves the core not created
-    auto pick = pickPhysicalDevice(surfaces, config);
+    auto required = requirements(config);
+    auto pick = pickPhysicalDevice(surfaces, config, required);
     auto device = std::make_unique<Device>(
         *_instance,
         *pick.physicalDevice,
-        Device::Config{std::move(pick.uniqueQueueFamilyIndices)}
+        Device::Config{
+            .queueFamilyIndices = std::move(pick.uniqueQueueFamilyIndices),
+            .features = required.features,
+            .extensions = std::move(required.extensions),
+        }
     );
     auto allocator = std::make_unique<Allocator>(*device, cvk::create);
 
@@ -130,15 +136,36 @@ void Core::forget() {
     _queueSetIndex = std::nullopt;
 }
 
-auto Core::pickPhysicalDevice(span<Surface const> surfaces, Config const& config) const -> device_pick {
+auto Core::requirements(Config const& config) -> device_requirements {
+    device_requirements required{.features = constants::BASE_DEVICE_FEATURES, .extensions = config.extensions};
+    required.features.merge(config.features);
+
+    bool const present = std::ranges::any_of(
+        config.queueProperties,
+        [](QueueFamilyProperties properties) { return contains(properties, QueueFamilyProperties::PRESENT); }
+    );
+    if(!present) return required;
+
+    required.features.merge(constants::PRESENT_DEVICE_FEATURES);
+    for(auto const extension : constants::PRESENT_DEVICE_EXTENSIONS)
+        if(!std::ranges::contains(required.extensions, extension)) required.extensions.emplace_back(extension);
+
+    return required;
+}
+
+auto Core::pickPhysicalDevice(
+    span<Surface const> surfaces,
+    Config const& config,
+    device_requirements const& required
+) const -> device_pick {
     if(config.queueSets.empty()) {
-        auto pick = tryPickPhysicalDevice(surfaces, config, queue_set_t{config.queueProperties.size()});
+        auto pick = tryPickPhysicalDevice(surfaces, config, required, queue_set_t{config.queueProperties.size()});
         CVK_STABLE_THROW(!pick, "no physical device supports the queues") {}
         return *std::move(pick);
     }
 
     for(auto const& [setIndex, queueSet] : std::views::enumerate(config.queueSets)) {
-        auto pick = tryPickPhysicalDevice(surfaces, config, queueSet);
+        auto pick = tryPickPhysicalDevice(surfaces, config, required, queueSet);
         if(!pick) continue;
 
         pick->queueSetIndex = static_cast<size_t>(setIndex);
@@ -177,19 +204,14 @@ auto Core::createQueueSetRelations(
 auto Core::tryPickPhysicalDevice(
     span<Surface const> surfaces,
     Config const& config,
+    device_requirements const& required,
     queue_set_t const& queueSet
 ) const -> std::optional<device_pick> {
     CTH_CRITICAL(queueSet.size() != config.queueProperties.size(), "queue set must span all queues") {}
 
     auto [uniqueQueues, queueToUniqueQueue] = createQueueSetRelations(queueSet, config.queueProperties);
 
-    auto result = PhysicalDevice::AutoPick(
-        *_instance,
-        surfaces,
-        uniqueQueues,
-        config.requiredExtensions,
-        config.requiredFeatures
-    );
+    auto result = pick_physical_device(*_instance, surfaces, uniqueQueues, required.features, required.extensions);
     if(!result) return std::nullopt;
 
     return device_pick{

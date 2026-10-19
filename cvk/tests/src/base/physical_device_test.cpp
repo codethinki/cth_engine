@@ -24,20 +24,16 @@ namespace {
     };
     constexpr std::array PRESENT_QUEUES{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
 
-    bool requires_extension(PhysicalDevice const& device, std::string_view extension) {
-        return std::ranges::contains(device.requiredExtensions(), extension);
-    }
+    std::vector<std::string> const UNKNOWN_EXTENSION{"VK_CVK_extension_that_does_not_exist"};
 }
 
-CVK_TEST(PhysicalDevice, auto_pick_finds_the_queues) {
+CVK_TEST(PhysicalDevice, pick_finds_the_queues) {
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
 
-    auto const result = PhysicalDevice::AutoPick(instance, {}, QUEUES);
+    auto const pick = pick_physical_device(instance, {}, QUEUES, constants::BASE_DEVICE_FEATURES);
 
-    ASSERT_TRUE(result.has_value());
-    auto const& [device, familyIndices] = *result;
-
-    ASSERT_TRUE(device.created());
+    ASSERT_TRUE(pick.has_value());
+    auto const& [device, familyIndices] = *pick;
     ASSERT_EQ(familyIndices.size(), QUEUES.size());
 
     for(auto const [familyIndex, properties] : std::views::zip(familyIndices, QUEUES)) {
@@ -47,81 +43,53 @@ CVK_TEST(PhysicalDevice, auto_pick_finds_the_queues) {
     }
 }
 
-CVK_TEST(PhysicalDevice, auto_pick_adds_the_defaults) {
+CVK_TEST(PhysicalDevice, picked_device_has_the_features) {
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
 
     auto const [device, _] = test::pick(instance, QUEUES);
 
-    EXPECT_TRUE(device.supports(constants::required_device_features()).empty());
-    EXPECT_TRUE(device.requiredFeatures().supports(constants::required_device_features()).empty());
-
-    for(auto const extension : constants::PRESENT_DEVICE_EXTENSIONS)
-        EXPECT_FALSE(requires_extension(device, extension)) << extension;
-    for(auto const extension : constants::REQUIRED_DEVICE_EXTENSIONS)
-        EXPECT_TRUE(requires_extension(device, extension)) << extension;
+    EXPECT_TRUE(device.missing(constants::BASE_DEVICE_FEATURES).empty());
+    EXPECT_TRUE(device.features().dynamicRenderingLocalRead);
+    std::string const localRead{VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME};
+    EXPECT_TRUE(std::ranges::contains(device.extensions(), localRead));
 }
 
-CVK_TEST(PhysicalDevice, queries_the_features_of_its_extensions) {
+CVK_TEST(PhysicalDevice, missing_names_the_extensions) {
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
-
     auto const [device, _] = test::pick(instance, QUEUES);
 
-    using local_read_t = VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR;
-    EXPECT_TRUE(device.features().linked<local_read_t>());
-    EXPECT_TRUE(device.features().features<local_read_t>().dynamicRenderingLocalRead);
+    EXPECT_EQ(device.missing({}, UNKNOWN_EXTENSION), UNKNOWN_EXTENSION);
 }
 
-CVK_TEST(PhysicalDevice, auto_pick_present_without_surfaces_finds_nothing) {
+CVK_TEST(PhysicalDevice, pick_with_a_missing_extension_finds_nothing) {
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
 
-    EXPECT_FALSE(PhysicalDevice::AutoPick(instance, {}, PRESENT_QUEUES).has_value());
+    EXPECT_FALSE(pick_physical_device(instance, {}, QUEUES, {}, UNKNOWN_EXTENSION).has_value());
 }
 
-CVK_TEST(PhysicalDevice, auto_pick_present_requires_the_present_extensions) {
+CVK_TEST(PhysicalDevice, pick_present_without_surfaces_finds_nothing) {
+    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
+
+    EXPECT_FALSE(pick_physical_device(instance, {}, PRESENT_QUEUES, {}).has_value());
+}
+
+CVK_TEST(PhysicalDevice, pick_present_finds_a_family_of_the_surface) {
     Instance const instance{APP_NAME, test::headless_extensions(), std::nullopt};
     std::array const surfaces{test::headless_surface(instance)};
 
     auto const [device, familyIndices] = test::pick(instance, PRESENT_QUEUES, surfaces);
 
-    for(auto const extension : constants::PRESENT_DEVICE_EXTENSIONS)
-        EXPECT_TRUE(requires_extension(device, extension)) << extension;
-
+    EXPECT_TRUE(device.features().swapchainMaintenance1);
     ASSERT_EQ(familyIndices.size(), 1);
     EXPECT_TRUE(surfaces[0].supportsFamily(device, familyIndices[0]));
 }
 
-CVK_TEST(PhysicalDevice, auto_pick_missing_extension_finds_nothing) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
-    std::vector<std::string> const extensions{"VK_CVK_extension_that_does_not_exist"};
-
-    EXPECT_FALSE(PhysicalDevice::AutoPick(instance, {}, QUEUES, extensions).has_value());
-}
-
-CVK_TEST(PhysicalDevice, query_queue_families_without_surfaces_has_no_present) {
+CVK_TEST(PhysicalDevice, enumerate_without_surfaces_has_no_present) {
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
 
-    for(auto const vkDevice : PhysicalDevice::enumerateVkDevices(instance.get()))
-        for(auto const& family : PhysicalDevice::queryQueueFamilies({}, vkDevice))
+    for(auto const& device : enumerate_physical_devices(instance))
+        for(auto const& family : device.queueFamilies())
             EXPECT_FALSE(contains(family.properties, QueueFamilyProperties::PRESENT));
-}
-
-CVK_TEST(PhysicalDevice, wrap_queries_the_missing_members) {
-    Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
-    auto const [picked, _] = test::pick(instance, QUEUES);
-
-    PhysicalDevice const device{
-        instance,
-        picked.requiredFeatures(),
-        picked.requiredExtensions(),
-        PhysicalDevice::State{.vkDevice = picked.get(), .queueFamilies = {}}
-    };
-
-    ASSERT_TRUE(device.created());
-    EXPECT_EQ(device.get(), picked.get());
-    EXPECT_EQ(device.maxSampleCount(), picked.maxSampleCount());
-    EXPECT_EQ(device.queueFamilies().size(), picked.queueFamilies().size());
-    EXPECT_TRUE(std::ranges::equal(device.extensions(), picked.extensions()));
-    EXPECT_STREQ(device.properties().deviceName, picked.properties().deviceName);
 }
 
 CVK_TEST(PhysicalDevice, copy_keeps_the_queried_members) {
@@ -131,9 +99,11 @@ CVK_TEST(PhysicalDevice, copy_keeps_the_queried_members) {
     PhysicalDevice const copy{device};
 
     EXPECT_EQ(copy.get(), device.get());
+    EXPECT_EQ(copy.features(), device.features());
+    EXPECT_TRUE(std::ranges::equal(copy.extensions(), device.extensions()));
     EXPECT_TRUE(std::ranges::equal(copy.queueFamilies(), device.queueFamilies()));
-    EXPECT_TRUE(copy.supports(device.requiredFeatures()).empty());
-    EXPECT_EQ(copy.features().get()->pNext, &copy.features().features<VkPhysicalDeviceVulkan11Features>());
+    EXPECT_EQ(copy.maxSampleCount(), device.maxSampleCount());
+    EXPECT_STREQ(copy.properties().deviceName, device.properties().deviceName);
 }
 
 CVK_TEST(PhysicalDevice, find_supported_format) {

@@ -17,7 +17,8 @@ Read it before you change a file. Match the existing code.
 | `lib/cmake` | one cmake file per library that adds it: `<libname>.cmake` |
 
 - Vulkan 1.3 is the baseline. Do not port code that 1.3 makes unnecessary (render passes, framebuffers, the old sync API).
-- Functionality beyond 1.3 comes from required extensions, not from a higher version: `VK_KHR_dynamic_rendering_local_read` gives tile-based GPUs subpass-like local reads in a dynamic rendering. Extension feature structs go into `utils::PhysicalDeviceFeatures`, `link()` puts them in the chain only with their extension.
+- Functionality beyond 1.3 comes from required extensions, not from a higher version: `VK_KHR_dynamic_rendering_local_read` gives tile-based GPUs subpass-like local reads in a dynamic rendering.
+- Device features are the `bool` fields of `DeviceFeatures` (`cvk/utility/device/device_features.hpp`). A true bit of an extension struct enables its extension. A new extension struct: an entry in `dev::feature_structs_t`, a `dev::feature_struct` specialization, its fields in `DeviceFeatures` in the same order.
 - Use the Vulkan C API through volk. Do not use Vulkan-Hpp.
 - Memory comes from VMA.
 - `cvk` destroys immediately. It has no destruction queue. Deferred destruction belongs to `jvk`.

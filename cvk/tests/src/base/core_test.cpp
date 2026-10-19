@@ -7,6 +7,7 @@
 #include "cvk/base/device.hpp"
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/utility/constant/device_constants.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -72,7 +73,7 @@ CVK_TEST(Core, create_without_queue_sets) {
 CVK_TEST(Core, create_one_queue_per_entry) {
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
 
-    if(!PhysicalDevice::AutoPick(instance, {}, TWO_QUEUES.queueProperties))
+    if(!pick_physical_device(instance, {}, TWO_QUEUES.queueProperties, constants::BASE_DEVICE_FEATURES))
         GTEST_SKIP() << "needs a device with two queues";
 
     Core const core{instance, {}, TWO_QUEUES};

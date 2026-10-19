@@ -2,6 +2,7 @@
 
 #include "cvk/utility/constant/device_constants.hpp"
 
+#include <algorithm>
 #include <ranges>
 
 
@@ -31,11 +32,24 @@ Surface headless_surface(Instance const& instance, Surface::Config config) {
     return Surface{instance, std::move(config), Surface::State{vkSurface}};
 }
 
-PhysicalDevice::CreateResult pick(
+PhysicalDevicePick pick(
     Instance const& instance,
     std::span<QueueFamilyProperties const> queueProperties,
     std::span<Surface const> surfaces
 ) {
-    return PhysicalDevice::AutoPick(instance, surfaces, queueProperties).value();
+    auto features = constants::BASE_DEVICE_FEATURES;
+    std::vector<std::string> extensions{};
+
+    bool const present = std::ranges::any_of(
+        queueProperties,
+        [](QueueFamilyProperties properties) { return contains(properties, QueueFamilyProperties::PRESENT); }
+    );
+    if(present) {
+        features.merge(constants::PRESENT_DEVICE_FEATURES);
+        for(auto const extension : constants::PRESENT_DEVICE_EXTENSIONS)
+            extensions.emplace_back(extension);
+    }
+
+    return pick_physical_device(instance, surfaces, queueProperties, features, extensions).value();
 }
 }

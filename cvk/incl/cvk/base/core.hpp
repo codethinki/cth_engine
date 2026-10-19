@@ -12,6 +12,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 #include <vector>
 
 
@@ -140,6 +141,14 @@ public:
 
 private:
     /**
+     * @brief features and extensions of the device
+     */
+    struct device_requirements {
+        DeviceFeatures features;
+        std::vector<std::string> extensions;
+    };
+
+    /**
      * @brief physical device for a queue set and the mapping of the queues
      */
     struct device_pick {
@@ -160,10 +169,19 @@ private:
     void forget();
 
     /**
+     * @return the base set, the config and the present set with a present queue
+     */
+    [[nodiscard]] static device_requirements requirements(Config const&);
+
+    /**
      * @brief picks a physical device for the first possible queue set
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
      */
-    [[nodiscard]] device_pick pickPhysicalDevice(std::span<Surface const> surfaces, Config const&) const;
+    [[nodiscard]] device_pick pickPhysicalDevice(
+        std::span<Surface const> surfaces,
+        Config const&,
+        device_requirements const&
+    ) const;
 
     [[nodiscard]] static queue_set_relations createQueueSetRelations(
         queue_set_t const& queueSet,
@@ -176,6 +194,7 @@ private:
     [[nodiscard]] std::optional<device_pick> tryPickPhysicalDevice(
         std::span<Surface const> surfaces,
         Config const&,
+        device_requirements const&,
         queue_set_t const& queueSet
     ) const;
 

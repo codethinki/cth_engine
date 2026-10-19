@@ -5,11 +5,13 @@
 #include "cvk/base/device.hpp"
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/utility/constant/device_constants.hpp"
 #include "cvk/utility/constants.hpp"
 
 #include <array>
 #include <map>
 #include <ranges>
+#include <string>
 
 
 namespace cvk {
@@ -64,7 +66,7 @@ CVK_TEST(Device, create_retrieves_the_queue) {
 CVK_TEST(Device, create_retrieves_the_queues) {
     Instance const instance{APP_NAME, NO_EXTENSIONS, std::nullopt};
 
-    auto const result = PhysicalDevice::AutoPick(instance, {}, THREE_QUEUES);
+    auto const result = pick_physical_device(instance, {}, THREE_QUEUES, {});
     if(!result) GTEST_SKIP() << "needs a device with three queues";
     auto const& [physicalDevice, familyIndices] = *result;
 
@@ -179,11 +181,24 @@ CVK_TEST(Device, present_enables_swapchain_maintenance1) {
 
     auto const [physicalDevice, familyIndices] = test::pick(instance, queues, surfaces);
 
-    Device const device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device const device{
+        instance,
+        physicalDevice,
+        Device::Config{
+            .queueFamilyIndices = familyIndices,
+            .features = constants::PRESENT_DEVICE_FEATURES,
+            .extensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME},
+        }
+    };
 
     ASSERT_TRUE(device.created());
     ASSERT_EQ(device.queues().size(), 1);
     EXPECT_TRUE(device.queues()[0].can_present());
+    EXPECT_TRUE(device.features().swapchainMaintenance1);
+
+    // the feature bit adds its extension
+    std::string const maintenance1{VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME};
+    EXPECT_TRUE(std::ranges::contains(device.extensions(), maintenance1));
     EXPECT_NE(device.functions()->vkCreateSwapchainKHR, nullptr);
     EXPECT_NE(device.functions()->vkReleaseSwapchainImagesKHR, nullptr);
 }

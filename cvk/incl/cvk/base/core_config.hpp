@@ -1,7 +1,7 @@
 #pragma once
 #include "queue/queue_family.hpp"
 
-#include "cvk/utility/device/physical_device_features.hpp"
+#include "cvk/utility/device/device_features.hpp"
 
 #include <cth/data/union_find.hpp>
 #include <cth/io/log.hpp>
@@ -29,14 +29,16 @@ struct CoreConfig {
     std::vector<queue_set_t> queueSets{};
 
     /**
-     * @brief device extensions in addition to the defaults of @ref PhysicalDevice::AutoPick()
+     * @brief device features besides @ref constants::BASE_DEVICE_FEATURES
+     * @details a present queue adds @ref constants::PRESENT_DEVICE_FEATURES
      */
-    std::vector<std::string> requiredExtensions{};
+    DeviceFeatures features{};
 
     /**
-     * @brief device features in addition to the defaults of @ref PhysicalDevice::AutoPick()
+     * @brief device extensions besides the extensions of the features
+     * @details a present queue adds @ref constants::PRESENT_DEVICE_EXTENSIONS
      */
-    utils::PhysicalDeviceFeatures requiredFeatures{};
+    std::vector<std::string> extensions{};
 
     static constexpr void debug_check(CoreConfig const& config);
 };

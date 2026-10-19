@@ -2,6 +2,7 @@
 
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/utility/device/feature_chain.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <cth/string.hpp>
@@ -42,11 +43,18 @@ void Device::wrap(State state) {
     }
 
     _handle.reset(state.vkDevice.get());
+    _features = state.features;
+    _extensions = std::move(state.extensions);
     createQueues(state.queueFamilyIndices);
 }
 
 void Device::create(Config const& config) {
     optDestroy();
+
+    _features = config.features;
+    _extensions = config.extensions;
+    for(auto const extension : dev::extensions_of(config.features))
+        if(!std::ranges::contains(_extensions, extension)) _extensions.emplace_back(extension);
 
     auto const& familyIndices = config.queueFamilyIndices;
     auto const queueCounts = calcQueueFamiliesQueueCounts(familyIndices);
@@ -70,6 +78,8 @@ Device::State Device::release() {
         .vkDevice = _handle.release(),
         .functionTable = std::move(_functionTable),
         .queueFamilyIndices = {std::from_range, _queues | std::views::transform(&Queue::familyIndex)},
+        .features = _features,
+        .extensions = std::move(_extensions),
     };
     forget();
     return state;
@@ -93,6 +103,8 @@ void Device::destroy(VkDevice vkDevice) {
 
 void Device::forget() {
     _queues.clear();
+    _features = {};
+    _extensions.clear();
 
     if(_functionTable == nullptr) _functionTable = std::make_unique<VolkDeviceTable>();
     std::memset(_functionTable.get(), 0, sizeof(VolkDeviceTable));
@@ -131,18 +143,8 @@ void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamil
             }
         );
     }
-    auto const requiredExtensions = cth::str::to_c_str_vector(_physicalDevice->requiredExtensions());
-
-    auto features = _physicalDevice->requiredFeatures();
-
-    bool const maintenance1 = std::ranges::contains(
-        _physicalDevice->requiredExtensions(),
-        std::string_view{VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME}
-    );
-    if(maintenance1)
-        features.features<VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR>().swapchainMaintenance1 = VK_TRUE;
-
-    features.link(_physicalDevice->requiredExtensions());
+    auto const extensions = cth::str::to_c_str_vector(_extensions);
+    dev::FeatureChain const features{_features, _extensions};
 
     VkDeviceCreateInfo const createInfo{
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -152,8 +154,8 @@ void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamil
         .pQueueCreateInfos = queueCreateInfos.data(),
         .enabledLayerCount = 0,
         .ppEnabledLayerNames = nullptr,
-        .enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size()),
-        .ppEnabledExtensionNames = requiredExtensions.data(),
+        .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
+        .ppEnabledExtensionNames = extensions.data(),
         .pEnabledFeatures = nullptr,
     };
     VkDevice ptr = VK_NULL_HANDLE;
