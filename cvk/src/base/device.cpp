@@ -9,7 +9,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <mutex>
 #include <ranges>
 #include <vector>
 
@@ -47,7 +46,7 @@ void Device::wrap(State state) {
     _handle.reset(state.vkDevice.get());
     _features = state.features;
     _extensions = std::move(state.extensions);
-    createQueues(state.queueFamilyIndices, state.queueMutexes);
+    createQueues(state.queueFamilyIndices);
 }
 
 void Device::create(Config const& config) {
@@ -80,7 +79,6 @@ Device::State Device::release() {
         .vkDevice = _handle.release(),
         .functionTable = std::move(_functionTable),
         .queueFamilyIndices = {std::from_range, _queues | std::views::transform(&Queue::familyIndex)},
-        .queueMutexes = {std::from_range, _queues | std::views::transform(&Queue::mutex)},
         .features = _features,
         .extensions = std::move(_extensions),
     };
@@ -90,19 +88,6 @@ Device::State Device::release() {
 
 void Device::waitIdle() const {
     debug_check(*this);
-
-    // one lock per mutex, in address order: no deadlock with another waitIdle()
-    std::vector<std::mutex*> mutexes{std::from_range, _queues | std::views::transform([](Queue const& queue) {
-        return queue.mutex().get();
-    })};
-    std::ranges::sort(mutexes);
-    auto const [end, _] = std::ranges::unique(mutexes);
-    mutexes.erase(end, mutexes.end());
-
-    std::vector<std::unique_lock<std::mutex>> locks{};
-    locks.reserve(mutexes.size());
-    for(auto* const mutex : mutexes)
-        locks.emplace_back(*mutex);
 
     auto const result = functions()->vkDeviceWaitIdle(_handle.get());
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to wait for device") {}
@@ -188,20 +173,12 @@ void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamil
 
 void Device::loadFunctionTable(VkDevice vkDevice) const { volkLoadDeviceTable(_functionTable.get(), vkDevice); }
 
-void Device::createQueues(
-    span<queue_family_index_t const> familyIndices,
-    span<std::shared_ptr<std::mutex> const> mutexes
-) {
-    CTH_CRITICAL(
-        !mutexes.empty() && mutexes.size() != familyIndices.size(),
-        "one mutex per queue or no mutexes"
-    ) {}
-
+void Device::createQueues(span<queue_family_index_t const> familyIndices) {
     std::unordered_map<uint32_t, uint32_t> queueCounts{};
 
     _queues.reserve(familyIndices.size());
 
-    for(auto const [i, familyIndex] : std::views::enumerate(familyIndices)) {
+    for(auto const familyIndex : familyIndices) {
         auto& queueIndex = queueCounts[familyIndex];
 
         VkQueue ptr = VK_NULL_HANDLE;
@@ -210,10 +187,9 @@ void Device::createQueues(
         // vkGetDeviceQueue() has no failure, a null queue means the device has no such queue
         CTH_CRITICAL(ptr == VK_NULL_HANDLE, "the device has no queue {} in family {}", queueIndex, familyIndex) {}
 
-        auto mutex = mutexes.empty() ? std::make_shared<std::mutex>() : mutexes[static_cast<size_t>(i)];
         _queues.emplace_back(
             _physicalDevice->queueFamily(familyIndex)->properties,
-            Queue::State{_functionTable.get(), ptr, familyIndex, queueIndex++, std::move(mutex)}
+            Queue::State{_functionTable.get(), ptr, familyIndex, queueIndex++}
         );
     }
 }

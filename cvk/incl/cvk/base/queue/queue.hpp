@@ -7,8 +7,6 @@
 
 #include <cth/io/log.hpp>
 
-#include <memory>
-#include <mutex>
 #include <span>
 
 
@@ -17,8 +15,9 @@ class Fence;
 
 /**
  * @brief VkQueue of a device
- * @details copyable, thread safe: copies share the mutex of the vulkan queue,
+ * @details copyable, copies share the vulkan queue,
  *  the device owns the vulkan queue, a queue has no lifecycle
+ * @attention not thread safe: one thread at a time per vulkan queue, Vulkan requires it
  */
 class Queue {
 public:
@@ -76,18 +75,11 @@ public:
     [[nodiscard]] constexpr uint32_t familyIndex() const { return _familyIndex; }
     [[nodiscard]] constexpr QueueFamilyProperties familyProperties() const { return _familyProperties; }
 
-    /**
-     * @brief guards the vulkan queue, shared by every copy
-     * @details code outside of cvk that uses @ref get() locks it
-     */
-    [[nodiscard]] constexpr std::shared_ptr<std::mutex> const& mutex() const { return _handleMtx; }
-
 private:
     QueueFamilyProperties _familyProperties;
     VolkDeviceTable const* _functions = nullptr;
 
     move_ptr<VkQueue_T> _handle = VK_NULL_HANDLE;
-    std::shared_ptr<std::mutex> _handleMtx{};
 
     uint32_t _familyIndex = 0;
     uint32_t _queueIndex = 0;

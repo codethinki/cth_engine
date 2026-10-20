@@ -35,7 +35,6 @@ CVK_TEST(Queue, copies_share_the_queue) {
     Queue const copy{queue};
 
     EXPECT_EQ(copy.get(), queue.get());
-    EXPECT_EQ(copy.mutex(), queue.mutex());
     EXPECT_EQ(copy.familyIndex(), queue.familyIndex());
     EXPECT_EQ(copy.index(), queue.index());
     copy.waitIdle();
@@ -69,7 +68,7 @@ CVK_TEST(Queue, raw_submit_without_fence) {
     queue.waitIdle();
 }
 
-CVK_TEST(Queue, copies_keep_their_mutex_through_a_device_release_and_wrap) {
+CVK_TEST(Queue, copies_keep_the_queue_through_a_device_release_and_wrap) {
     Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
     Device device{instance, physicalDevice, Device::Config{familyIndices}};
@@ -79,22 +78,7 @@ CVK_TEST(Queue, copies_keep_their_mutex_through_a_device_release_and_wrap) {
 
     ASSERT_EQ(wrapped.queues().size(), 1);
     EXPECT_EQ(wrapped.queues()[0].get(), copy.get());
-    EXPECT_EQ(wrapped.queues()[0].mutex(), copy.mutex());
     copy.waitIdle();
-}
-
-CVK_TEST(Queue, wrap_without_mutexes_creates_them) {
-    Instance const instance{test::instance_config(), create};
-    auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
-    Device device{instance, physicalDevice, Device::Config{familyIndices}};
-
-    auto state = device.release();
-    state.queueMutexes.clear();
-    Device const wrapped{instance, physicalDevice, std::move(state)};
-
-    ASSERT_EQ(wrapped.queues().size(), 1);
-    EXPECT_NE(wrapped.queues()[0].mutex(), nullptr);
-    wrapped.waitIdle();
 }
 
 CVK_TEST(Queue, present_family_can_present) {

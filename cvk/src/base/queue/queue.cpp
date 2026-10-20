@@ -51,11 +51,8 @@ namespace {
 Queue::Queue(QueueFamilyProperties familyProperties, State const& state) : _familyProperties{familyProperties},
     _functions{state.functions.get()},
     _handle{state.vkQueue.get()},
-    _handleMtx{state.vkQueueMtx},
     _familyIndex{state.familyIndex},
-    _queueIndex{state.queueIndex} {
-    State::debug_check(state);
-}
+    _queueIndex{state.queueIndex} {}
 
 void Queue::submit(span<SubmitInfo const> infos, Fence const* fence) const {
     debug_check(*this);
@@ -118,16 +115,12 @@ void Queue::submit(span<SubmitInfo const> infos, Fence const* fence) const {
         );
     }
 
-    VkResult result;
-    {
-        std::scoped_lock const lock{*_handleMtx};
-        result = _functions->vkQueueSubmit2(
-            _handle.get(),
-            static_cast<uint32_t>(submits.size()),
-            submits.data(),
-            fence != nullptr ? fence->get() : VK_NULL_HANDLE
-        );
-    }
+    auto const result = _functions->vkQueueSubmit2(
+        _handle.get(),
+        static_cast<uint32_t>(submits.size()),
+        submits.data(),
+        fence != nullptr ? fence->get() : VK_NULL_HANDLE
+    );
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit to queue") {}
 }
@@ -135,11 +128,7 @@ void Queue::submit(span<SubmitInfo const> infos, Fence const* fence) const {
 void Queue::rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence fence) const {
     debug_check(*this);
 
-    VkResult result;
-    {
-        std::scoped_lock const lock{*_handleMtx};
-        result = _functions->vkQueueSubmit2(_handle.get(), 1, &submitInfo, fence);
-    }
+    auto const result = _functions->vkQueueSubmit2(_handle.get(), 1, &submitInfo, fence);
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit to queue") {}
 }
@@ -147,11 +136,7 @@ void Queue::rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence fence) const {
 VkResult Queue::rawPresent(VkPresentInfoKHR const& presentInfo) const {
     debug_check_present(*this);
 
-    VkResult result;
-    {
-        std::scoped_lock const lock{*_handleMtx};
-        result = _functions->vkQueuePresentKHR(_handle.get(), &presentInfo);
-    }
+    auto const result = _functions->vkQueuePresentKHR(_handle.get(), &presentInfo);
 
     CVK_RESULT_STABLE_THROW(
         result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR,
@@ -165,11 +150,7 @@ VkResult Queue::rawPresent(VkPresentInfoKHR const& presentInfo) const {
 void Queue::waitIdle() const {
     debug_check(*this);
 
-    VkResult result;
-    {
-        std::scoped_lock const lock{*_handleMtx};
-        result = _functions->vkQueueWaitIdle(_handle.get());
-    }
+    auto const result = _functions->vkQueueWaitIdle(_handle.get());
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to wait for queue") {}
 }
