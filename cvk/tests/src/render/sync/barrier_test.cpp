@@ -53,19 +53,26 @@ CVK_TEST(Barrier, layout_transition_info_covers_the_remaining_mip_levels) {
 }
 
 CVK_TEST(Barrier, queue_transition_info_keeps_the_layout) {
-    constexpr auto info = ImageBarrierInfo::QueueTransition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {}, {});
+    constexpr auto info = ImageBarrierInfo::QueueTransition(
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        {.queueFamilyIndex = 1},
+        {.queueFamilyIndex = 0}
+    );
 
     static_assert(info.newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     static_assert(info.oldLayout == info.newLayout);
+    static_assert(info.dst.queueFamilyIndex == 1);
+    static_assert(info.src.queueFamilyIndex == 0);
 }
 
 CVK_TEST(Barrier, memory_barriers_are_constexpr) {
     static_assert([] {
         Barrier barrier{VK_DEPENDENCY_BY_REGION_BIT};
-        barrier.add(TRANSFER_WRITE, FRAGMENT_READ);
+        barrier.add(FRAGMENT_READ, TRANSFER_WRITE);
         bool const added = !barrier.empty();
+        bool const ordered = barrier.memory.front().dst.access == FRAGMENT_READ.access;
         barrier.clear();
-        return added && barrier.empty();
+        return added && ordered && barrier.empty();
     }());
 }
 
@@ -86,7 +93,7 @@ CVK_TEST(Barrier, add_and_clear) {
     Barrier barrier{};
     EXPECT_TRUE(barrier.empty());
 
-    barrier.add(TRANSFER_WRITE, FRAGMENT_READ);
+    barrier.add(FRAGMENT_READ, TRANSFER_WRITE);
     barrier.add(buffer, {.src = TRANSFER_WRITE, .dst = FRAGMENT_READ});
     EXPECT_FALSE(barrier.empty());
 
@@ -98,7 +105,7 @@ CVK_TEST(Barrier, execute_memory_and_buffer_barriers) {
     test::Context const context{};
     BaseBuffer const buffer{context.core, {.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT}, 64};
     Barrier barrier{VK_DEPENDENCY_BY_REGION_BIT};
-    barrier.add(TRANSFER_WRITE, FRAGMENT_READ);
+    barrier.add(FRAGMENT_READ, TRANSFER_WRITE);
     barrier.add(buffer, {.src = TRANSFER_WRITE, .dst = FRAGMENT_READ, .offset = 16, .size = 32});
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { barrier.execute(primary); });

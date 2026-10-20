@@ -81,13 +81,13 @@ struct ImageBarrierInfo {
     }
 
     /**
-     * @brief queue family ownership transfer without layout transition, src and dst name the families
+     * @brief queue family ownership transfer without layout transition, dst and src name the families
      * @param layout of the image
      */
     [[nodiscard]] static constexpr ImageBarrierInfo QueueTransition(
         VkImageLayout layout,
-        BarrierScope const& src,
-        BarrierScope const& dst
+        BarrierScope const& dst,
+        BarrierScope const& src
     ) {
         return ImageBarrierInfo{.src = src, .dst = dst, .newLayout = layout, .oldLayout = layout};
     }
@@ -111,9 +111,9 @@ struct BufferBarrierInfo {
     size_t size = VK_WHOLE_SIZE;
 
     /**
-     * @brief queue family ownership transfer, src and dst name the families
+     * @brief queue family ownership transfer, dst and src name the families
      */
-    [[nodiscard]] static constexpr BufferBarrierInfo QueueTransition(BarrierScope const& src, BarrierScope const& dst) {
+    [[nodiscard]] static constexpr BufferBarrierInfo QueueTransition(BarrierScope const& dst, BarrierScope const& src) {
         return BufferBarrierInfo{.src = src, .dst = dst};
     }
 };
@@ -176,7 +176,9 @@ struct Barrier {
     /**
      * @brief adds a global memory barrier
      */
-    constexpr void add(BarrierScope const& src, BarrierScope const& dst) { memory.push_back({src, dst}); }
+    constexpr void add(BarrierScope const& dst, BarrierScope const& src) {
+        memory.push_back({.src = src, .dst = dst});
+    }
 
     /**
      * @brief adds an image barrier
