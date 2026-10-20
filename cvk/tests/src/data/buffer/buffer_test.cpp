@@ -61,14 +61,6 @@ CVK_TEST(Buffer, elements_must_be_trivially_copyable) {
 
 CVK_TEST(Buffer, adds_no_members) { static_assert(sizeof(Buffer<Vertex>) == sizeof(BaseBuffer)); }
 
-CVK_TEST(Buffer, write_to_mapped_elements_is_constexpr) {
-    static_assert([] {
-        std::array<Vertex, 4> mapped{};
-        Buffer<Vertex>::write(TRIANGLE, mapped);
-        return mapped[2] == TRIANGLE[2] && mapped[3] == Vertex{};
-    }());
-}
-
 CVK_TEST(Buffer, create_counts_elements) {
     test::Context const context{};
 
@@ -86,10 +78,9 @@ CVK_TEST(Buffer, write_and_map) {
 
     buffer.write(TRIANGLE, 2);
 
-    auto const mapped = buffer.map(TRIANGLE.size(), 2);
+    auto const mapped = buffer.map({.offset = 2, .size = TRIANGLE.size()});
     buffer.invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, TRIANGLE));
-    buffer.unmap();
 }
 
 CVK_TEST(Buffer, map_whole_buffer) {
@@ -99,16 +90,13 @@ CVK_TEST(Buffer, map_whole_buffer) {
     auto const whole = buffer.map();
     EXPECT_EQ(whole.size(), COUNT);
 
-    Buffer<Vertex>::write(TRIANGLE, whole);
+    std::ranges::copy(TRIANGLE, whole.begin());
     buffer.flush();
-    buffer.flush(1, 2);
+    buffer.flush({.offset = 2, .size = 1});
 
-    auto const end = buffer.map(VK_WHOLE_SIZE, 5);
+    auto const end = buffer.map({.offset = 5});
     EXPECT_EQ(end.size(), COUNT - 5);
     EXPECT_EQ(end.data(), whole.data() + 5);
-
-    buffer.unmap();
-    buffer.unmap();
 }
 
 CVK_TEST(Buffer, copy_elements) {
@@ -118,31 +106,29 @@ CVK_TEST(Buffer, copy_elements) {
     staging.write(TRIANGLE, 1);
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        readback.copy(primary, staging, TRIANGLE.size(), 1, 4);
+        readback.copy(primary, staging, {.srcOffset = 1, .dstOffset = 4, .size = TRIANGLE.size()});
         test::host_read_barrier(context, primary);
     });
 
-    auto const mapped = readback.map(TRIANGLE.size(), 4);
+    auto const mapped = readback.map({.offset = 4, .size = TRIANGLE.size()});
     readback.invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, TRIANGLE));
-    readback.unmap();
 }
 
-CVK_TEST(Buffer, stage_elements) {
+CVK_TEST(Buffer, copy_the_whole_source_to_an_element) {
     test::Context const context{};
     Buffer<Vertex> const staging{context.core, STAGING_CONFIG, TRIANGLE.size()};
     Buffer<Vertex> const readback{context.core, READBACK_CONFIG, COUNT};
     staging.write(TRIANGLE);
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        readback.stage(primary, staging, 5);
+        readback.copy(primary, staging, {.dstOffset = 5});
         test::host_read_barrier(context, primary);
     });
 
-    auto const mapped = readback.map(TRIANGLE.size(), 5);
+    auto const mapped = readback.map({.offset = 5, .size = TRIANGLE.size()});
     readback.invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, TRIANGLE));
-    readback.unmap();
 }
 
 CVK_TEST(Buffer, release_and_wrap_as_bytes) {

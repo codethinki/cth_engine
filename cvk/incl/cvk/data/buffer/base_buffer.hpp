@@ -4,13 +4,16 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/data/memory/memory.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/range.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
 
+#include <cstddef>
 #include <optional>
+#include <span>
 
 
 namespace cvk {
@@ -18,9 +21,23 @@ class BaseCmdBuffer;
 class Core;
 
 /**
+ * @brief offsets and size of a buffer copy
+ * @details in bytes, in elements for a typed buffer
+ */
+struct BufferCopy {
+    size_t srcOffset = 0;
+    size_t dstOffset = 0;
+
+    /**
+     * @brief (VK_WHOLE_SIZE => as much as fits into both buffers)
+     */
+    size_t size = VK_WHOLE_SIZE;
+};
+
+/**
  * @brief VkBuffer wrapper, owns the buffer and its memory, sizes in bytes
  * @details @ref create() creates both with vmaCreateBuffer(),
- *  map, flush and write through @ref memory(),
+ *  map, flush, invalidate and write forward to the memory,
  *  @ref Buffer adds an element type
  */
 class BaseBuffer {
@@ -58,7 +75,7 @@ public:
 
     /**
      * @brief wraps the state
-     * @details std::nullopt @ref State::memory -> @ref destroy() only destroys the buffer
+     * @details std::nullopt @ref State::memory -> no own memory, @ref destroy() only destroys the buffer
      * @pre the buffer is bound to its memory
      * @pre the buffer was created with the usage of the config
      * @post @ref created()
@@ -95,28 +112,46 @@ public:
 
     /**
      * @brief records a copy from the source buffer
-     * @param size in bytes (VK_WHOLE_SIZE => as much as fits into both buffers)
-     * @param srcOffset in bytes
-     * @param dstOffset in bytes
+     * @param region in bytes
      * @pre @ref created() and src created
      * @pre @ref BaseCmdBuffer::recording()
      * @pre src usage has VK_BUFFER_USAGE_TRANSFER_SRC_BIT, the usage has VK_BUFFER_USAGE_TRANSFER_DST_BIT
      * @pre 0 < copied size, the ranges lie in the buffers
      */
-    void copy(
-        BaseCmdBuffer const&,
-        BaseBuffer const& src,
-        size_t size = VK_WHOLE_SIZE,
-        size_t srcOffset = 0,
-        size_t dstOffset = 0
-    ) const;
+    void copy(BaseCmdBuffer const&, BaseBuffer const& src, BufferCopy region = {}) const;
 
     /**
-     * @brief records a copy of the whole staging buffer
-     * @param dstOffset in bytes
-     * @details calls @ref copy()
+     * @brief maps the range of the memory
+     * @param range in bytes
+     * @return the mapped range, its destructor unmaps
+     * @pre @ref memory() != nullptr
+     * @details calls @ref Memory::map()
      */
-    void stage(BaseCmdBuffer const&, BaseBuffer const& stagingBuffer, size_t dstOffset = 0) const;
+    [[nodiscard]] Mapping<std::byte> map(Range range = {}) const;
+
+    /**
+     * @brief makes host writes visible to the device
+     * @param range in bytes
+     * @pre @ref memory() != nullptr, the memory is mapped
+     * @details calls @ref Memory::flush()
+     */
+    void flush(Range range = {}) const;
+
+    /**
+     * @brief makes device writes visible to the host
+     * @param range in bytes
+     * @pre @ref memory() != nullptr, the memory is mapped
+     * @details calls @ref Memory::invalidate()
+     */
+    void invalidate(Range range = {}) const;
+
+    /**
+     * @brief copies the data to the buffer
+     * @param offset in bytes
+     * @pre @ref memory() != nullptr
+     * @details calls @ref Memory::write()
+     */
+    void write(std::span<std::byte const> data, size_t offset = 0) const;
 
     static void destroy(DeviceTable table, VkBuffer);
 
@@ -131,16 +166,23 @@ public:
     [[nodiscard]] constexpr size_t size() const { return _size; }
 
     /**
-     * @return the memory of the buffer, not created -> the buffer does not own its memory
+     * @return nullptr -> the buffer does not own its memory
      */
-    [[nodiscard]] constexpr Memory const& memory() const { return _memory; }
+    [[nodiscard]] constexpr Memory const* memory() const {
+        return _memory.has_value() && _memory->created() ? &*_memory : nullptr;
+    }
 
 private:
     void forget();
 
+    /**
+     * @pre @ref memory() != nullptr
+     */
+    [[nodiscard]] constexpr Memory const& ownMemory() const;
+
     // declared before the memory: move assignment destroys the old buffer before its memory
     core_handle<BaseBuffer> _handle;
-    Memory _memory;
+    std::optional<Memory> _memory = std::nullopt;
     Config _config;
     size_t _size = 0;
 
@@ -169,6 +211,11 @@ struct BaseBuffer::State {
 }
 
 namespace cvk {
+constexpr Memory const& BaseBuffer::ownMemory() const {
+    CTH_CRITICAL(memory() == nullptr, "the buffer must own its memory") {}
+    return *_memory;
+}
+
 constexpr void BaseBuffer::debug_check(BaseBuffer const& buffer) {
     CTH_CRITICAL(!buffer.created(), "buffer must be created") {}
 }

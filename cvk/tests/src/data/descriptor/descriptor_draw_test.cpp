@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <ranges>
@@ -155,12 +156,11 @@ namespace {
     }
 
     void expect_green(Target const& target) {
-        auto const pixels = target.readback.memory().map(target.readback.size());
-        target.readback.memory().invalidate();
-        auto const asByte = [](char c) { return static_cast<unsigned char>(c); };
+        auto const pixels = target.readback.map();
+        target.readback.invalidate();
+        auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
         for(auto const pixel : pixels | std::views::chunk(4))
             EXPECT_TRUE(std::ranges::equal(pixel, GREEN_PIXEL, {}, asByte));
-        target.readback.memory().unmap();
     }
 }
 

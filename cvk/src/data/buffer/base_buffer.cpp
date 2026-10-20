@@ -9,8 +9,7 @@
 
 
 namespace cvk {
-BaseBuffer::BaseBuffer(Core const& core, Config const& config) : _handle{core}, _memory{core, config.memory},
-    _config{config} {
+BaseBuffer::BaseBuffer(Core const& core, Config const& config) : _handle{core}, _config{config} {
     Core::debug_check(core);
     Config::debug_check(config);
 }
@@ -25,7 +24,7 @@ void BaseBuffer::wrap(State const& state) {
     optDestroy();
 
     _handle.reset(state.vkBuffer.get(), core());
-    if(state.memory.has_value()) _memory.wrap(*state.memory);
+    if(state.memory.has_value()) _memory.emplace(core(), _config.memory, *state.memory);
     _size = state.size;
 }
 
@@ -33,7 +32,7 @@ void BaseBuffer::create(size_t size) {
     optDestroy();
 
     auto const bufferInfo = _config.createInfo(size);
-    auto const allocationInfo = _memory.config().createInfo();
+    auto const allocationInfo = _config.memory.createInfo();
 
     VkBuffer vkBuffer = VK_NULL_HANDLE;
     VmaAllocation vmaAllocation = VK_NULL_HANDLE;
@@ -52,7 +51,7 @@ void BaseBuffer::create(size_t size) {
     }
 
     _handle.reset(vkBuffer, core());
-    _memory.wrap(Memory::State{vmaAllocation});
+    _memory.emplace(core(), _config.memory, Memory::State{vmaAllocation});
     _size = size;
 }
 
@@ -60,7 +59,7 @@ void BaseBuffer::destroy() {
     debug_check(*this);
 
     _handle.reset();
-    _memory.optDestroy();
+    _memory.reset();
 
     forget();
 }
@@ -69,19 +68,15 @@ BaseBuffer::State BaseBuffer::release() {
     debug_check(*this);
 
     State state{.vkBuffer = _handle.release(), .size = _size, .memory = std::nullopt};
-    if(_memory.created()) state.memory = _memory.release();
+    if(_memory.has_value()) state.memory = _memory->release();
 
     forget();
     return state;
 }
 
-void BaseBuffer::copy(
-    BaseCmdBuffer const& cmdBuffer,
-    BaseBuffer const& src,
-    size_t size,
-    size_t srcOffset,
-    size_t dstOffset
-) const {
+void BaseBuffer::copy(BaseCmdBuffer const& cmdBuffer, BaseBuffer const& src, BufferCopy region) const {
+    auto const [srcOffset, dstOffset, size] = region;
+
     debug_check(*this);
     debug_check(src);
     CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
@@ -106,7 +101,7 @@ void BaseBuffer::copy(
         details->add("dst: {} + {} > {} (offset + size > dst size)", dstOffset, copySize, _size);
     }
 
-    VkBufferCopy2 const region{
+    VkBufferCopy2 const vkRegion{
         .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
         .pNext = nullptr,
         .srcOffset = srcOffset,
@@ -119,13 +114,29 @@ void BaseBuffer::copy(
         .srcBuffer = src.get(),
         .dstBuffer = get(),
         .regionCount = 1,
-        .pRegions = &region,
+        .pRegions = &vkRegion,
     };
     core().functions()->vkCmdCopyBuffer2(cmdBuffer.get(), &info);
 }
 
-void BaseBuffer::stage(BaseCmdBuffer const& cmdBuffer, BaseBuffer const& stagingBuffer, size_t dstOffset) const {
-    copy(cmdBuffer, stagingBuffer, stagingBuffer.size(), 0, dstOffset);
+Mapping<std::byte> BaseBuffer::map(Range range) const {
+    debug_check(*this);
+    return ownMemory().map(range);
+}
+
+void BaseBuffer::flush(Range range) const {
+    debug_check(*this);
+    ownMemory().flush(range);
+}
+
+void BaseBuffer::invalidate(Range range) const {
+    debug_check(*this);
+    ownMemory().invalidate(range);
+}
+
+void BaseBuffer::write(std::span<std::byte const> data, size_t offset) const {
+    debug_check(*this);
+    ownMemory().write(data, offset);
 }
 
 void BaseBuffer::destroy(DeviceTable table, VkBuffer vkBuffer) {
@@ -134,5 +145,8 @@ void BaseBuffer::destroy(DeviceTable table, VkBuffer vkBuffer) {
     table->vkDestroyBuffer(table.device(), vkBuffer, nullptr);
 }
 
-void BaseBuffer::forget() { _size = 0; }
+void BaseBuffer::forget() {
+    _memory.reset();
+    _size = 0;
+}
 }

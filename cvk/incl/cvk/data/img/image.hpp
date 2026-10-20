@@ -62,7 +62,7 @@ public:
 
     /**
      * @brief wraps the state
-     * @details std::nullopt @ref State::memory -> @ref destroy() only destroys the image
+     * @details std::nullopt @ref State::memory -> no own memory, @ref destroy() only destroys the image
      * @pre the image is bound to its memory
      * @pre the image was created with the config
      * @post @ref created()
@@ -140,16 +140,18 @@ public:
     [[nodiscard]] constexpr uint32_t mipLevels() const { return _config.mipLevels; }
 
     /**
-     * @return the memory of the image, not created -> the image does not own its memory
+     * @return nullptr -> the image does not own its memory
      */
-    [[nodiscard]] constexpr Memory const& memory() const { return _memory; }
+    [[nodiscard]] constexpr Memory const* memory() const {
+        return _memory.has_value() && _memory->created() ? &*_memory : nullptr;
+    }
 
 private:
     void forget();
 
     // declared before the memory: move assignment destroys the old image before its memory
     core_handle<Image> _handle;
-    Memory _memory;
+    std::optional<Memory> _memory = std::nullopt;
     Config _config;
     VkExtent2D _extent{};
 

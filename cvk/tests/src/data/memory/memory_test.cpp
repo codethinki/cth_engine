@@ -5,6 +5,8 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <ranges>
 
 
@@ -80,16 +82,16 @@ CVK_TEST(Memory, map_write_and_read) {
     test::Context const context{};
     Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
 
-    auto const written = memory.map();
-    ASSERT_EQ(written.size(), memory.size());
-    std::ranges::fill(written, 'x');
-    memory.flush();
-    memory.unmap();
+    {
+        auto const written = memory.map();
+        ASSERT_EQ(written.size(), memory.size());
+        std::ranges::fill(written, std::byte{'x'});
+        memory.flush();
+    }
 
     auto const read = memory.map();
     memory.invalidate();
-    EXPECT_TRUE(std::ranges::all_of(read, [](char const c) { return c == 'x'; }));
-    memory.unmap();
+    EXPECT_TRUE(std::ranges::all_of(read, [](std::byte b) { return b == std::byte{'x'}; }));
 }
 
 CVK_TEST(Memory, map_a_range) {
@@ -97,43 +99,63 @@ CVK_TEST(Memory, map_a_range) {
     Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
 
     auto const whole = memory.map();
-    auto const part = memory.map(16, 32);
+    auto const part = memory.map({.offset = 32, .size = 16});
+    auto const end = memory.map({.offset = 32});
 
     EXPECT_EQ(part.data(), whole.data() + 32);
     EXPECT_EQ(part.size(), 16);
-
-    auto const end = memory.map(VK_WHOLE_SIZE, 32);
     EXPECT_EQ(end.size(), memory.size() - 32);
-
-    memory.unmap();
-    memory.unmap();
-    memory.unmap();
 }
 
 CVK_TEST(Memory, write_copies_the_data) {
     test::Context const context{};
     Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
-    std::array<char, 16> data{};
-    std::ranges::fill(data, 'y');
+    std::array<std::byte, 16> data{};
+    std::ranges::fill(data, std::byte{'y'});
 
     memory.write(data, 32);
 
-    auto const mapped = memory.map(data.size(), 32);
+    auto const mapped = memory.map({.offset = 32, .size = data.size()});
     EXPECT_TRUE(std::ranges::equal(mapped, data));
-    memory.unmap();
 }
 
-CVK_TEST(Memory, mapped_follows_map_and_unmap) {
+CVK_TEST(Memory, the_mapping_unmaps) {
     test::Context const context{};
     Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
 
     EXPECT_TRUE(memory.mapped().empty());
+    {
+        auto const mapping = memory.map();
+        EXPECT_EQ(memory.mapped().data(), mapping.data());
+        EXPECT_EQ(memory.mapped().size(), memory.size());
+    }
+    EXPECT_TRUE(memory.mapped().empty());
+}
 
-    auto const data = memory.map();
-    EXPECT_EQ(memory.mapped().data(), data.data());
-    EXPECT_EQ(memory.mapped().size(), memory.size());
+CVK_TEST(Memory, a_moved_mapping_unmaps_once) {
+    test::Context const context{};
+    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
 
-    memory.unmap();
+    {
+        auto mapping = memory.map();
+        Mapping<std::byte> const moved{std::move(mapping)};
+        EXPECT_FALSE(memory.mapped().empty());
+    }
+    EXPECT_TRUE(memory.mapped().empty());
+}
+
+CVK_TEST(Memory, mapping_as_elements) {
+    test::Context const context{};
+    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
+
+    {
+        auto bytes = memory.map({.offset = 0, .size = 64});
+        auto const* data = bytes.data();
+        auto const elements = std::move(bytes).as<uint32_t>();
+
+        EXPECT_EQ(elements.size(), 16);
+        EXPECT_EQ(static_cast<void const*>(elements.data()), static_cast<void const*>(data));
+    }
     EXPECT_TRUE(memory.mapped().empty());
 }
 
@@ -145,15 +167,6 @@ CVK_TEST(Memory, mapped_bit_maps_persistently) {
     Memory const memory{context.core, config, REQUIREMENTS};
 
     EXPECT_FALSE(memory.mapped().empty());
-}
-
-CVK_TEST(Memory, write_to_a_mapped_range_is_constexpr) {
-    static_assert([] {
-        std::array<char, 4> mapped{};
-        std::array<char const, 2> const data{'a', 'b'};
-        Memory::write(data, mapped);
-        return mapped[0] == 'a' && mapped[1] == 'b' && mapped[2] == 0;
-    }());
 }
 
 CVK_TEST(Memory, release_and_wrap) {

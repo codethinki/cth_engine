@@ -6,6 +6,7 @@
 #include "cvk/render/sync/barrier.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <vector>
 
 
@@ -119,7 +120,7 @@ CVK_TEST(Image, base_constructor_does_not_create) {
     Image const image{context.core, TEXTURE_CONFIG};
 
     EXPECT_FALSE(image.created());
-    EXPECT_FALSE(image.memory().created());
+    EXPECT_EQ(image.memory(), nullptr);
 }
 
 CVK_TEST(Image, create_and_destroy) {
@@ -131,11 +132,11 @@ CVK_TEST(Image, create_and_destroy) {
     EXPECT_EQ(image.extent().width, EXTENT.width);
     EXPECT_EQ(image.extent().height, EXTENT.height);
     EXPECT_EQ(image.mipLevels(), 7);
-    EXPECT_TRUE(image.memory().created());
+    EXPECT_NE(image.memory(), nullptr);
 
     image.destroy();
     EXPECT_FALSE(image.created());
-    EXPECT_FALSE(image.memory().created());
+    EXPECT_EQ(image.memory(), nullptr);
     EXPECT_EQ(image.extent().width, 0);
 }
 
@@ -157,10 +158,10 @@ CVK_TEST(Image, copy_from_a_buffer_into_two_mip_levels) {
     BaseBuffer const staging{context.core, STAGING_CONFIG, mip0 + mip1};
     BaseBuffer const readback{context.core, READBACK_CONFIG, mip0 + mip1};
 
-    std::vector<char> pixels(mip0 + mip1);
+    std::vector<std::byte> pixels(mip0 + mip1);
     for(size_t i = 0; i < pixels.size(); ++i)
-        pixels[i] = static_cast<char>(i % 251);
-    staging.memory().write(pixels);
+        pixels[i] = static_cast<std::byte>(i % 251);
+    staging.write(pixels);
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
         Barrier toDst{};
@@ -178,26 +179,25 @@ CVK_TEST(Image, copy_from_a_buffer_into_two_mip_levels) {
         test::host_read_barrier(context, primary);
     });
 
-    auto const mapped = readback.memory().map(pixels.size());
-    readback.memory().invalidate();
+    auto const mapped = readback.map({.size = pixels.size()});
+    readback.invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, pixels));
-    readback.memory().unmap();
 }
 
 CVK_TEST(Image, release_and_wrap) {
     test::Context const context{};
     Image image{context.core, TEXTURE_CONFIG, EXTENT};
     auto const vkImage = image.get();
-    auto const vmaAllocation = image.memory().get();
+    auto const vmaAllocation = image.memory()->get();
 
     auto const state = image.release();
     EXPECT_FALSE(image.created());
-    EXPECT_FALSE(image.memory().created());
+    EXPECT_EQ(image.memory(), nullptr);
     ASSERT_TRUE(state.memory.has_value());
 
     Image const wrapped{context.core, TEXTURE_CONFIG, state};
     EXPECT_EQ(wrapped.get(), vkImage);
-    EXPECT_EQ(wrapped.memory().get(), vmaAllocation);
+    EXPECT_EQ(wrapped.memory()->get(), vmaAllocation);
     EXPECT_EQ(wrapped.extent().width, EXTENT.width);
 }
 
@@ -212,7 +212,7 @@ CVK_TEST(Image, wrap_without_memory_destroys_only_the_image) {
 
     {
         Image const wrapped{context.core, TEXTURE_CONFIG, state};
-        EXPECT_FALSE(wrapped.memory().created());
+        EXPECT_EQ(wrapped.memory(), nullptr);
     }
 
     EXPECT_TRUE(memory.created());
@@ -227,7 +227,7 @@ CVK_TEST(Image, move_assignment_destroys_the_old_image) {
     image = std::move(other);
 
     EXPECT_EQ(image.get(), vkImage);
-    EXPECT_TRUE(image.memory().created());
+    EXPECT_NE(image.memory(), nullptr);
     EXPECT_FALSE(other.created());
 }
 }

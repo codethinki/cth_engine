@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 
 
 namespace cvk {
@@ -80,7 +81,7 @@ CVK_TEST(BaseBuffer, base_constructor_does_not_create) {
     BaseBuffer const buffer{context.core, STAGING_CONFIG};
 
     EXPECT_FALSE(buffer.created());
-    EXPECT_FALSE(buffer.memory().created());
+    EXPECT_EQ(buffer.memory(), nullptr);
 }
 
 CVK_TEST(BaseBuffer, create_and_destroy) {
@@ -90,12 +91,12 @@ CVK_TEST(BaseBuffer, create_and_destroy) {
     ASSERT_TRUE(buffer.created());
     EXPECT_EQ(&buffer.core(), &context.core);
     EXPECT_EQ(buffer.size(), SIZE);
-    ASSERT_TRUE(buffer.memory().created());
-    EXPECT_GE(buffer.memory().size(), SIZE);
+    ASSERT_NE(buffer.memory(), nullptr);
+    EXPECT_GE(buffer.memory()->size(), SIZE);
 
     buffer.destroy();
     EXPECT_FALSE(buffer.created());
-    EXPECT_FALSE(buffer.memory().created());
+    EXPECT_EQ(buffer.memory(), nullptr);
     EXPECT_EQ(buffer.size(), 0);
 }
 
@@ -117,94 +118,91 @@ CVK_TEST(BaseBuffer, auto_usage_picks_host_visible_memory_for_host_access) {
 
     BaseBuffer const buffer{context.core, STAGING_CONFIG, SIZE};
 
-    EXPECT_NE(buffer.memory().properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0u);
+    EXPECT_NE(buffer.memory()->properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0u);
 }
 
-CVK_TEST(BaseBuffer, write_and_read_through_the_memory) {
+CVK_TEST(BaseBuffer, write_and_read) {
     test::Context const context{};
     BaseBuffer const buffer{context.core, READBACK_CONFIG, SIZE};
-    std::array<char, SIZE> data{};
-    std::ranges::fill(data, 'x');
+    std::array<std::byte, SIZE> data{};
+    std::ranges::fill(data, std::byte{'x'});
 
-    buffer.memory().write(data);
+    buffer.write(data);
 
-    auto const mapped = buffer.memory().map(SIZE);
-    buffer.memory().invalidate();
+    auto const mapped = buffer.map();
+    buffer.invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, data));
-    buffer.memory().unmap();
 }
 
 CVK_TEST(BaseBuffer, copy_a_range) {
     test::Context const context{};
     BaseBuffer const staging{context.core, STAGING_CONFIG, SIZE};
     BaseBuffer const readback{context.core, READBACK_CONFIG, SIZE};
-    std::array<char, 64> data{};
-    std::ranges::fill(data, 'c');
-    staging.memory().write(data, 16);
+    std::array<std::byte, 64> data{};
+    std::ranges::fill(data, std::byte{'c'});
+    staging.write(data, 16);
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        readback.copy(primary, staging, data.size(), 16, 32);
+        readback.copy(primary, staging, {.srcOffset = 16, .dstOffset = 32, .size = data.size()});
         test::host_read_barrier(context, primary);
     });
 
-    auto const mapped = readback.memory().map(data.size(), 32);
-    readback.memory().invalidate();
+    auto const mapped = readback.map({.offset = 32, .size = data.size()});
+    readback.invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, data));
-    readback.memory().unmap();
 }
 
 CVK_TEST(BaseBuffer, copy_whole_size_fits_both_buffers) {
     test::Context const context{};
     BaseBuffer const staging{context.core, STAGING_CONFIG, SIZE};
     BaseBuffer const readback{context.core, READBACK_CONFIG, SIZE / 2};
-    std::array<char, SIZE> data{};
-    std::ranges::fill(data, 'w');
-    staging.memory().write(data);
+    std::array<std::byte, SIZE> data{};
+    std::ranges::fill(data, std::byte{'w'});
+    staging.write(data);
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
         readback.copy(primary, staging);
         test::host_read_barrier(context, primary);
     });
 
-    auto const mapped = readback.memory().map(SIZE / 2);
-    readback.memory().invalidate();
-    EXPECT_TRUE(std::ranges::all_of(mapped, [](char const c) { return c == 'w'; }));
-    readback.memory().unmap();
+    auto const mapped = readback.map();
+    readback.invalidate();
+    EXPECT_TRUE(std::ranges::all_of(mapped, [](std::byte b) { return b == std::byte{'w'}; }));
 }
 
-CVK_TEST(BaseBuffer, stage_the_whole_staging_buffer) {
+CVK_TEST(BaseBuffer, copy_the_whole_source_to_an_offset) {
     test::Context const context{};
     BaseBuffer const staging{context.core, STAGING_CONFIG, 64};
     BaseBuffer const readback{context.core, READBACK_CONFIG, SIZE};
-    std::array<char, 64> data{};
-    std::ranges::fill(data, 's');
-    staging.memory().write(data);
+    std::array<std::byte, 64> data{};
+    std::ranges::fill(data, std::byte{'s'});
+    staging.write(data);
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        readback.stage(primary, staging, 8);
+        readback.copy(primary, staging, {.dstOffset = 8});
         test::host_read_barrier(context, primary);
     });
 
-    auto const mapped = readback.memory().map(data.size(), 8);
-    readback.memory().invalidate();
+    auto const mapped = readback.map({.offset = 8, .size = data.size()});
+    readback.invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, data));
-    readback.memory().unmap();
 }
 
 CVK_TEST(BaseBuffer, release_and_wrap) {
     test::Context const context{};
     BaseBuffer buffer{context.core, DEVICE_CONFIG, SIZE};
     auto const vkBuffer = buffer.get();
-    auto const vmaAllocation = buffer.memory().get();
+    auto const vmaAllocation = buffer.memory()->get();
 
     auto const state = buffer.release();
     EXPECT_FALSE(buffer.created());
-    EXPECT_FALSE(buffer.memory().created());
+    EXPECT_EQ(buffer.memory(), nullptr);
     ASSERT_TRUE(state.memory.has_value());
 
     BaseBuffer const wrapped{context.core, DEVICE_CONFIG, state};
     EXPECT_EQ(wrapped.get(), vkBuffer);
-    EXPECT_EQ(wrapped.memory().get(), vmaAllocation);
+    ASSERT_NE(wrapped.memory(), nullptr);
+    EXPECT_EQ(wrapped.memory()->get(), vmaAllocation);
     EXPECT_EQ(wrapped.size(), SIZE);
 }
 
@@ -219,7 +217,7 @@ CVK_TEST(BaseBuffer, wrap_without_memory_destroys_only_the_buffer) {
 
     {
         BaseBuffer const wrapped{context.core, DEVICE_CONFIG, state};
-        EXPECT_FALSE(wrapped.memory().created());
+        EXPECT_EQ(wrapped.memory(), nullptr);
         EXPECT_EQ(wrapped.size(), SIZE);
     }
 
@@ -235,8 +233,8 @@ CVK_TEST(BaseBuffer, move_assignment_destroys_the_old_buffer) {
     buffer = std::move(other);
 
     EXPECT_EQ(buffer.get(), vkBuffer);
-    EXPECT_TRUE(buffer.memory().created());
+    EXPECT_NE(buffer.memory(), nullptr);
     EXPECT_FALSE(other.created());
-    EXPECT_FALSE(other.memory().created());
+    EXPECT_EQ(other.memory(), nullptr);
 }
 }

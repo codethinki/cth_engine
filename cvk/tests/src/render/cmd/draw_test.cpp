@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <ranges>
 #include <span>
@@ -135,12 +136,12 @@ namespace {
             test::host_read_barrier(context, cmd);
         });
 
-        auto const pixels = readback.memory().map(readback.size());
-        readback.memory().invalidate();
+        auto const pixels = readback.map();
+        readback.invalidate();
         constexpr std::array<unsigned char, 4> green{0, 255, 0, 255};
+        auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
         for(auto const pixel : pixels | std::views::chunk(4))
-            EXPECT_TRUE(std::ranges::equal(pixel, green, {}, [](char c) { return static_cast<unsigned char>(c); }));
-        readback.memory().unmap();
+            EXPECT_TRUE(std::ranges::equal(pixel, green, {}, asByte));
     }
 }
 

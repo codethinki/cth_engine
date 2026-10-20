@@ -11,8 +11,7 @@
 
 
 namespace cvk {
-Image::Image(Core const& core, Config const& config) : _handle{core}, _memory{core, config.memory},
-    _config{config} {
+Image::Image(Core const& core, Config const& config) : _handle{core}, _config{config} {
     Core::debug_check(core);
     Config::debug_check(config);
 }
@@ -25,7 +24,7 @@ void Image::wrap(State const& state) {
     optDestroy();
 
     _handle.reset(state.vkImage.get(), core());
-    if(state.memory.has_value()) _memory.wrap(*state.memory);
+    if(state.memory.has_value()) _memory.emplace(core(), _config.memory, *state.memory);
     _extent = state.extent;
 }
 
@@ -33,7 +32,7 @@ void Image::create(VkExtent2D extent) {
     optDestroy();
 
     auto const imageInfo = _config.createInfo(extent);
-    auto const allocationInfo = _memory.config().createInfo();
+    auto const allocationInfo = _config.memory.createInfo();
 
     VkImage vkImage = VK_NULL_HANDLE;
     VmaAllocation vmaAllocation = VK_NULL_HANDLE;
@@ -52,7 +51,7 @@ void Image::create(VkExtent2D extent) {
     }
 
     _handle.reset(vkImage, core());
-    _memory.wrap(Memory::State{vmaAllocation});
+    _memory.emplace(core(), _config.memory, Memory::State{vmaAllocation});
     _extent = extent;
 }
 
@@ -60,7 +59,7 @@ void Image::destroy() {
     debug_check(*this);
 
     _handle.reset();
-    _memory.optDestroy();
+    _memory.reset();
 
     forget();
 }
@@ -73,7 +72,7 @@ Image::State Image::release() {
         .extent = _extent,
         .memory = std::nullopt,
     };
-    if(_memory.created()) state.memory = _memory.release();
+    if(_memory.has_value()) state.memory = _memory->release();
 
     forget();
     return state;
@@ -140,5 +139,8 @@ void Image::destroy(DeviceTable table, VkImage vkImage) {
     table->vkDestroyImage(table.device(), vkImage, nullptr);
 }
 
-void Image::forget() { _extent = {}; }
+void Image::forget() {
+    _memory.reset();
+    _extent = {};
+}
 }

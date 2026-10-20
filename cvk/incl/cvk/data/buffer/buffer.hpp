@@ -4,6 +4,7 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/meta/concepts.hpp>
 
 #include <algorithm>
 #include <concepts>
@@ -31,7 +32,7 @@ constexpr VkIndexType index_type = std::same_as<T, uint16_t> ? VK_INDEX_TYPE_UIN
  * @tparam T element, the gpu copies it byte by byte
  * @details adds no members: a @ref BaseBuffer reference to it sees the same buffer in bytes
  */
-template<class T> requires std::is_trivially_copyable_v<T>
+template<cth::mta::trivially_copyable T>
 class Buffer : public BaseBuffer {
 public:
     /**
@@ -74,93 +75,51 @@ public:
     void create(size_t count) { BaseBuffer::create(count * sizeof(T)); }
 
     /**
-     * @brief maps the memory as elements
-     * @param count (VK_WHOLE_SIZE => to the end)
-     * @param offset in elements
-     * @return the mapped elements
-     * @pre offset + count <= @ref elements()
-     * @note each call needs one @ref unmap()
-     * @details calls @ref Memory::map()
+     * @brief maps the range of the memory as elements
+     * @param range in elements
+     * @return the mapped elements, the destructor unmaps
+     * @details calls @ref BaseBuffer::map()
      */
-    [[nodiscard]] std::span<T> map(size_t count = VK_WHOLE_SIZE, size_t offset = 0) const {
-        CTH_CRITICAL(offset > elements(), "offset must lie in the buffer") {}
-        size_t const mapCount = count == VK_WHOLE_SIZE ? elements() - offset : count;
-        CTH_CRITICAL(mapCount > elements() - offset, "range must lie in the buffer") {}
-
-        return as_elements(memory().map(mapCount * sizeof(T), offset * sizeof(T)));
-    }
+    [[nodiscard]] Mapping<T> map(Range range = {}) const { return BaseBuffer::map(bytes(range)).template as<T>(); }
 
     /**
-     * @brief unmaps the memory once
-     * @details calls @ref Memory::unmap()
+     * @brief makes host writes visible to the device
+     * @param range in elements
+     * @details calls @ref BaseBuffer::flush()
      */
-    void unmap() const { memory().unmap(); }
+    void flush(Range range = {}) const { BaseBuffer::flush(bytes(range)); }
+
+    /**
+     * @brief makes device writes visible to the host
+     * @param range in elements
+     * @details calls @ref BaseBuffer::invalidate()
+     */
+    void invalidate(Range range = {}) const { BaseBuffer::invalidate(bytes(range)); }
 
     /**
      * @brief copies the data to the buffer
      * @param offset in elements
-     * @pre offset + data.size() <= @ref elements()
-     * @details calls @ref Memory::write()
+     * @details calls @ref BaseBuffer::write()
      */
     void write(std::span<T const> data, size_t offset = 0) const {
-        CTH_CRITICAL(offset > elements() || data.size() > elements() - offset, "range must lie in the buffer") {}
-
-        memory().write(std::span{reinterpret_cast<char const*>(data.data()), data.size_bytes()}, offset * sizeof(T));
-    }
-
-    /**
-     * @brief makes host writes visible to the device
-     * @param count (VK_WHOLE_SIZE => to the end)
-     * @param offset in elements
-     * @details calls @ref Memory::flush()
-     */
-    void flush(size_t count = VK_WHOLE_SIZE, size_t offset = 0) const {
-        memory().flush(bytes(count), offset * sizeof(T));
-    }
-
-    /**
-     * @brief makes device writes visible to the host
-     * @param count (VK_WHOLE_SIZE => to the end)
-     * @param offset in elements
-     * @details calls @ref Memory::invalidate()
-     */
-    void invalidate(size_t count = VK_WHOLE_SIZE, size_t offset = 0) const {
-        memory().invalidate(bytes(count), offset * sizeof(T));
+        BaseBuffer::write(std::as_bytes(data), offset * sizeof(T));
     }
 
     /**
      * @brief records a copy from the source buffer
-     * @param count (VK_WHOLE_SIZE => as much as fits into both buffers)
-     * @param srcOffset in elements
-     * @param dstOffset in elements
+     * @param region in elements
      * @details calls @ref BaseBuffer::copy()
      */
-    void copy(
-        BaseCmdBuffer const& cmdBuffer,
-        Buffer const& src,
-        size_t count = VK_WHOLE_SIZE,
-        size_t srcOffset = 0,
-        size_t dstOffset = 0
-    ) const {
-        BaseBuffer::copy(cmdBuffer, src, bytes(count), srcOffset * sizeof(T), dstOffset * sizeof(T));
-    }
-
-    /**
-     * @brief records a copy of the whole staging buffer
-     * @param dstOffset in elements
-     * @details calls @ref BaseBuffer::stage()
-     */
-    void stage(BaseCmdBuffer const& cmdBuffer, Buffer const& stagingBuffer, size_t dstOffset = 0) const {
-        BaseBuffer::stage(cmdBuffer, stagingBuffer, dstOffset * sizeof(T));
-    }
-
-    /**
-     * @brief copies the data to the mapped elements
-     * @pre data.size() <= mapped.size()
-     */
-    static constexpr void write(std::span<T const> data, std::span<T> mapped) {
-        CTH_CRITICAL(data.size() > mapped.size(), "data must fit into the mapped range") {}
-        std::ranges::copy(data, mapped.begin());
+    void copy(BaseCmdBuffer const& cmdBuffer, Buffer const& src, BufferCopy region = {}) const {
+        BaseBuffer::copy(
+            cmdBuffer,
+            src,
+            {
+                .srcOffset = region.srcOffset * sizeof(T),
+                .dstOffset = region.dstOffset * sizeof(T),
+                .size = bytes(region.size),
+            }
+        );
     }
 
     [[nodiscard]] constexpr size_t elements() const { return size() / sizeof(T); }
@@ -173,17 +132,8 @@ private:
         return count == VK_WHOLE_SIZE ? VK_WHOLE_SIZE : count * sizeof(T);
     }
 
-    /**
-     * @brief starts the lifetime of the elements in the mapped bytes, keeps their values
-     */
-    [[nodiscard]] static std::span<T> as_elements(std::span<char> mapped) {
-        size_t const count = mapped.size() / sizeof(T);
-#ifdef __cpp_lib_start_lifetime_as
-        return {std::start_lifetime_as_array<T>(mapped.data(), count), count};
-#else
-        //TODO remove when the MSVC STL has start_lifetime_as on clang (microsoft/STL GH-6169)
-        return {reinterpret_cast<T*>(mapped.data()), count};
-#endif
+    [[nodiscard]] static constexpr Range bytes(Range range) {
+        return {.offset = range.offset * sizeof(T), .size = bytes(range.size)};
     }
 
 public:

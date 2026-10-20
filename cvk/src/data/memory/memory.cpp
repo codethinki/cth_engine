@@ -4,6 +4,8 @@
 #include "cvk/base/core.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
+#include <algorithm>
+
 
 namespace cvk {
 Memory::Memory(Core const& core, Config const& config) : _handle{core}, _config{config} { Core::debug_check(core); }
@@ -55,21 +57,21 @@ Memory::State Memory::release() {
     return state;
 }
 
-std::span<char> Memory::map(size_t size, size_t offset) const {
+Mapping<std::byte> Memory::map(Range range) const {
     debug_check(*this);
     CTH_CRITICAL((properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == 0, "memory must be host visible") {}
 
-    size_t const memorySize = this->size();
-    CTH_CRITICAL(offset > memorySize, "offset must lie in the memory") {}
+    size_t const memorySize = size();
+    CTH_CRITICAL(range.offset > memorySize, "offset must lie in the memory") {}
 
-    size_t const mapSize = size == VK_WHOLE_SIZE ? memorySize - offset : size;
-    CTH_CRITICAL(mapSize > memorySize - offset, "range must lie in the memory") {}
+    size_t const mapSize = range.size == VK_WHOLE_SIZE ? memorySize - range.offset : range.size;
+    CTH_CRITICAL(mapSize > memorySize - range.offset, "range must lie in the memory") {}
 
     void* data = nullptr;
     auto const result = vmaMapMemory(allocator(), get(), &data);
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to map memory") {}
 
-    return {static_cast<char*>(data) + offset, mapSize};
+    return Mapping<std::byte>{*this, {static_cast<std::byte*>(data) + range.offset, mapSize}};
 }
 
 void Memory::unmap() const {
@@ -78,21 +80,21 @@ void Memory::unmap() const {
     vmaUnmapMemory(allocator(), get());
 }
 
-void Memory::flush(size_t size, size_t offset) const {
+void Memory::flush(Range range) const {
     debug_check(*this);
 
-    auto const result = vmaFlushAllocation(allocator(), get(), offset, size);
+    auto const result = vmaFlushAllocation(allocator(), get(), range.offset, range.size);
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to flush memory") {}
 }
 
-void Memory::invalidate(size_t size, size_t offset) const {
+void Memory::invalidate(Range range) const {
     debug_check(*this);
 
-    auto const result = vmaInvalidateAllocation(allocator(), get(), offset, size);
+    auto const result = vmaInvalidateAllocation(allocator(), get(), range.offset, range.size);
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to invalidate memory") {}
 }
 
-void Memory::write(std::span<char const> data, size_t offset) const {
+void Memory::write(std::span<std::byte const> data, size_t offset) const {
     debug_check(*this);
     CTH_CRITICAL((properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == 0, "memory must be host visible") {}
     CTH_CRITICAL(offset > size() || data.size() > size() - offset, "range must lie in the memory") {}
@@ -100,9 +102,12 @@ void Memory::write(std::span<char const> data, size_t offset) const {
     if(data.empty()) return;
 
     // not vmaCopyMemoryToAllocation(): it flushes after the unmap, non coherent memory must be mapped to flush
-    write(data, map(data.size(), offset));
-    auto const result = vmaFlushAllocation(allocator(), get(), offset, data.size());
-    unmap();
+    VkResult result = VK_SUCCESS;
+    {
+        auto const mapping = map({.offset = offset, .size = data.size()});
+        std::ranges::copy(data, mapping.begin());
+        result = vmaFlushAllocation(allocator(), get(), offset, data.size());
+    }
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to flush memory") {}
 }
@@ -121,11 +126,11 @@ VmaAllocationInfo Memory::info() const {
     return info;
 }
 
-std::span<char> Memory::mapped() const {
+std::span<std::byte> Memory::mapped() const {
     auto const allocationInfo = info();
     if(allocationInfo.pMappedData == nullptr) return {};
 
-    return {static_cast<char*>(allocationInfo.pMappedData), allocationInfo.size};
+    return {static_cast<std::byte*>(allocationInfo.pMappedData), allocationInfo.size};
 }
 
 VkMemoryPropertyFlags Memory::properties() const {

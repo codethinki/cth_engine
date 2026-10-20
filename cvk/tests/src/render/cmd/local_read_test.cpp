@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <ranges>
 
@@ -285,12 +286,11 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
         test::host_read_barrier(context, cmd);
     });
 
-    auto const pixels = readback.memory().map(readback.size());
-    readback.memory().invalidate();
-    auto const asByte = [](char c) { return static_cast<unsigned char>(c); };
+    auto const pixels = readback.map();
+    readback.invalidate();
+    auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
     for(auto const pixel : pixels | std::views::chunk(4))
         EXPECT_TRUE(std::ranges::equal(pixel, GREEN_PIXEL, {}, asByte));
-    readback.memory().unmap();
 }
 
 CVK_TEST(LocalRead, secondary_inherits_the_mapping) {

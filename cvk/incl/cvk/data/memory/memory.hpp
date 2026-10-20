@@ -1,7 +1,9 @@
 #pragma once
+#include "mapping.hpp"
 #include "memory_config.hpp"
 
 #include "cvk/utility/handle/vma_handle.hpp"
+#include "cvk/utility/range.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -9,7 +11,9 @@
 
 #include <cth/io/log.hpp>
 
-#include <algorithm>
+#include <concepts>
+#include <cstddef>
+#include <memory>
 #include <span>
 
 
@@ -90,61 +94,48 @@ public:
     State release();
 
     /**
-     * @brief maps the memory
-     * @param size (VK_WHOLE_SIZE => to the end)
-     * @param offset from the start of the memory
-     * @return the mapped range
+     * @brief maps the range of the memory
+     * @param range in bytes
+     * @return the mapped range, its destructor unmaps
      * @pre @ref created()
      * @pre @ref properties() has VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-     * @pre offset + size <= @ref size()
-     * @note VMA counts the maps, each call needs one @ref unmap()
+     * @pre the range lies in the memory
+     * @note VMA counts the maps, a map while a mapping lives returns the same memory
      * @throws cvk::vk_result_exception result of vmaMapMemory()
      */
-    [[nodiscard]] std::span<char> map(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
-
-    /**
-     * @brief unmaps the memory once
-     * @pre @ref map() was called more often than @ref unmap()
-     */
-    void unmap() const;
+    [[nodiscard]] Mapping<std::byte> map(Range range = {}) const;
 
     /**
      * @brief makes host writes visible to the device
-     * @param size (VK_WHOLE_SIZE => to the end)
-     * @param offset from the start of the memory
+     * @param range in bytes
      * @details host coherent memory -> does nothing
      * @pre @ref created()
+     * @pre the memory is mapped: a @ref Mapping lives or VMA_ALLOCATION_CREATE_MAPPED_BIT
      * @throws cvk::vk_result_exception result of vmaFlushAllocation()
      */
-    void flush(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
+    void flush(Range range = {}) const;
 
     /**
      * @brief makes device writes visible to the host
-     * @param size (VK_WHOLE_SIZE => to the end)
-     * @param offset from the start of the memory
+     * @param range in bytes
      * @details host coherent memory -> does nothing
      * @pre @ref created()
+     * @pre the memory is mapped: a @ref Mapping lives or VMA_ALLOCATION_CREATE_MAPPED_BIT
      * @throws cvk::vk_result_exception result of vmaInvalidateAllocation()
      */
-    void invalidate(size_t size = VK_WHOLE_SIZE, size_t offset = 0) const;
+    void invalidate(Range range = {}) const;
 
     /**
      * @brief copies the data to the memory
      * @details maps, copies, flushes and unmaps
-     * @param offset from the start of the memory
+     * @param offset in bytes
      * @pre @ref created()
      * @pre @ref properties() has VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-     * @pre offset + data.size() <= @ref size()
+     * @pre the data fits into the memory after the offset
      * @throws cvk::vk_result_exception result of vmaMapMemory()
      * @throws cvk::vk_result_exception result of vmaFlushAllocation()
      */
-    void write(std::span<char const> data, size_t offset = 0) const;
-
-    /**
-     * @brief copies the data to the mapped range
-     * @pre data.size() <= mapped.size()
-     */
-    static constexpr void write(std::span<char const> data, std::span<char> mapped);
+    void write(std::span<std::byte const> data, size_t offset = 0) const;
 
     static void destroy(VmaAllocator, VmaAllocation);
 
@@ -172,12 +163,20 @@ public:
 
     /**
      * @return the whole memory if mapped, not mapped -> empty
-     * @details @ref map() or VMA_ALLOCATION_CREATE_MAPPED_BIT maps it
+     * @details a living @ref Mapping or VMA_ALLOCATION_CREATE_MAPPED_BIT maps it
      * @pre @ref created()
      */
-    [[nodiscard]] std::span<char> mapped() const;
+    [[nodiscard]] std::span<std::byte> mapped() const;
 
 private:
+    template<class T>
+    friend class Mapping;
+
+    /**
+     * @brief unmaps the memory once, the destructor of a @ref Mapping calls it
+     */
+    void unmap() const;
+
     void forget();
 
     [[nodiscard]] VmaAllocator allocator() const;
@@ -202,9 +201,24 @@ struct Memory::State {
 }
 
 namespace cvk {
-constexpr void Memory::write(std::span<char const> data, std::span<char> mapped) {
-    CTH_CRITICAL(data.size() > mapped.size(), "data must fit into the mapped range") {}
-    std::ranges::copy(data, mapped.begin());
+template<class T>
+Mapping<T>::~Mapping() {
+    if(_memory != nullptr) _memory->unmap();
+}
+
+template<class T>
+template<class U> requires std::same_as<T, std::byte>
+Mapping<U> Mapping<T>::as() && {
+    CTH_CRITICAL(_range.size() % sizeof(U) != 0, "the size must be a multiple of the element size") {}
+
+    size_t const count = _range.size() / sizeof(U);
+    auto const& memory = *_memory.release();
+#ifdef __cpp_lib_start_lifetime_as
+    return Mapping<U>{memory, {std::start_lifetime_as_array<U>(_range.data(), count), count}};
+#else
+    //TODO remove when the MSVC STL has start_lifetime_as on clang (microsoft/STL GH-6169)
+    return Mapping<U>{memory, {reinterpret_cast<U*>(_range.data()), count}};
+#endif
 }
 }
 
