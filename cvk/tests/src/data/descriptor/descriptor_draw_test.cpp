@@ -181,7 +181,7 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
 
     DescriptorPool const pool{context.core, DescriptorPool::Config{{&setLayout}}, create};
     DescriptorSet const set{pool, setLayout, create};
-    set.write(BufferDescriptorWrite{.binding = 0, .buffers = {{&color}}});
+    set.write({0, color});
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         record_fill(context, cmd, fill, target, [&](BaseCmdBuffer& c) { c.bindDescriptorSet(set, fill.layout, 0); });
@@ -245,9 +245,7 @@ CVK_TEST(DescriptorDraw, bindless_texture_written_after_bind) {
     cmd.end();
 
     // update after bind: the bind is recorded, the descriptor comes now
-    set.write(
-        ImageDescriptorWrite{.binding = 0, .arrayElement = INDEX, .images = {{.view = &view, .sampler = &sampler}}}
-    );
+    set.write({0, view, sampler, INDEX});
     test::submit_and_wait(context, cmd);
 
     expect_green(target);

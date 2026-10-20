@@ -162,12 +162,8 @@ namespace {
                 },
                 FULLSCREEN.size()
             } {
-            input.write(
-                ImageDescriptorWrite{
-                    .binding = 0,
-                    .images = {{.view = &first, .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR}},
-                }
-            );
+            // input attachment: VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR from the binding type
+            input.write({0, first});
             vertices.write(FULLSCREEN);
         }
 

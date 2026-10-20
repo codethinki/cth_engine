@@ -1,10 +1,12 @@
 #include "cvk/data/descriptor/descriptor_set.hpp"
 
 #include "cvk/base/core.hpp"
+#include "cvk/data/buffer/base_buffer.hpp"
+#include "cvk/data/img/image_view.hpp"
+#include "cvk/data/img/sampler.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <span>
-#include <utility>
 #include <variant>
 #include <vector>
 
@@ -34,22 +36,33 @@ namespace {
         }
     }
 
-    void debug_check_image(ImageDescriptor const& descriptor, VkDescriptorType type) {
+    /**
+     * @return the layout of a view in a descriptor of the type
+     */
+    constexpr VkImageLayout descriptor_layout(VkDescriptorType type) {
+        switch(type) {
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: return VK_IMAGE_LAYOUT_GENERAL;
+            case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR;
+            default: return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        }
+    }
+
+    void debug_check_image(ImageView const* view, Sampler const* sampler, VkDescriptorType type) {
+        bool const samples = type == VK_DESCRIPTOR_TYPE_SAMPLER || type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        CTH_CRITICAL(samples && sampler == nullptr, "sampler descriptors need a sampler") {}
+        CTH_CRITICAL(!samples && sampler != nullptr, "the descriptor type takes no sampler") {}
+        CTH_CRITICAL(type != VK_DESCRIPTOR_TYPE_SAMPLER && view == nullptr, "image descriptors need a view") {}
+        if(view != nullptr) ImageView::debug_check(*view);
+        if(sampler != nullptr) Sampler::debug_check(*sampler);
+    }
+
+    void debug_check_buffer(BaseBuffer const& buffer, Range range) {
+        BaseBuffer::debug_check(buffer);
+        CTH_CRITICAL(range.offset > buffer.size(), "offset must lie in the buffer") {}
         CTH_CRITICAL(
-            (type == VK_DESCRIPTOR_TYPE_SAMPLER || type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-            && descriptor.sampler == nullptr,
-            "sampler descriptors need a sampler"
+            range.size != VK_WHOLE_SIZE && range.size > buffer.size() - range.offset,
+            "range must lie in the buffer"
         ) {}
-        CTH_CRITICAL(
-            type != VK_DESCRIPTOR_TYPE_SAMPLER && descriptor.view == nullptr,
-            "image descriptors need a view"
-        ) {}
-        CTH_CRITICAL(
-            type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE && descriptor.layout != VK_IMAGE_LAYOUT_GENERAL,
-            "storage image descriptors need VK_IMAGE_LAYOUT_GENERAL"
-        ) {}
-        if(descriptor.view != nullptr) ImageView::debug_check(*descriptor.view);
-        if(descriptor.sampler != nullptr) Sampler::debug_check(*descriptor.sampler);
     }
 }
 
@@ -147,80 +160,72 @@ DescriptorSet::State DescriptorSet::release() {
 void DescriptorSet::write(span<DescriptorWrite const> writes) const {
     debug_check(*this);
 
-    auto const images = [](DescriptorWrite const& write) -> std::span<ImageDescriptor const> {
-        auto const* imageWrite = std::get_if<ImageDescriptorWrite>(&write);
-        return imageWrite != nullptr ? imageWrite->images : std::span<ImageDescriptor const>{};
-    };
-    auto const buffers = [](DescriptorWrite const& write) -> std::span<BufferDescriptor const> {
-        auto const* bufferWrite = std::get_if<BufferDescriptorWrite>(&write);
-        return bufferWrite != nullptr ? bufferWrite->buffers : std::span<BufferDescriptor const>{};
-    };
-
-    size_t imageCount = 0;
-    size_t bufferCount = 0;
-    for(auto const& write : writes) {
-        imageCount += images(write).size();
-        bufferCount += buffers(write).size();
-    }
-
     // reserved: the writes point into the infos
     std::vector<VkDescriptorImageInfo> imageInfos{};
-    imageInfos.reserve(imageCount);
+    imageInfos.reserve(writes.size());
     std::vector<VkDescriptorBufferInfo> bufferInfos{};
-    bufferInfos.reserve(bufferCount);
+    bufferInfos.reserve(writes.size());
     std::vector<VkWriteDescriptorSet> vkWrites{};
     vkWrites.reserve(writes.size());
 
     for(auto const& write : writes) {
-        auto const [bindingIndex, arrayElement] = std::visit(
-            [](auto const& w) { return std::pair{w.binding, w.arrayElement}; },
-            write
-        );
-        auto const* binding = _layout->binding(bindingIndex);
-        CTH_CRITICAL(binding == nullptr, "the layout has no binding {}", bindingIndex) {}
+        auto const* binding = _layout->binding(write._binding);
+        CTH_CRITICAL(binding == nullptr, "the layout has no binding {}", write._binding) {}
 
         auto const type = binding->descriptorType;
         auto const kind = descriptor_kind(type);
-        bool const imageWrite = std::holds_alternative<ImageDescriptorWrite>(write);
-        auto const count = static_cast<uint32_t>(imageWrite ? images(write).size() : buffers(write).size());
+        auto const* buffer = std::get_if<DescriptorWrite::BufferResource>(&write._resource);
 
         CTH_CRITICAL(kind == DescriptorKind::UNSUPPORTED, "descriptor type not supported") {
-            details->add("binding: {}, type: {}", bindingIndex, type);
+            details->add("binding: {}, type: {}", write._binding, type);
         }
         CTH_CRITICAL(
-            (kind == DescriptorKind::IMAGE) != imageWrite,
+            (kind == DescriptorKind::BUFFER) != (buffer != nullptr),
             "the kind of the write must match the type of the binding"
         ) {
-            details->add("binding: {}, type: {}", bindingIndex, type);
+            details->add("binding: {}, type: {}", write._binding, type);
         }
-        CTH_CRITICAL(count == 0, "a write needs descriptors") {}
-        CTH_CRITICAL(arrayElement + count > capacity(*binding), "the descriptors must lie in the binding") {
-            details->add("binding: {}, first: {}, count: {}", bindingIndex, arrayElement, count);
+        CTH_CRITICAL(write._element >= capacity(*binding), "the element must lie in the binding") {
+            details->add("binding: {}, element: {}", write._binding, write._element);
         }
 
         VkWriteDescriptorSet vkWrite{
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .pNext = nullptr,
             .dstSet = get(),
-            .dstBinding = bindingIndex,
-            .dstArrayElement = arrayElement,
-            .descriptorCount = count,
+            .dstBinding = write._binding,
+            .dstArrayElement = write._element,
+            .descriptorCount = 1,
             .descriptorType = type,
             .pImageInfo = nullptr,
             .pBufferInfo = nullptr,
             .pTexelBufferView = nullptr,
         };
 
-        if(imageWrite) {
-            vkWrite.pImageInfo = imageInfos.data() + imageInfos.size();
-            for(auto const& descriptor : images(write)) {
-                debug_check_image(descriptor, type);
-                imageInfos.push_back(descriptor.info());
-            }
+        if(buffer != nullptr) {
+            debug_check_buffer(*buffer->buffer, buffer->range);
+
+            auto const [offset, size] = buffer->range;
+            bufferInfos.push_back(
+                VkDescriptorBufferInfo{
+                    .buffer = buffer->buffer->get(),
+                    .offset = offset,
+                    .range = size == VK_WHOLE_SIZE ? buffer->buffer->size() - offset : size,
+                }
+            );
+            vkWrite.pBufferInfo = &bufferInfos.back();
         } else {
-            vkWrite.pBufferInfo = bufferInfos.data() + bufferInfos.size();
-            for(auto const& descriptor : buffers(write))
-                bufferInfos.push_back(descriptor.info());
+            auto const& [view, sampler] = std::get<DescriptorWrite::ImageResource>(write._resource);
+            debug_check_image(view, sampler, type);
+
+            imageInfos.push_back(
+                VkDescriptorImageInfo{
+                    .sampler = sampler != nullptr ? sampler->get() : VK_NULL_HANDLE,
+                    .imageView = view != nullptr ? view->get() : VK_NULL_HANDLE,
+                    .imageLayout = view != nullptr ? descriptor_layout(type) : VK_IMAGE_LAYOUT_UNDEFINED,
+                }
+            );
+            vkWrite.pImageInfo = &imageInfos.back();
         }
 
         vkWrites.push_back(vkWrite);

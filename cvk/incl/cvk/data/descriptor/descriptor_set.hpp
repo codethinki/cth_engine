@@ -13,6 +13,7 @@
 #include <cth/io/log.hpp>
 
 #include <cstdint>
+#include <initializer_list>
 #include <span>
 
 
@@ -106,19 +107,26 @@ public:
     State release();
 
     /**
-     * @brief writes the descriptors into the set
+     * @brief writes the descriptors into the set with one vkUpdateDescriptorSets()
      * @pre @ref created()
-     * @pre the bindings exist, the descriptors match their types and lie in them
+     * @pre the bindings exist, the kind of each write matches the binding type
+     * @pre the elements lie in the bindings, the buffer ranges in the buffers
      * @pre the gpu does not use the written descriptors, except with VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
      * @attention texel buffer, inline uniform block and acceleration structure descriptors are not supported
      */
     void write(std::span<DescriptorWrite const>) const;
 
     /**
-     * @brief writes the descriptors into the set
+     * @brief writes the descriptors into the set, for a braced list: set.write({{0, ubo}, {1, view, sampler}})
      * @details calls @ref write(std::span<DescriptorWrite const>) const
      */
-    void write(DescriptorWrite const& descriptorWrite) const { write({&descriptorWrite, 1}); }
+    void write(std::initializer_list<DescriptorWrite> writes) const { write(std::span{writes.begin(), writes.size()}); }
+
+    /**
+     * @brief writes one descriptor into the set: set.write({0, ubo})
+     * @details calls @ref write(std::span<DescriptorWrite const>) const
+     */
+    void write(DescriptorWrite const& descriptorWrite) const { write(std::span{&descriptorWrite, 1}); }
 
     static void destroy(DeviceTable table, VkDescriptorPool, VkDescriptorSet);
 

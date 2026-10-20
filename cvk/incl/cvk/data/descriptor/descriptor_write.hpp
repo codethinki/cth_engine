@@ -1,101 +1,74 @@
 #pragma once
-#include "cvk/data/buffer/base_buffer.hpp"
-#include "cvk/data/img/image_view.hpp"
-#include "cvk/data/img/sampler.hpp"
+#include "cvk/utility/range.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
 
-#include <cth/io/log.hpp>
-
 #include <cstdint>
 #include <variant>
-#include <vector>
 
 
 namespace cvk {
+class BaseBuffer;
+class DescriptorSet;
+class ImageView;
+class Sampler;
+
 /**
- * @brief image, sampler or both for an image descriptor, the binding decides the descriptor type
+ * @brief one descriptor of one binding, the constructor decides the kind
+ * @details the binding type in the layout of the set decides the descriptor type and the image layout:
+ *  storage image -> VK_IMAGE_LAYOUT_GENERAL, input attachment -> VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+ *  else VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
  */
-struct ImageDescriptor {
+class DescriptorWrite {
+public:
     /**
-     * @brief nullptr -> no view, VK_DESCRIPTOR_TYPE_SAMPLER
+     * @brief buffer descriptor: uniform or storage buffer, dynamic or not
+     * @param range in bytes
+     * @param element array element of the binding
      */
-    ImageView const* view = nullptr;
+    constexpr DescriptorWrite(uint32_t binding, BaseBuffer const& buffer, Range range = {}, uint32_t element = 0) :
+        _binding{binding}, _element{element}, _resource{BufferResource{&buffer, range}} {}
 
     /**
-     * @brief layout of the view when the gpu reads it
-     * @details VK_DESCRIPTOR_TYPE_STORAGE_IMAGE -> VK_IMAGE_LAYOUT_GENERAL
+     * @brief image descriptor without sampler: sampled image, storage image, input attachment
+     * @param element array element of the binding
      */
-    VkImageLayout layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    constexpr DescriptorWrite(uint32_t binding, ImageView const& view, uint32_t element = 0) :
+        _binding{binding}, _element{element}, _resource{ImageResource{&view, nullptr}} {}
 
     /**
-     * @brief nullptr -> no sampler, the descriptor type needs none
+     * @brief combined image sampler descriptor
+     * @param element array element of the binding
      */
-    Sampler const* sampler = nullptr;
+    constexpr DescriptorWrite(uint32_t binding, ImageView const& view, Sampler const& sampler, uint32_t element = 0) :
+        _binding{binding}, _element{element}, _resource{ImageResource{&view, &sampler}} {}
 
-    [[nodiscard]] constexpr VkDescriptorImageInfo info() const {
-        return VkDescriptorImageInfo{
-            .sampler = sampler != nullptr ? sampler->get() : VK_NULL_HANDLE,
-            .imageView = view != nullptr ? view->get() : VK_NULL_HANDLE,
-            .imageLayout = view != nullptr ? layout : VK_IMAGE_LAYOUT_UNDEFINED,
-        };
-    }
+    /**
+     * @brief sampler descriptor
+     * @param element array element of the binding
+     */
+    constexpr DescriptorWrite(uint32_t binding, Sampler const& sampler, uint32_t element = 0) :
+        _binding{binding}, _element{element}, _resource{ImageResource{nullptr, &sampler}} {}
+
+private:
+    struct BufferResource {
+        not_null_ptr<BaseBuffer const> buffer;
+        Range range;
+    };
+
+    /**
+     * @brief view nullptr -> sampler descriptor, sampler nullptr -> no sampler
+     */
+    struct ImageResource {
+        ImageView const* view;
+        Sampler const* sampler;
+    };
+
+    uint32_t _binding;
+    uint32_t _element;
+    std::variant<BufferResource, ImageResource> _resource;
+
+    friend DescriptorSet;
 };
-
-/**
- * @brief buffer range for a buffer descriptor, the binding decides the descriptor type
- */
-struct BufferDescriptor {
-    not_null_ptr<BaseBuffer const> buffer;
-
-    /**
-     * @brief in bytes
-     */
-    size_t offset = 0;
-
-    /**
-     * @brief in bytes (VK_WHOLE_SIZE => to the end)
-     */
-    size_t size = VK_WHOLE_SIZE;
-
-    /**
-     * @pre @ref BaseBuffer::created()
-     * @pre the range lies in the buffer
-     */
-    [[nodiscard]] constexpr VkDescriptorBufferInfo info() const {
-        BaseBuffer::debug_check(*buffer);
-        CTH_CRITICAL(offset > buffer->size(), "offset must lie in the buffer") {}
-        CTH_CRITICAL(size != VK_WHOLE_SIZE && size > buffer->size() - offset, "range must lie in the buffer") {}
-
-        return VkDescriptorBufferInfo{
-            .buffer = buffer->get(),
-            .offset = offset,
-            .range = size == VK_WHOLE_SIZE ? buffer->size() - offset : size,
-        };
-    }
-};
-
-/**
- * @brief image descriptors for consecutive array elements of one image binding
- */
-struct ImageDescriptorWrite {
-    uint32_t binding = 0;
-    uint32_t arrayElement = 0;
-    std::vector<ImageDescriptor> images{};
-};
-
-/**
- * @brief buffer descriptors for consecutive array elements of one buffer binding
- */
-struct BufferDescriptorWrite {
-    uint32_t binding = 0;
-    uint32_t arrayElement = 0;
-    std::vector<BufferDescriptor> buffers{};
-};
-
-/**
- * @brief descriptors for consecutive array elements of one binding, the kind matches the binding type
- */
-using DescriptorWrite = std::variant<ImageDescriptorWrite, BufferDescriptorWrite>;
 }

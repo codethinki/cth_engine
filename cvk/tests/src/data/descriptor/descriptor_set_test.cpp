@@ -114,30 +114,18 @@ CVK_TEST(DescriptorSet, write_buffer_and_image) {
     ImageView const view{image, {}, create};
     Sampler const sampler{context.core, {}, create};
 
-    set.write(
-        std::array<DescriptorWrite, 2>{
-            BufferDescriptorWrite{.binding = 0, .buffers = {{&buffer, 0, 16}}},
-            ImageDescriptorWrite{.binding = 1, .images = {{.view = &view, .sampler = &sampler}}},
-        }
-    );
+    set.write({{0, buffer, {.offset = 0, .size = 16}}, {1, view, sampler}});
 }
 
-CVK_TEST(DescriptorSet, buffer_descriptor_info) {
+CVK_TEST(DescriptorSet, write_one_descriptor_and_the_whole_buffer) {
     test::Context const context{};
-    BaseBuffer const buffer{context.core, {.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT}, 256};
+    DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config{{&layout}}, create};
+    DescriptorSet const set{pool, layout, create};
 
-    auto const whole = BufferDescriptor{&buffer}.info();
-    EXPECT_EQ(whole.buffer, buffer.get());
-    EXPECT_EQ(whole.offset, 0);
-    EXPECT_EQ(whole.range, 256);
+    BaseBuffer const buffer{context.core, {.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT}, 64};
 
-    auto const end = BufferDescriptor{.buffer = &buffer, .offset = 64}.info();
-    EXPECT_EQ(end.offset, 64);
-    EXPECT_EQ(end.range, 256 - 64);
-
-    auto const part = BufferDescriptor{.buffer = &buffer, .offset = 32, .size = 16}.info();
-    EXPECT_EQ(part.offset, 32);
-    EXPECT_EQ(part.range, 16);
+    set.write({0, buffer});
 }
 
 CVK_TEST(DescriptorSet, variable_count) {
@@ -151,13 +139,7 @@ CVK_TEST(DescriptorSet, variable_count) {
     Sampler const sampler{context.core, {}, create};
 
     EXPECT_EQ(set.variableCount(), 8);
-    set.write(
-        ImageDescriptorWrite{
-            .binding = 0,
-            .arrayElement = 6,
-            .images = {{.view = &view, .sampler = &sampler}, {.view = &view, .sampler = &sampler}},
-        }
-    );
+    set.write({{0, view, sampler, 6}, {0, view, sampler, 7}});
 }
 
 CVK_TEST(DescriptorSet, release_and_wrap) {
