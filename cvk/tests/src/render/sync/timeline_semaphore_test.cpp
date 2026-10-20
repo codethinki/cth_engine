@@ -101,7 +101,6 @@ CVK_TEST(TimelineSemaphore, move_keeps_the_counter) {
     TimelineSemaphore const moved{std::move(semaphore)};
 
     EXPECT_FALSE(semaphore.created());
-    EXPECT_EQ(semaphore.value(), 0);
     EXPECT_EQ(moved.value(), 3);
     EXPECT_EQ(moved.gpuValue(), 3);
 }

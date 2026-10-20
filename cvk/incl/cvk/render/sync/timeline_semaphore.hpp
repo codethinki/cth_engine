@@ -1,7 +1,6 @@
 #pragma once
 #include "semaphore.hpp"
 
-#include <atomic>
 #include <cstdint>
 
 
@@ -9,8 +8,8 @@ namespace cvk {
 /**
  * @brief timeline VkSemaphore with a host counter
  * @details the counter is the last value that @ref next() or @ref signal() gave out,
- *  private base: a timeline semaphore must not pass as a binary @ref Semaphore,
- *  move members are custom: the counter is atomic
+ *  private base: a timeline semaphore must not pass as a binary @ref Semaphore
+ * @attention not thread safe: @ref next() and @ref signal() change the counter
  */
 class TimelineSemaphore : Semaphore {
 public:
@@ -73,6 +72,7 @@ public:
      * @brief advances the counter and signals the semaphore from the host
      * @return the signaled value
      * @pre @ref created()
+     * @pre no signal of the semaphore is pending
      * @throws cvk::vk_result_exception result of vkSignalSemaphore()
      */
     uint64_t signal();
@@ -96,7 +96,8 @@ public:
     /**
      * @brief advances the counter
      * @return value for the next signal operation
-     * @details thread safe
+     * @attention signal the values in counter order: one queue keeps the order,
+     *  two queues need a wait between their submits
      */
     [[nodiscard]] constexpr uint64_t next() const { return ++_value; }
 
@@ -117,18 +118,13 @@ public:
     using Semaphore::get;
 
 private:
-    mutable std::atomic<uint64_t> _value = 0;
+    mutable uint64_t _value = 0;
 
 public:
     TimelineSemaphore(TimelineSemaphore const& other) = delete;
-    TimelineSemaphore(TimelineSemaphore&& other) noexcept : Semaphore{std::move(other)},
-        _value{other._value.exchange(0)} {}
+    TimelineSemaphore(TimelineSemaphore&& other) noexcept = default;
     TimelineSemaphore& operator=(TimelineSemaphore const& other) = delete;
-    TimelineSemaphore& operator=(TimelineSemaphore&& other) noexcept {
-        Semaphore::operator=(std::move(other));
-        _value = other._value.exchange(0);
-        return *this;
-    }
+    TimelineSemaphore& operator=(TimelineSemaphore&& other) noexcept = default;
 
     static constexpr void debug_check(TimelineSemaphore const& semaphore);
 };

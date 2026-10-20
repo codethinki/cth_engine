@@ -4,6 +4,7 @@
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <limits>
+#include <utility>
 
 
 namespace cvk {
@@ -39,7 +40,7 @@ void TimelineSemaphore::create(uint64_t initialValue) {
 
 TimelineSemaphore::State TimelineSemaphore::release() {
     auto const [vkSemaphore] = Semaphore::release();
-    return State{vkSemaphore, _value.exchange(0)};
+    return State{vkSemaphore, std::exchange(_value, 0)};
 }
 
 uint64_t TimelineSemaphore::signal() {
