@@ -62,7 +62,7 @@ public:
 
     /**
      * @brief wraps the state
-     * @details empty @ref State::queues -> copies the queues of the device,
+     * @details empty @ref State::queueIndices -> entry i uses queue i of the device,
      *  nullptr @ref State::allocator -> creates the allocator
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -130,14 +130,25 @@ public:
 
     /**
      * @param idx index in @ref Config::queueProperties
+     * @return the queue of the device, entries with the same @ref queueIndex() return the same queue
      * @pre @ref created()
      */
-    [[nodiscard]] constexpr auto& queue(this auto& self, size_t idx) {
-        debug_check(self);
-        return self._queues[idx];
+    [[nodiscard]] Queue const& queue(size_t idx) const;
+
+    /**
+     * @param idx index in @ref Config::queueProperties
+     * @return index of the queue in @ref Device::queues(), entries with the same index share the VkQueue
+     * @pre @ref created()
+     */
+    [[nodiscard]] constexpr size_t queueIndex(size_t idx) const {
+        debug_check(*this);
+        return _queueIndices[idx];
     }
 
-    [[nodiscard]] constexpr std::span<Queue const> queues() const { return _queues; }
+    /**
+     * @return @ref queueIndex() per entry of @ref Config::queueProperties
+     */
+    [[nodiscard]] constexpr std::span<size_t const> queueIndices() const { return _queueIndices; }
 
 private:
     /**
@@ -198,9 +209,6 @@ private:
         queue_set_t const& queueSet
     ) const;
 
-    void createQueues(std::span<size_t const> queuesToUniqueQueues);
-
-
     not_null_ptr<Instance const> _instance;
 
     std::unique_ptr<PhysicalDevice> _physicalDevice;
@@ -208,7 +216,7 @@ private:
     std::unique_ptr<Allocator> _allocator;
     std::unique_ptr<Device> _device;
     std::optional<size_t> _queueSetIndex;
-    std::vector<Queue> _queues;
+    std::vector<size_t> _queueIndices;
 
 public:
     Core(Core const& other) = delete;
@@ -238,10 +246,11 @@ struct Core::State {
      */
     std::unique_ptr<Allocator> allocator;
     /**
-     * @brief queue per entry of @ref Config::queueProperties
-     * @details empty -> the queues of @ref device
+     * @brief index in @ref Device::queues() per entry of @ref Config::queueProperties
+     * @details empty -> entry i uses queue i of @ref device
+     * @pre every index < queue count of @ref device
      */
-    std::vector<Queue> queues{};
+    std::vector<size_t> queueIndices{};
     std::optional<size_t> queueSetIndex = std::nullopt;
 };
 }

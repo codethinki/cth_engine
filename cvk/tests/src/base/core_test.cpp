@@ -56,7 +56,7 @@ CVK_TEST(Core, create_without_queue_sets) {
     EXPECT_EQ(core.deviceTable().device(), core.vkDevice());
     EXPECT_EQ(&core.device().physicalDevice(), &core.physicalDevice());
 
-    ASSERT_EQ(core.queues().size(), CONFIG.queueProperties.size());
+    ASSERT_EQ(core.queueIndices().size(), CONFIG.queueProperties.size());
     EXPECT_EQ(core.device().queues().size(), CONFIG.queueProperties.size());
 
     for(size_t i = 0; i < CONFIG.queueProperties.size(); i++) {
@@ -75,8 +75,9 @@ CVK_TEST(Core, create_one_queue_per_entry) {
 
     Core const core{instance, {}, TWO_QUEUES};
 
-    ASSERT_EQ(core.queues().size(), 2);
+    ASSERT_EQ(core.queueIndices().size(), 2);
     EXPECT_EQ(core.device().queues().size(), 2);
+    EXPECT_NE(core.queueIndex(0), core.queueIndex(1));
     EXPECT_NE(core.queue(0).get(), core.queue(1).get());
 }
 
@@ -91,7 +92,8 @@ CVK_TEST(Core, queue_set_group_shares_a_queue) {
     ASSERT_TRUE(core.created());
     EXPECT_EQ(core.queueSetIndex(), 0);
     EXPECT_EQ(core.device().queues().size(), 1);
-    EXPECT_EQ(core.queue(0).get(), core.queue(1).get());
+    EXPECT_EQ(core.queueIndex(0), core.queueIndex(1));
+    EXPECT_EQ(&core.queue(0), &core.queue(1));
 
     EXPECT_TRUE(contains(core.queue(0).familyProperties(), QueueFamilyProperties::GRAPHICS));
     EXPECT_TRUE(contains(core.queue(0).familyProperties(), QueueFamilyProperties::COMPUTE));
@@ -113,7 +115,7 @@ CVK_TEST(Core, first_possible_queue_set_wins) {
     ASSERT_TRUE(core.created());
     EXPECT_EQ(core.queueSetIndex(), 1);
     EXPECT_EQ(core.device().queues().size(), 1);
-    EXPECT_EQ(core.queues().size(), queues);
+    EXPECT_EQ(core.queueIndices().size(), queues);
 }
 
 CVK_TEST(Core, no_suitable_device_throws) {
@@ -134,27 +136,29 @@ CVK_TEST(Core, release_and_wrap) {
 
     auto state = core.release();
     EXPECT_FALSE(core.created());
-    EXPECT_TRUE(core.queues().empty());
+    EXPECT_TRUE(core.queueIndices().empty());
 
     Core const wrapped{instance, std::move(state)};
 
     ASSERT_TRUE(wrapped.created());
     EXPECT_EQ(wrapped.vkDevice(), vkDevice);
     EXPECT_EQ(wrapped.allocator().get(), vmaAllocator);
-    ASSERT_EQ(wrapped.queues().size(), CONFIG.queueProperties.size());
+    ASSERT_EQ(wrapped.queueIndices().size(), CONFIG.queueProperties.size());
     wrapped.queue(0).waitIdle();
 }
 
-CVK_TEST(Core, wrap_without_queues_takes_the_device_queues) {
+CVK_TEST(Core, wrap_without_queue_indices_takes_the_device_queues) {
     Instance const instance{test::instance_config(), create};
 
     Core core{instance, {}, CONFIG};
     auto state = core.release();
-    state.queues.clear();
+    state.queueIndices.clear();
 
     Core const wrapped{instance, std::move(state)};
 
-    EXPECT_EQ(wrapped.queues().size(), wrapped.device().queues().size());
+    ASSERT_EQ(wrapped.queueIndices().size(), wrapped.device().queues().size());
+    for(size_t i = 0; i < wrapped.queueIndices().size(); i++)
+        EXPECT_EQ(&wrapped.queue(i), &wrapped.device().queues()[i]);
 }
 
 CVK_TEST(Core, wrap_without_allocator_creates_one) {
@@ -178,8 +182,8 @@ CVK_TEST(Core, queues_work_after_move) {
 
     EXPECT_FALSE(core.created());
     ASSERT_TRUE(moved.created());
-    for(auto const& queue : moved.queues())
-        queue.waitIdle();
+    for(size_t i = 0; i < moved.queueIndices().size(); i++)
+        moved.queue(i).waitIdle();
 }
 
 CVK_TEST(Core, present_queue_with_headless_surface) {

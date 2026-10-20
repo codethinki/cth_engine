@@ -40,6 +40,10 @@ void Core::wrap(State state) {
             "allocator must be created with the device of the state"
         ) {}
     }
+    CTH_CRITICAL(
+        std::ranges::any_of(state.queueIndices, [&](size_t index) { return index >= state.device->queues().size(); }),
+        "queue indices must be < queue count of the device"
+    ) {}
 
     optDestroy();
 
@@ -49,8 +53,8 @@ void Core::wrap(State state) {
     if(_allocator == nullptr) _allocator = std::make_unique<Allocator>(*_device, cvk::create);
     _queueSetIndex = state.queueSetIndex;
 
-    if(state.queues.empty()) _queues.assign_range(_device->queues());
-    else _queues = std::move(state.queues);
+    if(state.queueIndices.empty()) _queueIndices.assign_range(std::views::iota(0uz, _device->queues().size()));
+    else _queueIndices = std::move(state.queueIndices);
 }
 
 void Core::create(span<Surface const> surfaces, Config const& config) {
@@ -76,8 +80,7 @@ void Core::create(span<Surface const> surfaces, Config const& config) {
     _device = std::move(device);
     _allocator = std::move(allocator);
     _queueSetIndex = pick.queueSetIndex;
-
-    createQueues(pick.queuesToUniqueQueues);
+    _queueIndices = std::move(pick.queuesToUniqueQueues);
 }
 
 void Core::destroy() {
@@ -92,7 +95,7 @@ Core::State Core::release() {
         .physicalDevice = std::move(_physicalDevice),
         .device = std::move(_device),
         .allocator = std::move(_allocator),
-        .queues = std::move(_queues),
+        .queueIndices = std::move(_queueIndices),
         .queueSetIndex = _queueSetIndex,
     };
     forget();
@@ -128,8 +131,10 @@ Allocator const& Core::allocator() const {
     return *_allocator;
 }
 
+Queue const& Core::queue(size_t idx) const { return device().queues()[queueIndex(idx)]; }
+
 void Core::forget() {
-    _queues.clear();
+    _queueIndices.clear();
     _allocator = nullptr;
     _device = nullptr;
     _physicalDevice = nullptr;
@@ -219,14 +224,6 @@ auto Core::tryPickPhysicalDevice(
         .uniqueQueueFamilyIndices = std::move(result->queueFamilyIndices),
         .queuesToUniqueQueues = std::move(queueToUniqueQueue),
     };
-}
-
-void Core::createQueues(span<size_t const> queuesToUniqueQueues) {
-    auto const uniqueQueues = _device->queues();
-
-    _queues.reserve(queuesToUniqueQueues.size());
-    for(auto const uniqueQueueIdx : queuesToUniqueQueues)
-        _queues.push_back(uniqueQueues[uniqueQueueIdx]);
 }
 
 Core::Core(Core&& other) noexcept = default;
