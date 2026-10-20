@@ -190,64 +190,96 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
     expect_green(target);
 }
 
+namespace {
+    /**
+     * @brief draws a green texture
+     * @param layout of the texture at the draw (VK_IMAGE_LAYOUT_MAX_ENUM => the default, shader read only)
+     * @param afterBind true -> bindless binding of 64, the descriptor at element 17 comes after the recording,
+     *  false -> one sampler2D, the descriptor comes before the recording, the layers check its layout at the draw
+     */
+    void draw_texture(test::Context const& context, VkImageLayout layout, bool afterBind) {
+        constexpr VkDescriptorBindingFlags BINDLESS = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+            | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+            | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+        uint32_t const index = afterBind ? 17 : 0;
+        auto const textureLayout = layout != VK_IMAGE_LAYOUT_MAX_ENUM ? layout
+            : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+        DescriptorSetLayout::Config setConfig{};
+        setConfig.add(
+            0,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            afterBind ? 64 : 1,
+            afterBind ? BINDLESS : 0
+        );
+        DescriptorSetLayout const setLayout{context.core, setConfig, create};
+        Fill const fill{
+            context.core,
+            setLayout,
+            afterBind ? std::span<uint32_t const>{test::shaders::BINDLESS_FRAG}
+                      : std::span<uint32_t const>{test::shaders::TEXTURE_FRAG},
+            {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t)}}
+        };
+        Target const target{context.core};
+
+        // 1x1 green texture
+        Image const texture{
+            context.core,
+            {.format = VK_FORMAT_R8G8B8A8_UNORM, .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT},
+            VkExtent2D{1, 1}
+        };
+        ImageView const view{texture, {}, create};
+        Sampler const sampler{context.core, {}, create};
+        Buffer<unsigned char> staging{context.core, host_written<unsigned char>(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), 4};
+        staging.write(GREEN_PIXEL);
+
+        uint32_t const variableCount = afterBind ? 32 : 0;
+        DescriptorPool const pool{context.core, {{&setLayout, 1, variableCount}}, create};
+        DescriptorSet const set{pool, setLayout, variableCount, create};
+        if(!afterBind) set.write({0, view, sampler, index, layout});
+
+        CmdPool const cmdPool{context.core, CmdPool::Config{context.core.queue(0)}, create};
+        PrimaryCmdBuffer cmd{cmdPool, create};
+        cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+        Barrier toTransfer{};
+        toTransfer.addTransition(texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        toTransfer.execute(cmd);
+        texture.copy(cmd, staging);
+        Barrier toShader{};
+        toShader.add(
+            texture,
+            ImageBarrierInfo::LayoutTransition(
+                textureLayout,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT},
+                {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT}
+            )
+        );
+        toShader.execute(cmd);
+
+        record_fill(context, cmd, fill, target, [&](BaseCmdBuffer& c) {
+            c.bindDescriptorSet(set, fill.layout, 0);
+            c.pushConstants(fill.layout, VK_SHADER_STAGE_FRAGMENT_BIT, index);
+        });
+        cmd.end();
+
+        // update after bind: the bind is recorded, the descriptor comes now
+        if(afterBind) set.write({0, view, sampler, index, layout});
+        test::submit_and_wait(context, cmd);
+
+        expect_green(target);
+    }
+}
+
 CVK_TEST(DescriptorDraw, bindless_texture_written_after_bind) {
     test::Context const context{};
-    constexpr uint32_t INDEX = 17;
+    draw_texture(context, VK_IMAGE_LAYOUT_MAX_ENUM, true);
+}
 
-    DescriptorSetLayout::Config setConfig{};
-    setConfig.add(
-        0,
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        VK_SHADER_STAGE_FRAGMENT_BIT,
-        64,
-        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-            | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
-    );
-    DescriptorSetLayout const setLayout{context.core, setConfig, create};
-    Fill const fill{
-        context.core,
-        setLayout,
-        test::shaders::BINDLESS_FRAG,
-        {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t)}}
-    };
-    Target const target{context.core};
-
-    // 1x1 green texture
-    Image const texture{
-        context.core,
-        {.format = VK_FORMAT_R8G8B8A8_UNORM, .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT},
-        VkExtent2D{1, 1}
-    };
-    ImageView const view{texture, {}, create};
-    Sampler const sampler{context.core, {}, create};
-    Buffer<unsigned char> staging{context.core, host_written<unsigned char>(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), 4};
-    staging.write(GREEN_PIXEL);
-
-    DescriptorPool const pool{context.core, {{&setLayout, 1, 32}}, create};
-    DescriptorSet const set{pool, setLayout, 32, create};
-
-    CmdPool const cmdPool{context.core, CmdPool::Config{context.core.queue(0)}, create};
-    PrimaryCmdBuffer cmd{cmdPool, create};
-    cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-    Barrier toTransfer{};
-    toTransfer.addTransition(texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-    toTransfer.execute(cmd);
-    texture.copy(cmd, staging);
-    Barrier toShader{};
-    toShader.addTransition(texture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    toShader.execute(cmd);
-
-    record_fill(context, cmd, fill, target, [&](BaseCmdBuffer& c) {
-        c.bindDescriptorSet(set, fill.layout, 0);
-        c.pushConstants(fill.layout, VK_SHADER_STAGE_FRAGMENT_BIT, INDEX);
-    });
-    cmd.end();
-
-    // update after bind: the bind is recorded, the descriptor comes now
-    set.write({0, view, sampler, INDEX});
-    test::submit_and_wait(context, cmd);
-
-    expect_green(target);
+CVK_TEST(DescriptorDraw, texture_in_the_layout_of_the_write) {
+    test::Context const context{};
+    draw_texture(context, VK_IMAGE_LAYOUT_GENERAL, false);
 }
 }

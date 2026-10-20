@@ -215,14 +215,16 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
             );
             vkWrite.pBufferInfo = &bufferInfos.back();
         } else {
-            auto const& [view, sampler] = std::get<DescriptorWrite::ImageResource>(write._resource);
+            auto const& [view, sampler, layout] = std::get<DescriptorWrite::ImageResource>(write._resource);
             debug_check_image(view, sampler, type);
 
             imageInfos.push_back(
                 VkDescriptorImageInfo{
                     .sampler = sampler != nullptr ? sampler->get() : VK_NULL_HANDLE,
                     .imageView = view != nullptr ? view->get() : VK_NULL_HANDLE,
-                    .imageLayout = view != nullptr ? descriptor_layout(type) : VK_IMAGE_LAYOUT_UNDEFINED,
+                    .imageLayout = view == nullptr ? VK_IMAGE_LAYOUT_UNDEFINED
+                        : layout != VK_IMAGE_LAYOUT_MAX_ENUM ? layout
+                        : descriptor_layout(type),
                 }
             );
             vkWrite.pImageInfo = &imageInfos.back();
