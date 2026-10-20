@@ -23,17 +23,17 @@ namespace {
 }
 
 CVK_TEST(Barrier, layout_transition_table) {
-    constexpr auto toTransfer = layout_transition(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    constexpr auto toTransfer = layout_transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
     static_assert(toTransfer.has_value());
     static_assert(toTransfer->src.stages == VK_PIPELINE_STAGE_2_TRANSFER_BIT);
     static_assert(toTransfer->src.access == VK_ACCESS_2_NONE);
     static_assert(toTransfer->dst.access == VK_ACCESS_2_TRANSFER_WRITE_BIT);
 
-    constexpr auto toLocalRead = layout_transition(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR);
+    constexpr auto toLocalRead = layout_transition(VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_LAYOUT_UNDEFINED);
     static_assert(toLocalRead.has_value());
     static_assert((toLocalRead->dst.access & VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT) != 0);
 
-    static_assert(!layout_transition(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED).has_value());
+    static_assert(!layout_transition(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).has_value());
 }
 
 CVK_TEST(Barrier, layout_transition_info_covers_the_remaining_mip_levels) {

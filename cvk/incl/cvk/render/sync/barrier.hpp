@@ -130,8 +130,8 @@ struct LayoutTransition {
  * @return the scopes of the transition, no common transition -> std::nullopt
  */
 [[nodiscard]] constexpr std::optional<LayoutTransition> layout_transition(
-    VkImageLayout oldLayout,
-    VkImageLayout newLayout
+    VkImageLayout newLayout,
+    VkImageLayout oldLayout
 );
 
 
@@ -247,7 +247,7 @@ constexpr void Barrier::addTransition(
     uint32_t firstMipLevel,
     uint32_t mipLevels
 ) {
-    auto const transition = layout_transition(oldLayout, newLayout);
+    auto const transition = layout_transition(newLayout, oldLayout);
     CTH_CRITICAL(!transition.has_value(), "layout transition has no table entry, use add() with scopes") {
         details->add("transition: {} -> {}", oldLayout, newLayout);
     }
@@ -260,10 +260,10 @@ constexpr void Barrier::addTransition(
 }
 
 namespace cvk {
-constexpr std::optional<LayoutTransition> layout_transition(VkImageLayout oldLayout, VkImageLayout newLayout) {
+constexpr std::optional<LayoutTransition> layout_transition(VkImageLayout newLayout, VkImageLayout oldLayout) {
     struct Entry {
-        VkImageLayout oldLayout;
         VkImageLayout newLayout;
+        VkImageLayout oldLayout;
         LayoutTransition transition;
     };
 
@@ -299,66 +299,66 @@ constexpr std::optional<LayoutTransition> layout_transition(VkImageLayout oldLay
 
     constexpr std::array entries{
         Entry{
-            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             {stagesOf(transferWrite), transferWrite},
         },
         Entry{
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             {transferWrite, fragmentRead},
         },
         Entry{
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             {transferWrite, transferRead},
         },
         Entry{
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             {transferRead, fragmentRead},
         },
 
         Entry{
-            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             {stagesOf(color), color},
         },
         Entry{
-            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             {stagesOf(depth), depth},
         },
         Entry{
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             {colorWrite, fragmentRead},
         },
         Entry{
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             {colorWrite, none},
         },
 
         Entry{
-            VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+            VK_IMAGE_LAYOUT_UNDEFINED,
             {stagesOf(localRead), localRead},
         },
         Entry{
-            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
             {localReadWrite, fragmentRead},
         },
         Entry{
-            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
             VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
             {colorWrite, none},
         },
     };
 
-    auto const it = std::ranges::find_if(entries, [oldLayout, newLayout](Entry const& entry) {
-        return entry.oldLayout == oldLayout && entry.newLayout == newLayout;
+    auto const it = std::ranges::find_if(entries, [newLayout, oldLayout](Entry const& entry) {
+        return entry.newLayout == newLayout && entry.oldLayout == oldLayout;
     });
     if(it == entries.end()) return std::nullopt;
     return it->transition;
