@@ -2,7 +2,6 @@
 
 #include "cvk/base/core.hpp"
 #include "cvk/base/physical_device.hpp"
-#include "cvk/base/queue/queue.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -14,7 +13,7 @@ using std::span;
 using std::vector;
 
 Swapchain::Swapchain(Core const& core, Queue const& presentQueue, Surface const& surface, Config config) :
-    _presentQueue{&presentQueue}, _surface{&surface}, _config{std::move(config)}, _handle{core} {
+    _presentQueue{presentQueue}, _surface{&surface}, _config{std::move(config)}, _handle{core} {
     Core::debug_check(core);
     Surface::debug_check(surface);
     Queue::debug_check_present(presentQueue);
@@ -174,7 +173,7 @@ VkResult Swapchain::present(uint32_t imageIndex) {
         .pResults = nullptr,
     };
 
-    auto const result = _presentQueue->rawPresent(info);
+    auto const result = _presentQueue.rawPresent(info);
     _acquired[imageIndex] = false;
     return result;
 }

@@ -2,6 +2,7 @@
 #include "swapchain_config.hpp"
 
 #include "cvk/base/device_table.hpp"
+#include "cvk/base/queue/queue.hpp"
 #include "cvk/data/img/image.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/sync/fence.hpp"
@@ -22,7 +23,6 @@
 
 namespace cvk {
 class Core;
-class Queue;
 class Surface;
 
 /**
@@ -253,7 +253,7 @@ private:
 
     void forget();
 
-    not_null_ptr<Queue const> _presentQueue;
+    Queue _presentQueue;
     not_null_ptr<Surface const> _surface;
     Config _config;
 
