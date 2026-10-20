@@ -276,8 +276,8 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
             ImageBarrierInfo::LayoutTransition(
                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                COLOR_WRITE,
-                {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT}
+                {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT},
+                COLOR_WRITE
             )
         );
         toTransfer.execute(cmd);

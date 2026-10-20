@@ -40,14 +40,16 @@ CVK_TEST(Barrier, layout_transition_info_covers_the_remaining_mip_levels) {
     constexpr auto info = ImageBarrierInfo::LayoutTransition(
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_UNDEFINED,
-        BarrierScope{},
-        TRANSFER_WRITE
+        TRANSFER_WRITE,
+        BarrierScope{}
     );
 
     static_assert(info.firstMipLevel == 0);
     static_assert(info.mipLevels == VK_REMAINING_MIP_LEVELS);
     static_assert(info.newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     static_assert(info.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED);
+    static_assert(info.dst.access == VK_ACCESS_2_TRANSFER_WRITE_BIT);
+    static_assert(info.src.access == VK_ACCESS_2_NONE);
 }
 
 CVK_TEST(Barrier, queue_transition_info_keeps_the_layout) {
@@ -115,8 +117,8 @@ CVK_TEST(Barrier, image_layout_transition) {
                 ImageBarrierInfo::LayoutTransition(
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     VK_IMAGE_LAYOUT_UNDEFINED,
-                    {},
-                    TRANSFER_WRITE
+                    TRANSFER_WRITE,
+                    {}
                 ),
             },
         },

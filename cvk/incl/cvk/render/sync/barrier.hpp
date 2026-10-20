@@ -65,8 +65,8 @@ struct ImageBarrierInfo {
     [[nodiscard]] static constexpr ImageBarrierInfo LayoutTransition(
         VkImageLayout newLayout,
         VkImageLayout oldLayout,
-        BarrierScope const& src,
         BarrierScope const& dst,
+        BarrierScope const& src,
         uint32_t firstMipLevel = 0,
         uint32_t mipLevels = VK_REMAINING_MIP_LEVELS
     ) {
@@ -254,7 +254,7 @@ constexpr void Barrier::addTransition(
 
     add(
         image,
-        ImageInfo::LayoutTransition(newLayout, oldLayout, transition->src, transition->dst, firstMipLevel, mipLevels)
+        ImageInfo::LayoutTransition(newLayout, oldLayout, transition->dst, transition->src, firstMipLevel, mipLevels)
     );
 }
 }

@@ -70,8 +70,8 @@ CVK_TEST(Rendering, clear_a_color_attachment) {
             ImageBarrierInfo::LayoutTransition(
                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                COLOR_WRITE,
-                {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT}
+                {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT},
+                COLOR_WRITE
             )
         );
         barrier.execute(cmd);
