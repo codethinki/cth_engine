@@ -280,6 +280,22 @@ CVK_TEST(Swapchain, recreate_without_an_offered_format_throws_and_keeps_the_swap
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }
 
+CVK_TEST(Swapchain, presents_destroy_the_retired_swapchain_after_its_present_fences_signal) {
+    test::PresentContext const context{};
+    Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
+    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+    swapchain.resize({32, 32});
+    auto const vkSwapchain = swapchain.get();
+    ASSERT_EQ(swapchain.retired(), 1);
+
+    // the headless surface completes presents at once, the bound only ends a broken loop
+    for(uint32_t frame = 0; frame < 16 && swapchain.retired() != 0; ++frame)
+        EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+
+    EXPECT_EQ(swapchain.retired(), 0);
+    EXPECT_EQ(swapchain.get(), vkSwapchain);
+}
+
 CVK_TEST(Swapchain, unacquire_gives_the_image_back) {
     test::PresentContext const context{};
     Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
@@ -334,6 +350,28 @@ CVK_TEST(Swapchain, move_assignment_destroys_the_old_swapchain) {
     swapchain = std::move(moved);
 
     EXPECT_EQ(swapchain.get(), vkSwapchain);
+    EXPECT_FALSE(moved.created());
+    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+}
+
+CVK_TEST(Swapchain, move_assignment_over_a_retired_swapchain_with_a_present_in_flight) {
+    test::PresentContext const context{};
+    auto const other = test::headless_surface(context.instance);
+    Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
+    // no acquire or present after the resize: the retired swapchain stays with its present fence
+    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+    swapchain.resize({32, 32});
+    ASSERT_EQ(swapchain.retired(), 1);
+
+    Swapchain moved{context.core, context.queue(), other, {}, EXTENT};
+    auto const vkSwapchain = moved.get();
+
+    swapchain = std::move(moved);
+
+    ASSERT_TRUE(swapchain.created());
+    EXPECT_EQ(swapchain.get(), vkSwapchain);
+    EXPECT_EQ(swapchain.retired(), 0);
+    EXPECT_EQ(swapchain.extent().width, EXTENT.width);
     EXPECT_FALSE(moved.created());
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }

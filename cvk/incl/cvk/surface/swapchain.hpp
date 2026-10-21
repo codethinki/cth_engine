@@ -30,8 +30,7 @@ class Surface;
  * @brief VkSwapchainKHR wrapper, owns its images, their views, a present semaphore and a present fence per image
  * @details the images are wrapped without memory and released before the swapchain is destroyed,
  *  @ref resize() and @ref recreate() retire the old swapchain,
- *  the swapchain destroys it once its present fences signal,
- *  custom move assignment: destroys first, a default one would destroy the swapchain images
+ *  the swapchain destroys it once its present fences signal
  * @attention not thread safe
  */
 class Swapchain {
@@ -80,12 +79,8 @@ public:
 
     /**
      * @note calls @ref optDestroy()
-     * @note waits for the retired swapchains and destroys them
      */
-    ~Swapchain() {
-        optDestroy();
-        destroyRetired();
-    }
+    ~Swapchain() { optDestroy(); }
 
     /**
      * @brief wraps the state, gets the images, creates their views, present semaphores and present fences
@@ -120,7 +115,7 @@ public:
      * @pre extent width and height > 0
      * @pre the surface still supports the format and the present mode of the swapchain
      * @pre no present semaphore is signaled without its present
-     * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR()
+     * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR(), destroys the old swapchains and forgets
      */
     void resize(VkExtent2D extent);
 
@@ -133,7 +128,7 @@ public:
      * @pre no present semaphore is signaled without its present
      * @note a new format needs new pipelines for the swapchain images
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode, nothing changes
-     * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR()
+     * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR(), destroys the old swapchains and forgets
      */
     void recreate(VkExtent2D extent, Config);
 
@@ -201,16 +196,18 @@ public:
      */
     [[nodiscard]] static constexpr uint32_t evalImageCount(uint32_t minImageCount, VkSurfaceCapabilitiesKHR const&);
 
-    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
-    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr bool created() const { return !_generations.empty(); }
+    [[nodiscard]] constexpr vk_handle_t get() const { return created() ? current().handle.get() : VK_NULL_HANDLE; }
+    [[nodiscard]] constexpr Core const& core() const { return *_core; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     [[nodiscard]] constexpr VkExtent2D extent() const { return _extent; }
     [[nodiscard]] constexpr VkFormat format() const { return _surfaceFormat.format; }
     [[nodiscard]] constexpr VkColorSpaceKHR colorSpace() const { return _surfaceFormat.colorSpace; }
     [[nodiscard]] constexpr VkPresentModeKHR presentMode() const { return _presentMode; }
-    [[nodiscard]] constexpr uint32_t imageCount() const { return static_cast<uint32_t>(_images.size()); }
+    [[nodiscard]] constexpr uint32_t imageCount() const {
+        return created() ? static_cast<uint32_t>(current().images.size()) : 0;
+    }
 
     /**
      * @return width / height
@@ -220,39 +217,65 @@ public:
         return static_cast<float>(_extent.width) / static_cast<float>(_extent.height);
     }
 
-    [[nodiscard]] constexpr std::span<Image const> images() const { return _images; }
-    [[nodiscard]] constexpr std::span<ImageView const> views() const { return _views; }
+    [[nodiscard]] constexpr std::span<Image const> images() const {
+        return created() ? std::span<Image const>{current().images} : std::span<Image const>{};
+    }
+    [[nodiscard]] constexpr std::span<ImageView const> views() const {
+        return created() ? std::span<ImageView const>{current().views} : std::span<ImageView const>{};
+    }
 
     /**
      * @return the semaphore that @ref present() of the image waits for, a submit signals it
      * @pre imageIndex < @ref imageCount()
      */
     [[nodiscard]] constexpr Semaphore const& presentSemaphore(uint32_t imageIndex) const {
-        return _presentSemaphores[imageIndex];
+        return current().presentSemaphores[imageIndex];
     }
 
     /**
      * @pre imageIndex < @ref imageCount()
      */
-    [[nodiscard]] constexpr bool acquired(uint32_t imageIndex) const { return _acquired[imageIndex]; }
+    [[nodiscard]] constexpr bool acquired(uint32_t imageIndex) const { return current().acquired[imageIndex]; }
 
     /**
      * @return count of the retired swapchains that wait for their present fences
      */
-    [[nodiscard]] constexpr size_t retired() const { return _retired.size(); }
+    [[nodiscard]] constexpr size_t retired() const { return created() ? _generations.size() - 1 : 0; }
 
 private:
     /**
-     * @brief old swapchain after @ref resize() or @ref recreate(), the images are released
-     * @details members destroy in reverse order: the swapchain last
+     * @brief one VkSwapchainKHR with its images, views, present semaphores, present fences and acquire states
+     * @details the destructor waits for the present fences and releases the images,
+     *  then the members destroy in reverse order: the swapchain last,
+     *  a moved from generation is empty, its destructor does nothing,
+     *  no move assignment: a member wise one destroys the images without the wait and the release
      */
-    struct Retired {
+    struct Generation {
+        explicit Generation(core_handle<Swapchain> swapchain) : handle{std::move(swapchain)} {}
+        ~Generation();
+
         core_handle<Swapchain> handle;
         std::vector<Image> images;
         std::vector<ImageView> views;
         std::vector<Semaphore> presentSemaphores;
         std::vector<Fence> presentFences;
+        std::vector<bool> acquired;
+
+        Generation(Generation const& other) = delete;
+        Generation(Generation&& other) noexcept = default;
+        Generation& operator=(Generation const& other) = delete;
+        Generation& operator=(Generation&& other) = delete;
     };
+
+    /**
+     * @pre @ref created()
+     */
+    [[nodiscard]] constexpr Generation& current() { return _generations.back(); }
+
+    /**
+     * @pre @ref created()
+     */
+    [[nodiscard]] constexpr Generation const& current() const { return _generations.back(); }
 
     /**
      * @return the first allowed format and present mode of the config that the surface offers
@@ -261,45 +284,37 @@ private:
     [[nodiscard]] std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> pick(Config const&) const;
 
     /**
-     * @brief creates the swapchain and its images with @ref _surfaceFormat and @ref _presentMode
+     * @brief creates a swapchain with @ref _surfaceFormat and @ref _presentMode as the new current generation
+     * @details a failure destroys every generation and forgets
      */
     void createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain);
+
+    /**
+     * @brief gets the images of the current generation, creates their views, present semaphores and present fences
+     */
     void createImages();
 
     /**
-     * @brief unacquires the acquired images, moves the swapchain and its images to the retired swapchains
-     * @return the handle of the retired swapchain
+     * @brief unacquires the acquired images of the current generation
      */
-    [[nodiscard]] VkSwapchainKHR retire();
+    void unacquireAll();
 
     /**
-     * @brief waits for the present fences, releases the images, destroys the views, semaphores and fences
-     */
-    void destroyImages();
-
-    /**
-     * @brief destroys the retired swapchains with signaled present fences
+     * @brief destroys the retired generations with signaled present fences
      */
     void collectRetired();
-
-    /**
-     * @brief waits for the present fences of the retired swapchains and destroys them
-     */
-    void destroyRetired();
 
     void forget();
 
     Queue _presentQueue;
     not_null_ptr<Surface const> _surface;
+    not_null_ptr<Core const> _core;
     Config _config;
 
-    core_handle<Swapchain> _handle;
-    std::vector<Image> _images;
-    std::vector<ImageView> _views;
-    std::vector<Semaphore> _presentSemaphores;
-    std::vector<Fence> _presentFences;
-    std::vector<bool> _acquired;
-    std::vector<Retired> _retired;
+    /**
+     * @brief back() is the current swapchain, the others are retired, empty -> not created
+     */
+    std::vector<Generation> _generations;
 
     VkExtent2D _extent{};
     VkSurfaceFormatKHR _surfaceFormat{};
@@ -309,9 +324,7 @@ public:
     Swapchain(Swapchain const& other) = delete;
     Swapchain(Swapchain&& other) noexcept = default;
     Swapchain& operator=(Swapchain const& other) = delete;
-    //TODO the custom move assignment is ugly, find a design where the default one works
-    //TODO generate the member moves with reflection, only optDestroy(), destroyRetired() and forget() stay
-    Swapchain& operator=(Swapchain&& other) noexcept;
+    Swapchain& operator=(Swapchain&& other) noexcept = default;
 
     static constexpr void debug_check(Swapchain const&);
 };

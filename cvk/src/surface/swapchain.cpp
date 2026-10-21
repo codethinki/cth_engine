@@ -8,6 +8,7 @@
 #include "cvk/utility/vk_overloads.hpp"
 
 #include <algorithm>
+#include <ranges>
 
 
 namespace cvk {
@@ -15,7 +16,7 @@ using std::span;
 using std::vector;
 
 Swapchain::Swapchain(Core const& core, Queue const& presentQueue, Surface const& surface, Config config) :
-    _presentQueue{presentQueue}, _surface{&surface}, _config{std::move(config)}, _handle{core} {
+    _presentQueue{presentQueue}, _surface{&surface}, _core{&core}, _config{std::move(config)} {
     Core::debug_check(core);
     Surface::debug_check(surface);
     Queue::debug_check_present(presentQueue);
@@ -41,7 +42,7 @@ Swapchain::Swapchain(
 void Swapchain::wrap(State const& state) {
     optDestroy();
 
-    _handle.reset(state.vkSwapchain.get(), core());
+    _generations.emplace_back(core_handle<Swapchain>{state.vkSwapchain.get(), core()});
     _extent = state.extent;
     _surfaceFormat = state.surfaceFormat;
     _presentMode = state.presentMode;
@@ -63,8 +64,8 @@ void Swapchain::resize(VkExtent2D extent) {
     debug_check(*this);
     CTH_CRITICAL(extent.width == 0 || extent.height == 0, "extent width and height must be > 0, got {}", extent) {}
 
-    auto const oldSwapchain = retire();
-    createSwapchain(extent, oldSwapchain);
+    unacquireAll();
+    createSwapchain(extent, get());
 }
 
 void Swapchain::recreate(VkExtent2D extent, Config config) {
@@ -74,19 +75,17 @@ void Swapchain::recreate(VkExtent2D extent, Config config) {
 
     auto const [surfaceFormat, presentMode] = pick(config);
 
-    auto const oldSwapchain = retire();
+    unacquireAll();
     _config = std::move(config);
     _surfaceFormat = surfaceFormat;
     _presentMode = presentMode;
-    createSwapchain(extent, oldSwapchain);
+    createSwapchain(extent, get());
 }
 
 void Swapchain::destroy() {
     debug_check(*this);
 
-    destroyImages();
-    destroyRetired();
-    _handle.reset();
+    _generations.clear();
 
     forget();
 }
@@ -94,15 +93,15 @@ void Swapchain::destroy() {
 Swapchain::State Swapchain::release() {
     debug_check(*this);
 
-    destroyImages();
-    destroyRetired();
-
     State const state{
-        .vkSwapchain = _handle.release(),
+        .vkSwapchain = current().handle.release(),
         .extent = _extent,
         .surfaceFormat = _surfaceFormat,
         .presentMode = _presentMode,
     };
+    // waits for the present fences, releases the images, the current generation has no handle to destroy
+    _generations.clear();
+
     forget();
     return state;
 }
@@ -124,7 +123,7 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
     );
 
     if(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
-        _acquired[imageIndex] = true;
+        current().acquired[imageIndex] = true;
         return {result, imageIndex};
     }
 
@@ -139,12 +138,14 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
 
 VkResult Swapchain::present(uint32_t imageIndex) {
     debug_check(*this);
-    CTH_CRITICAL(imageIndex >= imageCount() || !_acquired[imageIndex], "image {} must be acquired", imageIndex) {}
+    CTH_CRITICAL(imageIndex >= imageCount() || !acquired(imageIndex), "image {} must be acquired", imageIndex) {}
 
     collectRetired();
 
+    auto& generation = current();
+
     // signaled by the last present of the image or created signaled
-    auto const& fence = _presentFences[imageIndex];
+    auto const& fence = generation.presentFences[imageIndex];
     fence.waitReset();
 
     VkFence const vkFence = fence.get();
@@ -155,8 +156,8 @@ VkResult Swapchain::present(uint32_t imageIndex) {
         .pFences = &vkFence,
     };
 
-    VkSemaphore const vkSemaphore = _presentSemaphores[imageIndex].get();
-    VkSwapchainKHR const vkSwapchain = get();
+    VkSemaphore const vkSemaphore = generation.presentSemaphores[imageIndex].get();
+    VkSwapchainKHR const vkSwapchain = generation.handle.get();
     VkPresentInfoKHR const info{
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .pNext = &fenceInfo,
@@ -169,14 +170,14 @@ VkResult Swapchain::present(uint32_t imageIndex) {
     };
 
     auto const result = _presentQueue.rawPresent(info);
-    _acquired[imageIndex] = false;
+    generation.acquired[imageIndex] = false;
     return result;
 }
 
 void Swapchain::unacquire(span<uint32_t const> imageIndices) {
     debug_check(*this);
     for(auto const index : imageIndices)
-        CTH_CRITICAL(index >= imageCount() || !_acquired[index], "image {} must be acquired", index) {}
+        CTH_CRITICAL(index >= imageCount() || !acquired(index), "image {} must be acquired", index) {}
 
     if(imageIndices.empty()) return;
 
@@ -192,13 +193,22 @@ void Swapchain::unacquire(span<uint32_t const> imageIndices) {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to unacquire swapchain images") {}
 
     for(auto const index : imageIndices)
-        _acquired[index] = false;
+        current().acquired[index] = false;
 }
 
 void Swapchain::destroy(DeviceTable table, VkSwapchainKHR vkSwapchain) {
     CTH_WARN(vkSwapchain == VK_NULL_HANDLE, "vkSwapchain invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroySwapchainKHR(table.device(), vkSwapchain, nullptr);
+}
+
+Swapchain::Generation::~Generation() {
+    for(auto const& fence : presentFences)
+        fence.wait();
+
+    // the swapchain destroys its images
+    for(auto& image : images)
+        image.release();
 }
 
 std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> Swapchain::pick(Config const& config) const {
@@ -249,22 +259,26 @@ void Swapchain::createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain) 
     auto const result = core().functions()->vkCreateSwapchainKHR(core().vkDevice(), &info, nullptr, &ptr);
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create swapchain") {
+        // the old swapchain retires also when the creation fails, no generation stays current
+        _generations.clear();
         forget();
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
-    _handle.reset(ptr, core());
+    _generations.emplace_back(core_handle<Swapchain>{ptr, core()});
     _extent = imageExtent;
 
     createImages();
 }
 
 void Swapchain::createImages() {
+    auto& generation = current();
+
     auto const vkImages = dev::enumerate(
         "swapchain images",
         core().functions()->vkGetSwapchainImagesKHR,
         core().vkDevice(),
-        get()
+        generation.handle.get()
     );
     auto const count = static_cast<uint32_t>(vkImages.size());
 
@@ -274,109 +288,47 @@ void Swapchain::createImages() {
         .queueFamilies = _config.queueFamilies,
     };
 
-    _images.reserve(count);
+    generation.images.reserve(count);
     for(auto const vkImage : vkImages)
-        _images.emplace_back(core(), imageConfig, Image::State{.vkImage = vkImage, .extent = _extent});
+        generation.images.emplace_back(core(), imageConfig, Image::State{.vkImage = vkImage, .extent = _extent});
 
-    _views.reserve(count);
-    for(auto const& image : _images)
-        _views.emplace_back(image, ImageView::Config{}, cvk::create);
+    generation.views.reserve(count);
+    for(auto const& image : generation.images)
+        generation.views.emplace_back(image, ImageView::Config{}, cvk::create);
 
-    _presentSemaphores.reserve(count);
-    _presentFences.reserve(count);
+    generation.presentSemaphores.reserve(count);
+    generation.presentFences.reserve(count);
     for(uint32_t index = 0; index < count; ++index) {
-        _presentSemaphores.emplace_back(core(), cvk::create);
-        _presentFences.emplace_back(core(), cvk::create, VK_FENCE_CREATE_SIGNALED_BIT);
+        generation.presentSemaphores.emplace_back(core(), cvk::create);
+        generation.presentFences.emplace_back(core(), cvk::create, VK_FENCE_CREATE_SIGNALED_BIT);
     }
 
-    _acquired.assign(count, false);
+    generation.acquired.assign(count, false);
 }
 
-VkSwapchainKHR Swapchain::retire() {
+void Swapchain::unacquireAll() {
     vector<uint32_t> acquiredImages{};
     for(uint32_t index = 0; index < imageCount(); ++index)
-        if(_acquired[index]) acquiredImages.push_back(index);
+        if(acquired(index)) acquiredImages.push_back(index);
     unacquire(acquiredImages);
-
-    // the swapchain destroys its images
-    for(auto& image : _images)
-        image.release();
-
-    auto const oldSwapchain = get();
-    _retired.push_back(
-        Retired{
-            .handle = std::move(_handle),
-            .images = std::move(_images),
-            .views = std::move(_views),
-            .presentSemaphores = std::move(_presentSemaphores),
-            .presentFences = std::move(_presentFences),
-        }
-    );
-    _images.clear();
-    _views.clear();
-    _presentSemaphores.clear();
-    _presentFences.clear();
-    _acquired.clear();
-
-    return oldSwapchain;
-}
-
-void Swapchain::destroyImages() {
-    for(auto const& fence : _presentFences)
-        fence.wait();
-
-    _views.clear();
-    // the swapchain destroys its images
-    for(auto& image : _images)
-        image.release();
-    _images.clear();
-
-    _presentSemaphores.clear();
-    _presentFences.clear();
-    _acquired.clear();
 }
 
 void Swapchain::collectRetired() {
-    std::erase_if(_retired, [](Retired const& retired) {
-        return std::ranges::all_of(retired.presentFences, &Fence::signaled);
-    });
-}
+    if(_generations.size() < 2) return;
 
-void Swapchain::destroyRetired() {
-    for(auto const& retired : _retired)
-        for(auto const& fence : retired.presentFences)
-            fence.wait();
+    // the generations have no move assignment, the kept ones move into a new vector
+    vector<Generation> kept{};
+    kept.reserve(_generations.size());
+    for(auto& generation : _generations | std::views::take(_generations.size() - 1))
+        if(!std::ranges::all_of(generation.presentFences, &Fence::signaled)) kept.push_back(std::move(generation));
+    kept.push_back(std::move(current()));
 
-    _retired.clear();
+    _generations = std::move(kept);
 }
 
 void Swapchain::forget() {
     _extent = {};
     _surfaceFormat = {};
     _presentMode = VK_PRESENT_MODE_FIFO_KHR;
-}
-
-Swapchain& Swapchain::operator=(Swapchain&& other) noexcept {
-    if(this == &other) return *this;
-
-    optDestroy();
-    destroyRetired();
-
-    _presentQueue = other._presentQueue;
-    _surface = other._surface;
-    _config = std::move(other._config);
-    _handle = std::move(other._handle);
-    _images = std::move(other._images);
-    _views = std::move(other._views);
-    _presentSemaphores = std::move(other._presentSemaphores);
-    _presentFences = std::move(other._presentFences);
-    _acquired = std::move(other._acquired);
-    _retired = std::move(other._retired);
-    _extent = other._extent;
-    _surfaceFormat = other._surfaceFormat;
-    _presentMode = other._presentMode;
-
-    other.forget();
-    return *this;
 }
 }
