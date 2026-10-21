@@ -17,13 +17,14 @@ Read it before you change a file. Match the existing code.
 | `lib/cmake` | one cmake file per library that adds it: `<libname>.cmake` |
 
 - Vulkan 1.3 is the baseline. Do not port code that 1.3 makes unnecessary (render passes, framebuffers, the old sync API).
-- Features beyond 1.3 come from required extensions, not from a higher version: `VK_KHR_dynamic_rendering_local_read` (tile-based local reads).
+- Features beyond 1.3 come from required extensions, not from a higher version.
 - Device features are the `bool` fields of `DeviceFeatures`. A true bit of an extension struct enables its extension.
   New extension struct: entry in `dev::feature_structs_t`, `dev::feature_struct` specialization, fields in `DeviceFeatures` in the same order.
 - Use the Vulkan C API through volk. Do not use Vulkan-Hpp.
 - Memory comes from VMA.
-- `cvk` destroys immediately. It has no destruction queue. Deferred destruction belongs to `jvk`.
-- `cvk` tracks no image layouts: functions take the layout as a value, with a default where the use fixes it. Tracking belongs to `jvk`.
+- `cvk` keeps only the state it needs to work: no destruction queue, no layout tracking, no thread sync.
+  - other state is a parameter, with a default where the use fixes it: the image layout
+  - `jvk` tracks it, the validation layers do the checks that need it
 - Hash maps: `cth::dt::flat_hash_map`, `cth::dt::flat_hash_set`. No `std::unordered_map`.
 - Commits have no `Co-Authored-By` or "Generated with" lines.
 
@@ -85,30 +86,27 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 | macro | `UPPER_SNAKE_CASE` with library prefix | `CVK_RESULT_STABLE_THROW` |
 | namespace | short lower case | `cvk`, `cvk::constants`, `cvk::dev` |
 
-- A raw Vulkan handle in a variable or parameter has the prefix `vk`: `vkInstance`, `vkSemaphore`. A raw VMA handle has the prefix `vma`: `vmaAllocator`, `vmaAllocation`.
+- A raw handle in a variable or parameter has the prefix of its API: `vkInstance`, `vmaAllocation`.
 - `_t` only for aliases that rename a type: `callback_t`, `queue_set_t`. An alias that is a type of its own gets a std style name, like `std::string`.
 - Declarations leave out parameter names that repeat the type: `wrap(State const&)`, not `VkSemaphore vkSemaphore`. Definitions keep them.
-- Function parameters were `snake_case` in the legacy code. New code uses `camelCase`. Rename them when you port.
-- `cvk::dev` holds implementation details that are not part of the API.
+- `<lib>::dev` holds implementation details that are not part of the API.
 
 ### Language
 
-- Use `constexpr`, `consteval` and `decltype(auto)`. The macros `cxpr`, `cval` and `declauto` do not exist anymore.
-- Mark every function `constexpr` that can run at compile time, also when no code uses it there yet: accessors, `debug_check` functions, configs, value types.
-- Not `constexpr`: functions that call Vulkan, VMA or the OS, and the constructors, destructor and lifecycle of a handle owner.
+- Mark every function `constexpr` that can run at compile time, also when nothing uses it there yet.
+  A handle owner cannot exist at compile time: its lifecycle is not `constexpr`.
 - Put `[[nodiscard]]` on every function that returns a value the caller must use.
 - Put `explicit` on constructors with one parameter and on tag constructors.
 - Use `auto const` for locals that do not change.
-- Initialize Vulkan structs with designated initializers. Always write `.sType` and `.pNext`.
+- Initialize aggregates with designated initializers. Vulkan structs always get `.sType` and `.pNext`.
 - Data structs (`SubmitInfo`, `Barrier`, info structs) are aggregates. Member functions like `add()` are optional shortcuts, checks run at the use.
-- Commands on the command buffer state (binds, dynamic state, push constants, renderings, draws) are command buffer members: `cmd.bindPipeline(pipeline)`.
-  Commands on the data of an object (barriers, copies, uploads) are object members: `barrier.execute(cmd)`.
+- A command is a member of the object it acts on: the command buffer for its own state (`cmd.bindPipeline(pipeline)`), else the object (`barrier.execute(cmd)`).
 - Call patterns follow the modern std library conventions.
 - Use deducing `this` (`this auto& self`) where a function must work on the derived type.
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.
 - Prefer compile time checks (concepts, `static_assert`) to run time checks.
-- `cvk` offers an override of an automatically chosen value if:
+- An automatically chosen value has an override if:
   - the choice is not guaranteed to be optimal
   - there is a legitimate interest: debugging, user preference
 - Never erase types into integers or `void*`.
@@ -176,11 +174,10 @@ public:
 
 - The first public section holds the API: types, constants, lifecycle, operations, accessors.
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
-- Classes that own a handle are move only. A class that differs says so in its `@brief`: copyable, neither copyable nor movable, or a custom move.
+- Classes that own a handle are move only. A class that differs says so in its `@brief`.
 - Every class of a Vulkan or VMA object declares `using vk_handle_t = VkX;` as its first type, also classes that do not own their handle. `get()` returns `vk_handle_t`.
 - The handle lives in `cvk::unique_handle<Handle, Deleter>`: a `std::unique_ptr` whose deleter holds the destroy context and calls the static `destroy`.
-  Short forms: `core_handle<T>` (device objects), `vma_handle<T>` (VMA memory), `instance_handle<T>` (instance objects).
-  Other deleters: `handle_deleter<T>` (no context) or an own one (`BaseCmdBuffer` frees through its pool).
+  `cvk/utility/handle/` has the deleters and the short forms (`core_handle<T>`).
 - Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
 - Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.
 - A class that owns several objects declares the objects that depend on its handle first, `= default` assigns in that order: `_debugMessenger` before `_handle`.
@@ -216,7 +213,7 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 | `forget()` | sets the members to the not created state, does not destroy |
 
 - The destructor calls `optDestroy()`.
-- `reset` and `invalidate` keep their std and Vulkan meanings (`unique_ptr::reset`, `vkResetFences`). The lifecycle uses `forget()`.
+- std and Vulkan names keep their meaning: the lifecycle uses `forget()`, not `reset()`.
 - Device objects take `Core const&` in the base constructor. The `core_deleter` of the handle stores it, `core()` returns it.
 - A parent (instance, core, device, pool, ...) does not move and is not destroyed while objects depend on it. Code does not have to support it.
 - A failed `create()` calls `forget()` before it throws.
@@ -226,9 +223,8 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 ### Errors
 
 - `CTH_CRITICAL(condition, "message") {}`: precondition check, active in debug builds only.
-- `CTH_STABLE_ERR(condition, "message") { forget(); throw cvk::cvk_exception{details->exception()}; }`: error that can happen at run time.
+- `CTH_STABLE_ERR(condition, "message") { throw <lib>::<lib>_exception{details->exception()}; }`: error that can happen at run time.
 - `CTH_WARN(condition, "message") {}`: suspicious state that is not an error.
-- `cvk` stores state only where it needs the state to work. A check that needs more state is left to the validation layers.
 - `CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "message") {}`: throws `cvk::vk_result_exception` with the `VkResult`.
 - A module of cth_engine throws only its exception type `<lib>::<lib>_exception` or a derived type: `cvk::cvk_exception`.
 - The condition is the error case: `CTH_CRITICAL(!created(), ...)`, not the expected case.
@@ -271,7 +267,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 | `@attention` | danger that is not a precondition: undefined behavior, not thread safe |
 
 - Write preconditions as `@pre`, not as `@attention requires ...`.
-- For an exception that cvk throws itself, write the cause after `reason:`: `@throws cvk::cvk_exception reason: required extension missing`.
+- For an exception of the module itself, write the cause after `reason:`: `@throws cvk::cvk_exception reason: required extension missing`.
 
 ### Math like notation
 
@@ -320,8 +316,8 @@ void create(std::optional<DebugMessenger::Config> messengerConfig = std::nullopt
 
 ### When you port legacy code
 
+- Apply this guide to ported code. The legacy macros `cxpr`, `cval` and `declauto` become keywords.
 - Check every comment against the code. The legacy comments are not always up to date.
-- Rewrite comments to this style.
 - Report bugs that you find. Do not fix a behavior change silently.
 
 ### Repository text
