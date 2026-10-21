@@ -59,10 +59,10 @@ public:
 
 protected:
     /**
-     * @brief base constructor, keeps the layout
-     * @pre @ref Core::created()
+     * @brief base constructor, keeps the layout, the core comes from the layout
+     * @pre @ref Core::created() of the layout
      */
-    BasePipeline(Core const&, PipelineLayout const&, VkPipelineBindPoint);
+    BasePipeline(PipelineLayout const&, VkPipelineBindPoint);
 
     /**
      * @note calls @ref optDestroy()

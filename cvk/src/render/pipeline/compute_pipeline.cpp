@@ -4,18 +4,16 @@
 
 
 namespace cvk {
-ComputePipeline::ComputePipeline(Core const& core, PipelineLayout const& layout, Config const& config) :
-    BasePipeline{core, layout, VK_PIPELINE_BIND_POINT_COMPUTE}, _config{config} {}
+ComputePipeline::ComputePipeline(PipelineLayout const& layout, Config const& config) :
+    BasePipeline{layout, VK_PIPELINE_BIND_POINT_COMPUTE}, _config{config} {}
 
-ComputePipeline::ComputePipeline(
-    Core const& core,
-    PipelineLayout const& layout,
-    Config const& config,
-    State const& state
-) : ComputePipeline{core, layout, config} { wrap(state); }
+ComputePipeline::ComputePipeline(PipelineLayout const& layout, Config const& config, State const& state) :
+    ComputePipeline{layout, config} {
+    wrap(state);
+}
 
-ComputePipeline::ComputePipeline(Core const& core, PipelineLayout const& layout, Config const& config, create_t) :
-    ComputePipeline{core, layout, config} {
+ComputePipeline::ComputePipeline(PipelineLayout const& layout, Config const& config, create_t) :
+    ComputePipeline{layout, config} {
     create();
 }
 

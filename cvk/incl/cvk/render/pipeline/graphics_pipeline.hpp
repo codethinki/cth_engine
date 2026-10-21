@@ -8,7 +8,6 @@
 
 
 namespace cvk {
-class Core;
 class PipelineLayout;
 
 /**
@@ -20,40 +19,39 @@ public:
 
     /**
      * @brief base constructor, keeps the layout
-     * @pre @ref Core::created()
+     * @pre @ref Core::created() of the layout
      */
-    GraphicsPipeline(Core const&, PipelineLayout const&, Config);
+    GraphicsPipeline(PipelineLayout const&, Config);
 
     /**
      * @brief constructs and wraps
      * @details calls:
-     * - @ref GraphicsPipeline(Core const&, PipelineLayout const&, Config)
+     * - @ref GraphicsPipeline(PipelineLayout const&, Config)
      * - @ref wrap()
      */
-    GraphicsPipeline(Core const&, PipelineLayout const&, Config, State const&);
+    GraphicsPipeline(PipelineLayout const&, Config, State const&);
 
     /**
      * @brief constructs and creates
      * @details calls:
-     * - @ref GraphicsPipeline(Core const&, PipelineLayout const&, Config)
+     * - @ref GraphicsPipeline(PipelineLayout const&, Config)
      * - @ref create()
      */
-    explicit GraphicsPipeline(Core const&, PipelineLayout const&, Config, create_t);
+    explicit GraphicsPipeline(PipelineLayout const&, Config, create_t);
 
     /**
      * @brief base constructor of a derivative pipeline, keeps the layout and copies the handle of the parent
-     * @pre @ref Core::created()
      * @pre @ref created() of the parent, with VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT in its flags
      */
-    GraphicsPipeline(Core const&, GraphicsPipeline const& parent, Config);
+    GraphicsPipeline(GraphicsPipeline const& parent, Config);
 
     /**
      * @brief constructs and creates a derivative pipeline
      * @details calls:
-     * - @ref GraphicsPipeline(Core const&, GraphicsPipeline const&, Config)
+     * - @ref GraphicsPipeline(GraphicsPipeline const&, Config)
      * - @ref create()
      */
-    explicit GraphicsPipeline(Core const&, GraphicsPipeline const& parent, Config, create_t);
+    explicit GraphicsPipeline(GraphicsPipeline const& parent, Config, create_t);
 
     /**
      * @brief creates the pipeline

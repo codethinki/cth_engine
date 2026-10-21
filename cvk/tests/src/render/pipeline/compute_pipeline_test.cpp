@@ -56,7 +56,7 @@ namespace {
      */
     void expect_values(test::Context const& context, auto&& dispatch) {
         Values const values{context.core};
-        ComputePipeline const pipeline{context.core, values.layout, values.config(), create};
+        ComputePipeline const pipeline{values.layout, values.config(), create};
         Buffer<uint32_t> const output{context.core, OUTPUT_CONFIG, VALUES};
         DescriptorPool const pool{context.core, DescriptorPool::Config{{&values.setLayout}}, create};
         DescriptorSet const set{pool, values.setLayout, create};
@@ -86,7 +86,7 @@ CVK_TEST(ComputePipeline, base_constructor_does_not_create) {
     test::Context const context{};
     Values const values{context.core};
 
-    ComputePipeline const pipeline{context.core, values.layout, values.config()};
+    ComputePipeline const pipeline{values.layout, values.config()};
 
     EXPECT_FALSE(pipeline.created());
     EXPECT_EQ(&pipeline.layout(), &values.layout);
@@ -97,7 +97,7 @@ CVK_TEST(ComputePipeline, create_and_destroy) {
     test::Context const context{};
     Values const values{context.core};
 
-    ComputePipeline pipeline{context.core, values.layout, values.config(), create};
+    ComputePipeline pipeline{values.layout, values.config(), create};
     ASSERT_TRUE(pipeline.created());
     EXPECT_EQ(&pipeline.core(), &context.core);
 
@@ -108,21 +108,21 @@ CVK_TEST(ComputePipeline, create_and_destroy) {
 CVK_TEST(ComputePipeline, release_and_wrap) {
     test::Context const context{};
     Values const values{context.core};
-    ComputePipeline pipeline{context.core, values.layout, values.config(), create};
+    ComputePipeline pipeline{values.layout, values.config(), create};
     auto const vkPipeline = pipeline.get();
 
     auto const state = pipeline.release();
     EXPECT_FALSE(pipeline.created());
 
-    ComputePipeline const wrapped{context.core, values.layout, values.config(), state};
+    ComputePipeline const wrapped{values.layout, values.config(), state};
     EXPECT_EQ(wrapped.get(), vkPipeline);
 }
 
 CVK_TEST(ComputePipeline, move_assignment_destroys_the_old_pipeline) {
     test::Context const context{};
     Values const values{context.core};
-    ComputePipeline pipeline{context.core, values.layout, values.config(), create};
-    ComputePipeline other{context.core, values.layout, values.config(), create};
+    ComputePipeline pipeline{values.layout, values.config(), create};
+    ComputePipeline other{values.layout, values.config(), create};
     auto const vkPipeline = other.get();
 
     pipeline = std::move(other);

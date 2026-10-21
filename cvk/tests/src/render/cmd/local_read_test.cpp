@@ -149,10 +149,10 @@ namespace {
             color{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
             localRead{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::LOCAL_READ_FRAG},
             writeLayout{core, {.pushConstantRanges = {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GREEN)}}}, create},
-            write{core, writeLayout, fullscreen(vertex, color, write_first()), create},
+            write{writeLayout, fullscreen(vertex, color, write_first()), create},
             inputLayout{core, input_attachment(), create},
             readLayout{core, {.setLayouts = {&inputLayout}}, create},
-            read{core, readLayout, fullscreen(vertex, localRead, copy_first_to_second()), create},
+            read{readLayout, fullscreen(vertex, localRead, copy_first_to_second()), create},
             pool{core, {{&inputLayout}}, create},
             input{pool, inputLayout, create},
             vertices{

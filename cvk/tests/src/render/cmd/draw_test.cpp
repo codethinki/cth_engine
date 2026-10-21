@@ -55,7 +55,7 @@ namespace {
             },
             vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
             fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
-            pipeline{core, layout, config(), create},
+            pipeline{layout, config(), create},
             vertices{core, host_written<Vec3>(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), FULLSCREEN.size()} {
             vertices.write(FULLSCREEN);
         }

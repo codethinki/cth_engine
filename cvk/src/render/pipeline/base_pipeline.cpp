@@ -6,9 +6,9 @@
 
 
 namespace cvk {
-BasePipeline::BasePipeline(Core const& core, PipelineLayout const& layout, VkPipelineBindPoint bindPoint) :
-    _handle{core}, _layout{&layout}, _bindPoint{bindPoint} {
-    Core::debug_check(core);
+BasePipeline::BasePipeline(PipelineLayout const& layout, VkPipelineBindPoint bindPoint) : _handle{layout.core()},
+    _layout{&layout}, _bindPoint{bindPoint} {
+    Core::debug_check(layout.core());
 }
 
 void BasePipeline::wrap(State const& state) {

@@ -102,7 +102,7 @@ CVK_TEST(GraphicsPipeline, config_stages) {
 CVK_TEST(GraphicsPipeline, bind) {
     test::Context const context{};
     Triangle const triangle{context.core};
-    GraphicsPipeline const pipeline{context.core, triangle.layout, triangle.config(), create};
+    GraphicsPipeline const pipeline{triangle.layout, triangle.config(), create};
     CmdPool const pool{context.core, CmdPool::Config{context.core.queue(0)}, create};
     PrimaryCmdBuffer primary{pool, create};
 
@@ -117,7 +117,7 @@ CVK_TEST(GraphicsPipeline, base_constructor_does_not_create) {
     test::Context const context{};
     Triangle const triangle{context.core};
 
-    GraphicsPipeline const pipeline{context.core, triangle.layout, triangle.config()};
+    GraphicsPipeline const pipeline{triangle.layout, triangle.config()};
 
     EXPECT_FALSE(pipeline.created());
     EXPECT_EQ(&pipeline.layout(), &triangle.layout);
@@ -128,7 +128,7 @@ CVK_TEST(GraphicsPipeline, create) {
     test::Context const context{};
     Triangle const triangle{context.core};
 
-    GraphicsPipeline const pipeline{context.core, triangle.layout, triangle.config(), create};
+    GraphicsPipeline const pipeline{triangle.layout, triangle.config(), create};
 
     EXPECT_TRUE(pipeline.created());
     EXPECT_EQ(pipeline.config().stages.size(), 2);
@@ -141,7 +141,7 @@ CVK_TEST(GraphicsPipeline, create_without_depth) {
     auto config = triangle.config();
     config.depthFormat = VK_FORMAT_UNDEFINED;
 
-    GraphicsPipeline const pipeline{context.core, triangle.layout, std::move(config), create};
+    GraphicsPipeline const pipeline{triangle.layout, std::move(config), create};
 
     EXPECT_TRUE(pipeline.created());
 }
@@ -150,7 +150,7 @@ CVK_TEST(GraphicsPipeline, shaders_can_be_destroyed_after_create) {
     test::Context const context{};
     auto triangle = std::make_unique<Triangle>(context.core);
 
-    GraphicsPipeline pipeline{context.core, triangle->layout, triangle->config(), create};
+    GraphicsPipeline pipeline{triangle->layout, triangle->config(), create};
     triangle->vertex.destroy();
     triangle->fragment.destroy();
 
@@ -160,21 +160,21 @@ CVK_TEST(GraphicsPipeline, shaders_can_be_destroyed_after_create) {
 CVK_TEST(GraphicsPipeline, release_and_wrap) {
     test::Context const context{};
     Triangle const triangle{context.core};
-    GraphicsPipeline pipeline{context.core, triangle.layout, triangle.config(), create};
+    GraphicsPipeline pipeline{triangle.layout, triangle.config(), create};
     auto const vkPipeline = pipeline.get();
 
     auto const state = pipeline.release();
     EXPECT_FALSE(pipeline.created());
 
-    GraphicsPipeline const wrapped{context.core, triangle.layout, triangle.config(), state};
+    GraphicsPipeline const wrapped{triangle.layout, triangle.config(), state};
     EXPECT_EQ(wrapped.get(), vkPipeline);
 }
 
 CVK_TEST(GraphicsPipeline, move_assignment_destroys_the_old_pipeline) {
     test::Context const context{};
     Triangle const triangle{context.core};
-    GraphicsPipeline pipeline{context.core, triangle.layout, triangle.config(), create};
-    GraphicsPipeline other{context.core, triangle.layout, triangle.config(), create};
+    GraphicsPipeline pipeline{triangle.layout, triangle.config(), create};
+    GraphicsPipeline other{triangle.layout, triangle.config(), create};
     auto const vkPipeline = other.get();
 
     pipeline = std::move(other);
@@ -189,11 +189,11 @@ CVK_TEST(GraphicsPipeline, derivative) {
 
     auto parentConfig = triangle.config();
     parentConfig.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
-    GraphicsPipeline const parent{context.core, triangle.layout, std::move(parentConfig), create};
+    GraphicsPipeline const parent{triangle.layout, std::move(parentConfig), create};
 
     auto childConfig = triangle.config();
     childConfig.rasterization.cullMode = VK_CULL_MODE_NONE;
-    GraphicsPipeline const child{context.core, parent, std::move(childConfig), create};
+    GraphicsPipeline const child{parent, std::move(childConfig), create};
 
     ASSERT_TRUE(child.created());
     EXPECT_EQ(child.parent(), parent.get());

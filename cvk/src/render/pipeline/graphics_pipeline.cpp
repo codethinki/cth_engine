@@ -6,21 +6,21 @@
 
 
 namespace cvk {
-GraphicsPipeline::GraphicsPipeline(Core const& core, PipelineLayout const& layout, Config config) :
-    BasePipeline{core, layout, VK_PIPELINE_BIND_POINT_GRAPHICS}, _config{std::move(config)} {}
+GraphicsPipeline::GraphicsPipeline(PipelineLayout const& layout, Config config) :
+    BasePipeline{layout, VK_PIPELINE_BIND_POINT_GRAPHICS}, _config{std::move(config)} {}
 
-GraphicsPipeline::GraphicsPipeline(Core const& core, PipelineLayout const& layout, Config config, State const& state) :
-    GraphicsPipeline{core, layout, std::move(config)} {
+GraphicsPipeline::GraphicsPipeline(PipelineLayout const& layout, Config config, State const& state) :
+    GraphicsPipeline{layout, std::move(config)} {
     wrap(state);
 }
 
-GraphicsPipeline::GraphicsPipeline(Core const& core, PipelineLayout const& layout, Config config, create_t) :
-    GraphicsPipeline{core, layout, std::move(config)} {
+GraphicsPipeline::GraphicsPipeline(PipelineLayout const& layout, Config config, create_t) :
+    GraphicsPipeline{layout, std::move(config)} {
     create();
 }
 
-GraphicsPipeline::GraphicsPipeline(Core const& core, GraphicsPipeline const& parent, Config config) :
-    BasePipeline{core, parent.layout(), VK_PIPELINE_BIND_POINT_GRAPHICS},
+GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config) :
+    BasePipeline{parent.layout(), VK_PIPELINE_BIND_POINT_GRAPHICS},
     _vkParent{parent.get()},
     _config{std::move(config)} {
     debug_check(parent);
@@ -30,8 +30,8 @@ GraphicsPipeline::GraphicsPipeline(Core const& core, GraphicsPipeline const& par
     ) {}
 }
 
-GraphicsPipeline::GraphicsPipeline(Core const& core, GraphicsPipeline const& parent, Config config, create_t) :
-    GraphicsPipeline{core, parent, std::move(config)} {
+GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config, create_t) :
+    GraphicsPipeline{parent, std::move(config)} {
     create();
 }
 

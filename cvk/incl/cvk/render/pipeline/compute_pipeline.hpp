@@ -7,7 +7,6 @@
 
 
 namespace cvk {
-class Core;
 class PipelineLayout;
 
 /**
@@ -35,25 +34,25 @@ public:
 
     /**
      * @brief base constructor, keeps the layout
-     * @pre @ref Core::created()
+     * @pre @ref Core::created() of the layout
      */
-    ComputePipeline(Core const&, PipelineLayout const&, Config const&);
+    ComputePipeline(PipelineLayout const&, Config const&);
 
     /**
      * @brief constructs and wraps
      * @details calls:
-     * - @ref ComputePipeline(Core const&, PipelineLayout const&, Config const&)
+     * - @ref ComputePipeline(PipelineLayout const&, Config const&)
      * - @ref wrap()
      */
-    ComputePipeline(Core const&, PipelineLayout const&, Config const&, State const&);
+    ComputePipeline(PipelineLayout const&, Config const&, State const&);
 
     /**
      * @brief constructs and creates
      * @details calls:
-     * - @ref ComputePipeline(Core const&, PipelineLayout const&, Config const&)
+     * - @ref ComputePipeline(PipelineLayout const&, Config const&)
      * - @ref create()
      */
-    explicit ComputePipeline(Core const&, PipelineLayout const&, Config const&, create_t);
+    explicit ComputePipeline(PipelineLayout const&, Config const&, create_t);
 
     /**
      * @brief creates the pipeline
