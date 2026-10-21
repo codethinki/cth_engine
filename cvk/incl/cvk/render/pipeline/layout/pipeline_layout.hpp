@@ -29,7 +29,6 @@ public:
      * @brief base constructor, copies the handles of the set layouts
      * @pre @ref Core::created()
      * @pre the set layouts are created
-     * @throws cth::except::default_exception reason: more set layouts than maxBoundDescriptorSets
      */
     PipelineLayout(Core const&, Config const&);
 
@@ -67,6 +66,7 @@ public:
      * @pre the set layouts of the config are not destroyed
      * @post @ref created()
      * @note calls @ref optDestroy()
+     * @throws cvk::cvk_exception reason: more set layouts than maxBoundDescriptorSets
      * @throws cvk::vk_result_exception result of vkCreatePipelineLayout()
      */
     void create();

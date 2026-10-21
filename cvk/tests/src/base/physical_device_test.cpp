@@ -4,6 +4,7 @@
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
 #include "cvk/utility/constant/device_constants.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
 #include <array>
@@ -124,6 +125,6 @@ CVK_TEST(PhysicalDevice, find_supported_format) {
             VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT
         );
     };
-    EXPECT_THROW(findNone(), cth::except::default_exception);
+    EXPECT_THROW(findNone(), cvk_exception);
 }
 }

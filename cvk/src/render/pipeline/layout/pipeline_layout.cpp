@@ -12,15 +12,6 @@ namespace cvk {
 PipelineLayout::PipelineLayout(Core const& core, Config const& config) : _handle{core},
     _pushConstantRanges{config.pushConstantRanges} {
     Core::debug_check(core);
-    auto const maxSets = core.physicalDevice().limits().maxBoundDescriptorSets;
-    CTH_STABLE_ERR(
-        config.setLayouts.size() > maxSets,
-        "more set layouts than maxBoundDescriptorSets, got {} for {}",
-        config.setLayouts.size(),
-        maxSets
-    ) {
-        throw details->exception();
-    }
 
     _vkSetLayouts.reserve(config.setLayouts.size());
     for(auto const& layout : config.setLayouts) {
@@ -46,6 +37,17 @@ void PipelineLayout::wrap(State const& state) {
 
 void PipelineLayout::create() {
     optDestroy();
+
+    auto const maxSets = core().physicalDevice().limits().maxBoundDescriptorSets;
+    CTH_STABLE_ERR(
+        _vkSetLayouts.size() > maxSets,
+        "more set layouts than maxBoundDescriptorSets, got {} for {}",
+        _vkSetLayouts.size(),
+        maxSets
+    ) {
+        forget();
+        throw cvk::cvk_exception{details->exception()};
+    }
 
     VkPipelineLayoutCreateInfo const info{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,

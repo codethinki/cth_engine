@@ -96,13 +96,13 @@ public:
 
     /**
      * @return the most preferred allowed and available format
-     * @throws cth::except::default_exception reason: no allowed format available
+     * @throws cvk::cvk_exception reason: no allowed format available
      */
     [[nodiscard]] format_t format(PhysicalDevice const&) const;
 
     /**
      * @return the most preferred allowed and available present mode
-     * @throws cth::except::default_exception reason: no allowed present mode available
+     * @throws cvk::cvk_exception reason: no allowed present mode available
      */
     [[nodiscard]] present_mode_t presentMode(PhysicalDevice const&) const;
 

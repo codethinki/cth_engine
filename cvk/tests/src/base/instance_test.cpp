@@ -3,6 +3,7 @@
 
 #include "cvk/base/instance.hpp"
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
 #include <string>
@@ -59,7 +60,7 @@ CVK_TEST(Instance, create_enables_the_extensions_of_the_config) {
 CVK_TEST(Instance, create_with_a_missing_extension_throws_and_forgets) {
     Instance instance{test::instance_config({"VK_CVK_extension_that_does_not_exist"})};
 
-    EXPECT_THROW(instance.create(), cth::except::default_exception);
+    EXPECT_THROW(instance.create(), cvk_exception);
     EXPECT_FALSE(instance.created());
     EXPECT_TRUE(instance.extensions().empty());
 }

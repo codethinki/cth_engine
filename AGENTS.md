@@ -224,10 +224,11 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 ### Errors
 
 - `CTH_CRITICAL(condition, "message") {}`: precondition check, active in debug builds only.
-- `CTH_STABLE_ERR(condition, "message") { forget(); throw details->exception(); }`: error that can happen at run time.
+- `CTH_STABLE_ERR(condition, "message") { forget(); throw cvk::cvk_exception{details->exception()}; }`: error that can happen at run time.
 - `CTH_WARN(condition, "message") {}`: suspicious state that is not an error.
 - `cvk` stores state only where it needs the state to work. A check that needs more state is left to the validation layers.
 - `CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "message") {}`: throws `cvk::vk_result_exception` with the `VkResult`.
+- `cvk` throws `cvk::cvk_exception` or a derived type: `CVK_STABLE_THROW`, `CVK_RESULT_STABLE_THROW`, or `throw cvk::cvk_exception{details->exception()}` inside a `CTH_STABLE_ERR` block.
 - The condition is the error case: `CTH_CRITICAL(!created(), ...)`, not the expected case.
 
 ### Comment markers
@@ -268,7 +269,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 | `@attention` | danger that is not a precondition: undefined behavior, not thread safe |
 
 - Write preconditions as `@pre`, not as `@attention requires ...`.
-- For an exception that cvk throws itself, write the cause after `reason:`: `@throws cth::except::default_exception reason: required extension missing`.
+- For an exception that cvk throws itself, write the cause after `reason:`: `@throws cvk::cvk_exception reason: required extension missing`.
 
 ### Math like notation
 

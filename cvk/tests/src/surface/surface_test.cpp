@@ -6,6 +6,7 @@
 #include "cvk/base/physical_device.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
 
 #include <array>
 #include <vector>
@@ -88,7 +89,7 @@ CVK_TEST(Surface, no_allowed_format_throws) {
     auto const surface = test::headless_surface(instance, config);
 
     EXPECT_TRUE(surface.formats(device).empty());
-    EXPECT_THROW([[maybe_unused]] auto const f = surface.format(device), cth::except::default_exception);
+    EXPECT_THROW([[maybe_unused]] auto const f = surface.format(device), cvk_exception);
 }
 
 CVK_TEST(Surface, capabilities) {

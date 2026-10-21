@@ -4,6 +4,7 @@
 #include "cvk/base/physical_device.hpp"
 #include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
 
 
 namespace cvk {
@@ -47,9 +48,9 @@ CVK_TEST(PipelineLayout, too_many_sets_throws) {
         .setLayouts = std::vector<not_null_ptr<DescriptorSetLayout const>>(maxSets + 1, &set),
     };
 
-    auto const construct = [&] { PipelineLayout const layout{context.core, config}; };
+    auto const construct = [&] { PipelineLayout const layout{context.core, config, create}; };
 
-    EXPECT_THROW(construct(), cth::except::default_exception);
+    EXPECT_THROW(construct(), cvk_exception);
 }
 
 CVK_TEST(PipelineLayout, set_layouts_can_be_destroyed_after_create) {
