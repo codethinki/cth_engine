@@ -50,19 +50,19 @@ void Instance::wrap(State state) {
 void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
     optDestroy();
 
-    _extensions = _config.extensions;
+    // the members change after the checks, a throw from them finds the members forgotten
+    auto requiredExtensions = _config.extensions;
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         for(string_view const extension : VALIDATION_LAYER_EXTENSIONS)
-            if(!std::ranges::contains(_extensions, extension)) _extensions.emplace_back(extension);
+            if(!std::ranges::contains(requiredExtensions, extension)) requiredExtensions.emplace_back(extension);
 
         if(!messengerConfig.has_value()) messengerConfig = DebugMessenger::Config::Default();
     }
 
-    auto const missingExtensions = missing(_extensions, available_instance_extensions());
+    auto const missingExtensions = missing(requiredExtensions, available_instance_extensions());
     CTH_STABLE_ERR(!missingExtensions.empty(), "instance extensions missing") {
         for(auto const& extension : missingExtensions)
             details->add(extension);
-        forget();
         throw cvk::cvk_exception{details->exception()};
     }
 
@@ -71,11 +71,11 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
         CTH_STABLE_ERR(!missingLayers.empty(), "validation layers missing") {
             for(auto const& layer : missingLayers)
                 details->add(layer);
-            forget();
             throw cvk::cvk_exception{details->exception()};
         }
     }
 
+    _extensions = std::move(requiredExtensions);
     auto const extensions = cth::str::to_c_str_vector(_extensions);
     auto const appInfo = _config.appInfo();
 
@@ -119,8 +119,15 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
     _handle.reset(ptr);
     loadInstanceFunctions(ptr);
 
-    if constexpr(constants::ENABLE_VALIDATION_LAYERS)
-        _debugMessenger.emplace(*this, *messengerConfig, cvk::create);
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
+        // the messenger needs the created instance, only a catch can destroy the instance when the messenger fails
+        try {
+            _debugMessenger.emplace(*this, *messengerConfig, cvk::create);
+        } catch(...) {
+            destroy();
+            throw;
+        }
+    }
 }
 
 void Instance::destroy() {

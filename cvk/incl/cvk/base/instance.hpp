@@ -97,6 +97,7 @@ public:
      * @throws cvk::vk_result_exception result of vkEnumerateInstanceExtensionProperties()
      * @throws cvk::vk_result_exception result of vkEnumerateInstanceLayerProperties()
      * @throws cvk::vk_result_exception result of vkCreateInstance()
+     * @throws cvk::vk_result_exception result of vkCreateDebugUtilsMessengerEXT(), destroys the instance
      */
     void create(std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
 

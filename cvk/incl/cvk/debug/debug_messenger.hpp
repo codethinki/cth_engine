@@ -128,7 +128,7 @@ public:
 
     static constexpr void debug_check(DebugMessenger const&);
 };
-} // namespace cvk
+}
 
 namespace cvk {
 struct DebugMessenger::State {

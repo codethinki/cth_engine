@@ -69,7 +69,7 @@ DebugMessenger::State DebugMessenger::release() {
 }
 
 void DebugMessenger::forget() {}
-} // namespace cvk
+}
 
 namespace cvk::dev {
 VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(

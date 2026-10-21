@@ -58,11 +58,15 @@ CVK_TEST(Instance, create_enables_the_extensions_of_the_config) {
 }
 
 CVK_TEST(Instance, create_with_a_missing_extension_throws_and_forgets) {
-    Instance instance{test::instance_config({"VK_CVK_extension_that_does_not_exist"})};
+    // a created instance with the config of the missing extension: create() destroys it first
+    Instance created{test::instance_config(), create};
+    Instance instance{test::instance_config({"VK_CVK_extension_that_does_not_exist"}), created.release()};
+    ASSERT_TRUE(instance.created());
 
     EXPECT_THROW(instance.create(), cvk_exception);
     EXPECT_FALSE(instance.created());
     EXPECT_TRUE(instance.extensions().empty());
+    EXPECT_EQ(instance.debugMessenger(), nullptr);
 }
 
 CVK_TEST(Instance, available_extensions_contain_the_surface) {
