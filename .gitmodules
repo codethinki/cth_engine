@@ -5,3 +5,7 @@
 	path = lib/cth
 	url = https://github.com/codethinki/cth
 	branch = master
+[submodule "lib/rgfw"]
+	path = lib/rgfw
+	url = https://github.com/codethinki/RGFW
+	branch = cth_engine
