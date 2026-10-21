@@ -310,6 +310,7 @@ public:
     Swapchain(Swapchain&& other) noexcept = default;
     Swapchain& operator=(Swapchain const& other) = delete;
     //TODO the custom move assignment is ugly, find a design where the default one works
+    //TODO generate the member moves with reflection, only optDestroy(), destroyRetired() and forget() stay
     Swapchain& operator=(Swapchain&& other) noexcept;
 
     static constexpr void debug_check(Swapchain const&);
