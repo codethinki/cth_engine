@@ -15,6 +15,4 @@ using move_ptr = cth::move_ptr<T>;
 
 template<class T>
 using unique_not_null = cth::unique_not_null<T>;
-
-using CompilationMode = cth::CompilationMode;
 }

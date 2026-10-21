@@ -27,7 +27,7 @@ public:
         std::move(trace)
     } {}
 
-    cvk_exception(cth::except::default_exception defaultException)
+    explicit cvk_exception(cth::except::default_exception defaultException)
         : default_exception{std::move(defaultException)} { prepend(PREFIX); }
 };
 
