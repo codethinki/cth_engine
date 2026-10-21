@@ -13,6 +13,17 @@ namespace cvk {
 class Instance;
 
 /**
+ * @brief writes the message to cth::log
+ * @return VK_FALSE, the call that caused the message continues
+ */
+VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT,
+    VkDebugUtilsMessageTypeFlagsEXT,
+    VkDebugUtilsMessengerCallbackDataEXT const*,
+    void* userData
+);
+
+/**
  * @brief VkDebugUtilsMessengerEXT wrapper
  */
 class DebugMessenger {
@@ -21,7 +32,6 @@ public:
     struct Config;
     struct State;
     using callback_t = PFN_vkDebugUtilsMessengerCallbackEXT;
-
 
     /**
      * @brief base constructor
@@ -45,7 +55,6 @@ public:
      */
     explicit DebugMessenger(Instance const&, Config, create_t);
 
-
     /**
      * @note calls @ref optDestroy()
      */
@@ -68,13 +77,11 @@ public:
      */
     void create();
 
-
     /**
      * @brief destroys and forgets
      * @pre @ref created()
      */
     void destroy();
-
 
     /**
      * @brief if @ref created() -> calls @ref destroy()
@@ -89,35 +96,35 @@ public:
      */
     State release();
 
-
     struct Config {
-        callback_t callback = defaultCallback();
+        /**
+         * @pre != nullptr
+         */
+        callback_t callback = &default_debug_callback;
         VkDebugUtilsMessageSeverityFlagsEXT messageSeverities = constants::DEBUG_MESSAGE_SEVERITY;
         VkDebugUtilsMessageTypeFlagsEXT messageTypes = constants::DEBUG_MESSAGE_TYPE;
 
-        /**
-         * @param callback nullptr -> @ref defaultCallback()
-         */
-        static Config Default(callback_t callback = nullptr);
-
-        /**
-         * @brief writes the message to cth::log
-         */
-        static callback_t defaultCallback();
-
-        [[nodiscard]] VkDebugUtilsMessengerCreateInfoEXT createInfo() const;
+        [[nodiscard]] constexpr VkDebugUtilsMessengerCreateInfoEXT createInfo() const {
+            return VkDebugUtilsMessengerCreateInfoEXT{
+                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                .pNext = nullptr,
+                .flags = 0,
+                .messageSeverity = messageSeverities,
+                .messageType = messageTypes,
+                .pfnUserCallback = callback,
+                .pUserData = nullptr,
+            };
+        }
     };
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
     [[nodiscard]] constexpr Config config() const { return _config; }
 
-protected:
-    Config _config;
-
 private:
     void forget();
 
+    Config _config;
     instance_handle<DebugMessenger> _handle;
 
 public:

@@ -71,35 +71,6 @@ DebugMessenger::State DebugMessenger::release() {
 void DebugMessenger::forget() {}
 }
 
-namespace cvk::dev {
-VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* callbackData,
-    void* userData
-);
-}
-
-namespace cvk {
-DebugMessenger::Config DebugMessenger::Config::Default(callback_t callback) {
-    return Config{callback == nullptr ? defaultCallback() : callback};
-}
-
-DebugMessenger::callback_t DebugMessenger::Config::defaultCallback() { return dev::default_debug_callback; }
-
-VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::Config::createInfo() const {
-    return VkDebugUtilsMessengerCreateInfoEXT{
-        .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        .pNext = nullptr,
-        .flags = 0,
-        .messageSeverity = messageSeverities,
-        .messageType = messageTypes,
-        .pfnUserCallback = callback,
-        .pUserData = nullptr,
-    };
-}
-}
-
 
 namespace cvk::dev {
 struct component_info {
@@ -150,20 +121,21 @@ namespace {
         return joiner;
     }
 }
+}
 
+namespace cvk {
 VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     VkDebugUtilsMessengerCallbackDataEXT const* callbackData,
     [[maybe_unused]] void* userData
 ) {
-    auto const severity = to_severity(messageSeverity);
+    auto const severity = dev::to_severity(messageSeverity);
 
-    auto type = to_msg(messageType);
+    auto type = dev::to_msg(messageType);
     if(type.empty()) type = "UNKNOWN";
 
-
-    std::vector<component_info> objects{};
+    std::vector<dev::component_info> objects{};
     objects.reserve(callbackData->objectCount);
 
     for(auto const& object : std::span{callbackData->pObjects, callbackData->objectCount}) {
@@ -187,7 +159,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
         callbackData->pMessage,
         objects
     );
-
 
     return VK_FALSE;
 }

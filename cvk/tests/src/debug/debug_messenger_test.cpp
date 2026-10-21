@@ -48,11 +48,20 @@ namespace {
     }
 }
 
+CVK_TEST(DebugMessenger, default_config_create_info) {
+    constexpr auto info = DebugMessenger::Config{}.createInfo();
+
+    static_assert(info.sType == VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT);
+    static_assert(info.pfnUserCallback == &default_debug_callback);
+    static_assert(info.messageSeverity == constants::DEBUG_MESSAGE_SEVERITY);
+    static_assert(info.messageType == constants::DEBUG_MESSAGE_TYPE);
+}
+
 CVK_TEST(DebugMessenger, forwards_messages_to_the_callback) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
     Instance const instance{test::instance_config(), create};
-    DebugMessenger const messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
+    DebugMessenger const messenger{instance, DebugMessenger::Config{.callback = count_test_messages}, create};
     ASSERT_TRUE(messenger.created());
 
     received = 0;
@@ -75,7 +84,7 @@ CVK_TEST(DebugMessenger, accepts_a_lambda) {
         if(callbackData->pMessage == TEST_MESSAGE) ++received;
         return VK_FALSE;
     };
-    DebugMessenger const messenger{instance, DebugMessenger::Config::Default(callback), create};
+    DebugMessenger const messenger{instance, DebugMessenger::Config{.callback = callback}, create};
 
     received = 0;
     submit_test_message(instance);
@@ -87,7 +96,7 @@ CVK_TEST(DebugMessenger, destroy_resets) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
     Instance const instance{test::instance_config(), create};
-    DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
+    DebugMessenger messenger{instance, DebugMessenger::Config{.callback = count_test_messages}, create};
 
     messenger.destroy();
     EXPECT_FALSE(messenger.created());
@@ -102,7 +111,7 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
     Instance const instance{test::instance_config(), create};
-    DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
+    DebugMessenger messenger{instance, DebugMessenger::Config{.callback = count_test_messages}, create};
 
     auto const state = messenger.release();
     EXPECT_FALSE(messenger.created());
@@ -118,7 +127,7 @@ CVK_TEST(DebugMessenger, release_and_wrap) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
     Instance const instance{test::instance_config(), create};
-    DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
+    DebugMessenger messenger{instance, DebugMessenger::Config{.callback = count_test_messages}, create};
     auto const vkMessenger = messenger.get();
 
     auto const state = messenger.release();
@@ -138,8 +147,8 @@ CVK_TEST(DebugMessenger, move_assignment_destroys_the_old_messenger) {
     test::reset_validation_errors();
     {
         Instance const instance{test::instance_config(), create, test::counting_messenger()};
-        DebugMessenger messenger{instance, DebugMessenger::Config::Default(count_test_messages), create};
-        DebugMessenger other{instance, DebugMessenger::Config::Default(count_test_messages), create};
+        DebugMessenger messenger{instance, DebugMessenger::Config{.callback = count_test_messages}, create};
+        DebugMessenger other{instance, DebugMessenger::Config{.callback = count_test_messages}, create};
         auto const vkMessenger = other.get();
 
         messenger = std::move(other);

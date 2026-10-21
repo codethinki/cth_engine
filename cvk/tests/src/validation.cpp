@@ -12,11 +12,11 @@ namespace {
         void* userData
     ) {
         if(severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) ++errors;
-        return DebugMessenger::Config::defaultCallback()(severity, types, callbackData, userData);
+        return default_debug_callback(severity, types, callbackData, userData);
     }
 }
 
-DebugMessenger::Config counting_messenger() { return DebugMessenger::Config::Default(count_errors); }
+DebugMessenger::Config counting_messenger() { return DebugMessenger::Config{.callback = count_errors}; }
 
 size_t validation_errors() { return errors; }
 

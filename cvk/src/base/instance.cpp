@@ -56,7 +56,7 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
         for(string_view const extension : VALIDATION_LAYER_EXTENSIONS)
             if(!std::ranges::contains(requiredExtensions, extension)) requiredExtensions.emplace_back(extension);
 
-        if(!messengerConfig.has_value()) messengerConfig = DebugMessenger::Config::Default();
+        if(!messengerConfig.has_value()) messengerConfig = DebugMessenger::Config{};
     }
 
     auto const missingExtensions = missing(requiredExtensions, available_instance_extensions());

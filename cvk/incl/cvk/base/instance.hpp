@@ -86,7 +86,7 @@ public:
 
     /**
      * @brief creates the instance with the extensions of the config, debug builds with the validation layers
-     * @param messengerConfig std::nullopt -> no messenger, debug builds use @ref DebugMessenger::Config::Default()
+     * @param messengerConfig std::nullopt -> no messenger, debug builds use the default @ref DebugMessenger::Config
      * @pre @ref Cvk::initialized()
      * @post @ref created()
      * @post volk uses the functions of this instance
