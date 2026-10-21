@@ -10,6 +10,12 @@ cth_set_latest_c_cpp_standard()
 
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+# lld links much faster than the default linker
+find_program(LLD_LINKER ld.lld)
+if(LLD_LINKER AND NOT MSVC)
+    set(CMAKE_LINKER_TYPE LLD)
+endif()
+
 include(lib/cmake/cth.cmake)
 include(lib/cmake/gtl.cmake)
 
