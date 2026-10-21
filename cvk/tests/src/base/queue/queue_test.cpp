@@ -4,14 +4,27 @@
 #include "cvk/base/device.hpp"
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/utility/constant/device_constants.hpp"
 
 #include <array>
 #include <cstdint>
+#include <utility>
+#include <vector>
 
 
 namespace cvk {
 namespace {
     constexpr std::array QUEUES{QueueFamilyProperties::GRAPHICS};
+
+    /**
+     * @brief device config with the base features, vkQueueSubmit2() needs synchronization2
+     */
+    Device::Config device_config(std::vector<queue_family_index_t> familyIndices) {
+        return Device::Config{
+            .queueFamilyIndices = std::move(familyIndices),
+            .features = constants::BASE_DEVICE_FEATURES,
+        };
+    }
 
     VkSubmitInfo2 const EMPTY_SUBMIT{
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
@@ -29,7 +42,7 @@ namespace {
 CVK_TEST(Queue, copies_share_the_queue) {
     Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
-    Device const device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device const device{instance, physicalDevice, device_config(familyIndices)};
 
     auto const& queue = device.queues()[0];
     Queue const copy{queue};
@@ -43,7 +56,7 @@ CVK_TEST(Queue, copies_share_the_queue) {
 CVK_TEST(Queue, raw_submit_signals_the_fence) {
     Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
-    Device const device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device const device{instance, physicalDevice, device_config(familyIndices)};
     auto const table = device.table();
 
     VkFenceCreateInfo const fenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .pNext = nullptr, .flags = 0};
@@ -61,7 +74,7 @@ CVK_TEST(Queue, raw_submit_signals_the_fence) {
 CVK_TEST(Queue, raw_submit_without_fence) {
     Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
-    Device const device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device const device{instance, physicalDevice, device_config(familyIndices)};
 
     auto const& queue = device.queues()[0];
     queue.rawSubmit(EMPTY_SUBMIT);
@@ -71,7 +84,7 @@ CVK_TEST(Queue, raw_submit_without_fence) {
 CVK_TEST(Queue, copies_keep_the_queue_through_a_device_release_and_wrap) {
     Instance const instance{test::instance_config(), create};
     auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
-    Device device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device device{instance, physicalDevice, device_config(familyIndices)};
 
     Queue const copy{device.queues()[0]};
     Device const wrapped{instance, physicalDevice, device.release()};
@@ -87,7 +100,7 @@ CVK_TEST(Queue, present_family_can_present) {
     std::array const queues{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
 
     auto const [physicalDevice, familyIndices] = test::pick(instance, queues, surfaces);
-    Device const device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device const device{instance, physicalDevice, device_config(familyIndices)};
 
     EXPECT_TRUE(device.queues()[0].canPresent());
 }

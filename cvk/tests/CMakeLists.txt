@@ -21,5 +21,5 @@ find_package(GTest CONFIG REQUIRED)
 
 target_link_libraries(cvk_tests PRIVATE GTest::gtest_main cvk)
 
-include(GoogleTest)
-gtest_discover_tests(cvk_tests)
+# one process: the tests share their instance and device
+add_test(NAME cvk_tests COMMAND cvk_tests)
