@@ -23,7 +23,7 @@ Read it before you change a file. Match the existing code.
 - Memory comes from VMA.
 - `cvk` destroys immediately. It has no destruction queue. Deferred destruction belongs to `jvk`.
 - `cvk` tracks no image layouts. Every function that uses a layout takes it as a value, with a default where the use fixes it. Layout tracking belongs to `jvk` (`jvk/prework/image_layouts.hpp`).
-- Hash maps come from gtl (`jvk/prework/flat_hash_map.hpp`). gtl installs no cmake package, `lib/cmake/gtl.cmake` creates the target `gtl::gtl`.
+- Hash maps come from cth: `cth::dt::flat_hash_map` and `cth::dt::flat_hash_set` (gtl, no pointer stability), `jvk/prework/flat_hash_map.hpp` aliases the map. No `std::unordered_map`.
 - Commits have no `Co-Authored-By` or "Generated with" lines.
 
 ## Branches

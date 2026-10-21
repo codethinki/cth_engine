@@ -17,7 +17,6 @@ if(LLD_LINKER AND NOT MSVC)
 endif()
 
 include(lib/cmake/cth.cmake)
-include(lib/cmake/gtl.cmake)
 
 if(JOLLY_ENABLE_TESTS)
     enable_testing()

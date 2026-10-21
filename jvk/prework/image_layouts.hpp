@@ -57,6 +57,6 @@ public:
 
 private:
     //IMPLEMENT key (image, mip level) -> layout: no vector per image, no mip count check
-    flat_hash_map_t<VkImage, std::vector<VkImageLayout>> _layouts{};
+    flat_hash_map<VkImage, std::vector<VkImageLayout>> _layouts{};
 };
 }
