@@ -61,6 +61,7 @@ public:
 
     /**
      * @brief creates the pool
+     * @pre the config has a queue family (!= VK_QUEUE_FAMILY_IGNORED)
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateCommandPool()

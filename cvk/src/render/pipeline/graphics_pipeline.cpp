@@ -37,8 +37,10 @@ GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config
 
 void GraphicsPipeline::create() {
     CTH_CRITICAL(
-        _config.colorBlendAttachments.size() != _config.colorFormats.size(),
-        "one color blend attachment per color format required"
+        !_config.colorBlendAttachments.empty() && _config.colorBlendAttachments.size() != _config.colorFormats.size(),
+        "one color blend attachment per color format required, got {} for {}",
+        _config.colorBlendAttachments.size(),
+        _config.colorFormats.size()
     ) {}
     AttachmentMapping::debug_check(_config.attachmentMapping, _config.colorFormats.size());
 
@@ -64,9 +66,17 @@ void GraphicsPipeline::create() {
         .pScissors = nullptr,
     };
 
+    std::vector<VkPipelineColorBlendAttachmentState> const defaultBlendAttachments(
+        config.colorBlendAttachments.empty() ? config.colorFormats.size() : 0,
+        Config::ALPHA_BLENDING
+    );
+    auto const& blendAttachments = config.colorBlendAttachments.empty()
+        ? defaultBlendAttachments
+        : config.colorBlendAttachments;
+
     auto colorBlend = config.colorBlend;
-    colorBlend.attachmentCount = static_cast<uint32_t>(config.colorBlendAttachments.size());
-    colorBlend.pAttachments = config.colorBlendAttachments.data();
+    colorBlend.attachmentCount = static_cast<uint32_t>(blendAttachments.size());
+    colorBlend.pAttachments = blendAttachments.data();
 
     VkPipelineDynamicStateCreateInfo const dynamicState{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,

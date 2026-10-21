@@ -29,17 +29,19 @@ struct DescriptorPoolConfig {
         uint32_t variableCount = 0;
     };
 
-    constexpr DescriptorPoolConfig() = default;
-
     /**
      * @brief counts the sets and descriptors of the layouts
      * @param flags update after bind layouts add VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
      * @details calls @ref add() per entry
      */
-    constexpr DescriptorPoolConfig(std::initializer_list<Sets> sets, VkDescriptorPoolCreateFlags flags = 0) :
-        flags{flags} {
+    [[nodiscard]] static constexpr DescriptorPoolConfig ForLayouts(
+        std::initializer_list<Sets> sets,
+        VkDescriptorPoolCreateFlags flags = 0
+    ) {
+        DescriptorPoolConfig config{.flags = flags};
         for(auto const& [layout, count, variableCount] : sets)
-            add(*layout, count, variableCount);
+            config.add(*layout, count, variableCount);
+        return config;
     }
 
     /**

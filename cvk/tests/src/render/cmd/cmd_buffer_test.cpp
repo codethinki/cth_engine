@@ -13,7 +13,7 @@
 namespace cvk {
 namespace {
     CmdPool::Config pool_config(test::Context const& context) {
-        return CmdPool::Config{context.core.queue(0)};
+        return CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()};
     }
 }
 

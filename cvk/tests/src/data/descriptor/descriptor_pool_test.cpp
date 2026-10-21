@@ -64,15 +64,25 @@ CVK_TEST(DescriptorPool, config_add_takes_the_variable_count_and_update_after_bi
     EXPECT_NE(config.flags & VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, 0);
 }
 
-CVK_TEST(DescriptorPool, constructor_counts_every_layout) {
+CVK_TEST(DescriptorPool, config_is_an_aggregate) {
+    static_assert(std::is_aggregate_v<DescriptorPool::Config>);
+
+    DescriptorPool::Config const config{.maxSets = 2, .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT};
+
+    EXPECT_EQ(config.maxSets, 2);
+    EXPECT_TRUE(config.sizes.empty());
+    EXPECT_EQ(config.flags, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+}
+
+CVK_TEST(DescriptorPool, for_layouts_counts_every_layout) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
     DescriptorSetLayout const textures{context.core, bindless(), create};
 
-    DescriptorPool::Config const config{
+    auto const config = DescriptorPool::Config::ForLayouts(
         {{&layout, 2}, {&textures, 1, 100}},
         VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
-    };
+    );
 
     EXPECT_EQ(config.maxSets, 3);
     EXPECT_EQ(count_of(config, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER), 4);
@@ -85,7 +95,7 @@ CVK_TEST(DescriptorPool, create_and_destroy) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
 
-    DescriptorPool pool{context.core, DescriptorPool::Config{{&layout, 4}}, create};
+    DescriptorPool pool{context.core, DescriptorPool::Config::ForLayouts({{&layout, 4}}), create};
 
     ASSERT_TRUE(pool.created());
     EXPECT_TRUE(pool.unused());
@@ -98,7 +108,7 @@ CVK_TEST(DescriptorPool, create_and_destroy) {
 CVK_TEST(DescriptorPool, reset_counts) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
-    DescriptorPool const pool{context.core, DescriptorPool::Config{{&layout}}, create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&layout}}), create};
 
     pool.reset();
     pool.reset();
@@ -109,7 +119,7 @@ CVK_TEST(DescriptorPool, reset_counts) {
 CVK_TEST(DescriptorPool, release_and_wrap) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
-    auto const config = DescriptorPool::Config{{&layout}};
+    auto const config = DescriptorPool::Config::ForLayouts({{&layout}});
     DescriptorPool pool{context.core, config, create};
     auto const vkPool = pool.get();
 

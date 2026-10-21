@@ -56,6 +56,7 @@ public:
     /**
      * @brief creates the pipeline
      * @details derivative pipeline -> adds VK_PIPELINE_CREATE_DERIVATIVE_BIT
+     *  empty @ref Config::colorBlendAttachments -> @ref Config::ALPHA_BLENDING per color format, the config is kept
      * @pre the layout, the parent and the shader modules of the config are not destroyed
      * @post @ref created()
      * @note calls @ref optDestroy()

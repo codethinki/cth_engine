@@ -58,7 +58,7 @@ namespace {
         Values const values{context.core};
         ComputePipeline const pipeline{values.layout, values.config(), create};
         Buffer<uint32_t> const output{context.core, OUTPUT_CONFIG, VALUES};
-        DescriptorPool const pool{context.core, DescriptorPool::Config{{&values.setLayout}}, create};
+        DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&values.setLayout}}), create};
         DescriptorSet const set{pool, values.setLayout, create};
         set.write({0, output});
 

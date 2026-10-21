@@ -4,30 +4,34 @@
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/cmd/cmd_pool.hpp"
 
+#include <type_traits>
+
 
 namespace cvk {
 namespace {
     CmdPool::Config pool_config(test::Context const& context) {
-        return CmdPool::Config{context.core.queue(0)};
+        return CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()};
     }
 }
 
 CVK_TEST(CmdPool, config_create_info) {
-    constexpr CmdPool::Config config{2, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT};
+    constexpr CmdPool::Config config{.queueFamilyIndex = 2, .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT};
     constexpr auto info = config.createInfo();
 
     static_assert(info.queueFamilyIndex == 2);
     static_assert(info.flags == VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 }
 
-CVK_TEST(CmdPool, config_from_the_queue_uses_its_family) {
-    test::Context const context{};
-    auto const& queue = context.core.queue(0);
+CVK_TEST(CmdPool, config_is_an_aggregate_with_defaults) {
+    static_assert(std::is_aggregate_v<CmdPool::Config>);
 
-    CmdPool::Config const config{queue};
+    constexpr CmdPool::Config empty{};
+    static_assert(empty.queueFamilyIndex == VK_QUEUE_FAMILY_IGNORED);
+    static_assert(empty.flags == CmdPool::Config::DEFAULT_FLAGS);
 
-    EXPECT_EQ(config.queueFamilyIndex, queue.familyIndex());
-    EXPECT_NE(config.flags & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, 0u);
+    constexpr CmdPool::Config withFamily{.queueFamilyIndex = 3};
+    static_assert(withFamily.queueFamilyIndex == 3);
+    static_assert((withFamily.flags & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) != 0);
 }
 
 CVK_TEST(CmdPool, base_constructor_does_not_create) {

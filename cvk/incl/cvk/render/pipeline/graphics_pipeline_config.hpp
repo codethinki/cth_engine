@@ -5,8 +5,6 @@
 
 #include <cth/io/log.hpp>
 
-#include <ranges>
-#include <span>
 #include <vector>
 
 
@@ -32,17 +30,6 @@ struct GraphicsPipelineConfig {
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT
         | VK_COLOR_COMPONENT_A_BIT,
     };
-
-    constexpr GraphicsPipelineConfig() = default;
-
-    /**
-     * @brief one @ref ALPHA_BLENDING attachment per color format
-     * @param depthFormat VK_FORMAT_UNDEFINED -> no depth attachment
-     */
-    explicit constexpr GraphicsPipelineConfig(
-        std::span<VkFormat const> colorFormats,
-        VkFormat depthFormat = VK_FORMAT_UNDEFINED
-    );
 
     /**
      * @brief adds the stage of the shader
@@ -134,8 +121,8 @@ struct GraphicsPipelineConfig {
     };
 
     /**
-     * @brief blend state per color attachment
-     * @pre size == @ref colorFormats size
+     * @brief blend state per color attachment, empty -> @ref ALPHA_BLENDING per color format
+     * @pre empty or size == @ref colorFormats size
      */
     std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments{};
 
@@ -161,11 +148,6 @@ struct GraphicsPipelineConfig {
 }
 
 namespace cvk {
-constexpr GraphicsPipelineConfig::GraphicsPipelineConfig(std::span<VkFormat const> colorFormats, VkFormat depthFormat) :
-    colorBlendAttachments(colorFormats.size(), ALPHA_BLENDING),
-    colorFormats{std::from_range, colorFormats},
-    depthFormat{depthFormat} {}
-
 constexpr GraphicsPipelineConfig& GraphicsPipelineConfig::removeStage(VkShaderStageFlagBits stage) {
     auto const removed = std::erase_if(
         stages,

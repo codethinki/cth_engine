@@ -32,7 +32,7 @@ CVK_TEST(Submit, semaphore_info_takes_the_kind_from_the_semaphore) {
 
 CVK_TEST(Submit, command_buffer_without_fence) {
     test::Context const context{};
-    CmdPool const pool{context.core, CmdPool::Config{context.core.queue(0)}, create};
+    CmdPool const pool{context.core, CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()}, create};
     PrimaryCmdBuffer primary{pool, create};
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     primary.end();

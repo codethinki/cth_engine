@@ -1,5 +1,4 @@
 #pragma once
-#include "cvk/base/queue/queue.hpp"
 #include "cvk/base/queue/queue_family.hpp"
 
 #include <volk.h>
@@ -13,23 +12,11 @@ struct CmdPoolConfig {
     static constexpr VkCommandPoolCreateFlags DEFAULT_FLAGS = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
         | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-    constexpr CmdPoolConfig() = default;
-
-    explicit constexpr CmdPoolConfig(
-        queue_family_index_t queueFamilyIndex,
-        VkCommandPoolCreateFlags flags = DEFAULT_FLAGS
-    ) : queueFamilyIndex{queueFamilyIndex}, flags{flags} {}
-
     /**
-     * @brief config for the family of the queue
+     * @brief the family of the queues that the command buffers are submitted to
+     * @details VK_QUEUE_FAMILY_IGNORED is not allowed at create
      */
-    explicit constexpr CmdPoolConfig(Queue const& queue, VkCommandPoolCreateFlags flags = DEFAULT_FLAGS) :
-        CmdPoolConfig{queue.familyIndex(), flags} {}
-
-    /**
-     * @brief the command buffers of the pool are submitted to queues of this family
-     */
-    queue_family_index_t queueFamilyIndex = 0;
+    queue_family_index_t queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
     /**
      * @brief VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT -> @ref BaseCmdBuffer::reset() is allowed

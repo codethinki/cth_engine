@@ -64,7 +64,7 @@ namespace {
         }
 
         [[nodiscard]] GraphicsPipeline::Config config() const {
-            GraphicsPipeline::Config config{COLOR_FORMATS};
+            GraphicsPipeline::Config config{.colorFormats = {std::from_range, COLOR_FORMATS}};
             config.addStage(vertex).addStage(fragment);
             config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
             config.vertexAttributes = {
@@ -179,7 +179,7 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
     };
     color.write(std::array<std::array<float, 4>, 1>{GREEN});
 
-    DescriptorPool const pool{context.core, DescriptorPool::Config{{&setLayout}}, create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&setLayout}}), create};
     DescriptorSet const set{pool, setLayout, create};
     set.write({0, color});
 
@@ -235,11 +235,19 @@ namespace {
         staging.write(GREEN_PIXEL);
 
         uint32_t const variableCount = afterBind ? 32 : 0;
-        DescriptorPool const pool{context.core, {{&setLayout, 1, variableCount}}, create};
+        DescriptorPool const pool{
+            context.core,
+            DescriptorPool::Config::ForLayouts({{&setLayout, 1, variableCount}}),
+            create
+        };
         DescriptorSet const set{pool, setLayout, variableCount, create};
         if(!afterBind) set.write({0, view, sampler, index, layout});
 
-        CmdPool const cmdPool{context.core, CmdPool::Config{context.core.queue(0)}, create};
+        CmdPool const cmdPool{
+            context.core,
+            CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()},
+            create
+        };
         PrimaryCmdBuffer cmd{cmdPool, create};
         cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 

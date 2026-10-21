@@ -61,7 +61,7 @@ namespace {
         }
 
         [[nodiscard]] GraphicsPipeline::Config config() const {
-            GraphicsPipeline::Config config{COLOR_FORMATS};
+            GraphicsPipeline::Config config{.colorFormats = {std::from_range, COLOR_FORMATS}};
             config.addStage(vertex).addStage(fragment);
             config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
             config.vertexAttributes = {
@@ -121,7 +121,11 @@ namespace {
             cmd.endRendering();
 
             Barrier barrier{};
-            barrier.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            barrier.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+            );
             barrier.execute(cmd);
 
             test::copy_to_buffer(context, cmd, image, readback, 0, 0);

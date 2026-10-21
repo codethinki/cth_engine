@@ -122,7 +122,7 @@ namespace {
      * @brief fullscreen pipeline for the attachments
      */
     GraphicsPipeline::Config fullscreen(Shader const& vertex, Shader const& fragment, AttachmentMapping mapping) {
-        GraphicsPipeline::Config config{COLOR_FORMATS};
+        GraphicsPipeline::Config config{.colorFormats = {std::from_range, COLOR_FORMATS}};
         config.addStage(vertex).addStage(fragment);
         config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
         config.vertexAttributes = {{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0}};
@@ -153,7 +153,7 @@ namespace {
             inputLayout{core, input_attachment(), create},
             readLayout{core, {.setLayouts = {&inputLayout}}, create},
             read{readLayout, fullscreen(vertex, localRead, copy_first_to_second()), create},
-            pool{core, {{&inputLayout}}, create},
+            pool{core, DescriptorPool::Config::ForLayouts({{&inputLayout}}), create},
             input{pool, inputLayout, create},
             vertices{
                 core,
@@ -297,7 +297,7 @@ CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
     test::Context const context{};
     Attachments const attachments{context.core};
     Draws const draws{context.core, attachments.firstView};
-    CmdPool const pool{context.core, CmdPool::Config{context.core.queue(0)}, create};
+    CmdPool const pool{context.core, CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()}, create};
     std::array<SecondaryCmdBuffer, 1> secondaries{SecondaryCmdBuffer{pool, create}};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {

@@ -10,6 +10,8 @@
 
 #include <array>
 #include <memory>
+#include <ranges>
+#include <type_traits>
 
 
 namespace cvk {
@@ -34,7 +36,10 @@ namespace {
             fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG} {}
 
         [[nodiscard]] GraphicsPipeline::Config config() const {
-            GraphicsPipeline::Config config{COLOR_FORMATS, DEPTH_FORMAT};
+            GraphicsPipeline::Config config{
+                .colorFormats = {std::from_range, COLOR_FORMATS},
+                .depthFormat = DEPTH_FORMAT,
+            };
             config.addStage(vertex).addStage(fragment);
             config.vertexBindings = {
                 {.binding = 0, .stride = 3 * sizeof(float), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
@@ -58,18 +63,25 @@ namespace {
     };
 }
 
-CVK_TEST(GraphicsPipeline, config_from_the_formats) {
-    GraphicsPipeline::Config const config{COLOR_FORMATS, DEPTH_FORMAT};
+CVK_TEST(GraphicsPipeline, config_is_an_aggregate_without_blend_attachments) {
+    static_assert(std::is_aggregate_v<GraphicsPipeline::Config>);
+
+    GraphicsPipeline::Config const config{
+        .colorFormats = {std::from_range, COLOR_FORMATS},
+        .depthFormat = DEPTH_FORMAT,
+    };
 
     EXPECT_TRUE(std::ranges::equal(config.colorFormats, COLOR_FORMATS));
-    ASSERT_EQ(config.colorBlendAttachments.size(), 1);
-    EXPECT_EQ(config.colorBlendAttachments[0].blendEnable, VK_TRUE);
+    EXPECT_TRUE(config.colorBlendAttachments.empty());
     EXPECT_EQ(config.depthFormat, DEPTH_FORMAT);
 }
 
 CVK_TEST(GraphicsPipeline, config_is_constexpr) {
     static_assert([] {
-        GraphicsPipeline::Config config{COLOR_FORMATS, DEPTH_FORMAT};
+        GraphicsPipeline::Config config{
+            .colorFormats = {std::from_range, COLOR_FORMATS},
+            .depthFormat = DEPTH_FORMAT,
+        };
         config.stages.push_back(
             VkPipelineShaderStageCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -82,7 +94,7 @@ CVK_TEST(GraphicsPipeline, config_is_constexpr) {
             }
         );
         config.removeStage(VK_SHADER_STAGE_VERTEX_BIT);
-        return config.colorBlendAttachments.size() == 1 && config.stages.empty();
+        return config.colorFormats.size() == 1 && config.colorBlendAttachments.empty() && config.stages.empty();
     }());
 }
 
@@ -103,7 +115,7 @@ CVK_TEST(GraphicsPipeline, bind) {
     test::Context const context{};
     Triangle const triangle{context.core};
     GraphicsPipeline const pipeline{triangle.layout, triangle.config(), create};
-    CmdPool const pool{context.core, CmdPool::Config{context.core.queue(0)}, create};
+    CmdPool const pool{context.core, CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()}, create};
     PrimaryCmdBuffer primary{pool, create};
 
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -132,6 +144,32 @@ CVK_TEST(GraphicsPipeline, create) {
 
     EXPECT_TRUE(pipeline.created());
     EXPECT_EQ(pipeline.config().stages.size(), 2);
+}
+
+CVK_TEST(GraphicsPipeline, create_keeps_the_empty_blend_attachments) {
+    test::Context const context{};
+    Triangle const triangle{context.core};
+
+    GraphicsPipeline const pipeline{triangle.layout, triangle.config(), create};
+
+    EXPECT_TRUE(pipeline.created());
+    EXPECT_TRUE(pipeline.config().colorBlendAttachments.empty());
+}
+
+CVK_TEST(GraphicsPipeline, create_with_a_blend_attachment_per_color_format) {
+    test::Context const context{};
+    Triangle const triangle{context.core};
+
+    auto config = triangle.config();
+    config.colorBlendAttachments = {
+        {.blendEnable = VK_FALSE, .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT},
+    };
+
+    GraphicsPipeline const pipeline{triangle.layout, std::move(config), create};
+
+    EXPECT_TRUE(pipeline.created());
+    ASSERT_EQ(pipeline.config().colorBlendAttachments.size(), 1);
+    EXPECT_EQ(pipeline.config().colorBlendAttachments[0].blendEnable, VK_FALSE);
 }
 
 CVK_TEST(GraphicsPipeline, create_without_depth) {

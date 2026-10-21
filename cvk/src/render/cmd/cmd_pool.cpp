@@ -20,6 +20,8 @@ void CmdPool::wrap(State const& state) {
 }
 
 void CmdPool::create() {
+    CTH_CRITICAL(_config.queueFamilyIndex == VK_QUEUE_FAMILY_IGNORED, "the config needs a queue family") {}
+
     optDestroy();
 
     auto const info = _config.createInfo();
