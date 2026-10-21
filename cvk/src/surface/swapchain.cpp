@@ -4,6 +4,7 @@
 #include "cvk/base/physical_device.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
+#include "cvk/utility/vk_overloads.hpp"
 
 #include <algorithm>
 
@@ -48,39 +49,34 @@ void Swapchain::wrap(State const& state) {
 }
 
 void Swapchain::create(VkExtent2D extent) {
+    CTH_CRITICAL(extent.width == 0 || extent.height == 0, "extent width and height must be > 0, got {}", extent) {}
     optDestroy();
 
+    auto const [surfaceFormat, presentMode] = pick(_config);
+    _surfaceFormat = surfaceFormat;
+    _presentMode = presentMode;
     createSwapchain(extent, VK_NULL_HANDLE);
 }
 
 void Swapchain::resize(VkExtent2D extent) {
     debug_check(*this);
+    CTH_CRITICAL(extent.width == 0 || extent.height == 0, "extent width and height must be > 0, got {}", extent) {}
 
-    vector<uint32_t> acquiredImages{};
-    for(uint32_t index = 0; index < imageCount(); ++index)
-        if(_acquired[index]) acquiredImages.push_back(index);
-    unacquire(acquiredImages);
+    auto const oldSwapchain = retire();
+    createSwapchain(extent, oldSwapchain);
+}
 
-    // the swapchain destroys its images
-    for(auto& image : _images)
-        image.release();
+void Swapchain::recreate(VkExtent2D extent, Config config) {
+    debug_check(*this);
+    CTH_CRITICAL(extent.width == 0 || extent.height == 0, "extent width and height must be > 0, got {}", extent) {}
+    Config::debug_check(config);
 
-    auto const oldSwapchain = get();
-    _retired.push_back(
-        Retired{
-            .handle = std::move(_handle),
-            .images = std::move(_images),
-            .views = std::move(_views),
-            .presentSemaphores = std::move(_presentSemaphores),
-            .presentFences = std::move(_presentFences),
-        }
-    );
-    _images.clear();
-    _views.clear();
-    _presentSemaphores.clear();
-    _presentFences.clear();
-    _acquired.clear();
+    auto const [surfaceFormat, presentMode] = pick(config);
 
+    auto const oldSwapchain = retire();
+    _config = std::move(config);
+    _surfaceFormat = surfaceFormat;
+    _presentMode = presentMode;
     createSwapchain(extent, oldSwapchain);
 }
 
@@ -204,20 +200,44 @@ void Swapchain::destroy(DeviceTable table, VkSwapchainKHR vkSwapchain) {
     table->vkDestroySwapchainKHR(table.device(), vkSwapchain, nullptr);
 }
 
+std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> Swapchain::pick(Config const& config) const {
+    auto const& physicalDevice = core().physicalDevice();
+
+    auto const formats = _surface->formats(physicalDevice);
+    auto const& allowedFormats = config.formats.empty() ? formats : config.formats;
+    auto const formatIt = std::ranges::find_first_of(allowedFormats, formats);
+    CVK_STABLE_THROW(
+        formatIt == allowedFormats.end(),
+        "the surface offers no allowed format, allowed: {}, offered: {}",
+        config.formats,
+        formats
+    ) {}
+
+    if(config.presentModes.empty()) return {*formatIt, VK_PRESENT_MODE_FIFO_KHR};
+
+    auto const presentModes = _surface->presentModes(physicalDevice);
+    auto const presentModeIt = std::ranges::find_first_of(config.presentModes, presentModes);
+    CVK_STABLE_THROW(
+        presentModeIt == config.presentModes.end(),
+        "the surface offers no allowed present mode, allowed: {}, offered: {}",
+        config.presentModes,
+        presentModes
+    ) {}
+
+    return {*formatIt, *presentModeIt};
+}
+
 void Swapchain::createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain) {
     Surface::debug_check(*_surface);
-    CTH_CRITICAL(extent.width == 0 || extent.height == 0, "extent width and height must be > 0") {}
 
-    auto const& physicalDevice = core().physicalDevice();
-    auto const capabilities = _surface->capabilities(physicalDevice);
-    auto const surfaceFormat = _surface->format(physicalDevice);
-    auto const presentMode = _surface->presentMode(physicalDevice);
+    auto const capabilities = _surface->capabilities(core().physicalDevice());
     auto const imageExtent = evalExtent(extent, capabilities);
 
     auto const info = _config.createInfo(
         _surface->get(),
-        surfaceFormat,
-        presentMode,
+        _surfaceFormat,
+        _presentMode,
+        //TODO override of the pre transform, for pre-rotation on rotated mobile displays
         capabilities.currentTransform,
         imageExtent,
         evalImageCount(_config.minImageCount, capabilities),
@@ -234,8 +254,6 @@ void Swapchain::createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain) 
 
     _handle.reset(ptr, core());
     _extent = imageExtent;
-    _surfaceFormat = surfaceFormat;
-    _presentMode = presentMode;
 
     createImages();
 }
@@ -273,6 +291,35 @@ void Swapchain::createImages() {
     }
 
     _acquired.assign(count, false);
+}
+
+VkSwapchainKHR Swapchain::retire() {
+    vector<uint32_t> acquiredImages{};
+    for(uint32_t index = 0; index < imageCount(); ++index)
+        if(_acquired[index]) acquiredImages.push_back(index);
+    unacquire(acquiredImages);
+
+    // the swapchain destroys its images
+    for(auto& image : _images)
+        image.release();
+
+    auto const oldSwapchain = get();
+    _retired.push_back(
+        Retired{
+            .handle = std::move(_handle),
+            .images = std::move(_images),
+            .views = std::move(_views),
+            .presentSemaphores = std::move(_presentSemaphores),
+            .presentFences = std::move(_presentFences),
+        }
+    );
+    _images.clear();
+    _views.clear();
+    _presentSemaphores.clear();
+    _presentFences.clear();
+    _acquired.clear();
+
+    return oldSwapchain;
 }
 
 void Swapchain::destroyImages() {

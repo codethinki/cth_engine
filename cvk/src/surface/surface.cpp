@@ -3,34 +3,14 @@
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
-#include "cvk/utility/vk_overloads.hpp"
-
-#include <algorithm>
 
 
 namespace cvk {
 using std::vector;
 
-namespace {
-    /**
-     * @return @ref allowed in its order, filtered by @ref available, empty @ref allowed -> @ref available
-     */
-    template<class T>
-    [[nodiscard]] vector<T> filter_allowed(vector<T> available, std::span<T const> allowed) {
-        if(allowed.empty()) return available;
+Surface::Surface(Instance const& instance) : _handle{instance.get()} {}
 
-        vector<T> result{};
-        for(auto const& value : allowed)
-            if(std::ranges::contains(available, value)) result.push_back(value);
-        return result;
-    }
-}
-
-Surface::Surface(Instance const& instance, Config config) : _config{std::move(config)}, _handle{instance.get()} {}
-
-Surface::Surface(Instance const& instance, Config config, State const& state) : Surface{instance, std::move(config)} {
-    wrap(state);
-}
+Surface::Surface(Instance const& instance, State const& state) : Surface{instance} { wrap(state); }
 
 void Surface::wrap(State const& state) {
     debug_check_handle(state.vkSurface);
@@ -70,7 +50,7 @@ bool Surface::supportsFamily(PhysicalDevice const& physicalDevice, uint32_t fami
     return support;
 }
 
-auto Surface::presentModes(PhysicalDevice const& physicalDevice) const -> vector<present_mode_t> {
+vector<VkPresentModeKHR> Surface::presentModes(PhysicalDevice const& physicalDevice) const {
     debug_check(*this);
 
     uint32_t size = 0;
@@ -82,7 +62,7 @@ auto Surface::presentModes(PhysicalDevice const& physicalDevice) const -> vector
     );
     CVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "device-surface present modes query failed") {}
 
-    vector<present_mode_t> modes(size);
+    vector<VkPresentModeKHR> modes(size);
     auto const writeResult = vkGetPhysicalDeviceSurfacePresentModesKHR(
         physicalDevice.get(),
         _handle.get(),
@@ -91,10 +71,10 @@ auto Surface::presentModes(PhysicalDevice const& physicalDevice) const -> vector
     );
     CVK_RESULT_STABLE_THROW(writeResult != VK_SUCCESS, writeResult, "device-surface present modes query failed") {}
 
-    return filter_allowed<present_mode_t>(std::move(modes), _config.allowedPresentModes);
+    return modes;
 }
 
-auto Surface::formats(PhysicalDevice const& physicalDevice) const -> vector<format_t> {
+vector<VkSurfaceFormatKHR> Surface::formats(PhysicalDevice const& physicalDevice) const {
     debug_check(*this);
 
     uint32_t size = 0;
@@ -106,7 +86,7 @@ auto Surface::formats(PhysicalDevice const& physicalDevice) const -> vector<form
     );
     CVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "device-surface formats query failed") {}
 
-    vector<format_t> formats(size);
+    vector<VkSurfaceFormatKHR> formats(size);
     auto const writeResult = vkGetPhysicalDeviceSurfaceFormatsKHR(
         physicalDevice.get(),
         _handle.get(),
@@ -115,17 +95,7 @@ auto Surface::formats(PhysicalDevice const& physicalDevice) const -> vector<form
     );
     CVK_RESULT_STABLE_THROW(writeResult != VK_SUCCESS, writeResult, "device-surface formats query failed") {}
 
-    return filter_allowed<format_t>(std::move(formats), _config.allowedSurfaceFormats);
-}
-
-auto Surface::format(PhysicalDevice const& physicalDevice) const -> format_t {
-    auto const availableFormats = formats(physicalDevice);
-    CVK_STABLE_THROW(
-        availableFormats.empty(),
-        "no suitable format found, allowed: {}",
-        _config.allowedSurfaceFormats
-    ) {}
-    return availableFormats[0];
+    return formats;
 }
 
 VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physicalDevice) const {
@@ -140,16 +110,6 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physicalDev
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "device-surface capabilities query failed") {}
 
     return capabilities;
-}
-
-auto Surface::presentMode(PhysicalDevice const& physicalDevice) const -> present_mode_t {
-    auto const availableModes = presentModes(physicalDevice);
-    CVK_STABLE_THROW(
-        availableModes.empty(),
-        "no suitable present mode found, allowed: {}",
-        _config.allowedPresentModes
-    ) {}
-    return availableModes[0];
 }
 
 void Surface::destroy(vk_not_null<VkInstance> vkInstance, VkSurfaceKHR vkSurface) {

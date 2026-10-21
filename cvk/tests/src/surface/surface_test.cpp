@@ -1,3 +1,4 @@
+#include "context.hpp"
 #include "headless.hpp"
 #include "test.hpp"
 #include "validation.hpp"
@@ -6,8 +7,9 @@
 #include "cvk/base/physical_device.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
-#include "cvk/utility/vk_exceptions.hpp"
+#include "cvk/utility/vk_overloads.hpp"
 
+#include <algorithm>
 #include <array>
 #include <vector>
 
@@ -15,11 +17,6 @@
 namespace cvk {
 namespace {
     constexpr std::array PRESENT_QUEUES{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
-
-    /**
-     * @brief config that allows everything
-     */
-    Surface::Config const ALLOW_ALL{.allowedSurfaceFormats = {}, .allowedPresentModes = {}};
 }
 
 CVK_TEST(Surface, wrap_takes_ownership) {
@@ -44,52 +41,39 @@ CVK_TEST(Surface, release_keeps_the_surface) {
     Surface::destroy(instance.get(), state.vkSurface.get());
 }
 
-CVK_TEST(Surface, empty_config_allows_everything) {
-    Instance const instance{test::instance_config(test::headless_extensions()), create};
-    std::array const surfaces{test::headless_surface(instance, ALLOW_ALL)};
-    auto const [device, _] = test::pick(instance, PRESENT_QUEUES, surfaces);
+CVK_TEST(Surface, formats_are_every_offered_format) {
+    test::PresentContext const context{};
+    auto const vkPhysicalDevice = context.core.physicalDevice().get();
+    auto const vkSurface = context.surface().get();
 
-    auto const& surface = surfaces[0];
+    uint32_t count = 0;
+    ASSERT_EQ(vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, vkSurface, &count, nullptr), VK_SUCCESS);
+    std::vector<VkSurfaceFormatKHR> offered(count);
+    ASSERT_EQ(vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, vkSurface, &count, offered.data()), VK_SUCCESS);
 
-    EXPECT_FALSE(surface.formats(device).empty());
-    EXPECT_FALSE(surface.presentModes(device).empty());
-    EXPECT_TRUE(std::ranges::contains(surface.presentModes(device), VK_PRESENT_MODE_FIFO_KHR));
+    auto const formats = context.surface().formats(context.core.physicalDevice());
+
+    EXPECT_FALSE(formats.empty());
+    EXPECT_EQ(formats, offered);
 }
 
-CVK_TEST(Surface, formats_keep_the_allowed_order) {
-    Instance const instance{test::instance_config(test::headless_extensions()), create};
-    std::array const surfaces{test::headless_surface(instance, ALLOW_ALL)};
-    auto const [device, _] = test::pick(instance, PRESENT_QUEUES, surfaces);
+CVK_TEST(Surface, present_modes_are_every_offered_present_mode) {
+    test::PresentContext const context{};
+    auto const vkPhysicalDevice = context.core.physicalDevice().get();
+    auto const vkSurface = context.surface().get();
 
-    auto const available = surfaces[0].formats(device);
-    if(available.size() < 2) GTEST_SKIP() << "needs two surface formats";
+    uint32_t count = 0;
+    ASSERT_EQ(vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, vkSurface, &count, nullptr), VK_SUCCESS);
+    std::vector<VkPresentModeKHR> offered(count);
+    ASSERT_EQ(
+        vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, vkSurface, &count, offered.data()),
+        VK_SUCCESS
+    );
 
-    Surface::Config const config{
-        .allowedSurfaceFormats = {available[1], available[0]},
-        .allowedPresentModes = {},
-    };
-    auto const surface = test::headless_surface(instance, config);
+    auto const presentModes = context.surface().presentModes(context.core.physicalDevice());
 
-    auto const formats = surface.formats(device);
-    ASSERT_EQ(formats.size(), 2);
-    EXPECT_EQ(formats[0], available[1]);
-    EXPECT_EQ(formats[1], available[0]);
-    EXPECT_EQ(surface.format(device), available[1]);
-}
-
-CVK_TEST(Surface, no_allowed_format_throws) {
-    Instance const instance{test::instance_config(test::headless_extensions()), create};
-    std::array const surfaces{test::headless_surface(instance, ALLOW_ALL)};
-    auto const [device, _] = test::pick(instance, PRESENT_QUEUES, surfaces);
-
-    Surface::Config const config{
-        .allowedSurfaceFormats = {{VK_FORMAT_R64G64B64A64_SFLOAT, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}},
-        .allowedPresentModes = {},
-    };
-    auto const surface = test::headless_surface(instance, config);
-
-    EXPECT_TRUE(surface.formats(device).empty());
-    EXPECT_THROW([[maybe_unused]] auto const f = surface.format(device), cvk_exception);
+    EXPECT_TRUE(std::ranges::contains(presentModes, VK_PRESENT_MODE_FIFO_KHR));
+    EXPECT_EQ(presentModes, offered);
 }
 
 CVK_TEST(Surface, capabilities) {

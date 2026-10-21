@@ -1,6 +1,4 @@
 #pragma once
-#include "surface_config.hpp"
-
 #include "cvk/utility/handle/instance_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -22,24 +20,21 @@ class PhysicalDevice;
 class Surface {
 public:
     using vk_handle_t = VkSurfaceKHR;
-    using Config = SurfaceConfig;
-    using format_t = Config::format_t;
-    using present_mode_t = Config::present_mode_t;
     struct State;
 
     /**
      * @brief base constructor
      * @pre @ref Instance::created()
      */
-    explicit Surface(Instance const&, Config = {});
+    explicit Surface(Instance const&);
 
     /**
      * @brief constructs and wraps
      * @details calls:
-     * - @ref Surface(Instance const&, Config)
+     * - @ref Surface(Instance const&)
      * - @ref wrap()
      */
-    Surface(Instance const&, Config, State const&);
+    Surface(Instance const&, State const&);
 
     /**
      * @note calls @ref optDestroy()
@@ -77,10 +72,10 @@ public:
     [[nodiscard]] bool supportsFamily(PhysicalDevice const&, uint32_t familyIndex) const;
 
     /**
-     * @return allowed and available present modes, in the order of @ref Config::allowedPresentModes
+     * @return present modes the physical device offers for the surface
      * @throws cvk::vk_result_exception result of vkGetPhysicalDeviceSurfacePresentModesKHR()
      */
-    [[nodiscard]] std::vector<present_mode_t> presentModes(PhysicalDevice const&) const;
+    [[nodiscard]] std::vector<VkPresentModeKHR> presentModes(PhysicalDevice const&) const;
 
     /**
      * @throws cvk::vk_result_exception result of vkGetPhysicalDeviceSurfaceCapabilitiesKHR()
@@ -88,34 +83,20 @@ public:
     [[nodiscard]] VkSurfaceCapabilitiesKHR capabilities(PhysicalDevice const&) const;
 
     /**
-     * @return allowed and available formats, in the order of @ref Config::allowedSurfaceFormats
+     * @return formats the physical device offers for the surface
      * @attention no format -> the surface is not usable with the physical device
      * @throws cvk::vk_result_exception result of vkGetPhysicalDeviceSurfaceFormatsKHR()
      */
-    [[nodiscard]] std::vector<format_t> formats(PhysicalDevice const&) const;
-
-    /**
-     * @return the most preferred allowed and available format
-     * @throws cvk::cvk_exception reason: no allowed format available
-     */
-    [[nodiscard]] format_t format(PhysicalDevice const&) const;
-
-    /**
-     * @return the most preferred allowed and available present mode
-     * @throws cvk::cvk_exception reason: no allowed present mode available
-     */
-    [[nodiscard]] present_mode_t presentMode(PhysicalDevice const&) const;
+    [[nodiscard]] std::vector<VkSurfaceFormatKHR> formats(PhysicalDevice const&) const;
 
     static void destroy(vk_not_null<VkInstance>, VkSurfaceKHR);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
-    [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
     void forget();
 
-    Config _config;
     instance_handle<Surface> _handle;
 
 public:

@@ -18,6 +18,7 @@
 #include <limits>
 #include <optional>
 #include <span>
+#include <utility>
 #include <vector>
 
 
@@ -28,7 +29,8 @@ class Surface;
 /**
  * @brief VkSwapchainKHR wrapper, owns its images, their views, a present semaphore and a present fence per image
  * @details the images are wrapped without memory and released before the swapchain is destroyed,
- *  @ref resize() retires the old swapchain, the swapchain destroys it once its present fences signal,
+ *  @ref resize() and @ref recreate() retire the old swapchain,
+ *  the swapchain destroys it once its present fences signal,
  *  custom move assignment: destroys first, a default one would destroy the swapchain images
  * @attention not thread safe
  */
@@ -87,6 +89,7 @@ public:
 
     /**
      * @brief wraps the state, gets the images, creates their views, present semaphores and present fences
+     * @details the format and the present mode come from the state, not from the config
      * @pre the swapchain was created for the surface with the config and the state
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -95,11 +98,13 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the swapchain with the format and present mode of the surface
+     * @brief picks the format and the present mode of the config, creates the swapchain
      * @param extent of the window, a fixed currentExtent of the surface wins
+     * @details the first entries of @ref Config::formats and @ref Config::presentModes that the surface offers win
      * @pre extent width and height > 0
      * @post @ref created()
      * @note calls @ref optDestroy()
+     * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR()
      */
     void create(VkExtent2D extent);
@@ -107,14 +112,30 @@ public:
     /**
      * @brief creates a new swapchain with the old one as oldSwapchain, the old one retires
      * @param extent of the window, a fixed currentExtent of the surface wins
-     * @details unacquires the images that are still acquired,
-     *  the swapchain destroys the retired one once its present fences signal
+     * @details keeps the format and the present mode, queries the surface capabilities again,
+     *  unacquires the images that are still acquired,
+     *  the swapchain destroys the retired one once its present fences signal,
+     *  a format or present mode change needs @ref recreate()
      * @pre @ref created()
      * @pre extent width and height > 0
+     * @pre the surface still supports the format and the present mode of the swapchain
      * @pre no present semaphore is signaled without its present
      * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR()
      */
     void resize(VkExtent2D extent);
+
+    /**
+     * @brief applies the config, e.g. another present mode, retires the old swapchain like @ref resize()
+     * @param extent of the window, a fixed currentExtent of the surface wins
+     * @details picks the format and the present mode of the config again, see @ref create()
+     * @pre @ref created()
+     * @pre extent width and height > 0
+     * @pre no present semaphore is signaled without its present
+     * @note a new format needs new pipelines for the swapchain images
+     * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode, nothing changes
+     * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR()
+     */
+    void recreate(VkExtent2D extent, Config);
 
     /**
      * @brief waits for the present fences, destroys the swapchain and forgets
@@ -222,7 +243,7 @@ public:
 
 private:
     /**
-     * @brief old swapchain after @ref resize(), the images are released
+     * @brief old swapchain after @ref resize() or @ref recreate(), the images are released
      * @details members destroy in reverse order: the swapchain last
      */
     struct Retired {
@@ -233,8 +254,23 @@ private:
         std::vector<Fence> presentFences;
     };
 
+    /**
+     * @return the first allowed format and present mode of the config that the surface offers
+     * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
+     */
+    [[nodiscard]] std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> pick(Config const&) const;
+
+    /**
+     * @brief creates the swapchain and its images with @ref _surfaceFormat and @ref _presentMode
+     */
     void createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain);
     void createImages();
+
+    /**
+     * @brief unacquires the acquired images, moves the swapchain and its images to the retired swapchains
+     * @return the handle of the retired swapchain
+     */
+    [[nodiscard]] VkSwapchainKHR retire();
 
     /**
      * @brief waits for the present fences, releases the images, destroys the views, semaphores and fences

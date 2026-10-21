@@ -18,7 +18,7 @@ namespace cvk::test {
  * @brief creates a headless surface
  * @pre the instance enables @ref headless_extensions()
  */
-[[nodiscard]] Surface headless_surface(Instance const&, Surface::Config = {});
+[[nodiscard]] Surface headless_surface(Instance const&);
 
 /**
  * @brief @ref pick_physical_device() with @ref constants::BASE_DEVICE_FEATURES

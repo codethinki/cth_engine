@@ -10,10 +10,13 @@
 #include "cvk/render/sync/semaphore.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/surface/swapchain.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
 
+#include <algorithm>
 #include <array>
 #include <limits>
 #include <utility>
+#include <vector>
 
 
 namespace cvk {
@@ -137,12 +140,57 @@ CVK_TEST(Swapchain, create_and_destroy) {
     EXPECT_GE(swapchain.imageCount(), capabilities.minImageCount);
     EXPECT_EQ(swapchain.views().size(), swapchain.imageCount());
     EXPECT_EQ(swapchain.extent().width, Swapchain::evalExtent(EXTENT, capabilities).width);
-    EXPECT_EQ(swapchain.format(), context.surface().format(context.core.physicalDevice()).format);
+    auto const offered = context.surface().formats(context.core.physicalDevice());
+    EXPECT_TRUE(std::ranges::contains(offered, VkSurfaceFormatKHR{swapchain.format(), swapchain.colorSpace()}));
     EXPECT_EQ(swapchain.images()[0].aspectMask(), VK_IMAGE_ASPECT_COLOR_BIT);
 
     swapchain.destroy();
     EXPECT_FALSE(swapchain.created());
     EXPECT_EQ(swapchain.imageCount(), 0);
+}
+
+CVK_TEST(Swapchain, create_picks_the_first_allowed_format_the_surface_offers) {
+    test::PresentContext const context{};
+    auto const offered = context.surface().formats(context.core.physicalDevice());
+    if(offered.size() < 2) GTEST_SKIP() << "needs two surface formats";
+
+    Swapchain::Config const config{
+        .formats = {{VK_FORMAT_R64G64B64A64_SFLOAT, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}, offered[1], offered[0]},
+    };
+    Swapchain const swapchain{context.core, context.queue(), context.surface(), config, EXTENT};
+
+    EXPECT_EQ(swapchain.format(), offered[1].format);
+    EXPECT_EQ(swapchain.colorSpace(), offered[1].colorSpace);
+}
+
+CVK_TEST(Swapchain, create_without_an_offered_format_throws) {
+    test::PresentContext const context{};
+    Swapchain::Config const config{.formats = {{VK_FORMAT_R64G64B64A64_SFLOAT, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}}};
+    Swapchain swapchain{context.core, context.queue(), context.surface(), config};
+
+    EXPECT_THROW(swapchain.create(EXTENT), cvk_exception);
+    EXPECT_FALSE(swapchain.created());
+}
+
+CVK_TEST(Swapchain, create_without_an_offered_present_mode_throws) {
+    test::PresentContext const context{};
+    Swapchain::Config const config{.presentModes = {VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR}};
+    Swapchain swapchain{context.core, context.queue(), context.surface(), config};
+
+    EXPECT_THROW(swapchain.create(EXTENT), cvk_exception);
+    EXPECT_FALSE(swapchain.created());
+}
+
+CVK_TEST(Swapchain, empty_lists_take_the_first_format_and_fifo) {
+    test::PresentContext const context{};
+    auto const offered = context.surface().formats(context.core.physicalDevice());
+
+    Swapchain::Config const config{.formats = {}, .presentModes = {}};
+    Swapchain const swapchain{context.core, context.queue(), context.surface(), config, EXTENT};
+
+    EXPECT_EQ(swapchain.format(), offered[0].format);
+    EXPECT_EQ(swapchain.colorSpace(), offered[0].colorSpace);
+    EXPECT_EQ(swapchain.presentMode(), VK_PRESENT_MODE_FIFO_KHR);
 }
 
 CVK_TEST(Swapchain, acquire_clear_present) {
@@ -162,6 +210,46 @@ CVK_TEST(Swapchain, resize_retires_the_old_swapchain) {
 
     swapchain.resize({32, 32});
 
+    EXPECT_EQ(swapchain.retired(), 1);
+    EXPECT_EQ(swapchain.extent().width, 32);
+    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+}
+
+CVK_TEST(Swapchain, resize_keeps_the_format_and_the_present_mode) {
+    test::PresentContext const context{};
+    auto const offered = context.surface().formats(context.core.physicalDevice());
+    if(offered.size() < 2) GTEST_SKIP() << "needs two surface formats";
+
+    Swapchain created{context.core, context.queue(), context.surface(), {.formats = {offered[1]}}, EXTENT};
+    auto const state = created.release();
+    // the config prefers another format -> a resize that picks again changes the format
+    Swapchain swapchain{context.core, context.queue(), context.surface(), {.formats = {offered[0]}}, state};
+
+    swapchain.resize({32, 32});
+
+    EXPECT_EQ(swapchain.format(), offered[1].format);
+    EXPECT_EQ(swapchain.colorSpace(), offered[1].colorSpace);
+    EXPECT_EQ(swapchain.presentMode(), state.presentMode);
+    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+}
+
+CVK_TEST(Swapchain, recreate_applies_the_config) {
+    test::PresentContext const context{};
+    auto const& physicalDevice = context.core.physicalDevice();
+    auto const formats = context.surface().formats(physicalDevice);
+    auto const presentModes = context.surface().presentModes(physicalDevice);
+    if(formats.size() < 2 || presentModes.size() < 2) GTEST_SKIP() << "needs two surface formats and present modes";
+
+    Swapchain::Config const config{.formats = {formats[0]}, .presentModes = {presentModes[0]}};
+    Swapchain swapchain{context.core, context.queue(), context.surface(), config, EXTENT};
+    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+
+    swapchain.recreate({32, 32}, {.formats = {formats[1]}, .presentModes = {presentModes[1]}});
+
+    EXPECT_EQ(swapchain.format(), formats[1].format);
+    EXPECT_EQ(swapchain.colorSpace(), formats[1].colorSpace);
+    EXPECT_EQ(swapchain.presentMode(), presentModes[1]);
+    EXPECT_EQ(swapchain.config().presentModes, std::vector{presentModes[1]});
     EXPECT_EQ(swapchain.retired(), 1);
     EXPECT_EQ(swapchain.extent().width, 32);
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
