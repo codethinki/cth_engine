@@ -17,6 +17,7 @@ if(LLD_LINKER AND NOT MSVC)
 endif()
 
 include(lib/cmake/cth.cmake)
+include(lib/cmake/rgfw.cmake)
 
 if(JOLLY_ENABLE_TESTS)
     enable_testing()
@@ -24,6 +25,7 @@ endif()
 
 # Add subprojects
 add_subdirectory(cvk)
+add_subdirectory(cgfw)
 
 # Tests
 if(JOLLY_ENABLE_TESTS)

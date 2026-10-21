@@ -8,6 +8,7 @@ Read it before you change a file. Match the existing code.
 | Path | Content |
 |---|---|
 | `cvk/` | C++ wrapper of the Vulkan C API: one class per Vulkan object, objects own their handle |
+| `cgfw/` | C++ wrapper of RGFW: windows of the platform (Win32, Wayland) and their Vulkan surface |
 | `jvk/` | coroutine layer on top of `cvk` (not started) |
 | `jvk/prework/` | parts for `jvk` that left `cvk`, not built |
 | `legacy/` | the old `jvk`, `jolly` and `demo` code, reference only, not built |
