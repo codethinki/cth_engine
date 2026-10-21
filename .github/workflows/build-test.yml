@@ -1,0 +1,36 @@
+name: Build & Test
+
+on:
+  push: { branches: ["master", "v2", "_v2/jvk_rebuild"] }
+  pull_request: { branches: ["master"] }
+  workflow_dispatch:
+
+permissions: { contents: read, packages: write }
+
+jobs:
+  linux:
+    name: Linux (${{ matrix.compiler }} ${{ matrix.config }})
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        # debug runs the validation layers with synchronization validation
+        config: [debug, release]
+
+    uses: ./.github/workflows/linux-pipeline.yml
+    with:
+      compiler: ${{ matrix.compiler }}
+      config: ${{ matrix.config }}
+    secrets: inherit
+
+  windows:
+    name: Windows (${{ matrix.compiler }})
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [msvc, clang]
+
+    uses: ./.github/workflows/windows-pipeline.yml
+    with:
+      compiler: ${{ matrix.compiler }}
+    secrets: inherit
