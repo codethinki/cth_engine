@@ -177,11 +177,8 @@ void Image::blitMipLevels(
     ) {}
 
     auto const corner = [this](uint32_t level) {
-        return VkOffset3D{
-            static_cast<int32_t>(std::max(_extent.width >> level, 1u)),
-            static_cast<int32_t>(std::max(_extent.height >> level, 1u)),
-            1,
-        };
+        auto const extent = mip_extent(_extent, level);
+        return VkOffset3D{static_cast<int32_t>(extent.width), static_cast<int32_t>(extent.height), 1};
     };
     // the level is written, the next blit reads it
     auto const toSrc = [&](uint32_t level) {
@@ -246,6 +243,7 @@ VkBufferImageCopy2 Image::bufferCopy(
     CTH_CRITICAL(mipLevel >= mipLevels(), "mip level must lie in the image") {}
     CTH_CRITICAL(!std::has_single_bit(aspectMask()), "a copy needs exactly one aspect") {}
 
+    auto const extent = mip_extent(_extent, mipLevel);
     return VkBufferImageCopy2{
         .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
         .pNext = nullptr,
@@ -259,7 +257,7 @@ VkBufferImageCopy2 Image::bufferCopy(
             .layerCount = arrayLayers(),
         },
         .imageOffset = {0, 0, 0},
-        .imageExtent = {std::max(_extent.width >> mipLevel, 1u), std::max(_extent.height >> mipLevel, 1u), 1},
+        .imageExtent = {extent.width, extent.height, 1},
     };
 }
 

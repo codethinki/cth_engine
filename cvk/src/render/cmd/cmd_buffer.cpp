@@ -75,9 +75,7 @@ namespace {
     }
 
     VkExtent2D view_extent(ImageView const& view) {
-        auto const mip = view.range().baseMipLevel;
-        auto const extent = view.image().extent();
-        return {std::max(extent.width >> mip, 1u), std::max(extent.height >> mip, 1u)};
+        return mip_extent(view.image().extent(), view.range().baseMipLevel);
     }
 
     void debug_check_secondary(SecondaryCmdBuffer const& secondary) {

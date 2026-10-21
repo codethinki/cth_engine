@@ -13,7 +13,7 @@ namespace {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .format = VK_FORMAT_R8G8B8A8_UNORM,
         .usage = VK_IMAGE_USAGE_SAMPLED_BIT,
-        .mipLevels = Image::evalMipLevelCount(EXTENT),
+        .mipLevels = mip_level_count(EXTENT),
     };
 }
 

@@ -24,7 +24,7 @@ namespace {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .format = VK_FORMAT_R8G8B8A8_UNORM,
         .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-        .mipLevels = Image::evalMipLevelCount(EXTENT),
+        .mipLevels = mip_level_count(EXTENT),
     };
 
     /**
@@ -44,7 +44,7 @@ namespace {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .format = VK_FORMAT_R8G8B8A8_UNORM,
         .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-        .mipLevels = Image::evalMipLevelCount(EXTENT),
+        .mipLevels = mip_level_count(EXTENT),
     };
 
     constexpr BaseBuffer::Config STAGING_CONFIG{
@@ -58,12 +58,28 @@ namespace {
     };
 }
 
-CVK_TEST(Image, eval_mip_level_count) {
-    static_assert(Image::evalMipLevelCount({1, 1}) == 1);
-    static_assert(Image::evalMipLevelCount({2, 1}) == 2);
-    static_assert(Image::evalMipLevelCount({256, 256}) == 9);
-    static_assert(Image::evalMipLevelCount({300, 200}) == 9);
-    static_assert(Image::evalMipLevelCount({1, 1024}) == 11);
+CVK_TEST(Image, mip_level_count) {
+    static_assert(mip_level_count({1, 1}) == 1);
+    static_assert(mip_level_count({2, 1}) == 2);
+    static_assert(mip_level_count({256, 256}) == 9);
+    static_assert(mip_level_count({300, 200}) == 9);
+    static_assert(mip_level_count({1, 1024}) == 11);
+}
+
+CVK_TEST(Image, mip_extent) {
+    static_assert(mip_extent({1, 1}, 0) == VkExtent2D{1, 1});
+    static_assert(mip_extent({1, 1}, 3) == VkExtent2D{1, 1});
+    static_assert(mip_extent({256, 256}, 0) == VkExtent2D{256, 256});
+    static_assert(mip_extent({256, 256}, 8) == VkExtent2D{1, 1});
+    static_assert(mip_extent({300, 200}, 1) == VkExtent2D{150, 100});
+    static_assert(mip_extent({300, 200}, 3) == VkExtent2D{37, 25});
+    static_assert(mip_extent({1, 1024}, 4) == VkExtent2D{1, 64});
+    static_assert(mip_extent({1024, 4}, 4) == VkExtent2D{64, 1});
+
+    // levels beyond the count, also beyond the bit count of uint32_t
+    static_assert(mip_extent({300, 200}, mip_level_count({300, 200})) == VkExtent2D{1, 1});
+    static_assert(mip_extent({4096, 4096}, 32) == VkExtent2D{1, 1});
+    static_assert(mip_extent({4096, 4096}, 100) == VkExtent2D{1, 1});
 }
 
 CVK_TEST(Image, format_aspects) {
@@ -312,7 +328,7 @@ CVK_TEST(Image, cube_map_copies_and_blits_every_face) {
     constexpr VkExtent2D extent{8, 8};
     Image const image{
         context.core,
-        Image::Config::CubeMap(VK_FORMAT_R8G8B8A8_UNORM, Image::evalMipLevelCount(extent)),
+        Image::Config::CubeMap(VK_FORMAT_R8G8B8A8_UNORM, mip_level_count(extent)),
         extent
     };
 

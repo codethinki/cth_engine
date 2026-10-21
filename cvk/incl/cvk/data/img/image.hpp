@@ -13,6 +13,8 @@
 
 #include <algorithm>
 #include <bit>
+#include <cstdint>
+#include <limits>
 #include <optional>
 
 
@@ -152,14 +154,6 @@ public:
         VkFilter filter = VK_FILTER_LINEAR
     ) const;
 
-    /**
-     * @return mip levels down to 1x1
-     * @pre width > 0, height > 0
-     */
-    [[nodiscard]] static constexpr uint32_t evalMipLevelCount(VkExtent2D extent) {
-        return static_cast<uint32_t>(std::bit_width(std::max(extent.width, extent.height)));
-    }
-
     static void destroy(DeviceTable table, VkImage);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
@@ -213,6 +207,25 @@ public:
 
     static constexpr void debug_check(Image const&);
 };
+
+/**
+ * @return mip levels down to 1x1
+ * @pre width > 0, height > 0
+ */
+[[nodiscard]] constexpr uint32_t mip_level_count(VkExtent2D extent) {
+    return static_cast<uint32_t>(std::bit_width(std::max(extent.width, extent.height)));
+}
+
+/**
+ * @return extent of the mip level, at least 1x1, also beyond @ref mip_level_count()
+ */
+[[nodiscard]] constexpr VkExtent2D mip_extent(VkExtent2D extent, uint32_t mipLevel) {
+    // a shift by the bit count or more is undefined
+    auto const shrink = [mipLevel](uint32_t size) {
+        return mipLevel < std::numeric_limits<uint32_t>::digits ? std::max(size >> mipLevel, 1u) : 1u;
+    };
+    return VkExtent2D{shrink(extent.width), shrink(extent.height)};
+}
 }
 
 namespace cvk {
