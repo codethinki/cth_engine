@@ -111,6 +111,19 @@ CVK_TEST(GraphicsPipeline, config_stages) {
     EXPECT_EQ(config.stages[0].stage, VK_SHADER_STAGE_FRAGMENT_BIT);
 }
 
+CVK_TEST(GraphicsPipeline, config_add_stage_takes_the_entry_point) {
+    test::Context const context{};
+    Triangle const triangle{context.core};
+    char const* const entryPoint = "other";
+
+    GraphicsPipeline::Config config{};
+    config.addStage(triangle.vertex).addStage(triangle.fragment, nullptr, entryPoint);
+
+    ASSERT_EQ(config.stages.size(), 2);
+    EXPECT_STREQ(config.stages[0].pName, "main");
+    EXPECT_EQ(config.stages[1].pName, entryPoint);
+}
+
 CVK_TEST(GraphicsPipeline, bind) {
     test::Context const context{};
     Triangle const triangle{context.core};
