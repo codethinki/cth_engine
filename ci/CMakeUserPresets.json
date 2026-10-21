@@ -1,0 +1,160 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "ci-vcpkg",
+      "hidden": true,
+      "cacheVariables": {
+        "VCPKG_INSTALLED_DIR": "${sourceDir}/vcpkg_installed"
+      },
+      "environment": {
+        "VCPKG_BINARY_SOURCES": "clear;nuget,GitHub,readwrite"
+      }
+    },
+    {
+      "name": "ci-buildcache",
+      "hidden": true,
+      "environment": {
+        "BUILDCACHE_DIR": "${sourceDir}/.buildcache",
+        "BUILDCACHE_ACCURACY": "SLOPPY",
+        "BUILDCACHE_MAX_CACHE_SIZE": "524288000"
+      }
+    },
+    {
+      "name": "ci-config-base",
+      "hidden": true,
+      "inherits": [
+        "ci-vcpkg",
+        "ci-buildcache"
+      ]
+    },
+    {
+      "name": "ci_linux_gcc_debug",
+      "inherits": [
+        "ci-config-base",
+        "gcc_debug"
+      ]
+    },
+    {
+      "name": "ci_linux_gcc_release",
+      "inherits": [
+        "ci-config-base",
+        "gcc_release"
+      ]
+    },
+    {
+      "name": "ci_linux_clang_debug",
+      "inherits": [
+        "ci-config-base",
+        "clang_debug"
+      ]
+    },
+    {
+      "name": "ci_linux_clang_release",
+      "inherits": [
+        "ci-config-base",
+        "clang_release"
+      ]
+    },
+    {
+      "name": "ci_windows_msvc",
+      "inherits": [
+        "ci-config-base",
+        "msvc_release"
+      ]
+    },
+    {
+      "name": "ci_windows_clang",
+      "inherits": [
+        "ci-config-base",
+        "clang_release"
+      ]
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "ci-build-debug",
+      "hidden": true,
+      "configuration": "Debug"
+    },
+    {
+      "name": "ci-build-release",
+      "hidden": true,
+      "configuration": "Release"
+    },
+    {
+      "name": "ci_linux_gcc_debug",
+      "configurePreset": "ci_linux_gcc_debug",
+      "inherits": "ci-build-debug"
+    },
+    {
+      "name": "ci_linux_gcc_release",
+      "configurePreset": "ci_linux_gcc_release",
+      "inherits": "ci-build-release"
+    },
+    {
+      "name": "ci_linux_clang_debug",
+      "configurePreset": "ci_linux_clang_debug",
+      "inherits": "ci-build-debug"
+    },
+    {
+      "name": "ci_linux_clang_release",
+      "configurePreset": "ci_linux_clang_release",
+      "inherits": "ci-build-release"
+    },
+    {
+      "name": "ci_windows_msvc",
+      "configurePreset": "ci_windows_msvc",
+      "inherits": "ci-build-release"
+    },
+    {
+      "name": "ci_windows_clang",
+      "configurePreset": "ci_windows_clang",
+      "inherits": "ci-build-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "ci-test-base",
+      "hidden": true,
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "ci-test-debug",
+      "hidden": true,
+      "inherits": "ci-test-base",
+      "configuration": "Debug"
+    },
+    {
+      "name": "ci-test-release",
+      "hidden": true,
+      "inherits": "ci-test-base",
+      "configuration": "Release"
+    },
+    {
+      "name": "ci_linux_gcc_debug",
+      "configurePreset": "ci_linux_gcc_debug",
+      "inherits": "ci-test-debug"
+    },
+    {
+      "name": "ci_linux_gcc_release",
+      "configurePreset": "ci_linux_gcc_release",
+      "inherits": "ci-test-release"
+    },
+    {
+      "name": "ci_linux_clang_debug",
+      "configurePreset": "ci_linux_clang_debug",
+      "inherits": "ci-test-debug"
+    },
+    {
+      "name": "ci_linux_clang_release",
+      "configurePreset": "ci_linux_clang_release",
+      "inherits": "ci-test-release"
+    }
+  ]
+}
