@@ -75,7 +75,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 | generic library type, trait, concept | `snake_case` | `basic_deletable`, `handle_t`, `destroyable` |
 | type alias that renames a type | `snake_case_t` | `callback_t`, `queue_set_t` |
 | member function | `camelCase` | `optDestroy()`, `createInfo()` |
-| named constructor (static factory) | `PascalCase` | `Default()`, `DepthBuffer()`, `LayoutTransition()` |
+| named constructor (static factory) | `PascalCase` | `CubeMap()`, `DepthBuffer()`, `LayoutTransition()` |
 | free function | `snake_case` | `to_queue_properties()`, `default_debug_callback()` |
 | static check function | `debug_check`, `debug_check_handle` | |
 | function parameter | `camelCase` | `appName`, `requiredExtensions` |
