@@ -37,6 +37,16 @@ namespace {
         .mipLevels = 2,
     };
 
+    /**
+     * @brief image that fills its mip chain with blits
+     */
+    constexpr Image::Config BLIT_CONFIG{
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .format = VK_FORMAT_R8G8B8A8_UNORM,
+        .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        .mipLevels = Image::evalMipLevelCount(EXTENT),
+    };
+
     constexpr BaseBuffer::Config STAGING_CONFIG{
         .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
@@ -252,6 +262,39 @@ CVK_TEST(Image, typed_buffer_copies_a_mip_level_in_elements) {
     auto const mapped = readback.map({.offset = 1});
     readback.invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, texels));
+}
+
+CVK_TEST(Image, blit_mip_levels_fills_the_mip_chain) {
+    test::Context const context{};
+    Image const image{context.core, BLIT_CONFIG, EXTENT};
+
+    // one color: linear blits keep it in every level
+    constexpr uint32_t color = 0x80'40'20'10;
+    std::vector<uint32_t> const texels(size_t{EXTENT.width} * EXTENT.height, color);
+    BaseBuffer const staging{context.core, STAGING_CONFIG, texels.size() * sizeof(uint32_t)};
+    staging.write(std::as_bytes(std::span{texels}));
+
+    uint32_t const last = BLIT_CONFIG.mipLevels - 1;
+    size_t const level2 = size_t{EXTENT.width >> 2} * (EXTENT.height >> 2);
+    Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, level2 + 1};
+
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        Barrier toDst{};
+        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        toDst.execute(primary);
+        image.copy(primary, staging);
+
+        image.blitMipLevels(primary);
+
+        // every level is in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+        readback.copy(primary, image, 0, 2);
+        readback.copy(primary, image, level2, last);
+        test::host_read_barrier(context, primary);
+    });
+
+    auto const mapped = readback.map();
+    readback.invalidate();
+    EXPECT_TRUE(std::ranges::all_of(mapped, [](uint32_t texel) { return texel == color; }));
 }
 
 CVK_TEST(Image, release_and_wrap) {

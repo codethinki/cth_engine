@@ -4,6 +4,7 @@
 #include "cvk/base/core.hpp"
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
+#include "cvk/render/sync/barrier.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
@@ -148,6 +149,76 @@ void Image::copyTo(
         .pRegions = &region,
     };
     core().functions()->vkCmdCopyImageToBuffer2(cmdBuffer.get(), &info);
+}
+
+void Image::blitMipLevels(
+    BaseCmdBuffer const& cmdBuffer,
+    uint32_t firstMipLevel,
+    uint32_t mipLevels,
+    VkFilter filter
+) const {
+    debug_check(*this);
+    CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(
+        firstMipLevel == 0 || firstMipLevel >= _config.mipLevels,
+        "first mip level must lie in [1, mip levels)"
+    ) {}
+
+    auto const levels = mipLevels == VK_REMAINING_MIP_LEVELS ? _config.mipLevels - firstMipLevel : mipLevels;
+    CTH_CRITICAL(levels == 0 || levels > _config.mipLevels - firstMipLevel, "mip levels must lie in the image") {}
+
+    constexpr VkImageUsageFlags transfer = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    CTH_CRITICAL(
+        (_config.usage & transfer) != transfer,
+        "image usage must have VK_IMAGE_USAGE_TRANSFER_SRC_BIT and VK_IMAGE_USAGE_TRANSFER_DST_BIT"
+    ) {}
+
+    auto const corner = [this](uint32_t level) {
+        return VkOffset3D{
+            static_cast<int32_t>(std::max(_extent.width >> level, 1u)),
+            static_cast<int32_t>(std::max(_extent.height >> level, 1u)),
+            1,
+        };
+    };
+    // the level is written, the next blit reads it
+    auto const toSrc = [&](uint32_t level) {
+        Barrier barrier{};
+        barrier.addTransition(
+            *this,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            Barrier::INFERRED_SHADER_STAGES,
+            level,
+            1
+        );
+        barrier.execute(cmdBuffer);
+    };
+
+    for(uint32_t level = firstMipLevel; level < firstMipLevel + levels; ++level) {
+        toSrc(level - 1);
+
+        VkImageBlit2 const region{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
+            .pNext = nullptr,
+            .srcSubresource = {.aspectMask = aspectMask(), .mipLevel = level - 1, .baseArrayLayer = 0, .layerCount = 1},
+            .srcOffsets = {{0, 0, 0}, corner(level - 1)},
+            .dstSubresource = {.aspectMask = aspectMask(), .mipLevel = level, .baseArrayLayer = 0, .layerCount = 1},
+            .dstOffsets = {{0, 0, 0}, corner(level)},
+        };
+        VkBlitImageInfo2 const info{
+            .sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,
+            .pNext = nullptr,
+            .srcImage = get(),
+            .srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            .dstImage = get(),
+            .dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .regionCount = 1,
+            .pRegions = &region,
+            .filter = filter,
+        };
+        core().functions()->vkCmdBlitImage2(cmdBuffer.get(), &info);
+    }
+    toSrc(firstMipLevel + levels - 1);
 }
 
 VkBufferImageCopy2 Image::bufferCopy(

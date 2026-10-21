@@ -134,6 +134,25 @@ public:
     ) const;
 
     /**
+     * @brief records blits that fill each mip level from the level before it
+     * @param firstMipLevel first level to fill, the blits read from firstMipLevel - 1
+     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
+     * @param filter depth formats need VK_FILTER_NEAREST
+     * @pre @ref created(), @ref BaseCmdBuffer::recording()
+     * @pre 0 < firstMipLevel, the levels lie in the image
+     * @pre the usage has VK_IMAGE_USAGE_TRANSFER_SRC_BIT and VK_IMAGE_USAGE_TRANSFER_DST_BIT
+     * @pre the format supports blits and the filter
+     * @pre the levels from firstMipLevel - 1 to the last filled level are in VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+     * @post the same levels are in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+     */
+    void blitMipLevels(
+        BaseCmdBuffer const&,
+        uint32_t firstMipLevel = 1,
+        uint32_t mipLevels = VK_REMAINING_MIP_LEVELS,
+        VkFilter filter = VK_FILTER_LINEAR
+    ) const;
+
+    /**
      * @return mip levels down to 1x1
      * @pre width > 0, height > 0
      */
