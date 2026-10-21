@@ -1,3 +1,4 @@
+#include "context.hpp"
 #include "headless.hpp"
 #include "test.hpp"
 #include "validation.hpp"
@@ -125,6 +126,42 @@ CVK_TEST(Core, no_suitable_device_throws) {
     auto const construct = [&] { Core const core{instance, {}, config}; };
 
     EXPECT_THROW(construct(), cvk_exception);
+}
+
+CVK_TEST(Core, device_uuid_picks_exactly_this_device) {
+    test::Context const context{};
+    auto config = test::Context::CONFIG;
+
+    // every suitable device, not only the one that the automatic pick takes
+    for(auto const& device : enumerate_physical_devices(context.instance)) {
+        bool const suitable = device.missing(constants::BASE_DEVICE_FEATURES).empty()
+            && !device.queueFamilyIndices(config.queueProperties).empty();
+        if(!suitable) continue;
+
+        config.device = device.uuid();
+        Core const core{context.instance, {}, config};
+
+        EXPECT_EQ(core.physicalDevice().uuid(), device.uuid());
+        EXPECT_EQ(core.vkPhysicalDevice(), device.get());
+    }
+}
+
+CVK_TEST(Core, missing_device_uuid_throws) {
+    test::Context const context{};
+    device_uuid_t unknown{};
+    unknown.fill(0xFF);
+
+    Core::Config const withoutSets{.queueProperties = test::Context::CONFIG.queueProperties, .device = unknown};
+    Core::Config const withSets{
+        .queueProperties = test::Context::CONFIG.queueProperties,
+        .queueSets = {Core::queue_set_t{1}},
+        .device = unknown,
+    };
+
+    auto const construct = [&](Core::Config const& config) { Core const core{context.instance, {}, config}; };
+
+    EXPECT_THROW(construct(withoutSets), cvk_exception);
+    EXPECT_THROW(construct(withSets), cvk_exception);
 }
 
 CVK_TEST(Core, release_and_wrap) {

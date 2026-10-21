@@ -1,3 +1,4 @@
+#include "context.hpp"
 #include "headless.hpp"
 #include "test.hpp"
 
@@ -102,6 +103,34 @@ CVK_TEST(PhysicalDevice, copy_keeps_the_queried_members) {
     EXPECT_TRUE(std::ranges::equal(copy.queueFamilies(), device.queueFamilies()));
     EXPECT_EQ(copy.maxSampleCount(), device.maxSampleCount());
     EXPECT_STREQ(copy.properties().deviceName, device.properties().deviceName);
+    EXPECT_EQ(copy.uuid(), device.uuid());
+}
+
+CVK_TEST(PhysicalDevice, uuid_is_the_device_uuid) {
+    test::Context const context{};
+    auto const& device = context.core.physicalDevice();
+
+    VkPhysicalDeviceIDProperties idProperties{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES,
+        .pNext = nullptr,
+    };
+    VkPhysicalDeviceProperties2 properties{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+        .pNext = &idProperties,
+    };
+    vkGetPhysicalDeviceProperties2(device.get(), &properties);
+
+    EXPECT_TRUE(std::ranges::equal(device.uuid(), idProperties.deviceUUID));
+    EXPECT_STREQ(device.properties().deviceName, properties.properties.deviceName);
+}
+
+CVK_TEST(PhysicalDevice, type_rank_prefers_discrete_integrated_virtual_cpu_other) {
+    constexpr auto rank = dev::device_type_rank;
+    static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) == 0);
+    static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) < rank(VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU));
+    static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) < rank(VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU));
+    static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU) < rank(VK_PHYSICAL_DEVICE_TYPE_CPU));
+    static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_CPU) < rank(VK_PHYSICAL_DEVICE_TYPE_OTHER));
 }
 
 CVK_TEST(PhysicalDevice, find_supported_format) {

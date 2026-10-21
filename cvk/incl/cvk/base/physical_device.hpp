@@ -7,6 +7,8 @@
 
 #include <cth/io/log.hpp>
 
+#include <array>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <string>
@@ -16,6 +18,8 @@
 namespace cvk {
 class Instance;
 class Surface;
+
+using device_uuid_t = std::array<uint8_t, VK_UUID_SIZE>;
 
 /**
  * @brief VkPhysicalDevice with its queried extensions, features, properties and queue families
@@ -76,6 +80,11 @@ public:
     [[nodiscard]] constexpr DeviceFeatures const& features() const { return _features; }
     [[nodiscard]] constexpr VkPhysicalDeviceProperties const& properties() const { return _properties; }
     [[nodiscard]] constexpr VkPhysicalDeviceLimits const& limits() const { return _properties.limits; }
+
+    /**
+     * @return deviceUUID of VkPhysicalDeviceIDProperties, the same across instances and processes
+     */
+    [[nodiscard]] constexpr device_uuid_t const& uuid() const { return _uuid; }
     [[nodiscard]] constexpr VkPhysicalDeviceMemoryProperties const& memoryProperties() const {
         return _memoryProperties;
     }
@@ -87,6 +96,7 @@ private:
     std::vector<std::string> _extensions;
     DeviceFeatures _features;
     VkPhysicalDeviceProperties _properties;
+    device_uuid_t _uuid;
     VkPhysicalDeviceMemoryProperties _memoryProperties;
     VkSampleCountFlagBits _maxSampleCount;
     std::vector<QueueFamily> _queueFamilies;
@@ -120,9 +130,11 @@ struct PhysicalDevicePick {
 );
 
 /**
- * @brief picks the first physical device with the features, the extensions and the queues
+ * @brief picks the best physical device with the features, the extensions and the queues
  * @param surfaces a family presents only if it presents to every surface
  * @param extensions to require, besides the extensions of the features
+ * @param uuid std::nullopt -> every device counts, set -> only the device with this uuid counts
+ * @details best: the lowest @ref dev::device_type_rank(), ties go to the first in enumeration order
  * @return std::nullopt -> no device meets the requirements
  * @pre @ref Instance::created()
  * @throws cvk::vk_result_exception result of vkEnumeratePhysicalDevices()
@@ -132,8 +144,24 @@ struct PhysicalDevicePick {
     std::span<Surface const> surfaces,
     std::span<QueueFamilyProperties const> queueProperties,
     DeviceFeatures const& features,
-    std::span<std::string const> extensions = {}
+    std::span<std::string const> extensions = {},
+    std::optional<device_uuid_t> const& uuid = std::nullopt
 );
+}
+
+namespace cvk::dev {
+/**
+ * @return rank of the device type for the pick, 0 is the best: discrete, integrated, virtual, cpu, other
+ */
+[[nodiscard]] constexpr uint32_t device_type_rank(VkPhysicalDeviceType type) {
+    switch(type) {
+        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: return 0;
+        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: return 1;
+        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: return 2;
+        case VK_PHYSICAL_DEVICE_TYPE_CPU: return 3;
+        default: return 4;
+    }
+}
 }
 
 namespace cvk {

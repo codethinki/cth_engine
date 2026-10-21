@@ -72,9 +72,12 @@ public:
     /**
      * @brief picks a physical device for the first possible queue set, creates the device, the allocator and the queues
      * @param surfaces the present queues present to every surface
+     * @details the first queue set that a physical device supports wins,
+     *  then the best physical device for this set, see @ref pick_physical_device() and @ref Config::device
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
+     * @throws cvk::cvk_exception reason: @ref Config::device is missing or does not meet the requirements
      * @throws cvk::vk_result_exception result of vkCreateDevice()
      * @throws cvk::vk_result_exception result of vmaCreateAllocator()
      */
@@ -187,6 +190,7 @@ private:
     /**
      * @brief picks a physical device for the first possible queue set
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
+     * @throws cvk::cvk_exception reason: @ref Config::device is missing or does not meet the requirements
      */
     [[nodiscard]] device_pick pickPhysicalDevice(
         std::span<Surface const> surfaces,

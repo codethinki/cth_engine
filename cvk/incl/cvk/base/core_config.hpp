@@ -1,4 +1,5 @@
 #pragma once
+#include "physical_device.hpp"
 #include "queue/queue_family.hpp"
 
 #include "cvk/utility/device/device_features.hpp"
@@ -7,6 +8,7 @@
 #include <cth/io/log.hpp>
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -39,6 +41,12 @@ struct CoreConfig {
      * @details a present queue adds @ref constants::PRESENT_DEVICE_EXTENSIONS
      */
     std::vector<std::string> extensions{};
+
+    /**
+     * @brief std::nullopt -> the best suitable device
+     * @details set -> exactly this device, see @ref PhysicalDevice::uuid()
+     */
+    std::optional<device_uuid_t> device = std::nullopt;
 
     static constexpr void debug_check(CoreConfig const& config);
 };

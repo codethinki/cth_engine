@@ -8,12 +8,28 @@
 #include "cvk/utility/constant/device_constants.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
+#include <format>
 #include <ranges>
+#include <string>
 
 
 namespace cvk {
 using std::span;
 using std::vector;
+
+namespace {
+    /**
+     * @return the uuid as hex in the 8-4-4-4-12 form
+     */
+    [[nodiscard]] std::string uuid_string(device_uuid_t const& uuid) {
+        std::string result{};
+        for(auto const [index, byte] : std::views::enumerate(uuid)) {
+            if(index == 4 || index == 6 || index == 8 || index == 10) result += '-';
+            result += std::format("{:02x}", byte);
+        }
+        return result;
+    }
+}
 
 Core::Core(Instance const& instance) : _instance{&instance} {}
 
@@ -164,6 +180,11 @@ auto Core::pickPhysicalDevice(
 ) const -> device_pick {
     if(config.queueSets.empty()) {
         auto pick = tryPickPhysicalDevice(surfaces, config, required, queue_set_t{config.queueProperties.size()});
+        CVK_STABLE_THROW(
+            !pick && config.device.has_value(),
+            "physical device {} is missing or does not support the queues",
+            uuid_string(*config.device)
+        ) {}
         CVK_STABLE_THROW(!pick, "no physical device supports the queues") {}
         return *std::move(pick);
     }
@@ -176,6 +197,11 @@ auto Core::pickPhysicalDevice(
         return *std::move(pick);
     }
 
+    CVK_STABLE_THROW(
+        config.device.has_value(),
+        "physical device {} is missing or does not support any queue set",
+        uuid_string(*config.device)
+    ) {}
     CVK_STABLE_THROW(true, "no physical device supports any queue set") {}
     std::unreachable();
 }
@@ -214,7 +240,14 @@ auto Core::tryPickPhysicalDevice(
 
     auto [uniqueQueues, queueToUniqueQueue] = createQueueSetRelations(queueSet, config.queueProperties);
 
-    auto result = pick_physical_device(*_instance, surfaces, uniqueQueues, required.features, required.extensions);
+    auto result = pick_physical_device(
+        *_instance,
+        surfaces,
+        uniqueQueues,
+        required.features,
+        required.extensions,
+        config.device
+    );
     if(!result) return std::nullopt;
 
     return device_pick{

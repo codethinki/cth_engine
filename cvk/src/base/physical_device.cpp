@@ -40,10 +40,25 @@ namespace {
         };
     }
 
-    [[nodiscard]] VkPhysicalDeviceProperties query_properties(vk_not_null<VkPhysicalDevice> vkDevice) {
-        VkPhysicalDeviceProperties properties{};
-        vkGetPhysicalDeviceProperties(vkDevice.get(), &properties);
-        return properties;
+    struct queried_properties {
+        VkPhysicalDeviceProperties properties;
+        device_uuid_t uuid;
+    };
+
+    [[nodiscard]] queried_properties query_properties(vk_not_null<VkPhysicalDevice> vkDevice) {
+        VkPhysicalDeviceIDProperties idProperties{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES,
+            .pNext = nullptr,
+        };
+        VkPhysicalDeviceProperties2 properties{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+            .pNext = &idProperties,
+        };
+        vkGetPhysicalDeviceProperties2(vkDevice.get(), &properties);
+
+        queried_properties result{.properties = properties.properties, .uuid = {}};
+        std::ranges::copy(idProperties.deviceUUID, result.uuid.begin());
+        return result;
     }
 
     [[nodiscard]] VkPhysicalDeviceMemoryProperties query_memory_properties(vk_not_null<VkPhysicalDevice> vkDevice) {
@@ -111,10 +126,13 @@ PhysicalDevice::PhysicalDevice(vk_not_null<VkPhysicalDevice> vkDevice, span<Surf
     _handle{vkDevice.get()},
     _extensions{query_extensions(vkDevice)},
     _features{dev::query_features(vkDevice, _extensions)},
-    _properties{query_properties(vkDevice)},
     _memoryProperties{query_memory_properties(vkDevice)},
-    _maxSampleCount{max_sample_count(_properties)},
-    _queueFamilies{query_queue_families(surfaces, vkDevice)} {}
+    _queueFamilies{query_queue_families(surfaces, vkDevice)} {
+    auto const [properties, uuid] = query_properties(vkDevice);
+    _properties = properties;
+    _uuid = uuid;
+    _maxSampleCount = max_sample_count(_properties);
+}
 
 vector<string> PhysicalDevice::missing(DeviceFeatures const& features, span<string const> extensions) const {
     debug_check(*this);
@@ -211,15 +229,22 @@ std::optional<PhysicalDevicePick> pick_physical_device(
     span<Surface const> surfaces,
     span<QueueFamilyProperties const> queueProperties,
     DeviceFeatures const& features,
-    span<string const> extensions
+    span<string const> extensions,
+    std::optional<device_uuid_t> const& uuid
 ) {
+    std::optional<PhysicalDevicePick> best{};
+
     for(auto& device : enumerate_physical_devices(instance, surfaces)) {
+        if(uuid.has_value() && device.uuid() != *uuid) continue;
+
         auto const missing = device.missing(features, extensions);
         auto indices = device.queueFamilyIndices(queueProperties);
 
         if(missing.empty() && !indices.empty()) {
-            log::msg<except::INFO>("chosen physical device: {}", device.properties().deviceName);
-            return PhysicalDevicePick{std::move(device), std::move(indices)};
+            auto const rank = dev::device_type_rank(device.properties().deviceType);
+            if(!best.has_value() || rank < dev::device_type_rank(best->device.properties().deviceType))
+                best = PhysicalDevicePick{std::move(device), std::move(indices)};
+            continue;
         }
 
         cth::dt::string_joiner reasons{", "};
@@ -229,6 +254,7 @@ std::optional<PhysicalDevicePick> pick_physical_device(
         log::msg<except::LOG>("physical device {} misses: {}", device.properties().deviceName, std::string{reasons});
     }
 
-    return std::nullopt;
+    if(best.has_value()) log::msg<except::INFO>("chosen physical device: {}", best->device.properties().deviceName);
+    return best;
 }
 }
