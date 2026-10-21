@@ -8,9 +8,8 @@ namespace cvk {
 /**
  * @brief loads the vulkan loader while a Cvk exists, neither copyable nor movable
  * @details reference counted like std::ios_base::Init: every Cvk shares the one loader of the process,
- *  the first Cvk loads it, the last one unloads it,
+ *  the first Cvk loads it, the last one unloads it, thread safe,
  *  the Cvk outlives every instance
- * @attention not thread safe
  */
 class Cvk {
 public:
