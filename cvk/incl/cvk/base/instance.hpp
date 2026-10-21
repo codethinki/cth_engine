@@ -94,6 +94,8 @@ public:
      * @note no validation layers -> no messenger
      * @throws cvk::cvk_exception reason: instance extension missing
      * @throws cvk::cvk_exception reason: validation layer missing
+     * @throws cvk::vk_result_exception result of vkEnumerateInstanceExtensionProperties()
+     * @throws cvk::vk_result_exception result of vkEnumerateInstanceLayerProperties()
      * @throws cvk::vk_result_exception result of vkCreateInstance()
      */
     void create(std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
@@ -161,12 +163,14 @@ public:
 /**
  * @brief queries the instance extensions of the loader and the implicit layers
  * @pre @ref Cvk::initialized()
+ * @throws cvk::vk_result_exception result of vkEnumerateInstanceExtensionProperties()
  */
 [[nodiscard]] std::vector<std::string> available_instance_extensions();
 
 /**
  * @brief queries the instance layers
  * @pre @ref Cvk::initialized()
+ * @throws cvk::vk_result_exception result of vkEnumerateInstanceLayerProperties()
  */
 [[nodiscard]] std::vector<std::string> available_layers();
 }

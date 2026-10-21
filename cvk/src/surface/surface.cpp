@@ -2,6 +2,7 @@
 
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/utility/enumerate.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 
@@ -53,49 +54,18 @@ bool Surface::supportsFamily(PhysicalDevice const& physicalDevice, uint32_t fami
 vector<VkPresentModeKHR> Surface::presentModes(PhysicalDevice const& physicalDevice) const {
     debug_check(*this);
 
-    uint32_t size = 0;
-    auto const countResult = vkGetPhysicalDeviceSurfacePresentModesKHR(
+    return dev::enumerate(
+        "surface present modes",
+        vkGetPhysicalDeviceSurfacePresentModesKHR,
         physicalDevice.get(),
-        _handle.get(),
-        &size,
-        nullptr
+        _handle.get()
     );
-    CVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "device-surface present modes query failed") {}
-
-    vector<VkPresentModeKHR> modes(size);
-    auto const writeResult = vkGetPhysicalDeviceSurfacePresentModesKHR(
-        physicalDevice.get(),
-        _handle.get(),
-        &size,
-        modes.data()
-    );
-    CVK_RESULT_STABLE_THROW(writeResult != VK_SUCCESS, writeResult, "device-surface present modes query failed") {}
-
-    return modes;
 }
 
 vector<VkSurfaceFormatKHR> Surface::formats(PhysicalDevice const& physicalDevice) const {
     debug_check(*this);
 
-    uint32_t size = 0;
-    auto const countResult = vkGetPhysicalDeviceSurfaceFormatsKHR(
-        physicalDevice.get(),
-        _handle.get(),
-        &size,
-        nullptr
-    );
-    CVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "device-surface formats query failed") {}
-
-    vector<VkSurfaceFormatKHR> formats(size);
-    auto const writeResult = vkGetPhysicalDeviceSurfaceFormatsKHR(
-        physicalDevice.get(),
-        _handle.get(),
-        &size,
-        formats.data()
-    );
-    CVK_RESULT_STABLE_THROW(writeResult != VK_SUCCESS, writeResult, "device-surface formats query failed") {}
-
-    return formats;
+    return dev::enumerate("surface formats", vkGetPhysicalDeviceSurfaceFormatsKHR, physicalDevice.get(), _handle.get());
 }
 
 VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physicalDevice) const {

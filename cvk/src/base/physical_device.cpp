@@ -3,6 +3,7 @@
 #include "cvk/base/instance.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/device/feature_chain.hpp"
+#include "cvk/utility/enumerate.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <cth/algorithm/combine.hpp>
@@ -19,18 +20,12 @@ using std::vector;
 
 namespace {
     [[nodiscard]] vector<string> query_extensions(vk_not_null<VkPhysicalDevice> vkDevice) {
-        uint32_t count = 0;
-        auto const countResult = vkEnumerateDeviceExtensionProperties(vkDevice.get(), nullptr, &count, nullptr);
-        CVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "failed to count device extensions") {}
-
-        vector<VkExtensionProperties> properties(count);
-        auto const writeResult = vkEnumerateDeviceExtensionProperties(
+        auto const properties = dev::enumerate(
+            "device extensions",
+            vkEnumerateDeviceExtensionProperties,
             vkDevice.get(),
-            nullptr,
-            &count,
-            properties.data()
+            nullptr
         );
-        CVK_RESULT_STABLE_THROW(writeResult != VK_SUCCESS, writeResult, "failed to enumerate device extensions") {}
 
         return {
             std::from_range,
@@ -74,10 +69,11 @@ namespace {
         span<Surface const> surfaces,
         vk_not_null<VkPhysicalDevice> vkDevice
     ) {
-        uint32_t count = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(vkDevice.get(), &count, nullptr);
-        vector<VkQueueFamilyProperties> familyProperties(count);
-        vkGetPhysicalDeviceQueueFamilyProperties(vkDevice.get(), &count, familyProperties.data());
+        auto const familyProperties = dev::enumerate(
+            "queue families",
+            vkGetPhysicalDeviceQueueFamilyProperties,
+            vkDevice.get()
+        );
 
         vector<QueueFamily> queueFamilies{};
         queueFamilies.reserve(familyProperties.size());
@@ -208,13 +204,7 @@ QueueFamily const* PhysicalDevice::queueFamily(queue_family_index_t idx) const {
 vector<PhysicalDevice> enumerate_physical_devices(Instance const& instance, span<Surface const> surfaces) {
     Instance::debug_check(instance);
 
-    uint32_t count = 0;
-    auto const countResult = vkEnumeratePhysicalDevices(instance.get(), &count, nullptr);
-    CVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "failed to count physical devices") {}
-
-    vector<VkPhysicalDevice> vkDevices(count);
-    auto const writeResult = vkEnumeratePhysicalDevices(instance.get(), &count, vkDevices.data());
-    CVK_RESULT_STABLE_THROW(writeResult != VK_SUCCESS, writeResult, "failed to enumerate physical devices") {}
+    auto const vkDevices = dev::enumerate("physical devices", vkEnumeratePhysicalDevices, instance.get());
 
     return {
         std::from_range,

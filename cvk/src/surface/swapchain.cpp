@@ -3,6 +3,7 @@
 #include "cvk/base/core.hpp"
 #include "cvk/base/physical_device.hpp"
 #include "cvk/surface/surface.hpp"
+#include "cvk/utility/enumerate.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 #include "cvk/utility/vk_overloads.hpp"
 
@@ -259,15 +260,13 @@ void Swapchain::createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain) 
 }
 
 void Swapchain::createImages() {
-    auto const* functions = core().functions();
-
-    uint32_t count = 0;
-    auto const countResult = functions->vkGetSwapchainImagesKHR(core().vkDevice(), get(), &count, nullptr);
-    CVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "failed to get the swapchain image count") {}
-
-    vector<VkImage> vkImages(count);
-    auto const imagesResult = functions->vkGetSwapchainImagesKHR(core().vkDevice(), get(), &count, vkImages.data());
-    CVK_RESULT_STABLE_THROW(imagesResult != VK_SUCCESS, imagesResult, "failed to get the swapchain images") {}
+    auto const vkImages = dev::enumerate(
+        "swapchain images",
+        core().functions()->vkGetSwapchainImagesKHR,
+        core().vkDevice(),
+        get()
+    );
+    auto const count = static_cast<uint32_t>(vkImages.size());
 
     Image::Config const imageConfig{
         .format = _surfaceFormat.format,

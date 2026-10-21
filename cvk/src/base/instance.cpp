@@ -1,6 +1,7 @@
 #include "cvk/base/instance.hpp"
 
 #include "cvk/debug/debug_messenger.hpp"
+#include "cvk/utility/enumerate.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <cth/string.hpp>
@@ -161,10 +162,7 @@ void Instance::loadInstanceFunctions(vk_not_null<VkInstance> vkInstance) { volkL
 
 namespace cvk {
 vector<string> available_instance_extensions() {
-    uint32_t count = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
-    vector<VkExtensionProperties> properties(count);
-    vkEnumerateInstanceExtensionProperties(nullptr, &count, properties.data());
+    auto const properties = dev::enumerate("instance extensions", vkEnumerateInstanceExtensionProperties, nullptr);
 
     return {
         std::from_range,
@@ -175,10 +173,7 @@ vector<string> available_instance_extensions() {
 }
 
 vector<string> available_layers() {
-    uint32_t count = 0;
-    vkEnumerateInstanceLayerProperties(&count, nullptr);
-    vector<VkLayerProperties> properties(count);
-    vkEnumerateInstanceLayerProperties(&count, properties.data());
+    auto const properties = dev::enumerate("instance layers", vkEnumerateInstanceLayerProperties);
 
     return {
         std::from_range,
