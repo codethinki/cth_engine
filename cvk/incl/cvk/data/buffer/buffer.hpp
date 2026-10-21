@@ -122,6 +122,21 @@ public:
         );
     }
 
+    /**
+     * @brief records a copy from the mip level of the image
+     * @param dstOffset in elements
+     * @details calls @ref BaseBuffer::copy(BaseCmdBuffer const&, Image const&, size_t, uint32_t, VkImageLayout) const
+     */
+    void copy(
+        BaseCmdBuffer const& cmdBuffer,
+        Image const& src,
+        size_t dstOffset = 0,
+        uint32_t mipLevel = 0,
+        VkImageLayout layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    ) const {
+        BaseBuffer::copy(cmdBuffer, src, dstOffset * sizeof(T), mipLevel, layout);
+    }
+
     [[nodiscard]] constexpr size_t elements() const { return size() / sizeof(T); }
 
 private:

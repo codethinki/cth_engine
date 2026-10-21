@@ -19,6 +19,7 @@
 namespace cvk {
 class BaseCmdBuffer;
 class Core;
+class Image;
 
 /**
  * @brief offsets and size of a buffer copy
@@ -119,6 +120,19 @@ public:
      * @pre 0 < copied size, the ranges lie in the buffers
      */
     void copy(BaseCmdBuffer const&, BaseBuffer const& src, BufferCopy region = {}) const;
+
+    /**
+     * @brief records a copy from the mip level of the image
+     * @param dstOffset in bytes
+     * @details calls @ref Image::copyTo()
+     */
+    void copy(
+        BaseCmdBuffer const&,
+        Image const& src,
+        size_t dstOffset = 0,
+        uint32_t mipLevel = 0,
+        VkImageLayout layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    ) const;
 
     /**
      * @brief maps the range of the memory

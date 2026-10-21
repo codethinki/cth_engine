@@ -2,11 +2,14 @@
 #include "test.hpp"
 
 #include "cvk/data/buffer/base_buffer.hpp"
+#include "cvk/data/buffer/buffer.hpp"
 #include "cvk/data/img/image.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
+#include <span>
 #include <vector>
 
 
@@ -182,6 +185,73 @@ CVK_TEST(Image, copy_from_a_buffer_into_two_mip_levels) {
     auto const mapped = readback.map({.size = pixels.size()});
     readback.invalidate();
     EXPECT_TRUE(std::ranges::equal(mapped, pixels));
+}
+
+CVK_TEST(Image, copy_two_mip_levels_to_a_buffer) {
+    test::Context const context{};
+    Image const image{context.core, COPY_CONFIG, EXTENT};
+
+    size_t const mip0 = size_t{EXTENT.width} * EXTENT.height * 4;
+    size_t const mip1 = mip0 / 4;
+    BaseBuffer const staging{context.core, STAGING_CONFIG, mip0 + mip1};
+    BaseBuffer const readback{context.core, READBACK_CONFIG, mip0 + mip1};
+
+    std::vector<std::byte> pixels(mip0 + mip1);
+    for(size_t i = 0; i < pixels.size(); ++i)
+        pixels[i] = static_cast<std::byte>(i % 251);
+    staging.write(pixels);
+
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        Barrier toDst{};
+        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        toDst.execute(primary);
+
+        image.copy(primary, staging, 0, 0);
+        image.copy(primary, staging, mip0, 1);
+
+        Barrier toSrc{};
+        toSrc.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        toSrc.execute(primary);
+        image.copyTo(primary, readback, 0, 0);
+        readback.copy(primary, image, mip0, 1);
+        test::host_read_barrier(context, primary);
+    });
+
+    auto const mapped = readback.map({.size = pixels.size()});
+    readback.invalidate();
+    EXPECT_TRUE(std::ranges::equal(mapped, pixels));
+}
+
+CVK_TEST(Image, typed_buffer_copies_a_mip_level_in_elements) {
+    test::Context const context{};
+    Image const image{context.core, COPY_CONFIG, EXTENT};
+
+    // one R8G8B8A8 texel per element
+    size_t const mip1 = size_t{EXTENT.width / 2} * (EXTENT.height / 2);
+    BaseBuffer const staging{context.core, STAGING_CONFIG, mip1 * sizeof(uint32_t)};
+    Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, mip1 + 1};
+
+    std::vector<uint32_t> texels(mip1);
+    for(size_t i = 0; i < texels.size(); ++i)
+        texels[i] = static_cast<uint32_t>(i * 2654435761u);
+    staging.write(std::as_bytes(std::span{texels}));
+
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        Barrier toDst{};
+        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        toDst.execute(primary);
+        image.copy(primary, staging, 0, 1);
+
+        Barrier toSrc{};
+        toSrc.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        toSrc.execute(primary);
+        readback.copy(primary, image, 1, 1);
+        test::host_read_barrier(context, primary);
+    });
+
+    auto const mapped = readback.map({.offset = 1});
+    readback.invalidate();
+    EXPECT_TRUE(std::ranges::equal(mapped, texels));
 }
 
 CVK_TEST(Image, release_and_wrap) {

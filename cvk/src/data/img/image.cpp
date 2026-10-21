@@ -85,11 +85,7 @@ void Image::copy(
     uint32_t mipLevel,
     VkImageLayout layout
 ) const {
-    debug_check(*this);
-    BaseBuffer::debug_check(src);
-    CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
-    CTH_CRITICAL(mipLevel >= mipLevels(), "mip level must lie in the image") {}
-    CTH_CRITICAL(!std::has_single_bit(aspectMask()), "a copy needs exactly one aspect") {}
+    auto const region = bufferCopy(cmdBuffer, src, srcOffset, mipLevel);
     CTH_CRITICAL(
         (src.config().usage & VK_BUFFER_USAGE_TRANSFER_SRC_BIT) == 0,
         "src usage must have VK_BUFFER_USAGE_TRANSFER_SRC_BIT"
@@ -106,10 +102,70 @@ void Image::copy(
         details->add("layout: {}", layout);
     }
 
-    VkBufferImageCopy2 const region{
+    VkCopyBufferToImageInfo2 const info{
+        .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
+        .pNext = nullptr,
+        .srcBuffer = src.get(),
+        .dstImage = get(),
+        .dstImageLayout = layout,
+        .regionCount = 1,
+        .pRegions = &region,
+    };
+    core().functions()->vkCmdCopyBufferToImage2(cmdBuffer.get(), &info);
+}
+
+void Image::copyTo(
+    BaseCmdBuffer const& cmdBuffer,
+    BaseBuffer const& dst,
+    size_t dstOffset,
+    uint32_t mipLevel,
+    VkImageLayout layout
+) const {
+    auto const region = bufferCopy(cmdBuffer, dst, dstOffset, mipLevel);
+    CTH_CRITICAL(
+        (dst.config().usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT) == 0,
+        "dst usage must have VK_BUFFER_USAGE_TRANSFER_DST_BIT"
+    ) {}
+    CTH_CRITICAL(
+        (_config.usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) == 0,
+        "image usage must have VK_IMAGE_USAGE_TRANSFER_SRC_BIT"
+    ) {}
+
+    CTH_CRITICAL(
+        layout != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && layout != VK_IMAGE_LAYOUT_GENERAL,
+        "mip level must be in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL"
+    ) {
+        details->add("layout: {}", layout);
+    }
+
+    VkCopyImageToBufferInfo2 const info{
+        .sType = VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2,
+        .pNext = nullptr,
+        .srcImage = get(),
+        .srcImageLayout = layout,
+        .dstBuffer = dst.get(),
+        .regionCount = 1,
+        .pRegions = &region,
+    };
+    core().functions()->vkCmdCopyImageToBuffer2(cmdBuffer.get(), &info);
+}
+
+VkBufferImageCopy2 Image::bufferCopy(
+    BaseCmdBuffer const& cmdBuffer,
+    BaseBuffer const& buffer,
+    size_t bufferOffset,
+    uint32_t mipLevel
+) const {
+    debug_check(*this);
+    BaseBuffer::debug_check(buffer);
+    CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(mipLevel >= mipLevels(), "mip level must lie in the image") {}
+    CTH_CRITICAL(!std::has_single_bit(aspectMask()), "a copy needs exactly one aspect") {}
+
+    return VkBufferImageCopy2{
         .sType = VK_STRUCTURE_TYPE_BUFFER_IMAGE_COPY_2,
         .pNext = nullptr,
-        .bufferOffset = srcOffset,
+        .bufferOffset = bufferOffset,
         .bufferRowLength = 0,
         .bufferImageHeight = 0,
         .imageSubresource = {
@@ -121,16 +177,6 @@ void Image::copy(
         .imageOffset = {0, 0, 0},
         .imageExtent = {std::max(_extent.width >> mipLevel, 1u), std::max(_extent.height >> mipLevel, 1u), 1},
     };
-    VkCopyBufferToImageInfo2 const info{
-        .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
-        .pNext = nullptr,
-        .srcBuffer = src.get(),
-        .dstImage = get(),
-        .dstImageLayout = layout,
-        .regionCount = 1,
-        .pRegions = &region,
-    };
-    core().functions()->vkCmdCopyBufferToImage2(cmdBuffer.get(), &info);
 }
 
 void Image::destroy(DeviceTable table, VkImage vkImage) {

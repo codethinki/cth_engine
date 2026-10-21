@@ -2,6 +2,7 @@
 
 #include "cvk/base/allocator.hpp"
 #include "cvk/base/core.hpp"
+#include "cvk/data/img/image.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -117,6 +118,16 @@ void BaseBuffer::copy(BaseCmdBuffer const& cmdBuffer, BaseBuffer const& src, Buf
         .pRegions = &vkRegion,
     };
     core().functions()->vkCmdCopyBuffer2(cmdBuffer.get(), &info);
+}
+
+void BaseBuffer::copy(
+    BaseCmdBuffer const& cmdBuffer,
+    Image const& src,
+    size_t dstOffset,
+    uint32_t mipLevel,
+    VkImageLayout layout
+) const {
+    src.copyTo(cmdBuffer, *this, dstOffset, mipLevel, layout);
 }
 
 Mapping<std::byte> BaseBuffer::map(Range range) const {

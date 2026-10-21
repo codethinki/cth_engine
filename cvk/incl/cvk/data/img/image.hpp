@@ -115,6 +115,25 @@ public:
     ) const;
 
     /**
+     * @brief records a copy from the mip level into the buffer
+     * @param dstOffset in bytes
+     * @param layout of the mip level, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
+     * @pre @ref created() and dst created
+     * @pre @ref BaseCmdBuffer::recording()
+     * @pre mipLevel < @ref mipLevels()
+     * @pre @ref aspectMask() has one bit
+     * @pre the usage has VK_IMAGE_USAGE_TRANSFER_SRC_BIT, dst usage has VK_BUFFER_USAGE_TRANSFER_DST_BIT
+     * @pre the mip level fits into dst after dstOffset
+     */
+    void copyTo(
+        BaseCmdBuffer const&,
+        BaseBuffer const& dst,
+        size_t dstOffset = 0,
+        uint32_t mipLevel = 0,
+        VkImageLayout layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+    ) const;
+
+    /**
      * @return mip levels down to 1x1
      * @pre width > 0, height > 0
      */
@@ -147,6 +166,17 @@ public:
     }
 
 private:
+    /**
+     * @brief checks the preconditions that both copy directions share
+     * @return region of the whole mip level at the buffer offset
+     */
+    [[nodiscard]] VkBufferImageCopy2 bufferCopy(
+        BaseCmdBuffer const&,
+        BaseBuffer const& buffer,
+        size_t bufferOffset,
+        uint32_t mipLevel
+    ) const;
+
     void forget();
 
     // declared before the memory: move assignment destroys the old image before its memory
