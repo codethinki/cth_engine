@@ -5,6 +5,14 @@
     "gtest",
     "volk",
     "vulkan-memory-allocator",
-    "vulkan-utility-libraries"
+    "vulkan-utility-libraries",
+    {
+      "name": "wayland",
+      "platform": "linux"
+    },
+    {
+      "name": "wayland-protocols",
+      "platform": "linux"
+    }
   ]
 }
