@@ -6,6 +6,8 @@
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
+#include <array>
+
 
 namespace cvk {
 namespace {
@@ -20,20 +22,123 @@ namespace {
 
     constexpr BarrierScope TRANSFER_WRITE{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
     constexpr BarrierScope FRAGMENT_READ{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
+
+    constexpr VkImageAspectFlags COLOR = VK_IMAGE_ASPECT_COLOR_BIT;
+    constexpr VkImageAspectFlags DEPTH = VK_IMAGE_ASPECT_DEPTH_BIT;
+    constexpr VkPipelineStageFlags2 TESTS = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
+        | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
 }
 
-CVK_TEST(Barrier, layout_transition_table) {
-    constexpr auto toTransfer = layout_transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+CVK_TEST(Barrier, layout_transition_from_undefined_waits_for_the_dst_stages) {
+    constexpr auto toTransfer = layout_transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED, COLOR);
     static_assert(toTransfer.has_value());
     static_assert(toTransfer->src.stages == VK_PIPELINE_STAGE_2_TRANSFER_BIT);
     static_assert(toTransfer->src.access == VK_ACCESS_2_NONE);
     static_assert(toTransfer->dst.access == VK_ACCESS_2_TRANSFER_WRITE_BIT);
 
-    constexpr auto toLocalRead = layout_transition(VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_LAYOUT_UNDEFINED);
+    constexpr auto toLocalRead = layout_transition(
+        VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        COLOR
+    );
     static_assert(toLocalRead.has_value());
     static_assert((toLocalRead->dst.access & VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT) != 0);
 
-    static_assert(!layout_transition(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL).has_value());
+    constexpr auto toUndefined = layout_transition(
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        COLOR
+    );
+    static_assert(!toUndefined.has_value());
+}
+
+CVK_TEST(Barrier, layout_transition_src_from_the_old_dst_from_the_new_layout) {
+    constexpr auto readback = layout_transition(
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        COLOR
+    );
+    static_assert(readback.has_value());
+    static_assert(readback->src.stages == VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+    static_assert(readback->src.access == VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+    static_assert(readback->dst.stages == VK_PIPELINE_STAGE_2_TRANSFER_BIT);
+    static_assert(readback->dst.access == VK_ACCESS_2_TRANSFER_READ_BIT);
+}
+
+CVK_TEST(Barrier, layout_transition_src_keeps_only_the_writes) {
+    constexpr auto renderAgain = layout_transition(
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        COLOR
+    );
+    static_assert(renderAgain.has_value());
+    static_assert(renderAgain->src.stages == VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
+    static_assert(renderAgain->src.access == VK_ACCESS_2_NONE);
+}
+
+CVK_TEST(Barrier, layout_transition_aspects_pick_color_or_depth) {
+    constexpr auto color = layout_transition(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED, COLOR);
+    constexpr auto depth = layout_transition(VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED, DEPTH);
+    static_assert(color->dst.stages == VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+    static_assert(depth->dst.stages == TESTS);
+
+    constexpr auto depthLocalRead = layout_scope(VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, DEPTH);
+    static_assert(depthLocalRead->stages == (TESTS | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT));
+}
+
+CVK_TEST(Barrier, layout_transition_shader_stages_replace_the_fragment_shader) {
+    constexpr auto toCompute = layout_transition(
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        COLOR,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+    );
+    static_assert(toCompute->dst.stages == VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
+
+    constexpr auto fromCompute = layout_transition(
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        COLOR,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+    );
+    static_assert(fromCompute->src.stages == VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
+
+    // input attachments are fragment shader only
+    constexpr auto localRead = layout_scope(
+        VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+        COLOR,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+    );
+    static_assert((localRead->stages & VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT) == 0);
+}
+
+CVK_TEST(Barrier, every_pair_of_known_layouts_has_a_transition) {
+    static_assert([] {
+        constexpr std::array layouts{
+            VK_IMAGE_LAYOUT_GENERAL,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        };
+        for(auto const aspects : {COLOR, DEPTH})
+            for(auto const newLayout : layouts)
+                for(auto const oldLayout : layouts)
+                    if(!layout_transition(newLayout, oldLayout, aspects).has_value()) return false;
+        return true;
+    }());
 }
 
 CVK_TEST(Barrier, layout_transition_info_covers_the_remaining_mip_levels) {
@@ -148,14 +253,27 @@ CVK_TEST(Barrier, add_transition_on_a_mip_range) {
             image,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            Barrier::INFERRED_SHADER_STAGES,
             1,
             2
         );
-        toRead.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 3);
+        toRead.addTransition(
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            Barrier::INFERRED_SHADER_STAGES,
+            3
+        );
         toRead.execute(primary);
 
         Barrier back{};
-        back.addTransition(image, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 3);
+        back.addTransition(
+            image,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            Barrier::INFERRED_SHADER_STAGES,
+            3
+        );
         back.execute(primary);
     });
 }

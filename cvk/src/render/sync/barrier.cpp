@@ -165,6 +165,25 @@ void Barrier::debug_check_rendering(
     }
 }
 
+void Barrier::addTransition(
+    Image const& image,
+    VkImageLayout newLayout,
+    VkImageLayout oldLayout,
+    VkPipelineStageFlags2 shaderStages,
+    uint32_t firstMipLevel,
+    uint32_t mipLevels
+) {
+    auto const transition = layout_transition(newLayout, oldLayout, image.aspectMask(), shaderStages);
+    CTH_CRITICAL(!transition.has_value(), "layout transition has no scope for a layout, use add() with scopes") {
+        details->add("transition: {} -> {}", oldLayout, newLayout);
+    }
+
+    add(
+        image,
+        ImageInfo::LayoutTransition(newLayout, oldLayout, transition->dst, transition->src, firstMipLevel, mipLevels)
+    );
+}
+
 void Barrier::execute(BaseCmdBuffer const& cmdBuffer) const {
     BaseCmdBuffer::debug_check(cmdBuffer);
     CTH_CRITICAL(!cmdBuffer.recording(), "command buffer must be recording") {}

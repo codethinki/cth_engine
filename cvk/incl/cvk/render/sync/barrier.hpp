@@ -8,8 +8,6 @@
 
 #include <cth/io/log.hpp>
 
-#include <algorithm>
-#include <array>
 #include <optional>
 #include <span>
 #include <vector>
@@ -119,23 +117,6 @@ struct BufferBarrierInfo {
 };
 
 /**
- * @brief scopes of a common layout transition
- */
-struct LayoutTransition {
-    BarrierScope src;
-    BarrierScope dst;
-};
-
-/**
- * @return the scopes of the transition, no common transition -> std::nullopt
- */
-[[nodiscard]] constexpr std::optional<LayoutTransition> layout_transition(
-    VkImageLayout newLayout,
-    VkImageLayout oldLayout
-);
-
-
-/**
  * @brief global memory part of a barrier
  */
 struct MemoryBarrierInfo {
@@ -153,6 +134,11 @@ struct Barrier {
     using MemoryInfo = MemoryBarrierInfo;
     using ImageInfo = ImageBarrierInfo;
     using BufferInfo = BufferBarrierInfo;
+
+    /**
+     * @brief shader stages of @ref addTransition(): the layout decides, fragment shader for shader reads
+     */
+    static constexpr VkPipelineStageFlags2 INFERRED_SHADER_STAGES = VK_PIPELINE_STAGE_2_NONE;
 
     struct BufferEntry {
         not_null_ptr<BaseBuffer const> buffer;
@@ -187,13 +173,15 @@ struct Barrier {
 
     /**
      * @brief adds a layout transition with the scopes of @ref layout_transition()
+     * @param shaderStages stages of the shader reads in the layouts (@ref INFERRED_SHADER_STAGES => fragment shader)
      * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
-     * @pre @ref layout_transition() knows the transition
+     * @pre @ref layout_scope() knows both layouts
      */
-    constexpr void addTransition(
+    void addTransition(
         Image const&,
         VkImageLayout newLayout,
         VkImageLayout oldLayout,
+        VkPipelineStageFlags2 shaderStages = INFERRED_SHADER_STAGES,
         uint32_t firstMipLevel = 0,
         uint32_t mipLevels = VK_REMAINING_MIP_LEVELS
     );
@@ -242,127 +230,143 @@ private:
 }
 
 namespace cvk {
-constexpr void Barrier::addTransition(
-    Image const& image,
+/**
+ * @brief scopes of a layout transition
+ */
+struct LayoutTransition {
+    BarrierScope src;
+    BarrierScope dst;
+};
+
+/**
+ * @brief what the gpu does with an image in the layout
+ * @details input attachments: fragment shader only, general: all commands
+ * @param aspects of the image, pick color or depth for the attachment, read only and local read layouts
+ * @param shaderStages stages of the shader reads (@ref Barrier::INFERRED_SHADER_STAGES => fragment shader)
+ * @return std::nullopt -> no scope for the layout: undefined, preinitialized or not known
+ * @pre shaderStages has only shader stages
+ */
+[[nodiscard]] constexpr std::optional<BarrierScope> layout_scope(
+    VkImageLayout,
+    VkImageAspectFlags aspects,
+    VkPipelineStageFlags2 shaderStages = Barrier::INFERRED_SHADER_STAGES
+);
+
+/**
+ * @brief scopes of the transition: src from the old layout, dst from the new layout
+ * @details src keeps the writes of the old layout,
+ *  old layout undefined, preinitialized or present -> src waits for the dst stages without access
+ * @return std::nullopt -> no scope for a layout
+ * @pre shaderStages has only shader stages
+ */
+[[nodiscard]] constexpr std::optional<LayoutTransition> layout_transition(
     VkImageLayout newLayout,
     VkImageLayout oldLayout,
-    uint32_t firstMipLevel,
-    uint32_t mipLevels
-) {
-    auto const transition = layout_transition(newLayout, oldLayout);
-    CTH_CRITICAL(!transition.has_value(), "layout transition has no table entry, use add() with scopes") {
-        details->add("transition: {} -> {}", oldLayout, newLayout);
-    }
-
-    add(
-        image,
-        ImageInfo::LayoutTransition(newLayout, oldLayout, transition->dst, transition->src, firstMipLevel, mipLevels)
-    );
-}
+    VkImageAspectFlags aspects,
+    VkPipelineStageFlags2 shaderStages = Barrier::INFERRED_SHADER_STAGES
+);
 }
 
 namespace cvk {
-constexpr std::optional<LayoutTransition> layout_transition(VkImageLayout newLayout, VkImageLayout oldLayout) {
-    struct Entry {
-        VkImageLayout newLayout;
-        VkImageLayout oldLayout;
-        LayoutTransition transition;
-    };
+constexpr std::optional<BarrierScope> layout_scope(
+    VkImageLayout layout,
+    VkImageAspectFlags aspects,
+    VkPipelineStageFlags2 shaderStages
+) {
+    constexpr VkPipelineStageFlags2 shaderStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT
+        | VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT
+        | VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT
+        | VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT
+        | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
+        | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+        | VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT
+        | VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT
+        | VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT
+        | VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
+    CTH_CRITICAL((shaderStages & ~shaderStageMask) != 0, "shader stages must only have shader stage bits") {
+        details->add("shader stages: {:#x}", shaderStages);
+    }
 
-    constexpr BarrierScope none{};
-    constexpr BarrierScope transferWrite{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-    constexpr BarrierScope transferRead{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
-    constexpr BarrierScope fragmentRead{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT};
-    constexpr BarrierScope colorWrite{
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
-    };
-    constexpr BarrierScope color{
+    auto const shaders = shaderStages != Barrier::INFERRED_SHADER_STAGES
+        ? shaderStages
+        : VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    bool const color = (aspects & VK_IMAGE_ASPECT_COLOR_BIT) != 0;
+
+    constexpr VkPipelineStageFlags2 tests = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
+        | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+    constexpr BarrierScope colorAttachment{
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     };
-    constexpr BarrierScope depth{
-        VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+    constexpr BarrierScope depthAttachment{
+        tests,
         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
     };
+    BarrierScope const shaderRead{shaders, VK_ACCESS_2_SHADER_READ_BIT};
+    BarrierScope const depthRead{
+        tests | shaders,
+        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT
+    };
     // attachments that the rendering also reads as input attachments
-    constexpr BarrierScope localRead{
-        color.stages | depth.stages | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        color.access | depth.access | VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT
-    };
-    constexpr BarrierScope localReadWrite{
-        color.stages | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+    constexpr auto localRead = [](BarrierScope const& attachment) {
+        return BarrierScope{
+            attachment.stages | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+            attachment.access | VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT
+        };
     };
 
-    // from VK_IMAGE_LAYOUT_UNDEFINED: src waits for the dst stages without access,
+    switch(layout) {
+        case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+            return BarrierScope{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
+        case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+            return BarrierScope{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+        case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL: return shaderRead;
+        case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL: return colorAttachment;
+        case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+        case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
+        case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+        case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+        case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL: return depthAttachment;
+        case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
+        case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
+        case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL: return depthRead;
+        case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL: return color ? colorAttachment : depthAttachment;
+        case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL: return color ? shaderRead : depthRead;
+        case VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR: return localRead(color ? colorAttachment : depthAttachment);
+        case VK_IMAGE_LAYOUT_GENERAL:
+            return BarrierScope{
+                VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT
+            };
+        case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: return BarrierScope{};
+        default: return std::nullopt;
+    }
+}
+
+constexpr std::optional<LayoutTransition> layout_transition(
+    VkImageLayout newLayout,
+    VkImageLayout oldLayout,
+    VkImageAspectFlags aspects,
+    VkPipelineStageFlags2 shaderStages
+) {
+    auto const dst = layout_scope(newLayout, aspects, shaderStages);
+    if(!dst.has_value()) return std::nullopt;
+
+    // no content to keep: src waits for the dst stages without access,
     // orders the transition after their last use and after an acquire semaphore wait on these stages
-    constexpr auto stagesOf = [](BarrierScope const& scope) { return BarrierScope{scope.stages}; };
+    if(oldLayout == VK_IMAGE_LAYOUT_UNDEFINED || oldLayout == VK_IMAGE_LAYOUT_PREINITIALIZED
+        || oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        return LayoutTransition{.src = {dst->stages}, .dst = *dst};
 
-    constexpr std::array entries{
-        Entry{
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            {stagesOf(transferWrite), transferWrite},
-        },
-        Entry{
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            {transferWrite, fragmentRead},
-        },
-        Entry{
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            {transferWrite, transferRead},
-        },
-        Entry{
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-            {transferRead, fragmentRead},
-        },
+    auto const src = layout_scope(oldLayout, aspects, shaderStages);
+    if(!src.has_value()) return std::nullopt;
 
-        Entry{
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            {stagesOf(color), color},
-        },
-        Entry{
-            VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            {stagesOf(depth), depth},
-        },
-        Entry{
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            {colorWrite, fragmentRead},
-        },
-        Entry{
-            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            {colorWrite, none},
-        },
-
-        Entry{
-            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            {stagesOf(localRead), localRead},
-        },
-        Entry{
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-            {localReadWrite, fragmentRead},
-        },
-        Entry{
-            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-            {colorWrite, none},
-        },
-    };
-
-    auto const it = std::ranges::find_if(entries, [newLayout, oldLayout](Entry const& entry) {
-        return entry.newLayout == newLayout && entry.oldLayout == oldLayout;
-    });
-    if(it == entries.end()) return std::nullopt;
-    return it->transition;
+    // reads leave nothing to make visible, only their stages finish first
+    constexpr VkAccessFlags2 writes = VK_ACCESS_2_TRANSFER_WRITE_BIT
+        | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+        | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+        | VK_ACCESS_2_SHADER_WRITE_BIT
+        | VK_ACCESS_2_MEMORY_WRITE_BIT;
+    return LayoutTransition{.src = {src->stages, src->access & writes}, .dst = *dst};
 }
 }

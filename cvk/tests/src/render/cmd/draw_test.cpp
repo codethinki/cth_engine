@@ -121,15 +121,7 @@ namespace {
             cmd.endRendering();
 
             Barrier barrier{};
-            barrier.add(
-                image,
-                ImageBarrierInfo::LayoutTransition(
-                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT},
-                    {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT}
-                )
-            );
+            barrier.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             barrier.execute(cmd);
 
             test::copy_to_buffer(context, cmd, image, readback, 0, 0);

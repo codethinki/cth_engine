@@ -142,6 +142,31 @@ CVK_TEST(Rendering, clear_a_depth_attachment) {
     });
 }
 
+CVK_TEST(Rendering, depth_attachment_in_the_default_layout) {
+    test::Context const context{};
+    Image const image{context.core, Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT), EXTENT};
+    ImageView const view{image, {}, create};
+
+    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
+        // the aspect of the image decides the scopes of VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL
+        Barrier transition{};
+        transition.addTransition(image, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        transition.execute(cmd);
+
+        cmd.beginRendering(
+            {
+                .depthAttachment = RenderingAttachment{
+                    .view = &view,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                    .clearValue = {.depthStencil = {1.f, 0}},
+                },
+            }
+        );
+        cmd.endRendering();
+    });
+}
+
 CVK_TEST(Rendering, secondary_inherits_the_rendering) {
     test::Context const context{};
     Image const image{context.core, COLOR_CONFIG, EXTENT};
