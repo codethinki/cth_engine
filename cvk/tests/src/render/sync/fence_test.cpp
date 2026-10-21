@@ -63,7 +63,7 @@ CVK_TEST(Fence, base_constructor_does_not_create) {
 CVK_TEST(Fence, create_not_signaled) {
     test::Context const context{};
 
-    Fence const fence{context.core, 0};
+    Fence const fence{context.core, create};
 
     ASSERT_TRUE(fence.created());
     EXPECT_EQ(fence.status(), VK_NOT_READY);
@@ -74,7 +74,7 @@ CVK_TEST(Fence, create_not_signaled) {
 CVK_TEST(Fence, create_signaled_and_reset) {
     test::Context const context{};
 
-    Fence const fence{context.core, VK_FENCE_CREATE_SIGNALED_BIT};
+    Fence const fence{context.core, create, VK_FENCE_CREATE_SIGNALED_BIT};
 
     ASSERT_TRUE(fence.signaled());
     fence.wait();
@@ -85,7 +85,7 @@ CVK_TEST(Fence, create_signaled_and_reset) {
 
 CVK_TEST(Fence, submit_signals) {
     test::Context const context{};
-    Fence const fence{context.core, 0};
+    Fence const fence{context.core, create};
 
     context.core.queue(0).rawSubmit(EMPTY_SUBMIT, fence.get());
 
@@ -98,7 +98,7 @@ CVK_TEST(Fence, submit_signals) {
 
 CVK_TEST(Fence, wait_reset_timeout_keeps_the_state) {
     test::Context const context{};
-    Fence const fence{context.core, 0};
+    Fence const fence{context.core, create};
 
     EXPECT_EQ(fence.waitReset(0), VK_TIMEOUT);
     EXPECT_FALSE(fence.signaled());
@@ -111,7 +111,7 @@ CVK_TEST(Fence, wait_reset_timeout_keeps_the_state) {
 
 CVK_TEST(Fence, release_and_wrap) {
     test::Context const context{};
-    Fence fence{context.core, VK_FENCE_CREATE_SIGNALED_BIT};
+    Fence fence{context.core, create, VK_FENCE_CREATE_SIGNALED_BIT};
     auto const vkFence = fence.get();
 
     auto const state = fence.release();
@@ -126,8 +126,8 @@ CVK_TEST(Fence, release_and_wrap) {
 
 CVK_TEST(Fence, move_assignment_destroys_the_old_fence) {
     test::Context const context{};
-    Fence fence{context.core, 0};
-    Fence other{context.core, VK_FENCE_CREATE_SIGNALED_BIT};
+    Fence fence{context.core, create};
+    Fence other{context.core, create, VK_FENCE_CREATE_SIGNALED_BIT};
     auto const vkFence = other.get();
 
     fence = std::move(other);
@@ -142,7 +142,7 @@ CVK_TEST(Fence, extract_os_handle_waits_for_the_submit) {
     try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
     if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
 
-    Fence const fence{context->core, 0, constants::OS_FENCE_HANDLE_TYPE};
+    Fence const fence{context->core, create, 0, constants::OS_FENCE_HANDLE_TYPE};
     EXPECT_EQ(fence.exportTypes(), constants::OS_FENCE_HANDLE_TYPE);
 
     auto const& queue = context->core.queue(0);
@@ -164,7 +164,7 @@ CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence) {
     try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
     if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
 
-    Fence const fence{context->core, VK_FENCE_CREATE_SIGNALED_BIT, constants::OS_FENCE_HANDLE_TYPE};
+    Fence const fence{context->core, create, VK_FENCE_CREATE_SIGNALED_BIT, constants::OS_FENCE_HANDLE_TYPE};
 
     auto const handle = fence.extractOsHandle();
 
@@ -174,7 +174,7 @@ CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence) {
 
 CVK_TEST(Fence, release_and_wrap_keep_the_export_types) {
     test::Context const context{};
-    Fence fence{context.core, 0, constants::OS_FENCE_HANDLE_TYPE};
+    Fence fence{context.core, create, 0, constants::OS_FENCE_HANDLE_TYPE};
 
     auto const state = fence.release();
     EXPECT_EQ(state.exportTypes, constants::OS_FENCE_HANDLE_TYPE);

@@ -14,7 +14,9 @@ TimelineSemaphore::TimelineSemaphore(Core const& core, State const& state) : Tim
     wrap(state);
 }
 
-TimelineSemaphore::TimelineSemaphore(Core const& core, create_t) : TimelineSemaphore{core} { create(); }
+TimelineSemaphore::TimelineSemaphore(Core const& core, create_t, uint64_t initialValue) : TimelineSemaphore{core} {
+    create(initialValue);
+}
 
 void TimelineSemaphore::wrap(State const& state) {
     Semaphore::wrap(Semaphore::State{state.vkSemaphore});

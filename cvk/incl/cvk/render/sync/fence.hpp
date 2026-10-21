@@ -1,5 +1,6 @@
 #pragma once
 #include "cvk/base/device_table.hpp"
+#include "cvk/utility/constants.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -42,7 +43,7 @@ public:
      * - @ref Fence(Core const&)
      * - @ref create()
      */
-    Fence(Core const&, VkFenceCreateFlags flags, VkExternalFenceHandleTypeFlags exportTypes = 0);
+    explicit Fence(Core const&, create_t, VkFenceCreateFlags flags = 0, VkExternalFenceHandleTypeFlags exportTypes = 0);
 
     /**
      * @note calls @ref optDestroy()

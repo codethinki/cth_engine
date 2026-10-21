@@ -220,6 +220,7 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 - A parent (instance, core, device, pool, ...) does not move and is not destroyed while objects depend on it. Code does not have to support it.
 - A failed `create()` calls `forget()` before it throws.
 - `release()` exists so that an owner can use an object it must not destroy (for example swapchain images).
+- A constructor that creates takes the parameters of the base constructor, then the parameters of `create()`. When `create()` has no required parameter, a `create_t` tag comes before them: `Fence(core, create_t, flags = 0)`, `Image(core, config, extent)`.
 
 ### Errors
 

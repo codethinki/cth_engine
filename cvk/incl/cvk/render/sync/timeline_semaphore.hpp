@@ -34,9 +34,9 @@ public:
      * @brief constructs and creates
      * @details calls:
      * - @ref TimelineSemaphore(Core const&)
-     * - @ref create()
+     * - @ref create() with the initial value
      */
-    explicit TimelineSemaphore(Core const&, create_t);
+    explicit TimelineSemaphore(Core const&, create_t, uint64_t initialValue = 0);
 
     /**
      * @note calls @ref optDestroy()

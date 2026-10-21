@@ -79,7 +79,7 @@ namespace {
 
         cmd.end();
 
-        Fence const fence{context.core, 0};
+        Fence const fence{context.core, create};
         context.queue().submit(
             {
                 .cmdBuffers = {&cmd},
@@ -98,7 +98,7 @@ namespace {
      * @brief waits for the acquire semaphore of an image that was not presented
      */
     void consume(test::PresentContext const& context, Semaphore const& acquired) {
-        Fence const fence{context.core, 0};
+        Fence const fence{context.core, create};
         context.queue().submit({.waits = {acquired}}, &fence);
         fence.wait();
     }

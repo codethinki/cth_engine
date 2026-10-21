@@ -41,7 +41,7 @@ CVK_TEST(Semaphore, create_and_destroy) {
 CVK_TEST(Semaphore, submit_signals_and_waits) {
     test::Context const context{};
     Semaphore const semaphore{context.core, create};
-    Fence const fence{context.core, 0};
+    Fence const fence{context.core, create};
     auto const& queue = context.core.queue(0);
 
     auto const info = semaphore_info(semaphore);

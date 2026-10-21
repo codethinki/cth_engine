@@ -45,7 +45,7 @@ CVK_TEST(Submit, command_buffer_without_fence) {
 CVK_TEST(Submit, binary_semaphore_orders_two_infos) {
     test::Context const context{};
     Semaphore const semaphore{context.core, create};
-    Fence const fence{context.core, 0};
+    Fence const fence{context.core, create};
 
     std::array const infos{
         SubmitInfo{.signals = {semaphore}},

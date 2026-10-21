@@ -269,7 +269,7 @@ void Swapchain::createImages() {
     _presentFences.reserve(count);
     for(uint32_t index = 0; index < count; ++index) {
         _presentSemaphores.emplace_back(core(), cvk::create);
-        _presentFences.emplace_back(core(), VK_FENCE_CREATE_SIGNALED_BIT);
+        _presentFences.emplace_back(core(), cvk::create, VK_FENCE_CREATE_SIGNALED_BIT);
     }
 
     _acquired.assign(count, false);

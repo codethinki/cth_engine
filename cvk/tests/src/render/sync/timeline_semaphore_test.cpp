@@ -27,6 +27,16 @@ CVK_TEST(TimelineSemaphore, create_sets_the_initial_value) {
     EXPECT_EQ(semaphore.wait(semaphore.value(), 0), VK_SUCCESS);
 }
 
+CVK_TEST(TimelineSemaphore, construct_with_an_initial_value) {
+    test::Context const context{};
+
+    TimelineSemaphore const semaphore{context.core, create, 5};
+
+    ASSERT_TRUE(semaphore.created());
+    EXPECT_EQ(semaphore.value(), 5);
+    EXPECT_EQ(semaphore.gpuValue(), 5);
+}
+
 CVK_TEST(TimelineSemaphore, signal_advances_the_counter) {
     test::Context const context{};
     TimelineSemaphore semaphore{context.core, create};

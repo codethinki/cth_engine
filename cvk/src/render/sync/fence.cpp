@@ -20,7 +20,8 @@ Fence::Fence(Core const& core) : _handle{core} { Core::debug_check(core); }
 
 Fence::Fence(Core const& core, State const& state) : Fence{core} { wrap(state); }
 
-Fence::Fence(Core const& core, VkFenceCreateFlags flags, VkExternalFenceHandleTypeFlags exportTypes) : Fence{core} {
+Fence::Fence(Core const& core, create_t, VkFenceCreateFlags flags, VkExternalFenceHandleTypeFlags exportTypes) :
+    Fence{core} {
     create(flags, exportTypes);
 }
 
