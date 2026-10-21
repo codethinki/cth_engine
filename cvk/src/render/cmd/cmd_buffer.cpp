@@ -582,6 +582,10 @@ void PrimaryCmdBuffer::execute(span<SecondaryCmdBuffer const* const> secondaries
     recordExecute(vkBuffers);
 }
 
+void PrimaryCmdBuffer::execute(std::initializer_list<SecondaryCmdBuffer const*> secondaries) const {
+    execute(span<SecondaryCmdBuffer const* const>{secondaries.begin(), secondaries.size()});
+}
+
 void PrimaryCmdBuffer::execute(SecondaryCmdBuffer const& secondary) const { execute({&secondary, 1}); }
 
 RenderingInheritance PrimaryCmdBuffer::inheritance() const {

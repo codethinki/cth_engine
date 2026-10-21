@@ -51,13 +51,13 @@ public:
      * - @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t)
      * - @ref create()
      */
-    DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount, create_t);
+    explicit DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount, create_t);
 
     /**
      * @brief constructs and creates with the maximum variable count
      * @details calls @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t, create_t)
      */
-    DescriptorSet(DescriptorPool const& pool, DescriptorSetLayout const& layout, create_t) : DescriptorSet{
+    explicit DescriptorSet(DescriptorPool const& pool, DescriptorSetLayout const& layout, create_t) : DescriptorSet{
         pool,
         layout,
         0,

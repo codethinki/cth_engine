@@ -134,16 +134,20 @@ CVK_TEST(CmdBuffer, execute_secondaries) {
 CVK_TEST(CmdBuffer, execute_secondaries_through_pointers) {
     test::Context const context{};
     CmdPool const pool{context.core, pool_config(context), create};
-    SecondaryCmdBuffer first{pool, create};
-    SecondaryCmdBuffer second{pool, create};
-    for(auto* secondary : {&first, &second}) {
+    // secondaries[1] is not recorded, the iterator pair [&secondaries[0], &secondaries[2]) would execute it
+    std::array<SecondaryCmdBuffer, 3> secondaries{
+        SecondaryCmdBuffer{pool, create},
+        SecondaryCmdBuffer{pool, create},
+        SecondaryCmdBuffer{pool, create},
+    };
+    for(auto* secondary : {&secondaries[0], &secondaries[2]}) {
         secondary->begin();
         secondary->end();
     }
 
     PrimaryCmdBuffer primary{pool, create};
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    primary.execute(std::array{&first, &second});
+    primary.execute({&secondaries[0], &secondaries[2]});
     primary.end();
 
     test::submit_and_wait(context, primary);

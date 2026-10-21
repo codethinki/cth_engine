@@ -15,6 +15,7 @@
 #include <cth/meta/ranges.hpp>
 
 #include <cstddef>
+#include <initializer_list>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -452,6 +453,13 @@ public:
      * @pre no pointer is nullptr
      */
     void execute(std::span<SecondaryCmdBuffer const* const> secondaries) const;
+
+    /**
+     * @brief records the secondary command buffers of a braced list: execute({&a, &b})
+     * @details calls @ref execute(std::span<SecondaryCmdBuffer const* const>) const,
+     *  without this overload {&a, &b} binds to std::span<SecondaryCmdBuffer const> as iterator pair -> records [&a, &b)
+     */
+    void execute(std::initializer_list<SecondaryCmdBuffer const*> secondaries) const;
 
     /**
      * @brief records the secondary command buffer
