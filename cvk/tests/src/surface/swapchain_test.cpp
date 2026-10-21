@@ -255,6 +255,31 @@ CVK_TEST(Swapchain, recreate_applies_the_config) {
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }
 
+CVK_TEST(Swapchain, recreate_without_an_offered_format_throws_and_keeps_the_swapchain) {
+    test::PresentContext const context{};
+    Swapchain::Config const config{};
+    Swapchain swapchain{context.core, context.queue(), context.surface(), config, EXTENT};
+    auto const vkSwapchain = swapchain.get();
+    auto const extent = swapchain.extent();
+    auto const format = swapchain.format();
+    auto const colorSpace = swapchain.colorSpace();
+    auto const presentMode = swapchain.presentMode();
+
+    Swapchain::Config const unoffered{.formats = {{VK_FORMAT_R64G64B64A64_SFLOAT, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}}};
+    EXPECT_THROW(swapchain.recreate({32, 32}, unoffered), cvk_exception);
+
+    ASSERT_TRUE(swapchain.created());
+    EXPECT_EQ(swapchain.get(), vkSwapchain);
+    EXPECT_EQ(swapchain.extent(), extent);
+    EXPECT_EQ(swapchain.format(), format);
+    EXPECT_EQ(swapchain.colorSpace(), colorSpace);
+    EXPECT_EQ(swapchain.presentMode(), presentMode);
+    EXPECT_EQ(swapchain.config().formats, config.formats);
+    EXPECT_EQ(swapchain.config().presentModes, config.presentModes);
+    EXPECT_EQ(swapchain.retired(), 0);
+    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+}
+
 CVK_TEST(Swapchain, unacquire_gives_the_image_back) {
     test::PresentContext const context{};
     Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
