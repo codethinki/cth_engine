@@ -4,19 +4,25 @@
 
 #include <gtest/gtest.h>
 
+#include <optional>
+
 
 namespace cvk::test {
 namespace {
     /**
-     * @brief loads the vulkan loader once for all tests
+     * @brief holds the vulkan loader for all tests
+     * @details the shared contexts are destroyed before the loader
      */
     class Environment : public testing::Environment {
     public:
-        void SetUp() override { Cvk::init(); }
+        void SetUp() override { _cvk.emplace(); }
         void TearDown() override {
             destroy_shared_contexts();
-            Cvk::terminate();
+            _cvk.reset();
         }
+
+    private:
+        std::optional<Cvk> _cvk{};
     };
 
     [[maybe_unused]] testing::Environment* const ENVIRONMENT = testing::AddGlobalTestEnvironment(new Environment{});

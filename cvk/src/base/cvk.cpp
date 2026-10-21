@@ -6,29 +6,20 @@
 
 
 namespace cvk {
-void Cvk::terminate() {
-    log::msg<except::INFO>("terminating cvk...");
+Cvk::Cvk() { _loader.acquire(); }
 
-    terminateVolk();
+Cvk::~Cvk() { _loader.release(); }
 
-    log::msg<except::INFO>("cvk terminated");
-    _initialized = false;
-}
-
-void Cvk::terminateVolk() { volkFinalize(); }
-
-void Cvk::initVolk() {
+void Cvk::load() {
     auto const result = volkInitialize();
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to load vulkan") {}
 
-    log::msg<except::LOG>("loaded vulkan (volk)");
+    log::msg<except::INFO>("cvk initialized, loaded vulkan (volk)");
 }
 
-void Cvk::init() {
-    log::msg<except::INFO>("cvk initializing...");
-    initVolk();
+void Cvk::unload() {
+    volkFinalize();
 
-    log::msg<except::INFO>("cvk initialized");
-    _initialized = true;
+    log::msg<except::INFO>("cvk terminated, unloaded vulkan (volk)");
 }
 }
