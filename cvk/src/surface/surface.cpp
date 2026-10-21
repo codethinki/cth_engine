@@ -120,8 +120,7 @@ auto Surface::formats(PhysicalDevice const& physicalDevice) const -> vector<form
 
 auto Surface::format(PhysicalDevice const& physicalDevice) const -> format_t {
     auto const availableFormats = formats(physicalDevice);
-    CTH_STABLE_ERR(availableFormats.empty(), "no suitable format found") {
-        details->add("allowed: {}", _config.allowedSurfaceFormats);
+    CTH_STABLE_ERR(availableFormats.empty(), "no suitable format found, allowed: {}", _config.allowedSurfaceFormats) {
         throw details->exception();
     }
     return availableFormats[0];
@@ -143,8 +142,7 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physicalDev
 
 auto Surface::presentMode(PhysicalDevice const& physicalDevice) const -> present_mode_t {
     auto const availableModes = presentModes(physicalDevice);
-    CTH_STABLE_ERR(availableModes.empty(), "no suitable present mode found") {
-        details->add("allowed: {}", _config.allowedPresentModes);
+    CTH_STABLE_ERR(availableModes.empty(), "no suitable present mode found, allowed: {}", _config.allowedPresentModes) {
         throw details->exception();
     }
     return availableModes[0];

@@ -290,9 +290,11 @@ constexpr std::optional<BarrierScope> layout_scope(
         | VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT
         | VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT
         | VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
-    CTH_CRITICAL((shaderStages & ~shaderStageMask) != 0, "shader stages must only have shader stage bits") {
-        details->add("shader stages: {:#x}", shaderStages);
-    }
+    CTH_CRITICAL(
+        (shaderStages & ~shaderStageMask) != 0,
+        "shader stages must only have shader stage bits, got {:#x}",
+        shaderStages
+    ) {}
 
     auto const shaders = shaderStages != Barrier::INFERRED_SHADER_STAGES
         ? shaderStages

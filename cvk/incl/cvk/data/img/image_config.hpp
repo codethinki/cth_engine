@@ -137,10 +137,9 @@ constexpr void ImageConfig::debug_check(ImageConfig const& config) {
     CTH_CRITICAL(config.arrayLayers == 0, "at least one layer is required") {}
     CTH_CRITICAL(
         (config.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0 && config.arrayLayers % 6 != 0,
-        "a cube compatible image needs a multiple of 6 layers"
-    ) {
-        details->add("layers: {}", config.arrayLayers);
-    }
+        "a cube compatible image needs a multiple of 6 layers, got {}",
+        config.arrayLayers
+    ) {}
     CTH_CRITICAL(
         config.initialLayout != VK_IMAGE_LAYOUT_UNDEFINED && config.initialLayout != VK_IMAGE_LAYOUT_PREINITIALIZED,
         "initial layout must be undefined or preinitialized"

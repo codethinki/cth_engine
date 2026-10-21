@@ -23,10 +23,9 @@ namespace {
             layout == VK_IMAGE_LAYOUT_UNDEFINED || layout == VK_IMAGE_LAYOUT_PREINITIALIZED
             || layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL || layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
             || layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL || layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            "attachment must be in an attachment layout"
-        ) {
-            details->add("layout: {}", layout);
-        }
+            "attachment must be in an attachment layout, got {}",
+            layout
+        ) {}
     }
 
     constexpr bool dynamic_buffer(VkDescriptorType type) {
@@ -179,9 +178,12 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         CTH_CRITICAL(view_mip_levels(view) != 1, "attachment views must have one mip level") {}
         // multiview: view i renders into layer i
         auto const layers = info.viewMask != 0 ? static_cast<uint32_t>(std::bit_width(info.viewMask)) : info.layerCount;
-        CTH_CRITICAL(view.arrayLayers() < layers, "attachment views need a layer per rendered layer or view") {
-            details->add("view layers: {}, needed: {}", view.arrayLayers(), layers);
-        }
+        CTH_CRITICAL(
+            view.arrayLayers() < layers,
+            "attachment views need a layer per rendered layer or view, got {} for {}",
+            view.arrayLayers(),
+            layers
+        ) {}
 
         auto const viewExtent = view_extent(view);
         extent = extent.has_value()
@@ -221,9 +223,11 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         colors.push_back(attachmentInfo(attachment));
 
         auto const format = attachment.view->image().format();
-        CTH_CRITICAL(format_aspects(format) != VK_IMAGE_ASPECT_COLOR_BIT, "color attachments need a color format") {
-            details->add("format: {}", format);
-        }
+        CTH_CRITICAL(
+            format_aspects(format) != VK_IMAGE_ASPECT_COLOR_BIT,
+            "color attachments need a color format, got {}",
+            format
+        ) {}
     }
 
     std::optional<VkRenderingAttachmentInfo> depth{};
@@ -233,10 +237,9 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         auto const format = info.depthAttachment->view->image().format();
         CTH_CRITICAL(
             (format_aspects(format) & VK_IMAGE_ASPECT_DEPTH_BIT) == 0,
-            "the depth attachment needs a depth format"
-        ) {
-            details->add("format: {}", format);
-        }
+            "the depth attachment needs a depth format, got {}",
+            format
+        ) {}
     }
 
     std::optional<VkRenderingAttachmentInfo> stencil{};
@@ -246,10 +249,9 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         auto const format = info.stencilAttachment->view->image().format();
         CTH_CRITICAL(
             (format_aspects(format) & VK_IMAGE_ASPECT_STENCIL_BIT) == 0,
-            "the stencil attachment needs a stencil format"
-        ) {
-            details->add("format: {}", format);
-        }
+            "the stencil attachment needs a stencil format, got {}",
+            format
+        ) {}
     }
 
     CTH_CRITICAL(!extent.has_value() && !info.area.has_value(), "a rendering without attachments needs an area") {}
@@ -354,9 +356,12 @@ void BaseCmdBuffer::bindDescriptorSet(
             return dynamic_buffer(binding.descriptorType) ? sum + binding.descriptorCount : sum;
         }
     );
-    CTH_CRITICAL(dynamicOffsets.size() != dynamicCount, "one dynamic offset per dynamic buffer descriptor") {
-        details->add("dynamic descriptors: {}, offsets: {}", dynamicCount, dynamicOffsets.size());
-    }
+    CTH_CRITICAL(
+        dynamicOffsets.size() != dynamicCount,
+        "one dynamic offset per dynamic buffer descriptor, got {} for {}",
+        dynamicOffsets.size(),
+        dynamicCount
+    ) {}
 
     VkDescriptorSet const vkSet = set.get();
     core().functions()->vkCmdBindDescriptorSets(

@@ -176,18 +176,24 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
         auto const kind = descriptor_kind(type);
         auto const* buffer = std::get_if<DescriptorWrite::BufferResource>(&write._resource);
 
-        CTH_CRITICAL(kind == DescriptorKind::UNSUPPORTED, "descriptor type not supported") {
-            details->add("binding: {}, type: {}", write._binding, type);
-        }
+        CTH_CRITICAL(
+            kind == DescriptorKind::UNSUPPORTED,
+            "descriptor type {} of binding {} not supported",
+            type,
+            write._binding
+        ) {}
         CTH_CRITICAL(
             (kind == DescriptorKind::BUFFER) != (buffer != nullptr),
-            "the kind of the write must match the type of the binding"
-        ) {
-            details->add("binding: {}, type: {}", write._binding, type);
-        }
-        CTH_CRITICAL(write._element >= capacity(*binding), "the element must lie in the binding") {
-            details->add("binding: {}, element: {}", write._binding, write._element);
-        }
+            "the kind of the write must match the type of the binding, got binding {} of type {}",
+            write._binding,
+            type
+        ) {}
+        CTH_CRITICAL(
+            write._element >= capacity(*binding),
+            "the element must lie in the binding, got element {} of binding {}",
+            write._element,
+            write._binding
+        ) {}
 
         VkWriteDescriptorSet vkWrite{
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,

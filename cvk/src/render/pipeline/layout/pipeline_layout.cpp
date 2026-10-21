@@ -13,8 +13,12 @@ PipelineLayout::PipelineLayout(Core const& core, Config const& config) : _handle
     _pushConstantRanges{config.pushConstantRanges} {
     Core::debug_check(core);
     auto const maxSets = core.physicalDevice().limits().maxBoundDescriptorSets;
-    CTH_STABLE_ERR(config.setLayouts.size() > maxSets, "more set layouts than maxBoundDescriptorSets") {
-        details->add("set layouts: {}, max: {}", config.setLayouts.size(), maxSets);
+    CTH_STABLE_ERR(
+        config.setLayouts.size() > maxSets,
+        "more set layouts than maxBoundDescriptorSets, got {} for {}",
+        config.setLayouts.size(),
+        maxSets
+    ) {
         throw details->exception();
     }
 

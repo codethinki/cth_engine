@@ -43,9 +43,7 @@ void DescriptorPool::create() {
 
 void DescriptorPool::destroy() {
     debug_check(*this);
-    CTH_CRITICAL(!unused(), "descriptor sets of the pool must be destroyed first") {
-        details->add("descriptor sets: {}", _sets);
-    }
+    CTH_CRITICAL(!unused(), "descriptor sets of the pool must be destroyed first, got {}", _sets) {}
 
     _handle.reset();
 
@@ -54,9 +52,7 @@ void DescriptorPool::destroy() {
 
 DescriptorPool::State DescriptorPool::release() {
     debug_check(*this);
-    CTH_CRITICAL(!unused(), "descriptor sets of the pool must be destroyed first") {
-        details->add("descriptor sets: {}", _sets);
-    }
+    CTH_CRITICAL(!unused(), "descriptor sets of the pool must be destroyed first, got {}", _sets) {}
 
     State const state{_handle.release()};
     forget();

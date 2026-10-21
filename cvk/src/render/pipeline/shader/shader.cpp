@@ -111,20 +111,21 @@ VkPipelineShaderStageCreateInfo Shader::stageInfo(
 }
 
 std::vector<uint32_t> Shader::load(path_t const& spvPath) {
-    CVK_STABLE_THROW(!std::filesystem::exists(spvPath), "SPIR-V file does not exist") {
-        details->add("file: {}", spvPath.string());
-    }
+    CVK_STABLE_THROW(!std::filesystem::exists(spvPath), "SPIR-V file {} does not exist", spvPath.string()) {}
 
     auto const size = std::filesystem::file_size(spvPath);
-    CVK_STABLE_THROW(size == 0 || size % sizeof(uint32_t) != 0, "SPIR-V file size must be a multiple of 4") {
-        details->add("file: {}, size: {}", spvPath.string(), size);
-    }
+    CVK_STABLE_THROW(
+        size == 0 || size % sizeof(uint32_t) != 0,
+        "SPIR-V file size must be a multiple of 4, got {} for {}",
+        size,
+        spvPath.string()
+    ) {}
 
     std::vector<uint32_t> spv(size / sizeof(uint32_t));
 
     std::ifstream file{spvPath, std::ios::binary};
     file.read(reinterpret_cast<char*>(spv.data()), static_cast<std::streamsize>(size));
-    CVK_STABLE_THROW(!file, "failed to read SPIR-V file") { details->add("file: {}", spvPath.string()); }
+    CVK_STABLE_THROW(!file, "failed to read SPIR-V file {}", spvPath.string()) {}
 
     return spv;
 }
@@ -135,9 +136,7 @@ void Shader::compile(
     path_t const& compilerPath,
     std::string_view flags
 ) {
-    CVK_STABLE_THROW(!std::filesystem::exists(glslPath), "glsl file does not exist") {
-        details->add("file: {}", glslPath.string());
-    }
+    CVK_STABLE_THROW(!std::filesystem::exists(glslPath), "glsl file {} does not exist", glslPath.string()) {}
 
 #ifdef CTH_PLATFORM_WINDOWS
     constexpr std::string_view nullDevice = "NUL";
@@ -170,14 +169,12 @@ void Shader::compile(
         std::filesystem::remove(logPath);
     }
 
-    CVK_STABLE_THROW(result != 0, "shader compilation failed") {
-        details->add("file: {}", glslPath.string());
+    CVK_STABLE_THROW(result != 0, "shader compilation of {} failed", glslPath.string()) {
         details->add("command: {}", command);
         for(auto const& line : output) details->add("{}", line);
     }
 
-    CTH_STABLE_WARN(!output.empty(), "shader compiler output") {
-        details->add("file: {}", glslPath.string());
+    CTH_STABLE_WARN(!output.empty(), "shader compiler output for {}", glslPath.string()) {
         for(auto const& line : output) details->add("{}", line);
     }
 }

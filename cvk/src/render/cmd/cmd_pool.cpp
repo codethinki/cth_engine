@@ -37,9 +37,7 @@ void CmdPool::create() {
 
 void CmdPool::destroy() {
     debug_check(*this);
-    CTH_CRITICAL(!unused(), "command buffers of the pool must be destroyed first") {
-        details->add("command buffers: {}", _buffers);
-    }
+    CTH_CRITICAL(!unused(), "command buffers of the pool must be destroyed first, got {}", _buffers) {}
 
     _handle.reset();
 
@@ -48,9 +46,7 @@ void CmdPool::destroy() {
 
 CmdPool::State CmdPool::release() {
     debug_check(*this);
-    CTH_CRITICAL(!unused(), "command buffers of the pool must be destroyed first") {
-        details->add("command buffers: {}", _buffers);
-    }
+    CTH_CRITICAL(!unused(), "command buffers of the pool must be destroyed first, got {}", _buffers) {}
 
     State const state{_handle.release()};
     forget();

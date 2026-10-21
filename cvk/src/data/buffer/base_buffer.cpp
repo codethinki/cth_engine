@@ -96,11 +96,14 @@ void BaseBuffer::copy(BaseCmdBuffer const& cmdBuffer, BaseBuffer const& src, Buf
     CTH_CRITICAL(copySize == 0, "copy size must not be 0") {}
     CTH_CRITICAL(
         copySize > src._size - srcOffset || copySize > _size - dstOffset,
-        "copy range must lie in the buffers"
-    ) {
-        details->add("src: {} + {} > {} (offset + size > src size)", srcOffset, copySize, src._size);
-        details->add("dst: {} + {} > {} (offset + size > dst size)", dstOffset, copySize, _size);
-    }
+        "copy range must lie in the buffers, got src {} + {} of {}, dst {} + {} of {}",
+        srcOffset,
+        copySize,
+        src._size,
+        dstOffset,
+        copySize,
+        _size
+    ) {}
 
     VkBufferCopy2 const vkRegion{
         .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,

@@ -81,10 +81,11 @@ namespace {
         CTH_CRITICAL(
             (info.oldLayout != info.newLayout || transfer)
             && (info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED || info.newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED),
-            "a transition or queue family transfer must not have an undefined or preinitialized new layout"
-        ) {
-            details->add("transition: {} -> {}", info.oldLayout, info.newLayout);
-        }
+            "a transition or queue family transfer must not have an undefined or preinitialized new layout, "
+            "got {} -> {}",
+            info.oldLayout,
+            info.newLayout
+        ) {}
 
         return VkImageMemoryBarrier2{
             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -165,10 +166,9 @@ void Barrier::debug_check_rendering(
         CTH_CRITICAL(
             attached(*entry.image) && barrier.newLayout != VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
             && barrier.newLayout != VK_IMAGE_LAYOUT_GENERAL,
-            "attachments inside a rendering must be in the rendering local read or general layout"
-        ) {
-            details->add("layout: {}", barrier.newLayout);
-        }
+            "attachments inside a rendering must be in the rendering local read or general layout, got {}",
+            barrier.newLayout
+        ) {}
     }
 }
 
@@ -181,9 +181,12 @@ void Barrier::addTransition(
     uint32_t mipLevels
 ) {
     auto const transition = layout_transition(newLayout, oldLayout, image.aspectMask(), shaderStages);
-    CTH_CRITICAL(!transition.has_value(), "layout transition has no scope for a layout, use add() with scopes") {
-        details->add("transition: {} -> {}", oldLayout, newLayout);
-    }
+    CTH_CRITICAL(
+        !transition.has_value(),
+        "layout transition {} -> {} has no scope for a layout, use add() with scopes",
+        oldLayout,
+        newLayout
+    ) {}
 
     add(
         image,

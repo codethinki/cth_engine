@@ -211,15 +211,15 @@ constexpr bool AttachmentMapping::operator==(AttachmentMapping const& other) con
 constexpr void AttachmentMapping::debug_check(AttachmentMapping const& mapping, size_t colorAttachments) {
     CTH_CRITICAL(
         !mapping.locations.empty() && mapping.locations.size() != colorAttachments,
-        "one location per color attachment"
-    ) {
-        details->add("locations: {}, color attachments: {}", mapping.locations.size(), colorAttachments);
-    }
+        "one location per color attachment, got {} for {}",
+        mapping.locations.size(),
+        colorAttachments
+    ) {}
     CTH_CRITICAL(
         !mapping.colorInputIndices.empty() && mapping.colorInputIndices.size() != colorAttachments,
-        "one input attachment index per color attachment"
-    ) {
-        details->add("indices: {}, color attachments: {}", mapping.colorInputIndices.size(), colorAttachments);
-    }
+        "one input attachment index per color attachment, got {} for {}",
+        mapping.colorInputIndices.size(),
+        colorAttachments
+    ) {}
 }
 }

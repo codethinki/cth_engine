@@ -103,10 +103,9 @@ void Image::copy(
 
     CTH_CRITICAL(
         layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && layout != VK_IMAGE_LAYOUT_GENERAL,
-        "mip level must be in VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL"
-    ) {
-        details->add("layout: {}", layout);
-    }
+        "mip level must be in VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL, got {}",
+        layout
+    ) {}
 
     VkCopyBufferToImageInfo2 const info{
         .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
@@ -139,10 +138,9 @@ void Image::copyTo(
 
     CTH_CRITICAL(
         layout != VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL && layout != VK_IMAGE_LAYOUT_GENERAL,
-        "mip level must be in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL"
-    ) {
-        details->add("layout: {}", layout);
-    }
+        "mip level must be in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL, got {}",
+        layout
+    ) {}
 
     VkCopyImageToBufferInfo2 const info{
         .sType = VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2,

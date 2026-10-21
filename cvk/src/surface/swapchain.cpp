@@ -142,9 +142,7 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
 
 VkResult Swapchain::present(uint32_t imageIndex) {
     debug_check(*this);
-    CTH_CRITICAL(imageIndex >= imageCount() || !_acquired[imageIndex], "the image must be acquired") {
-        details->add("image index: {}", imageIndex);
-    }
+    CTH_CRITICAL(imageIndex >= imageCount() || !_acquired[imageIndex], "image {} must be acquired", imageIndex) {}
 
     collectRetired();
 
@@ -181,9 +179,7 @@ VkResult Swapchain::present(uint32_t imageIndex) {
 void Swapchain::unacquire(span<uint32_t const> imageIndices) {
     debug_check(*this);
     for(auto const index : imageIndices)
-        CTH_CRITICAL(index >= imageCount() || !_acquired[index], "the images must be acquired") {
-            details->add("image index: {}", index);
-        }
+        CTH_CRITICAL(index >= imageCount() || !_acquired[index], "image {} must be acquired", index) {}
 
     if(imageIndices.empty()) return;
 

@@ -238,17 +238,15 @@ constexpr void DescriptorSetLayout::Config::debug_check(Config const& config) {
         CTH_CRITICAL(
             (flags & VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT) != 0
             && static_cast<size_t>(index) + 1 != config.bindings.size(),
-            "only the binding with the highest number can have a variable descriptor count"
-        ) {
-            details->add("binding: {}", binding.binding);
-        }
+            "only the binding with the highest number can have a variable descriptor count, got binding {}",
+            binding.binding
+        ) {}
         CTH_CRITICAL(
             dynamic && (flags & (VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
                 | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT)) != 0,
-            "dynamic buffer bindings cannot update after bind or have a variable descriptor count"
-        ) {
-            details->add("binding: {}", binding.binding);
-        }
+            "dynamic buffer bindings cannot update after bind or have a variable descriptor count, got binding {}",
+            binding.binding
+        ) {}
     }
 }
 
