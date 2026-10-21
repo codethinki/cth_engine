@@ -28,6 +28,9 @@ struct MemoryConfig {
      */
     VkMemoryPropertyFlags preferredFlags = 0;
 
+    /**
+     * @return create info with the members of the config, no pool
+     */
     [[nodiscard]] constexpr VmaAllocationCreateInfo createInfo() const {
         return VmaAllocationCreateInfo{
             .flags = flags,

@@ -32,7 +32,8 @@ struct handle_deleter {
  *  a deleter derived from them or one of its own
  * @details a handle comes only together with its context: the constructors and reset() construct the deleter,
  *  a missing context argument does not compile,
- *  move assignment destroys the old handle with the old context, then takes handle and context
+ *  move assignment destroys the old handle with the old context, then takes handle and context,
+ *  the size is the size of the handle plus the size of the context
  */
 template<class Handle, class Deleter>
 class unique_handle {

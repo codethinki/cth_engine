@@ -25,7 +25,8 @@ class Surface;
 
 /**
  * @brief picks the physical device and owns it with the device, the allocator and the queues
- * @details the instance outlives the core
+ * @details the instance outlives the core,
+ *  the queues stay valid when the core moves
  */
 class Core {
 public:

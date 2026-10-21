@@ -22,6 +22,7 @@ class PhysicalDevice;
 
 /**
  * @brief VkDevice wrapper, owns the function table and the queues
+ * @details the queues stay valid when the device moves
  */
 class Device {
 public:
@@ -68,6 +69,7 @@ public:
 
     /**
      * @brief creates the device with the features and extensions of the config and retrieves the queues
+     * @details queues of one family get the indices 0, 1, ... in the order of @ref Config::queueFamilyIndices
      * @pre the physical device has the features and the extensions of the config
      * @post @ref created()
      * @note calls @ref optDestroy()

@@ -299,7 +299,7 @@ public:
     [[nodiscard]] constexpr VkCommandBufferLevel level() const { return _level; }
 
     /**
-     * @return recording, a reset of the pool ends it
+     * @return recording, a reset of the pool ends it, a moved from command buffer does not record
      */
     [[nodiscard]] constexpr bool recording() const {
         return created() && _recording && _beginResets == pool().resets();
