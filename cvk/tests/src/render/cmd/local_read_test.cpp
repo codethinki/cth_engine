@@ -298,7 +298,7 @@ CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
     Attachments const attachments{context.core};
     Draws const draws{context.core, attachments.firstView};
     CmdPool const pool{context.core, CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()}, create};
-    std::array<SecondaryCmdBuffer, 1> secondaries{SecondaryCmdBuffer{pool, create}};
+    SecondaryCmdBuffer secondary{pool, create};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         attachments.toRendering(cmd);
@@ -309,7 +309,6 @@ CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
         EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
 
         // the draw needs the mapping of the write pipeline in the secondary
-        auto& secondary = secondaries[0];
         auto const inheritance = cmd.inheritance();
         EXPECT_EQ(inheritance.attachmentMapping, write_first());
         secondary.begin(inheritance, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -320,7 +319,7 @@ CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
         draws.drawWrite(secondary);
         secondary.end();
 
-        cmd.execute(secondaries);
+        cmd.execute(secondary);
         cmd.endRendering();
     });
 }

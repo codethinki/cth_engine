@@ -131,6 +131,24 @@ CVK_TEST(CmdBuffer, execute_secondaries) {
     test::submit_and_wait(context, primary);
 }
 
+CVK_TEST(CmdBuffer, execute_secondaries_through_pointers) {
+    test::Context const context{};
+    CmdPool const pool{context.core, pool_config(context), create};
+    SecondaryCmdBuffer first{pool, create};
+    SecondaryCmdBuffer second{pool, create};
+    for(auto* secondary : {&first, &second}) {
+        secondary->begin();
+        secondary->end();
+    }
+
+    PrimaryCmdBuffer primary{pool, create};
+    primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    primary.execute(std::array{&first, &second});
+    primary.end();
+
+    test::submit_and_wait(context, primary);
+}
+
 CVK_TEST(CmdBuffer, secondary_begin_with_rendering_inheritance) {
     test::Context const context{};
     CmdPool const pool{context.core, pool_config(context), create};

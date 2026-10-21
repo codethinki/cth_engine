@@ -79,6 +79,10 @@ namespace {
         auto const extent = view.image().extent();
         return {std::max(extent.width >> mip, 1u), std::max(extent.height >> mip, 1u)};
     }
+
+    void debug_check_secondary(SecondaryCmdBuffer const& secondary) {
+        CTH_CRITICAL(!secondary.created() || secondary.recording(), "secondary must be created and not recording") {}
+    }
 }
 
 BaseCmdBuffer::BaseCmdBuffer(CmdPool const& pool, VkCommandBufferLevel level) : _handle{pool}, _level{level} {
@@ -561,25 +565,24 @@ void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
 }
 
 void PrimaryCmdBuffer::execute(span<SecondaryCmdBuffer const> secondaries) const {
-    debug_check(*this);
-    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
-    CTH_CRITICAL(
-        std::ranges::any_of(
-            secondaries,
-            [](SecondaryCmdBuffer const& secondary) { return !secondary.created() || secondary.recording(); }
-        ),
-        "secondaries must be created and not recording"
-    ) {}
-
-    CTH_CRITICAL(
-        rendering() != nullptr && (rendering()->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) == 0,
-        "the rendering must have VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT"
-    ) {}
+    for(auto const& secondary : secondaries)
+        debug_check_secondary(secondary);
 
     std::vector const vkBuffers{std::from_range, secondaries | std::views::transform(&SecondaryCmdBuffer::get)};
-
-    core().functions()->vkCmdExecuteCommands(get(), static_cast<uint32_t>(vkBuffers.size()), vkBuffers.data());
+    recordExecute(vkBuffers);
 }
+
+void PrimaryCmdBuffer::execute(span<SecondaryCmdBuffer const* const> secondaries) const {
+    for(auto const* secondary : secondaries) {
+        CTH_CRITICAL(secondary == nullptr, "secondary must not be nullptr") {}
+        debug_check_secondary(*secondary);
+    }
+
+    std::vector const vkBuffers{std::from_range, secondaries | std::views::transform(&SecondaryCmdBuffer::get)};
+    recordExecute(vkBuffers);
+}
+
+void PrimaryCmdBuffer::execute(SecondaryCmdBuffer const& secondary) const { execute({&secondary, 1}); }
 
 RenderingInheritance PrimaryCmdBuffer::inheritance() const {
     debug_check(*this);
@@ -606,6 +609,17 @@ RenderingInheritance PrimaryCmdBuffer::inheritance() const {
         .flags = info.flags & ~VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
         .attachmentMapping = info.attachmentMapping,
     };
+}
+
+void PrimaryCmdBuffer::recordExecute(span<VkCommandBuffer const> vkBuffers) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(
+        rendering() != nullptr && (rendering()->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) == 0,
+        "the rendering must have VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT"
+    ) {}
+
+    core().functions()->vkCmdExecuteCommands(get(), static_cast<uint32_t>(vkBuffers.size()), vkBuffers.data());
 }
 }
 

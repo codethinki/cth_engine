@@ -208,7 +208,7 @@ CVK_TEST(Rendering, secondary_inherits_the_rendering) {
     Image const image{context.core, COLOR_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
     CmdPool const pool{context.core, CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()}, create};
-    std::array<SecondaryCmdBuffer, 1> secondaries{SecondaryCmdBuffer{pool, create}};
+    SecondaryCmdBuffer secondary{pool, create};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         Barrier transition{};
@@ -218,13 +218,12 @@ CVK_TEST(Rendering, secondary_inherits_the_rendering) {
             {.colorAttachments = {clear_red(view)}, .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT}
         );
 
-        auto& secondary = secondaries[0];
         secondary.begin(cmd.inheritance(), VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         EXPECT_TRUE(secondary.recording());
         EXPECT_EQ(secondary.rendering(), nullptr);
         secondary.end();
 
-        cmd.execute(secondaries);
+        cmd.execute(secondary);
         cmd.endRendering();
     });
 }

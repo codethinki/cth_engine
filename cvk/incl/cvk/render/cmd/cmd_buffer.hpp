@@ -447,12 +447,33 @@ public:
     void execute(std::span<SecondaryCmdBuffer const> secondaries) const;
 
     /**
+     * @brief records the secondary command buffers, the secondaries can lie anywhere
+     * @pre the preconditions of @ref execute(std::span<SecondaryCmdBuffer const>) const
+     * @pre no pointer is nullptr
+     */
+    void execute(std::span<SecondaryCmdBuffer const* const> secondaries) const;
+
+    /**
+     * @brief records the secondary command buffer
+     * @details calls @ref execute(std::span<SecondaryCmdBuffer const>) const
+     */
+    void execute(SecondaryCmdBuffer const& secondary) const;
+
+    /**
      * @brief what a secondary inherits from the rendering
      * @details the formats and samples of the attachments, the flags without
      *  VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT, the current attachment mapping
      * @pre @ref rendering()
      */
     [[nodiscard]] RenderingInheritance inheritance() const;
+
+private:
+    /**
+     * @brief records vkCmdExecuteCommands() with the command buffers
+     * @pre @ref recording()
+     * @pre @ref rendering() -> VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
+     */
+    void recordExecute(std::span<VkCommandBuffer const>) const;
 };
 }
 
