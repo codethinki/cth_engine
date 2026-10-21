@@ -15,34 +15,24 @@
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
-#include <cstdint>
-#include <ranges>
+#include <utility>
 
 
 namespace cvk {
 namespace {
+    using test::GREEN;
+    using test::Vec3;
+
     constexpr VkExtent2D EXTENT{16, 16};
     constexpr std::array COLOR_FORMATS{VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM};
-    constexpr std::array<float, 4> GREEN{0.f, 1.f, 0.f, 1.f};
-    constexpr std::array<unsigned char, 4> GREEN_PIXEL{0, 255, 0, 255};
 
     constexpr BarrierScope COLOR_WRITE{
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     };
     constexpr BarrierScope INPUT_READ{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT};
-
-    struct Vec3 {
-        float x, y, z;
-    };
-
-    /**
-     * @brief one triangle that covers the whole viewport
-     */
-    constexpr std::array<Vec3, 3> FULLSCREEN{Vec3{-1.f, -1.f, 0.f}, Vec3{3.f, -1.f, 0.f}, Vec3{-1.f, 3.f, 0.f}};
 
     /**
      * @brief location 0 -> attachment 0, attachment 1 without output
@@ -122,11 +112,7 @@ namespace {
      * @brief fullscreen pipeline for the attachments
      */
     GraphicsPipeline::Config fullscreen(Shader const& vertex, Shader const& fragment, AttachmentMapping mapping) {
-        GraphicsPipeline::Config config{.colorFormats = {std::from_range, COLOR_FORMATS}};
-        config.addStage(vertex).addStage(fragment);
-        config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
-        config.vertexAttributes = {{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0}};
-        config.rasterization.cullMode = VK_CULL_MODE_NONE;
+        auto config = test::fullscreen_config(vertex, fragment, COLOR_FORMATS);
         config.attachmentMapping = std::move(mapping);
         return config;
     }
@@ -155,17 +141,10 @@ namespace {
             read{readLayout, fullscreen(vertex, localRead, copy_first_to_second()), create},
             pool{core, DescriptorPool::Config::ForLayouts({{&inputLayout}}), create},
             input{pool, inputLayout, create},
-            vertices{
-                core,
-                {
-                    .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                    .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
-                },
-                FULLSCREEN.size()
-            } {
+            vertices{core, test::host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
             // input attachment: VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR from the binding type
             input.write({0, first});
-            vertices.write(FULLSCREEN);
+            vertices.write(test::FULLSCREEN);
         }
 
         /**
@@ -237,11 +216,7 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
     test::Context const context{};
     Attachments const attachments{context.core};
     Draws const draws{context.core, attachments.firstView};
-    BaseBuffer const readback{
-        context.core,
-        {.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT, .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT}},
-        size_t{EXTENT.width} * EXTENT.height * 4
-    };
+    BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         attachments.toRendering(cmd);
@@ -286,18 +261,14 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
         test::host_read_barrier(context, cmd);
     });
 
-    auto const pixels = readback.map();
-    readback.invalidate();
-    auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
-    for(auto const pixel : pixels | std::views::chunk(4))
-        EXPECT_TRUE(std::ranges::equal(pixel, GREEN_PIXEL, {}, asByte));
+    EXPECT_TRUE(test::every_pixel_is(readback, test::GREEN_PIXEL));
 }
 
 CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
     test::Context const context{};
     Attachments const attachments{context.core};
     Draws const draws{context.core, attachments.firstView};
-    CmdPool const pool{context.core, CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()}, create};
+    CmdPool const pool{context.core, test::pool_config(context.core), create};
     SecondaryCmdBuffer secondary{pool, create};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {

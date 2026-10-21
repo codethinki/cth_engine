@@ -8,11 +8,7 @@
 
 
 namespace cvk {
-namespace {
-    CmdPool::Config pool_config(test::Context const& context) {
-        return CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()};
-    }
-}
+using test::pool_config;
 
 CVK_TEST(CmdPool, config_create_info) {
     constexpr CmdPool::Config config{.queueFamilyIndex = 2, .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT};
@@ -37,7 +33,7 @@ CVK_TEST(CmdPool, config_is_an_aggregate_with_defaults) {
 CVK_TEST(CmdPool, base_constructor_does_not_create) {
     test::Context const context{};
 
-    CmdPool const pool{context.core, pool_config(context)};
+    CmdPool const pool{context.core, pool_config(context.core)};
 
     EXPECT_FALSE(pool.created());
     EXPECT_TRUE(pool.unused());
@@ -45,7 +41,7 @@ CVK_TEST(CmdPool, base_constructor_does_not_create) {
 
 CVK_TEST(CmdPool, create_and_destroy) {
     test::Context const context{};
-    CmdPool pool{context.core, pool_config(context), create};
+    CmdPool pool{context.core, pool_config(context.core), create};
 
     ASSERT_TRUE(pool.created());
     EXPECT_EQ(&pool.core(), &context.core);
@@ -56,7 +52,7 @@ CVK_TEST(CmdPool, create_and_destroy) {
 
 CVK_TEST(CmdPool, counts_its_command_buffers) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
 
     {
         PrimaryCmdBuffer primary{pool, create};
@@ -72,7 +68,7 @@ CVK_TEST(CmdPool, counts_its_command_buffers) {
 
 CVK_TEST(CmdPool, release_of_a_buffer_stops_the_count) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
 
     auto const state = primary.release();
@@ -83,7 +79,7 @@ CVK_TEST(CmdPool, release_of_a_buffer_stops_the_count) {
 
 CVK_TEST(CmdPool, owner_of_a_released_buffer_counts_it) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
 
     auto const state = primary.release();
@@ -97,7 +93,7 @@ CVK_TEST(CmdPool, owner_of_a_released_buffer_counts_it) {
 
 CVK_TEST(CmdPool, reset_returns_the_buffers_to_the_initial_state) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
     primary.begin();
     primary.end();
@@ -111,7 +107,7 @@ CVK_TEST(CmdPool, reset_returns_the_buffers_to_the_initial_state) {
 
 CVK_TEST(CmdPool, reset_ends_the_recording) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
     SecondaryCmdBuffer secondary{pool, create};
     primary.begin();
@@ -129,20 +125,20 @@ CVK_TEST(CmdPool, reset_ends_the_recording) {
 
 CVK_TEST(CmdPool, release_and_wrap) {
     test::Context const context{};
-    CmdPool pool{context.core, pool_config(context), create};
+    CmdPool pool{context.core, pool_config(context.core), create};
     auto const vkPool = pool.get();
 
     auto const state = pool.release();
     EXPECT_FALSE(pool.created());
 
-    CmdPool const wrapped{context.core, pool_config(context), state};
+    CmdPool const wrapped{context.core, pool_config(context.core), state};
     EXPECT_EQ(wrapped.get(), vkPool);
 }
 
 CVK_TEST(CmdPool, move_assignment_destroys_the_old_pool) {
     test::Context const context{};
-    CmdPool pool{context.core, pool_config(context), create};
-    CmdPool other{context.core, pool_config(context), create};
+    CmdPool pool{context.core, pool_config(context.core), create};
+    CmdPool other{context.core, pool_config(context.core), create};
     auto const vkPool = other.get();
 
     pool = std::move(other);

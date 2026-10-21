@@ -11,38 +11,20 @@
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <ranges>
 #include <span>
 
 
 namespace cvk {
 namespace {
+    using test::GREEN;
+    using test::host_written;
+    using test::Vec3;
+
     constexpr VkExtent2D EXTENT{16, 16};
     constexpr std::array COLOR_FORMATS{VK_FORMAT_R8G8B8A8_UNORM};
-    constexpr std::array<float, 4> GREEN{0.f, 1.f, 0.f, 1.f};
-
-    constexpr BaseBuffer::Config READBACK_CONFIG{
-        .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
-    };
-
-    struct Vec3 {
-        float x, y, z;
-    };
-
-    /**
-     * @brief one triangle that covers the whole viewport
-     */
-    constexpr std::array<Vec3, 3> FULLSCREEN{Vec3{-1.f, -1.f, 0.f}, Vec3{3.f, -1.f, 0.f}, Vec3{-1.f, 3.f, 0.f}};
-
-    template<class T>
-    constexpr Buffer<T>::Config host_written(VkBufferUsageFlags usage) {
-        return {.usage = usage, .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT}};
-    }
 
     /**
      * @brief pipeline that fills the triangle with the push constant color
@@ -55,20 +37,9 @@ namespace {
             },
             vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
             fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
-            pipeline{layout, config(), create},
-            vertices{core, host_written<Vec3>(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), FULLSCREEN.size()} {
-            vertices.write(FULLSCREEN);
-        }
-
-        [[nodiscard]] GraphicsPipeline::Config config() const {
-            GraphicsPipeline::Config config{.colorFormats = {std::from_range, COLOR_FORMATS}};
-            config.addStage(vertex).addStage(fragment);
-            config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
-            config.vertexAttributes = {
-                {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0},
-            };
-            config.rasterization.cullMode = VK_CULL_MODE_NONE;
-            return config;
+            pipeline{layout, test::fullscreen_config(vertex, fragment, COLOR_FORMATS), create},
+            vertices{core, host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
+            vertices.write(test::FULLSCREEN);
         }
 
         PipelineLayout layout;
@@ -93,7 +64,7 @@ namespace {
             EXTENT
         };
         ImageView const view{image, {}, create};
-        BaseBuffer const readback{context.core, READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
+        BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
 
         test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
             Barrier transition{};
@@ -132,12 +103,7 @@ namespace {
             test::host_read_barrier(context, cmd);
         });
 
-        auto const pixels = readback.map();
-        readback.invalidate();
-        constexpr std::array<unsigned char, 4> green{0, 255, 0, 255};
-        auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
-        for(auto const pixel : pixels | std::views::chunk(4))
-            EXPECT_TRUE(std::ranges::equal(pixel, green, {}, asByte));
+        EXPECT_TRUE(test::every_pixel_is(readback, test::GREEN_PIXEL));
     }
 }
 
@@ -158,7 +124,7 @@ CVK_TEST(Draw, draw) {
 CVK_TEST(Draw, draw_indexed) {
     test::Context const context{};
     Fill const fill{context.core};
-    Buffer<uint16_t> indices{context.core, host_written<uint16_t>(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), 3};
+    Buffer<uint16_t> indices{context.core, host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), 3};
     indices.write(std::array<uint16_t, 3>{0, 1, 2});
 
     expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) {
@@ -172,7 +138,7 @@ CVK_TEST(Draw, draw_indirect) {
     Fill const fill{context.core};
     Buffer<VkDrawIndirectCommand> commands{
         context.core,
-        host_written<VkDrawIndirectCommand>(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
+        host_written(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
         1
     };
     commands.write(
@@ -185,11 +151,11 @@ CVK_TEST(Draw, draw_indirect) {
 CVK_TEST(Draw, draw_indexed_indirect) {
     test::Context const context{};
     Fill const fill{context.core};
-    Buffer<uint32_t> indices{context.core, host_written<uint32_t>(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), 3};
+    Buffer<uint32_t> indices{context.core, host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), 3};
     indices.write(std::array<uint32_t, 3>{0, 1, 2});
     Buffer<VkDrawIndexedIndirectCommand> commands{
         context.core,
-        host_written<VkDrawIndexedIndirectCommand>(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
+        host_written(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
         1
     };
     commands.write(

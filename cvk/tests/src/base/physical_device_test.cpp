@@ -9,27 +9,25 @@
 
 #include <algorithm>
 #include <array>
+#include <span>
 #include <string>
 #include <vector>
 
 
 namespace cvk {
 namespace {
-    /**
-     * @brief one queue, some devices have one queue only
-     */
-    constexpr std::array QUEUES{
-        QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::COMPUTE | QueueFamilyProperties::TRANSFER
-    };
+    using test::Context;
+    using test::QUEUES;
+
     constexpr std::array PRESENT_QUEUES{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
 
     std::vector<std::string> const UNKNOWN_EXTENSION{"VK_CVK_extension_that_does_not_exist"};
 }
 
 CVK_TEST(PhysicalDevice, pick_finds_the_queues) {
-    Instance const instance{test::instance_config(), create};
+    Context const context{};
 
-    auto const pick = pick_physical_device(instance, {}, QUEUES, constants::BASE_DEVICE_FEATURES);
+    auto const pick = pick_physical_device(context.instance, {}, QUEUES, constants::BASE_DEVICE_FEATURES);
 
     ASSERT_TRUE(pick.has_value());
     auto const& [device, familyIndices] = *pick;
@@ -43,9 +41,9 @@ CVK_TEST(PhysicalDevice, pick_finds_the_queues) {
 }
 
 CVK_TEST(PhysicalDevice, picked_device_has_the_features) {
-    Instance const instance{test::instance_config(), create};
+    Context const context{};
 
-    auto const [device, _] = test::pick(instance, QUEUES);
+    auto const [device, _] = test::pick(context.instance, QUEUES);
 
     EXPECT_TRUE(device.missing(constants::BASE_DEVICE_FEATURES).empty());
     EXPECT_TRUE(device.features().dynamicRenderingLocalRead);
@@ -54,46 +52,46 @@ CVK_TEST(PhysicalDevice, picked_device_has_the_features) {
 }
 
 CVK_TEST(PhysicalDevice, missing_names_the_extensions) {
-    Instance const instance{test::instance_config(), create};
-    auto const [device, _] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const [device, _] = test::pick(context.instance, QUEUES);
 
     EXPECT_EQ(device.missing({}, UNKNOWN_EXTENSION), UNKNOWN_EXTENSION);
 }
 
 CVK_TEST(PhysicalDevice, pick_with_a_missing_extension_finds_nothing) {
-    Instance const instance{test::instance_config(), create};
+    Context const context{};
 
-    EXPECT_FALSE(pick_physical_device(instance, {}, QUEUES, {}, UNKNOWN_EXTENSION).has_value());
+    EXPECT_FALSE(pick_physical_device(context.instance, {}, QUEUES, {}, UNKNOWN_EXTENSION).has_value());
 }
 
 CVK_TEST(PhysicalDevice, pick_present_without_surfaces_finds_nothing) {
-    Instance const instance{test::instance_config(), create};
+    Context const context{};
 
-    EXPECT_FALSE(pick_physical_device(instance, {}, PRESENT_QUEUES, {}).has_value());
+    EXPECT_FALSE(pick_physical_device(context.instance, {}, PRESENT_QUEUES, {}).has_value());
 }
 
 CVK_TEST(PhysicalDevice, pick_present_finds_a_family_of_the_surface) {
-    Instance const instance{test::instance_config(test::headless_extensions()), create};
-    std::array const surfaces{test::headless_surface(instance)};
+    test::PresentContext const context{};
+    std::span const surfaces{&context.surface(), 1};
 
-    auto const [device, familyIndices] = test::pick(instance, PRESENT_QUEUES, surfaces);
+    auto const [device, familyIndices] = test::pick(context.instance, PRESENT_QUEUES, surfaces);
 
     EXPECT_TRUE(device.features().swapchainMaintenance1);
     ASSERT_EQ(familyIndices.size(), 1);
-    EXPECT_TRUE(surfaces[0].supportsFamily(device, familyIndices[0]));
+    EXPECT_TRUE(context.surface().supportsFamily(device, familyIndices[0]));
 }
 
 CVK_TEST(PhysicalDevice, enumerate_without_surfaces_has_no_present) {
-    Instance const instance{test::instance_config(), create};
+    Context const context{};
 
-    for(auto const& device : enumerate_physical_devices(instance))
+    for(auto const& device : enumerate_physical_devices(context.instance))
         for(auto const& family : device.queueFamilies())
             EXPECT_FALSE(contains(family.properties, QueueFamilyProperties::PRESENT));
 }
 
 CVK_TEST(PhysicalDevice, copy_keeps_the_queried_members) {
-    Instance const instance{test::instance_config(), create};
-    auto const [device, _] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const [device, _] = test::pick(context.instance, QUEUES);
 
     PhysicalDevice const copy{device};
 
@@ -107,7 +105,7 @@ CVK_TEST(PhysicalDevice, copy_keeps_the_queried_members) {
 }
 
 CVK_TEST(PhysicalDevice, uuid_is_the_device_uuid) {
-    test::Context const context{};
+    Context const context{};
     auto const& device = context.core.physicalDevice();
 
     VkPhysicalDeviceIDProperties idProperties{
@@ -134,8 +132,8 @@ CVK_TEST(PhysicalDevice, type_rank_prefers_discrete_integrated_virtual_cpu_other
 }
 
 CVK_TEST(PhysicalDevice, find_supported_format) {
-    Instance const instance{test::instance_config(), create};
-    auto const [device, _] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const& device = context.core.physicalDevice();
 
     // R8G8B8A8_UNORM sampled images with optimal tiling are mandatory
     std::array const candidates{VK_FORMAT_R8G8B8A8_UNORM};

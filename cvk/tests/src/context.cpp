@@ -3,24 +3,18 @@
 #include "validation.hpp"
 
 #include "cvk/render/cmd/cmd_buffer.hpp"
+#include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/fence.hpp"
 
+#include <algorithm>
+#include <cstddef>
 #include <optional>
+#include <ranges>
 #include <span>
 
 
 namespace cvk::test {
-Core::Config const Context::CONFIG{
-    .queueProperties = {QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::COMPUTE},
-};
-
-struct Context::Owned {
-    explicit Owned(Core::Config const& config) : instance{instance_config(), create, counting_messenger()},
-        core{instance, {}, config} {}
-
-    Instance instance;
-    Core core;
-};
+Core::Config const Context::CONFIG{.queueProperties = {std::from_range, QUEUES}};
 
 Core::Config const PresentContext::CONFIG{
     .queueProperties = {QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT},
@@ -75,13 +69,40 @@ namespace {
 
 Context::Context() : instance{shared_contexts().instance}, core{shared_core()} {}
 
-Context::Context(Core::Config const& config) : _owned{std::make_unique<Owned>(config)},
-    instance{_owned->instance}, core{_owned->core} {}
-
-Context::~Context() = default;
+Context::Context(Core::Config const& config) :
+    _core{std::in_place, shared_contexts().instance, std::span<Surface const>{}, config},
+    instance{shared_contexts().instance}, core{*_core} {}
 
 PresentContext::PresentContext() : instance{shared_contexts().instance}, core{shared_present_core()},
     _surface{shared_surface()} {}
+
+InstanceContext::InstanceContext(std::vector<std::string> extensions) :
+    instance{instance_config(std::move(extensions)), create, counting_messenger()} {}
+
+CmdPool::Config pool_config(Core const& core) { return {.queueFamilyIndex = core.queue(0).familyIndex()}; }
+
+GraphicsPipeline::Config fullscreen_config(
+    Shader const& vertex,
+    Shader const& fragment,
+    std::span<VkFormat const> colorFormats
+) {
+    GraphicsPipeline::Config config{.colorFormats = {std::from_range, colorFormats}};
+    config.addStage(vertex).addStage(fragment);
+    config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
+    config.vertexAttributes = {{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0}};
+    config.rasterization.cullMode = VK_CULL_MODE_NONE;
+    return config;
+}
+
+bool every_pixel_is(BaseBuffer const& readback, std::array<unsigned char, 4> pixel) {
+    auto const pixels = readback.map();
+    readback.invalidate();
+    auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
+    return std::ranges::all_of(
+        pixels | std::views::chunk(4),
+        [&](auto const& bytes) { return std::ranges::equal(bytes, pixel, {}, asByte); }
+    );
+}
 
 void destroy_shared_contexts() {
     if(!shared.has_value()) return;
@@ -143,7 +164,11 @@ void copy_to_buffer(
         .bufferImageHeight = 0,
         .imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, mipLevel, 0, 1},
         .imageOffset = {0, 0, 0},
-        .imageExtent = {image.extent().width >> mipLevel, image.extent().height >> mipLevel, 1},
+        .imageExtent = {
+            std::max(image.extent().width >> mipLevel, 1u),
+            std::max(image.extent().height >> mipLevel, 1u),
+            1,
+        },
     };
     VkCopyImageToBufferInfo2 const info{
         .sType = VK_STRUCTURE_TYPE_COPY_IMAGE_TO_BUFFER_INFO_2,

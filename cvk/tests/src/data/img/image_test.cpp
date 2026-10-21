@@ -15,6 +15,9 @@
 
 namespace cvk {
 namespace {
+    using test::READBACK_CONFIG;
+    using test::STAGING_CONFIG;
+
     constexpr VkExtent2D EXTENT{64, 32};
 
     /**
@@ -45,16 +48,6 @@ namespace {
         .format = VK_FORMAT_R8G8B8A8_UNORM,
         .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
         .mipLevels = mip_level_count(EXTENT),
-    };
-
-    constexpr BaseBuffer::Config STAGING_CONFIG{
-        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
-    };
-
-    constexpr BaseBuffer::Config READBACK_CONFIG{
-        .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
     };
 }
 

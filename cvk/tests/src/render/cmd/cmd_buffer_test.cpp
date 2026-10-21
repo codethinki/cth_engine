@@ -11,11 +11,7 @@
 
 
 namespace cvk {
-namespace {
-    CmdPool::Config pool_config(test::Context const& context) {
-        return CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()};
-    }
-}
+using test::pool_config;
 
 CVK_TEST(CmdBuffer, inheritance_rendering_info) {
     static_assert([] {
@@ -50,7 +46,7 @@ CVK_TEST(CmdBuffer, delete_only_through_the_derived_class) {
 
 CVK_TEST(CmdBuffer, base_constructor_does_not_create) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
 
     PrimaryCmdBuffer const primary{pool};
     SecondaryCmdBuffer const secondary{pool};
@@ -64,7 +60,7 @@ CVK_TEST(CmdBuffer, base_constructor_does_not_create) {
 
 CVK_TEST(CmdBuffer, create_and_destroy) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
 
     ASSERT_TRUE(primary.created());
@@ -77,7 +73,7 @@ CVK_TEST(CmdBuffer, create_and_destroy) {
 
 CVK_TEST(CmdBuffer, begin_and_end) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
 
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -89,7 +85,7 @@ CVK_TEST(CmdBuffer, begin_and_end) {
 
 CVK_TEST(CmdBuffer, submit) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     primary.end();
@@ -99,7 +95,7 @@ CVK_TEST(CmdBuffer, submit) {
 
 CVK_TEST(CmdBuffer, reset_and_record_again) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
     primary.begin();
 
@@ -113,7 +109,7 @@ CVK_TEST(CmdBuffer, reset_and_record_again) {
 
 CVK_TEST(CmdBuffer, execute_secondaries) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     std::array<SecondaryCmdBuffer, 2> secondaries{
         SecondaryCmdBuffer{pool, create},
         SecondaryCmdBuffer{pool, create},
@@ -133,7 +129,7 @@ CVK_TEST(CmdBuffer, execute_secondaries) {
 
 CVK_TEST(CmdBuffer, execute_secondaries_through_pointers) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     // secondaries[1] is not recorded, the iterator pair [&secondaries[0], &secondaries[2]) would execute it
     std::array<SecondaryCmdBuffer, 3> secondaries{
         SecondaryCmdBuffer{pool, create},
@@ -155,7 +151,7 @@ CVK_TEST(CmdBuffer, execute_secondaries_through_pointers) {
 
 CVK_TEST(CmdBuffer, secondary_begin_with_rendering_inheritance) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     SecondaryCmdBuffer secondary{pool, create};
 
     secondary.begin(
@@ -171,7 +167,7 @@ CVK_TEST(CmdBuffer, secondary_begin_with_rendering_inheritance) {
 
 CVK_TEST(CmdBuffer, release_and_wrap) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
     auto const vkBuffer = primary.get();
 
@@ -185,7 +181,7 @@ CVK_TEST(CmdBuffer, release_and_wrap) {
 
 CVK_TEST(CmdBuffer, moved_from_buffer_does_not_record) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
     primary.begin();
 
@@ -202,7 +198,7 @@ CVK_TEST(CmdBuffer, moved_from_buffer_does_not_record) {
 
 CVK_TEST(CmdBuffer, move_assignment_frees_the_old_buffer) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context), create};
+    CmdPool const pool{context.core, pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
     PrimaryCmdBuffer other{pool, create};
     auto const vkBuffer = other.get();

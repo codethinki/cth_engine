@@ -5,15 +5,21 @@
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
+#include <cth/os/osdef.hpp>
 
-#ifdef _WIN32
+#ifdef CTH_PLATFORM_WINDOWS
+#include <process.h>
 #define CVK_NULL_DEVICE "NUL"
 #else
+#include <unistd.h>
 #define CVK_NULL_DEVICE "/dev/null"
 #endif
+
+#include <cstdlib>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <system_error>
 
 
 namespace cvk {
@@ -21,10 +27,45 @@ namespace {
     using test::shaders::TRIANGLE_VERT;
 
     /**
-     * @brief writes bytes to a file in the temp directory
+     * @return glslc runs, the check runs once per process
+     */
+    bool glslc_available() {
+        static bool const available = std::system("glslc --version >" CVK_NULL_DEVICE " 2>&1") == 0;
+        return available;
+    }
+
+    auto process_id() {
+#ifdef CTH_PLATFORM_WINDOWS
+        return _getpid();
+#else
+        return getpid();
+#endif
+    }
+
+    /**
+     * @return directory of this process for the temp files, the process exit removes it
+     * @details one directory per process: test processes can run at the same time
+     */
+    std::filesystem::path const& temp_dir() {
+        struct Directory {
+            Directory() { std::filesystem::create_directories(path); }
+            ~Directory() {
+                std::error_code error{};
+                std::filesystem::remove_all(path, error);
+            }
+
+            std::filesystem::path path = std::filesystem::temp_directory_path()
+                / std::format("cvk_tests_{}", process_id());
+        };
+        static Directory const directory{};
+        return directory.path;
+    }
+
+    /**
+     * @brief writes bytes to a file in @ref temp_dir()
      */
     std::filesystem::path write_temp(std::string_view name, std::span<char const> bytes) {
-        auto path = std::filesystem::temp_directory_path() / name;
+        auto path = temp_dir() / name;
         std::ofstream file{path, std::ios::binary};
         file.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
         return path;
@@ -69,8 +110,7 @@ CVK_TEST(Shader, create_from_file) {
 }
 
 CVK_TEST(Shader, load_rejects_bad_files) {
-    auto const missing = std::filesystem::temp_directory_path() / "cvk_test_missing.spv";
-    std::filesystem::remove(missing);
+    auto const missing = temp_dir() / "cvk_test_missing.spv";
     EXPECT_THROW([[maybe_unused]] auto const spv = Shader::load(missing), cvk_exception);
 
     constexpr std::array<char, 5> notWords{1, 2, 3, 4, 5};
@@ -109,9 +149,9 @@ CVK_TEST(Shader, move_assignment_destroys_the_old_shader) {
 }
 
 CVK_TEST(Shader, compile_and_create) {
-    if(std::system("glslc --version >" CVK_NULL_DEVICE " 2>&1") != 0) GTEST_SKIP() << "glslc not found";
+    if(!glslc_available()) GTEST_SKIP() << "glslc not found";
     test::Context const context{};
-    auto const spvPath = std::filesystem::temp_directory_path() / "cvk_test_compiled.vert.spv";
+    auto const spvPath = temp_dir() / "cvk_test_compiled.vert.spv";
 
     Shader const shader{context.core, VK_SHADER_STAGE_VERTEX_BIT, spvPath, test::SHADER_DIR / "triangle.vert"};
 
@@ -122,10 +162,10 @@ CVK_TEST(Shader, compile_and_create) {
 }
 
 CVK_TEST(Shader, compile_error_throws) {
-    if(std::system("glslc --version >" CVK_NULL_DEVICE " 2>&1") != 0) GTEST_SKIP() << "glslc not found";
+    if(!glslc_available()) GTEST_SKIP() << "glslc not found";
     constexpr std::string_view broken = "#version 450\nvoid main() { undeclared = 1; }\n";
     auto const glslPath = write_temp("cvk_test_broken.vert", broken);
-    auto const spvPath = std::filesystem::temp_directory_path() / "cvk_test_broken.vert.spv";
+    auto const spvPath = temp_dir() / "cvk_test_broken.vert.spv";
 
     EXPECT_THROW(Shader::compile(glslPath, spvPath), cvk_exception);
 
@@ -133,8 +173,7 @@ CVK_TEST(Shader, compile_error_throws) {
 }
 
 CVK_TEST(Shader, compile_missing_glsl_throws) {
-    auto const missing = std::filesystem::temp_directory_path() / "cvk_test_missing.vert";
-    std::filesystem::remove(missing);
+    auto const missing = temp_dir() / "cvk_test_missing.vert";
 
     EXPECT_THROW(Shader::compile(missing, missing.string() + ".spv"), cvk_exception);
 }

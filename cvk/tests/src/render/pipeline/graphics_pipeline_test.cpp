@@ -128,7 +128,7 @@ CVK_TEST(GraphicsPipeline, bind) {
     test::Context const context{};
     Triangle const triangle{context.core};
     GraphicsPipeline const pipeline{triangle.layout, triangle.config(), create};
-    CmdPool const pool{context.core, CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()}, create};
+    CmdPool const pool{context.core, test::pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
 
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);

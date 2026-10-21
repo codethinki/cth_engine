@@ -1,7 +1,6 @@
 #include "context.hpp"
 #include "headless.hpp"
 #include "test.hpp"
-#include "validation.hpp"
 
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
@@ -10,19 +9,14 @@
 #include "cvk/utility/vk_overloads.hpp"
 
 #include <algorithm>
-#include <array>
 #include <vector>
 
 
 namespace cvk {
-namespace {
-    constexpr std::array PRESENT_QUEUES{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
-}
-
 CVK_TEST(Surface, wrap_takes_ownership) {
-    Instance const instance{test::instance_config(test::headless_extensions()), create};
+    test::Context const context{};
 
-    auto surface = test::headless_surface(instance);
+    auto surface = test::headless_surface(context.instance);
 
     ASSERT_TRUE(surface.created());
     EXPECT_NE(surface.get(), VK_NULL_HANDLE);
@@ -32,13 +26,13 @@ CVK_TEST(Surface, wrap_takes_ownership) {
 }
 
 CVK_TEST(Surface, release_keeps_the_surface) {
-    Instance const instance{test::instance_config(test::headless_extensions()), create};
-    auto surface = test::headless_surface(instance);
+    test::Context const context{};
+    auto surface = test::headless_surface(context.instance);
 
     auto const state = surface.release();
     EXPECT_FALSE(surface.created());
 
-    Surface::destroy(instance.get(), state.vkSurface.get());
+    Surface::destroy(context.instance.get(), state.vkSurface.get());
 }
 
 CVK_TEST(Surface, formats_are_every_offered_format) {
@@ -77,11 +71,9 @@ CVK_TEST(Surface, present_modes_are_every_offered_present_mode) {
 }
 
 CVK_TEST(Surface, capabilities) {
-    Instance const instance{test::instance_config(test::headless_extensions()), create};
-    std::array const surfaces{test::headless_surface(instance)};
-    auto const [device, _] = test::pick(instance, PRESENT_QUEUES, surfaces);
+    test::PresentContext const context{};
 
-    auto const capabilities = surfaces[0].capabilities(device);
+    auto const capabilities = context.surface().capabilities(context.core.physicalDevice());
 
     EXPECT_GE(capabilities.minImageCount, 1);
 }
@@ -89,18 +81,14 @@ CVK_TEST(Surface, capabilities) {
 CVK_TEST(Surface, move_assignment_destroys_the_old_surface) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
-    test::reset_validation_errors();
-    {
-        Instance const instance{test::instance_config(test::headless_extensions()), create, test::counting_messenger()};
-        auto surface = test::headless_surface(instance);
-        auto other = test::headless_surface(instance);
-        auto const vkSurface = other.get();
+    test::InstanceContext const context{test::headless_extensions()};
+    auto surface = test::headless_surface(context.instance);
+    auto other = test::headless_surface(context.instance);
+    auto const vkSurface = other.get();
 
-        surface = std::move(other);
+    surface = std::move(other);
 
-        EXPECT_EQ(surface.get(), vkSurface);
-        EXPECT_FALSE(other.created());
-    }
-    EXPECT_EQ(test::validation_errors(), 0);
+    EXPECT_EQ(surface.get(), vkSurface);
+    EXPECT_FALSE(other.created());
 }
 }

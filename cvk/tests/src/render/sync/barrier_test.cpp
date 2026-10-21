@@ -199,7 +199,7 @@ CVK_TEST(Barrier, aggregate_is_constexpr) {
 CVK_TEST(Barrier, add_and_clear) {
     test::Context const context{};
     BaseBuffer const buffer{context.core, {.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT}, 64};
-    Barrier barrier{};
+    Barrier barrier{VK_DEPENDENCY_BY_REGION_BIT};
     EXPECT_TRUE(barrier.empty());
 
     barrier.add(FRAGMENT_READ, TRANSFER_WRITE);
@@ -208,6 +208,7 @@ CVK_TEST(Barrier, add_and_clear) {
 
     barrier.clear();
     EXPECT_TRUE(barrier.empty());
+    EXPECT_EQ(barrier.flags, VK_DEPENDENCY_BY_REGION_BIT);
 }
 
 CVK_TEST(Barrier, execute_memory_and_buffer_barriers) {
@@ -218,8 +219,6 @@ CVK_TEST(Barrier, execute_memory_and_buffer_barriers) {
     barrier.add(buffer, {.src = TRANSFER_WRITE, .dst = FRAGMENT_READ, .offset = 16, .size = 32});
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { barrier.execute(primary); });
-
-    EXPECT_EQ(barrier.flags, VK_DEPENDENCY_BY_REGION_BIT);
 }
 
 CVK_TEST(Barrier, image_layout_transition) {

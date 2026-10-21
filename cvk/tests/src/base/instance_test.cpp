@@ -1,3 +1,4 @@
+#include "context.hpp"
 #include "test.hpp"
 #include "validation.hpp"
 
@@ -20,9 +21,10 @@ CVK_TEST(Instance, base_constructor_does_not_create) {
 }
 
 CVK_TEST(Instance, create_and_destroy) {
+    test::Context::ValidationCheck const validationCheck{};
     Instance instance{test::instance_config()};
 
-    instance.create();
+    instance.create(test::counting_messenger());
     ASSERT_TRUE(instance.created());
     EXPECT_EQ(volkGetLoadedInstance(), instance.get());
 
@@ -31,24 +33,28 @@ CVK_TEST(Instance, create_and_destroy) {
 }
 
 CVK_TEST(Instance, constructor_creates) {
-    Instance const instance{test::instance_config(), create};
+    test::Context::ValidationCheck const validationCheck{};
+
+    Instance const instance{test::instance_config(), create, test::counting_messenger()};
 
     EXPECT_TRUE(instance.created());
 }
 
 CVK_TEST(Instance, create_twice_loads_the_new_instance) {
-    Instance instance{test::instance_config(), create};
+    test::InstanceContext context{};
 
-    instance.create();
+    context.instance.create(test::counting_messenger());
 
-    ASSERT_TRUE(instance.created());
-    EXPECT_EQ(volkGetLoadedInstance(), instance.get());
+    ASSERT_TRUE(context.instance.created());
+    EXPECT_EQ(volkGetLoadedInstance(), context.instance.get());
 }
 
 CVK_TEST(Instance, create_enables_the_extensions_of_the_config) {
     std::string const surface{VK_KHR_SURFACE_EXTENSION_NAME};
-    Instance const instance{test::instance_config({surface}), create};
 
+    test::InstanceContext const context{{surface}};
+
+    auto const& instance = context.instance;
     EXPECT_TRUE(std::ranges::contains(instance.extensions(), surface));
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         std::string const debugUtils{VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
@@ -59,8 +65,8 @@ CVK_TEST(Instance, create_enables_the_extensions_of_the_config) {
 
 CVK_TEST(Instance, create_with_a_missing_extension_throws_and_forgets) {
     // a created instance with the config of the missing extension: create() destroys it first
-    Instance created{test::instance_config(), create};
-    Instance instance{test::instance_config({"VK_CVK_extension_that_does_not_exist"}), created.release()};
+    test::InstanceContext context{};
+    Instance instance{test::instance_config({"VK_CVK_extension_that_does_not_exist"}), context.instance.release()};
     ASSERT_TRUE(instance.created());
 
     EXPECT_THROW(instance.create(), cvk_exception);
@@ -108,22 +114,19 @@ CVK_TEST(Instance, wrap_takes_ownership) {
 }
 
 CVK_TEST(Instance, move_assignment_takes_the_other_instance) {
-    test::reset_validation_errors();
-    {
-        Instance instance{test::instance_config(), create, test::counting_messenger()};
-        Instance other{test::instance_config(), create, test::counting_messenger()};
-        auto const vkInstance = other.get();
+    test::InstanceContext context{};
+    Instance other{test::instance_config(), create, test::counting_messenger()};
+    auto const vkInstance = other.get();
 
-        instance = std::move(other);
+    context.instance = std::move(other);
 
-        EXPECT_EQ(instance.get(), vkInstance);
-        EXPECT_FALSE(other.created());
-    }
-    EXPECT_EQ(test::validation_errors(), 0);
+    EXPECT_EQ(context.instance.get(), vkInstance);
+    EXPECT_FALSE(other.created());
 }
 
 CVK_TEST(Instance, release_and_wrap) {
-    Instance instance{test::instance_config(), create};
+    test::InstanceContext context{};
+    auto& instance = context.instance;
     auto const vkInstance = instance.get();
 
     auto const extensions = std::vector<std::string>{std::from_range, instance.extensions()};

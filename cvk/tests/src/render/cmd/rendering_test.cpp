@@ -7,11 +7,8 @@
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
-#include <cstdint>
-#include <ranges>
 
 
 namespace cvk {
@@ -35,6 +32,11 @@ namespace {
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     };
 
+    /**
+     * @brief the clear color of @ref clear_red() as a VK_FORMAT_R8G8B8A8_UNORM pixel
+     */
+    constexpr std::array<unsigned char, 4> RED_PIXEL{255, 0, 0, 255};
+
     RenderingAttachment clear_red(ImageView const& view, VkImageLayout layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL) {
         return RenderingAttachment{
             .view = &view,
@@ -50,11 +52,7 @@ CVK_TEST(Rendering, clear_a_color_attachment) {
     test::Context const context{};
     Image const image{context.core, COLOR_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
-    BaseBuffer const readback{
-        context.core,
-        {.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT, .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT}},
-        size_t{EXTENT.width} * EXTENT.height * 4
-    };
+    BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         Barrier transition{};
@@ -80,12 +78,7 @@ CVK_TEST(Rendering, clear_a_color_attachment) {
         test::host_read_barrier(context, cmd);
     });
 
-    auto const pixels = readback.map();
-    readback.invalidate();
-    auto const red = std::array<unsigned char, 4>{255, 0, 0, 255};
-    auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
-    for(auto const pixel : pixels | std::views::chunk(4))
-        EXPECT_TRUE(std::ranges::equal(pixel, red, {}, asByte));
+    EXPECT_TRUE(test::every_pixel_is(readback, RED_PIXEL));
 }
 
 CVK_TEST(Rendering, clear_every_layer) {
@@ -95,11 +88,7 @@ CVK_TEST(Rendering, clear_every_layer) {
     Image const image{context.core, config, EXTENT};
     ImageView const view{image, {}, create};
     size_t const layerSize = size_t{EXTENT.width} * EXTENT.height * 4;
-    BaseBuffer const readback{
-        context.core,
-        {.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT, .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT}},
-        2 * layerSize
-    };
+    BaseBuffer const readback{context.core, test::READBACK_CONFIG, 2 * layerSize};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         Barrier transition{};
@@ -116,12 +105,7 @@ CVK_TEST(Rendering, clear_every_layer) {
         test::host_read_barrier(context, cmd);
     });
 
-    auto const pixels = readback.map();
-    readback.invalidate();
-    auto const red = std::array<unsigned char, 4>{255, 0, 0, 255};
-    auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
-    for(auto const pixel : pixels | std::views::chunk(4))
-        EXPECT_TRUE(std::ranges::equal(pixel, red, {}, asByte));
+    EXPECT_TRUE(test::every_pixel_is(readback, RED_PIXEL));
 }
 
 CVK_TEST(Rendering, tracks_the_current_rendering) {
@@ -207,7 +191,7 @@ CVK_TEST(Rendering, secondary_inherits_the_rendering) {
     test::Context const context{};
     Image const image{context.core, COLOR_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
-    CmdPool const pool{context.core, CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()}, create};
+    CmdPool const pool{context.core, test::pool_config(context.core), create};
     SecondaryCmdBuffer secondary{pool, create};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {

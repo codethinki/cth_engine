@@ -16,35 +16,21 @@
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <ranges>
 #include <span>
+#include <vector>
 
 
 namespace cvk {
 namespace {
+    using test::host_written;
+    using test::Vec3;
+
     constexpr VkExtent2D EXTENT{16, 16};
     constexpr std::array COLOR_FORMATS{VK_FORMAT_R8G8B8A8_UNORM};
-    constexpr std::array<float, 4> GREEN{0.f, 1.f, 0.f, 1.f};
-    constexpr std::array<unsigned char, 4> GREEN_PIXEL{0, 255, 0, 255};
-
-    struct Vec3 {
-        float x, y, z;
-    };
-
-    /**
-     * @brief one triangle that covers the whole viewport
-     */
-    constexpr std::array<Vec3, 3> FULLSCREEN{Vec3{-1.f, -1.f, 0.f}, Vec3{3.f, -1.f, 0.f}, Vec3{-1.f, 3.f, 0.f}};
-
-    template<class T>
-    typename Buffer<T>::Config host_written(VkBufferUsageFlags usage) {
-        return {.usage = usage, .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT}};
-    }
 
     /**
      * @brief fullscreen pipeline with one descriptor set and the fragment shader
@@ -58,20 +44,9 @@ namespace {
             },
             vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
             fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentCode},
-            pipeline{layout, config(), create},
-            vertices{core, host_written<Vec3>(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), FULLSCREEN.size()} {
-            vertices.write(FULLSCREEN);
-        }
-
-        [[nodiscard]] GraphicsPipeline::Config config() const {
-            GraphicsPipeline::Config config{.colorFormats = {std::from_range, COLOR_FORMATS}};
-            config.addStage(vertex).addStage(fragment);
-            config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
-            config.vertexAttributes = {
-                {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0},
-            };
-            config.rasterization.cullMode = VK_CULL_MODE_NONE;
-            return config;
+            pipeline{layout, test::fullscreen_config(vertex, fragment, COLOR_FORMATS), create},
+            vertices{core, host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
+            vertices.write(test::FULLSCREEN);
         }
 
         PipelineLayout layout;
@@ -94,14 +69,7 @@ namespace {
                 EXTENT
             },
             view{image, {}, create},
-            readback{
-                core,
-                {
-                    .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                    .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
-                },
-                size_t{EXTENT.width} * EXTENT.height * 4
-            } {}
+            readback{core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4} {}
 
         Image image;
         ImageView view;
@@ -154,14 +122,6 @@ namespace {
         test::copy_to_buffer(context, cmd, target.image, target.readback, 0, 0);
         test::host_read_barrier(context, cmd);
     }
-
-    void expect_green(Target const& target) {
-        auto const pixels = target.readback.map();
-        target.readback.invalidate();
-        auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
-        for(auto const pixel : pixels | std::views::chunk(4))
-            EXPECT_TRUE(std::ranges::equal(pixel, GREEN_PIXEL, {}, asByte));
-    }
 }
 
 CVK_TEST(DescriptorDraw, uniform_buffer_color) {
@@ -172,12 +132,8 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
     Fill const fill{context.core, setLayout, test::shaders::UNIFORM_COLOR_FRAG};
     Target const target{context.core};
 
-    Buffer<std::array<float, 4>> color{
-        context.core,
-        host_written<std::array<float, 4>>(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT),
-        1
-    };
-    color.write(std::array<std::array<float, 4>, 1>{GREEN});
+    Buffer<std::array<float, 4>> color{context.core, host_written(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), 1};
+    color.write(std::array<std::array<float, 4>, 1>{test::GREEN});
 
     DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&setLayout}}), create};
     DescriptorSet const set{pool, setLayout, create};
@@ -187,7 +143,7 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
         record_fill(context, cmd, fill, target, [&](BaseCmdBuffer& c) { c.bindDescriptorSet(set, fill.layout, 0); });
     });
 
-    expect_green(target);
+    EXPECT_TRUE(test::every_pixel_is(target.readback, test::GREEN_PIXEL));
 }
 
 namespace {
@@ -198,9 +154,6 @@ namespace {
      *  false -> one sampler2D, the descriptor comes before the recording, the layers check its layout at the draw
      */
     void draw_texture(test::Context const& context, VkImageLayout layout, bool afterBind) {
-        constexpr VkDescriptorBindingFlags BINDLESS = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
-            | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-            | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
         uint32_t const index = afterBind ? 17 : 0;
         auto const textureLayout = layout != VK_IMAGE_LAYOUT_MAX_ENUM ? layout
             : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -211,7 +164,7 @@ namespace {
             VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             VK_SHADER_STAGE_FRAGMENT_BIT,
             afterBind ? 64 : 1,
-            afterBind ? BINDLESS : 0
+            afterBind ? test::BINDLESS : 0
         );
         DescriptorSetLayout const setLayout{context.core, setConfig, create};
         Fill const fill{
@@ -231,8 +184,8 @@ namespace {
         };
         ImageView const view{texture, {}, create};
         Sampler const sampler{context.core, {}, create};
-        Buffer<unsigned char> staging{context.core, host_written<unsigned char>(VK_BUFFER_USAGE_TRANSFER_SRC_BIT), 4};
-        staging.write(GREEN_PIXEL);
+        Buffer<unsigned char> staging{context.core, test::STAGING_CONFIG, 4};
+        staging.write(test::GREEN_PIXEL);
 
         uint32_t const variableCount = afterBind ? 32 : 0;
         DescriptorPool const pool{
@@ -243,11 +196,7 @@ namespace {
         DescriptorSet const set{pool, setLayout, variableCount, create};
         if(!afterBind) set.write({0, view, sampler, index, layout});
 
-        CmdPool const cmdPool{
-            context.core,
-            CmdPool::Config{.queueFamilyIndex = context.core.queue(0).familyIndex()},
-            create
-        };
+        CmdPool const cmdPool{context.core, test::pool_config(context.core), create};
         PrimaryCmdBuffer cmd{cmdPool, create};
         cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -277,7 +226,7 @@ namespace {
         if(afterBind) set.write({0, view, sampler, index, layout});
         test::submit_and_wait(context, cmd);
 
-        expect_green(target);
+        EXPECT_TRUE(test::every_pixel_is(target.readback, test::GREEN_PIXEL));
     }
 }
 

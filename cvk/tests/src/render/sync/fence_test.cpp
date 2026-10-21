@@ -174,6 +174,7 @@ CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence) {
 
 CVK_TEST(Fence, release_and_wrap_keep_the_export_types) {
     test::Context const context{};
+    if(!os_fence_exportable(context.core)) GTEST_SKIP() << "os fence handle type not exportable";
     Fence fence{context.core, create, 0, constants::OS_FENCE_HANDLE_TYPE};
 
     auto const state = fence.release();

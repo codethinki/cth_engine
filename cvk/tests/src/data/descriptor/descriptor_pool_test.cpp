@@ -9,10 +9,6 @@
 
 namespace cvk {
 namespace {
-    constexpr VkDescriptorBindingFlags BINDLESS = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
-        | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-        | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-
     /**
      * @brief binding 0: 2 uniform buffers, binding 1: 1 combined image sampler
      */
@@ -28,7 +24,7 @@ namespace {
      */
     DescriptorSetLayout::Config bindless() {
         DescriptorSetLayout::Config config{};
-        config.add(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1024, BINDLESS);
+        config.add(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1024, test::BINDLESS);
         return config;
     }
 

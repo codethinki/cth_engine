@@ -1,7 +1,6 @@
 #include "context.hpp"
 #include "headless.hpp"
 #include "test.hpp"
-#include "validation.hpp"
 
 #include "cvk/base/instance.hpp"
 #include "cvk/data/memory/memory.hpp"
@@ -234,16 +233,12 @@ CVK_TEST(unique_handle, release_keeps_the_handle) {
 CVK_TEST(unique_handle, instance_deleter) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
-    test::reset_validation_errors();
-    {
-        Instance const instance{test::instance_config(test::headless_extensions()), create, test::counting_messenger()};
-        auto surface = test::headless_surface(instance);
+    test::InstanceContext const context{test::headless_extensions()};
+    auto surface = test::headless_surface(context.instance);
 
-        instance_handle<Surface> handle{surface.release().vkSurface.get(), instance.get()};
+    instance_handle<Surface> handle{surface.release().vkSurface.get(), context.instance.get()};
 
-        EXPECT_EQ(handle.vkInstance(), instance.get());
-    }
-    EXPECT_EQ(test::validation_errors(), 0);
+    EXPECT_EQ(handle.vkInstance(), context.instance.get());
 }
 
 CVK_TEST(unique_handle, handle_deleter) {

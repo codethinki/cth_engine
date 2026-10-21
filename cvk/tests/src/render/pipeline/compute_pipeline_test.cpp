@@ -141,10 +141,7 @@ CVK_TEST(ComputePipeline, dispatch_indirect_fills_a_storage_buffer) {
     test::Context const context{};
     Buffer<VkDispatchIndirectCommand> const indirect{
         context.core,
-        {
-            .usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
-            .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
-        },
+        test::host_written(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
         1
     };
     indirect.write(std::array{VkDispatchIndirectCommand{GROUPS, 1, 1}});

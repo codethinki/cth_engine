@@ -12,23 +12,10 @@
 
 namespace cvk {
 namespace {
+    using test::READBACK_CONFIG;
+    using test::STAGING_CONFIG;
+
     constexpr size_t SIZE = 256;
-
-    /**
-     * @brief staging buffer, the cpu writes it once
-     */
-    constexpr BaseBuffer::Config STAGING_CONFIG{
-        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
-    };
-
-    /**
-     * @brief buffer the cpu reads back
-     */
-    constexpr BaseBuffer::Config READBACK_CONFIG{
-        .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
-    };
 
     /**
      * @brief gpu only buffer
@@ -43,7 +30,7 @@ CVK_TEST(BaseBuffer, config_create_info) {
     static_assert(info.usage == VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
     static_assert(info.flags == 0);
     static_assert(info.sharingMode == VK_SHARING_MODE_EXCLUSIVE);
-    static_assert(info.queueFamilyIndexCount == 0 && info.pQueueFamilyIndices == nullptr);
+    static_assert(info.queueFamilyIndexCount == 0 && info.pQueueFamilyIndices == STAGING_CONFIG.queueFamilies.data());
     static_assert(STAGING_CONFIG.memory.autoUsage());
 }
 

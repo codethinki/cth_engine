@@ -126,9 +126,7 @@ CVK_TEST(DescriptorSetLayout, config_without_flags_keeps_no_flags) {
 
 CVK_TEST(DescriptorSetLayout, create_bindless) {
     test::Context const context{};
-    constexpr VkDescriptorBindingFlags BINDLESS = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
-        | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-        | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+    using test::BINDLESS;
 
     DescriptorSetLayout::Config config{};
     config.add(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)

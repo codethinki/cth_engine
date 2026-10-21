@@ -1,6 +1,6 @@
+#include "context.hpp"
 #include "headless.hpp"
 #include "test.hpp"
-#include "validation.hpp"
 
 #include "cvk/base/device.hpp"
 #include "cvk/base/instance.hpp"
@@ -11,17 +11,15 @@
 #include <array>
 #include <map>
 #include <ranges>
+#include <span>
 #include <string>
 
 
 namespace cvk {
 namespace {
-    /**
-     * @brief one queue, some devices have one queue only
-     */
-    constexpr std::array QUEUES{
-        QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::COMPUTE | QueueFamilyProperties::TRANSFER
-    };
+    using test::Context;
+    using test::QUEUES;
+
     constexpr std::array THREE_QUEUES{
         QueueFamilyProperties::GRAPHICS,
         QueueFamilyProperties::COMPUTE,
@@ -30,24 +28,24 @@ namespace {
 }
 
 CVK_TEST(Device, base_constructor_does_not_create) {
-    Instance const instance{test::instance_config(), create};
-    auto const [physicalDevice, _] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const [physicalDevice, _] = test::pick(context.instance, QUEUES);
 
-    Device const device{instance, physicalDevice};
+    Device const device{context.instance, physicalDevice};
 
     EXPECT_FALSE(device.created());
     EXPECT_TRUE(device.queues().empty());
 }
 
 CVK_TEST(Device, create_retrieves_the_queue) {
-    Instance const instance{test::instance_config(), create};
-    auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const [physicalDevice, familyIndices] = test::pick(context.instance, QUEUES);
 
-    Device const device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device const device{context.instance, physicalDevice, Device::Config{familyIndices}};
 
     ASSERT_TRUE(device.created());
     EXPECT_EQ(&device.physicalDevice(), &physicalDevice);
-    EXPECT_EQ(&device.instance(), &instance);
+    EXPECT_EQ(&device.instance(), &context.instance);
     ASSERT_EQ(device.queues().size(), 1);
 
     auto const& queue = device.queues()[0];
@@ -61,13 +59,13 @@ CVK_TEST(Device, create_retrieves_the_queue) {
 }
 
 CVK_TEST(Device, create_retrieves_the_queues) {
-    Instance const instance{test::instance_config(), create};
+    Context const context{};
 
-    auto const result = pick_physical_device(instance, {}, THREE_QUEUES, {});
+    auto const result = pick_physical_device(context.instance, {}, THREE_QUEUES, {});
     if(!result) GTEST_SKIP() << "needs a device with three queues";
     auto const& [physicalDevice, familyIndices] = *result;
 
-    Device const device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device const device{context.instance, physicalDevice, Device::Config{familyIndices}};
 
     ASSERT_TRUE(device.created());
     ASSERT_EQ(device.queues().size(), THREE_QUEUES.size());
@@ -85,14 +83,14 @@ CVK_TEST(Device, create_retrieves_the_queues) {
 }
 
 CVK_TEST(Device, queues_of_one_family_get_increasing_indices) {
-    Instance const instance{test::instance_config(), create};
-    auto const [physicalDevice, _] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const [physicalDevice, _] = test::pick(context.instance, QUEUES);
 
     auto const families = physicalDevice.queueFamilies();
     auto const family = std::ranges::find_if(families, [](auto const& f) { return f.vkProperties.queueCount >= 2; });
     if(family == families.end()) GTEST_SKIP() << "needs a queue family with two queues";
 
-    Device const device{instance, physicalDevice, Device::Config{{family->index, family->index}}};
+    Device const device{context.instance, physicalDevice, Device::Config{{family->index, family->index}}};
 
     ASSERT_EQ(device.queues().size(), 2);
     EXPECT_EQ(device.queues()[0].index(), 0);
@@ -101,10 +99,10 @@ CVK_TEST(Device, queues_of_one_family_get_increasing_indices) {
 }
 
 CVK_TEST(Device, queues_work_after_move) {
-    Instance const instance{test::instance_config(), create};
-    auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const [physicalDevice, familyIndices] = test::pick(context.instance, QUEUES);
 
-    Device device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device device{context.instance, physicalDevice, Device::Config{familyIndices}};
     auto const vkDevice = device.get();
 
     Device const moved{std::move(device)};
@@ -118,10 +116,10 @@ CVK_TEST(Device, queues_work_after_move) {
 }
 
 CVK_TEST(Device, release_and_wrap) {
-    Instance const instance{test::instance_config(), create};
-    auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const [physicalDevice, familyIndices] = test::pick(context.instance, QUEUES);
 
-    Device device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device device{context.instance, physicalDevice, Device::Config{familyIndices}};
     auto const vkDevice = device.get();
 
     auto state = device.release();
@@ -132,7 +130,7 @@ CVK_TEST(Device, release_and_wrap) {
     ASSERT_NE(state.functionTable, nullptr);
     EXPECT_EQ(state.queueFamilyIndices, familyIndices);
 
-    Device const wrapped{instance, physicalDevice, std::move(state)};
+    Device const wrapped{context.instance, physicalDevice, std::move(state)};
 
     ASSERT_TRUE(wrapped.created());
     EXPECT_EQ(wrapped.get(), vkDevice);
@@ -142,14 +140,14 @@ CVK_TEST(Device, release_and_wrap) {
 }
 
 CVK_TEST(Device, wrap_without_table_loads_it) {
-    Instance const instance{test::instance_config(), create};
-    auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const [physicalDevice, familyIndices] = test::pick(context.instance, QUEUES);
 
-    Device device{instance, physicalDevice, Device::Config{familyIndices}};
+    Device device{context.instance, physicalDevice, Device::Config{familyIndices}};
     auto state = device.release();
     state.functionTable = nullptr;
 
-    Device const wrapped{instance, physicalDevice, std::move(state)};
+    Device const wrapped{context.instance, physicalDevice, std::move(state)};
 
     ASSERT_TRUE(wrapped.created());
     EXPECT_NE(wrapped.functions()->vkDestroyDevice, nullptr);
@@ -157,29 +155,29 @@ CVK_TEST(Device, wrap_without_table_loads_it) {
 }
 
 CVK_TEST(Device, release_twice_is_safe) {
-    Instance const instance{test::instance_config(), create};
-    auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
+    Context const context{};
+    auto const [physicalDevice, familyIndices] = test::pick(context.instance, QUEUES);
 
-    Device device{instance, physicalDevice, Device::Config{familyIndices}};
-    Device first{instance, physicalDevice, device.release()};
+    Device device{context.instance, physicalDevice, Device::Config{familyIndices}};
+    Device first{context.instance, physicalDevice, device.release()};
 
     device.create(Device::Config{familyIndices});
     ASSERT_TRUE(device.created());
     EXPECT_NE(device.functions()->vkDestroyDevice, nullptr);
 
-    Device const second{instance, physicalDevice, device.release()};
+    Device const second{context.instance, physicalDevice, device.release()};
     EXPECT_TRUE(second.created());
 }
 
 CVK_TEST(Device, present_enables_swapchain_maintenance1) {
-    Instance const instance{test::instance_config(test::headless_extensions()), create};
-    std::array const surfaces{test::headless_surface(instance)};
+    test::PresentContext const context{};
+    std::span const surfaces{&context.surface(), 1};
     std::array const queues{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
 
-    auto const [physicalDevice, familyIndices] = test::pick(instance, queues, surfaces);
+    auto const [physicalDevice, familyIndices] = test::pick(context.instance, queues, surfaces);
 
     Device const device{
-        instance,
+        context.instance,
         physicalDevice,
         Device::Config{
             .queueFamilyIndices = familyIndices,
@@ -203,23 +201,19 @@ CVK_TEST(Device, present_enables_swapchain_maintenance1) {
 CVK_TEST(Device, move_assignment_destroys_the_old_device) {
     if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
 
-    test::reset_validation_errors();
-    {
-        Instance const instance{test::instance_config(), create, test::counting_messenger()};
-        auto const [physicalDevice, familyIndices] = test::pick(instance, QUEUES);
+    test::InstanceContext const context{};
+    auto const [physicalDevice, familyIndices] = test::pick(context.instance, QUEUES);
 
-        Device device{instance, physicalDevice, Device::Config{familyIndices}};
-        Device other{instance, physicalDevice, Device::Config{familyIndices}};
-        auto const vkDevice = other.get();
+    Device device{context.instance, physicalDevice, Device::Config{familyIndices}};
+    Device other{context.instance, physicalDevice, Device::Config{familyIndices}};
+    auto const vkDevice = other.get();
 
-        device = std::move(other);
+    device = std::move(other);
 
-        ASSERT_EQ(device.get(), vkDevice);
-        EXPECT_FALSE(other.created());
-        ASSERT_EQ(device.queues().size(), 1);
-        device.queues()[0].waitIdle();
-        device.waitIdle();
-    }
-    EXPECT_EQ(test::validation_errors(), 0);
+    ASSERT_EQ(device.get(), vkDevice);
+    EXPECT_FALSE(other.created());
+    ASSERT_EQ(device.queues().size(), 1);
+    device.queues()[0].waitIdle();
+    device.waitIdle();
 }
 }

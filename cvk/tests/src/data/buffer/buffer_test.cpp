@@ -11,6 +11,9 @@
 
 namespace cvk {
 namespace {
+    using test::READBACK_CONFIG;
+    using test::STAGING_CONFIG;
+
     struct Vertex {
         float x, y, z;
         uint32_t color;
@@ -31,16 +34,6 @@ namespace {
      */
     constexpr Buffer<Vertex>::Config HOST_CONFIG{
         .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
-    };
-
-    constexpr Buffer<Vertex>::Config STAGING_CONFIG{
-        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
-    };
-
-    constexpr Buffer<Vertex>::Config READBACK_CONFIG{
-        .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
     };
 
