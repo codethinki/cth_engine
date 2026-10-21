@@ -14,6 +14,7 @@ Read it before you change a file. Match the existing code.
 | `tests/` | loader smoke tests |
 | `lib/cth` | cth (submodule), `lib/cmake/cth.cmake` adds it with only the components the engine needs |
 | `lib/cth_cmake` | cmake utilities (submodule) |
+| `lib/rgfw` | RGFW windowing library, our fork (submodule) on branch `cth_engine`, fixes are commits there |
 | `lib/cmake` | one cmake file per library that adds it: `<libname>.cmake` |
 
 - Vulkan 1.3 is the baseline. Do not port code that 1.3 makes unnecessary (render passes, framebuffers, the old sync API).
