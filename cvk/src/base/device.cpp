@@ -111,17 +111,27 @@ void Device::forget() {
     std::memset(_functionTable.get(), 0, sizeof(VolkDeviceTable));
 }
 
-auto Device::calcQueueFamiliesQueueCounts(span<uint32_t const> familyIndices) -> queue_families_queue_counts_t {
-    queue_families_queue_counts_t queueCounts{};
+vector<uint32_t> Device::calcQueueFamiliesQueueCounts(span<uint32_t const> familyIndices) const {
+    vector<uint32_t> queueCounts(_physicalDevice->queueFamilies().size());
 
-    for(auto const& familyIndex : familyIndices)
+    for(auto const familyIndex : familyIndices) {
+        CTH_CRITICAL(
+            familyIndex >= queueCounts.size(),
+            "queue family index must be less than the family count {}, got {}",
+            queueCounts.size(),
+            familyIndex
+        ) {}
         ++queueCounts[familyIndex];
+    }
 
     return queueCounts;
 }
 
-void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamiliesQueueCounts) {
-    CTH_CRITICAL(queueFamiliesQueueCounts.empty(), "at least one queue is required") {}
+void Device::createLogicalDevice(span<uint32_t const> queueFamiliesQueueCounts) {
+    CTH_CRITICAL(
+        std::ranges::all_of(queueFamiliesQueueCounts, [](uint32_t count) { return count == 0; }),
+        "at least one queue is required"
+    ) {}
     CTH_CRITICAL(created(), "device was already created") {}
 
     vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
@@ -130,7 +140,9 @@ void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamil
     vector<vector<float>> queuePriorities{};
     queuePriorities.reserve(queueFamiliesQueueCounts.size());
 
-    for(auto const [queueFamily, queueCount] : queueFamiliesQueueCounts) {
+    for(auto const [queueFamily, queueCount] : std::views::zip(std::views::iota(0u), queueFamiliesQueueCounts)) {
+        if(queueCount == 0) continue;
+
         queuePriorities.emplace_back(queueCount, 1.0f);
 
         queueCreateInfos.push_back(
@@ -174,11 +186,17 @@ void Device::createLogicalDevice(queue_families_queue_counts_t const& queueFamil
 void Device::loadFunctionTable(VkDevice vkDevice) const { volkLoadDeviceTable(_functionTable.get(), vkDevice); }
 
 void Device::createQueues(span<queue_family_index_t const> familyIndices) {
-    std::unordered_map<uint32_t, uint32_t> queueCounts{};
+    vector<uint32_t> queueCounts(_physicalDevice->queueFamilies().size());
 
     _queues.reserve(familyIndices.size());
 
     for(auto const familyIndex : familyIndices) {
+        CTH_CRITICAL(
+            familyIndex >= queueCounts.size(),
+            "queue family index must be less than the family count {}, got {}",
+            queueCounts.size(),
+            familyIndex
+        ) {}
         auto& queueIndex = queueCounts[familyIndex];
 
         VkQueue ptr = VK_NULL_HANDLE;

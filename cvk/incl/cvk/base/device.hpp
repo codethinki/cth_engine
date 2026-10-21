@@ -13,7 +13,6 @@
 #include <memory>
 #include <span>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 
@@ -25,8 +24,6 @@ class PhysicalDevice;
  * @brief VkDevice wrapper, owns the function table and the queues
  */
 class Device {
-    using queue_families_queue_counts_t = std::unordered_map<uint32_t, uint32_t>;
-
 public:
     using vk_handle_t = VkDevice;
     using Config = DeviceConfig;
@@ -133,15 +130,20 @@ public:
 private:
     void forget();
 
-    [[nodiscard]] static queue_families_queue_counts_t calcQueueFamiliesQueueCounts(
-        std::span<uint32_t const> familyIndices
-    );
+    /**
+     * @param familyIndices family index of each queue
+     * @return count of queues per family, one entry per family of the physical device
+     * @pre the physical device has a family for each index
+     */
+    [[nodiscard]] std::vector<uint32_t> calcQueueFamiliesQueueCounts(std::span<uint32_t const> familyIndices) const;
 
     /**
      * @brief creates the device with @ref _features and @ref _extensions
+     * @param queueFamiliesQueueCounts count of queues per family, the index is the family index
+     * @pre some count > 0
      * @throws cvk::vk_result_exception result of vkCreateDevice()
      */
-    void createLogicalDevice(queue_families_queue_counts_t const& queueFamiliesQueueCounts);
+    void createLogicalDevice(std::span<uint32_t const> queueFamiliesQueueCounts);
 
     void loadFunctionTable(VkDevice vkDevice) const;
 

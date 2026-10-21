@@ -9,7 +9,6 @@
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <ranges>
-#include <unordered_map>
 
 
 namespace cvk {
@@ -189,16 +188,15 @@ auto Core::createQueueSetRelations(
 
     auto const roots = queueSet.roots();
 
-    std::unordered_map<index_type, size_t> const rootToQueue{
-        std::from_range,
-        std::views::zip(roots, std::views::iota(0uz))
-    };
+    vector<size_t> rootToQueue(queueSet.size());
+    for(auto const [root, queue] : std::views::zip(roots, std::views::iota(0uz)))
+        rootToQueue[root] = queue;
 
     vector<QueueFamilyProperties> uniqueQueues(roots.size());
     vector<size_t> queueToUniqueQueue(queueProperties.size());
 
     for(index_type i = 0; i < queueSet.size(); i++) {
-        auto const queueIdx = rootToQueue.at(queueSet.find(i));
+        auto const queueIdx = rootToQueue[queueSet.find(i)];
         queueToUniqueQueue[i] = queueIdx;
         uniqueQueues[queueIdx] |= queueProperties[i];
     }
