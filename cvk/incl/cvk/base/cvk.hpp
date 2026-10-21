@@ -1,5 +1,8 @@
 #pragma once
-#include <cth/coro/global_switch.hpp>
+
+namespace cth::co {
+class global_switch;
+}
 
 namespace cvk {
 /**
@@ -27,16 +30,20 @@ public:
     /**
      * @return a Cvk exists
      */
-    [[nodiscard]] static bool initialized() { return _loader.acquired(); }
+    [[nodiscard]] static bool initialized();
 
 private:
+    /**
+     * @return the switch that loads and unloads the loader
+     * @details a function local static: a Cvk at namespace scope in another translation unit finds it constructed
+     */
+    [[nodiscard]] static cth::co::global_switch& loader();
+
     /**
      * @throws cvk::vk_result_exception result of volkInitialize()
      */
     static void load();
     static void unload();
-
-    inline static cth::co::global_switch _loader{&load, &unload};
 
 public:
     Cvk(Cvk const& other) = delete;
