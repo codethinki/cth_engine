@@ -169,6 +169,16 @@ struct RenderingInfo {
      */
     std::optional<VkRect2D> area = std::nullopt;
 
+    /**
+     * @brief layers that the rendering writes, viewMask != 0 -> ignored
+     * @pre the attachment views have the layers
+     */
+    uint32_t layerCount = 1;
+
+    /**
+     * @brief multiview, bit i -> view i renders into layer i
+     * @pre the attachment views have a layer per view
+     */
     uint32_t viewMask = 0;
 
     /**

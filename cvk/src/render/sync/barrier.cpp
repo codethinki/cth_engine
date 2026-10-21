@@ -69,6 +69,13 @@ namespace {
             info.mipLevels != VK_REMAINING_MIP_LEVELS && info.mipLevels > image.mipLevels() - info.firstMipLevel,
             "mip levels must lie in the image"
         ) {}
+        CTH_CRITICAL(info.arrayLayers == 0, "array layers must not be 0") {}
+        CTH_CRITICAL(info.firstArrayLayer >= image.arrayLayers(), "first array layer must lie in the image") {}
+        CTH_CRITICAL(
+            info.arrayLayers != VK_REMAINING_ARRAY_LAYERS
+            && info.arrayLayers > image.arrayLayers() - info.firstArrayLayer,
+            "array layers must lie in the image"
+        ) {}
 
         bool const transfer = info.src.queueFamilyIndex != info.dst.queueFamilyIndex;
         CTH_CRITICAL(
@@ -95,8 +102,8 @@ namespace {
                 .aspectMask = info.aspectMask != 0 ? info.aspectMask : image.aspectMask(),
                 .baseMipLevel = info.firstMipLevel,
                 .levelCount = info.mipLevels,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
+                .baseArrayLayer = info.firstArrayLayer,
+                .layerCount = info.arrayLayers,
             },
         };
     }

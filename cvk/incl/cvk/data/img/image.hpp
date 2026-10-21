@@ -97,8 +97,8 @@ public:
     State release();
 
     /**
-     * @brief records a copy from the buffer into the mip level
-     * @param srcOffset in bytes
+     * @brief records a copy from the buffer into every layer of the mip level
+     * @param srcOffset in bytes, the layers follow each other in the buffer
      * @param layout of the mip level, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
      * @pre @ref created() and src created
      * @pre @ref BaseCmdBuffer::recording()
@@ -115,8 +115,8 @@ public:
     ) const;
 
     /**
-     * @brief records a copy from the mip level into the buffer
-     * @param dstOffset in bytes
+     * @brief records a copy from every layer of the mip level into the buffer
+     * @param dstOffset in bytes, the layers follow each other in the buffer
      * @param layout of the mip level, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
      * @pre @ref created() and dst created
      * @pre @ref BaseCmdBuffer::recording()
@@ -134,7 +134,7 @@ public:
     ) const;
 
     /**
-     * @brief records blits that fill each mip level from the level before it
+     * @brief records blits that fill each mip level from the level before it, every layer
      * @param firstMipLevel first level to fill, the blits read from firstMipLevel - 1
      * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
      * @param filter depth formats need VK_FILTER_NEAREST
@@ -176,6 +176,7 @@ public:
         return _config.aspectMask != 0 ? _config.aspectMask : format_aspects(_config.format);
     }
     [[nodiscard]] constexpr uint32_t mipLevels() const { return _config.mipLevels; }
+    [[nodiscard]] constexpr uint32_t arrayLayers() const { return _config.arrayLayers; }
 
     /**
      * @return nullptr -> the image does not own its memory

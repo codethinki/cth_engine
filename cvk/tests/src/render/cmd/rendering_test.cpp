@@ -88,6 +88,42 @@ CVK_TEST(Rendering, clear_a_color_attachment) {
         EXPECT_TRUE(std::ranges::equal(pixel, red, {}, asByte));
 }
 
+CVK_TEST(Rendering, clear_every_layer) {
+    test::Context const context{};
+    auto config = COLOR_CONFIG;
+    config.arrayLayers = 2;
+    Image const image{context.core, config, EXTENT};
+    ImageView const view{image, {}, create};
+    size_t const layerSize = size_t{EXTENT.width} * EXTENT.height * 4;
+    BaseBuffer const readback{
+        context.core,
+        {.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT, .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT}},
+        2 * layerSize
+    };
+
+    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
+        Barrier transition{};
+        transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        transition.execute(cmd);
+
+        cmd.beginRendering({.colorAttachments = {clear_red(view)}, .layerCount = 2});
+        cmd.endRendering();
+
+        Barrier toTransfer{};
+        toTransfer.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        toTransfer.execute(cmd);
+        image.copyTo(cmd, readback);
+        test::host_read_barrier(context, cmd);
+    });
+
+    auto const pixels = readback.map();
+    readback.invalidate();
+    auto const red = std::array<unsigned char, 4>{255, 0, 0, 255};
+    auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
+    for(auto const pixel : pixels | std::views::chunk(4))
+        EXPECT_TRUE(std::ranges::equal(pixel, red, {}, asByte));
+}
+
 CVK_TEST(Rendering, tracks_the_current_rendering) {
     test::Context const context{};
     Image const image{context.core, COLOR_CONFIG, EXTENT};

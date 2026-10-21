@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 #include "image_format.hpp"
 
 #include "cvk/base/queue/queue_family.hpp"
@@ -14,7 +14,7 @@
 
 namespace cvk {
 /**
- * @brief 2D image: format, usage, mip levels, who uses it and where its memory lives
+ * @brief 2D image: format, usage, mip levels, layers, who uses it and where its memory lives
  */
 struct ImageConfig {
     /**
@@ -44,6 +44,12 @@ struct ImageConfig {
      * @pre >= 1
      */
     uint32_t mipLevels = 1;
+
+    /**
+     * @pre >= 1
+     * @pre VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT -> a multiple of 6, one layer per face
+     */
+    uint32_t arrayLayers = 1;
 
     VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -77,6 +83,22 @@ struct ImageConfig {
     }
 
     /**
+     * @brief sampled cube map, the six faces are the layers
+     * @param mipLevels > 1 -> transfer src usage for @ref Image::blitMipLevels()
+     * @details the faces: +x, -x, +y, -y, +z, -z
+     */
+    [[nodiscard]] static constexpr ImageConfig CubeMap(VkFormat format, uint32_t mipLevels = 1) {
+        return ImageConfig{
+            .format = format,
+            .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+            | (mipLevels > 1 ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : VkImageUsageFlags{0}),
+            .flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
+            .mipLevels = mipLevels,
+            .arrayLayers = 6,
+        };
+    }
+
+    /**
      * @attention pQueueFamilyIndices points into @ref queueFamilies
      */
     [[nodiscard]] constexpr VkImageCreateInfo createInfo(VkExtent2D extent) const {
@@ -88,7 +110,7 @@ struct ImageConfig {
             .format = format,
             .extent = {extent.width, extent.height, 1},
             .mipLevels = mipLevels,
-            .arrayLayers = 1,
+            .arrayLayers = arrayLayers,
             .samples = samples,
             .tiling = tiling,
             .usage = usage,
@@ -112,6 +134,13 @@ constexpr void ImageConfig::debug_check(ImageConfig const& config) {
     ) {}
     CTH_CRITICAL(config.usage == 0, "usage must not be 0") {}
     CTH_CRITICAL(config.mipLevels == 0, "at least one mip level is required") {}
+    CTH_CRITICAL(config.arrayLayers == 0, "at least one layer is required") {}
+    CTH_CRITICAL(
+        (config.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0 && config.arrayLayers % 6 != 0,
+        "a cube compatible image needs a multiple of 6 layers"
+    ) {
+        details->add("layers: {}", config.arrayLayers);
+    }
     CTH_CRITICAL(
         config.initialLayout != VK_IMAGE_LAYOUT_UNDEFINED && config.initialLayout != VK_IMAGE_LAYOUT_PREINITIALIZED,
         "initial layout must be undefined or preinitialized"

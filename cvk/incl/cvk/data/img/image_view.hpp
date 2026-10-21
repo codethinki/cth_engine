@@ -14,7 +14,7 @@
 
 namespace cvk {
 /**
- * @brief VkImageView wrapper, 2D view of a mip range of its image
+ * @brief VkImageView wrapper, view of a mip and layer range of its image
  */
 class ImageView {
 public:
@@ -60,7 +60,8 @@ public:
     /**
      * @brief creates the view
      * @pre @ref Image::created()
-     * @pre the mip range lies in the image
+     * @pre the mip range and the layer range lie in the image
+     * @pre the layers fit the view type
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateImageView()
@@ -97,6 +98,28 @@ public:
      * @return the subresource range of the view in the image
      */
     [[nodiscard]] constexpr VkImageSubresourceRange range() const { return _config.range(_image->aspectMask()); }
+
+    /**
+     * @return the layers of the view
+     */
+    [[nodiscard]] constexpr uint32_t arrayLayers() const {
+        return _config.arrayLayers == VK_REMAINING_ARRAY_LAYERS ? _image->arrayLayers() - _config.baseArrayLayer
+            : _config.arrayLayers;
+    }
+
+    /**
+     * @return @ref Config::viewType, VK_IMAGE_VIEW_TYPE_MAX_ENUM -> inferred:
+     *  one layer -> 2D, cube compatible image with 6 layers -> cube, a multiple of 6 -> cube array, else 2D array
+     */
+    [[nodiscard]] constexpr VkImageViewType viewType() const {
+        if(_config.viewType != VK_IMAGE_VIEW_TYPE_MAX_ENUM) return _config.viewType;
+
+        auto const layers = arrayLayers();
+        if(layers == 1) return VK_IMAGE_VIEW_TYPE_2D;
+        if((_image->config().flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) == 0 || layers % 6 != 0)
+            return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        return layers == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+    }
 
 private:
     void forget();

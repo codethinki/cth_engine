@@ -127,6 +127,16 @@ CVK_TEST(Image, config_depth_buffer) {
     static_assert((Image::Config::debug_check(config), true));
 }
 
+CVK_TEST(Image, config_cube_map) {
+    constexpr auto config = Image::Config::CubeMap(VK_FORMAT_R8G8B8A8_UNORM, 3);
+    static_assert(config.arrayLayers == 6);
+    static_assert((config.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0);
+    static_assert((config.usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) != 0);
+    static_assert((Image::Config::CubeMap(VK_FORMAT_R8G8B8A8_UNORM).usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) == 0);
+    static_assert(config.createInfo({8, 8}).arrayLayers == 6);
+    static_assert((Image::Config::debug_check(config), true));
+}
+
 CVK_TEST(Image, base_constructor_does_not_create) {
     test::Context const context{};
 
@@ -295,6 +305,45 @@ CVK_TEST(Image, blit_mip_levels_fills_the_mip_chain) {
     auto const mapped = readback.map();
     readback.invalidate();
     EXPECT_TRUE(std::ranges::all_of(mapped, [](uint32_t texel) { return texel == color; }));
+}
+
+CVK_TEST(Image, cube_map_copies_and_blits_every_face) {
+    test::Context const context{};
+    constexpr VkExtent2D extent{8, 8};
+    Image const image{
+        context.core,
+        Image::Config::CubeMap(VK_FORMAT_R8G8B8A8_UNORM, Image::evalMipLevelCount(extent)),
+        extent
+    };
+
+    // one color per face, linear blits keep it, the faces follow each other in the buffer
+    auto const color = [](uint32_t face) { return 0x01'01'01'01u * (face + 1) * 30; };
+    size_t const faceTexels = size_t{extent.width} * extent.height;
+    std::vector<uint32_t> texels(6 * faceTexels);
+    for(uint32_t face = 0; face < 6; ++face)
+        std::ranges::fill(std::span{texels}.subspan(face * faceTexels, faceTexels), color(face));
+
+    BaseBuffer const staging{context.core, STAGING_CONFIG, texels.size() * sizeof(uint32_t)};
+    staging.write(std::as_bytes(std::span{texels}));
+    Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, 6};
+
+    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
+        Barrier toDst{};
+        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        toDst.execute(primary);
+
+        image.copy(primary, staging);
+        image.blitMipLevels(primary);
+
+        // the last level has one texel per face
+        image.copyTo(primary, readback, 0, image.mipLevels() - 1);
+        test::host_read_barrier(context, primary);
+    });
+
+    auto const mapped = readback.map();
+    readback.invalidate();
+    for(uint32_t face = 0; face < 6; ++face)
+        EXPECT_EQ(mapped[face], color(face));
 }
 
 CVK_TEST(Image, release_and_wrap) {

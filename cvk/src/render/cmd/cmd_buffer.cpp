@@ -10,6 +10,7 @@
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <ranges>
 
 
@@ -176,6 +177,11 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         ImageView const& view = *attachment.view;
         ImageView::debug_check(view);
         CTH_CRITICAL(view_mip_levels(view) != 1, "attachment views must have one mip level") {}
+        // multiview: view i renders into layer i
+        auto const layers = info.viewMask != 0 ? static_cast<uint32_t>(std::bit_width(info.viewMask)) : info.layerCount;
+        CTH_CRITICAL(view.arrayLayers() < layers, "attachment views need a layer per rendered layer or view") {
+            details->add("view layers: {}, needed: {}", view.arrayLayers(), layers);
+        }
 
         auto const viewExtent = view_extent(view);
         extent = extent.has_value()
@@ -253,7 +259,7 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         .pNext = nullptr,
         .flags = info.flags,
         .renderArea = info.area.value_or(VkRect2D{.offset = {0, 0}, .extent = extent.value_or(VkExtent2D{})}),
-        .layerCount = 1,
+        .layerCount = info.layerCount,
         .viewMask = info.viewMask,
         .colorAttachmentCount = static_cast<uint32_t>(colors.size()),
         .pColorAttachments = colors.data(),

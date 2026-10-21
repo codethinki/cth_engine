@@ -30,6 +30,11 @@ void Image::wrap(State const& state) {
 }
 
 void Image::create(VkExtent2D extent) {
+    CTH_CRITICAL(
+        (_config.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0 && extent.width != extent.height,
+        "a cube compatible image needs a square extent"
+    ) {}
+
     optDestroy();
 
     auto const imageInfo = _config.createInfo(extent);
@@ -200,9 +205,19 @@ void Image::blitMipLevels(
         VkImageBlit2 const region{
             .sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
             .pNext = nullptr,
-            .srcSubresource = {.aspectMask = aspectMask(), .mipLevel = level - 1, .baseArrayLayer = 0, .layerCount = 1},
+            .srcSubresource = {
+                .aspectMask = aspectMask(),
+                .mipLevel = level - 1,
+                .baseArrayLayer = 0,
+                .layerCount = arrayLayers(),
+            },
             .srcOffsets = {{0, 0, 0}, corner(level - 1)},
-            .dstSubresource = {.aspectMask = aspectMask(), .mipLevel = level, .baseArrayLayer = 0, .layerCount = 1},
+            .dstSubresource = {
+                .aspectMask = aspectMask(),
+                .mipLevel = level,
+                .baseArrayLayer = 0,
+                .layerCount = arrayLayers(),
+            },
             .dstOffsets = {{0, 0, 0}, corner(level)},
         };
         VkBlitImageInfo2 const info{
@@ -243,7 +258,7 @@ VkBufferImageCopy2 Image::bufferCopy(
             .aspectMask = aspectMask(),
             .mipLevel = mipLevel,
             .baseArrayLayer = 0,
-            .layerCount = 1,
+            .layerCount = arrayLayers(),
         },
         .imageOffset = {0, 0, 0},
         .imageExtent = {std::max(_extent.width >> mipLevel, 1u), std::max(_extent.height >> mipLevel, 1u), 1},

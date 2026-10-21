@@ -24,10 +24,33 @@ CVK_TEST(ImageView, config_range) {
     static_assert(range.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT);
     static_assert(range.baseMipLevel == 2);
     static_assert(range.levelCount == VK_REMAINING_MIP_LEVELS);
-    static_assert(range.layerCount == 1);
+    static_assert(range.baseArrayLayer == 0);
+    static_assert(range.layerCount == VK_REMAINING_ARRAY_LAYERS);
 
     constexpr ImageView::Config depth{.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT};
     static_assert(depth.range(VK_IMAGE_ASPECT_COLOR_BIT).aspectMask == VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
+CVK_TEST(ImageView, view_type_follows_the_layers) {
+    test::Context const context{};
+    Image const flat{context.core, TEXTURE_CONFIG, EXTENT};
+    auto layeredConfig = TEXTURE_CONFIG;
+    layeredConfig.arrayLayers = 4;
+    Image const layered{context.core, layeredConfig, EXTENT};
+    Image const cube{context.core, Image::Config::CubeMap(VK_FORMAT_R8G8B8A8_UNORM), EXTENT};
+
+    ImageView const flatView{flat, {}, create};
+    ImageView const arrayView{layered, {}, create};
+    ImageView const cubeView{cube, {}, create};
+    ImageView const faceView{cube, {.baseArrayLayer = 2, .arrayLayers = 1}, create};
+    ImageView const facesView{cube, {.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY}, create};
+
+    EXPECT_EQ(flatView.viewType(), VK_IMAGE_VIEW_TYPE_2D);
+    EXPECT_EQ(arrayView.viewType(), VK_IMAGE_VIEW_TYPE_2D_ARRAY);
+    EXPECT_EQ(arrayView.arrayLayers(), 4);
+    EXPECT_EQ(cubeView.viewType(), VK_IMAGE_VIEW_TYPE_CUBE);
+    EXPECT_EQ(faceView.viewType(), VK_IMAGE_VIEW_TYPE_2D);
+    EXPECT_EQ(facesView.viewType(), VK_IMAGE_VIEW_TYPE_2D_ARRAY);
 }
 
 CVK_TEST(ImageView, base_constructor_does_not_create) {

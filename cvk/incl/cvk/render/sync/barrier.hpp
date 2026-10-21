@@ -55,6 +55,13 @@ struct ImageBarrierInfo {
      */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
 
+    uint32_t firstArrayLayer = 0;
+
+    /**
+     * @brief VK_REMAINING_ARRAY_LAYERS -> to the last layer
+     */
+    uint32_t arrayLayers = VK_REMAINING_ARRAY_LAYERS;
+
     /**
      * @brief 0 -> the aspect mask of the image
      */
@@ -172,7 +179,7 @@ struct Barrier {
     constexpr void add(Image const& image, ImageInfo const& info) { images.push_back({&image, info}); }
 
     /**
-     * @brief adds a layout transition with the scopes of @ref layout_transition()
+     * @brief adds a layout transition of every layer with the scopes of @ref layout_transition()
      * @param shaderStages stages of the shader reads in the layouts (@ref INFERRED_SHADER_STAGES => fragment shader)
      * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
      * @pre @ref layout_scope() knows both layouts
