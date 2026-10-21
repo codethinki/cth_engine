@@ -17,13 +17,14 @@ Read it before you change a file. Match the existing code.
 | `lib/cmake` | one cmake file per library that adds it: `<libname>.cmake` |
 
 - Vulkan 1.3 is the baseline. Do not port code that 1.3 makes unnecessary (render passes, framebuffers, the old sync API).
-- Functionality beyond 1.3 comes from required extensions, not from a higher version: `VK_KHR_dynamic_rendering_local_read` gives tile-based GPUs subpass-like local reads in a dynamic rendering.
-- Device features are the `bool` fields of `DeviceFeatures` (`cvk/utility/device/device_features.hpp`). A true bit of an extension struct enables its extension. A new extension struct: an entry in `dev::feature_structs_t`, a `dev::feature_struct` specialization, its fields in `DeviceFeatures` in the same order.
+- Features beyond 1.3 come from required extensions, not from a higher version: `VK_KHR_dynamic_rendering_local_read` (tile-based local reads).
+- Device features are the `bool` fields of `DeviceFeatures`. A true bit of an extension struct enables its extension.
+  New extension struct: entry in `dev::feature_structs_t`, `dev::feature_struct` specialization, fields in `DeviceFeatures` in the same order.
 - Use the Vulkan C API through volk. Do not use Vulkan-Hpp.
 - Memory comes from VMA.
 - `cvk` destroys immediately. It has no destruction queue. Deferred destruction belongs to `jvk`.
-- `cvk` tracks no image layouts. Every function that uses a layout takes it as a value, with a default where the use fixes it. Layout tracking belongs to `jvk` (`jvk/prework/image_layouts.hpp`).
-- Hash maps come from cth: `cth::dt::flat_hash_map` and `cth::dt::flat_hash_set` (gtl, no pointer stability), `jvk/prework/flat_hash_map.hpp` aliases the map. No `std::unordered_map`.
+- `cvk` tracks no image layouts: functions take the layout as a value, with a default where the use fixes it. Tracking belongs to `jvk`.
+- Hash maps: `cth::dt::flat_hash_map`, `cth::dt::flat_hash_set`. No `std::unordered_map`.
 - Commits have no `Co-Authored-By` or "Generated with" lines.
 
 ## Branches
@@ -85,8 +86,8 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 | namespace | short lower case | `cvk`, `cvk::constants`, `cvk::dev` |
 
 - A raw Vulkan handle in a variable or parameter has the prefix `vk`: `vkInstance`, `vkSemaphore`. A raw VMA handle has the prefix `vma`: `vmaAllocator`, `vmaAllocation`.
-- `_t` marks an alias that only renames a type: `callback_t` is a function pointer, `queue_set_t` a `union_find`. An alias that is a type of its own gets a plain std style name, like `std::string` for `std::basic_string<char>`.
-- A declaration leaves out a parameter name that repeats the type: `void wrap(State const&)`, `destroy(DeviceTable table, VkSemaphore)`, not `VkSemaphore vkSemaphore`. The definition keeps the name.
+- `_t` only for aliases that rename a type: `callback_t`, `queue_set_t`. An alias that is a type of its own gets a std style name, like `std::string`.
+- Declarations leave out parameter names that repeat the type: `wrap(State const&)`, not `VkSemaphore vkSemaphore`. Definitions keep them.
 - Function parameters were `snake_case` in the legacy code. New code uses `camelCase`. Rename them when you port.
 - `cvk::dev` holds implementation details that are not part of the API.
 
@@ -94,18 +95,24 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 
 - Use `constexpr`, `consteval` and `decltype(auto)`. The macros `cxpr`, `cval` and `declauto` do not exist anymore.
 - Mark every function `constexpr` that can run at compile time, also when no code uses it there yet: accessors, `debug_check` functions, configs, value types.
-- Functions that call Vulkan, VMA or the OS are not `constexpr`. Neither are the constructors, the destructor and the lifecycle functions of a class that owns a handle: the object cannot exist at compile time.
+- Not `constexpr`: functions that call Vulkan, VMA or the OS, and the constructors, destructor and lifecycle of a handle owner.
 - Put `[[nodiscard]]` on every function that returns a value the caller must use.
 - Put `explicit` on constructors with one parameter and on tag constructors.
 - Use `auto const` for locals that do not change.
 - Initialize Vulkan structs with designated initializers. Always write `.sType` and `.pNext`.
-- Data structs (`SubmitInfo`, `Barrier`, the info structs) are aggregates: the caller can set everything with designated initializers. Member functions like `add()` are optional shortcuts, checks run where the data is used.
-- Commands that change the state of a command buffer (binds, dynamic state, push constants, renderings, draws) are members of the command buffer: `cmd.bindPipeline(pipeline)`. Commands on the data of an object (barriers, copies, uploads) are members of the object and take the command buffer: `barrier.execute(cmd)`, `image.copy(cmd, staging)`.
-- The target comes first, like `std::memcpy(dst, src, ...)`: new before old, dst before src, `LayoutTransition(newLayout, oldLayout, dst, src)`. The object of a copy is the destination: `dst.copy(cmd, src)`. `copyTo(cmd, dst)` copies with the object as the source, where the code belongs to the source: `image.copyTo(cmd, buffer)`, the mirror `buffer.copy(cmd, image)` calls it. Exception: `src` and `dst` fields keep the order of the Vulkan struct (`BarrierScope src, dst`, `BufferCopy{srcOffset, dstOffset}`), designated initializers follow it.
+- Data structs (`SubmitInfo`, `Barrier`, info structs) are aggregates. Member functions like `add()` are optional shortcuts, checks run at the use.
+- Commands on the command buffer state (binds, dynamic state, push constants, renderings, draws) are command buffer members: `cmd.bindPipeline(pipeline)`.
+  Commands on the data of an object (barriers, copies, uploads) are object members: `barrier.execute(cmd)`.
+- Target first, like `std::memcpy`: new before old, dst before src: `LayoutTransition(newLayout, oldLayout, dst, src)`.
+  - copies: `dst.copy(cmd, src)`, `src.copyTo(cmd, dst)` where the code belongs to the source: `image.copyTo(cmd, buffer)`
+  - struct fields keep the Vulkan order: `BarrierScope src, dst`
 - Use deducing `this` (`this auto& self`) where a function must work on the derived type.
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.
 - Prefer compile time checks (concepts, `static_assert`) to run time checks.
+- `cvk` offers an override of an automatically chosen value if:
+  - the choice is not guaranteed to be optimal
+  - there is a legitimate interest: debugging, user preference
 - Never erase types into integers or `void*`.
 
 ### Includes
@@ -173,16 +180,12 @@ public:
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
 - Classes that own a handle are move only. A class that differs says so in its `@brief`: copyable, neither copyable nor movable, or a custom move.
 - Every class of a Vulkan or VMA object declares `using vk_handle_t = VkX;` as its first type, also classes that do not own their handle. `get()` returns `vk_handle_t`.
-- They store the handle in `cvk::unique_handle<Handle, Deleter>` (`cvk/utility/handle/unique_handle.hpp`): a `std::unique_ptr` with a deleter that holds the destroy context and calls the static `destroy`.
-  Deleters: `core_deleter<T>` (the core), `vma_deleter<T>` (the core, destroys through its allocator), `instance_deleter<T>` (the `VkInstance`), `handle_deleter<T>` (no context), a deleter derived from them or one of its own (`BaseCmdBuffer` frees through its pool).
-  The deleters require `vk_handle_owner<T>`: `T` declares `vk_handle_t`.
-  Device objects use `core_handle<T>` (`cvk/utility/handle/core_handle.hpp`), short for `unique_handle<T::vk_handle_t, core_deleter<T>>`.
-  Objects with VMA memory use `vma_handle<T>` (`cvk/utility/handle/vma_handle.hpp`), short for `unique_handle<T::vk_handle_t, vma_deleter<T>>`.
-  Instance objects use `instance_handle<T>` (`cvk/utility/handle/instance_handle.hpp`), short for `unique_handle<T::vk_handle_t, instance_deleter<T>>`.
-  Other deleters: `unique_handle<vk_handle_t, handle_deleter<Instance>>`.
+- The handle lives in `cvk::unique_handle<Handle, Deleter>`: a `std::unique_ptr` whose deleter holds the destroy context and calls the static `destroy`.
+  Short forms: `core_handle<T>` (device objects), `vma_handle<T>` (VMA memory), `instance_handle<T>` (instance objects).
+  Other deleters: `handle_deleter<T>` (no context) or an own one (`BaseCmdBuffer` frees through its pool).
 - Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
 - Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.
-- A class that owns more than one object declares the objects that depend on its handle first. `= default` assigns in declaration order: `Instance` declares `_debugMessenger` before `_handle`.
+- A class that owns several objects declares the objects that depend on its handle first, `= default` assigns in that order: `_debugMessenger` before `_handle`.
 - Classes that do not own their handle (`Queue`, `PhysicalDevice`) keep `cth::move_ptr`.
 
 After the class, in the same header:
@@ -215,12 +218,12 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 | `forget()` | sets the members to the not created state, does not destroy |
 
 - The destructor calls `optDestroy()`.
-- `reset` keeps its std meaning (`std::unique_ptr::reset` destroys). `reset` and `invalidate` name Vulkan operations (`vkResetFences`, `vkInvalidateMappedMemoryRanges`). The lifecycle uses `forget()`.
+- `reset` and `invalidate` keep their std and Vulkan meanings (`unique_ptr::reset`, `vkResetFences`). The lifecycle uses `forget()`.
 - Device objects take `Core const&` in the base constructor. The `core_deleter` of the handle stores it, `core()` returns it.
 - A parent (instance, core, device, pool, ...) does not move and is not destroyed while objects depend on it. Code does not have to support it.
 - A failed `create()` calls `forget()` before it throws.
 - `release()` exists so that an owner can use an object it must not destroy (for example swapchain images).
-- A constructor that creates takes the parameters of the base constructor, then the parameters of `create()`. When `create()` has no required parameter, a `create_t` tag comes before them: `Fence(core, create_t, flags = 0)`, `Image(core, config, extent)`.
+- Create constructor: the base constructor parameters, then the `create()` parameters. `create()` without required parameters -> `create_t` first: `Fence(core, create_t, flags = 0)`.
 
 ### Errors
 
@@ -229,7 +232,7 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 - `CTH_WARN(condition, "message") {}`: suspicious state that is not an error.
 - `cvk` stores state only where it needs the state to work. A check that needs more state is left to the validation layers.
 - `CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "message") {}`: throws `cvk::vk_result_exception` with the `VkResult`.
-- `cvk` throws `cvk::cvk_exception` or a derived type: `CVK_STABLE_THROW`, `CVK_RESULT_STABLE_THROW`, or `throw cvk::cvk_exception{details->exception()}` inside a `CTH_STABLE_ERR` block.
+- `cvk` throws only `cvk::cvk_exception` and derived types.
 - The condition is the error case: `CTH_CRITICAL(!created(), ...)`, not the expected case.
 
 ### Comment markers
