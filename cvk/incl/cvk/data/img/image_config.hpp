@@ -1,4 +1,4 @@
- #pragma once
+#pragma once
 #include "image_format.hpp"
 
 #include "cvk/base/queue/queue_family.hpp"

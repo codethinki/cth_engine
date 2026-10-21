@@ -24,6 +24,14 @@ namespace {
     };
 }
 
+CVK_TEST(QueueFamily, graphics_or_compute_supports_transfer) {
+    using enum QueueFamilyProperties;
+    static_assert(to_queue_properties(VK_QUEUE_GRAPHICS_BIT, false) == (GRAPHICS | TRANSFER));
+    static_assert(to_queue_properties(VK_QUEUE_COMPUTE_BIT, false) == (COMPUTE | TRANSFER));
+    static_assert(to_queue_properties(VK_QUEUE_TRANSFER_BIT, true) == (TRANSFER | PRESENT));
+    static_assert(to_queue_properties(VK_QUEUE_SPARSE_BINDING_BIT, false) == NONE);
+}
+
 CVK_TEST(Queue, copies_share_the_queue) {
     test::Context const context{};
     auto const& queue = context.core.queue(0);

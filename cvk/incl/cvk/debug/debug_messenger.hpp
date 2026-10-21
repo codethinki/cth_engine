@@ -91,7 +91,7 @@ public:
     static void destroy(vk_not_null<VkInstance>, VkDebugUtilsMessengerEXT vkMessenger);
 
     /**
-     * @brief releases ownership, returns state and forgets
+     * @brief releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -121,7 +121,7 @@ public:
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
-    [[nodiscard]] constexpr Config config() const { return _config; }
+    [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
     void forget();
@@ -147,7 +147,7 @@ struct DebugMessenger::State {
 
 namespace cvk {
 constexpr void DebugMessenger::debug_check(DebugMessenger const& debugMessenger) {
-    CTH_CRITICAL(!debugMessenger.created(), "debug_messenger not created") {}
+    CTH_CRITICAL(!debugMessenger.created(), "debug messenger must be created") {}
 }
 
 constexpr void DebugMessenger::Config::debug_check(Config const& config) {

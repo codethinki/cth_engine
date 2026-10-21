@@ -143,8 +143,9 @@ void Shader::compile(
 #else
     constexpr std::string_view nullDevice = "/dev/null";
 #endif
-    auto const logName = std::format("cvk_{}.log", spvPath.filename().string());
-    auto const logPath = std::filesystem::temp_directory_path() / logName;
+    // one log per SPIR-V path: two processes that compile into other directories do not share a log
+    auto logPath = spvPath;
+    logPath += ".log";
 
     auto command = std::format(
         R"("{}" {} -c "{}" -o "{}" >{} 2>"{}")",

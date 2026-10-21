@@ -1,5 +1,5 @@
-// ReSharper disable CppClangTidyCertDcl58Cpp
 #pragma once
+// ReSharper disable CppClangTidyCertDcl58Cpp
 #include <volk.h>
 #include <vulkan/vk_enum_string_helper.h>
 

@@ -132,7 +132,7 @@ void Device::createLogicalDevice(span<uint32_t const> queueFamiliesQueueCounts) 
         std::ranges::all_of(queueFamiliesQueueCounts, [](uint32_t count) { return count == 0; }),
         "at least one queue is required"
     ) {}
-    CTH_CRITICAL(created(), "device was already created") {}
+    CTH_CRITICAL(created(), "device must not be created") {}
 
     vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
     queueCreateInfos.reserve(queueFamiliesQueueCounts.size());

@@ -157,6 +157,7 @@ CVK_TEST(Shader, compile_and_create) {
 
     EXPECT_TRUE(shader.created());
     EXPECT_TRUE(std::filesystem::exists(spvPath));
+    EXPECT_FALSE(std::filesystem::exists(spvPath.string() + ".log"));
 
     std::filesystem::remove(spvPath);
 }
@@ -168,6 +169,7 @@ CVK_TEST(Shader, compile_error_throws) {
     auto const spvPath = temp_dir() / "cvk_test_broken.vert.spv";
 
     EXPECT_THROW(Shader::compile(glslPath, spvPath), cvk_exception);
+    EXPECT_FALSE(std::filesystem::exists(spvPath.string() + ".log"));
 
     std::filesystem::remove(glslPath);
 }

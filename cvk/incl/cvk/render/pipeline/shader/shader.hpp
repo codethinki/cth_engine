@@ -144,7 +144,8 @@ public:
      * @brief compiles a glsl file to a SPIR-V file
      * @param compilerPath glslc compatible compiler
      * @param flags for the compiler
-     * @details compiler output without error -> logged as warning
+     * @details the compiler writes its output to the file spvPath + ".log", the call reads and removes the file,
+     *  compiler output without error -> logged as warning
      * @throws cvk::cvk_exception reason: glsl file missing, compiler failed, details: compiler output
      */
     static void compile(
