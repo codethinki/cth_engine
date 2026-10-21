@@ -30,7 +30,11 @@ namespace {
 }
 
 CVK_TEST(Barrier, layout_transition_from_undefined_waits_for_the_dst_stages) {
-    constexpr auto toTransfer = layout_transition(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED, COLOR);
+    constexpr auto toTransfer = layout_transition(
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        COLOR
+    );
     static_assert(toTransfer.has_value());
     static_assert(toTransfer->src.stages == VK_PIPELINE_STAGE_2_TRANSFER_BIT);
     static_assert(toTransfer->src.access == VK_ACCESS_2_NONE);

@@ -115,6 +115,8 @@ public:
                 .pUserData = nullptr,
             };
         }
+
+        static constexpr void debug_check(Config const&);
     };
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
@@ -146,5 +148,9 @@ struct DebugMessenger::State {
 namespace cvk {
 constexpr void DebugMessenger::debug_check(DebugMessenger const& debugMessenger) {
     CTH_CRITICAL(!debugMessenger.created(), "debug_messenger not created") {}
+}
+
+constexpr void DebugMessenger::Config::debug_check(Config const& config) {
+    CTH_CRITICAL(config.callback == nullptr, "callback must not be nullptr") {}
 }
 }

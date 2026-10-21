@@ -10,7 +10,10 @@
 
 namespace cvk {
 DebugMessenger::DebugMessenger(Instance const& instance, Config config) : _config{std::move(config)},
-    _handle{instance.get()} { Instance::debug_check(instance); }
+    _handle{instance.get()} {
+    Instance::debug_check(instance);
+    Config::debug_check(_config);
+}
 
 DebugMessenger::DebugMessenger(Instance const& instance, Config config, State const& state) : DebugMessenger{
     instance,
