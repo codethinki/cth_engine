@@ -25,7 +25,7 @@ public:
 
     /**
      * @brief base constructor
-     * @details clamps @ref Config::maxAnisotropy to maxSamplerAnisotropy of the device
+     * @details clamps @ref Config::maxAnisotropy to maxSamplerAnisotropy of the device, warns if it clamps
      * @pre @ref Core::created()
      */
     Sampler(Core const&, Config const&);

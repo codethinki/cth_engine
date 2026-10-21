@@ -10,7 +10,15 @@
 namespace cvk {
 Sampler::Sampler(Core const& core, Config const& config) : _handle{core}, _config{config} {
     Core::debug_check(core);
-    _config.maxAnisotropy = std::min(_config.maxAnisotropy, core.physicalDevice().limits().maxSamplerAnisotropy);
+
+    auto const limit = core.physicalDevice().limits().maxSamplerAnisotropy;
+    CTH_WARN(
+        _config.maxAnisotropy > limit,
+        "maxAnisotropy clamped to the device limit {}, got {}",
+        limit,
+        _config.maxAnisotropy
+    ) {}
+    _config.maxAnisotropy = std::min(_config.maxAnisotropy, limit);
 }
 
 Sampler::Sampler(Core const& core, Config const& config, State const& state) : Sampler{core, config} { wrap(state); }
