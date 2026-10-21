@@ -10,9 +10,9 @@
 #include "cvk/data/img/sampler.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/cmd/cmd_pool.hpp"
+#include "cvk/render/pipeline/graphics_pipeline.hpp"
 #include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
-#include "cvk/render/pipeline/pipeline.hpp"
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
@@ -63,8 +63,8 @@ namespace {
             vertices.write(FULLSCREEN);
         }
 
-        [[nodiscard]] Pipeline::Config config() const {
-            Pipeline::Config config{COLOR_FORMATS};
+        [[nodiscard]] GraphicsPipeline::Config config() const {
+            GraphicsPipeline::Config config{COLOR_FORMATS};
             config.addStage(vertex).addStage(fragment);
             config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
             config.vertexAttributes = {
@@ -77,7 +77,7 @@ namespace {
         PipelineLayout layout;
         Shader vertex;
         Shader fragment;
-        Pipeline pipeline;
+        GraphicsPipeline pipeline;
         Buffer<Vec3> vertices;
     };
 

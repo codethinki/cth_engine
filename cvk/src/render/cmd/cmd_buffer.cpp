@@ -5,8 +5,9 @@
 #include "cvk/data/img/image.hpp"
 #include "cvk/data/img/image_format.hpp"
 #include "cvk/data/img/image_view.hpp"
+#include "cvk/render/pipeline/compute_pipeline.hpp"
+#include "cvk/render/pipeline/graphics_pipeline.hpp"
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
-#include "cvk/render/pipeline/pipeline.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
@@ -325,15 +326,23 @@ void BaseCmdBuffer::setScissor(VkRect2D const& scissor) const {
     core().functions()->vkCmdSetScissor(get(), 0, 1, &scissor);
 }
 
-void BaseCmdBuffer::bindPipeline(Pipeline const& pipeline) {
+void BaseCmdBuffer::bindPipeline(GraphicsPipeline const& pipeline) {
     debug_check(*this);
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
-    Pipeline::debug_check(pipeline);
+    GraphicsPipeline::debug_check(pipeline);
 
     auto const& mapping = pipeline.config().attachmentMapping;
     if(rendering() != nullptr && mapping != rendering()->attachmentMapping) setAttachmentMapping(mapping);
 
     core().functions()->vkCmdBindPipeline(get(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get());
+}
+
+void BaseCmdBuffer::bindPipeline(ComputePipeline const& pipeline) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    ComputePipeline::debug_check(pipeline);
+
+    core().functions()->vkCmdBindPipeline(get(), VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.get());
 }
 
 void BaseCmdBuffer::bindDescriptorSet(
@@ -470,6 +479,23 @@ void BaseCmdBuffer::drawIndexedIndirect(
     debug_check_indirect(buffer, offset, drawCount, stride, sizeof(VkDrawIndexedIndirectCommand));
 
     core().functions()->vkCmdDrawIndexedIndirect(get(), buffer.get(), offset, drawCount, stride);
+}
+
+void BaseCmdBuffer::dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(rendering() != nullptr, "dispatches must be outside of a rendering") {}
+
+    core().functions()->vkCmdDispatch(get(), groupCountX, groupCountY, groupCountZ);
+}
+
+void BaseCmdBuffer::dispatchIndirect(BaseBuffer const& buffer, size_t offset) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(rendering() != nullptr, "dispatches must be outside of a rendering") {}
+    debug_check_indirect(buffer, offset, 1, 0, sizeof(VkDispatchIndirectCommand));
+
+    core().functions()->vkCmdDispatchIndirect(get(), buffer.get(), offset);
 }
 
 void BaseCmdBuffer::destroy(DeviceTable table, VkCommandPool vkPool, VkCommandBuffer vkBuffer) {

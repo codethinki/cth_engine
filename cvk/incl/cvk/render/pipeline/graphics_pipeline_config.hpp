@@ -15,9 +15,9 @@ class Shader;
 
 /**
  * @brief graphics pipeline state, the defaults are the legacy defaults
- * @details @ref Pipeline::create() sets the pointer and count members of the Vulkan structs from the vectors
+ * @details @ref GraphicsPipeline::create() sets the pointer and count members of the Vulkan structs from the vectors
  */
-struct PipelineConfig {
+struct GraphicsPipelineConfig {
     /**
      * @brief alpha blending: src alpha, one minus src alpha
      */
@@ -33,13 +33,13 @@ struct PipelineConfig {
         | VK_COLOR_COMPONENT_A_BIT,
     };
 
-    constexpr PipelineConfig() = default;
+    constexpr GraphicsPipelineConfig() = default;
 
     /**
      * @brief one @ref ALPHA_BLENDING attachment per color format
      * @param depthFormat VK_FORMAT_UNDEFINED -> no depth attachment
      */
-    explicit constexpr PipelineConfig(
+    explicit constexpr GraphicsPipelineConfig(
         std::span<VkFormat const> colorFormats,
         VkFormat depthFormat = VK_FORMAT_UNDEFINED
     );
@@ -47,16 +47,16 @@ struct PipelineConfig {
     /**
      * @brief adds the stage of the shader
      * @param specialization nullptr -> no specialization constants
-     * @attention @ref specialization must outlive @ref Pipeline::create()
+     * @attention @ref specialization must outlive @ref GraphicsPipeline::create()
      * @pre @ref Shader::created()
      * @pre no stage of the same type
      */
-    PipelineConfig& addStage(Shader const&, VkSpecializationInfo const* specialization = nullptr);
+    GraphicsPipelineConfig& addStage(Shader const&, VkSpecializationInfo const* specialization = nullptr);
 
     /**
      * @pre a stage of the type exists
      */
-    constexpr PipelineConfig& removeStage(VkShaderStageFlagBits stage);
+    constexpr GraphicsPipelineConfig& removeStage(VkShaderStageFlagBits stage);
 
     /**
      * @brief VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT -> the pipeline can be a parent
@@ -161,12 +161,12 @@ struct PipelineConfig {
 }
 
 namespace cvk {
-constexpr PipelineConfig::PipelineConfig(std::span<VkFormat const> colorFormats, VkFormat depthFormat) :
+constexpr GraphicsPipelineConfig::GraphicsPipelineConfig(std::span<VkFormat const> colorFormats, VkFormat depthFormat) :
     colorBlendAttachments(colorFormats.size(), ALPHA_BLENDING),
     colorFormats{std::from_range, colorFormats},
     depthFormat{depthFormat} {}
 
-constexpr PipelineConfig& PipelineConfig::removeStage(VkShaderStageFlagBits stage) {
+constexpr GraphicsPipelineConfig& GraphicsPipelineConfig::removeStage(VkShaderStageFlagBits stage) {
     auto const removed = std::erase_if(
         stages,
         [stage](VkPipelineShaderStageCreateInfo const& info) { return info.stage == stage; }

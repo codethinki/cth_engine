@@ -9,9 +9,9 @@
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/cmd/cmd_pool.hpp"
+#include "cvk/render/pipeline/graphics_pipeline.hpp"
 #include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
-#include "cvk/render/pipeline/pipeline.hpp"
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
@@ -121,8 +121,8 @@ namespace {
     /**
      * @brief fullscreen pipeline for the attachments
      */
-    Pipeline::Config fullscreen(Shader const& vertex, Shader const& fragment, AttachmentMapping mapping) {
-        Pipeline::Config config{COLOR_FORMATS};
+    GraphicsPipeline::Config fullscreen(Shader const& vertex, Shader const& fragment, AttachmentMapping mapping) {
+        GraphicsPipeline::Config config{COLOR_FORMATS};
         config.addStage(vertex).addStage(fragment);
         config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
         config.vertexAttributes = {{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0}};
@@ -183,10 +183,10 @@ namespace {
         Shader color;
         Shader localRead;
         PipelineLayout writeLayout;
-        Pipeline write;
+        GraphicsPipeline write;
         DescriptorSetLayout inputLayout;
         PipelineLayout readLayout;
-        Pipeline read;
+        GraphicsPipeline read;
         DescriptorPool pool;
         DescriptorSet input;
         Buffer<Vec3> vertices;

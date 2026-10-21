@@ -1,4 +1,4 @@
-#include "cvk/render/pipeline/pipeline_config.hpp"
+#include "cvk/render/pipeline/graphics_pipeline_config.hpp"
 
 #include "cvk/render/pipeline/shader/shader.hpp"
 
@@ -6,7 +6,7 @@
 
 
 namespace cvk {
-PipelineConfig& PipelineConfig::addStage(Shader const& shader, VkSpecializationInfo const* specialization) {
+GraphicsPipelineConfig& GraphicsPipelineConfig::addStage(Shader const& shader, VkSpecializationInfo const* specialization) {
     CTH_CRITICAL(
         std::ranges::contains(stages, shader.stage(), &VkPipelineShaderStageCreateInfo::stage),
         "stage already added"

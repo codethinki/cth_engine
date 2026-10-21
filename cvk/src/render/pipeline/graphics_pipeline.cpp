@@ -1,4 +1,4 @@
-#include "cvk/render/pipeline/pipeline.hpp"
+#include "cvk/render/pipeline/graphics_pipeline.hpp"
 
 #include "cvk/base/core.hpp"
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
@@ -6,27 +6,23 @@
 
 
 namespace cvk {
-Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config) : _handle{core},
-    _layout{&layout},
-    _config{std::move(config)} { Core::debug_check(core); }
+GraphicsPipeline::GraphicsPipeline(Core const& core, PipelineLayout const& layout, Config config) :
+    BasePipeline{core, layout, VK_PIPELINE_BIND_POINT_GRAPHICS}, _config{std::move(config)} {}
 
-Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config, State const& state) : Pipeline{
-    core,
-    layout,
-    std::move(config)
-} { wrap(state); }
+GraphicsPipeline::GraphicsPipeline(Core const& core, PipelineLayout const& layout, Config config, State const& state) :
+    GraphicsPipeline{core, layout, std::move(config)} {
+    wrap(state);
+}
 
-Pipeline::Pipeline(Core const& core, PipelineLayout const& layout, Config config, create_t) : Pipeline{
-    core,
-    layout,
-    std::move(config)
-} { create(); }
+GraphicsPipeline::GraphicsPipeline(Core const& core, PipelineLayout const& layout, Config config, create_t) :
+    GraphicsPipeline{core, layout, std::move(config)} {
+    create();
+}
 
-Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config) : _handle{core},
-    _layout{&parent.layout()},
+GraphicsPipeline::GraphicsPipeline(Core const& core, GraphicsPipeline const& parent, Config config) :
+    BasePipeline{core, parent.layout(), VK_PIPELINE_BIND_POINT_GRAPHICS},
     _vkParent{parent.get()},
     _config{std::move(config)} {
-    Core::debug_check(core);
     debug_check(parent);
     CTH_CRITICAL(
         (parent.config().flags & VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT) == 0,
@@ -34,27 +30,17 @@ Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config) : _h
     ) {}
 }
 
-Pipeline::Pipeline(Core const& core, Pipeline const& parent, Config config, create_t) : Pipeline{
-    core,
-    parent,
-    std::move(config)
-} { create(); }
-
-void Pipeline::wrap(State const& state) {
-    optDestroy();
-
-    _handle.reset(state.vkPipeline.get(), core());
+GraphicsPipeline::GraphicsPipeline(Core const& core, GraphicsPipeline const& parent, Config config, create_t) :
+    GraphicsPipeline{core, parent, std::move(config)} {
+    create();
 }
 
-void Pipeline::create() {
-    PipelineLayout::debug_check(*_layout);
+void GraphicsPipeline::create() {
     CTH_CRITICAL(
         _config.colorBlendAttachments.size() != _config.colorFormats.size(),
         "one color blend attachment per color format required"
     ) {}
     AttachmentMapping::debug_check(_config.attachmentMapping, _config.colorFormats.size());
-
-    optDestroy();
 
     auto const& config = _config;
 
@@ -120,52 +106,13 @@ void Pipeline::create() {
         .pDepthStencilState = &config.depthStencil,
         .pColorBlendState = &colorBlend,
         .pDynamicState = &dynamicState,
-        .layout = _layout->get(),
+        .layout = layout().get(),
         .renderPass = VK_NULL_HANDLE,
         .subpass = 0,
         .basePipelineHandle = _vkParent,
         .basePipelineIndex = -1,
     };
 
-    VkPipeline ptr = VK_NULL_HANDLE;
-    auto const result = core().functions()->vkCreateGraphicsPipelines(
-        core().vkDevice(),
-        VK_NULL_HANDLE,
-        1,
-        &info,
-        nullptr,
-        &ptr
-    );
-
-    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create graphics pipeline") {
-        forget();
-        throw cvk::vk_result_exception{result, details->exception()};
-    }
-
-    _handle.reset(ptr, core());
+    BasePipeline::create(info);
 }
-
-void Pipeline::destroy() {
-    debug_check(*this);
-
-    _handle.reset();
-
-    forget();
-}
-
-Pipeline::State Pipeline::release() {
-    debug_check(*this);
-
-    State const state{_handle.release()};
-    forget();
-    return state;
-}
-
-void Pipeline::destroy(DeviceTable table, VkPipeline vkPipeline) {
-    CTH_WARN(vkPipeline == VK_NULL_HANDLE, "vkPipeline invalid (VK_NULL_HANDLE)") {}
-
-    table->vkDestroyPipeline(table.device(), vkPipeline, nullptr);
-}
-
-void Pipeline::forget() {}
 }

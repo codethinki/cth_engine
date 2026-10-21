@@ -23,9 +23,10 @@
 
 
 namespace cvk {
+class ComputePipeline;
 class Core;
 class DescriptorSet;
-class Pipeline;
+class GraphicsPipeline;
 class PipelineLayout;
 
 /**
@@ -148,11 +149,17 @@ public:
     /**
      * @brief binds the pipeline to the graphics bind point
      * @details @ref rendering() -> sets the attachment mapping of the pipeline if the current one differs
-     * @pre @ref recording(), @ref Pipeline::created()
+     * @pre @ref recording(), @ref GraphicsPipeline::created()
      * @pre a secondary inside the rendering of a primary -> the attachment mapping of the pipeline == the inherited one
      * @note outside of a rendering: sets no attachment mapping, the draws need the default of @ref beginRendering()
      */
-    void bindPipeline(Pipeline const&);
+    void bindPipeline(GraphicsPipeline const&);
+
+    /**
+     * @brief binds the pipeline to the compute bind point
+     * @pre @ref recording(), @ref ComputePipeline::created()
+     */
+    void bindPipeline(ComputePipeline const&) const;
 
     /**
      * @brief binds the set to the set number of the pipeline layout
@@ -261,6 +268,21 @@ public:
         uint32_t drawCount = 1,
         uint32_t stride = sizeof(VkDrawIndexedIndirectCommand)
     ) const;
+
+    /**
+     * @brief records a dispatch of the bound compute pipeline
+     * @param groupCountX work groups in x, the same for y and z
+     * @pre @ref recording(), outside of a rendering
+     */
+    void dispatch(uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1) const;
+
+    /**
+     * @brief dispatches with the VkDispatchIndirectCommand in the buffer
+     * @param offset in bytes
+     * @pre the preconditions of @ref dispatch(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
+     * @pre the command lies in the buffer
+     */
+    void dispatchIndirect(BaseBuffer const&, size_t offset = 0) const;
 
     static void destroy(DeviceTable table, VkCommandPool, VkCommandBuffer);
 
