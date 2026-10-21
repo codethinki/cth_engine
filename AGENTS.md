@@ -103,9 +103,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Data structs (`SubmitInfo`, `Barrier`, info structs) are aggregates. Member functions like `add()` are optional shortcuts, checks run at the use.
 - Commands on the command buffer state (binds, dynamic state, push constants, renderings, draws) are command buffer members: `cmd.bindPipeline(pipeline)`.
   Commands on the data of an object (barriers, copies, uploads) are object members: `barrier.execute(cmd)`.
-- Target first, like `std::memcpy`: new before old, dst before src: `LayoutTransition(newLayout, oldLayout, dst, src)`.
-  - copies: `dst.copy(cmd, src)`, `src.copyTo(cmd, dst)` where the code belongs to the source: `image.copyTo(cmd, buffer)`
-  - struct fields keep the Vulkan order: `BarrierScope src, dst`
+- Call patterns follow the modern std library conventions.
 - Use deducing `this` (`this auto& self`) where a function must work on the derived type.
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.
@@ -232,7 +230,7 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 - `CTH_WARN(condition, "message") {}`: suspicious state that is not an error.
 - `cvk` stores state only where it needs the state to work. A check that needs more state is left to the validation layers.
 - `CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "message") {}`: throws `cvk::vk_result_exception` with the `VkResult`.
-- `cvk` throws only `cvk::cvk_exception` and derived types.
+- A module of cth_engine throws only its exception type `<lib>::<lib>_exception` or a derived type: `cvk::cvk_exception`.
 - The condition is the error case: `CTH_CRITICAL(!created(), ...)`, not the expected case.
 
 ### Comment markers
