@@ -24,7 +24,7 @@ CVK_TEST(TimelineSemaphore, create_sets_the_initial_value) {
     ASSERT_TRUE(semaphore.created());
     EXPECT_EQ(semaphore.value(), 5);
     EXPECT_EQ(semaphore.gpuValue(), 5);
-    EXPECT_EQ(semaphore.wait(0), VK_SUCCESS);
+    EXPECT_EQ(semaphore.wait(semaphore.value(), 0), VK_SUCCESS);
 }
 
 CVK_TEST(TimelineSemaphore, signal_advances_the_counter) {
@@ -43,8 +43,21 @@ CVK_TEST(TimelineSemaphore, wait_for_a_value_not_signaled_times_out) {
 
     EXPECT_EQ(semaphore.next(), 1);
 
-    EXPECT_EQ(semaphore.wait(0), VK_TIMEOUT);
+    EXPECT_EQ(semaphore.wait(semaphore.value(), 0), VK_TIMEOUT);
     EXPECT_EQ(semaphore.gpuValue(), 0);
+}
+
+CVK_TEST(TimelineSemaphore, wait_for_an_older_value) {
+    test::Context const context{};
+    TimelineSemaphore semaphore{context.core, create};
+
+    EXPECT_EQ(semaphore.signal(), 1);
+    EXPECT_EQ(semaphore.next(), 2);
+
+    // the counter is ahead of the semaphore, an older value is reached
+    EXPECT_EQ(semaphore.wait(1, 0), VK_SUCCESS);
+    EXPECT_EQ(semaphore.wait(2, 0), VK_TIMEOUT);
+    semaphore.wait(1);
 }
 
 CVK_TEST(TimelineSemaphore, submit_signals_the_next_value) {

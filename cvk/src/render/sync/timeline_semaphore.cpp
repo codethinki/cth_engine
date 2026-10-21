@@ -60,12 +60,11 @@ uint64_t TimelineSemaphore::signal() {
     return info.value;
 }
 
-VkResult TimelineSemaphore::wait(uint64_t timeout) const {
+VkResult TimelineSemaphore::wait(uint64_t value, uint64_t timeout) const {
     debug_check(*this);
 
     auto const table = core().deviceTable();
     auto const vkSemaphore = get();
-    uint64_t const value = _value;
 
     VkSemaphoreWaitInfo const info{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
@@ -86,8 +85,8 @@ VkResult TimelineSemaphore::wait(uint64_t timeout) const {
     return result;
 }
 
-void TimelineSemaphore::wait() const {
-    [[maybe_unused]] auto const result = wait(std::numeric_limits<uint64_t>::max());
+void TimelineSemaphore::wait(uint64_t value) const {
+    [[maybe_unused]] auto const result = wait(value, std::numeric_limits<uint64_t>::max());
 }
 
 uint64_t TimelineSemaphore::gpuValue() const {

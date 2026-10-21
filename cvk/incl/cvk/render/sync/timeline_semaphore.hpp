@@ -78,20 +78,26 @@ public:
     uint64_t signal();
 
     /**
-     * @brief blocks until the semaphore reaches @ref value() or the timeout ends
+     * @brief blocks until the semaphore reaches the value or the timeout ends
      * @param timeout in nanoseconds
      * @return VK_SUCCESS or VK_TIMEOUT
      * @pre @ref created()
      * @throws cvk::vk_result_exception other result of vkWaitSemaphores()
      */
-    [[nodiscard]] VkResult wait(uint64_t timeout) const;
+    [[nodiscard]] VkResult wait(uint64_t value, uint64_t timeout) const;
 
     /**
-     * @brief blocks until the semaphore reaches @ref value()
+     * @brief blocks until the semaphore reaches the value
      * @pre @ref created()
      * @throws cvk::vk_result_exception result of vkWaitSemaphores()
      */
-    void wait() const;
+    void wait(uint64_t value) const;
+
+    /**
+     * @brief blocks until the semaphore reaches @ref value()
+     * @details calls @ref wait(uint64_t) const
+     */
+    void wait() const { wait(_value); }
 
     /**
      * @brief advances the counter
