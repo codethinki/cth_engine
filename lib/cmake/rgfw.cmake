@@ -10,9 +10,7 @@ if(NOT TARGET rgfw::rgfw)
     add_library(rgfw INTERFACE)
     add_library(rgfw::rgfw ALIAS rgfw)
 
-    # the implementation and the generated protocol code are C,
-    # cth_set_latest_c_cpp_standard() sets the C standard to the C++ one, C has no 26
-    set(CMAKE_C_STANDARD 17)
+    # the implementation and the generated protocol code are C
     enable_language(C)
 
     target_include_directories(rgfw INTERFACE "${RGFW_DIR}")
