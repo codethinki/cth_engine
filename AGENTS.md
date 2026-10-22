@@ -111,7 +111,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - An automatically chosen value has an override if:
   - the choice is not guaranteed to be optimal
   - there is a legitimate interest: debugging, user preference
-- Never erase types into integers or `void*`.
+- Never erase types into integers or `void*`. Exception: opaque OS handles are `void*`, like in `cth::os`.
 
 ### Includes
 
