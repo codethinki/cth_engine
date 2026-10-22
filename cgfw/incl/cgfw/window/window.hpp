@@ -48,6 +48,17 @@ enum class WindowFlags : uint32_t {
 CTH_GEN_ENUM_FLAG_OVERLOADS(cgfw::WindowFlags)
 
 namespace cgfw {
+/**
+ * @brief opaque native handles of a window
+ * @details windows: display = HINSTANCE, window = HWND
+ *  wayland: display = wl_display*, window = wl_surface*
+ *  windows that exist at the same time have the same display
+ */
+struct native_window {
+    void* display;
+    void* window;
+};
+
 namespace dev {
     /**
      * @brief deleter of a window, without context: RGFW keeps one global state
@@ -170,6 +181,12 @@ public:
      * @pre @ref created()
      */
     [[nodiscard]] bool shouldClose() const;
+
+    /**
+     * @return the native handles of the window
+     * @pre @ref created()
+     */
+    [[nodiscard]] native_window nativeWindow() const;
 
     /**
      * @brief closes the window and frees it

@@ -101,6 +101,28 @@ CGFW_TEST(Window, windows_exist_at_the_same_time) {
     EXPECT_NE(windows[0].get(), windows[2].get());
 }
 
+CGFW_TEST(Window, native_handles_are_not_nullptr) {
+    CGFW_SKIP_WITHOUT_DISPLAY();
+    Window const window{test::window_config(), create};
+
+    auto const [display, nativeWindow] = window.nativeWindow();
+
+    EXPECT_NE(display, nullptr);
+    EXPECT_NE(nativeWindow, nullptr);
+}
+
+CGFW_TEST(Window, windows_at_the_same_time_have_the_same_display) {
+    CGFW_SKIP_WITHOUT_DISPLAY();
+    Window const first{test::window_config("first"), create};
+    Window const second{test::window_config("second"), create};
+
+    auto const firstNative = first.nativeWindow();
+    auto const secondNative = second.nativeWindow();
+
+    EXPECT_EQ(firstNative.display, secondNative.display);
+    EXPECT_NE(firstNative.window, secondNative.window);
+}
+
 CGFW_TEST(Window, surface_of_an_instance_with_the_extensions) {
     CGFW_SKIP_WITHOUT_DISPLAY();
     test::InstanceContext const context{};

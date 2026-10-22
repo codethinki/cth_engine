@@ -7,6 +7,8 @@
 
 #include <RGFW.h>
 
+#include <cth/os/osdef.hpp>
+
 #include <span>
 
 
@@ -103,6 +105,17 @@ bool Window::shouldClose() const {
     debug_check(*this);
 
     return RGFW_window_shouldClose(_handle.get()) != RGFW_FALSE;
+}
+
+native_window Window::nativeWindow() const {
+    debug_check(*this);
+
+#ifdef CTH_PLATFORM_WINDOWS
+    // RGFW has no getter, it gives the Win32 surface this HINSTANCE too
+    return native_window{.display = GetModuleHandleW(nullptr), .window = RGFW_window_getHWND(_handle.get())};
+#else
+    return native_window{.display = RGFW_getDisplay_Wayland(), .window = RGFW_window_getWindow_Wayland(_handle.get())};
+#endif
 }
 
 void Window::destroy(RGFW_window* rgfwWindow) {
