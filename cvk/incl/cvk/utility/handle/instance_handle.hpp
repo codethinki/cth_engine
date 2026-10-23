@@ -1,0 +1,35 @@
+#pragma once
+#include "unique_handle.hpp"
+
+#include "cvk/utility/types.hpp"
+
+#include <volk.h>
+
+
+namespace cvk {
+/**
+ * @brief deleter of instance objects, context: the VkInstance
+ * @details calls T::destroy(vkInstance, handle),
+ *  stores the handle, not the Instance: the instance owns its messenger and can move
+ */
+template<vk_handle_owner T>
+class instance_deleter {
+public:
+    constexpr explicit instance_deleter(VkInstance vkInstance) : _vkInstance{vkInstance} {}
+
+    template<class Handle>
+    constexpr void operator()(Handle handle) const { T::destroy(_vkInstance.get(), handle); }
+
+    [[nodiscard]] constexpr VkInstance vkInstance() const { return _vkInstance.get(); }
+
+private:
+    vk_not_null<VkInstance> _vkInstance;
+};
+
+/**
+ * @brief @ref unique_handle of an instance object, the deleter stores the VkInstance
+ * @tparam T owner class with vk_handle_t and a static destroy(VkInstance, vk_handle_t)
+ */
+template<vk_handle_owner T>
+using instance_handle = unique_handle<typename T::vk_handle_t, instance_deleter<T>>;
+}

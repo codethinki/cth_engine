@@ -1,0 +1,178 @@
+#include "context.hpp"
+#include "shaders.hpp"
+#include "test.hpp"
+
+#include "cvk/data/buffer/buffer.hpp"
+#include "cvk/data/img/image.hpp"
+#include "cvk/data/img/image_view.hpp"
+#include "cvk/render/cmd/cmd_buffer.hpp"
+#include "cvk/render/pipeline/graphics_pipeline.hpp"
+#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
+#include "cvk/render/pipeline/shader/shader.hpp"
+#include "cvk/render/sync/barrier.hpp"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <span>
+
+
+namespace cvk {
+namespace {
+    using test::GREEN;
+    using test::host_written;
+    using test::Vec3;
+
+    constexpr VkExtent2D EXTENT{16, 16};
+    constexpr std::array COLOR_FORMATS{VK_FORMAT_R8G8B8A8_UNORM};
+
+    /**
+     * @brief pipeline that fills the triangle with the push constant color
+     */
+    struct Fill {
+        explicit Fill(Core const& core) : layout{
+                core,
+                PipelineLayout::Config{.pushConstantRanges = {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GREEN)}}},
+                create
+            },
+            vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
+            fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
+            pipeline{layout, test::fullscreen_config(vertex, fragment, COLOR_FORMATS), create},
+            vertices{core, host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
+            vertices.write(test::FULLSCREEN);
+        }
+
+        PipelineLayout layout;
+        Shader vertex;
+        Shader fragment;
+        GraphicsPipeline pipeline;
+        Buffer<Vec3> vertices;
+    };
+
+    /**
+     * @brief clears an attachment to black, draws with draw() and expects every pixel green
+     */
+    template<class Draw>
+    void expect_filled(test::Context const& context, Fill const& fill, Draw draw) {
+        Image const image{
+            context.core,
+            {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .format = COLOR_FORMATS[0],
+                .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+            },
+            EXTENT
+        };
+        ImageView const view{image, {}, create};
+        BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
+
+        test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
+            Barrier transition{};
+            transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+            transition.execute(cmd);
+            cmd.beginRendering(
+                {
+                    .colorAttachments = {
+                        RenderingAttachment{
+                            .view = &view,
+                            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                            .clearValue = {.color = {.float32 = {0.f, 0.f, 0.f, 1.f}}},
+                        },
+                    },
+                }
+            );
+
+            cmd.bindPipeline(fill.pipeline);
+            cmd.bindVertexBuffer(0, fill.vertices);
+            // a span pushes its elements, not itself
+            cmd.pushConstants(fill.layout, VK_SHADER_STAGE_FRAGMENT_BIT, std::span<float const>{GREEN});
+            draw(cmd);
+
+            cmd.endRendering();
+
+            Barrier barrier{};
+            barrier.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+            );
+            barrier.execute(cmd);
+
+            test::copy_to_buffer(context, cmd, image, readback, 0, 0);
+            test::host_read_barrier(context, cmd);
+        });
+
+        EXPECT_TRUE(test::every_pixel_is(readback, test::GREEN_PIXEL));
+    }
+}
+
+CVK_TEST(Draw, index_type_follows_the_element) {
+    static_assert(index_type<uint16_t> == VK_INDEX_TYPE_UINT16);
+    static_assert(index_type<uint32_t> == VK_INDEX_TYPE_UINT32);
+    static_assert(!index_element<uint8_t>);
+    static_assert(!index_element<int32_t>);
+}
+
+CVK_TEST(Draw, draw) {
+    test::Context const context{};
+    Fill const fill{context.core};
+
+    expect_filled(context, fill, [](PrimaryCmdBuffer const& cmd) { cmd.draw(3); });
+}
+
+CVK_TEST(Draw, draw_indexed) {
+    test::Context const context{};
+    Fill const fill{context.core};
+    Buffer<uint16_t> indices{context.core, host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), 3};
+    indices.write(std::array<uint16_t, 3>{0, 1, 2});
+
+    expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) {
+        cmd.bindIndexBuffer(indices);
+        cmd.drawIndexed(3);
+    });
+}
+
+CVK_TEST(Draw, draw_indirect) {
+    test::Context const context{};
+    Fill const fill{context.core};
+    Buffer<VkDrawIndirectCommand> commands{
+        context.core,
+        host_written(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
+        1
+    };
+    commands.write(
+        std::array{VkDrawIndirectCommand{.vertexCount = 3, .instanceCount = 1, .firstVertex = 0, .firstInstance = 0}}
+    );
+
+    expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) { cmd.drawIndirect(commands); });
+}
+
+CVK_TEST(Draw, draw_indexed_indirect) {
+    test::Context const context{};
+    Fill const fill{context.core};
+    Buffer<uint32_t> indices{context.core, host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), 3};
+    indices.write(std::array<uint32_t, 3>{0, 1, 2});
+    Buffer<VkDrawIndexedIndirectCommand> commands{
+        context.core,
+        host_written(VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
+        1
+    };
+    commands.write(
+        std::array{
+            VkDrawIndexedIndirectCommand{
+                .indexCount = 3,
+                .instanceCount = 1,
+                .firstIndex = 0,
+                .vertexOffset = 0,
+                .firstInstance = 0,
+            },
+        }
+    );
+
+    expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) {
+        cmd.bindIndexBuffer(indices);
+        cmd.drawIndexedIndirect(commands);
+    });
+}
+}

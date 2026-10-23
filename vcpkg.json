@@ -1,13 +1,18 @@
 {
   "dependencies": [
-    "boost-asio",
     "boost-pfr",
-    "glfw3",
-    "glm",
+    "gtl",
     "gtest",
-    "ms-gsl",
-    "range-v3",
-    "stb",
-    "volk"
+    "volk",
+    "vulkan-memory-allocator",
+    "vulkan-utility-libraries",
+    {
+      "name": "wayland",
+      "platform": "linux"
+    },
+    {
+      "name": "wayland-protocols",
+      "platform": "linux"
+    }
   ]
 }
