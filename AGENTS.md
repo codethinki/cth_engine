@@ -38,6 +38,7 @@ Read it before you change a file. Match the existing code.
 - Topic branches off the work branch are named `_v2/_jvk_rebuild/<topic>`.
 - `dev` and the `_dev/...` branches are old. Do not use them.
 - Work locally. Do not open pull requests for single steps.
+- CI runs on pushes and pull requests to `master` and `v2`. The work branch has a draft pull request into `v2`, it runs the CI on every push.
 
 ## Build and test
 

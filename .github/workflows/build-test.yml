@@ -1,8 +1,8 @@
 name: Build & Test
 
 on:
-  push: { branches: ["master", "v2", "_v2/jvk_rebuild"] }
-  pull_request: { branches: ["master"] }
+  push: { branches: ["master", "v2"] }
+  pull_request: { branches: ["master", "v2"] }
   workflow_dispatch:
 
 permissions: { contents: read, packages: write }
