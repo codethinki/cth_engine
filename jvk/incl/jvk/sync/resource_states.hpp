@@ -32,7 +32,7 @@ struct ImageState {
 };
 
 /**
- * access of a command to the mip levels of an image, every layer
+ * access of a command to the mip levels of an image, every layer and aspect
  */
 struct ImageAccess {
     /**
@@ -49,6 +49,13 @@ struct ImageAccess {
      * (VK_REMAINING_MIP_LEVELS => to the last mip level)
      */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
+
+    //TODO review
+    /**
+     * the previous contents of the mip levels do not matter: the barrier comes from VK_IMAGE_LAYOUT_UNDEFINED
+     * @attention every layer and aspect of the mip levels loses its contents
+     */
+    bool discard = false;
 };
 
 /**
@@ -73,7 +80,7 @@ struct BufferAccess {
 /**
  * first and last state of the mip levels and the buffers in one recording, the barriers between the accesses
  * @details the caller owns it and decides the scope, a jvk command buffer has one per recording,
- *  images: key (image, mip level), all layers of a mip level share one state,
+ *  images: key (image, mip level), all layers and aspects of a mip level share one state: depth and stencil too,
  *  buffers: one state per buffer, no ranges,
  *  the first state spans the accesses until the first barrier,
  *  the submit resolves the first states against the states before the recording,
@@ -90,9 +97,11 @@ public:
      * records the access of the mip levels
      * @details per mip level:
      *  - no state -> notes the access as its first use, no barrier
-     *  - layout change, or the last state or the access writes -> appends a barrier from the last state to the access,
-     *    the access becomes the last state
+     *  - layout change, discard, or the last state or the access writes -> appends a barrier from the last state to
+     *    the access, the access becomes the last state
      *  - read after read in the same layout -> no barrier, the last state gets the stages and the access too
+     *  - @ref ImageAccess::discard -> the barrier comes from VK_IMAGE_LAYOUT_UNDEFINED,
+     *    a first use notes it for @ref discards()
      * @param barrier gets the barriers, the caller records it before the command of the access
      * @pre @ref cvk::Image::created()
      * @pre the mip range lies in the image
@@ -144,7 +153,8 @@ public:
      * appends the accesses of a later recording, e.g. a secondary that a primary executes
      * @details the mip levels and buffers of next follow the rules of @ref access():
      *  barriers for the first states of next that follow a last state of this,
-     *  the first states of next without a state in this become first states,
+     *  a first state of next that @ref discards() gets its barrier from VK_IMAGE_LAYOUT_UNDEFINED,
+     *  the first states of next without a state in this become first states, with their discard,
      *  an entry of next without a first use (@ref assume()) gets no barrier,
      *  the last states of next become the last states
      * @param next states of the later recording
@@ -155,8 +165,14 @@ public:
     /**
      * @return state of the first use of the mip level in the recording,
      *  std::nullopt -> no access, or an @ref assume() before the first access
+     * @details @ref discards() -> the barrier before the first use comes from VK_IMAGE_LAYOUT_UNDEFINED
      */
     [[nodiscard]] std::optional<ImageState> first(cvk::Image const&, uint32_t mipLevel) const;
+
+    /**
+     * @return the first use of the mip level discards the previous contents, see @ref ImageAccess::discard
+     */
+    [[nodiscard]] bool discards(cvk::Image const&, uint32_t mipLevel) const;
 
     /**
      * @return state after the last access or @ref assume() of the mip level, std::nullopt -> none
@@ -226,6 +242,11 @@ private:
          */
         std::optional<ImageState> first;
         ImageState last;
+
+        /**
+         * the first use discards the previous contents
+         */
+        bool discard = false;
 
         /**
          * a barrier or an @ref assume() followed the first use, the accesses after it do not extend @ref first
