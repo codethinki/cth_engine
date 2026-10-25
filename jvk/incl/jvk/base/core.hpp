@@ -61,9 +61,9 @@ public:
 
     /**
      * waits until every queue is idle, destroys the @ref Queues, stops the workers, destroys the cvk core
+     * @details a failed wait does not stop the teardown
      * @pre @ref created()
      * @pre the calling thread runs no job of the core
-     * @throws cvk::vk_result_exception result of vkQueueWaitIdle()
      */
     void destroy();
 

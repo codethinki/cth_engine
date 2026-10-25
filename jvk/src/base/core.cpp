@@ -53,8 +53,14 @@ void Core::destroy() {
 
     // one wait per vulkan queue: the first role of each queue index
     auto const indices = _core.queueIndices();
-    for(size_t role = 0; role < indices.size(); ++role)
-        if(!std::ranges::contains(indices.first(role), indices[role])) queue(role).waitIdle();
+    for(size_t role = 0; role < indices.size(); ++role) {
+        if(std::ranges::contains(indices.first(role), indices[role])) continue;
+
+        // a failed wait does not stop the teardown, vulkan destroys do not fail, also after a device loss
+        try {
+            queue(role).waitIdle();
+        } catch(...) {}
+    }
 
     _queues.reset();
     _workers.await_stop();
