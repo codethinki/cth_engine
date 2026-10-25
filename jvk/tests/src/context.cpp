@@ -1,14 +1,15 @@
 #include "context.hpp"
 
-#include "cvk/surface/surface.hpp"
-
 #include <cstddef>
 #include <optional>
-#include <span>
 
 
 namespace jvk::test {
-cvk::Core::Config const Context::CONFIG{.queueProperties = {std::from_range, QUEUES}};
+Core::Config const Context::CONFIG{
+    .vk = {.queueProperties = {std::from_range, QUEUES}},
+    .workers = 2,
+    .queueWorkers = 2,
+};
 
 namespace {
     size_t errors = 0;
@@ -28,7 +29,7 @@ namespace {
      */
     struct SharedContexts {
         cvk::Instance instance{instance_config(), cvk::create, counting_messenger()};
-        std::optional<cvk::Core> core{};
+        std::optional<Core> core{};
     };
 
     std::optional<SharedContexts> shared{};
@@ -38,10 +39,9 @@ namespace {
         return *shared;
     }
 
-    cvk::Core const& shared_core() {
+    Core const& shared_core() {
         auto& contexts = shared_contexts();
-        if(!contexts.core.has_value())
-            contexts.core.emplace(contexts.instance, std::span<cvk::Surface const>{}, Context::CONFIG);
+        if(!contexts.core.has_value()) contexts.core.emplace(contexts.instance, Context::CONFIG, cvk::create);
         return *contexts.core;
     }
 }

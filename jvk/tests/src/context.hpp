@@ -1,7 +1,8 @@
 #pragma once
 #include "test.hpp"
 
-#include "cvk/base/core.hpp"
+#include "jvk/base/core.hpp"
+
 #include "cvk/base/instance.hpp"
 #include "cvk/debug/debug_messenger.hpp"
 
@@ -27,9 +28,9 @@ inline constexpr std::array QUEUES{cvk::QueueFamilyProperties::GRAPHICS | cvk::Q
  */
 struct Context {
     /**
-     * the queues of @ref QUEUES
+     * the queues of @ref QUEUES, two workers and two queue workers: jobs of one strand can run on different threads
      */
-    static cvk::Core::Config const CONFIG;
+    static Core::Config const CONFIG;
 
     struct ValidationCheck {
         ValidationCheck();
@@ -41,7 +42,7 @@ struct Context {
     ValidationCheck validationCheck;
 
     cvk::Instance const& instance;
-    cvk::Core const& core;
+    Core const& core;
 
     Context(Context const& other) = delete;
     Context(Context&& other) = delete;
