@@ -15,7 +15,7 @@
 namespace cvk {
 namespace {
     /**
-     * @brief binding 0: uniform buffer, binding 1: combined image sampler
+     * binding 0: uniform buffer, binding 1: combined image sampler
      */
     DescriptorSetLayout::Config buffer_and_texture() {
         DescriptorSetLayout::Config config{};
@@ -25,7 +25,7 @@ namespace {
     }
 
     /**
-     * @brief binding 0: up to 64 combined image samplers, bindless flags
+     * binding 0: up to 64 combined image samplers, bindless flags
      */
     DescriptorSetLayout::Config bindless() {
         DescriptorSetLayout::Config config{};

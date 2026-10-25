@@ -15,7 +15,7 @@ namespace cvk {
 class Core;
 
 /**
- * @brief VkCommandPool wrapper, counts its command buffers and its resets
+ * VkCommandPool wrapper, counts its command buffers and its resets
  * @details the pool and its command buffers are used by one thread at a time
  */
 class CmdPool {
@@ -25,13 +25,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created()
      */
     CmdPool(Core const&, Config const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref CmdPool(Core const&, Config const&)
      * - @ref wrap()
@@ -39,7 +39,7 @@ public:
     CmdPool(Core const&, Config const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref CmdPool(Core const&, Config const&)
      * - @ref create()
@@ -52,7 +52,7 @@ public:
     ~CmdPool() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the pool was created with the config
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -60,7 +60,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the pool
+     * creates the pool
      * @pre the config has a queue family (!= VK_QUEUE_FAMILY_IGNORED)
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -69,26 +69,26 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      * @pre @ref unused()
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      * @pre @ref unused()
      */
     State release();
 
     /**
-     * @brief resets every command buffer of the pool to the initial state
+     * resets every command buffer of the pool to the initial state
      * @param flags VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT -> returns the memory of the pool to the system
      * @pre @ref created()
      * @pre no command buffer of the pool is pending
@@ -98,14 +98,14 @@ public:
     void reset(VkCommandPoolResetFlags flags = 0) const;
 
     /**
-     * @brief counts a command buffer of the pool
+     * counts a command buffer of the pool
      * @details @ref BaseCmdBuffer::create() and @ref BaseCmdBuffer::wrap() call it,
      *  code that keeps a released command buffer of the pool may call it too
      */
     void add() const;
 
     /**
-     * @brief stops to count a command buffer of the pool
+     * stops to count a command buffer of the pool
      * @details @ref BaseCmdBuffer::destroy() and @ref BaseCmdBuffer::release() call it,
      *  code that frees a counted command buffer itself calls it too
      * @pre !@ref unused()

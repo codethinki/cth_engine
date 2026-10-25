@@ -22,7 +22,7 @@ class Surface;
 using device_uuid_t = std::array<uint8_t, VK_UUID_SIZE>;
 
 /**
- * @brief VkPhysicalDevice with its queried extensions, features, properties and queue families
+ * VkPhysicalDevice with its queried extensions, features, properties and queue families
  * @details copyable, the instance owns the physical device
  */
 class PhysicalDevice {
@@ -30,7 +30,7 @@ public:
     using vk_handle_t = VkPhysicalDevice;
 
     /**
-     * @brief queries the device
+     * queries the device
      * @param surfaces a family presents only if it presents to every surface, empty -> no present support
      * @pre the instance of the device is created
      * @throws cvk::vk_result_exception result of vkEnumerateDeviceExtensionProperties()
@@ -51,7 +51,7 @@ public:
     ) const;
 
     /**
-     * @brief finds queue families for the requested queues
+     * finds queue families for the requested queues
      * @param queueProperties requested queues
      * @return family index per requested queue, empty -> no combination
      */
@@ -111,7 +111,7 @@ public:
 };
 
 /**
- * @brief physical device for the requested queues, with the family index of each queue
+ * physical device for the requested queues, with the family index of each queue
  */
 struct PhysicalDevicePick {
     PhysicalDevice device;
@@ -119,7 +119,7 @@ struct PhysicalDevicePick {
 };
 
 /**
- * @brief queries every physical device of the instance
+ * queries every physical device of the instance
  * @param surfaces a family presents only if it presents to every surface, empty -> no present support
  * @pre @ref Instance::created()
  * @throws cvk::vk_result_exception result of vkEnumeratePhysicalDevices()
@@ -130,7 +130,7 @@ struct PhysicalDevicePick {
 );
 
 /**
- * @brief picks the best physical device with the features, the extensions and the queues
+ * picks the best physical device with the features, the extensions and the queues
  * @param surfaces a family presents only if it presents to every surface
  * @param extensions to require, besides the extensions of the features
  * @param uuid std::nullopt -> every device counts, set -> only the device with this uuid counts

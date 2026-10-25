@@ -13,7 +13,7 @@ namespace cvk {
 class Core;
 
 /**
- * @brief binary VkSemaphore wrapper
+ * binary VkSemaphore wrapper
  */
 class Semaphore {
 public:
@@ -21,13 +21,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created()
      */
     explicit Semaphore(Core const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Semaphore(Core const&)
      * - @ref wrap()
@@ -35,7 +35,7 @@ public:
     Semaphore(Core const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Semaphore(Core const&)
      * - @ref create()
@@ -48,14 +48,14 @@ public:
     ~Semaphore() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
     void wrap(State const&);
 
     /**
-     * @brief creates the semaphore
+     * creates the semaphore
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateSemaphore()
@@ -63,19 +63,19 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      * @pre the gpu does not use the semaphore
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -88,7 +88,7 @@ public:
 
 protected:
     /**
-     * @brief creates the semaphore with info
+     * creates the semaphore with info
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateSemaphore()

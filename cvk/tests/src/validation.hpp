@@ -6,7 +6,7 @@
 
 namespace cvk::test {
 /**
- * @brief messenger config that logs every message and counts the errors
+ * messenger config that logs every message and counts the errors
  * @details for the instance create info too -> counts the errors of vkDestroyInstance(), e.g. leaked objects
  */
 [[nodiscard]] DebugMessenger::Config counting_messenger();

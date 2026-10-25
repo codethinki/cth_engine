@@ -27,7 +27,7 @@ class Core;
 class Surface;
 
 /**
- * @brief VkSwapchainKHR wrapper, owns its images, their views, a present semaphore and a present fence per image
+ * VkSwapchainKHR wrapper, owns its images, their views, a present semaphore and a present fence per image
  * @details the images are wrapped without memory and released before the swapchain is destroyed,
  *  @ref resize() and @ref recreate() retire the old swapchain,
  *  the swapchain destroys it once its present fences signal
@@ -40,29 +40,29 @@ public:
     struct State;
 
     /**
-     * @brief result of @ref acquire()
+     * result of @ref acquire()
      */
     struct Acquired {
         /**
-         * @brief VK_SUCCESS, VK_SUBOPTIMAL_KHR, VK_ERROR_OUT_OF_DATE_KHR, VK_TIMEOUT or VK_NOT_READY
+         * VK_SUCCESS, VK_SUBOPTIMAL_KHR, VK_ERROR_OUT_OF_DATE_KHR, VK_TIMEOUT or VK_NOT_READY
          */
         VkResult result;
 
         /**
-         * @brief std::nullopt -> no image acquired, the semaphore stays unsignaled
+         * std::nullopt -> no image acquired, the semaphore stays unsignaled
          */
         std::optional<uint32_t> imageIndex;
     };
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created(), @ref Surface::created()
      * @pre the queue can present to the surface
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Swapchain(Core const&, Queue const&, Surface const&, Config)
      * - @ref wrap()
@@ -70,7 +70,7 @@ public:
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Swapchain(Core const&, Queue const&, Surface const&, Config)
      * - @ref create()
@@ -83,7 +83,7 @@ public:
     ~Swapchain() { optDestroy(); }
 
     /**
-     * @brief wraps the state, gets the images, creates their views, present semaphores and present fences
+     * wraps the state, gets the images, creates their views, present semaphores and present fences
      * @details the format and the present mode come from the state, not from the config
      * @pre the swapchain was created for the surface with the config and the state
      * @post @ref created()
@@ -93,7 +93,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief picks the format and the present mode of the config, creates the swapchain
+     * picks the format and the present mode of the config, creates the swapchain
      * @param extent of the window, a fixed currentExtent of the surface wins
      * @details the first entries of @ref Config::formats and @ref Config::presentModes that the surface offers win
      * @pre extent width and height > 0
@@ -105,7 +105,7 @@ public:
     void create(VkExtent2D extent);
 
     /**
-     * @brief creates a new swapchain with the old one as oldSwapchain, the old one retires
+     * creates a new swapchain with the old one as oldSwapchain, the old one retires
      * @param extent of the window, a fixed currentExtent of the surface wins
      * @details keeps the format and the present mode, queries the surface capabilities again,
      *  unacquires the images that are still acquired,
@@ -120,7 +120,7 @@ public:
     void resize(VkExtent2D extent);
 
     /**
-     * @brief applies the config, e.g. another present mode, retires the old swapchain like @ref resize()
+     * applies the config, e.g. another present mode, retires the old swapchain like @ref resize()
      * @param extent of the window, a fixed currentExtent of the surface wins
      * @details picks the format and the present mode of the config again, see @ref create()
      * @pre @ref created()
@@ -133,7 +133,7 @@ public:
     void recreate(VkExtent2D extent, Config);
 
     /**
-     * @brief waits for the present fences, destroys the swapchain and forgets
+     * waits for the present fences, destroys the swapchain and forgets
      * @details releases the images, destroys the views, present semaphores, present fences and retired swapchains
      * @pre @ref created()
      * @pre no present semaphore is signaled without its present
@@ -141,12 +141,12 @@ public:
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief waits for the present fences, releases ownership, returns the state and forgets
+     * waits for the present fences, releases ownership, returns the state and forgets
      * @details releases the images, destroys the views, present semaphores, present fences and retired swapchains
      * @pre @ref created()
      * @pre no present semaphore is signaled without its present
@@ -154,7 +154,7 @@ public:
     State release();
 
     /**
-     * @brief acquires the next image
+     * acquires the next image
      * @param signal signaled when the image is ready
      * @param timeout in nanoseconds
      * @details destroys the retired swapchains with signaled present fences
@@ -165,7 +165,7 @@ public:
     [[nodiscard]] Acquired acquire(Semaphore const& signal, uint64_t timeout = std::numeric_limits<uint64_t>::max());
 
     /**
-     * @brief presents the image once its present semaphore signals
+     * presents the image once its present semaphore signals
      * @return VK_SUCCESS, VK_SUBOPTIMAL_KHR or VK_ERROR_OUT_OF_DATE_KHR
      * @details VK_ERROR_OUT_OF_DATE_KHR -> the present still waits for the semaphore,
      *  destroys the retired swapchains with signaled present fences
@@ -176,7 +176,7 @@ public:
     [[nodiscard]] VkResult present(uint32_t imageIndex);
 
     /**
-     * @brief gives acquired images back without a present
+     * gives acquired images back without a present
      * @pre the images are acquired and all uses of them completed
      * @attention the acquire semaphores of the images still signal, wait for them before reuse
      * @throws cvk::vk_result_exception result of vkReleaseSwapchainImagesKHR()
@@ -244,7 +244,7 @@ public:
 
 private:
     /**
-     * @brief one VkSwapchainKHR with its images, views, present semaphores, present fences and acquire states
+     * one VkSwapchainKHR with its images, views, present semaphores, present fences and acquire states
      * @details the destructor waits for the present fences and releases the images,
      *  then the members destroy in reverse order: the swapchain last,
      *  a moved from generation is empty, its destructor does nothing,
@@ -284,23 +284,23 @@ private:
     [[nodiscard]] std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> pick(Config const&) const;
 
     /**
-     * @brief creates a swapchain with @ref _surfaceFormat and @ref _presentMode as the new current generation
+     * creates a swapchain with @ref _surfaceFormat and @ref _presentMode as the new current generation
      * @details a failure destroys every generation and forgets
      */
     void createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain);
 
     /**
-     * @brief gets the images of the current generation, creates their views, present semaphores and present fences
+     * gets the images of the current generation, creates their views, present semaphores and present fences
      */
     void createImages();
 
     /**
-     * @brief unacquires the acquired images of the current generation
+     * unacquires the acquired images of the current generation
      */
     void unacquireAll();
 
     /**
-     * @brief destroys the retired generations with signaled present fences
+     * destroys the retired generations with signaled present fences
      */
     void collectRetired();
 
@@ -312,7 +312,7 @@ private:
     Config _config;
 
     /**
-     * @brief back() is the current swapchain, the others are retired, empty -> not created
+     * back() is the current swapchain, the others are retired, empty -> not created
      */
     std::vector<Generation> _generations;
 

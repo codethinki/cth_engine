@@ -22,7 +22,7 @@ class Core;
 class Image;
 
 /**
- * @brief offsets and size of a buffer copy
+ * offsets and size of a buffer copy
  * @details in bytes, in elements for a typed buffer
  */
 struct BufferCopy {
@@ -30,13 +30,13 @@ struct BufferCopy {
     size_t dstOffset = 0;
 
     /**
-     * @brief (VK_WHOLE_SIZE => as much as fits into both buffers)
+     * (VK_WHOLE_SIZE => as much as fits into both buffers)
      */
     size_t size = VK_WHOLE_SIZE;
 };
 
 /**
- * @brief VkBuffer wrapper, owns the buffer and its memory, sizes in bytes
+ * VkBuffer wrapper, owns the buffer and its memory, sizes in bytes
  * @details @ref create() creates both with vmaCreateBuffer(),
  *  map, flush, invalidate and write forward to the memory,
  *  @ref Buffer adds an element type
@@ -48,13 +48,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created()
      */
     BaseBuffer(Core const&, Config const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref BaseBuffer(Core const&, Config const&)
      * - @ref wrap()
@@ -62,7 +62,7 @@ public:
     BaseBuffer(Core const&, Config const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref BaseBuffer(Core const&, Config const&)
      * - @ref create()
@@ -75,7 +75,7 @@ public:
     ~BaseBuffer() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @details std::nullopt @ref State::memory -> no own memory, @ref destroy() only destroys the buffer
      * @pre the buffer is bound to its memory
      * @pre the buffer was created with the usage of the config
@@ -85,7 +85,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the buffer and its memory
+     * creates the buffer and its memory
      * @param size in bytes
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -94,25 +94,25 @@ public:
     void create(size_t size);
 
     /**
-     * @brief destroys the buffer, then its memory, and forgets
+     * destroys the buffer, then its memory, and forgets
      * @pre @ref created()
      * @pre the gpu does not use the buffer
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership of the buffer and its memory, returns the state and forgets
+     * releases ownership of the buffer and its memory, returns the state and forgets
      * @pre @ref created()
      */
     State release();
 
     /**
-     * @brief records a copy from the source buffer
+     * records a copy from the source buffer
      * @param region in bytes
      * @pre @ref created() and src created
      * @pre @ref BaseCmdBuffer::recording()
@@ -122,7 +122,7 @@ public:
     void copy(BaseCmdBuffer const&, BaseBuffer const& src, BufferCopy region = {}) const;
 
     /**
-     * @brief records a copy from the mip level of the image
+     * records a copy from the mip level of the image
      * @param dstOffset in bytes
      * @details calls @ref Image::copyTo()
      */
@@ -135,7 +135,7 @@ public:
     ) const;
 
     /**
-     * @brief maps the range of the memory
+     * maps the range of the memory
      * @param range in bytes
      * @return the mapped range, its destructor unmaps
      * @pre @ref memory() != nullptr
@@ -144,7 +144,7 @@ public:
     [[nodiscard]] Mapping<std::byte> map(Range range = {}) const;
 
     /**
-     * @brief makes host writes visible to the device
+     * makes host writes visible to the device
      * @param range in bytes
      * @pre @ref memory() != nullptr, the memory is mapped
      * @details calls @ref Memory::flush()
@@ -152,7 +152,7 @@ public:
     void flush(Range range = {}) const;
 
     /**
-     * @brief makes device writes visible to the host
+     * makes device writes visible to the host
      * @param range in bytes
      * @pre @ref memory() != nullptr, the memory is mapped
      * @details calls @ref Memory::invalidate()
@@ -160,7 +160,7 @@ public:
     void invalidate(Range range = {}) const;
 
     /**
-     * @brief copies the data to the buffer
+     * copies the data to the buffer
      * @param offset in bytes
      * @pre @ref memory() != nullptr
      * @details calls @ref Memory::write()
@@ -214,11 +214,11 @@ namespace cvk {
 struct BaseBuffer::State {
     vk_not_null<VkBuffer> vkBuffer;
     /**
-     * @brief in bytes
+     * in bytes
      */
     size_t size;
     /**
-     * @brief std::nullopt -> the buffer does not own its memory
+     * std::nullopt -> the buffer does not own its memory
      */
     std::optional<Memory::State> memory = std::nullopt;
 };

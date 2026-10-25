@@ -11,20 +11,20 @@ namespace cvk {
 class PipelineLayout;
 
 /**
- * @brief graphics VkPipeline wrapper for dynamic rendering
+ * graphics VkPipeline wrapper for dynamic rendering
  */
 class GraphicsPipeline : public BasePipeline {
 public:
     using Config = GraphicsPipelineConfig;
 
     /**
-     * @brief base constructor, keeps the layout
+     * base constructor, keeps the layout
      * @pre @ref Core::created() of the layout
      */
     GraphicsPipeline(PipelineLayout const&, Config);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref GraphicsPipeline(PipelineLayout const&, Config)
      * - @ref wrap()
@@ -32,7 +32,7 @@ public:
     GraphicsPipeline(PipelineLayout const&, Config, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref GraphicsPipeline(PipelineLayout const&, Config)
      * - @ref create()
@@ -40,13 +40,13 @@ public:
     explicit GraphicsPipeline(PipelineLayout const&, Config, create_t);
 
     /**
-     * @brief base constructor of a derivative pipeline, keeps the layout and copies the handle of the parent
+     * base constructor of a derivative pipeline, keeps the layout and copies the handle of the parent
      * @pre @ref created() of the parent, with VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT in its flags
      */
     GraphicsPipeline(GraphicsPipeline const& parent, Config);
 
     /**
-     * @brief constructs and creates a derivative pipeline
+     * constructs and creates a derivative pipeline
      * @details calls:
      * - @ref GraphicsPipeline(GraphicsPipeline const&, Config)
      * - @ref create()
@@ -54,7 +54,7 @@ public:
     explicit GraphicsPipeline(GraphicsPipeline const& parent, Config, create_t);
 
     /**
-     * @brief creates the pipeline
+     * creates the pipeline
      * @details derivative pipeline -> adds VK_PIPELINE_CREATE_DERIVATIVE_BIT
      *  empty @ref Config::colorBlendAttachments -> @ref Config::ALPHA_BLENDING per color format, the config is kept
      * @pre the layout, the parent and the shader modules of the config are not destroyed

@@ -19,7 +19,7 @@
 namespace cvk {
 namespace {
     /**
-     * @brief work groups of the values shader, 64 invocations each
+     * work groups of the values shader, 64 invocations each
      */
     constexpr uint32_t GROUPS = 4;
     constexpr uint32_t VALUES = GROUPS * 64;
@@ -30,7 +30,7 @@ namespace {
     };
 
     /**
-     * @brief set layout, pipeline layout and shader of the values shader
+     * set layout, pipeline layout and shader of the values shader
      */
     struct Values {
         explicit Values(Core const& core) : setLayout{core, set_config(), create},
@@ -51,7 +51,7 @@ namespace {
     };
 
     /**
-     * @brief binds the values pipeline and its storage buffer, records the dispatch and checks the values
+     * binds the values pipeline and its storage buffer, records the dispatch and checks the values
      * @param dispatch records the dispatch with the command buffer
      */
     void expect_values(test::Context const& context, auto&& dispatch) {

@@ -13,7 +13,7 @@ namespace cvk {
 class Device;
 
 /**
- * @brief VmaAllocator wrapper, allocates the memory of one device
+ * VmaAllocator wrapper, allocates the memory of one device
  * @details VMA places many allocations in one VkDeviceMemory,
  *  one allocator per device is enough,
  *  calls with the allocator are thread safe, VMA synchronizes them
@@ -24,13 +24,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Device::created()
      */
     explicit Allocator(Device const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Allocator(Device const&)
      * - @ref wrap()
@@ -38,7 +38,7 @@ public:
     Allocator(Device const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Allocator(Device const&)
      * - @ref create()
@@ -51,7 +51,7 @@ public:
     ~Allocator() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the allocator was created with the device
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -59,7 +59,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the allocator
+     * creates the allocator
      * @details the flags follow the enabled features and extensions of the device: @ref flags()
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -69,19 +69,19 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      * @pre every memory of the allocator is destroyed
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();

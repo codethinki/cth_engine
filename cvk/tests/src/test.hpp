@@ -14,14 +14,14 @@ namespace cvk::test {
 constexpr std::string_view APP_NAME = "cvk_tests";
 
 /**
- * @brief instance config with @ref APP_NAME
+ * instance config with @ref APP_NAME
  */
 [[nodiscard]] inline InstanceConfig instance_config(std::vector<std::string> extensions = {}) {
     return InstanceConfig{.appName = std::string{APP_NAME}, .extensions = std::move(extensions)};
 }
 
 /**
- * @brief glsl sources of the test shaders
+ * glsl sources of the test shaders
  */
 inline std::filesystem::path const SHADER_DIR{CVK_TEST_SHADER_DIR};
 }

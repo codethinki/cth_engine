@@ -12,7 +12,7 @@
 
 namespace cvk {
 /**
- * @brief what the buffer is for, who uses it and where its memory lives
+ * what the buffer is for, who uses it and where its memory lives
  */
 struct BufferConfig {
     /**
@@ -21,19 +21,19 @@ struct BufferConfig {
     VkBufferUsageFlags usage = 0;
 
     /**
-     * @brief sparse binding, protected memory, ...
+     * sparse binding, protected memory, ...
      */
     VkBufferCreateFlags flags = 0;
 
     /**
-     * @brief queue families that use the buffer at the same time
+     * queue families that use the buffer at the same time
      * @details size < 2 -> VK_SHARING_MODE_EXCLUSIVE, else VK_SHARING_MODE_CONCURRENT
      * @pre unique
      */
     std::vector<queue_family_index_t> queueFamilies{};
 
     /**
-     * @brief memory of the buffer, VMA_MEMORY_USAGE_AUTO picks the memory type from @ref usage
+     * memory of the buffer, VMA_MEMORY_USAGE_AUTO picks the memory type from @ref usage
      */
     MemoryConfig memory{};
 

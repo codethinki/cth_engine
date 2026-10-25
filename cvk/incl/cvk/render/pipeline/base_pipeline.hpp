@@ -13,7 +13,7 @@ class Core;
 class PipelineLayout;
 
 /**
- * @brief VkPipeline wrapper, base of @ref GraphicsPipeline and @ref ComputePipeline
+ * VkPipeline wrapper, base of @ref GraphicsPipeline and @ref ComputePipeline
  * @details the derived classes build the create info, the base creates the pipeline,
  *  the layout is a parent of the pipeline: it outlives the pipeline,
  *  the destructor is protected: delete through the derived class
@@ -24,7 +24,7 @@ public:
     struct State;
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the pipeline was created with the layout and the config of the derived class
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -32,19 +32,19 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      * @pre the gpu does not use the pipeline
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -59,7 +59,7 @@ public:
 
 protected:
     /**
-     * @brief base constructor, keeps the layout, the core comes from the layout
+     * base constructor, keeps the layout, the core comes from the layout
      * @pre @ref Core::created() of the layout
      */
     BasePipeline(PipelineLayout const&, VkPipelineBindPoint);
@@ -70,7 +70,7 @@ protected:
     ~BasePipeline() { optDestroy(); }
 
     /**
-     * @brief creates the pipeline with the info
+     * creates the pipeline with the info
      * @pre the layout of the info is @ref layout()
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -79,7 +79,7 @@ protected:
     void create(VkGraphicsPipelineCreateInfo const&);
 
     /**
-     * @brief creates the pipeline with the info
+     * creates the pipeline with the info
      * @pre the layout of the info is @ref layout()
      * @post @ref created()
      * @note calls @ref optDestroy()

@@ -8,7 +8,7 @@
 
 namespace cvk::constants {
 /**
- * @brief features that every device enables
+ * features that every device enables
  * @details bindless: descriptorIndexing guarantees the minimum set of descriptor indexing features, they are enabled,
  *  descriptorBindingVariableDescriptorCount is not part of the set, the one extra requirement,
  *  dynamicRenderingLocalRead: tile local reads in a dynamic rendering, like subpasses
@@ -39,19 +39,19 @@ inline constexpr DeviceFeatures BASE_DEVICE_FEATURES{
 };
 
 /**
- * @brief features that a device with a present queue enables
+ * features that a device with a present queue enables
  */
 inline constexpr DeviceFeatures PRESENT_DEVICE_FEATURES{.swapchainMaintenance1 = true};
 
 /**
- * @brief extensions without feature bits that a device with a present queue enables
+ * extensions without feature bits that a device with a present queue enables
  */
 inline constexpr std::array<std::string_view, 1> PRESENT_DEVICE_EXTENSIONS{
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
 /**
- * @brief instance extensions that a device with a present queue requires, besides the platform surface extension
+ * instance extensions that a device with a present queue requires, besides the platform surface extension
  */
 inline constexpr std::array<std::string_view, 3> PRESENT_INSTANCE_EXTENSIONS{
     VK_KHR_SURFACE_EXTENSION_NAME,

@@ -35,19 +35,19 @@ namespace {
     constexpr BarrierScope INPUT_READ{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT};
 
     /**
-     * @brief location 0 -> attachment 0, attachment 1 without output
+     * location 0 -> attachment 0, attachment 1 without output
      */
     AttachmentMapping write_first() { return {.locations = {0, VK_ATTACHMENT_UNUSED}}; }
 
     /**
-     * @brief attachment 0 -> input attachment 0, location 0 -> attachment 1
+     * attachment 0 -> input attachment 0, location 0 -> attachment 1
      */
     AttachmentMapping copy_first_to_second() {
         return {.locations = {VK_ATTACHMENT_UNUSED, 0}, .colorInputIndices = {0, VK_ATTACHMENT_UNUSED}};
     }
 
     /**
-     * @brief attachment 0: input attachment, attachment 1: transfer src, both with a view
+     * attachment 0: input attachment, attachment 1: transfer src, both with a view
      */
     struct Attachments {
         explicit Attachments(Core const& core) : first{
@@ -70,7 +70,7 @@ namespace {
             secondView{second, {}, create} {}
 
         /**
-         * @brief records the transitions: first -> rendering local read, second -> color attachment
+         * records the transitions: first -> rendering local read, second -> color attachment
          */
         void toRendering(BaseCmdBuffer const& cmd) const {
             Barrier barrier{};
@@ -80,7 +80,7 @@ namespace {
         }
 
         /**
-         * @brief both attachments cleared to black
+         * both attachments cleared to black
          */
         [[nodiscard]] RenderingInfo renderingInfo(VkRenderingFlags flags = 0, AttachmentMapping mapping = {}) const {
             auto const clear = [](ImageView const& view, VkImageLayout layout) {
@@ -109,7 +109,7 @@ namespace {
     };
 
     /**
-     * @brief fullscreen pipeline for the attachments
+     * fullscreen pipeline for the attachments
      */
     GraphicsPipeline::Config fullscreen(Shader const& vertex, Shader const& fragment, AttachmentMapping mapping) {
         auto config = test::fullscreen_config(vertex, fragment, COLOR_FORMATS);
@@ -118,7 +118,7 @@ namespace {
     }
 
     /**
-     * @brief binding 0: input attachment
+     * binding 0: input attachment
      */
     DescriptorSetLayout::Config input_attachment() {
         DescriptorSetLayout::Config config{};
@@ -127,7 +127,7 @@ namespace {
     }
 
     /**
-     * @brief write: push constant color -> attachment 0, read: attachment 0 -> attachment 1
+     * write: push constant color -> attachment 0, read: attachment 0 -> attachment 1
      */
     struct Draws {
         Draws(Core const& core, ImageView const& first) :
@@ -148,7 +148,7 @@ namespace {
         }
 
         /**
-         * @brief records the draw of @ref write
+         * records the draw of @ref write
          * @pre the command buffer has a viewport and a scissor
          */
         void drawWrite(BaseCmdBuffer& cmd) const {

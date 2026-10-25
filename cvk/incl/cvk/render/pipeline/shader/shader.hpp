@@ -18,7 +18,7 @@ namespace cvk {
 class Core;
 
 /**
- * @brief VkShaderModule wrapper
+ * VkShaderModule wrapper
  * @details a pipeline does not use the module after its creation
  */
 class Shader {
@@ -30,14 +30,14 @@ public:
     static constexpr std::string_view DEFAULT_COMPILER = "glslc";
 
     /**
-     * @brief base constructor
+     * base constructor
      * @param stage of the shader
      * @pre @ref Core::created()
      */
     Shader(Core const&, VkShaderStageFlagBits stage);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Shader(Core const&, VkShaderStageFlagBits)
      * - @ref wrap()
@@ -45,7 +45,7 @@ public:
     Shader(Core const&, VkShaderStageFlagBits stage, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Shader(Core const&, VkShaderStageFlagBits)
      * - @ref create(std::span<uint32_t const>)
@@ -53,7 +53,7 @@ public:
     Shader(Core const&, VkShaderStageFlagBits stage, std::span<uint32_t const> spv);
 
     /**
-     * @brief constructs, loads and creates
+     * constructs, loads and creates
      * @details calls:
      * - @ref Shader(Core const&, VkShaderStageFlagBits)
      * - @ref create(path_t const&)
@@ -61,7 +61,7 @@ public:
     Shader(Core const&, VkShaderStageFlagBits stage, path_t const& spvPath);
 
     /**
-     * @brief constructs, compiles the glsl file, loads and creates
+     * constructs, compiles the glsl file, loads and creates
      * @details for development, release builds compile shaders at build time
      *  calls:
      * - @ref compile()
@@ -82,14 +82,14 @@ public:
     ~Shader() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
     void wrap(State const&);
 
     /**
-     * @brief creates the module
+     * creates the module
      * @param spv SPIR-V code
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -98,7 +98,7 @@ public:
     void create(std::span<uint32_t const> spv);
 
     /**
-     * @brief loads the SPIR-V file and creates the module
+     * loads the SPIR-V file and creates the module
      * @details calls:
      * - @ref load()
      * - @ref create(std::span<uint32_t const>)
@@ -106,18 +106,18 @@ public:
     void create(path_t const& spvPath);
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -135,13 +135,13 @@ public:
     ) const;
 
     /**
-     * @brief reads a SPIR-V file
+     * reads a SPIR-V file
      * @throws cvk::cvk_exception reason: file missing, size not a multiple of 4 or 0
      */
     [[nodiscard]] static std::vector<uint32_t> load(path_t const& spvPath);
 
     /**
-     * @brief compiles a glsl file to a SPIR-V file
+     * compiles a glsl file to a SPIR-V file
      * @param compilerPath glslc compatible compiler
      * @param flags for the compiler
      * @details the compiler writes its output to the file spvPath + ".log", the call reads and removes the file,

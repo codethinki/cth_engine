@@ -6,7 +6,7 @@ class global_switch;
 
 namespace cvk {
 /**
- * @brief loads the vulkan loader while a Cvk exists, neither copyable nor movable
+ * loads the vulkan loader while a Cvk exists, neither copyable nor movable
  * @details reference counted like std::ios_base::Init: every Cvk shares the one loader of the process,
  *  the first Cvk loads it, the last one unloads it, thread safe,
  *  the Cvk outlives every instance
@@ -14,14 +14,14 @@ namespace cvk {
 class Cvk {
 public:
     /**
-     * @brief the first Cvk loads the vulkan loader through volk
+     * the first Cvk loads the vulkan loader through volk
      * @post @ref initialized()
      * @throws cvk::vk_result_exception result of volkInitialize()
      */
     Cvk();
 
     /**
-     * @brief the last Cvk unloads the vulkan loader
+     * the last Cvk unloads the vulkan loader
      * @pre the last Cvk -> no instance exists
      */
     ~Cvk();

@@ -8,7 +8,7 @@
 
 namespace cvk::constants {
 /**
- * @brief handle type of @ref Fence::extractOsHandle()
+ * handle type of @ref Fence::extractOsHandle()
  * @details windows: opaque win32 handle, posix: sync fd, pollable
  */
 inline constexpr VkExternalFenceHandleTypeFlagBits OS_FENCE_HANDLE_TYPE =
@@ -19,7 +19,7 @@ inline constexpr VkExternalFenceHandleTypeFlagBits OS_FENCE_HANDLE_TYPE =
 #endif
 
 /**
- * @brief device extensions that @ref Fence::extractOsHandle() requires
+ * device extensions that @ref Fence::extractOsHandle() requires
  */
 inline constexpr std::array<std::string_view, 1> OS_FENCE_DEVICE_EXTENSIONS{
 #ifdef CTH_PLATFORM_WINDOWS

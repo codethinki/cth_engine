@@ -15,7 +15,7 @@ class Semaphore;
 class TimelineSemaphore;
 
 /**
- * @brief semaphore of a submit, binary or timeline
+ * semaphore of a submit, binary or timeline
  * @details the constructor decides the kind
  */
 struct SemaphoreSubmitInfo {
@@ -42,18 +42,18 @@ struct SemaphoreSubmitInfo {
     VkPipelineStageFlags2 stages;
 
     /**
-     * @brief timeline semaphores only
+     * timeline semaphores only
      * @attention an explicit value does not change the counter of the semaphore
      */
     std::optional<uint64_t> value = std::nullopt;
 };
 
 /**
- * @brief one batch of a queue submit
+ * one batch of a queue submit
  */
 struct SubmitInfo {
     /**
-     * @brief the gpu executes them in order
+     * the gpu executes them in order
      */
     std::vector<not_null_ptr<PrimaryCmdBuffer const>> cmdBuffers{};
 

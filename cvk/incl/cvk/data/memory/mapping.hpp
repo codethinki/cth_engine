@@ -10,7 +10,7 @@ namespace cvk {
 class Memory;
 
 /**
- * @brief mapped range of a memory, the destructor unmaps
+ * mapped range of a memory, the destructor unmaps
  * @tparam T element, std::byte for the bytes of a memory
  * @details move constructible, not copyable, not assignable, a moved from mapping does not unmap
  */
@@ -18,18 +18,18 @@ template<class T>
 class Mapping {
 public:
     /**
-     * @brief takes over one map of the memory, @ref Memory::map() constructs it
+     * takes over one map of the memory, @ref Memory::map() constructs it
      * @pre the range lies in the mapped memory
      */
     constexpr Mapping(Memory const& memory, std::span<T> range) : _memory{&memory}, _range{range} {}
 
     /**
-     * @brief unmaps the memory once
+     * unmaps the memory once
      */
     ~Mapping();
 
     /**
-     * @brief the range as elements of U, takes over the map
+     * the range as elements of U, takes over the map
      * @details starts the lifetime of the elements, keeps their values
      * @pre the size is a multiple of sizeof(U), the data is aligned for U
      */

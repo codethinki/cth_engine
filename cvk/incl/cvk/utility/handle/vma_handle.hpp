@@ -11,7 +11,7 @@
 
 namespace cvk {
 /**
- * @brief deleter of memory objects, context: the core
+ * deleter of memory objects, context: the core
  * @details calls T::destroy(core.allocator().get(), handle)
  * @pre the core outlives the deleter
  */
@@ -25,7 +25,7 @@ public:
 };
 
 /**
- * @brief @ref unique_handle of a memory object, the deleter stores the core and frees through its allocator
+ * @ref unique_handle of a memory object, the deleter stores the core and frees through its allocator
  * @tparam T owner class with vk_handle_t and a static destroy(VmaAllocator, vk_handle_t)
  */
 template<vk_handle_owner T>

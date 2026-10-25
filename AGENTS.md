@@ -177,7 +177,7 @@ public:
 
 - The first public section holds the API: types, constants, lifecycle, operations, accessors.
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
-- Classes that own a handle are move only. A class that differs says so in its `@brief`.
+- Classes that own a handle are move only. A class that differs says so in the first line of its doc.
 - Every class of a Vulkan or VMA object declares `using vk_handle_t = VkX;` as its first type, also classes that do not own their handle. `get()` returns `vk_handle_t`.
 - The handle lives in `cvk::unique_handle<Handle, Deleter>`: a `std::unique_ptr` whose deleter holds the destroy context and calls the static `destroy`.
   `cvk/utility/handle/` has the deleters and the short forms (`core_handle<T>`).
@@ -247,6 +247,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 ### Form
 
 - Use `/** ... */` blocks with one tag per line.
+- The first line of a block is the brief: what it does, in one line, without a tag. Doxygen reads it with `JAVADOC_AUTOBRIEF`.
 - Start after the tag with a lower case letter.
 - Do not put a period at the end of a line.
 - Write short fragments, not full sentences. Start them with a verb in the present tense: `creates the instance`, `destroys and forgets`.
@@ -258,8 +259,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 
 | Tag | Use |
 |---|---|
-| `@brief` | what the function does, one line |
-| `@details` | more information. `calls:` followed by a list of the functions it calls |
+| `@details` | more information after the brief. `calls:` followed by a list of the functions it calls |
 | `@param` | name, then what it is for: `@param config to use` |
 | `@tparam` | template parameter, same form as `@param` |
 | `@return` | what the result is |
@@ -307,7 +307,7 @@ Use symbols when they are shorter and clearer than words:
 
 ```cpp
 /**
- * @brief creates the instance
+ * creates the instance
  * @param messengerConfig std::nullopt -> no messenger, debug builds use the default config
  * @pre volk is initialized
  * @post @ref created()

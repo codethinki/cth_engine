@@ -14,7 +14,7 @@ class Instance;
 class PhysicalDevice;
 
 /**
- * @brief VkSurfaceKHR wrapper
+ * VkSurfaceKHR wrapper
  * @details the window system creates the surface, @ref wrap() takes it
  */
 class Surface {
@@ -23,13 +23,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Instance::created()
      */
     explicit Surface(Instance const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Surface(Instance const&)
      * - @ref wrap()
@@ -42,25 +42,25 @@ public:
     ~Surface() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
     void wrap(State const&);
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();

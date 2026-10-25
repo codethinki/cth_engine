@@ -62,7 +62,7 @@ namespace {
     }
 
     /**
-     * @brief writes bytes to a file in @ref temp_dir()
+     * writes bytes to a file in @ref temp_dir()
      */
     std::filesystem::path write_temp(std::string_view name, std::span<char const> bytes) {
         auto path = temp_dir() / name;

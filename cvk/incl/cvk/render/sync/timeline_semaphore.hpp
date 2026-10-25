@@ -6,7 +6,7 @@
 
 namespace cvk {
 /**
- * @brief timeline VkSemaphore with a host counter
+ * timeline VkSemaphore with a host counter
  * @details the counter is the last value that @ref next() or @ref signal() gave out,
  *  private base: a timeline semaphore must not pass as a binary @ref Semaphore
  * @attention not thread safe: @ref next() and @ref signal() change the counter
@@ -17,13 +17,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created()
      */
     explicit TimelineSemaphore(Core const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref TimelineSemaphore(Core const&)
      * - @ref wrap()
@@ -31,7 +31,7 @@ public:
     TimelineSemaphore(Core const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref TimelineSemaphore(Core const&)
      * - @ref create() with the initial value
@@ -44,14 +44,14 @@ public:
     ~TimelineSemaphore() = default;
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
     void wrap(State const&);
 
     /**
-     * @brief creates the semaphore
+     * creates the semaphore
      * @param initialValue of the semaphore and the counter
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -63,13 +63,13 @@ public:
     using Semaphore::optDestroy;
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
 
     /**
-     * @brief advances the counter and signals the semaphore from the host
+     * advances the counter and signals the semaphore from the host
      * @return the signaled value
      * @pre @ref created()
      * @pre no signal of the semaphore is pending
@@ -78,7 +78,7 @@ public:
     uint64_t signal();
 
     /**
-     * @brief blocks until the semaphore reaches the value or the timeout ends
+     * blocks until the semaphore reaches the value or the timeout ends
      * @param timeout in nanoseconds
      * @return VK_SUCCESS or VK_TIMEOUT
      * @pre @ref created()
@@ -87,20 +87,20 @@ public:
     [[nodiscard]] VkResult wait(uint64_t value, uint64_t timeout) const;
 
     /**
-     * @brief blocks until the semaphore reaches the value
+     * blocks until the semaphore reaches the value
      * @pre @ref created()
      * @throws cvk::vk_result_exception result of vkWaitSemaphores()
      */
     void wait(uint64_t value) const;
 
     /**
-     * @brief blocks until the semaphore reaches @ref value()
+     * blocks until the semaphore reaches @ref value()
      * @details calls @ref wait(uint64_t) const
      */
     void wait() const { wait(_value); }
 
     /**
-     * @brief advances the counter
+     * advances the counter
      * @return value for the next signal operation
      * @attention signal the values in counter order: one queue keeps the order,
      *  two queues need a wait between their submits
@@ -140,7 +140,7 @@ namespace cvk {
 struct TimelineSemaphore::State {
     vk_not_null<VkSemaphore> vkSemaphore;
     /**
-     * @brief counter, see @ref value()
+     * counter, see @ref value()
      */
     uint64_t value;
 };

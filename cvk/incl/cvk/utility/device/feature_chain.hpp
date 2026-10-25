@@ -19,7 +19,7 @@
 
 namespace cvk::dev {
 /**
- * @brief the Vulkan feature structs of @ref DeviceFeatures, in the order of its fields
+ * the Vulkan feature structs of @ref DeviceFeatures, in the order of its fields
  * @details a new struct: an entry here, a @ref feature_struct specialization, its fields in @ref DeviceFeatures
  */
 using feature_structs_t = std::tuple<
@@ -34,7 +34,7 @@ using feature_structs_t = std::tuple<
 inline constexpr size_t FEATURE_STRUCTS = std::tuple_size_v<feature_structs_t>;
 
 /**
- * @brief sType, VkBool32 flags and extension of a feature struct
+ * sType, VkBool32 flags and extension of a feature struct
  * @details OFFSET: byte offset of the first flag, COUNT: flags, EXTENSION: empty -> core struct
  */
 template<class T>
@@ -98,7 +98,7 @@ static_assert(feature_struct<VkPhysicalDeviceVulkan12Features>::COUNT == 47);
 static_assert(feature_struct<VkPhysicalDeviceVulkan13Features>::COUNT == 15);
 
 /**
- * @brief index of the first field of T in @ref DeviceFeatures
+ * index of the first field of T in @ref DeviceFeatures
  */
 template<class T>
 inline constexpr size_t feature_offset = []<class... Ts>(std::type_identity<std::tuple<Ts...>>) {
@@ -136,19 +136,19 @@ static_assert(alignof(DeviceFeatures) == 1, "DeviceFeatures must have bool field
 }
 
 /**
- * @brief the feature structs as one pNext chain for Vulkan, not copyable, not movable: the chain points into the object
+ * the feature structs as one pNext chain for Vulkan, not copyable, not movable: the chain points into the object
  * @details an extension struct is in the chain only with its extension
  */
 class FeatureChain {
 public:
     /**
-     * @brief every feature false
+     * every feature false
      * @param extensions of the device, the chain includes their structs
      */
     explicit FeatureChain(std::span<std::string const> extensions);
 
     /**
-     * @brief the bits of the features
+     * the bits of the features
      * @param extensions of the device, the chain includes their structs
      * @pre the extensions contain @ref extensions_of() the features
      */
@@ -169,13 +169,13 @@ public:
     [[nodiscard]] constexpr bool linked() const;
 
     /**
-     * @brief start of the pNext chain
+     * start of the pNext chain
      */
     [[nodiscard]] constexpr auto* get(this auto& self) { return &std::get<VkPhysicalDeviceFeatures2>(self._structs); }
 
 private:
     /**
-     * @brief links the pNext members of the structs in @ref _linked
+     * links the pNext members of the structs in @ref _linked
      */
     void link();
 
@@ -190,7 +190,7 @@ public:
 };
 
 /**
- * @brief queries the features of the device
+ * queries the features of the device
  * @param extensions of the device, the query includes their structs
  */
 [[nodiscard]] DeviceFeatures query_features(vk_not_null<VkPhysicalDevice>, std::span<std::string const> extensions);
@@ -198,7 +198,7 @@ public:
 
 namespace cvk::dev {
 /**
- * @brief position of T in @ref feature_structs_t
+ * position of T in @ref feature_structs_t
  */
 template<class T>
 inline constexpr size_t feature_index = []<class... Ts>(std::type_identity<std::tuple<Ts...>>) {

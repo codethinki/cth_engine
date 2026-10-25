@@ -25,7 +25,7 @@ using cvk::create;
 using cvk::create_t;
 
 /**
- * @brief creation flags of a @ref Window, the values of the RGFW_windowFlags
+ * creation flags of a @ref Window, the values of the RGFW_windowFlags
  */
 enum class WindowFlags : uint32_t {
     NONE = 0,
@@ -35,7 +35,7 @@ enum class WindowFlags : uint32_t {
     CENTER = cth::en::flag_val(6),
     SCALE_TO_MONITOR = cth::en::flag_val(8),
     /**
-     * @brief the window is not visible
+     * the window is not visible
      */
     HIDE = cth::en::flag_val(9),
     MAXIMIZE = cth::en::flag_val(10),
@@ -49,7 +49,7 @@ CTH_GEN_ENUM_FLAG_OVERLOADS(cgfw::WindowFlags)
 
 namespace cgfw {
 /**
- * @brief opaque native handles of a window
+ * opaque native handles of a window
  * @details windows: display = HINSTANCE, window = HWND
  *  wayland: display = wl_display*, window = wl_surface*
  *  windows that exist at the same time have the same display
@@ -61,7 +61,7 @@ struct native_window {
 
 namespace dev {
     /**
-     * @brief deleter of a window, without context: RGFW keeps one global state
+     * deleter of a window, without context: RGFW keeps one global state
      * @details calls @ref Window::destroy(RGFW_window*)
      */
     struct window_deleter {
@@ -70,7 +70,7 @@ namespace dev {
 }
 
 /**
- * @brief RGFW_window wrapper, a window of the platform: Win32 or Wayland
+ * RGFW_window wrapper, a window of the platform: Win32 or Wayland
  * @details RGFW keeps one global state: the first window initializes it, the destruction of the last one
  *  deinitializes it, @ref pollEvents() handles the events of every window
  * @attention not thread safe: RGFW keeps one global state
@@ -81,13 +81,13 @@ public:
     struct State;
 
     /**
-     * @brief title, size and flags of the window
+     * title, size and flags of the window
      */
     struct Config {
         std::string title{};
 
         /**
-         * @brief requested size of the window
+         * requested size of the window
          * @pre width > 0, height > 0
          */
         VkExtent2D extent{};
@@ -98,12 +98,12 @@ public:
     };
 
     /**
-     * @brief base constructor
+     * base constructor
      */
     explicit Window(Config);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Window(Config)
      * - @ref wrap()
@@ -111,7 +111,7 @@ public:
     Window(Config, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Window(Config)
      * - @ref create()
@@ -124,7 +124,7 @@ public:
     ~Window() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre RGFW_createWindow() created the window with the config
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -132,7 +132,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the window with the config
+     * creates the window with the config
      * @details no window exists -> initializes RGFW first
      * @pre @ref Config::debug_check() passes for the config
      * @post @ref created()
@@ -142,7 +142,7 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      * @pre every surface of the window is destroyed
      * @note the last window deinitializes RGFW
@@ -150,18 +150,18 @@ public:
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
 
     /**
-     * @brief creates a surface of the window
+     * creates a surface of the window
      * @pre @ref created()
      * @pre the instance enables @ref instance_extensions()
      * @throws cgfw::cgfw_exception reason: RGFW_window_createSurface_Vulkan() failed, the message has the VkResult
@@ -169,7 +169,7 @@ public:
     [[nodiscard]] cvk::Surface surface(cvk::Instance const&) const;
 
     /**
-     * @brief handles the pending events of every window
+     * handles the pending events of every window
      * @details RGFW handles the events of all windows together
      * @pre @ref created()
      */
@@ -189,7 +189,7 @@ public:
     [[nodiscard]] native_window nativeWindow() const;
 
     /**
-     * @brief closes the window and frees it
+     * closes the window and frees it
      * @pre the window is not nullptr
      */
     static void destroy(RGFW_window*);

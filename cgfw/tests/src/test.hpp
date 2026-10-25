@@ -12,7 +12,7 @@
 #define CGFW_TEST(suite, test_name) S_TEST(cgfw, suite, test_name)
 
 /**
- * @brief skips the test without a display
+ * skips the test without a display
  */
 #define CGFW_SKIP_WITHOUT_DISPLAY() \
     if(!cgfw::test::display_available()) GTEST_SKIP() << "no display"
@@ -26,14 +26,14 @@ constexpr std::string_view APP_NAME = "cgfw_tests";
 [[nodiscard]] bool display_available();
 
 /**
- * @brief hidden window: a test run shows no window
+ * hidden window: a test run shows no window
  */
 [[nodiscard]] inline Window::Config window_config(std::string title = "cgfw test") {
     return Window::Config{.title = std::move(title), .extent = {64, 64}, .flags = WindowFlags::HIDE};
 }
 
 /**
- * @brief instance config with @ref APP_NAME
+ * instance config with @ref APP_NAME
  */
 [[nodiscard]] inline cvk::InstanceConfig instance_config(std::vector<std::string> extensions = {}) {
     return cvk::InstanceConfig{.appName = std::string{APP_NAME}, .extensions = std::move(extensions)};

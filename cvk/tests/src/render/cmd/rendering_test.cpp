@@ -33,7 +33,7 @@ namespace {
     };
 
     /**
-     * @brief the clear color of @ref clear_red() as a VK_FORMAT_R8G8B8A8_UNORM pixel
+     * the clear color of @ref clear_red() as a VK_FORMAT_R8G8B8A8_UNORM pixel
      */
     constexpr std::array<unsigned char, 4> RED_PIXEL{255, 0, 0, 255};
 

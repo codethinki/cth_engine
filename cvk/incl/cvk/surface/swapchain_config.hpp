@@ -11,12 +11,12 @@
 
 namespace cvk {
 /**
- * @brief allowed formats and present modes, image count, usage and sharing of a swapchain
+ * allowed formats and present modes, image count, usage and sharing of a swapchain
  * @details @ref formats and @ref presentModes are preferences, one entry -> exactly this entry or a throw
  */
 struct SwapchainConfig {
     /**
-     * @brief allowed formats, the first one the surface offers wins
+     * allowed formats, the first one the surface offers wins
      * @details empty -> the first format of the surface
      */
     std::vector<VkSurfaceFormatKHR> formats{
@@ -25,13 +25,13 @@ struct SwapchainConfig {
     };
 
     /**
-     * @brief allowed present modes, the first one the surface offers wins
+     * allowed present modes, the first one the surface offers wins
      * @details empty -> VK_PRESENT_MODE_FIFO_KHR (always available)
      */
     std::vector<VkPresentModeKHR> presentModes{VK_PRESENT_MODE_FIFO_KHR};
 
     /**
-     * @brief 0 -> minImageCount of the surface + 1, clamped to the limits of the surface
+     * 0 -> minImageCount of the surface + 1, clamped to the limits of the surface
      */
     uint32_t minImageCount = 0;
 
@@ -41,7 +41,7 @@ struct SwapchainConfig {
     VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     /**
-     * @brief queue families that use the images at the same time
+     * queue families that use the images at the same time
      * @details size < 2 -> VK_SHARING_MODE_EXCLUSIVE, else VK_SHARING_MODE_CONCURRENT
      * @pre unique
      */

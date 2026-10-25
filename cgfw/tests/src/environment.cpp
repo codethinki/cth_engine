@@ -8,7 +8,7 @@
 namespace cgfw::test {
 namespace {
     /**
-     * @brief holds the vulkan loader for all tests
+     * holds the vulkan loader for all tests
      */
     class Environment : public testing::Environment {
     public:

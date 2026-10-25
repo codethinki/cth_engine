@@ -22,7 +22,7 @@ Core::Config const PresentContext::CONFIG{
 
 namespace {
     /**
-     * @brief one instance for both shared contexts, the cores and the surface come at their first use
+     * one instance for both shared contexts, the cores and the surface come at their first use
      * @details volk holds the functions of one instance, cvk assumes one instance per process
      */
     struct SharedContexts {

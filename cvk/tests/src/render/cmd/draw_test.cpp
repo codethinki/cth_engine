@@ -27,7 +27,7 @@ namespace {
     constexpr std::array COLOR_FORMATS{VK_FORMAT_R8G8B8A8_UNORM};
 
     /**
-     * @brief pipeline that fills the triangle with the push constant color
+     * pipeline that fills the triangle with the push constant color
      */
     struct Fill {
         explicit Fill(Core const& core) : layout{
@@ -50,7 +50,7 @@ namespace {
     };
 
     /**
-     * @brief clears an attachment to black, draws with draw() and expects every pixel green
+     * clears an attachment to black, draws with draw() and expects every pixel green
      */
     template<class Draw>
     void expect_filled(test::Context const& context, Fill const& fill, Draw draw) {

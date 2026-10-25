@@ -20,7 +20,7 @@ namespace {
     constexpr VkFormat DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT;
 
     /**
-     * @brief layout and shaders of the triangle shaders
+     * layout and shaders of the triangle shaders
      */
     struct Triangle {
         explicit Triangle(Core const& core) : setLayout{core, set_config(), create},

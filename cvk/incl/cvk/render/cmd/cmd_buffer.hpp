@@ -31,20 +31,20 @@ class GraphicsPipeline;
 class PipelineLayout;
 
 /**
- * @brief contiguous range of trivially copyable elements
+ * contiguous range of trivially copyable elements
  */
 template<class T>
 concept push_constant_range = std::ranges::contiguous_range<T const&>
     && cth::mta::range_over_cpt<T, CPT(cth::mta::trivially_copyable)>;
 
 /**
- * @brief @ref push_constant_range or trivially copyable value that is no pointer
+ * @ref push_constant_range or trivially copyable value that is no pointer
  */
 template<class T>
 concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copyable<T> && !std::is_pointer_v<T>);
 
 /**
- * @brief VkCommandBuffer wrapper, allocated from its pool, base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer
+ * VkCommandBuffer wrapper, allocated from its pool, base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer
  * @details the derived classes add the begin of the recording and their commands,
  *  the destructor is protected: delete through the derived class
  */
@@ -54,7 +54,7 @@ public:
     struct State;
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the pool of the command buffer allocated it with the level
      * @pre the command buffer is not recording
      * @post @ref created()
@@ -63,7 +63,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief allocates the command buffer from the pool
+     * allocates the command buffer from the pool
      * @pre @ref CmdPool::created()
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -72,32 +72,32 @@ public:
     void create();
 
     /**
-     * @brief frees and forgets
+     * frees and forgets
      * @pre @ref created()
      * @pre the gpu does not use the command buffer
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
 
     /**
-     * @brief ends the recording
+     * ends the recording
      * @pre @ref recording()
      * @throws cvk::vk_result_exception result of vkEndCommandBuffer()
      */
     void end();
 
     /**
-     * @brief resets the command buffer to the initial state
+     * resets the command buffer to the initial state
      * @param flags VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT -> returns the memory to the pool
      * @pre @ref created()
      * @pre the pool has VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
@@ -106,7 +106,7 @@ public:
     void reset(VkCommandBufferResetFlags flags = 0);
 
     /**
-     * @brief begins a dynamic rendering
+     * begins a dynamic rendering
      * @details std::nullopt @ref RenderingInfo::area -> the extent that fits every attachment
      * @pre @ref recording(), outside of a rendering
      * @pre the attachment views are created and have one mip level
@@ -121,13 +121,13 @@ public:
     void beginRendering(RenderingInfo const&);
 
     /**
-     * @brief ends the dynamic rendering
+     * ends the dynamic rendering
      * @pre @ref rendering()
      */
     void endRendering();
 
     /**
-     * @brief maps the attachments of the rendering to the fragment shader outputs and input attachments
+     * maps the attachments of the rendering to the fragment shader outputs and input attachments
      * @details the mapping holds until the next call or the end of the rendering
      * @pre @ref rendering()
      * @pre @ref AttachmentMapping::debug_check() passes for the color attachments of the rendering
@@ -136,19 +136,19 @@ public:
     void setAttachmentMapping(AttachmentMapping const&);
 
     /**
-     * @brief sets viewport 0
+     * sets viewport 0
      * @pre @ref recording()
      */
     void setViewport(VkViewport const&) const;
 
     /**
-     * @brief sets scissor 0
+     * sets scissor 0
      * @pre @ref recording()
      */
     void setScissor(VkRect2D const&) const;
 
     /**
-     * @brief binds the pipeline to the graphics bind point
+     * binds the pipeline to the graphics bind point
      * @details @ref rendering() -> sets the attachment mapping of the pipeline if the current one differs
      * @pre @ref recording(), @ref GraphicsPipeline::created()
      * @pre a secondary inside the rendering of a primary -> the attachment mapping of the pipeline == the inherited one
@@ -157,13 +157,13 @@ public:
     void bindPipeline(GraphicsPipeline const&);
 
     /**
-     * @brief binds the pipeline to the compute bind point
+     * binds the pipeline to the compute bind point
      * @pre @ref recording(), @ref ComputePipeline::created()
      */
     void bindPipeline(ComputePipeline const&) const;
 
     /**
-     * @brief binds the set to the set number of the pipeline layout
+     * binds the set to the set number of the pipeline layout
      * @param setIndex set number in the pipeline layout
      * @param dynamicOffsets one per dynamic buffer descriptor of the set
      * @pre @ref recording(), @ref DescriptorSet::created()
@@ -178,7 +178,7 @@ public:
     ) const;
 
     /**
-     * @brief records push constants
+     * records push constants
      * @param data @ref push_constant_range -> the bytes of the elements, else the bytes of the value
      * @param offset in bytes
      * @pre @ref recording(), @ref PipelineLayout::created()
@@ -197,14 +197,14 @@ public:
     }
 
     /**
-     * @brief binds the buffer to the vertex input binding
+     * binds the buffer to the vertex input binding
      * @param offset in bytes
      * @pre @ref recording(), buffer created with VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
      */
     void bindVertexBuffer(uint32_t binding, BaseBuffer const&, size_t offset = 0) const;
 
     /**
-     * @brief binds the index buffer
+     * binds the index buffer
      * @param offset in bytes
      * @pre @ref recording(), buffer created with VK_BUFFER_USAGE_INDEX_BUFFER_BIT
      * @pre offset is a multiple of the index size
@@ -212,7 +212,7 @@ public:
     void bindIndexBuffer(BaseBuffer const&, VkIndexType, size_t offset = 0) const;
 
     /**
-     * @brief binds the index buffer, the index type follows from T
+     * binds the index buffer, the index type follows from T
      * @param offset in bytes
      * @details calls @ref bindIndexBuffer(BaseBuffer const&, VkIndexType, size_t)
      */
@@ -244,7 +244,7 @@ public:
     ) const;
 
     /**
-     * @brief draws with the VkDrawIndirectCommands in the buffer
+     * draws with the VkDrawIndirectCommands in the buffer
      * @param offset in bytes
      * @pre the preconditions of @ref draw(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
      * @pre the commands lie in the buffer
@@ -257,7 +257,7 @@ public:
     ) const;
 
     /**
-     * @brief draws with the VkDrawIndexedIndirectCommands in the buffer
+     * draws with the VkDrawIndexedIndirectCommands in the buffer
      * @param offset in bytes
      * @pre the preconditions of @ref draw(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
      * @pre an index buffer is bound
@@ -271,14 +271,14 @@ public:
     ) const;
 
     /**
-     * @brief records a dispatch of the bound compute pipeline
+     * records a dispatch of the bound compute pipeline
      * @param groupCountX work groups in x, the same for y and z
      * @pre @ref recording(), outside of a rendering
      */
     void dispatch(uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1) const;
 
     /**
-     * @brief dispatches with the VkDispatchIndirectCommand in the buffer
+     * dispatches with the VkDispatchIndirectCommand in the buffer
      * @param offset in bytes
      * @pre the preconditions of @ref dispatch(), buffer created with VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT
      * @pre the command lies in the buffer
@@ -288,7 +288,7 @@ public:
     static void destroy(DeviceTable table, VkCommandPool, VkCommandBuffer);
 
     /**
-     * @brief frees the command buffers at once
+     * frees the command buffers at once
      */
     static void destroy(DeviceTable table, VkCommandPool, std::span<VkCommandBuffer const> vkBuffers);
 
@@ -315,7 +315,7 @@ public:
 
 protected:
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref CmdPool::created()
      */
     BaseCmdBuffer(CmdPool const&, VkCommandBufferLevel);
@@ -326,7 +326,7 @@ protected:
     ~BaseCmdBuffer() { optDestroy(); }
 
     /**
-     * @brief begins the recording
+     * begins the recording
      * @pre @ref created()
      * @pre !@ref recording()
      * @post @ref recording()
@@ -336,7 +336,7 @@ protected:
 
 private:
     /**
-     * @brief frees the command buffer through its pool, the pool stops to count it
+     * frees the command buffer through its pool, the pool stops to count it
      */
     class pool_deleter {
     public:
@@ -352,12 +352,12 @@ private:
     };
 
     /**
-     * @brief records the attachment mapping of @ref rendering()
+     * records the attachment mapping of @ref rendering()
      */
     void recordAttachmentMapping() const;
 
     /**
-     * @brief records the bytes as push constants
+     * records the bytes as push constants
      */
     void pushConstantBytes(
         PipelineLayout const&,
@@ -401,18 +401,18 @@ namespace cvk {
 class SecondaryCmdBuffer;
 
 /**
- * @brief primary command buffer, queues submit it
+ * primary command buffer, queues submit it
  */
 class PrimaryCmdBuffer : public BaseCmdBuffer {
 public:
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref CmdPool::created()
      */
     explicit PrimaryCmdBuffer(CmdPool const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref PrimaryCmdBuffer(CmdPool const&)
      * - @ref wrap()
@@ -420,7 +420,7 @@ public:
     PrimaryCmdBuffer(CmdPool const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref PrimaryCmdBuffer(CmdPool const&)
      * - @ref create()
@@ -428,7 +428,7 @@ public:
     explicit PrimaryCmdBuffer(CmdPool const&, create_t);
 
     /**
-     * @brief begins the recording
+     * begins the recording
      * @param usage VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, ...
      * @pre @ref created()
      * @pre !@ref recording()
@@ -438,7 +438,7 @@ public:
     void begin(VkCommandBufferUsageFlags usage = 0);
 
     /**
-     * @brief records the secondary command buffers
+     * records the secondary command buffers
      * @pre @ref recording()
      * @pre the secondaries are created and not recording
      * @pre @ref rendering() -> VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
@@ -448,27 +448,27 @@ public:
     void execute(std::span<SecondaryCmdBuffer const> secondaries) const;
 
     /**
-     * @brief records the secondary command buffers, the secondaries can lie anywhere
+     * records the secondary command buffers, the secondaries can lie anywhere
      * @pre the preconditions of @ref execute(std::span<SecondaryCmdBuffer const>) const
      * @pre no pointer is nullptr
      */
     void execute(std::span<SecondaryCmdBuffer const* const> secondaries) const;
 
     /**
-     * @brief records the secondary command buffers of a braced list: execute({&a, &b})
+     * records the secondary command buffers of a braced list: execute({&a, &b})
      * @details calls @ref execute(std::span<SecondaryCmdBuffer const* const>) const,
      *  without this overload {&a, &b} binds to std::span<SecondaryCmdBuffer const> as iterator pair -> records [&a, &b)
      */
     void execute(std::initializer_list<SecondaryCmdBuffer const*> secondaries) const;
 
     /**
-     * @brief records the secondary command buffer
+     * records the secondary command buffer
      * @details calls @ref execute(std::span<SecondaryCmdBuffer const>) const
      */
     void execute(SecondaryCmdBuffer const& secondary) const;
 
     /**
-     * @brief what a secondary inherits from the rendering
+     * what a secondary inherits from the rendering
      * @details the formats and samples of the attachments, the flags without
      *  VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT, the current attachment mapping
      * @pre @ref rendering()
@@ -477,7 +477,7 @@ public:
 
 private:
     /**
-     * @brief records vkCmdExecuteCommands() with the command buffers
+     * records vkCmdExecuteCommands() with the command buffers
      * @pre @ref recording()
      * @pre @ref rendering() -> VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
      */
@@ -488,20 +488,20 @@ private:
 
 namespace cvk {
 /**
- * @brief secondary command buffer, primary command buffers execute it
+ * secondary command buffer, primary command buffers execute it
  */
 class SecondaryCmdBuffer : public BaseCmdBuffer {
 public:
     using Inheritance = RenderingInheritance;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref CmdPool::created()
      */
     explicit SecondaryCmdBuffer(CmdPool const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref SecondaryCmdBuffer(CmdPool const&)
      * - @ref wrap()
@@ -509,7 +509,7 @@ public:
     SecondaryCmdBuffer(CmdPool const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref SecondaryCmdBuffer(CmdPool const&)
      * - @ref create()
@@ -517,7 +517,7 @@ public:
     explicit SecondaryCmdBuffer(CmdPool const&, create_t);
 
     /**
-     * @brief begins the recording for use outside of a rendering
+     * begins the recording for use outside of a rendering
      * @param usage VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, ...
      * @pre @ref created()
      * @pre !@ref recording()
@@ -527,7 +527,7 @@ public:
     void begin(VkCommandBufferUsageFlags usage = 0);
 
     /**
-     * @brief begins the recording for use inside the rendering of a primary
+     * begins the recording for use inside the rendering of a primary
      * @param usage VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, ...
      * @pre @ref created()
      * @pre !@ref recording()

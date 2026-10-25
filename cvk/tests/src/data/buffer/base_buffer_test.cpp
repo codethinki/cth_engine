@@ -18,7 +18,7 @@ namespace {
     constexpr size_t SIZE = 256;
 
     /**
-     * @brief gpu only buffer
+     * gpu only buffer
      */
     constexpr BaseBuffer::Config DEVICE_CONFIG{.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT};
 }

@@ -19,7 +19,7 @@
 
 namespace cvk {
 /**
- * @brief VkInstance wrapper, owns the debug messenger
+ * VkInstance wrapper, owns the debug messenger
  */
 class Instance {
 public:
@@ -37,7 +37,7 @@ public:
     static constexpr VkBool32 VALIDATE_SYNC = VK_TRUE;
 
     /**
-     * @brief settings of the validation layers
+     * settings of the validation layers
      * @details validate_sync: reports missing and too narrow barriers, semaphores and other dependencies
      */
     static constexpr std::array<VkLayerSettingEXT, 1> VALIDATION_LAYER_SETTINGS{
@@ -51,12 +51,12 @@ public:
     };
 
     /**
-     * @brief base constructor
+     * base constructor
      */
     explicit Instance(Config);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Instance(Config)
      * - @ref wrap()
@@ -64,7 +64,7 @@ public:
     Instance(Config, State);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Instance(Config)
      * - @ref create()
@@ -77,7 +77,7 @@ public:
     ~Instance() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @post @ref created()
      * @post volk uses the functions of this instance
      * @note calls @ref optDestroy()
@@ -85,7 +85,7 @@ public:
     void wrap(State);
 
     /**
-     * @brief creates the instance with the extensions of the config, debug builds with the validation layers
+     * creates the instance with the extensions of the config, debug builds with the validation layers
      * @param messengerConfig std::nullopt -> no messenger, debug builds use the default @ref DebugMessenger::Config
      * @pre @ref Cvk::initialized()
      * @post @ref created()
@@ -102,18 +102,18 @@ public:
     void create(std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
 
     /**
-     * @brief destroys the messenger and the instance and forgets
+     * destroys the messenger and the instance and forgets
      * @pre @ref created()
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership of the instance and the messenger, returns the state and forgets
+     * releases ownership of the instance and the messenger, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -162,14 +162,14 @@ public:
 };
 
 /**
- * @brief queries the instance extensions of the loader and the implicit layers
+ * queries the instance extensions of the loader and the implicit layers
  * @pre @ref Cvk::initialized()
  * @throws cvk::vk_result_exception result of vkEnumerateInstanceExtensionProperties()
  */
 [[nodiscard]] std::vector<std::string> available_instance_extensions();
 
 /**
- * @brief queries the instance layers
+ * queries the instance layers
  * @pre @ref Cvk::initialized()
  * @throws cvk::vk_result_exception result of vkEnumerateInstanceLayerProperties()
  */
@@ -182,12 +182,12 @@ struct Instance::State {
     vk_not_null<VkInstance> vkInstance;
 
     /**
-     * @brief messenger of @ref vkInstance, std::nullopt -> no messenger
+     * messenger of @ref vkInstance, std::nullopt -> no messenger
      */
     std::optional<DebugMessenger> debugMessenger = std::nullopt;
 
     /**
-     * @brief the extensions that the instance enables
+     * the extensions that the instance enables
      */
     std::vector<std::string> extensions{};
 };

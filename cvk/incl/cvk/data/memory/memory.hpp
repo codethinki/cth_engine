@@ -21,7 +21,7 @@ namespace cvk {
 class Core;
 
 /**
- * @brief VmaAllocation wrapper, a range of device memory
+ * VmaAllocation wrapper, a range of device memory
  * @details VMA places many allocations in one VkDeviceMemory, @ref info() returns the range
  * @attention calls with one memory are not thread safe
  */
@@ -32,13 +32,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created()
      */
     Memory(Core const&, Config const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Memory(Core const&, Config const&)
      * - @ref wrap()
@@ -46,7 +46,7 @@ public:
     Memory(Core const&, Config const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Memory(Core const&, Config const&)
      * - @ref create()
@@ -59,7 +59,7 @@ public:
     ~Memory() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the allocator of the core created the allocation
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -67,7 +67,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief allocates memory for the requirements
+     * allocates memory for the requirements
      * @pre !@ref Config::autoUsage(), VMA_MEMORY_USAGE_AUTO* needs a buffer or an image
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -76,25 +76,25 @@ public:
     void create(VkMemoryRequirements const&);
 
     /**
-     * @brief frees the memory and forgets
+     * frees the memory and forgets
      * @pre @ref created()
      * @pre the gpu does not use the memory
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
 
     /**
-     * @brief maps the range of the memory
+     * maps the range of the memory
      * @param range in bytes
      * @return the mapped range, its destructor unmaps
      * @pre @ref created()
@@ -106,7 +106,7 @@ public:
     [[nodiscard]] Mapping<std::byte> map(Range range = {}) const;
 
     /**
-     * @brief makes host writes visible to the device
+     * makes host writes visible to the device
      * @param range in bytes
      * @details host coherent memory -> does nothing
      * @pre @ref created()
@@ -116,7 +116,7 @@ public:
     void flush(Range range = {}) const;
 
     /**
-     * @brief makes device writes visible to the host
+     * makes device writes visible to the host
      * @param range in bytes
      * @details host coherent memory -> does nothing
      * @pre @ref created()
@@ -126,7 +126,7 @@ public:
     void invalidate(Range range = {}) const;
 
     /**
-     * @brief copies the data to the memory
+     * copies the data to the memory
      * @details maps, copies, flushes and unmaps
      * @param offset in bytes
      * @pre @ref created()
@@ -173,7 +173,7 @@ private:
     friend class Mapping;
 
     /**
-     * @brief unmaps the memory once, the destructor of a @ref Mapping calls it
+     * unmaps the memory once, the destructor of a @ref Mapping calls it
      */
     void unmap() const;
 

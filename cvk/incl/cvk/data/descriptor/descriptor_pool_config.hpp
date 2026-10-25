@@ -13,24 +13,24 @@
 
 namespace cvk {
 /**
- * @brief set count, descriptor counts and flags of a descriptor pool
+ * set count, descriptor counts and flags of a descriptor pool
  */
 struct DescriptorPoolConfig {
     /**
-     * @brief count sets of one layout
+     * count sets of one layout
      */
     struct Sets {
         not_null_ptr<DescriptorSetLayout const> layout;
         uint32_t count = 1;
 
         /**
-         * @brief descriptors of the variable count binding per set (0 => its maximum count)
+         * descriptors of the variable count binding per set (0 => its maximum count)
          */
         uint32_t variableCount = 0;
     };
 
     /**
-     * @brief counts the sets and descriptors of the layouts
+     * counts the sets and descriptors of the layouts
      * @param flags update after bind layouts add VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
      * @details calls @ref add() per entry
      */
@@ -50,19 +50,19 @@ struct DescriptorPoolConfig {
     uint32_t maxSets = 0;
 
     /**
-     * @brief descriptors per type, for all sets of the pool together
+     * descriptors per type, for all sets of the pool together
      * @pre every count > 0
      */
     std::vector<VkDescriptorPoolSize> sizes{};
 
     /**
-     * @brief VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT -> @ref DescriptorSet::destroy() frees the set,
+     * VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT -> @ref DescriptorSet::destroy() frees the set,
      *  VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT -> sets of update after bind layouts
      */
     VkDescriptorPoolCreateFlags flags = 0;
 
     /**
-     * @brief adds count sets of the layout to the set count and the descriptor counts
+     * adds count sets of the layout to the set count and the descriptor counts
      * @param count of sets
      * @param variableCount descriptors of the variable count binding per set (0 => its maximum count)
      * @details update after bind layout -> adds VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT

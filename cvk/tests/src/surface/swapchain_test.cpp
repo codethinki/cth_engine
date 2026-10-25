@@ -44,7 +44,7 @@ namespace {
     }
 
     /**
-     * @brief acquires an image, clears it and presents it
+     * acquires an image, clears it and presents it
      * @return result of @ref Swapchain::present()
      */
     VkResult present_cleared_image(test::PresentContext const& context, Swapchain& swapchain) {
@@ -98,7 +98,7 @@ namespace {
     }
 
     /**
-     * @brief waits for the acquire semaphore of an image that was not presented
+     * waits for the acquire semaphore of an image that was not presented
      */
     void consume(test::PresentContext const& context, Semaphore const& acquired) {
         Fence const fence{context.core, create};

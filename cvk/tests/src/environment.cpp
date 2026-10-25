@@ -10,7 +10,7 @@
 namespace cvk::test {
 namespace {
     /**
-     * @brief holds the vulkan loader for all tests
+     * holds the vulkan loader for all tests
      * @details the shared contexts are destroyed before the loader
      */
     class Environment : public testing::Environment {

@@ -13,7 +13,7 @@ namespace cvk {
 class Instance;
 
 /**
- * @brief writes the message to cth::log
+ * writes the message to cth::log
  * @return VK_FALSE, the call that caused the message continues
  */
 VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
@@ -24,7 +24,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
 );
 
 /**
- * @brief VkDebugUtilsMessengerEXT wrapper
+ * VkDebugUtilsMessengerEXT wrapper
  */
 class DebugMessenger {
 public:
@@ -34,13 +34,13 @@ public:
     using callback_t = PFN_vkDebugUtilsMessengerCallbackEXT;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Instance::created()
      */
     DebugMessenger(Instance const&, Config);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref DebugMessenger(Instance const&, Config)
      * - @ref wrap()
@@ -48,7 +48,7 @@ public:
     DebugMessenger(Instance const&, Config, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref DebugMessenger(Instance const&, Config)
      * - @ref create()
@@ -61,7 +61,7 @@ public:
     ~DebugMessenger() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the instance created the messenger
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -69,7 +69,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the messenger
+     * creates the messenger
      * @pre the instance enables VK_EXT_debug_utils
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -78,20 +78,20 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     static void destroy(vk_not_null<VkInstance>, VkDebugUtilsMessengerEXT vkMessenger);
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();

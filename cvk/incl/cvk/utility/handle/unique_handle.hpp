@@ -11,13 +11,13 @@
 
 namespace cvk {
 /**
- * @brief T names the Vulkan handle it holds: using vk_handle_t = VkX
+ * T names the Vulkan handle it holds: using vk_handle_t = VkX
  */
 template<class T>
 concept vk_handle_owner = requires { typename T::vk_handle_t; };
 
 /**
- * @brief deleter without context, calls T::destroy(handle)
+ * deleter without context, calls T::destroy(handle)
  */
 template<vk_handle_owner T>
 struct handle_deleter {
@@ -26,7 +26,7 @@ struct handle_deleter {
 };
 
 /**
- * @brief owning Vulkan handle, std::unique_ptr with a deleter that holds the destroy context
+ * owning Vulkan handle, std::unique_ptr with a deleter that holds the destroy context
  * @tparam Handle Vulkan handle, or Deleter::pointer for handles that are not pointers
  * @tparam Deleter @ref core_deleter, @ref vma_deleter, @ref instance_deleter, @ref handle_deleter,
  *  a deleter derived from them or one of its own
@@ -45,14 +45,14 @@ public:
     using deleter_t = Deleter;
 
     /**
-     * @brief owns no handle
+     * owns no handle
      * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
     constexpr explicit unique_handle(Args&&... context) : _ptr{Handle{}, Deleter{std::forward<Args>(context)...}} {}
 
     /**
-     * @brief owns @ref handle
+     * owns @ref handle
      * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
@@ -62,12 +62,12 @@ public:
     constexpr ~unique_handle() = default;
 
     /**
-     * @brief destroys the owned handle, keeps the context
+     * destroys the owned handle, keeps the context
      */
     constexpr void reset() noexcept { _ptr.reset(); }
 
     /**
-     * @brief destroys the owned handle with the old context, then owns @ref handle with the new context
+     * destroys the owned handle with the old context, then owns @ref handle with the new context
      * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
@@ -78,7 +78,7 @@ public:
     }
 
     /**
-     * @brief gives up the handle without destroying, keeps the context
+     * gives up the handle without destroying, keeps the context
      */
     [[nodiscard]] constexpr Handle release() noexcept { return _ptr.release(); }
 

@@ -14,11 +14,11 @@
 
 namespace cvk {
 /**
- * @brief 2D image: format, usage, mip levels, layers, who uses it and where its memory lives
+ * 2D image: format, usage, mip levels, layers, who uses it and where its memory lives
  */
 struct ImageConfig {
     /**
-     * @brief 0 -> the aspects of @ref format, see @ref format_aspects()
+     * 0 -> the aspects of @ref format, see @ref format_aspects()
      * @pre the aspects of @ref format contain it
      */
     VkImageAspectFlags aspectMask = 0;
@@ -34,7 +34,7 @@ struct ImageConfig {
     VkImageUsageFlags usage = 0;
 
     /**
-     * @brief cube compatible, mutable format, sparse, ...
+     * cube compatible, mutable format, sparse, ...
      */
     VkImageCreateFlags flags = 0;
 
@@ -59,19 +59,19 @@ struct ImageConfig {
     VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     /**
-     * @brief queue families that use the image at the same time
+     * queue families that use the image at the same time
      * @details size < 2 -> VK_SHARING_MODE_EXCLUSIVE, else VK_SHARING_MODE_CONCURRENT
      * @pre unique
      */
     std::vector<queue_family_index_t> queueFamilies{};
 
     /**
-     * @brief memory of the image
+     * memory of the image
      */
     MemoryConfig memory{};
 
     /**
-     * @brief depth attachment, depth aspect only
+     * depth attachment, depth aspect only
      */
     [[nodiscard]] static constexpr ImageConfig DepthBuffer(VkFormat depthFormat, VkSampleCountFlagBits samples) {
         return ImageConfig{
@@ -83,7 +83,7 @@ struct ImageConfig {
     }
 
     /**
-     * @brief sampled cube map, the six faces are the layers
+     * sampled cube map, the six faces are the layers
      * @param mipLevels > 1 -> transfer src usage for @ref Image::blitMipLevels()
      * @details the faces: +x, -x, +y, -y, +z, -z
      */

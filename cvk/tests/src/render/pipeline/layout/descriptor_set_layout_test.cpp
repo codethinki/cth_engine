@@ -9,7 +9,7 @@
 namespace cvk {
 namespace {
     /**
-     * @brief bindings 0 and 2, gap at 1
+     * bindings 0 and 2, gap at 1
      */
     constexpr DescriptorSetLayout::Config gap_config() {
         DescriptorSetLayout::Config config{};

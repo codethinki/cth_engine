@@ -10,7 +10,7 @@
 
 namespace cvk {
 /**
- * @brief feature bits of a device, one bool per Vulkan feature
+ * feature bits of a device, one bool per Vulkan feature
  * @details the fields follow the Vulkan feature structs in order, see @ref dev::feature_structs,
  *  a true bit of an extension struct enables its extension, see @ref dev::extensions_of()
  */
@@ -159,7 +159,7 @@ struct DeviceFeatures {
     bool dynamicRenderingLocalRead = false;
 
     /**
-     * @brief enables every feature of other
+     * enables every feature of other
      */
     constexpr DeviceFeatures& merge(DeviceFeatures const& other);
 
@@ -174,7 +174,7 @@ struct DeviceFeatures {
 
 namespace cvk::dev {
 /**
- * @brief feature bits in @ref DeviceFeatures, every field is a bool without padding
+ * feature bits in @ref DeviceFeatures, every field is a bool without padding
  */
 inline constexpr size_t FEATURE_COUNT = sizeof(DeviceFeatures);
 

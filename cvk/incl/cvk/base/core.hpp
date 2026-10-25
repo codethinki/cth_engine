@@ -24,7 +24,7 @@ class PhysicalDevice;
 class Surface;
 
 /**
- * @brief picks the physical device and owns it with the device, the allocator and the queues
+ * picks the physical device and owns it with the device, the allocator and the queues
  * @details the instance outlives the core,
  *  the queues stay valid when the core moves
  */
@@ -35,13 +35,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Instance::created()
      */
     explicit Core(Instance const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Core(Instance const&)
      * - @ref create()
@@ -49,7 +49,7 @@ public:
     Core(Instance const&, std::span<Surface const> surfaces, Config const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Core(Instance const&)
      * - @ref wrap()
@@ -62,7 +62,7 @@ public:
     ~Core();
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @details empty @ref State::queueIndices -> entry i uses queue i of the device,
      *  nullptr @ref State::allocator -> creates the allocator
      * @post @ref created()
@@ -71,7 +71,7 @@ public:
     void wrap(State);
 
     /**
-     * @brief picks a physical device for the first possible queue set, creates the device, the allocator and the queues
+     * picks a physical device for the first possible queue set, creates the device, the allocator and the queues
      * @param surfaces the present queues present to every surface
      * @details the first queue set that a physical device supports wins,
      *  then the best physical device for this set, see @ref pick_physical_device() and @ref Config::device
@@ -85,18 +85,18 @@ public:
     void create(std::span<Surface const> surfaces, Config const&);
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -156,7 +156,7 @@ public:
 
 private:
     /**
-     * @brief features and extensions of the device
+     * features and extensions of the device
      */
     struct device_requirements {
         DeviceFeatures features;
@@ -164,7 +164,7 @@ private:
     };
 
     /**
-     * @brief physical device for a queue set and the mapping of the queues
+     * physical device for a queue set and the mapping of the queues
      */
     struct device_pick {
         std::unique_ptr<PhysicalDevice> physicalDevice;
@@ -172,7 +172,7 @@ private:
         std::vector<size_t> queuesToUniqueQueues;
 
         /**
-         * @brief std::nullopt -> the config had no queue sets
+         * std::nullopt -> the config had no queue sets
          */
         std::optional<size_t> queueSetIndex = std::nullopt;
     };
@@ -189,7 +189,7 @@ private:
     [[nodiscard]] static device_requirements requirements(Config const&);
 
     /**
-     * @brief picks a physical device for the first possible queue set
+     * picks a physical device for the first possible queue set
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
      * @throws cvk::cvk_exception reason: @ref Config::device is missing or does not meet the requirements
      */
@@ -251,7 +251,7 @@ struct Core::State {
      */
     std::unique_ptr<Allocator> allocator;
     /**
-     * @brief index in @ref Device::queues() per entry of @ref Config::queueProperties
+     * index in @ref Device::queues() per entry of @ref Config::queueProperties
      * @details empty -> entry i uses queue i of @ref device
      * @pre every index < queue count of @ref device
      */

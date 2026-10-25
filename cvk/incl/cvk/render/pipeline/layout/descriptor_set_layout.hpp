@@ -20,7 +20,7 @@ namespace cvk {
 class Core;
 
 /**
- * @brief VkDescriptorSetLayout wrapper
+ * VkDescriptorSetLayout wrapper
  * @details a binding with VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT -> the layout has
  *  VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT
  */
@@ -31,13 +31,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created()
      */
     DescriptorSetLayout(Core const&, Config);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref DescriptorSetLayout(Core const&, Config)
      * - @ref wrap()
@@ -45,7 +45,7 @@ public:
     DescriptorSetLayout(Core const&, Config, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref DescriptorSetLayout(Core const&, Config)
      * - @ref create()
@@ -58,7 +58,7 @@ public:
     ~DescriptorSetLayout() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the layout was created with the config
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -66,7 +66,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the layout
+     * creates the layout
      * @pre @ref Config::debug_check() of the config
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -75,18 +75,18 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -142,7 +142,7 @@ public:
 namespace cvk {
 struct DescriptorSetLayout::Config {
     /**
-     * @brief adds a binding, the numbers may have gaps
+     * adds a binding, the numbers may have gaps
      * @param binding number of the binding
      * @param count of descriptors, 0 -> the binding is reserved without descriptors,
      *  VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT -> the maximum count
@@ -158,18 +158,18 @@ struct DescriptorSetLayout::Config {
     );
 
     /**
-     * @brief removes a binding
+     * removes a binding
      * @pre a binding with the number exists
      */
     constexpr Config& remove(uint32_t binding);
 
     /**
-     * @brief bindings sorted by binding number
+     * bindings sorted by binding number
      */
     std::vector<VkDescriptorSetLayoutBinding> bindings{};
 
     /**
-     * @brief flags per binding in the order of @ref bindings, empty -> no flags
+     * flags per binding in the order of @ref bindings, empty -> no flags
      */
     std::vector<VkDescriptorBindingFlags> bindingFlags{};
 

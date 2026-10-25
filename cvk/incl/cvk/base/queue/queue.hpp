@@ -14,7 +14,7 @@ namespace cvk {
 class Fence;
 
 /**
- * @brief VkQueue of a device
+ * VkQueue of a device
  * @details copyable, copies share the vulkan queue,
  *  the device owns the vulkan queue, a queue has no lifecycle,
  *  a copy stays valid while the VkDevice and its function table exist,
@@ -27,12 +27,12 @@ public:
     using State = QueueState;
 
     /**
-     * @brief the device constructs its queues
+     * the device constructs its queues
      */
     Queue(QueueFamilyProperties familyProperties, State const&);
 
     /**
-     * @brief submits the infos in one vkQueueSubmit2()
+     * submits the infos in one vkQueueSubmit2()
      * @param fence nullptr -> no fence
      * @details resolves the std::nullopt timeline values in order: the waits, then the signals of each info
      * @pre @ref created()
@@ -43,20 +43,20 @@ public:
     void submit(std::span<SubmitInfo const> infos, Fence const* fence = nullptr) const;
 
     /**
-     * @brief submits the info
+     * submits the info
      * @details calls @ref submit(std::span<SubmitInfo const>, Fence const*) const
      */
     void submit(SubmitInfo const& info, Fence const* fence = nullptr) const { submit({&info, 1}, fence); }
 
     /**
-     * @brief submits to the vulkan queue, for what @ref SubmitInfo does not cover
+     * submits to the vulkan queue, for what @ref SubmitInfo does not cover
      * @param fence VK_NULL_HANDLE -> no fence
      * @throws cvk::vk_result_exception result of vkQueueSubmit2()
      */
     void rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence fence = VK_NULL_HANDLE) const;
 
     /**
-     * @brief presents through vkQueuePresentKHR()
+     * presents through vkQueuePresentKHR()
      * @return VK_SUCCESS, VK_SUBOPTIMAL_KHR or VK_ERROR_OUT_OF_DATE_KHR
      * @pre @ref canPresent()
      * @throws cvk::vk_result_exception other result of vkQueuePresentKHR()
@@ -64,7 +64,7 @@ public:
     [[nodiscard]] VkResult rawPresent(VkPresentInfoKHR const& presentInfo) const;
 
     /**
-     * @brief blocks until the queue finished all its work
+     * blocks until the queue finished all its work
      * @throws cvk::vk_result_exception result of vkQueueWaitIdle()
      */
     void waitIdle() const;

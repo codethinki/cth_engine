@@ -27,7 +27,7 @@ namespace {
     }
 
     /**
-     * @brief owner with a destroy that needs the pool, like a command buffer
+     * owner with a destroy that needs the pool, like a command buffer
      */
     struct PoolOwned {
         using vk_handle_t = VkCommandBuffer;
@@ -38,7 +38,7 @@ namespace {
     };
 
     /**
-     * @brief custom deleter: derives from core_deleter, adds the pool
+     * custom deleter: derives from core_deleter, adds the pool
      */
     struct pool_deleter : core_deleter<PoolOwned> {
         pool_deleter(Core const& core, VkCommandPool vkPool) : core_deleter{core}, pool{vkPool} {}
@@ -51,7 +51,7 @@ namespace {
     };
 
     /**
-     * @brief two handles destroyed together, like a VMA image with its allocation
+     * two handles destroyed together, like a VMA image with its allocation
      */
     struct pair_handle {
         int* first = nullptr;
@@ -85,7 +85,7 @@ namespace {
     };
 
     /**
-     * @brief owner of heap memory, constant evaluation rejects leaks and double frees
+     * owner of heap memory, constant evaluation rejects leaks and double frees
      */
     struct HeapOwned {
         using vk_handle_t = int*;
@@ -114,7 +114,7 @@ namespace {
     }
 
     /**
-     * @brief reset(handle, context...) compiles
+     * reset(handle, context...) compiles
      */
     template<class H, class... Context>
     concept resettable = requires(H& handle, typename H::handle_t vkHandle, Context&&... context) {
@@ -127,7 +127,7 @@ namespace {
 
 namespace {
     /**
-     * @brief a class without vk_handle_t
+     * a class without vk_handle_t
      */
     struct Unnamed {
         static void destroy(DeviceTable, VkFence) {}

@@ -6,7 +6,7 @@
 
 namespace cvk {
 /**
- * @brief sampler state, defaults: linear filtering, repeat, 16x anisotropy
+ * sampler state, defaults: linear filtering, repeat, 16x anisotropy
  */
 struct SamplerConfig {
     VkFilter magFilter = VK_FILTER_LINEAR;
@@ -20,17 +20,17 @@ struct SamplerConfig {
     float mipLodBias = 0.f;
     float minLod = 0.f;
     /**
-     * @brief VK_LOD_CLAMP_NONE -> no clamp
+     * VK_LOD_CLAMP_NONE -> no clamp
      */
     float maxLod = VK_LOD_CLAMP_NONE;
 
     /**
-     * @brief 0 -> no anisotropic filtering
+     * 0 -> no anisotropic filtering
      */
     float maxAnisotropy = 16.f;
 
     /**
-     * @brief std::nullopt -> no comparison
+     * std::nullopt -> no comparison
      */
     std::optional<VkCompareOp> compareOp = std::nullopt;
 

@@ -15,7 +15,7 @@ namespace cvk {
 class Core;
 
 /**
- * @brief VkSampler wrapper
+ * VkSampler wrapper
  */
 class Sampler {
 public:
@@ -24,14 +24,14 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @details clamps @ref Config::maxAnisotropy to maxSamplerAnisotropy of the device, warns if it clamps
      * @pre @ref Core::created()
      */
     Sampler(Core const&, Config const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Sampler(Core const&, Config const&)
      * - @ref wrap()
@@ -39,7 +39,7 @@ public:
     Sampler(Core const&, Config const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Sampler(Core const&, Config const&)
      * - @ref create()
@@ -52,7 +52,7 @@ public:
     ~Sampler() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the sampler was created with the config
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -60,7 +60,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the sampler
+     * creates the sampler
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateSampler()
@@ -68,19 +68,19 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      * @pre the gpu does not use the sampler
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();

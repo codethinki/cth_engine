@@ -14,7 +14,7 @@
 
 namespace cvk {
 /**
- * @brief VkImageView wrapper, view of a mip and layer range of its image
+ * VkImageView wrapper, view of a mip and layer range of its image
  */
 class ImageView {
 public:
@@ -23,13 +23,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @details the core comes from the image
      */
     ImageView(Image const&, Config const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref ImageView(Image const&, Config const&)
      * - @ref wrap()
@@ -37,7 +37,7 @@ public:
     ImageView(Image const&, Config const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref ImageView(Image const&, Config const&)
      * - @ref create()
@@ -50,7 +50,7 @@ public:
     ~ImageView() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the view was created for the image with the config
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -58,7 +58,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the view
+     * creates the view
      * @pre @ref Image::created()
      * @pre the mip range and the layer range lie in the image
      * @pre the layers fit the view type
@@ -69,19 +69,19 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      * @pre the gpu does not use the view
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();

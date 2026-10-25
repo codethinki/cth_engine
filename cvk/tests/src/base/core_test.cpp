@@ -23,7 +23,7 @@ namespace {
     Core::Config const TWO_QUEUES{.queueProperties = {QueueFamilyProperties::GRAPHICS, QueueFamilyProperties::COMPUTE}};
 
     /**
-     * @brief every queue in one group
+     * every queue in one group
      */
     Core::queue_set_t one_group(size_t queues) {
         Core::queue_set_t::group_t group(queues);

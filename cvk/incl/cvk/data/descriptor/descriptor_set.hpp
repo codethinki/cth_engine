@@ -21,7 +21,7 @@ namespace cvk {
 class Core;
 
 /**
- * @brief VkDescriptorSet wrapper, allocated from its pool with its layout
+ * VkDescriptorSet wrapper, allocated from its pool with its layout
  * @details @ref DescriptorPool::reset() frees the set, @ref created() is false after it
  */
 class DescriptorSet {
@@ -30,7 +30,7 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @param variableCount descriptors of the variable count binding (0 => its maximum count)
      * @pre @ref DescriptorPool::created(), @ref DescriptorSetLayout::created()
      * @pre variableCount != 0 -> the layout has a variable count binding with a maximum >= variableCount
@@ -38,7 +38,7 @@ public:
     DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount = 0);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t)
      * - @ref wrap()
@@ -46,7 +46,7 @@ public:
     DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t)
      * - @ref create()
@@ -54,7 +54,7 @@ public:
     explicit DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount, create_t);
 
     /**
-     * @brief constructs and creates with the maximum variable count
+     * constructs and creates with the maximum variable count
      * @details calls @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t, create_t)
      */
     explicit DescriptorSet(DescriptorPool const& pool, DescriptorSetLayout const& layout, create_t) : DescriptorSet{
@@ -70,7 +70,7 @@ public:
     ~DescriptorSet() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the pool allocated the set with the layout and the variable count
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -78,7 +78,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief allocates the set from the pool
+     * allocates the set from the pool
      * @pre @ref DescriptorPool::created()
      * @pre update after bind layout -> the pool has VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
      * @post @ref created()
@@ -88,7 +88,7 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @details the pool frees sets -> vkFreeDescriptorSets(), else the memory returns with @ref DescriptorPool::reset()
      * @pre @ref created()
      * @pre the gpu does not use the set
@@ -96,18 +96,18 @@ public:
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
 
     /**
-     * @brief writes the descriptors into the set with one vkUpdateDescriptorSets()
+     * writes the descriptors into the set with one vkUpdateDescriptorSets()
      * @pre @ref created()
      * @pre the bindings exist, the kind of each write matches the binding type
      * @pre the elements lie in the bindings, the buffer ranges in the buffers
@@ -117,13 +117,13 @@ public:
     void write(std::span<DescriptorWrite const>) const;
 
     /**
-     * @brief writes the descriptors into the set, for a braced list: set.write({{0, ubo}, {1, view, sampler}})
+     * writes the descriptors into the set, for a braced list: set.write({{0, ubo}, {1, view, sampler}})
      * @details calls @ref write(std::span<DescriptorWrite const>) const
      */
     void write(std::initializer_list<DescriptorWrite> writes) const { write(std::span{writes.begin(), writes.size()}); }
 
     /**
-     * @brief writes one descriptor into the set: set.write({0, ubo})
+     * writes one descriptor into the set: set.write({0, ubo})
      * @details calls @ref write(std::span<DescriptorWrite const>) const
      */
     void write(DescriptorWrite const& descriptorWrite) const { write(std::span{&descriptorWrite, 1}); }
@@ -148,7 +148,7 @@ public:
 
 private:
     /**
-     * @brief frees through the pool, nothing if the pool was reset since the allocation
+     * frees through the pool, nothing if the pool was reset since the allocation
      */
     class pool_deleter {
     public:

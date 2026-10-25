@@ -17,7 +17,7 @@ namespace cvk {
 class Core;
 
 /**
- * @brief VkDescriptorPool wrapper, counts its descriptor sets and its resets
+ * VkDescriptorPool wrapper, counts its descriptor sets and its resets
  * @details the sets allocate themselves, see @ref DescriptorSet::create()
  */
 class DescriptorPool {
@@ -27,13 +27,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created()
      */
     DescriptorPool(Core const&, Config);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref DescriptorPool(Core const&, Config)
      * - @ref wrap()
@@ -41,7 +41,7 @@ public:
     DescriptorPool(Core const&, Config, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref DescriptorPool(Core const&, Config)
      * - @ref create()
@@ -54,7 +54,7 @@ public:
     ~DescriptorPool() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the pool was created with the config
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -62,7 +62,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the pool
+     * creates the pool
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vkCreateDescriptorPool()
@@ -70,26 +70,26 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      * @pre @ref unused()
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      * @pre @ref unused()
      */
     State release();
 
     /**
-     * @brief frees every set of the pool
+     * frees every set of the pool
      * @pre @ref created()
      * @pre the gpu does not use a set of the pool
      * @post @ref unused(), @ref DescriptorSet::created() of every set of the pool is false
@@ -98,14 +98,14 @@ public:
     void reset() const;
 
     /**
-     * @brief counts a set of the pool
+     * counts a set of the pool
      * @details @ref DescriptorSet::create() and @ref DescriptorSet::wrap() call it,
      *  code that keeps a released set of the pool may call it too
      */
     void add() const;
 
     /**
-     * @brief stops to count a set of the pool
+     * stops to count a set of the pool
      * @details @ref DescriptorSet::destroy() and @ref DescriptorSet::release() call it,
      *  code that frees a counted set itself calls it too
      * @pre !@ref unused()

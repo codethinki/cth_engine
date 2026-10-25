@@ -15,7 +15,7 @@ class ImageView;
 class Sampler;
 
 /**
- * @brief one descriptor of one binding, the constructor decides the kind
+ * one descriptor of one binding, the constructor decides the kind
  * @details the binding type in the layout of the set decides the descriptor type and the default image layout:
  *  storage image -> VK_IMAGE_LAYOUT_GENERAL, input attachment -> VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
  *  else VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
@@ -23,7 +23,7 @@ class Sampler;
 class DescriptorWrite {
 public:
     /**
-     * @brief buffer descriptor: uniform or storage buffer, dynamic or not
+     * buffer descriptor: uniform or storage buffer, dynamic or not
      * @param range in bytes
      * @param element array element of the binding
      */
@@ -31,7 +31,7 @@ public:
         _binding{binding}, _element{element}, _resource{BufferResource{&buffer, range}} {}
 
     /**
-     * @brief image descriptor without sampler: sampled image, storage image, input attachment
+     * image descriptor without sampler: sampled image, storage image, input attachment
      * @param element array element of the binding
      * @param layout of the view at the gpu access (VK_IMAGE_LAYOUT_MAX_ENUM => the default of the binding type)
      */
@@ -43,7 +43,7 @@ public:
     ) : _binding{binding}, _element{element}, _resource{ImageResource{&view, nullptr, layout}} {}
 
     /**
-     * @brief combined image sampler descriptor
+     * combined image sampler descriptor
      * @param element array element of the binding
      * @param layout of the view at the gpu access (VK_IMAGE_LAYOUT_MAX_ENUM => the default of the binding type)
      */
@@ -56,7 +56,7 @@ public:
     ) : _binding{binding}, _element{element}, _resource{ImageResource{&view, &sampler, layout}} {}
 
     /**
-     * @brief sampler descriptor
+     * sampler descriptor
      * @param element array element of the binding
      */
     constexpr DescriptorWrite(uint32_t binding, Sampler const& sampler, uint32_t element = 0) :
@@ -69,7 +69,7 @@ private:
     };
 
     /**
-     * @brief view nullptr -> sampler descriptor, sampler nullptr -> no sampler
+     * view nullptr -> sampler descriptor, sampler nullptr -> no sampler
      */
     struct ImageResource {
         ImageView const* view;

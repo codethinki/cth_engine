@@ -4,30 +4,30 @@
 
 namespace cvk {
 /**
- * @brief type, mip range, layer range and aspect of an image view
+ * type, mip range, layer range and aspect of an image view
  */
 struct ImageViewConfig {
     /**
-     * @brief VK_IMAGE_VIEW_TYPE_MAX_ENUM -> inferred, see @ref ImageView::viewType()
+     * VK_IMAGE_VIEW_TYPE_MAX_ENUM -> inferred, see @ref ImageView::viewType()
      */
     VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
 
     uint32_t baseMipLevel = 0;
 
     /**
-     * @brief VK_REMAINING_MIP_LEVELS -> to the last mip level of the image
+     * VK_REMAINING_MIP_LEVELS -> to the last mip level of the image
      */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
 
     /**
-     * @brief 0 -> the aspect mask of the image
+     * 0 -> the aspect mask of the image
      */
     VkImageAspectFlags aspectMask = 0;
 
     uint32_t baseArrayLayer = 0;
 
     /**
-     * @brief VK_REMAINING_ARRAY_LAYERS -> to the last layer of the image
+     * VK_REMAINING_ARRAY_LAYERS -> to the last layer of the image
      */
     uint32_t arrayLayers = VK_REMAINING_ARRAY_LAYERS;
 

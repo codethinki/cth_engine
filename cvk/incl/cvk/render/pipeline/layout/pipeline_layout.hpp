@@ -17,7 +17,7 @@ class Core;
 class DescriptorSetLayout;
 
 /**
- * @brief VkPipelineLayout wrapper
+ * VkPipelineLayout wrapper
  */
 class PipelineLayout {
 public:
@@ -26,14 +26,14 @@ public:
     struct State;
 
     /**
-     * @brief base constructor, copies the handles of the set layouts
+     * base constructor, copies the handles of the set layouts
      * @pre @ref Core::created()
      * @pre the set layouts are created
      */
     PipelineLayout(Core const&, Config const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref PipelineLayout(Core const&, Config const&)
      * - @ref wrap()
@@ -41,7 +41,7 @@ public:
     PipelineLayout(Core const&, Config const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref PipelineLayout(Core const&, Config const&)
      * - @ref create()
@@ -54,7 +54,7 @@ public:
     ~PipelineLayout() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre the layout was created with the config
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -62,7 +62,7 @@ public:
     void wrap(State const&);
 
     /**
-     * @brief creates the layout
+     * creates the layout
      * @pre the set layouts of the config are not destroyed
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -72,18 +72,18 @@ public:
     void create();
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -119,7 +119,7 @@ public:
 namespace cvk {
 struct PipelineLayout::Config {
     /**
-     * @brief set layout per set number, index == set number
+     * set layout per set number, index == set number
      */
     std::vector<not_null_ptr<DescriptorSetLayout const>> setLayouts{};
 

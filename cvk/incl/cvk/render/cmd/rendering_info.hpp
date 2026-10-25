@@ -16,29 +16,29 @@ namespace cvk {
 class ImageView;
 
 /**
- * @brief maps the attachments of a rendering to the fragment shader outputs and input attachments
+ * maps the attachments of a rendering to the fragment shader outputs and input attachments
  * @details a draw requires the same mapping in the bound pipeline and in the command buffer
  */
 struct AttachmentMapping {
     /**
-     * @brief fragment shader output location per color attachment (VK_ATTACHMENT_UNUSED => no output)
+     * fragment shader output location per color attachment (VK_ATTACHMENT_UNUSED => no output)
      * @details empty -> color attachment i writes location i
      */
     std::vector<uint32_t> locations{};
 
     /**
-     * @brief input attachment index per color attachment (VK_ATTACHMENT_UNUSED => no input attachment)
+     * input attachment index per color attachment (VK_ATTACHMENT_UNUSED => no input attachment)
      * @details empty -> color attachment i is input attachment i
      */
     std::vector<uint32_t> colorInputIndices{};
 
     /**
-     * @brief std::nullopt -> the depth attachment is the input attachment without index
+     * std::nullopt -> the depth attachment is the input attachment without index
      */
     std::optional<uint32_t> depthInputIndex = std::nullopt;
 
     /**
-     * @brief std::nullopt -> the stencil attachment is the input attachment without index
+     * std::nullopt -> the stencil attachment is the input attachment without index
      */
     std::optional<uint32_t> stencilInputIndex = std::nullopt;
 
@@ -73,7 +73,7 @@ struct AttachmentMapping {
     }
 
     /**
-     * @brief same mapping, empty == the default
+     * same mapping, empty == the default
      */
     [[nodiscard]] constexpr bool operator==(AttachmentMapping const&) const;
 
@@ -84,7 +84,7 @@ struct AttachmentMapping {
 };
 
 /**
- * @brief formats, samples, view mask, flags and attachment mapping of a rendering, what a secondary inherits from it
+ * formats, samples, view mask, flags and attachment mapping of a rendering, what a secondary inherits from it
  */
 struct RenderingInheritance {
     std::vector<VkFormat> colorFormats{};
@@ -95,7 +95,7 @@ struct RenderingInheritance {
     VkRenderingFlags flags = 0;
 
     /**
-     * @brief mapping at the begin of the secondary
+     * mapping at the begin of the secondary
      * @pre == the mapping of the primary at the execute
      */
     AttachmentMapping attachmentMapping{};
@@ -119,7 +119,7 @@ struct RenderingInheritance {
 };
 
 /**
- * @brief attachment of a rendering
+ * attachment of a rendering
  */
 struct RenderingAttachment {
     /**
@@ -128,7 +128,7 @@ struct RenderingAttachment {
     not_null_ptr<ImageView const> view;
 
     /**
-     * @brief layout of the view during the rendering, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL fits every aspect
+     * layout of the view during the rendering, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL fits every aspect
      */
     VkImageLayout layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
@@ -136,17 +136,17 @@ struct RenderingAttachment {
     VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
     /**
-     * @brief VK_ATTACHMENT_LOAD_OP_CLEAR -> the clear value
+     * VK_ATTACHMENT_LOAD_OP_CLEAR -> the clear value
      */
     VkClearValue clearValue{};
 
     /**
-     * @brief nullptr -> no resolve
+     * nullptr -> no resolve
      */
     ImageView const* resolveView = nullptr;
 
     /**
-     * @brief layout of @ref resolveView during the rendering
+     * layout of @ref resolveView during the rendering
      */
     VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
@@ -157,7 +157,7 @@ struct RenderingAttachment {
 };
 
 /**
- * @brief attachments, area, flags and attachment mapping of a dynamic rendering
+ * attachments, area, flags and attachment mapping of a dynamic rendering
  */
 struct RenderingInfo {
     std::vector<RenderingAttachment> colorAttachments{};
@@ -165,29 +165,29 @@ struct RenderingInfo {
     std::optional<RenderingAttachment> stencilAttachment = std::nullopt;
 
     /**
-     * @brief std::nullopt -> the extent that fits every attachment
+     * std::nullopt -> the extent that fits every attachment
      */
     std::optional<VkRect2D> area = std::nullopt;
 
     /**
-     * @brief layers that the rendering writes, viewMask != 0 -> ignored
+     * layers that the rendering writes, viewMask != 0 -> ignored
      * @pre the attachment views have the layers
      */
     uint32_t layerCount = 1;
 
     /**
-     * @brief multiview, bit i -> view i renders into layer i
+     * multiview, bit i -> view i renders into layer i
      * @pre the attachment views have a layer per view
      */
     uint32_t viewMask = 0;
 
     /**
-     * @brief VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT -> secondaries record the rendering
+     * VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT -> secondaries record the rendering
      */
     VkRenderingFlags flags = 0;
 
     /**
-     * @brief mapping at the begin, @ref BaseCmdBuffer::setAttachmentMapping() changes it inside the rendering
+     * mapping at the begin, @ref BaseCmdBuffer::setAttachmentMapping() changes it inside the rendering
      */
     AttachmentMapping attachmentMapping{};
 };

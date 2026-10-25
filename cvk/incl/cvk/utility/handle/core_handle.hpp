@@ -7,7 +7,7 @@
 
 namespace cvk {
 /**
- * @brief deleter of device objects, context: the core
+ * deleter of device objects, context: the core
  * @details calls T::destroy(core.deviceTable(), handle)
  * @pre the core outlives the deleter
  */
@@ -26,7 +26,7 @@ private:
 };
 
 /**
- * @brief @ref unique_handle of a device object, the deleter stores the core
+ * @ref unique_handle of a device object, the deleter stores the core
  * @tparam T owner class with vk_handle_t and a static destroy(DeviceTable, vk_handle_t)
  */
 template<vk_handle_owner T>

@@ -11,7 +11,7 @@
 
 namespace cgfw {
 /**
- * @brief exception of cgfw, the message starts with "cgfw: "
+ * exception of cgfw, the message starts with "cgfw: "
  */
 class cgfw_exception : public cth::except::default_exception {
     static constexpr auto PREFIX = "cgfw: ";

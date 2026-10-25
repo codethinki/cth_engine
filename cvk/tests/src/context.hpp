@@ -24,24 +24,24 @@ class Shader;
 
 namespace cvk::test {
 /**
- * @brief one queue, some devices have one queue only
+ * one queue, some devices have one queue only
  */
 inline constexpr std::array QUEUES{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::COMPUTE};
 
 /**
- * @brief buffer the cpu writes once
+ * buffer the cpu writes once
  */
 [[nodiscard]] constexpr BaseBuffer::Config host_written(VkBufferUsageFlags usage) {
     return {.usage = usage, .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT}};
 }
 
 /**
- * @brief buffer the cpu writes once and the gpu copies from
+ * buffer the cpu writes once and the gpu copies from
  */
 inline constexpr BaseBuffer::Config STAGING_CONFIG = host_written(VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
 
 /**
- * @brief buffer the gpu copies into and the cpu reads back
+ * buffer the gpu copies into and the cpu reads back
  */
 inline constexpr BaseBuffer::Config READBACK_CONFIG{
     .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -49,36 +49,36 @@ inline constexpr BaseBuffer::Config READBACK_CONFIG{
 };
 
 /**
- * @brief binding flags of a bindless descriptor array
+ * binding flags of a bindless descriptor array
  */
 inline constexpr VkDescriptorBindingFlags BINDLESS = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
     | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
     | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
 
 /**
- * @brief vertex of @ref FULLSCREEN, the vec3 position at location 0 of the test vertex shaders
+ * vertex of @ref FULLSCREEN, the vec3 position at location 0 of the test vertex shaders
  */
 struct Vec3 {
     float x, y, z;
 };
 
 /**
- * @brief one triangle that covers the whole viewport
+ * one triangle that covers the whole viewport
  */
 inline constexpr std::array<Vec3, 3> FULLSCREEN{Vec3{-1.f, -1.f, 0.f}, Vec3{3.f, -1.f, 0.f}, Vec3{-1.f, 3.f, 0.f}};
 
 /**
- * @brief color of the fill draws
+ * color of the fill draws
  */
 inline constexpr std::array<float, 4> GREEN{0.f, 1.f, 0.f, 1.f};
 
 /**
- * @brief @ref GREEN as a VK_FORMAT_R8G8B8A8_UNORM pixel
+ * @ref GREEN as a VK_FORMAT_R8G8B8A8_UNORM pixel
  */
 inline constexpr std::array<unsigned char, 4> GREEN_PIXEL{0, 255, 0, 255};
 
 /**
- * @brief pipeline config that draws @ref FULLSCREEN from vertex binding 0 without culling
+ * pipeline config that draws @ref FULLSCREEN from vertex binding 0 without culling
  * @pre the shaders are created
  */
 [[nodiscard]] GraphicsPipeline::Config fullscreen_config(
@@ -94,13 +94,13 @@ inline constexpr std::array<unsigned char, 4> GREEN_PIXEL{0, 255, 0, 255};
 [[nodiscard]] bool every_pixel_is(BaseBuffer const& readback, std::array<unsigned char, 4> pixel);
 
 /**
- * @brief instance and core for tests, fails the test on validation errors
+ * instance and core for tests, fails the test on validation errors
  * @details the default is the shared instance and core of the process, made at the first use,
  *  @ref destroy_shared_contexts() destroys them, the leaks of all tests show up there
  */
 struct Context {
     /**
-     * @brief the queues of @ref QUEUES
+     * the queues of @ref QUEUES
      */
     static Core::Config const CONFIG;
 
@@ -110,12 +110,12 @@ struct Context {
     };
 
     /**
-     * @brief the shared instance and core
+     * the shared instance and core
      */
     Context();
 
     /**
-     * @brief the shared instance and an own core with the config
+     * the shared instance and an own core with the config
      * @details destroys the core at the end -> the check sees the errors of vkDestroyDevice() too, e.g. leaks
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
      */
@@ -137,12 +137,12 @@ public:
 };
 
 /**
- * @brief instance, headless surface and core with a present queue, fails the test on validation errors
+ * instance, headless surface and core with a present queue, fails the test on validation errors
  * @details the shared ones of the process, made at the first use, see @ref Context
  */
 struct PresentContext {
     /**
-     * @brief one graphics queue that presents
+     * one graphics queue that presents
      */
     static Core::Config const CONFIG;
 
@@ -167,7 +167,7 @@ public:
 };
 
 /**
- * @brief own instance with @ref counting_messenger(), fails the test on validation errors
+ * own instance with @ref counting_messenger(), fails the test on validation errors
  * @details for the tests that need an own instance, e.g. the leak reports of vkDestroyInstance():
  *  the check runs after the instance is destroyed
  */
@@ -184,30 +184,30 @@ struct InstanceContext {
 };
 
 /**
- * @brief pool config for the first queue of the core
+ * pool config for the first queue of the core
  */
 [[nodiscard]] CmdPool::Config pool_config(Core const&);
 
 /**
- * @brief destroys the shared contexts, fails on their validation errors
+ * destroys the shared contexts, fails on their validation errors
  * @details the test environment calls it before the loader unloads
  */
 void destroy_shared_contexts();
 
 /**
- * @brief submits the command buffer to the first queue and waits for the gpu
+ * submits the command buffer to the first queue and waits for the gpu
  * @pre the command buffer is executable
  */
 void submit_and_wait(Context const&, PrimaryCmdBuffer const&);
 
 /**
- * @brief records a memory barrier: transfer writes -> host reads
+ * records a memory barrier: transfer writes -> host reads
  * @pre the command buffer is recording
  */
 void host_read_barrier(Context const&, BaseCmdBuffer const&);
 
 /**
- * @brief records a copy of the mip level into the buffer, without cvk: tests need a second path
+ * records a copy of the mip level into the buffer, without cvk: tests need a second path
  * @param layout of the mip level, a transfer src layout
  * @pre the image has a color aspect
  */
@@ -222,7 +222,7 @@ void copy_to_buffer(
 );
 
 /**
- * @brief records into a primary command buffer of a new pool, submits it and waits for the gpu
+ * records into a primary command buffer of a new pool, submits it and waits for the gpu
  * @param record called with the recording PrimaryCmdBuffer&
  */
 template<class Record>

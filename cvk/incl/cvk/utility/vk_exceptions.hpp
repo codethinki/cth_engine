@@ -9,7 +9,7 @@
 
 namespace cvk {
 /**
- * @brief exception of cvk, the message starts with "cvk: "
+ * exception of cvk, the message starts with "cvk: "
  */
 class cvk_exception : public cth::except::default_exception {
     static constexpr auto PREFIX = "cvk: ";
@@ -32,7 +32,7 @@ public:
 };
 
 /**
- * @brief exception for a vulkan call that did not return VK_SUCCESS
+ * exception for a vulkan call that did not return VK_SUCCESS
  */
 class vk_result_exception : public cvk_exception {
     static constexpr auto SEVERITY = cth::except::ERR;
@@ -64,7 +64,7 @@ public:
     using cvk_exception::add;
 
     /**
-     * @brief stores the result and adds it to the message
+     * stores the result and adds it to the message
      */
     vk_result_exception& add(VkResult result) {
         _vkResult = result;
@@ -85,7 +85,7 @@ private:
     CTH_STABLE_THROW_T(cvk::vk_result_exception, expression, msg, __VA_ARGS__)
 
 /**
- * @brief acts like @ref CVK_VK_STABLE_THROW and adds the result to the exception
+ * acts like @ref CVK_VK_STABLE_THROW and adds the result to the exception
  * @param expression true -> throws
  * @param result to add to the exception
  * @param msg format string

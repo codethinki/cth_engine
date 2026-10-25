@@ -17,7 +17,7 @@ namespace {
     constexpr std::array ELEMENTS{1, 2, 3, 4};
 
     /**
-     * @brief acts like a Vulkan query with the available elements
+     * acts like a Vulkan query with the available elements
      * @return VK_INCOMPLETE -> data has less space than available
      */
     VkResult query(std::span<int const> available, uint32_t* count, int* data) {
@@ -33,7 +33,7 @@ namespace {
     }
 
     /**
-     * @brief 2 elements at the first call, 4 at the later calls -> the first write is incomplete
+     * 2 elements at the first call, 4 at the later calls -> the first write is incomplete
      */
     VkResult growing(uint32_t* calls, uint32_t* count, int* data) {
         auto const call = (*calls)++;
@@ -41,7 +41,7 @@ namespace {
     }
 
     /**
-     * @brief 4 elements at the count call, 2 at the write call
+     * 4 elements at the count call, 2 at the write call
      */
     VkResult shrinking(uint32_t* calls, uint32_t* count, int* data) {
         auto const call = (*calls)++;
@@ -49,7 +49,7 @@ namespace {
     }
 
     /**
-     * @brief one element at every count call, VK_INCOMPLETE at every write call
+     * one element at every count call, VK_INCOMPLETE at every write call
      */
     VkResult always_incomplete(uint32_t* calls, uint32_t* count, int* data) {
         ++*calls;
@@ -68,7 +68,7 @@ namespace {
     }
 
     /**
-     * @brief writes the first elementCount elements, like vkGetPhysicalDeviceQueueFamilyProperties()
+     * writes the first elementCount elements, like vkGetPhysicalDeviceQueueFamilyProperties()
      */
     void void_query(uint32_t elementCount, uint32_t* count, int* data) {
         [[maybe_unused]] auto const result = query(std::span{ELEMENTS}.first(elementCount), count, data);

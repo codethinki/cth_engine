@@ -33,7 +33,7 @@ namespace {
     constexpr std::array COLOR_FORMATS{VK_FORMAT_R8G8B8A8_UNORM};
 
     /**
-     * @brief fullscreen pipeline with one descriptor set and the fragment shader
+     * fullscreen pipeline with one descriptor set and the fragment shader
      */
     struct Fill {
         Fill(Core const& core, DescriptorSetLayout const& setLayout, std::span<uint32_t const> fragmentCode,
@@ -57,7 +57,7 @@ namespace {
     };
 
     /**
-     * @brief target image, its view and a readback buffer
+     * target image, its view and a readback buffer
      */
     struct Target {
         explicit Target(Core const& core) : image{
@@ -77,7 +77,7 @@ namespace {
     };
 
     /**
-     * @brief records: clear the target, draw with draw(), copy the target into the readback buffer
+     * records: clear the target, draw with draw(), copy the target into the readback buffer
      */
     void record_fill(
         test::Context const& context,
@@ -148,7 +148,7 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
 
 namespace {
     /**
-     * @brief draws a green texture
+     * draws a green texture
      * @param layout of the texture at the draw (VK_IMAGE_LAYOUT_MAX_ENUM => the default, shader read only)
      * @param afterBind true -> bindless binding of 64, the descriptor at element 17 comes after the recording,
      *  false -> one sampler2D, the descriptor comes before the recording, the layers check its layout at the draw

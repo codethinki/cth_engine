@@ -16,19 +16,19 @@
 
 namespace cvk {
 /**
- * @brief T is an index type of Vulkan 1.3 (VK_INDEX_TYPE_UINT8 needs an extension)
+ * T is an index type of Vulkan 1.3 (VK_INDEX_TYPE_UINT8 needs an extension)
  */
 template<class T>
 concept index_element = std::same_as<T, uint16_t> || std::same_as<T, uint32_t>;
 
 /**
- * @brief VkIndexType of T
+ * VkIndexType of T
  */
 template<index_element T>
 constexpr VkIndexType index_type = std::same_as<T, uint16_t> ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 
 /**
- * @brief @ref BaseBuffer with an element type, sizes and offsets in elements
+ * @ref BaseBuffer with an element type, sizes and offsets in elements
  * @tparam T element, the gpu copies it byte by byte
  * @details adds no members: a @ref BaseBuffer reference to it sees the same buffer in bytes
  */
@@ -36,13 +36,13 @@ template<cth::mta::trivially_copyable T>
 class Buffer : public BaseBuffer {
 public:
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created()
      */
     Buffer(Core const& core, Config const& config) : BaseBuffer{core, config} {}
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Buffer(Core const&, Config const&)
      * - @ref wrap()
@@ -50,7 +50,7 @@ public:
     Buffer(Core const& core, Config const& config, State const& state) : Buffer{core, config} { wrap(state); }
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Buffer(Core const&, Config const&)
      * - @ref create()
@@ -58,7 +58,7 @@ public:
     Buffer(Core const& core, Config const& config, size_t count) : Buffer{core, config} { create(count); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @pre @ref State::size is a multiple of sizeof(T)
      * @details calls @ref BaseBuffer::wrap()
      */
@@ -68,14 +68,14 @@ public:
     }
 
     /**
-     * @brief creates the buffer and its memory
+     * creates the buffer and its memory
      * @param count of elements
      * @details calls @ref BaseBuffer::create()
      */
     void create(size_t count) { BaseBuffer::create(count * sizeof(T)); }
 
     /**
-     * @brief maps the range of the memory as elements
+     * maps the range of the memory as elements
      * @param range in elements
      * @return the mapped elements, the destructor unmaps
      * @details calls @ref BaseBuffer::map()
@@ -83,21 +83,21 @@ public:
     [[nodiscard]] Mapping<T> map(Range range = {}) const { return BaseBuffer::map(bytes(range)).template as<T>(); }
 
     /**
-     * @brief makes host writes visible to the device
+     * makes host writes visible to the device
      * @param range in elements
      * @details calls @ref BaseBuffer::flush()
      */
     void flush(Range range = {}) const { BaseBuffer::flush(bytes(range)); }
 
     /**
-     * @brief makes device writes visible to the host
+     * makes device writes visible to the host
      * @param range in elements
      * @details calls @ref BaseBuffer::invalidate()
      */
     void invalidate(Range range = {}) const { BaseBuffer::invalidate(bytes(range)); }
 
     /**
-     * @brief copies the data to the buffer
+     * copies the data to the buffer
      * @param offset in elements
      * @details calls @ref BaseBuffer::write()
      */
@@ -106,7 +106,7 @@ public:
     }
 
     /**
-     * @brief records a copy from the source buffer
+     * records a copy from the source buffer
      * @param region in elements
      * @details calls @ref BaseBuffer::copy()
      */
@@ -123,7 +123,7 @@ public:
     }
 
     /**
-     * @brief records a copy from the mip level of the image
+     * records a copy from the mip level of the image
      * @param dstOffset in elements
      * @details calls @ref BaseBuffer::copy(BaseCmdBuffer const&, Image const&, size_t, uint32_t, VkImageLayout) const
      */

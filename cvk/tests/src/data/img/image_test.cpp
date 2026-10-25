@@ -21,7 +21,7 @@ namespace {
     constexpr VkExtent2D EXTENT{64, 32};
 
     /**
-     * @brief sampled texture with a full mip chain
+     * sampled texture with a full mip chain
      */
     constexpr Image::Config TEXTURE_CONFIG{
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -31,7 +31,7 @@ namespace {
     };
 
     /**
-     * @brief image that the gpu copies into and out of, two mip levels
+     * image that the gpu copies into and out of, two mip levels
      */
     constexpr Image::Config COPY_CONFIG{
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -41,7 +41,7 @@ namespace {
     };
 
     /**
-     * @brief image that fills its mip chain with blits
+     * image that fills its mip chain with blits
      */
     constexpr Image::Config BLIT_CONFIG{
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,

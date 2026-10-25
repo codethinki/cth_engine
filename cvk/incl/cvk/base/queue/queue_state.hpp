@@ -6,17 +6,17 @@
 namespace cvk {
 struct QueueState {
     /**
-     * @brief function table of the device
+     * function table of the device
      * @details stable when the device moves
      */
     not_null_ptr<VolkDeviceTable const> functions;
     vk_not_null<VkQueue> vkQueue;
     /**
-     * @brief vulkan family index
+     * vulkan family index
      */
     uint32_t familyIndex;
     /**
-     * @brief index in the family
+     * index in the family
      */
     uint32_t queueIndex;
 };

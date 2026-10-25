@@ -18,32 +18,32 @@ class BaseBuffer;
 class Image;
 
 /**
- * @brief one side of a barrier: stages, access and queue family
+ * one side of a barrier: stages, access and queue family
  */
 struct BarrierScope {
     VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_NONE;
     VkAccessFlags2 access = VK_ACCESS_2_NONE;
 
     /**
-     * @brief VK_QUEUE_FAMILY_IGNORED -> no queue family ownership transfer
+     * VK_QUEUE_FAMILY_IGNORED -> no queue family ownership transfer
      */
     queue_family_index_t queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 };
 
 /**
- * @brief image part of a barrier
+ * image part of a barrier
  */
 struct ImageBarrierInfo {
     BarrierScope src{};
     BarrierScope dst{};
 
     /**
-     * @brief == @ref oldLayout -> no layout transition
+     * == @ref oldLayout -> no layout transition
      */
     VkImageLayout newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     /**
-     * @brief layout of the mip range before the barrier
+     * layout of the mip range before the barrier
      * @attention VK_IMAGE_LAYOUT_UNDEFINED discards the contents, the validation layers do not report it
      */
     VkImageLayout oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -51,19 +51,19 @@ struct ImageBarrierInfo {
     uint32_t firstMipLevel = 0;
 
     /**
-     * @brief VK_REMAINING_MIP_LEVELS -> to the last mip level
+     * VK_REMAINING_MIP_LEVELS -> to the last mip level
      */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
 
     uint32_t firstArrayLayer = 0;
 
     /**
-     * @brief VK_REMAINING_ARRAY_LAYERS -> to the last layer
+     * VK_REMAINING_ARRAY_LAYERS -> to the last layer
      */
     uint32_t arrayLayers = VK_REMAINING_ARRAY_LAYERS;
 
     /**
-     * @brief 0 -> the aspect mask of the image
+     * 0 -> the aspect mask of the image
      */
     VkImageAspectFlags aspectMask = 0;
 
@@ -86,7 +86,7 @@ struct ImageBarrierInfo {
     }
 
     /**
-     * @brief queue family ownership transfer without layout transition, dst and src name the families
+     * queue family ownership transfer without layout transition, dst and src name the families
      * @param layout of the image
      */
     [[nodiscard]] static constexpr ImageBarrierInfo QueueTransition(
@@ -99,24 +99,24 @@ struct ImageBarrierInfo {
 };
 
 /**
- * @brief buffer part of a barrier
+ * buffer part of a barrier
  */
 struct BufferBarrierInfo {
     BarrierScope src{};
     BarrierScope dst{};
 
     /**
-     * @brief in bytes
+     * in bytes
      */
     size_t offset = 0;
 
     /**
-     * @brief in bytes (VK_WHOLE_SIZE => to the end)
+     * in bytes (VK_WHOLE_SIZE => to the end)
      */
     size_t size = VK_WHOLE_SIZE;
 
     /**
-     * @brief queue family ownership transfer, dst and src name the families
+     * queue family ownership transfer, dst and src name the families
      */
     [[nodiscard]] static constexpr BufferBarrierInfo QueueTransition(BarrierScope const& dst, BarrierScope const& src) {
         return BufferBarrierInfo{.src = src, .dst = dst};
@@ -124,7 +124,7 @@ struct BufferBarrierInfo {
 };
 
 /**
- * @brief global memory part of a barrier
+ * global memory part of a barrier
  */
 struct MemoryBarrierInfo {
     BarrierScope src{};
@@ -132,7 +132,7 @@ struct MemoryBarrierInfo {
 };
 
 /**
- * @brief pipeline barrier: memory, buffer and image barriers in one vkCmdPipelineBarrier2()
+ * pipeline barrier: memory, buffer and image barriers in one vkCmdPipelineBarrier2()
  * @details aggregate, the add functions are shortcuts,
  *  @ref execute() checks the barriers
  * @attention the images and buffers do not move until @ref execute()
@@ -143,7 +143,7 @@ struct Barrier {
     using BufferInfo = BufferBarrierInfo;
 
     /**
-     * @brief shader stages of @ref addTransition(): the layout decides, fragment shader for shader reads
+     * shader stages of @ref addTransition(): the layout decides, fragment shader for shader reads
      */
     static constexpr VkPipelineStageFlags2 INFERRED_SHADER_STAGES = VK_PIPELINE_STAGE_2_NONE;
 
@@ -158,7 +158,7 @@ struct Barrier {
     };
 
     /**
-     * @brief VK_DEPENDENCY_BY_REGION_BIT -> the dependency is per framebuffer region, e.g. per tile
+     * VK_DEPENDENCY_BY_REGION_BIT -> the dependency is per framebuffer region, e.g. per tile
      */
     VkDependencyFlags flags = 0;
 
@@ -167,19 +167,19 @@ struct Barrier {
     std::vector<ImageEntry> images{};
 
     /**
-     * @brief adds a global memory barrier
+     * adds a global memory barrier
      */
     constexpr void add(BarrierScope const& dst, BarrierScope const& src) {
         memory.push_back({.src = src, .dst = dst});
     }
 
     /**
-     * @brief adds an image barrier
+     * adds an image barrier
      */
     constexpr void add(Image const& image, ImageInfo const& info) { images.push_back({&image, info}); }
 
     /**
-     * @brief adds a layout transition of every layer with the scopes of @ref layout_transition()
+     * adds a layout transition of every layer with the scopes of @ref layout_transition()
      * @param shaderStages stages of the shader reads in the layouts (@ref INFERRED_SHADER_STAGES => fragment shader)
      * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
      * @pre @ref layout_scope() knows both layouts
@@ -194,12 +194,12 @@ struct Barrier {
     );
 
     /**
-     * @brief adds a buffer barrier
+     * adds a buffer barrier
      */
     constexpr void add(BaseBuffer const& buffer, BufferInfo const& info) { buffers.push_back({&buffer, info}); }
 
     /**
-     * @brief records the barriers
+     * records the barriers
      * @details inside a rendering: checks the rules of barriers inside a dynamic rendering
      * @pre @ref BaseCmdBuffer::recording()
      * @pre the images and buffers are created and the ranges lie in them
@@ -212,7 +212,7 @@ struct Barrier {
     void execute(BaseCmdBuffer const&) const;
 
     /**
-     * @brief removes every barrier, keeps the flags
+     * removes every barrier, keeps the flags
      */
     constexpr void clear() {
         memory.clear();
@@ -224,7 +224,7 @@ struct Barrier {
 
 private:
     /**
-     * @brief checks the rules of barriers inside a dynamic rendering
+     * checks the rules of barriers inside a dynamic rendering
      * @param rendering the command buffer began
      */
     void debug_check_rendering(
@@ -238,7 +238,7 @@ private:
 
 namespace cvk {
 /**
- * @brief scopes of a layout transition
+ * scopes of a layout transition
  */
 struct LayoutTransition {
     BarrierScope src;
@@ -246,7 +246,7 @@ struct LayoutTransition {
 };
 
 /**
- * @brief what the gpu does with an image in the layout
+ * what the gpu does with an image in the layout
  * @details input attachments: fragment shader only, general: all commands
  * @param aspects of the image, pick color or depth for the attachment, read only and local read layouts
  * @param shaderStages stages of the shader reads (@ref Barrier::INFERRED_SHADER_STAGES => fragment shader)
@@ -260,7 +260,7 @@ struct LayoutTransition {
 );
 
 /**
- * @brief scopes of the transition: src from the old layout, dst from the new layout
+ * scopes of the transition: src from the old layout, dst from the new layout
  * @details src keeps the writes of the old layout,
  *  old layout undefined, preinitialized or present -> src waits for the dst stages without access
  * @return std::nullopt -> no scope for a layout

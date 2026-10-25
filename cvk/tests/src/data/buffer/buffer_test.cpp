@@ -30,7 +30,7 @@ namespace {
     };
 
     /**
-     * @brief the cpu writes and reads
+     * the cpu writes and reads
      */
     constexpr Buffer<Vertex>::Config HOST_CONFIG{
         .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -38,7 +38,7 @@ namespace {
     };
 
     /**
-     * @brief Buffer<T> is a valid type
+     * Buffer<T> is a valid type
      */
     template<class T>
     concept valid_buffer = requires { sizeof(Buffer<T>); };

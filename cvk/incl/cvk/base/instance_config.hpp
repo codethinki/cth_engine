@@ -8,7 +8,7 @@
 
 namespace cvk {
 /**
- * @brief application, engine and extensions of an instance
+ * application, engine and extensions of an instance
  */
 struct InstanceConfig {
     std::string appName;
@@ -17,7 +17,7 @@ struct InstanceConfig {
     uint32_t engineVersion = 0;
 
     /**
-     * @brief instance extensions, debug builds add @ref Instance::VALIDATION_LAYER_EXTENSIONS
+     * instance extensions, debug builds add @ref Instance::VALIDATION_LAYER_EXTENSIONS
      */
     std::vector<std::string> extensions{};
 

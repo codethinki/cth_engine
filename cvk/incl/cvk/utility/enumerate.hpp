@@ -12,7 +12,7 @@
 
 namespace cvk::dev {
 /**
- * @brief element type of a two-call query: the pointee of its last parameter
+ * element type of a two-call query: the pointee of its last parameter
  */
 template<class Fn>
 struct enumerate_element {};
@@ -26,12 +26,12 @@ template<class Fn>
 using enumerate_element_t = enumerate_element<Fn>::type;
 
 /**
- * @brief max count and write rounds of @ref enumerate() while the result is VK_INCOMPLETE
+ * max count and write rounds of @ref enumerate() while the result is VK_INCOMPLETE
  */
 constexpr uint32_t MAX_QUERY_ATTEMPTS = 4;
 
 /**
- * @brief calls a two-call query as fn(args..., &count, data), first for the count, then for the elements
+ * calls a two-call query as fn(args..., &count, data), first for the count, then for the elements
  * @param what name of the elements for the error message
  * @param fn function pointer: a volk global or a VolkDeviceTable member
  * @param args arguments before the count

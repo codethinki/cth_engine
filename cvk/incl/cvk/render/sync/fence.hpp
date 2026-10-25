@@ -16,7 +16,7 @@ namespace cvk {
 class Core;
 
 /**
- * @brief VkFence wrapper
+ * VkFence wrapper
  */
 class Fence {
 public:
@@ -24,13 +24,13 @@ public:
     struct State;
 
     /**
-     * @brief base constructor
+     * base constructor
      * @pre @ref Core::created()
      */
     explicit Fence(Core const&);
 
     /**
-     * @brief constructs and wraps
+     * constructs and wraps
      * @details calls:
      * - @ref Fence(Core const&)
      * - @ref wrap()
@@ -38,7 +38,7 @@ public:
     Fence(Core const&, State const&);
 
     /**
-     * @brief constructs and creates
+     * constructs and creates
      * @details calls:
      * - @ref Fence(Core const&)
      * - @ref create()
@@ -51,14 +51,14 @@ public:
     ~Fence() { optDestroy(); }
 
     /**
-     * @brief wraps the state
+     * wraps the state
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
     void wrap(State const&);
 
     /**
-     * @brief creates the fence
+     * creates the fence
      * @param flags VK_FENCE_CREATE_SIGNALED_BIT -> created signaled
      * @param exportTypes handle types the fence can export, 0 -> not exportable,
      *  @ref constants::OS_FENCE_HANDLE_TYPE for @ref extractOsHandle()
@@ -69,19 +69,19 @@ public:
     void create(VkFenceCreateFlags flags = 0, VkExternalFenceHandleTypeFlags exportTypes = 0);
 
     /**
-     * @brief destroys and forgets
+     * destroys and forgets
      * @pre @ref created()
      * @pre the gpu does not use the fence
      */
     void destroy();
 
     /**
-     * @brief if @ref created() -> calls @ref destroy()
+     * if @ref created() -> calls @ref destroy()
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @brief releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @pre @ref created()
      */
     State release();
@@ -99,14 +99,14 @@ public:
     [[nodiscard]] bool signaled() const { return status() == VK_SUCCESS; }
 
     /**
-     * @brief sets the fence to not signaled
+     * sets the fence to not signaled
      * @pre @ref created()
      * @throws cvk::vk_result_exception result of vkResetFences()
      */
     void reset() const;
 
     /**
-     * @brief blocks until the fence is signaled or the timeout ends
+     * blocks until the fence is signaled or the timeout ends
      * @param timeout in nanoseconds
      * @return VK_SUCCESS or VK_TIMEOUT
      * @pre @ref created()
@@ -115,14 +115,14 @@ public:
     [[nodiscard]] VkResult wait(uint64_t timeout) const;
 
     /**
-     * @brief blocks until the fence is signaled
+     * blocks until the fence is signaled
      * @pre @ref created()
      * @throws cvk::vk_result_exception result of vkWaitForFences()
      */
     void wait() const;
 
     /**
-     * @brief waits, then resets if signaled
+     * waits, then resets if signaled
      * @param timeout in nanoseconds
      * @return VK_SUCCESS -> reset, VK_TIMEOUT -> not reset
      * @details calls:
@@ -132,7 +132,7 @@ public:
     [[nodiscard]] VkResult waitReset(uint64_t timeout) const;
 
     /**
-     * @brief waits and resets
+     * waits and resets
      * @details calls:
      * - @ref wait() const
      * - @ref reset()
@@ -140,7 +140,7 @@ public:
     void waitReset() const;
 
     /**
-     * @brief exports the fence as an OS handle, see @ref constants::OS_FENCE_HANDLE_TYPE
+     * exports the fence as an OS handle, see @ref constants::OS_FENCE_HANDLE_TYPE
      * @details windows: the fence keeps its state,
      *  posix: the export resets the fence (sync fd, copy transference), invalid handle -> already signaled
      * @return handle, waitable with cth::os::wait() or a scheduler
@@ -180,7 +180,7 @@ namespace cvk {
 struct Fence::State {
     vk_not_null<VkFence> vkFence;
     /**
-     * @brief handle types the fence was created to export
+     * handle types the fence was created to export
      */
     VkExternalFenceHandleTypeFlags exportTypes = 0;
 };
