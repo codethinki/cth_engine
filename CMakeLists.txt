@@ -26,6 +26,7 @@ endif()
 # Add subprojects
 add_subdirectory(cvk)
 add_subdirectory(cgfw)
+add_subdirectory(jvk)
 
 # Tests
 if(JOLLY_ENABLE_TESTS)

@@ -1,5 +1,6 @@
 {
   "dependencies": [
+    "asio",
     "boost-pfr",
     "gtl",
     "gtest",

@@ -9,8 +9,7 @@ Read it before you change a file. Match the existing code.
 |---|---|
 | `cvk/` | C++ wrapper of the Vulkan C API: one class per Vulkan object, objects own their handle |
 | `cgfw/` | C++ wrapper of RGFW: windows of the platform (Win32, Wayland) and their Vulkan surface |
-| `jvk/` | coroutine layer on top of `cvk` (not started) |
-| `jvk/prework/` | parts for `jvk` that left `cvk`, not built |
+| `jvk/` | coroutine layer on top of `cvk` (in progress): threads, queues, stage graph, object lifetimes |
 | `legacy/` | the old `jvk`, `jolly` and `demo` code, reference only, not built |
 | `tests/` | loader smoke tests |
 | `lib/cth` | cth (submodule), `lib/cmake/cth.cmake` adds it with only the components the engine needs |

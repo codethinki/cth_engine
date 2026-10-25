@@ -1,13 +1,16 @@
-#include "image_layouts.hpp"
+#include "jvk/sync/image_layouts.hpp"
 
 #include "cvk/data/img/image.hpp"
 
 #include <cth/io/log.hpp>
 
 #include <algorithm>
+#include <cstddef>
 
 
-namespace cvk {
+namespace jvk {
+using cvk::Image;
+
 VkImageLayout ImageLayouts::layout(Image const& image, uint32_t mipLevel) const {
     CTH_CRITICAL(mipLevel >= image.mipLevels(), "mip level must lie in the image") {}
 

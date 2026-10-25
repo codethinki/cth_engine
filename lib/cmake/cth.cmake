@@ -4,8 +4,8 @@ if(NOT TARGET cth::cth)
         message(FATAL_ERROR "lib/cth is empty, run: git submodule update --init lib/cth")
     endif()
 
-    # the engine needs cth and cth_os
-    set(CTH_BUILD_CORO OFF)
+    # the engine needs cth, cth_os and cth_coro
+    set(CTH_BUILD_CORO ON)
     set(CTH_BUILD_NET OFF)
     set(CTH_BUILD_WIN OFF)
 
