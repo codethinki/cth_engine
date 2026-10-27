@@ -2,11 +2,14 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/deletable.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+
+#include <utility>
 
 
 namespace cvk {
@@ -49,6 +52,7 @@ public:
 
     /**
      * wraps the state
+     * @pre the semaphore of the state belongs to the device of the core
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
@@ -76,6 +80,7 @@ public:
 
     /**
      * releases ownership, returns the state and forgets
+     * @return the state, its deletable has the device table of the core
      * @pre @ref created()
      */
     State release();
@@ -112,7 +117,12 @@ public:
 
 namespace cvk {
 struct Semaphore::State {
-    vk_not_null<VkSemaphore> vkSemaphore;
+    device_deletable<Semaphore> semaphore;
+
+    /**
+     * consumes the state into its deletable
+     */
+    [[nodiscard]] constexpr device_deletable<Semaphore> collapse() && { return std::move(semaphore); }
 };
 }
 

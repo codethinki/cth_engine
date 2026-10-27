@@ -290,7 +290,11 @@ void Swapchain::createImages() {
 
     generation.images.reserve(count);
     for(auto const vkImage : vkImages)
-        generation.images.emplace_back(core(), imageConfig, Image::State{.vkImage = vkImage, .extent = _extent});
+        generation.images.emplace_back(
+            core(),
+            imageConfig,
+            Image::State{.image = {core().deviceTable(), vkImage}, .extent = _extent}
+        );
 
     generation.views.reserve(count);
     for(auto const& image : generation.images)

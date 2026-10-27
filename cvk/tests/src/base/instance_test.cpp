@@ -103,7 +103,7 @@ CVK_TEST(Instance, wrap_takes_ownership) {
     VkInstance vkInstance = VK_NULL_HANDLE;
     ASSERT_EQ(vkCreateInstance(&createInfo, nullptr, &vkInstance), VK_SUCCESS);
 
-    Instance instance{test::instance_config(), Instance::State{vkInstance}};
+    Instance instance{test::instance_config(), Instance::State{.instance = {{}, vkInstance}}};
 
     ASSERT_TRUE(instance.created());
     EXPECT_EQ(instance.get(), vkInstance);
@@ -134,7 +134,7 @@ CVK_TEST(Instance, release_and_wrap) {
     auto state = instance.release();
     EXPECT_FALSE(instance.created());
     EXPECT_EQ(instance.debugMessenger(), nullptr);
-    EXPECT_EQ(state.vkInstance.get(), vkInstance);
+    EXPECT_EQ(state.instance.handle.get(), vkInstance);
     EXPECT_EQ(state.extensions, extensions);
 
     Instance const wrapped{test::instance_config(), std::move(state)};
@@ -142,5 +142,17 @@ CVK_TEST(Instance, release_and_wrap) {
     EXPECT_EQ(wrapped.get(), vkInstance);
     EXPECT_TRUE(std::ranges::equal(wrapped.extensions(), extensions));
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) EXPECT_NE(wrapped.debugMessenger(), nullptr);
+}
+
+CVK_TEST(Instance, collapse_destroys_the_messenger_and_the_instance) {
+    // a messenger that lives on after the instance is a validation error of vkDestroyInstance()
+    test::Context::ValidationCheck const validationCheck{};
+    Instance instance{test::instance_config(), create, test::counting_messenger()};
+
+    auto deletable = instance.release().collapse();
+    EXPECT_FALSE(instance.created());
+    EXPECT_EQ(deletable.debugMessenger.has_value(), constants::ENABLE_VALIDATION_LAYERS);
+
+    std::move(deletable)();
 }
 }

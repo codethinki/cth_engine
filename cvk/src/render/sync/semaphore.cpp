@@ -12,9 +12,14 @@ Semaphore::Semaphore(Core const& core, State const& state) : Semaphore{core} { w
 Semaphore::Semaphore(Core const& core, create_t) : Semaphore{core} { create(); }
 
 void Semaphore::wrap(State const& state) {
+    CTH_CRITICAL(
+        state.semaphore.table().device() != core().vkDevice(),
+        "the semaphore must belong to the device of the core"
+    ) {}
+
     optDestroy();
 
-    _handle.reset(state.vkSemaphore.get(), core());
+    _handle.reset(state.semaphore.handle.get(), core());
 }
 
 void Semaphore::create() {
@@ -37,7 +42,7 @@ void Semaphore::destroy() {
 Semaphore::State Semaphore::release() {
     debug_check(*this);
 
-    State const state{_handle.release()};
+    State const state{.semaphore = {core().deviceTable(), _handle.release()}};
     forget();
     return state;
 }

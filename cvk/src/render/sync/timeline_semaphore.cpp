@@ -19,7 +19,7 @@ TimelineSemaphore::TimelineSemaphore(Core const& core, create_t, uint64_t initia
 }
 
 void TimelineSemaphore::wrap(State const& state) {
-    Semaphore::wrap(Semaphore::State{state.vkSemaphore});
+    Semaphore::wrap(Semaphore::State{.semaphore = {core().deviceTable(), state.vkSemaphore}});
     _value = state.value;
 }
 
@@ -41,8 +41,8 @@ void TimelineSemaphore::create(uint64_t initialValue) {
 }
 
 TimelineSemaphore::State TimelineSemaphore::release() {
-    auto const [vkSemaphore] = Semaphore::release();
-    return State{vkSemaphore, std::exchange(_value, 0)};
+    auto const [semaphore] = Semaphore::release();
+    return State{semaphore.handle, std::exchange(_value, 0)};
 }
 
 uint64_t TimelineSemaphore::signal() {

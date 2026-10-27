@@ -2,6 +2,7 @@
 #include "mapping.hpp"
 #include "memory_config.hpp"
 
+#include "cvk/utility/handle/deletable.hpp"
 #include "cvk/utility/handle/vma_handle.hpp"
 #include "cvk/utility/range.hpp"
 #include "cvk/utility/types.hpp"
@@ -15,6 +16,7 @@
 #include <cstddef>
 #include <memory>
 #include <span>
+#include <utility>
 
 
 namespace cvk {
@@ -89,6 +91,7 @@ public:
 
     /**
      * releases ownership, returns the state and forgets
+     * @return the state, its deletable has the allocator of the core
      * @pre @ref created()
      */
     State release();
@@ -196,7 +199,12 @@ public:
 
 namespace cvk {
 struct Memory::State {
-    vk_not_null<VmaAllocation> vmaAllocation;
+    vma_deletable<Memory> memory;
+
+    /**
+     * consumes the state into its deletable
+     */
+    [[nodiscard]] constexpr vma_deletable<Memory> collapse() && { return std::move(memory); }
 };
 }
 

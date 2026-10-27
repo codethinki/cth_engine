@@ -18,9 +18,11 @@ Memory::Memory(Core const& core, Config const& config, VkMemoryRequirements cons
 } { create(requirements); }
 
 void Memory::wrap(State const& state) {
+    CTH_CRITICAL(state.memory.allocator() != allocator(), "the memory must belong to the allocator of the core") {}
+
     optDestroy();
 
-    _handle.reset(state.vmaAllocation.get(), core());
+    _handle.reset(state.memory.handle.get(), core());
 }
 
 void Memory::create(VkMemoryRequirements const& requirements) {
@@ -52,7 +54,7 @@ void Memory::destroy() {
 Memory::State Memory::release() {
     debug_check(*this);
 
-    State const state{_handle.release()};
+    State const state{.memory = {allocator(), _handle.release()}};
     forget();
     return state;
 }

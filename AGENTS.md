@@ -190,7 +190,9 @@ After the class, in the same header:
 ```cpp
 namespace cvk {
 struct Semaphore::State {
-    cvk::vk_not_null<VkSemaphore> vkSemaphore;
+    device_deletable<Semaphore> semaphore;
+
+    [[nodiscard]] constexpr device_deletable<Semaphore> collapse() && { return std::move(semaphore); }
 };
 }
 
@@ -211,7 +213,8 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 | `destroy()` | destroys the Vulkan object now and forgets, requires `created()` |
 | `optDestroy()` | calls `destroy()` if `created()` |
 | `release()` | gives the `State` to the caller and forgets, does not destroy |
-| `static destroy(...)` | destroys the raw handles, used by the deleter |
+| `State::collapse() &&` | consumes the state into its deletable: one handle -> its deletable, several -> a nested `Deletable` struct, drops the rest |
+| `static destroy(...)` | destroys the raw handles, used by the deleter and the deletable |
 | `forget()` | sets the members to the not created state, does not destroy |
 
 - The destructor calls `optDestroy()`.
@@ -220,6 +223,9 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 - A parent (instance, core, device, pool, ...) does not move and is not destroyed while objects depend on it. Code does not have to support it.
 - A failed `create()` calls `forget()` before it throws.
 - `release()` exists so that an owner can use an object it must not destroy (for example swapchain images).
+- The state holds the deletables of the handles (`cvk/utility/handle/deletable.hpp`), `release()` fills them with the context of the object.
+  `wrap(State)` takes the handles out, `CTH_CRITICAL` if their context does not belong to the core of the object.
+- The call of a nested `Deletable` destroys in member order: the objects that depend on a handle first.
 - Create constructor: the base constructor parameters, then the `create()` parameters. `create()` without required parameters -> `create_t` first: `Fence(core, create_t, flags = 0)`.
 
 ### Errors
@@ -300,7 +306,8 @@ Use symbols when they are shorter and clearer than words:
 | release | give the ownership to the caller without destroying |
 | forget | set the members to the not created state |
 | handle | the raw Vulkan handle, for example `VkInstance` |
-| state | the `State` struct: everything that `wrap` needs |
+| state | the `State` struct: everything that `wrap` needs, with the deletables of the handles, `collapse()` turns it into its deletable |
+| deletable | the call of the static `destroy` with its context and the handle, filled in advance: only the call destroys |
 
 ### Example
 

@@ -52,7 +52,7 @@ void BaseBuffer::create(size_t size) {
     }
 
     _handle.reset(vkBuffer, core());
-    _memory.emplace(core(), _config.memory, Memory::State{vmaAllocation});
+    _memory.emplace(core(), _config.memory, Memory::State{.memory = {core().allocator().get(), vmaAllocation}});
     _size = size;
 }
 

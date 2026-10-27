@@ -22,9 +22,14 @@ Image::Image(Core const& core, Config const& config, State const& state) : Image
 Image::Image(Core const& core, Config const& config, VkExtent2D extent) : Image{core, config} { create(extent); }
 
 void Image::wrap(State const& state) {
+    CTH_CRITICAL(
+        state.image.table().device() != core().vkDevice(),
+        "the image must belong to the device of the core"
+    ) {}
+
     optDestroy();
 
-    _handle.reset(state.vkImage.get(), core());
+    _handle.reset(state.image.handle.get(), core());
     if(state.memory.has_value()) _memory.emplace(core(), _config.memory, *state.memory);
     _extent = state.extent;
 }
@@ -57,7 +62,7 @@ void Image::create(VkExtent2D extent) {
     }
 
     _handle.reset(vkImage, core());
-    _memory.emplace(core(), _config.memory, Memory::State{vmaAllocation});
+    _memory.emplace(core(), _config.memory, Memory::State{.memory = {core().allocator().get(), vmaAllocation}});
     _extent = extent;
 }
 
@@ -74,7 +79,7 @@ Image::State Image::release() {
     debug_check(*this);
 
     State state{
-        .vkImage = _handle.release(),
+        .image = {core().deviceTable(), _handle.release()},
         .extent = _extent,
         .memory = std::nullopt,
     };
@@ -259,6 +264,11 @@ VkBufferImageCopy2 Image::bufferCopy(
         .imageOffset = {0, 0, 0},
         .imageExtent = {extent.width, extent.height, 1},
     };
+}
+
+void Image::Deletable::operator()() && {
+    std::move(image)();
+    if(memory.has_value()) std::move(*memory)();
 }
 
 void Image::destroy(DeviceTable table, VkImage vkImage) {

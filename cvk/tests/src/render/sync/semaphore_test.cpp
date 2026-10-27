@@ -87,6 +87,28 @@ CVK_TEST(Semaphore, release_and_wrap) {
     EXPECT_EQ(wrapped.get(), vkSemaphore);
 }
 
+CVK_TEST(Semaphore, release_fills_the_deletable_from_the_core) {
+    test::Context const context{};
+    Semaphore semaphore{context.core, create};
+    auto const vkSemaphore = semaphore.get();
+
+    auto const state = semaphore.release();
+
+    EXPECT_EQ(state.semaphore.handle.get(), vkSemaphore);
+    EXPECT_EQ(state.semaphore.table().device(), context.core.vkDevice());
+    Semaphore::destroy(context.core.deviceTable(), vkSemaphore);
+}
+
+CVK_TEST(Semaphore, collapse_destroys) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    Semaphore semaphore{context.core, create};
+
+    semaphore.release().collapse()();
+
+    EXPECT_FALSE(semaphore.created());
+}
+
 CVK_TEST(Semaphore, move_assignment_destroys_the_old_semaphore) {
     test::Context const context{};
     Semaphore semaphore{context.core, create};

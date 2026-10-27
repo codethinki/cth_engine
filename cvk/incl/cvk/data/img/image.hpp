@@ -5,6 +5,7 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/data/memory/memory.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/deletable.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -16,6 +17,7 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <utility>
 
 
 namespace cvk {
@@ -34,6 +36,7 @@ public:
     using vk_handle_t = VkImage;
     using Config = ImageConfig;
     struct State;
+    struct Deletable;
 
     /**
      * base constructor
@@ -65,6 +68,7 @@ public:
     /**
      * wraps the state
      * @details std::nullopt @ref State::memory -> no own memory, @ref destroy() only destroys the image
+     * @pre the image of the state belongs to the device of the core
      * @pre the image is bound to its memory
      * @pre the image was created with the config
      * @post @ref created()
@@ -94,6 +98,7 @@ public:
 
     /**
      * releases ownership of the image and its memory, returns the state and forgets
+     * @return the state, its deletables have the device table and the allocator of the core
      * @pre @ref created()
      */
     State release();
@@ -229,13 +234,42 @@ public:
 }
 
 namespace cvk {
+/**
+ * the image and its memory as deletables
+ */
+struct Image::Deletable {
+    device_deletable<Image> image;
+
+    /**
+     * std::nullopt -> no own memory
+     */
+    std::optional<vma_deletable<Memory>> memory = std::nullopt;
+
+    /**
+     * destroys the image, then frees its memory
+     * @attention call it once, a second call destroys the image again
+     */
+    void operator()() &&;
+};
+
 struct Image::State {
-    vk_not_null<VkImage> vkImage;
+    device_deletable<Image> image;
     VkExtent2D extent;
+
     /**
      * std::nullopt -> the image does not own its memory, e.g. swapchain images
      */
     std::optional<Memory::State> memory = std::nullopt;
+
+    /**
+     * consumes the state into its deletables, drops the extent
+     */
+    [[nodiscard]] constexpr Deletable collapse() && {
+        return Deletable{
+            .image = std::move(image),
+            .memory = memory.has_value() ? std::optional{std::move(*memory).collapse()} : std::nullopt,
+        };
+    }
 };
 }
 

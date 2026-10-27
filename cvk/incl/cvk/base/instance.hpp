@@ -3,6 +3,7 @@
 
 #include "cvk/debug/debug_messenger.hpp"
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/handle/deletable.hpp"
 #include "cvk/utility/handle/unique_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -26,6 +27,7 @@ public:
     using vk_handle_t = VkInstance;
     using Config = InstanceConfig;
     struct State;
+    struct Deletable;
 
     static constexpr std::array<char const*, 1> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation"
@@ -114,6 +116,7 @@ public:
 
     /**
      * releases ownership of the instance and the messenger, returns the state and forgets
+     * @return the state, the instance deletable has no context
      * @pre @ref created()
      */
     State release();
@@ -178,11 +181,30 @@ public:
 
 
 namespace cvk {
-struct Instance::State {
-    vk_not_null<VkInstance> vkInstance;
+/**
+ * the messenger and the instance as deletables
+ */
+struct Instance::Deletable {
+    /**
+     * std::nullopt -> no messenger
+     */
+    std::optional<instance_deletable<DebugMessenger>> debugMessenger = std::nullopt;
+
+    basic_deletable<Instance> instance;
 
     /**
-     * messenger of @ref vkInstance, std::nullopt -> no messenger
+     * destroys the messenger, then the instance
+     * @pre volk loaded the instance functions
+     * @attention call it once, a second call destroys the instance again
+     */
+    void operator()() &&;
+};
+
+struct Instance::State {
+    basic_deletable<Instance> instance;
+
+    /**
+     * messenger of @ref instance, std::nullopt -> no messenger
      */
     std::optional<DebugMessenger> debugMessenger = std::nullopt;
 
@@ -190,6 +212,12 @@ struct Instance::State {
      * the extensions that the instance enables
      */
     std::vector<std::string> extensions{};
+
+    /**
+     * consumes the state into its deletables, drops the extensions
+     * @details releases the messenger into its deletable
+     */
+    [[nodiscard]] Deletable collapse() &&;
 };
 }
 
