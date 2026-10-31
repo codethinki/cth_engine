@@ -37,13 +37,8 @@ class core_deleter {
 public:
     constexpr explicit core_deleter(Core const& core) : _core{&core} {}
 
-    template<class Handle>
+    template<class Handle> requires dev::device_destroyable<Handle> || dev::vma_destroyable<Handle>
     constexpr void operator()(Handle handle) const {
-        static_assert(
-            dev::device_destroyable<Handle> != dev::vma_destroyable<Handle>,
-            "cvk::destroy() needs exactly one overload for the handle: (DeviceTable, Handle) or (VmaAllocator, Handle)"
-        );
-
         if constexpr(dev::device_destroyable<Handle>) cvk::destroy(_core->deviceTable(), handle);
         else cvk::destroy(_core->allocator().get(), handle);
     }
