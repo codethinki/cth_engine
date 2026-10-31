@@ -1,5 +1,6 @@
 #pragma once
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/handle/instance_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -28,7 +29,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
  */
 class DebugMessenger {
 public:
-    using vk_handle_t = VkDebugUtilsMessengerEXT;
     struct Config;
     struct State;
     using callback_t = PFN_vkDebugUtilsMessengerCallbackEXT;
@@ -88,8 +88,6 @@ public:
      */
     void optDestroy() { if(created()) destroy(); }
 
-    static void destroy(vk_not_null<VkInstance>, VkDebugUtilsMessengerEXT vkMessenger);
-
     /**
      * releases ownership, returns the state and forgets
      * @pre @ref created()
@@ -120,14 +118,14 @@ public:
     };
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
     void forget();
 
     Config _config;
-    instance_handle<DebugMessenger> _handle;
+    instance_handle<VkDebugUtilsMessengerEXT> _handle;
 
 public:
     DebugMessenger(DebugMessenger const& other) = delete;

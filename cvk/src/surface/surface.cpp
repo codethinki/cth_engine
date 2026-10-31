@@ -82,7 +82,7 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physicalDev
     return capabilities;
 }
 
-void Surface::destroy(vk_not_null<VkInstance> vkInstance, VkSurfaceKHR vkSurface) {
+void destroy(vk_not_null<VkInstance> vkInstance, VkSurfaceKHR vkSurface) {
     CTH_WARN(vkSurface == VK_NULL_HANDLE, "vkSurface invalid (VK_NULL_HANDLE)") {}
 
     vkDestroySurfaceKHR(vkInstance.get(), vkSurface, nullptr);

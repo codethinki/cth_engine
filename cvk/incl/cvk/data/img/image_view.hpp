@@ -5,6 +5,7 @@
 #include "cvk/data/img/image.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -18,7 +19,6 @@ namespace cvk {
  */
 class ImageView {
 public:
-    using vk_handle_t = VkImageView;
     using Config = ImageViewConfig;
     struct State;
 
@@ -86,10 +86,8 @@ public:
      */
     State release();
 
-    static void destroy(DeviceTable table, VkImageView);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkImageView get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Image const& image() const { return *_image; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
@@ -124,7 +122,7 @@ public:
 private:
     void forget();
 
-    core_handle<ImageView> _handle;
+    core_handle<VkImageView> _handle;
     not_null_ptr<Image const> _image;
     Config _config;
 

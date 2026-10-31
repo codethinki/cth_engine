@@ -74,7 +74,7 @@ Allocator::State Allocator::release() {
     return state;
 }
 
-void Allocator::destroy(VmaAllocator vmaAllocator) {
+void destroy(VmaAllocator vmaAllocator) {
     CTH_WARN(vmaAllocator == VK_NULL_HANDLE, "vmaAllocator invalid (VK_NULL_HANDLE)") {}
 
     vmaDestroyAllocator(vmaAllocator);

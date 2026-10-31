@@ -2,14 +2,14 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
-#include "cvk/utility/handle/deletable.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
 
 #include <cth/io/log.hpp>
 
-#include <utility>
+#include <tuple>
 
 
 namespace cvk {
@@ -20,7 +20,6 @@ class Core;
  */
 class Semaphore {
 public:
-    using vk_handle_t = VkSemaphore;
     struct State;
 
     /**
@@ -52,7 +51,6 @@ public:
 
     /**
      * wraps the state
-     * @pre the semaphore of the state belongs to the device of the core
      * @post @ref created()
      * @note calls @ref optDestroy()
      */
@@ -80,15 +78,12 @@ public:
 
     /**
      * releases ownership, returns the state and forgets
-     * @return the state, its deletable has the device table of the core
      * @pre @ref created()
      */
     State release();
 
-    static void destroy(DeviceTable table, VkSemaphore);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkSemaphore get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
 protected:
@@ -103,7 +98,7 @@ protected:
 private:
     void forget();
 
-    core_handle<Semaphore> _handle;
+    core_handle<VkSemaphore> _handle;
 
 public:
     Semaphore(Semaphore const& other) = delete;
@@ -117,12 +112,12 @@ public:
 
 namespace cvk {
 struct Semaphore::State {
-    device_deletable<Semaphore> semaphore;
+    vk_not_null<VkSemaphore> vkSemaphore;
 
     /**
-     * consumes the state into its deletable
+     * the raw handles to destroy, in destruction order
      */
-    [[nodiscard]] constexpr device_deletable<Semaphore> collapse() && { return std::move(semaphore); }
+    [[nodiscard]] constexpr std::tuple<VkSemaphore> decompose() && { return {vkSemaphore.get()}; }
 };
 }
 

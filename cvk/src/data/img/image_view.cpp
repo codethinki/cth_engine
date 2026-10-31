@@ -79,7 +79,7 @@ ImageView::State ImageView::release() {
     return state;
 }
 
-void ImageView::destroy(DeviceTable table, VkImageView vkImageView) {
+void destroy(DeviceTable table, VkImageView vkImageView) {
     CTH_WARN(vkImageView == VK_NULL_HANDLE, "vkImageView invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyImageView(table.device(), vkImageView, nullptr);

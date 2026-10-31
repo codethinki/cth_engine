@@ -76,7 +76,7 @@ void DescriptorPool::remove() const {
     --_sets;
 }
 
-void DescriptorPool::destroy(DeviceTable table, VkDescriptorPool vkPool) {
+void destroy(DeviceTable table, VkDescriptorPool vkPool) {
     CTH_WARN(vkPool == VK_NULL_HANDLE, "vkPool invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyDescriptorPool(table.device(), vkPool, nullptr);

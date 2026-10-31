@@ -52,7 +52,7 @@ void BaseBuffer::create(size_t size) {
     }
 
     _handle.reset(vkBuffer, core());
-    _memory.emplace(core(), _config.memory, Memory::State{.memory = {core().allocator().get(), vmaAllocation}});
+    _memory.emplace(core(), _config.memory, Memory::State{vmaAllocation});
     _size = size;
 }
 
@@ -153,7 +153,7 @@ void BaseBuffer::write(std::span<std::byte const> data, size_t offset) const {
     ownMemory().write(data, offset);
 }
 
-void BaseBuffer::destroy(DeviceTable table, VkBuffer vkBuffer) {
+void destroy(DeviceTable table, VkBuffer vkBuffer) {
     CTH_WARN(vkBuffer == VK_NULL_HANDLE, "vkBuffer invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyBuffer(table.device(), vkBuffer, nullptr);

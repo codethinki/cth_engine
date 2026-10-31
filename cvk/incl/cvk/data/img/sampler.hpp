@@ -4,6 +4,7 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -19,7 +20,6 @@ class Core;
  */
 class Sampler {
 public:
-    using vk_handle_t = VkSampler;
     using Config = SamplerConfig;
     struct State;
 
@@ -85,10 +85,8 @@ public:
      */
     State release();
 
-    static void destroy(DeviceTable table, VkSampler);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkSampler get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
     /**
@@ -99,7 +97,7 @@ public:
 private:
     void forget();
 
-    core_handle<Sampler> _handle;
+    core_handle<VkSampler> _handle;
     Config _config;
 
 public:

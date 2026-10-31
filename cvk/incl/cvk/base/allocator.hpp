@@ -1,5 +1,6 @@
 #pragma once
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/handle/unique_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -20,7 +21,6 @@ class Device;
  */
 class Allocator {
 public:
-    using vk_handle_t = VmaAllocator;
     struct State;
 
     /**
@@ -86,8 +86,6 @@ public:
      */
     State release();
 
-    static void destroy(VmaAllocator);
-
     /**
      * @return VMA flags for the enabled features and extensions of the device
      * @details bufferDeviceAddress, maintenance4, VK_EXT_memory_budget
@@ -95,14 +93,14 @@ public:
     [[nodiscard]] static VmaAllocatorCreateFlags flags(Device const&);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VmaAllocator get() const { return _handle.get(); }
     [[nodiscard]] constexpr Device const& device() const { return *_device; }
 
 private:
     void forget();
 
     not_null_ptr<Device const> _device;
-    unique_handle<vk_handle_t, handle_deleter<Allocator>> _handle;
+    unique_handle<VmaAllocator, handle_deleter> _handle;
 
 public:
     Allocator(Allocator const& other) = delete;

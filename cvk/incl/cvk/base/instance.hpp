@@ -3,7 +3,7 @@
 
 #include "cvk/debug/debug_messenger.hpp"
 #include "cvk/utility/constants.hpp"
-#include "cvk/utility/handle/deletable.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/handle/unique_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -24,10 +24,8 @@ namespace cvk {
  */
 class Instance {
 public:
-    using vk_handle_t = VkInstance;
     using Config = InstanceConfig;
     struct State;
-    struct Deletable;
 
     static constexpr std::array<char const*, 1> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation"
@@ -116,18 +114,12 @@ public:
 
     /**
      * releases ownership of the instance and the messenger, returns the state and forgets
-     * @return the state, the instance deletable has no context
      * @pre @ref created()
      */
     State release();
 
-    /**
-     * @pre volk loaded the instance functions, @ref create() and @ref wrap() load them
-     */
-    static void destroy(VkInstance);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkInstance get() const { return _handle.get(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     /**
@@ -152,7 +144,7 @@ private:
 
     // declared before the handle: move assignment destroys the old messenger before the old instance
     std::optional<DebugMessenger> _debugMessenger = std::nullopt;
-    unique_handle<vk_handle_t, handle_deleter<Instance>> _handle;
+    unique_handle<VkInstance, handle_deleter> _handle;
 
 public:
     Instance(Instance const& other) = delete;
@@ -181,30 +173,11 @@ public:
 
 
 namespace cvk {
-/**
- * the messenger and the instance as deletables
- */
-struct Instance::Deletable {
-    /**
-     * std::nullopt -> no messenger
-     */
-    std::optional<instance_deletable<DebugMessenger>> debugMessenger = std::nullopt;
-
-    basic_deletable<Instance> instance;
-
-    /**
-     * destroys the messenger, then the instance
-     * @pre volk loaded the instance functions
-     * @attention call it once, a second call destroys the instance again
-     */
-    void operator()() &&;
-};
-
 struct Instance::State {
-    basic_deletable<Instance> instance;
+    vk_not_null<VkInstance> vkInstance;
 
     /**
-     * messenger of @ref instance, std::nullopt -> no messenger
+     * messenger of @ref vkInstance, std::nullopt -> no messenger
      */
     std::optional<DebugMessenger> debugMessenger = std::nullopt;
 
@@ -212,12 +185,6 @@ struct Instance::State {
      * the extensions that the instance enables
      */
     std::vector<std::string> extensions{};
-
-    /**
-     * consumes the state into its deletables, drops the extensions
-     * @details releases the messenger into its deletable
-     */
-    [[nodiscard]] Deletable collapse() &&;
 };
 }
 

@@ -2,6 +2,7 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -26,7 +27,6 @@ class Core;
  */
 class DescriptorSetLayout {
 public:
-    using vk_handle_t = VkDescriptorSetLayout;
     struct Config;
     struct State;
 
@@ -91,10 +91,8 @@ public:
      */
     State release();
 
-    static void destroy(DeviceTable table, VkDescriptorSetLayout);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkDescriptorSetLayout get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
     /**
@@ -125,7 +123,7 @@ public:
 private:
     void forget();
 
-    core_handle<DescriptorSetLayout> _handle;
+    core_handle<VkDescriptorSetLayout> _handle;
     std::vector<VkDescriptorSetLayoutBinding> _bindings;
     std::vector<VkDescriptorBindingFlags> _bindingFlags;
 

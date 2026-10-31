@@ -8,6 +8,7 @@
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/render/sync/semaphore.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -35,7 +36,6 @@ class Surface;
  */
 class Swapchain {
 public:
-    using vk_handle_t = VkSwapchainKHR;
     using Config = SwapchainConfig;
     struct State;
 
@@ -183,8 +183,6 @@ public:
      */
     void unacquire(std::span<uint32_t const> imageIndices);
 
-    static void destroy(DeviceTable table, VkSwapchainKHR);
-
     /**
      * @return the extent clamped to the limits of the surface, a fixed currentExtent wins
      */
@@ -197,7 +195,7 @@ public:
     [[nodiscard]] static constexpr uint32_t evalImageCount(uint32_t minImageCount, VkSurfaceCapabilitiesKHR const&);
 
     [[nodiscard]] constexpr bool created() const { return !_generations.empty(); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return created() ? current().handle.get() : VK_NULL_HANDLE; }
+    [[nodiscard]] constexpr VkSwapchainKHR get() const { return created() ? current().handle.get() : VK_NULL_HANDLE; }
     [[nodiscard]] constexpr Core const& core() const { return *_core; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
@@ -251,10 +249,10 @@ private:
      *  no move assignment: a member wise one destroys the images without the wait and the release
      */
     struct Generation {
-        explicit Generation(core_handle<Swapchain> swapchain) : handle{std::move(swapchain)} {}
+        explicit Generation(core_handle<VkSwapchainKHR> swapchain) : handle{std::move(swapchain)} {}
         ~Generation();
 
-        core_handle<Swapchain> handle;
+        core_handle<VkSwapchainKHR> handle;
         std::vector<Image> images;
         std::vector<ImageView> views;
         std::vector<Semaphore> presentSemaphores;

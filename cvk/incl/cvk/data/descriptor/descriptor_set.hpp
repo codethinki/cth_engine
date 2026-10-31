@@ -5,6 +5,7 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/handle/unique_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -26,7 +27,6 @@ class Core;
  */
 class DescriptorSet {
 public:
-    using vk_handle_t = VkDescriptorSet;
     struct State;
 
     /**
@@ -128,15 +128,13 @@ public:
      */
     void write(DescriptorWrite const& descriptorWrite) const { write(std::span{&descriptorWrite, 1}); }
 
-    static void destroy(DeviceTable table, VkDescriptorPool, VkDescriptorSet);
-
     /**
      * @return the set is allocated and its pool was not reset since
      */
     [[nodiscard]] constexpr bool created() const {
         return static_cast<bool>(_handle) && _handle.deleter().resets() == pool().resets();
     }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkDescriptorSet get() const { return _handle.get(); }
     [[nodiscard]] constexpr DescriptorPool const& pool() const { return _handle.deleter().pool(); }
     [[nodiscard]] constexpr Core const& core() const { return pool().core(); }
     [[nodiscard]] constexpr DescriptorSetLayout const& layout() const { return *_layout; }
@@ -175,7 +173,7 @@ private:
 
     void forget();
 
-    unique_handle<vk_handle_t, pool_deleter> _handle;
+    unique_handle<VkDescriptorSet, pool_deleter> _handle;
     not_null_ptr<DescriptorSetLayout const> _layout;
     uint32_t _variableCount;
 

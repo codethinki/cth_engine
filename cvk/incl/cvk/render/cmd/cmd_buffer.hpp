@@ -6,6 +6,7 @@
 
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/handle/unique_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -19,6 +20,7 @@
 #include <optional>
 #include <ranges>
 #include <span>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -50,11 +52,11 @@ concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copy
  */
 class BaseCmdBuffer {
 public:
-    using vk_handle_t = VkCommandBuffer;
     struct State;
 
     /**
      * wraps the state
+     * @pre @ref State::vkPool is the pool of the command buffer
      * @pre the pool of the command buffer allocated it with the level
      * @pre the command buffer is not recording
      * @post @ref created()
@@ -285,15 +287,8 @@ public:
      */
     void dispatchIndirect(BaseBuffer const&, size_t offset = 0) const;
 
-    static void destroy(DeviceTable table, VkCommandPool, VkCommandBuffer);
-
-    /**
-     * frees the command buffers at once
-     */
-    static void destroy(DeviceTable table, VkCommandPool, std::span<VkCommandBuffer const> vkBuffers);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkCommandBuffer get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr CmdPool const& pool() const { return _handle.deleter().pool(); }
     [[nodiscard]] constexpr VkCommandBufferLevel level() const { return _level; }
@@ -368,7 +363,7 @@ private:
 
     void forget();
 
-    unique_handle<vk_handle_t, pool_deleter> _handle;
+    unique_handle<VkCommandBuffer, pool_deleter> _handle;
     VkCommandBufferLevel _level;
     bool _recording = false;
     uint64_t _beginResets = 0;
@@ -386,7 +381,18 @@ public:
 
 namespace cvk {
 struct BaseCmdBuffer::State {
+    /**
+     * pool that allocated @ref vkBuffer
+     */
+    vk_not_null<VkCommandPool> vkPool;
     vk_not_null<VkCommandBuffer> vkBuffer;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<std::tuple<VkCommandPool, VkCommandBuffer>> decompose() && {
+        return {std::tuple{vkPool.get(), vkBuffer.get()}};
+    }
 };
 }
 

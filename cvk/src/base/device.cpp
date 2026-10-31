@@ -93,7 +93,7 @@ void Device::waitIdle() const {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to wait for device") {}
 }
 
-void Device::destroy(VkDevice vkDevice) {
+void destroy(VkDevice vkDevice) {
     CTH_WARN(vkDevice == VK_NULL_HANDLE, "vkDevice invalid (VK_NULL_HANDLE)") {}
 
     auto const destroyDevice = reinterpret_cast<PFN_vkDestroyDevice>(vkGetDeviceProcAddr(vkDevice, "vkDestroyDevice"));

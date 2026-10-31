@@ -74,7 +74,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 |---|---|---|
 | class, struct of `cvk` / `jvk` | `PascalCase` | `Semaphore`, `DeviceTable`, `DestructionQueue` |
 | nested config and state | `Config`, `State` | `Instance::State` |
-| generic library type, trait, concept | `snake_case` | `basic_deletable`, `handle_t`, `destroyable` |
+| generic library type, trait, concept | `snake_case` | `unique_handle`, `handle_t`, `device_destroyable` |
 | type alias that renames a type | `snake_case_t` | `callback_t`, `queue_set_t` |
 | member function | `camelCase` | `optDestroy()`, `createInfo()` |
 | named constructor (static factory) | `PascalCase` | `CubeMap()`, `DepthBuffer()`, `LayoutTransition()` |
@@ -138,7 +138,6 @@ Classes that own a Vulkan handle follow this order:
 ```cpp
 class Semaphore {
 public:
-    using vk_handle_t = VkSemaphore;
     struct State;
 
     // constants
@@ -157,9 +156,7 @@ public:
 
     // operations
 
-    static void destroy(DeviceTable table, VkSemaphore);
-
-    // accessors: created(), get() returns vk_handle_t, ...
+    // accessors: created(), get() returns the raw handle (VkSemaphore), ...
 
 protected:
     // helpers that derived classes use
@@ -177,9 +174,11 @@ public:
 - The first public section holds the API: types, constants, lifecycle, operations, accessors.
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
 - Classes that own a handle are move only. A class that differs says so in the first line of its doc.
-- Every class of a Vulkan or VMA object declares `using vk_handle_t = VkX;` as its first type, also classes that do not own their handle. `get()` returns `vk_handle_t`.
-- The handle lives in `cvk::unique_handle<Handle, Deleter>`: a `std::unique_ptr` whose deleter holds the destroy context and calls the static `destroy`.
-  `cvk/utility/handle/` has the deleters and the short forms (`core_handle<T>`).
+- The handle lives in `cvk::unique_handle<Handle, Deleter>`: a `std::unique_ptr` whose deleter holds the destroy context and calls the global `cvk::destroy`.
+  `cvk/utility/handle/` has the deleters and the short forms (`core_handle<VkX>`).
+- `cvk/utility/handle/destroy.hpp` declares all overloads of `cvk::destroy`, the .cpp of the object defines its overload.
+  Reason: the deleters are templates, a qualified name in a template is looked up at its definition.
+- Inside a class the member `destroy()` hides the global one: write `cvk::destroy(...)`.
 - Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
 - Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.
 - A class that owns several objects declares the objects that depend on its handle first, `= default` assigns in that order: `_debugMessenger` before `_handle`.
@@ -190,9 +189,12 @@ After the class, in the same header:
 ```cpp
 namespace cvk {
 struct Semaphore::State {
-    device_deletable<Semaphore> semaphore;
+    vk_not_null<VkSemaphore> vkSemaphore;
 
-    [[nodiscard]] constexpr device_deletable<Semaphore> collapse() && { return std::move(semaphore); }
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkSemaphore> decompose() && { return {vkSemaphore.get()}; }
 };
 }
 
@@ -213,8 +215,8 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 | `destroy()` | destroys the Vulkan object now and forgets, requires `created()` |
 | `optDestroy()` | calls `destroy()` if `created()` |
 | `release()` | gives the `State` to the caller and forgets, does not destroy |
-| `State::collapse() &&` | consumes the state into its deletable: one handle -> its deletable, several -> a nested `Deletable` struct, drops the rest |
-| `static destroy(...)` | destroys the raw handles, used by the deleter and the deletable |
+| `State::decompose() &&` | the raw handles of a device state, in destruction order, for the Graveyard |
+| `destroy(...)` (global) | destroys the raw handles, one overload per handle kind, used by the deleters and the Graveyard |
 | `forget()` | sets the members to the not created state, does not destroy |
 
 - The destructor calls `optDestroy()`.
@@ -223,9 +225,9 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 - A parent (instance, core, device, pool, ...) does not move and is not destroyed while objects depend on it. Code does not have to support it.
 - A failed `create()` calls `forget()` before it throws.
 - `release()` exists so that an owner can use an object it must not destroy (for example swapchain images).
-- The state holds the deletables of the handles (`cvk/utility/handle/deletable.hpp`), `release()` fills them with the context of the object.
-  `wrap(State)` takes the handles out, `CTH_CRITICAL` if their context does not belong to the core of the object.
-- The call of a nested `Deletable` destroys in member order: the objects that depend on a handle first.
+- The state is non-owning: the raw handles, the contexts that do not come from the core and the data. A dropped state leaks.
+- `wrap(State)` takes the context from the core of the object.
+- Pool children: the state holds the pool, `wrap(State)` has a `CTH_CRITICAL` if it is not the pool of the object.
 - Create constructor: the base constructor parameters, then the `create()` parameters. `create()` without required parameters -> `create_t` first: `Fence(core, create_t, flags = 0)`.
 
 ### Errors
@@ -306,8 +308,7 @@ Use symbols when they are shorter and clearer than words:
 | release | give the ownership to the caller without destroying |
 | forget | set the members to the not created state |
 | handle | the raw Vulkan handle, for example `VkInstance` |
-| state | the `State` struct: everything that `wrap` needs, with the deletables of the handles, `collapse()` turns it into its deletable |
-| deletable | the call of the static `destroy` with its context and the handle, filled in advance: only the call destroys |
+| state | the `State` struct: non-owning, the raw handles, the contexts that do not come from the core and the data that `wrap` needs |
 
 ### Example
 

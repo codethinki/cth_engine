@@ -40,11 +40,11 @@ Instance::Instance(Config config, create_t, std::optional<DebugMessenger::Config
 void Instance::wrap(State state) {
     optDestroy();
 
-    _handle.reset(state.instance.handle.get());
+    _handle.reset(state.vkInstance.get());
     _debugMessenger = std::move(state.debugMessenger);
     _extensions = std::move(state.extensions);
 
-    loadInstanceFunctions(state.instance.handle);
+    loadInstanceFunctions(state.vkInstance);
 }
 
 void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
@@ -143,7 +143,7 @@ Instance::State Instance::release() {
     debug_check(*this);
 
     State state{
-        .instance = {{}, _handle.release()},
+        .vkInstance = _handle.release(),
         .debugMessenger = std::move(_debugMessenger),
         .extensions = std::move(_extensions),
     };
@@ -151,21 +151,7 @@ Instance::State Instance::release() {
     return state;
 }
 
-Instance::Deletable Instance::State::collapse() && {
-    Deletable deletable{.debugMessenger = std::nullopt, .instance = std::move(instance)};
-    if(debugMessenger.has_value()) {
-        auto const [vkMessenger] = debugMessenger->release();
-        deletable.debugMessenger = instance_deletable<DebugMessenger>{deletable.instance.handle, vkMessenger};
-    }
-    return deletable;
-}
-
-void Instance::Deletable::operator()() && {
-    if(debugMessenger.has_value()) std::move(*debugMessenger)();
-    std::move(instance)();
-}
-
-void Instance::destroy(VkInstance vkInstance) {
+void destroy(VkInstance vkInstance) {
     CTH_WARN(vkInstance == nullptr, "vkInstance invalid") {}
 
     vkDestroyInstance(vkInstance, nullptr);

@@ -1,4 +1,5 @@
 #pragma once
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/handle/instance_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -19,7 +20,6 @@ class PhysicalDevice;
  */
 class Surface {
 public:
-    using vk_handle_t = VkSurfaceKHR;
     struct State;
 
     /**
@@ -89,15 +89,13 @@ public:
      */
     [[nodiscard]] std::vector<VkSurfaceFormatKHR> formats(PhysicalDevice const&) const;
 
-    static void destroy(vk_not_null<VkInstance>, VkSurfaceKHR);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkSurfaceKHR get() const { return _handle.get(); }
 
 private:
     void forget();
 
-    instance_handle<Surface> _handle;
+    instance_handle<VkSurfaceKHR> _handle;
 
 public:
     Surface(Surface const& other) = delete;

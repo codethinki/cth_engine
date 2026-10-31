@@ -5,7 +5,7 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/data/memory/memory.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
-#include "cvk/utility/handle/deletable.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
-#include <utility>
+#include <tuple>
 
 
 namespace cvk {
@@ -33,10 +33,8 @@ class Core;
  */
 class Image {
 public:
-    using vk_handle_t = VkImage;
     using Config = ImageConfig;
     struct State;
-    struct Deletable;
 
     /**
      * base constructor
@@ -68,7 +66,6 @@ public:
     /**
      * wraps the state
      * @details std::nullopt @ref State::memory -> no own memory, @ref destroy() only destroys the image
-     * @pre the image of the state belongs to the device of the core
      * @pre the image is bound to its memory
      * @pre the image was created with the config
      * @post @ref created()
@@ -98,7 +95,6 @@ public:
 
     /**
      * releases ownership of the image and its memory, returns the state and forgets
-     * @return the state, its deletables have the device table and the allocator of the core
      * @pre @ref created()
      */
     State release();
@@ -159,10 +155,8 @@ public:
         VkFilter filter = VK_FILTER_LINEAR
     ) const;
 
-    static void destroy(DeviceTable table, VkImage);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkImage get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
@@ -199,7 +193,7 @@ private:
     void forget();
 
     // declared before the memory: move assignment destroys the old image before its memory
-    core_handle<Image> _handle;
+    core_handle<VkImage> _handle;
     std::optional<Memory> _memory = std::nullopt;
     Config _config;
     VkExtent2D _extent{};
@@ -234,41 +228,20 @@ public:
 }
 
 namespace cvk {
-/**
- * the image and its memory as deletables
- */
-struct Image::Deletable {
-    device_deletable<Image> image;
-
-    /**
-     * std::nullopt -> no own memory
-     */
-    std::optional<vma_deletable<Memory>> memory = std::nullopt;
-
-    /**
-     * destroys the image, then frees its memory
-     * @attention call it once, a second call destroys the image again
-     */
-    void operator()() &&;
-};
-
 struct Image::State {
-    device_deletable<Image> image;
+    vk_not_null<VkImage> vkImage;
     VkExtent2D extent;
-
     /**
      * std::nullopt -> the image does not own its memory, e.g. swapchain images
      */
     std::optional<Memory::State> memory = std::nullopt;
 
     /**
-     * consumes the state into its deletables, drops the extent
+     * the raw handles to destroy, in destruction order
+     * @return the image, then its own memory, std::nullopt -> no own memory
      */
-    [[nodiscard]] constexpr Deletable collapse() && {
-        return Deletable{
-            .image = std::move(image),
-            .memory = memory.has_value() ? std::optional{std::move(*memory).collapse()} : std::nullopt,
-        };
+    [[nodiscard]] constexpr std::tuple<VkImage, std::optional<VmaAllocation>> decompose() && {
+        return {vkImage.get(), memory.transform([](Memory::State const& state) { return state.vmaAllocation.get(); })};
     }
 };
 }

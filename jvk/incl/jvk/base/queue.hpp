@@ -21,8 +21,6 @@ namespace jvk {
  */
 class Queue {
 public:
-    using vk_handle_t = VkQueue;
-
     /**
      * constructs the strand on the scheduler
      */
@@ -49,7 +47,7 @@ public:
     /**
      * @attention not serialized: use it inside the strand
      */
-    [[nodiscard]] constexpr vk_handle_t get() const { return _queue->get(); }
+    [[nodiscard]] constexpr VkQueue get() const { return _queue->get(); }
 
 private:
     cth::not_null_ptr<cvk::Queue const> _queue;

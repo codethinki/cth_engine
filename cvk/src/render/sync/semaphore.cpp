@@ -12,14 +12,9 @@ Semaphore::Semaphore(Core const& core, State const& state) : Semaphore{core} { w
 Semaphore::Semaphore(Core const& core, create_t) : Semaphore{core} { create(); }
 
 void Semaphore::wrap(State const& state) {
-    CTH_CRITICAL(
-        state.semaphore.table().device() != core().vkDevice(),
-        "the semaphore must belong to the device of the core"
-    ) {}
-
     optDestroy();
 
-    _handle.reset(state.semaphore.handle.get(), core());
+    _handle.reset(state.vkSemaphore.get(), core());
 }
 
 void Semaphore::create() {
@@ -42,12 +37,12 @@ void Semaphore::destroy() {
 Semaphore::State Semaphore::release() {
     debug_check(*this);
 
-    State const state{.semaphore = {core().deviceTable(), _handle.release()}};
+    State const state{_handle.release()};
     forget();
     return state;
 }
 
-void Semaphore::destroy(DeviceTable table, VkSemaphore vkSemaphore) {
+void destroy(DeviceTable table, VkSemaphore vkSemaphore) {
     CTH_WARN(vkSemaphore == VK_NULL_HANDLE, "vkSemaphore invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroySemaphore(table.device(), vkSemaphore, nullptr);

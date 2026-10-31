@@ -1,4 +1,6 @@
 #pragma once
+#include "destroy.hpp"
+
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -11,24 +13,17 @@
 
 namespace cvk {
 /**
- * T names the Vulkan handle it holds: using vk_handle_t = VkX
+ * deleter without context, calls @ref cvk::destroy(handle)
  */
-template<class T>
-concept vk_handle_owner = requires { typename T::vk_handle_t; };
-
-/**
- * deleter without context, calls T::destroy(handle)
- */
-template<vk_handle_owner T>
 struct handle_deleter {
     template<class Handle>
-    constexpr void operator()(Handle handle) const { T::destroy(handle); }
+    constexpr void operator()(Handle handle) const { cvk::destroy(handle); }
 };
 
 /**
  * owning Vulkan handle, std::unique_ptr with a deleter that holds the destroy context
  * @tparam Handle Vulkan handle, or Deleter::pointer for handles that are not pointers
- * @tparam Deleter @ref core_deleter, @ref vma_deleter, @ref instance_deleter, @ref handle_deleter,
+ * @tparam Deleter @ref core_deleter, @ref instance_deleter, @ref handle_deleter,
  *  a deleter derived from them or one of its own
  * @details a handle comes only together with its context: the constructors and reset() construct the deleter,
  *  a missing context argument does not compile,

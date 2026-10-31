@@ -63,7 +63,7 @@ Sampler::State Sampler::release() {
     return state;
 }
 
-void Sampler::destroy(DeviceTable table, VkSampler vkSampler) {
+void destroy(DeviceTable table, VkSampler vkSampler) {
     CTH_WARN(vkSampler == VK_NULL_HANDLE, "vkSampler invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroySampler(table.device(), vkSampler, nullptr);

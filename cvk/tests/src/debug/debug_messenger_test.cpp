@@ -120,7 +120,7 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
     submit_test_message(context.instance);
     EXPECT_EQ(received, 1);
 
-    DebugMessenger::destroy(context.instance.get(), state.vkMessenger.get());
+    cvk::destroy(context.instance.get(), state.vkMessenger.get());
 }
 
 CVK_TEST(DebugMessenger, release_and_wrap) {

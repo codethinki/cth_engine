@@ -32,7 +32,7 @@ CVK_TEST(Surface, release_keeps_the_surface) {
     auto const state = surface.release();
     EXPECT_FALSE(surface.created());
 
-    Surface::destroy(context.instance.get(), state.vkSurface.get());
+    cvk::destroy(context.instance.get(), state.vkSurface.get());
 }
 
 CVK_TEST(Surface, formats_are_every_offered_format) {

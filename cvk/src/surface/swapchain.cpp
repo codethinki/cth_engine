@@ -42,7 +42,7 @@ Swapchain::Swapchain(
 void Swapchain::wrap(State const& state) {
     optDestroy();
 
-    _generations.emplace_back(core_handle<Swapchain>{state.vkSwapchain.get(), core()});
+    _generations.emplace_back(core_handle<VkSwapchainKHR>{state.vkSwapchain.get(), core()});
     _extent = state.extent;
     _surfaceFormat = state.surfaceFormat;
     _presentMode = state.presentMode;
@@ -196,7 +196,7 @@ void Swapchain::unacquire(span<uint32_t const> imageIndices) {
         current().acquired[index] = false;
 }
 
-void Swapchain::destroy(DeviceTable table, VkSwapchainKHR vkSwapchain) {
+void destroy(DeviceTable table, VkSwapchainKHR vkSwapchain) {
     CTH_WARN(vkSwapchain == VK_NULL_HANDLE, "vkSwapchain invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroySwapchainKHR(table.device(), vkSwapchain, nullptr);
@@ -265,7 +265,7 @@ void Swapchain::createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain) 
         throw cvk::vk_result_exception{result, details->exception()};
     }
 
-    _generations.emplace_back(core_handle<Swapchain>{ptr, core()});
+    _generations.emplace_back(core_handle<VkSwapchainKHR>{ptr, core()});
     _extent = imageExtent;
 
     createImages();
@@ -290,11 +290,7 @@ void Swapchain::createImages() {
 
     generation.images.reserve(count);
     for(auto const vkImage : vkImages)
-        generation.images.emplace_back(
-            core(),
-            imageConfig,
-            Image::State{.image = {core().deviceTable(), vkImage}, .extent = _extent}
-        );
+        generation.images.emplace_back(core(), imageConfig, Image::State{.vkImage = vkImage, .extent = _extent});
 
     generation.views.reserve(count);
     for(auto const& image : generation.images)

@@ -161,7 +161,7 @@ cth::os::unique_native_handle Fence::extractOsHandle() const {
     return cth::os::unique_native_handle{handle};
 }
 
-void Fence::destroy(DeviceTable table, VkFence vkFence) {
+void destroy(DeviceTable table, VkFence vkFence) {
     CTH_WARN(vkFence == VK_NULL_HANDLE, "vkFence invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyFence(table.device(), vkFence, nullptr);

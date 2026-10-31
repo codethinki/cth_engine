@@ -211,4 +211,30 @@ CVK_TEST(CmdBuffer, move_assignment_frees_the_old_buffer) {
     primary.destroy();
     EXPECT_TRUE(pool.unused());
 }
+
+CVK_TEST(CmdBuffer, release_fills_the_pool) {
+    test::Context const context{};
+    CmdPool const pool{context.core, pool_config(context.core), create};
+    PrimaryCmdBuffer primary{pool, create};
+
+    auto const state = primary.release();
+    EXPECT_EQ(state.vkPool.get(), pool.get());
+
+    cvk::destroy(context.core.deviceTable(), state.vkPool.get(), state.vkBuffer.get());
+}
+
+CVK_TEST(CmdBuffer, decompose_returns_the_pool_and_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    CmdPool const pool{context.core, pool_config(context.core), create};
+    PrimaryCmdBuffer primary{pool, create};
+    auto const vkBuffer = primary.get();
+
+    auto const [buffer] = primary.release().decompose();
+    auto const [vkPool, vkReleased] = buffer;
+    EXPECT_EQ(vkPool, pool.get());
+    EXPECT_EQ(vkReleased, vkBuffer);
+
+    cvk::destroy(context.core.deviceTable(), vkPool, vkReleased);
+}
 }

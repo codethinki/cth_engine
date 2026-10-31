@@ -1,7 +1,6 @@
 #include "context.hpp"
 #include "test.hpp"
 
-#include "cvk/base/allocator.hpp"
 #include "cvk/data/memory/memory.hpp"
 
 #include <algorithm>
@@ -182,28 +181,6 @@ CVK_TEST(Memory, release_and_wrap) {
     EXPECT_EQ(wrapped.get(), vmaAllocation);
 }
 
-CVK_TEST(Memory, release_fills_the_deletable_from_the_core) {
-    test::Context const context{};
-    Memory memory{context.core, HOST_CONFIG, REQUIREMENTS};
-    auto const vmaAllocation = memory.get();
-
-    auto const state = memory.release();
-
-    EXPECT_EQ(state.memory.handle.get(), vmaAllocation);
-    EXPECT_EQ(state.memory.allocator(), context.core.allocator().get());
-    Memory::destroy(context.core.allocator().get(), vmaAllocation);
-}
-
-CVK_TEST(Memory, collapse_frees) {
-    // a leak shows up when the shared allocator is destroyed
-    test::Context const context{};
-    Memory memory{context.core, HOST_CONFIG, REQUIREMENTS};
-
-    memory.release().collapse()();
-
-    EXPECT_FALSE(memory.created());
-}
-
 CVK_TEST(Memory, move_assignment_destroys_the_old_memory) {
     test::Context const context{};
     Memory memory{context.core, HOST_CONFIG, REQUIREMENTS};
@@ -214,5 +191,17 @@ CVK_TEST(Memory, move_assignment_destroys_the_old_memory) {
 
     EXPECT_EQ(memory.get(), vmaAllocation);
     EXPECT_FALSE(other.created());
+}
+
+CVK_TEST(Memory, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared allocator is destroyed
+    test::Context const context{};
+    Memory memory{context.core, HOST_CONFIG, REQUIREMENTS};
+    auto const vmaAllocation = memory.get();
+
+    auto const [vmaReleased] = memory.release().decompose();
+    EXPECT_EQ(vmaReleased, vmaAllocation);
+
+    cvk::destroy(context.core.allocator().get(), vmaReleased);
 }
 }

@@ -75,7 +75,7 @@ DescriptorSetLayout::State DescriptorSetLayout::release() {
     return state;
 }
 
-void DescriptorSetLayout::destroy(DeviceTable table, VkDescriptorSetLayout vkLayout) {
+void destroy(DeviceTable table, VkDescriptorSetLayout vkLayout) {
     CTH_WARN(vkLayout == VK_NULL_HANDLE, "vkLayout invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyDescriptorSetLayout(table.device(), vkLayout, nullptr);

@@ -180,7 +180,7 @@ void Shader::compile(
     }
 }
 
-void Shader::destroy(DeviceTable table, VkShaderModule vkShader) {
+void destroy(DeviceTable table, VkShaderModule vkShader) {
     CTH_WARN(vkShader == VK_NULL_HANDLE, "vkShader invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyShaderModule(table.device(), vkShader, nullptr);

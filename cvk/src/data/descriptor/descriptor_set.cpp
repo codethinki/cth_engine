@@ -248,7 +248,7 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
     );
 }
 
-void DescriptorSet::destroy(DeviceTable table, VkDescriptorPool vkPool, VkDescriptorSet vkSet) {
+void destroy(DeviceTable table, VkDescriptorPool vkPool, VkDescriptorSet vkSet) {
     CTH_WARN(vkSet == VK_NULL_HANDLE, "vkSet invalid (VK_NULL_HANDLE)") {}
 
     auto const result = table->vkFreeDescriptorSets(table.device(), vkPool, 1, &vkSet);
@@ -262,6 +262,6 @@ void DescriptorSet::pool_deleter::operator()(VkDescriptorSet vkSet) const {
     if(_resets != _pool->resets()) return;
 
     _pool->remove();
-    if(_pool->freesSets()) destroy(_pool->core().deviceTable(), _pool->get(), vkSet);
+    if(_pool->freesSets()) cvk::destroy(_pool->core().deviceTable(), _pool->get(), vkSet);
 }
 }

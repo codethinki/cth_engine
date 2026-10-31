@@ -389,36 +389,6 @@ CVK_TEST(Image, wrap_without_memory_destroys_only_the_image) {
     EXPECT_TRUE(memory.created());
 }
 
-CVK_TEST(Image, collapse_destroys_the_image_and_its_memory) {
-    // a leak shows up when the shared device and allocator are destroyed
-    test::Context const context{};
-    Image image{context.core, TEXTURE_CONFIG, EXTENT};
-    auto const vkImage = image.get();
-
-    auto deletable = image.release().collapse();
-    EXPECT_FALSE(image.created());
-    EXPECT_EQ(deletable.image.handle.get(), vkImage);
-    ASSERT_TRUE(deletable.memory.has_value());
-
-    std::move(deletable)();
-}
-
-CVK_TEST(Image, collapse_without_memory_destroys_only_the_image) {
-    test::Context const context{};
-    Image image{context.core, TEXTURE_CONFIG, EXTENT};
-    auto state = image.release();
-
-    // another owner frees the memory, after the image
-    Memory const memory{context.core, TEXTURE_CONFIG.memory, *state.memory};
-    state.memory = std::nullopt;
-
-    auto deletable = std::move(state).collapse();
-    EXPECT_FALSE(deletable.memory.has_value());
-    std::move(deletable)();
-
-    EXPECT_TRUE(memory.created());
-}
-
 CVK_TEST(Image, move_assignment_destroys_the_old_image) {
     test::Context const context{};
     Image image{context.core, TEXTURE_CONFIG, EXTENT};
@@ -430,5 +400,37 @@ CVK_TEST(Image, move_assignment_destroys_the_old_image) {
     EXPECT_EQ(image.get(), vkImage);
     EXPECT_NE(image.memory(), nullptr);
     EXPECT_FALSE(other.created());
+}
+
+CVK_TEST(Image, decompose_returns_the_image_then_its_memory) {
+    // a leak shows up when the shared device and allocator are destroyed
+    test::Context const context{};
+    Image image{context.core, TEXTURE_CONFIG, EXTENT};
+    auto const vkImage = image.get();
+    auto const vmaAllocation = image.memory()->get();
+
+    auto const [vkReleased, vmaReleased] = image.release().decompose();
+    EXPECT_EQ(vkReleased, vkImage);
+    ASSERT_TRUE(vmaReleased.has_value());
+    EXPECT_EQ(*vmaReleased, vmaAllocation);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+    cvk::destroy(context.core.allocator().get(), *vmaReleased);
+}
+
+CVK_TEST(Image, decompose_without_memory_returns_only_the_image) {
+    test::Context const context{};
+    Image image{context.core, TEXTURE_CONFIG, EXTENT};
+    auto state = image.release();
+
+    // another owner frees the memory, after the image
+    Memory const memory{context.core, TEXTURE_CONFIG.memory, *state.memory};
+    state.memory = std::nullopt;
+
+    auto const [vkReleased, vmaReleased] = std::move(state).decompose();
+    EXPECT_FALSE(vmaReleased.has_value());
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+    EXPECT_TRUE(memory.created());
 }
 }

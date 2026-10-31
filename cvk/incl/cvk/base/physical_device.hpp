@@ -27,8 +27,6 @@ using device_uuid_t = std::array<uint8_t, VK_UUID_SIZE>;
  */
 class PhysicalDevice {
 public:
-    using vk_handle_t = VkPhysicalDevice;
-
     /**
      * queries the device
      * @param surfaces a family presents only if it presents to every surface, empty -> no present support
@@ -75,7 +73,7 @@ public:
      */
     [[nodiscard]] QueueFamily const* queueFamily(queue_family_index_t idx) const;
 
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkPhysicalDevice get() const { return _handle.get(); }
     [[nodiscard]] constexpr std::span<std::string const> extensions() const { return _extensions; }
     [[nodiscard]] constexpr DeviceFeatures const& features() const { return _features; }
     [[nodiscard]] constexpr VkPhysicalDeviceProperties const& properties() const { return _properties; }

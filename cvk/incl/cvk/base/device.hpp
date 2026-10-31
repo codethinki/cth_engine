@@ -3,6 +3,7 @@
 #include "device_table.hpp"
 
 #include "cvk/base/queue/queue.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/handle/unique_handle.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -26,7 +27,6 @@ class PhysicalDevice;
  */
 class Device {
 public:
-    using vk_handle_t = VkDevice;
     using Config = DeviceConfig;
     struct State;
 
@@ -102,17 +102,12 @@ public:
      */
     void waitIdle() const;
 
-    /**
-     * destroys the device, gets vkDestroyDevice through vkGetDeviceProcAddr()
-     */
-    static void destroy(VkDevice);
-
     [[nodiscard]] constexpr std::span<Queue const> queues() const { return _queues; }
     [[nodiscard]] constexpr std::span<Queue> queues() { return _queues; }
 
     [[nodiscard]] constexpr DeviceTable table() const { return DeviceTable{_handle.get(), _functionTable.get()}; }
     [[nodiscard]] constexpr VolkDeviceTable const* functions() const { return _functionTable.get(); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkDevice get() const { return _handle.get(); }
 
     [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
     [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const { return *_physicalDevice; }
@@ -160,7 +155,7 @@ private:
     not_null_ptr<Instance const> _instance;
     not_null_ptr<PhysicalDevice const> _physicalDevice;
 
-    unique_handle<vk_handle_t, handle_deleter<Device>> _handle;
+    unique_handle<VkDevice, handle_deleter> _handle;
     std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();
 
     DeviceFeatures _features{};

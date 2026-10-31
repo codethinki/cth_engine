@@ -71,7 +71,7 @@ void CmdPool::remove() const {
     --_buffers;
 }
 
-void CmdPool::destroy(DeviceTable table, VkCommandPool vkPool) {
+void destroy(DeviceTable table, VkCommandPool vkPool) {
     CTH_WARN(vkPool == VK_NULL_HANDLE, "vkPool invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyCommandPool(table.device(), vkPool, nullptr);

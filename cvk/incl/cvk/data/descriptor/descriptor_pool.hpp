@@ -4,6 +4,7 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -22,7 +23,6 @@ class Core;
  */
 class DescriptorPool {
 public:
-    using vk_handle_t = VkDescriptorPool;
     using Config = DescriptorPoolConfig;
     struct State;
 
@@ -112,10 +112,8 @@ public:
      */
     void remove() const;
 
-    static void destroy(DeviceTable table, VkDescriptorPool);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkDescriptorPool get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
@@ -139,7 +137,7 @@ public:
 private:
     void forget();
 
-    core_handle<DescriptorPool> _handle;
+    core_handle<VkDescriptorPool> _handle;
     Config _config;
 
     mutable size_t _sets = 0;

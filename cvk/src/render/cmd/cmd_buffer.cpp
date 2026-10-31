@@ -88,6 +88,13 @@ BaseCmdBuffer::BaseCmdBuffer(CmdPool const& pool, VkCommandBufferLevel level) : 
 }
 
 void BaseCmdBuffer::wrap(State const& state) {
+    CTH_CRITICAL(
+        state.vkPool.get() != pool().get(),
+        "state.vkPool must be the pool of the command buffer {}, got {}",
+        static_cast<void const*>(pool().get()),
+        static_cast<void const*>(state.vkPool.get())
+    ) {}
+
     optDestroy();
 
     _handle.reset(state.vkBuffer.get(), pool());
@@ -134,7 +141,7 @@ void BaseCmdBuffer::destroy() {
 BaseCmdBuffer::State BaseCmdBuffer::release() {
     debug_check(*this);
 
-    State const state{_handle.release()};
+    State const state{.vkPool = pool().get(), .vkBuffer = _handle.release()};
     pool().remove();
 
     forget();
@@ -500,13 +507,13 @@ void BaseCmdBuffer::dispatchIndirect(BaseBuffer const& buffer, size_t offset) co
     core().functions()->vkCmdDispatchIndirect(get(), buffer.get(), offset);
 }
 
-void BaseCmdBuffer::destroy(DeviceTable table, VkCommandPool vkPool, VkCommandBuffer vkBuffer) {
+void destroy(DeviceTable table, VkCommandPool vkPool, VkCommandBuffer vkBuffer) {
     CTH_WARN(vkBuffer == VK_NULL_HANDLE, "vkBuffer invalid (VK_NULL_HANDLE)") {}
 
     table->vkFreeCommandBuffers(table.device(), vkPool, 1, &vkBuffer);
 }
 
-void BaseCmdBuffer::destroy(DeviceTable table, VkCommandPool vkPool, span<VkCommandBuffer const> vkBuffers) {
+void destroy(DeviceTable table, VkCommandPool vkPool, span<VkCommandBuffer const> vkBuffers) {
     CTH_WARN(std::ranges::contains(vkBuffers, VK_NULL_HANDLE), "> 0 vkBuffers invalid (VK_NULL_HANDLE)") {}
 
     table->vkFreeCommandBuffers(table.device(), vkPool, static_cast<uint32_t>(vkBuffers.size()), vkBuffers.data());
@@ -541,7 +548,7 @@ void BaseCmdBuffer::forget() {
 
 void BaseCmdBuffer::pool_deleter::operator()(VkCommandBuffer vkBuffer) const {
     _pool->remove();
-    destroy(_pool->core().deviceTable(), _pool->get(), vkBuffer);
+    cvk::destroy(_pool->core().deviceTable(), _pool->get(), vkBuffer);
 }
 }
 

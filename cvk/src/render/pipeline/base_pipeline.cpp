@@ -33,7 +33,7 @@ BasePipeline::State BasePipeline::release() {
     return state;
 }
 
-void BasePipeline::destroy(DeviceTable table, VkPipeline vkPipeline) {
+void destroy(DeviceTable table, VkPipeline vkPipeline) {
     CTH_WARN(vkPipeline == VK_NULL_HANDLE, "vkPipeline invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyPipeline(table.device(), vkPipeline, nullptr);

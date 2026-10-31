@@ -1,6 +1,7 @@
 #pragma once
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -23,7 +24,6 @@ class Core;
  */
 class Shader {
 public:
-    using vk_handle_t = VkShaderModule;
     struct State;
     using path_t = std::filesystem::path;
 
@@ -155,17 +155,15 @@ public:
         std::string_view flags = "-O"
     );
 
-    static void destroy(DeviceTable table, VkShaderModule);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkShaderModule get() const { return _handle.get(); }
     [[nodiscard]] constexpr VkShaderStageFlagBits stage() const { return _stage; }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
 
 private:
     void forget();
 
-    core_handle<Shader> _handle;
+    core_handle<VkShaderModule> _handle;
     VkShaderStageFlagBits _stage;
 
 public:

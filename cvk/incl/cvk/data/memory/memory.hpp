@@ -2,8 +2,8 @@
 #include "mapping.hpp"
 #include "memory_config.hpp"
 
-#include "cvk/utility/handle/deletable.hpp"
-#include "cvk/utility/handle/vma_handle.hpp"
+#include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/range.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -16,7 +16,7 @@
 #include <cstddef>
 #include <memory>
 #include <span>
-#include <utility>
+#include <tuple>
 
 
 namespace cvk {
@@ -29,7 +29,6 @@ class Core;
  */
 class Memory {
 public:
-    using vk_handle_t = VmaAllocation;
     using Config = MemoryConfig;
     struct State;
 
@@ -91,7 +90,6 @@ public:
 
     /**
      * releases ownership, returns the state and forgets
-     * @return the state, its deletable has the allocator of the core
      * @pre @ref created()
      */
     State release();
@@ -140,10 +138,8 @@ public:
      */
     void write(std::span<std::byte const> data, size_t offset = 0) const;
 
-    static void destroy(VmaAllocator, VmaAllocation);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VmaAllocation get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
@@ -184,7 +180,7 @@ private:
 
     [[nodiscard]] VmaAllocator allocator() const;
 
-    vma_handle<Memory> _handle;
+    core_handle<VmaAllocation> _handle;
     Config _config;
 
 public:
@@ -199,12 +195,12 @@ public:
 
 namespace cvk {
 struct Memory::State {
-    vma_deletable<Memory> memory;
+    vk_not_null<VmaAllocation> vmaAllocation;
 
     /**
-     * consumes the state into its deletable
+     * the raw handles to destroy, in destruction order
      */
-    [[nodiscard]] constexpr vma_deletable<Memory> collapse() && { return std::move(memory); }
+    [[nodiscard]] constexpr std::tuple<VmaAllocation> decompose() && { return {vmaAllocation.get()}; }
 };
 }
 

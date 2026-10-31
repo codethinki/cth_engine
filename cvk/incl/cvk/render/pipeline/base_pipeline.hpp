@@ -1,6 +1,7 @@
 #pragma once
 #include "cvk/base/device_table.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/types.hpp"
 
 #include <volk.h>
@@ -20,7 +21,6 @@ class PipelineLayout;
  */
 class BasePipeline {
 public:
-    using vk_handle_t = VkPipeline;
     struct State;
 
     /**
@@ -49,10 +49,8 @@ public:
      */
     State release();
 
-    static void destroy(DeviceTable table, VkPipeline);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkPipeline get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr PipelineLayout const& layout() const { return *_layout; }
     [[nodiscard]] constexpr VkPipelineBindPoint bindPoint() const { return _bindPoint; }
@@ -90,7 +88,7 @@ protected:
 private:
     void forget();
 
-    core_handle<BasePipeline> _handle;
+    core_handle<VkPipeline> _handle;
     not_null_ptr<PipelineLayout const> _layout;
     VkPipelineBindPoint _bindPoint;
 

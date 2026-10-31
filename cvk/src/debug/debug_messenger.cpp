@@ -56,7 +56,7 @@ void DebugMessenger::destroy() {
 }
 
 
-void DebugMessenger::destroy(vk_not_null<VkInstance> vkInstance, VkDebugUtilsMessengerEXT vkMessenger) {
+void destroy(vk_not_null<VkInstance> vkInstance, VkDebugUtilsMessengerEXT vkMessenger) {
     Instance::debug_check_handle(vkInstance.get());
     CTH_WARN(vkMessenger == VK_NULL_HANDLE, "messenger invalid") {}
 

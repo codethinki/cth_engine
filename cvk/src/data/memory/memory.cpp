@@ -18,11 +18,9 @@ Memory::Memory(Core const& core, Config const& config, VkMemoryRequirements cons
 } { create(requirements); }
 
 void Memory::wrap(State const& state) {
-    CTH_CRITICAL(state.memory.allocator() != allocator(), "the memory must belong to the allocator of the core") {}
-
     optDestroy();
 
-    _handle.reset(state.memory.handle.get(), core());
+    _handle.reset(state.vmaAllocation.get(), core());
 }
 
 void Memory::create(VkMemoryRequirements const& requirements) {
@@ -54,7 +52,7 @@ void Memory::destroy() {
 Memory::State Memory::release() {
     debug_check(*this);
 
-    State const state{.memory = {allocator(), _handle.release()}};
+    State const state{_handle.release()};
     forget();
     return state;
 }
@@ -114,7 +112,7 @@ void Memory::write(std::span<std::byte const> data, size_t offset) const {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to flush memory") {}
 }
 
-void Memory::destroy(VmaAllocator vmaAllocator, VmaAllocation vmaAllocation) {
+void destroy(VmaAllocator vmaAllocator, VmaAllocation vmaAllocation) {
     CTH_WARN(vmaAllocation == VK_NULL_HANDLE, "vmaAllocation invalid (VK_NULL_HANDLE)") {}
 
     vmaFreeMemory(vmaAllocator, vmaAllocation);

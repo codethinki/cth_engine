@@ -86,7 +86,7 @@ PipelineLayout::State PipelineLayout::release() {
     return state;
 }
 
-void PipelineLayout::destroy(DeviceTable table, VkPipelineLayout vkLayout) {
+void destroy(DeviceTable table, VkPipelineLayout vkLayout) {
     CTH_WARN(vkLayout == VK_NULL_HANDLE, "vkLayout invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyPipelineLayout(table.device(), vkLayout, nullptr);

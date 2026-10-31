@@ -74,7 +74,7 @@ CVK_TEST(CmdPool, release_of_a_buffer_stops_the_count) {
     auto const state = primary.release();
     EXPECT_TRUE(pool.unused());
 
-    BaseCmdBuffer::destroy(context.core.deviceTable(), pool.get(), state.vkBuffer.get());
+    cvk::destroy(context.core.deviceTable(), state.vkPool.get(), state.vkBuffer.get());
 }
 
 CVK_TEST(CmdPool, owner_of_a_released_buffer_counts_it) {
@@ -86,7 +86,7 @@ CVK_TEST(CmdPool, owner_of_a_released_buffer_counts_it) {
     pool.add();
     EXPECT_FALSE(pool.unused());
 
-    BaseCmdBuffer::destroy(context.core.deviceTable(), pool.get(), state.vkBuffer.get());
+    cvk::destroy(context.core.deviceTable(), state.vkPool.get(), state.vkBuffer.get());
     pool.remove();
     EXPECT_TRUE(pool.unused());
 }

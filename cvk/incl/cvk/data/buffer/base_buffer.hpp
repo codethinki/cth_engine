@@ -4,6 +4,7 @@
 #include "cvk/base/device_table.hpp"
 #include "cvk/data/memory/memory.hpp"
 #include "cvk/utility/handle/core_handle.hpp"
+#include "cvk/utility/handle/destroy.hpp"
 #include "cvk/utility/range.hpp"
 #include "cvk/utility/types.hpp"
 
@@ -43,7 +44,6 @@ struct BufferCopy {
  */
 class BaseBuffer {
 public:
-    using vk_handle_t = VkBuffer;
     using Config = BufferConfig;
     struct State;
 
@@ -167,10 +167,8 @@ public:
      */
     void write(std::span<std::byte const> data, size_t offset = 0) const;
 
-    static void destroy(DeviceTable table, VkBuffer);
-
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
-    [[nodiscard]] constexpr vk_handle_t get() const { return _handle.get(); }
+    [[nodiscard]] constexpr VkBuffer get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
@@ -195,7 +193,7 @@ private:
     [[nodiscard]] constexpr Memory const& ownMemory() const;
 
     // declared before the memory: move assignment destroys the old buffer before its memory
-    core_handle<BaseBuffer> _handle;
+    core_handle<VkBuffer> _handle;
     std::optional<Memory> _memory = std::nullopt;
     Config _config;
     size_t _size = 0;
