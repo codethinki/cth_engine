@@ -6,7 +6,6 @@
 #include <vk_mem_alloc.h>
 
 #include <span>
-#include <type_traits>
 
 /**
  * @file
@@ -18,11 +17,6 @@
 
 
 namespace cvk {
-static_assert(
-    std::is_pointer_v<VkSemaphore>,
-    "cvk::destroy() needs distinct 64 bit pointer handles (VK_USE_64_BIT_PTR_DEFINES == 1), got integer handles"
-);
-
 // outside the core
 /**
  * @pre volk loaded the instance functions, @ref Instance::create() and @ref Instance::wrap() load them
