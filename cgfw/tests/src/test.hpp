@@ -5,6 +5,7 @@
 
 #include <cth/test.hpp>
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -34,8 +35,16 @@ constexpr std::string_view APP_NAME = "cgfw_tests";
 
 /**
  * instance config with @ref APP_NAME
+ * @param debugMessenger see @ref cvk::InstanceConfig::debugMessenger
  */
-[[nodiscard]] inline cvk::InstanceConfig instance_config(std::vector<std::string> extensions = {}) {
-    return cvk::InstanceConfig{.appName = std::string{APP_NAME}, .extensions = std::move(extensions)};
+[[nodiscard]] inline cvk::InstanceConfig instance_config(
+    std::vector<std::string> extensions = {},
+    std::optional<cvk::DebugMessenger::Config> debugMessenger = std::nullopt
+) {
+    return cvk::InstanceConfig{
+        .appName = std::string{APP_NAME},
+        .extensions = std::move(extensions),
+        .debugMessenger = debugMessenger,
+    };
 }
 }

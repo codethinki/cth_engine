@@ -315,13 +315,13 @@ Use symbols when they are shorter and clearer than words:
 ```cpp
 /**
  * creates the instance
- * @param messengerConfig std::nullopt -> no messenger, debug builds use the default config
+ * @details a messenger config (see @ref Config::debugMessenger) -> creates the messenger
  * @pre volk is initialized
  * @post @ref created()
  * @note calls @ref optDestroy()
  * @throws cvk::vk_result_exception result of vkCreateInstance()
  */
-void create(std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
+void create();
 ```
 
 ### When you port legacy code

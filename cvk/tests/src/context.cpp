@@ -26,7 +26,7 @@ namespace {
      * @details volk holds the functions of one instance, cvk assumes one instance per process
      */
     struct SharedContexts {
-        Instance instance{instance_config(headless_extensions()), create, counting_messenger()};
+        Instance instance{instance_config(headless_extensions(), counting_messenger()), create};
         std::optional<Core> core{};
         std::optional<Surface> surface{};
         std::optional<Core> presentCore{};
@@ -77,7 +77,7 @@ PresentContext::PresentContext() : instance{shared_contexts().instance}, core{sh
     _surface{shared_surface()} {}
 
 InstanceContext::InstanceContext(std::vector<std::string> extensions) :
-    instance{instance_config(std::move(extensions)), create, counting_messenger()} {}
+    instance{instance_config(std::move(extensions), counting_messenger()), create} {}
 
 CmdPool::Config pool_config(Core const& core) { return {.queueFamilyIndex = core.queue(0).familyIndex()}; }
 

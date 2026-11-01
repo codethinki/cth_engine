@@ -30,7 +30,10 @@ public:
     static constexpr std::array<char const*, 1> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation"
     };
-    static constexpr std::array<char const*, 1> VALIDATION_LAYER_EXTENSIONS{
+    /**
+     * extensions that a messenger needs
+     */
+    static constexpr std::array<char const*, 1> MESSENGER_EXTENSIONS{
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
     };
 
@@ -69,7 +72,7 @@ public:
      * - @ref Instance(Config)
      * - @ref create()
      */
-    explicit Instance(Config, create_t, std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
+    explicit Instance(Config, create_t);
 
     /**
      * @note calls @ref optDestroy()
@@ -78,6 +81,8 @@ public:
 
     /**
      * wraps the state
+     * @details the messenger of the state gets the config of the messenger, see @ref Config::debugMessenger
+     * @pre the state has a messenger <=> the instance has a messenger config, debug builds always have one
      * @post @ref created()
      * @post volk uses the functions of this instance
      * @note calls @ref optDestroy()
@@ -86,12 +91,12 @@ public:
 
     /**
      * creates the instance with the extensions of the config, debug builds with the validation layers
-     * @param messengerConfig std::nullopt -> no messenger, debug builds use the default @ref DebugMessenger::Config
+     * @details a messenger config (see @ref Config::debugMessenger) -> enables @ref MESSENGER_EXTENSIONS,
+     *  creates the messenger
      * @pre @ref Cvk::initialized()
      * @post @ref created()
      * @post volk uses the functions of this instance
      * @note calls @ref optDestroy()
-     * @note no validation layers -> no messenger
      * @throws cvk::cvk_exception reason: instance extension missing
      * @throws cvk::cvk_exception reason: validation layer missing
      * @throws cvk::vk_result_exception result of vkEnumerateInstanceExtensionProperties()
@@ -99,7 +104,7 @@ public:
      * @throws cvk::vk_result_exception result of vkCreateInstance()
      * @throws cvk::vk_result_exception result of vkCreateDebugUtilsMessengerEXT(), destroys the instance
      */
-    void create(std::optional<DebugMessenger::Config> messengerConfig = std::nullopt);
+    void create();
 
     /**
      * destroys the messenger and the instance and forgets
@@ -123,7 +128,7 @@ public:
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     /**
-     * @return the enabled extensions, debug builds include @ref VALIDATION_LAYER_EXTENSIONS
+     * @return the enabled extensions, a messenger adds @ref MESSENGER_EXTENSIONS
      */
     [[nodiscard]] constexpr std::span<std::string const> extensions() const { return _extensions; }
 
@@ -136,6 +141,12 @@ public:
 
 private:
     void forget();
+
+    /**
+     * the config the messenger is created with
+     * @return std::nullopt -> no messenger, debug builds: the config of @ref Config::debugMessenger or the default
+     */
+    [[nodiscard]] constexpr std::optional<DebugMessenger::Config> messengerConfig() const;
 
     static void loadInstanceFunctions(vk_not_null<VkInstance>);
 
@@ -179,13 +190,20 @@ struct Instance::State {
     /**
      * messenger of @ref vkInstance, std::nullopt -> no messenger
      */
-    std::optional<DebugMessenger> debugMessenger = std::nullopt;
+    std::optional<DebugMessenger::State> debugMessenger = std::nullopt;
 
     /**
      * the extensions that the instance enables
      */
     std::vector<std::string> extensions{};
 };
+}
+
+namespace cvk {
+constexpr std::optional<DebugMessenger::Config> Instance::messengerConfig() const {
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS) return _config.debugMessenger.value_or(DebugMessenger::Config{});
+    else return _config.debugMessenger;
+}
 }
 
 namespace cvk {

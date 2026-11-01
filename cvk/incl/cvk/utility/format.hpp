@@ -1,13 +1,52 @@
 #pragma once
 // ReSharper disable CppClangTidyCertDcl58Cpp
 #include <volk.h>
+#include <vk_mem_alloc.h>
 #include <vulkan/vk_enum_string_helper.h>
 
+#include <cth/meta/concepts.hpp>
 #include <cth/string/format.hpp>
 
 #include <string_view>
 #include <tuple>
 
+
+namespace cvk {
+/**
+ * T is a Vulkan or VMA handle that cvk uses
+ */
+template<class T>
+concept vk_handle = cth::mta::is_any_of<
+    T,
+    VkInstance,
+    VkPhysicalDevice,
+    VkDevice,
+    VkQueue,
+    VkCommandBuffer,
+    VkSemaphore,
+    VkFence,
+    VkImage,
+    VkImageView,
+    VkSampler,
+    VkBuffer,
+    VkDescriptorPool,
+    VkDescriptorSet,
+    VkDescriptorSetLayout,
+    VkPipelineLayout,
+    VkPipeline,
+    VkShaderModule,
+    VkCommandPool,
+    VkSwapchainKHR,
+    VkSurfaceKHR,
+    VkDebugUtilsMessengerEXT,
+    VmaAllocation,
+    VmaAllocator>;
+}
+
+/**
+ * formats the handle as its address
+ */
+CTH_FORMAT_CPT(cvk::vk_handle, [](auto handle) { return static_cast<void const*>(handle); });
 
 CTH_FORMAT_ALIAS(VkResult, std::string_view, string_VkResult);
 

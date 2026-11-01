@@ -32,32 +32,37 @@ Instance::Instance(Config config) : _config{std::move(config)} {}
 
 Instance::Instance(Config config, State state) : Instance{std::move(config)} { wrap(std::move(state)); }
 
-Instance::Instance(Config config, create_t, std::optional<DebugMessenger::Config> messengerConfig) :
-    Instance{std::move(config)} {
-    create(std::move(messengerConfig));
-}
+Instance::Instance(Config config, create_t) : Instance{std::move(config)} { create(); }
 
 void Instance::wrap(State state) {
+    auto const messenger = messengerConfig();
+    CTH_CRITICAL(
+        state.debugMessenger.has_value() != messenger.has_value(),
+        "the state must have a messenger <=> the config has one ({}), got {}",
+        messenger.has_value(),
+        state.debugMessenger.has_value()
+    ) {}
+
     optDestroy();
 
     _handle.reset(state.vkInstance.get());
-    _debugMessenger = std::move(state.debugMessenger);
     _extensions = std::move(state.extensions);
 
     loadInstanceFunctions(state.vkInstance);
+
+    if(state.debugMessenger) _debugMessenger.emplace(*this, *messenger, *state.debugMessenger);
 }
 
-void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
+void Instance::create() {
     optDestroy();
+
+    auto const messenger = messengerConfig();
 
     // the members change after the checks, a throw from them finds the members forgotten
     auto requiredExtensions = _config.extensions;
-    if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
-        for(string_view const extension : VALIDATION_LAYER_EXTENSIONS)
+    if(messenger.has_value())
+        for(string_view const extension : MESSENGER_EXTENSIONS)
             if(!std::ranges::contains(requiredExtensions, extension)) requiredExtensions.emplace_back(extension);
-
-        if(!messengerConfig.has_value()) messengerConfig = DebugMessenger::Config{};
-    }
 
     auto const missingExtensions = missing(requiredExtensions, available_instance_extensions());
     CTH_STABLE_ERR(!missingExtensions.empty(), "instance extensions missing") {
@@ -101,10 +106,13 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
     if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size());
         createInfo.ppEnabledLayerNames = VALIDATION_LAYERS.data();
+        createInfo.pNext = &layerSettings;
+    }
 
+    if(messenger.has_value()) {
         // the messenger of the create info reports the messages of vkCreateInstance() and vkDestroyInstance()
-        debugCreateInfo = messengerConfig->createInfo();
-        debugCreateInfo.pNext = &layerSettings;
+        debugCreateInfo = messenger->createInfo();
+        debugCreateInfo.pNext = createInfo.pNext;
         createInfo.pNext = &debugCreateInfo;
     }
 
@@ -119,14 +127,12 @@ void Instance::create(std::optional<DebugMessenger::Config> messengerConfig) {
     _handle.reset(ptr);
     loadInstanceFunctions(ptr);
 
-    if constexpr(constants::ENABLE_VALIDATION_LAYERS) {
-        // the messenger needs the created instance, only a catch can destroy the instance when the messenger fails
-        try {
-            _debugMessenger.emplace(*this, *messengerConfig, cvk::create);
-        } catch(...) {
-            destroy();
-            throw;
-        }
+    // the messenger needs the created instance, only a catch can destroy the instance when the messenger fails
+    try {
+        if(messenger) _debugMessenger.emplace(*this, *messenger, cvk::create);
+    } catch(...) {
+        destroy();
+        throw;
     }
 }
 
@@ -144,7 +150,9 @@ Instance::State Instance::release() {
 
     State state{
         .vkInstance = _handle.release(),
-        .debugMessenger = std::move(_debugMessenger),
+        .debugMessenger = _debugMessenger.transform([](DebugMessenger& debugMessenger) {
+            return debugMessenger.release();
+        }),
         .extensions = std::move(_extensions),
     };
     forget();

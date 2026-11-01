@@ -36,5 +36,6 @@ ValidationCheck::ValidationCheck() { errors = 0; }
 
 ValidationCheck::~ValidationCheck() { EXPECT_EQ(errors, 0); }
 
-InstanceContext::InstanceContext() : instance{instance_config(instance_extensions()), cvk::create, counting_messenger()} {}
+InstanceContext::InstanceContext() :
+    instance{instance_config(instance_extensions(), counting_messenger()), cvk::create} {}
 }

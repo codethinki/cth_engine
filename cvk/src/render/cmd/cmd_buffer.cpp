@@ -8,6 +8,7 @@
 #include "cvk/render/pipeline/compute_pipeline.hpp"
 #include "cvk/render/pipeline/graphics_pipeline.hpp"
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
+#include "cvk/utility/format.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
@@ -91,8 +92,8 @@ void BaseCmdBuffer::wrap(State const& state) {
     CTH_CRITICAL(
         state.vkPool.get() != pool().get(),
         "state.vkPool must be the pool of the command buffer {}, got {}",
-        static_cast<void const*>(pool().get()),
-        static_cast<void const*>(state.vkPool.get())
+        pool().get(),
+        state.vkPool.get()
     ) {}
 
     optDestroy();

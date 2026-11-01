@@ -28,7 +28,7 @@ namespace {
      * one instance and core for all tests, the core comes at its first use
      */
     struct SharedContexts {
-        cvk::Instance instance{instance_config(), cvk::create, counting_messenger()};
+        cvk::Instance instance{instance_config({}, counting_messenger()), cvk::create};
         std::optional<Core> core{};
     };
 
