@@ -146,4 +146,16 @@ CVK_TEST(TimelineSemaphore, is_not_a_binary_semaphore) {
     static_assert(!std::convertible_to<TimelineSemaphore const*, Semaphore const*>);
     static_assert(!std::convertible_to<TimelineSemaphore const&, Semaphore const&>);
 }
+
+CVK_TEST(TimelineSemaphore, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    TimelineSemaphore semaphore{context.core, create};
+    auto const vkSemaphore = semaphore.get();
+
+    auto const [vkReleased] = semaphore.release().decompose();
+    EXPECT_EQ(vkReleased, vkSemaphore);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

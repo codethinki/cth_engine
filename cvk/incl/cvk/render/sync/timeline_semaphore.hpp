@@ -2,6 +2,7 @@
 #include "semaphore.hpp"
 
 #include <cstdint>
+#include <tuple>
 
 
 namespace cvk {
@@ -142,6 +143,11 @@ struct TimelineSemaphore::State {
      * counter, see @ref value()
      */
     uint64_t value;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkSemaphore> decompose() && { return {vkSemaphore.get()}; }
 };
 }
 

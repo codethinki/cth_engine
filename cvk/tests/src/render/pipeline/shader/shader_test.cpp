@@ -179,4 +179,16 @@ CVK_TEST(Shader, compile_missing_glsl_throws) {
 
     EXPECT_THROW(Shader::compile(missing, missing.string() + ".spv"), cvk_exception);
 }
+
+CVK_TEST(Shader, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    Shader shader{context.core, VK_SHADER_STAGE_VERTEX_BIT, TRIANGLE_VERT};
+    auto const vkShader = shader.get();
+
+    auto const [vkReleased] = shader.release().decompose();
+    EXPECT_EQ(vkReleased, vkShader);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

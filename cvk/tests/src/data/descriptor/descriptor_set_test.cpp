@@ -157,4 +157,40 @@ CVK_TEST(DescriptorSet, release_and_wrap) {
     EXPECT_EQ(wrapped.get(), vkSet);
     EXPECT_FALSE(pool.unused());
 }
+
+CVK_TEST(DescriptorSet, release_fills_the_pool) {
+    test::Context const context{};
+    DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
+    DescriptorPool const pool{
+        context.core,
+        DescriptorPool::Config::ForLayouts({{&layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        create
+    };
+    DescriptorSet set{pool, layout, create};
+
+    auto const state = set.release();
+    EXPECT_EQ(state.vkPool.get(), pool.get());
+
+    cvk::destroy(context.core.deviceTable(), state.vkPool.get(), state.vkSet.get());
+}
+
+CVK_TEST(DescriptorSet, decompose_returns_the_pool_and_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
+    DescriptorPool const pool{
+        context.core,
+        DescriptorPool::Config::ForLayouts({{&layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        create
+    };
+    DescriptorSet set{pool, layout, create};
+    auto const vkSet = set.get();
+
+    auto const [descriptorSet] = set.release().decompose();
+    auto const [vkPool, vkReleased] = descriptorSet;
+    EXPECT_EQ(vkPool, pool.get());
+    EXPECT_EQ(vkReleased, vkSet);
+
+    cvk::destroy(context.core.deviceTable(), vkPool, vkReleased);
+}
 }

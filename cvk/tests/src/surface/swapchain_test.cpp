@@ -375,4 +375,16 @@ CVK_TEST(Swapchain, move_assignment_over_a_retired_swapchain_with_a_present_in_f
     EXPECT_FALSE(moved.created());
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }
+
+CVK_TEST(Swapchain, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::PresentContext const context{};
+    Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
+    auto const vkSwapchain = swapchain.get();
+
+    auto const [vkReleased] = swapchain.release().decompose();
+    EXPECT_EQ(vkReleased, vkSwapchain);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

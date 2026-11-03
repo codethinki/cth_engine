@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <optional>
 #include <span>
+#include <tuple>
 
 
 namespace cvk {
@@ -219,6 +220,14 @@ struct BaseBuffer::State {
      * std::nullopt -> the buffer does not own its memory
      */
     std::optional<Memory::State> memory = std::nullopt;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     * @return the buffer, then its own memory, std::nullopt -> no own memory
+     */
+    [[nodiscard]] constexpr std::tuple<VkBuffer, std::optional<VmaAllocation>> decompose() && {
+        return {vkBuffer.get(), memory.transform([](Memory::State const& state) { return state.vmaAllocation.get(); })};
+    }
 };
 }
 

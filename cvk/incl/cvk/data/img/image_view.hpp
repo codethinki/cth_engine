@@ -12,6 +12,8 @@
 
 #include <cth/io/log.hpp>
 
+#include <tuple>
+
 
 namespace cvk {
 /**
@@ -139,6 +141,11 @@ public:
 namespace cvk {
 struct ImageView::State {
     vk_not_null<VkImageView> vkImageView;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkImageView> decompose() && { return {vkImageView.get()}; }
 };
 }
 

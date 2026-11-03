@@ -10,6 +10,7 @@
 #include <cth/io/log.hpp>
 
 #include <span>
+#include <tuple>
 #include <vector>
 
 
@@ -126,6 +127,11 @@ struct PipelineLayout::Config {
 
 struct PipelineLayout::State {
     vk_not_null<VkPipelineLayout> vkLayout;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkPipelineLayout> decompose() && { return {vkLayout.get()}; }
 };
 }
 

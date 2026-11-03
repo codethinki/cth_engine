@@ -12,6 +12,7 @@
 #include <cth/io/log.hpp>
 
 #include <cstdint>
+#include <tuple>
 
 
 namespace cvk {
@@ -156,6 +157,11 @@ public:
 namespace cvk {
 struct DescriptorPool::State {
     vk_not_null<VkDescriptorPool> vkPool;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkDescriptorPool> decompose() && { return {vkPool.get()}; }
 };
 }
 

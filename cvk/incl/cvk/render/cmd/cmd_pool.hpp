@@ -11,6 +11,8 @@
 
 #include <cth/io/log.hpp>
 
+#include <tuple>
+
 
 namespace cvk {
 class Core;
@@ -149,6 +151,11 @@ public:
 namespace cvk {
 struct CmdPool::State {
     vk_not_null<VkCommandPool> vkPool;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkCommandPool> decompose() && { return {vkPool.get()}; }
 };
 }
 

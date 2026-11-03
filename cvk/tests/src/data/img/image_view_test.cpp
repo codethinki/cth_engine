@@ -122,4 +122,17 @@ CVK_TEST(ImageView, move_assignment_destroys_the_old_view) {
     EXPECT_EQ(view.get(), vkView);
     EXPECT_FALSE(other.created());
 }
+
+CVK_TEST(ImageView, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    Image const image{context.core, TEXTURE_CONFIG, EXTENT};
+    ImageView view{image, {}, create};
+    auto const vkView = view.get();
+
+    auto const [vkReleased] = view.release().decompose();
+    EXPECT_EQ(vkReleased, vkView);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

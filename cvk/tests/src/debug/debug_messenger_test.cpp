@@ -58,8 +58,6 @@ CVK_TEST(DebugMessenger, default_config_create_info) {
 }
 
 CVK_TEST(DebugMessenger, forwards_messages_to_the_callback) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
-
     test::Context const context{};
     DebugMessenger const messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
     ASSERT_TRUE(messenger.created());
@@ -71,8 +69,6 @@ CVK_TEST(DebugMessenger, forwards_messages_to_the_callback) {
 }
 
 CVK_TEST(DebugMessenger, accepts_a_lambda) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
-
     test::Context const context{};
 
     DebugMessenger::callback_t const callback = [](
@@ -93,8 +89,6 @@ CVK_TEST(DebugMessenger, accepts_a_lambda) {
 }
 
 CVK_TEST(DebugMessenger, destroy_stops_the_messages) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
-
     test::Context const context{};
     DebugMessenger messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
 
@@ -108,8 +102,6 @@ CVK_TEST(DebugMessenger, destroy_stops_the_messages) {
 }
 
 CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
-
     test::Context const context{};
     DebugMessenger messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
 
@@ -124,8 +116,6 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
 }
 
 CVK_TEST(DebugMessenger, release_and_wrap) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
-
     test::Context const context{};
     DebugMessenger messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
     auto const vkMessenger = messenger.get();
@@ -142,8 +132,6 @@ CVK_TEST(DebugMessenger, release_and_wrap) {
 }
 
 CVK_TEST(DebugMessenger, move_assignment_destroys_the_old_messenger) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
-
     test::InstanceContext const context{};
     DebugMessenger messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
     DebugMessenger other{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};

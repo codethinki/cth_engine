@@ -184,4 +184,16 @@ CVK_TEST(Fence, release_and_wrap_keep_the_export_types) {
     Fence const wrapped{context.core, state};
     EXPECT_EQ(wrapped.exportTypes(), constants::OS_FENCE_HANDLE_TYPE);
 }
+
+CVK_TEST(Fence, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    Fence fence{context.core, create};
+    auto const vkFence = fence.get();
+
+    auto const [vkReleased] = fence.release().decompose();
+    EXPECT_EQ(vkReleased, vkFence);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

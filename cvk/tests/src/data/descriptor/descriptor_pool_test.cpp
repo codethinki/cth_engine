@@ -125,4 +125,17 @@ CVK_TEST(DescriptorPool, release_and_wrap) {
     DescriptorPool const wrapped{context.core, config, state};
     EXPECT_EQ(wrapped.get(), vkPool);
 }
+
+CVK_TEST(DescriptorPool, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
+    DescriptorPool pool{context.core, DescriptorPool::Config::ForLayouts({{&layout}}), create};
+    auto const vkPool = pool.get();
+
+    auto const [vkReleased] = pool.release().decompose();
+    EXPECT_EQ(vkReleased, vkPool);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

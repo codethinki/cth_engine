@@ -79,4 +79,16 @@ CVK_TEST(Sampler, move_assignment_destroys_the_old_sampler) {
     EXPECT_EQ(sampler.get(), vkSampler);
     EXPECT_FALSE(other.created());
 }
+
+CVK_TEST(Sampler, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    Sampler sampler{context.core, {}, create};
+    auto const vkSampler = sampler.get();
+
+    auto const [vkReleased] = sampler.release().decompose();
+    EXPECT_EQ(vkReleased, vkSampler);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

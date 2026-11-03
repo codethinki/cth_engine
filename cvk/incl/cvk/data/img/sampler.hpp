@@ -11,6 +11,8 @@
 
 #include <cth/io/log.hpp>
 
+#include <tuple>
+
 
 namespace cvk {
 class Core;
@@ -113,6 +115,11 @@ public:
 namespace cvk {
 struct Sampler::State {
     vk_not_null<VkSampler> vkSampler;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkSampler> decompose() && { return {vkSampler.get()}; }
 };
 }
 

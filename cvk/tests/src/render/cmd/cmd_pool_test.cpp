@@ -146,4 +146,16 @@ CVK_TEST(CmdPool, move_assignment_destroys_the_old_pool) {
     EXPECT_EQ(pool.get(), vkPool);
     EXPECT_FALSE(other.created());
 }
+
+CVK_TEST(CmdPool, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    CmdPool pool{context.core, pool_config(context.core), create};
+    auto const vkPool = pool.get();
+
+    auto const [vkReleased] = pool.release().decompose();
+    EXPECT_EQ(vkReleased, vkPool);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

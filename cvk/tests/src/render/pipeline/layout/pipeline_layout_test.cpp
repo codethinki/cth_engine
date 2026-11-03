@@ -86,4 +86,16 @@ CVK_TEST(PipelineLayout, move_assignment_destroys_the_old_layout) {
     EXPECT_EQ(layout.get(), vkLayout);
     EXPECT_FALSE(other.created());
 }
+
+CVK_TEST(PipelineLayout, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    PipelineLayout layout{context.core, {}, create};
+    auto const vkLayout = layout.get();
+
+    auto const [vkReleased] = layout.release().decompose();
+    EXPECT_EQ(vkReleased, vkLayout);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

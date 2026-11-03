@@ -8,6 +8,8 @@
 
 #include <cth/io/log.hpp>
 
+#include <tuple>
+
 
 namespace cvk {
 class Core;
@@ -105,6 +107,11 @@ public:
 namespace cvk {
 struct BasePipeline::State {
     vk_not_null<VkPipeline> vkPipeline;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkPipeline> decompose() && { return {vkPipeline.get()}; }
 };
 }
 

@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <span>
 #include <string_view>
+#include <tuple>
 #include <vector>
 
 
@@ -179,6 +180,11 @@ public:
 namespace cvk {
 struct Shader::State {
     vk_not_null<VkShaderModule> vkShader;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkShaderModule> decompose() && { return {vkShader.get()}; }
 };
 }
 

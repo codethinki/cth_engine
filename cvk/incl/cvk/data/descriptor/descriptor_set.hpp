@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <span>
+#include <tuple>
 
 
 namespace cvk {
@@ -71,6 +72,7 @@ public:
 
     /**
      * wraps the state
+     * @pre @ref State::vkPool is the pool of the set
      * @pre the pool allocated the set with the layout and the variable count
      * @post @ref created()
      * @note calls @ref optDestroy()
@@ -189,7 +191,18 @@ public:
 
 namespace cvk {
 struct DescriptorSet::State {
+    /**
+     * pool that allocated @ref vkSet
+     */
+    vk_not_null<VkDescriptorPool> vkPool;
     vk_not_null<VkDescriptorSet> vkSet;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<std::tuple<VkDescriptorPool, VkDescriptorSet>> decompose() && {
+        return {std::tuple{vkPool.get(), vkSet.get()}};
+    }
 };
 }
 

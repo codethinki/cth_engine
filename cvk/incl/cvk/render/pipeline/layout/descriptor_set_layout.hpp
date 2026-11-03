@@ -14,6 +14,7 @@
 #include <memory>
 #include <ranges>
 #include <span>
+#include <tuple>
 #include <vector>
 
 
@@ -176,6 +177,11 @@ struct DescriptorSetLayout::Config {
 
 struct DescriptorSetLayout::State {
     vk_not_null<VkDescriptorSetLayout> vkLayout;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkDescriptorSetLayout> decompose() && { return {vkLayout.get()}; }
 };
 }
 

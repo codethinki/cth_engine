@@ -224,4 +224,20 @@ CVK_TEST(BaseBuffer, move_assignment_destroys_the_old_buffer) {
     EXPECT_FALSE(other.created());
     EXPECT_EQ(other.memory(), nullptr);
 }
+
+CVK_TEST(BaseBuffer, decompose_returns_the_buffer_then_its_memory) {
+    // a leak shows up when the shared device and allocator are destroyed
+    test::Context const context{};
+    BaseBuffer buffer{context.core, DEVICE_CONFIG, SIZE};
+    auto const vkBuffer = buffer.get();
+    auto const vmaAllocation = buffer.memory()->get();
+
+    auto const [vkReleased, vmaReleased] = buffer.release().decompose();
+    EXPECT_EQ(vkReleased, vkBuffer);
+    ASSERT_TRUE(vmaReleased.has_value());
+    EXPECT_EQ(*vmaReleased, vmaAllocation);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+    cvk::destroy(context.core.allocator().get(), *vmaReleased);
+}
 }

@@ -139,4 +139,16 @@ CVK_TEST(DescriptorSetLayout, create_bindless) {
     EXPECT_EQ(layout.bindingFlags(0), 0);
     EXPECT_EQ(layout.variableBinding(), layout.binding(1));
 }
+
+CVK_TEST(DescriptorSetLayout, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    DescriptorSetLayout layout{context.core, gap_config(), create};
+    auto const vkLayout = layout.get();
+
+    auto const [vkReleased] = layout.release().decompose();
+    EXPECT_EQ(vkReleased, vkLayout);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }

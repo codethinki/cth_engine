@@ -19,6 +19,7 @@
 #include <limits>
 #include <optional>
 #include <span>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -334,6 +335,11 @@ struct Swapchain::State {
     VkExtent2D extent;
     VkSurfaceFormatKHR surfaceFormat;
     VkPresentModeKHR presentMode;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkSwapchainKHR> decompose() && { return {vkSwapchain.get()}; }
 };
 }
 

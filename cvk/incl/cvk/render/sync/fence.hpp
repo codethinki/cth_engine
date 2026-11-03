@@ -11,6 +11,7 @@
 #include <cth/os/native_handle.hpp>
 
 #include <cstdint>
+#include <tuple>
 
 
 namespace cvk {
@@ -181,6 +182,11 @@ struct Fence::State {
      * handle types the fence was created to export
      */
     VkExternalFenceHandleTypeFlags exportTypes = 0;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<VkFence> decompose() && { return {vkFence.get()}; }
 };
 }
 

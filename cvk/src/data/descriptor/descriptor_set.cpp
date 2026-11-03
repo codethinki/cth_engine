@@ -4,6 +4,7 @@
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/data/img/sampler.hpp"
+#include "cvk/utility/format.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <span>
@@ -94,6 +95,13 @@ DescriptorSet::DescriptorSet(
 ) : DescriptorSet{pool, layout, variableCount} { create(); }
 
 void DescriptorSet::wrap(State const& state) {
+    CTH_CRITICAL(
+        state.vkPool.get() != pool().get(),
+        "state.vkPool must be the pool of the set {}, got {}",
+        pool().get(),
+        state.vkPool.get()
+    ) {}
+
     optDestroy();
 
     _handle.reset(state.vkSet.get(), pool());
@@ -150,7 +158,7 @@ void DescriptorSet::destroy() {
 DescriptorSet::State DescriptorSet::release() {
     debug_check(*this);
 
-    State const state{_handle.release()};
+    State const state{.vkPool = pool().get(), .vkSet = _handle.release()};
     pool().remove();
 
     forget();

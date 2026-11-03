@@ -148,4 +148,17 @@ CVK_TEST(ComputePipeline, dispatch_indirect_fills_a_storage_buffer) {
 
     expect_values(context, [&](BaseCmdBuffer const& cmd) { cmd.dispatchIndirect(indirect); });
 }
+
+CVK_TEST(ComputePipeline, decompose_returns_the_released_handle) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    Values const values{context.core};
+    ComputePipeline pipeline{values.layout, values.config(), create};
+    auto const vkPipeline = pipeline.get();
+
+    auto const [vkReleased] = pipeline.release().decompose();
+    EXPECT_EQ(vkReleased, vkPipeline);
+
+    cvk::destroy(context.core.deviceTable(), vkReleased);
+}
 }
