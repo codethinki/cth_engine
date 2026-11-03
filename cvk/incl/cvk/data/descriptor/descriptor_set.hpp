@@ -105,6 +105,7 @@ public:
     /**
      * releases ownership, returns the state and forgets
      * @pre @ref created()
+     * @pre the pool was not reset since the allocation of the set
      */
     State release();
 
@@ -199,6 +200,7 @@ struct DescriptorSet::State {
 
     /**
      * the raw handles to destroy, in destruction order
+     * @pre the pool has VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
      */
     [[nodiscard]] constexpr std::tuple<std::tuple<VkDescriptorPool, VkDescriptorSet>> decompose() && {
         return {std::tuple{vkPool.get(), vkSet.get()}};
