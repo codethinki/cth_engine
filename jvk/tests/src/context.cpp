@@ -1,5 +1,7 @@
 #include "context.hpp"
 
+#include "cvk/render/sync/fence.hpp"
+
 #include <cstddef>
 #include <optional>
 
@@ -47,6 +49,15 @@ namespace {
 }
 
 cvk::DebugMessenger::Config counting_messenger() { return cvk::DebugMessenger::Config{.callback = count_errors}; }
+
+cvk::queue_family_index_t queue_family(Context const& context) { return context.core.queue(0).vk().familyIndex(); }
+
+void submit_and_wait(Context const& context, cvk::PrimaryCmdBuffer const& primary) {
+    cvk::Fence const fence{context.core, cvk::create};
+
+    context.core.queue(0).vk().submit({.cmdBuffers = {&primary}}, &fence);
+    fence.wait();
+}
 
 Context::Context() : instance{shared_contexts().instance}, core{shared_core()} {}
 

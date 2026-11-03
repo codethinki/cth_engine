@@ -1,7 +1,9 @@
 #pragma once
 #include "jvk/cmd/cmd_buffer.hpp"
+#include "jvk/sync/resource_states.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
+#include "cvk/data/img/image.hpp"
 
 #include <volk.h>
 
@@ -10,10 +12,6 @@
 #include <cstddef>
 #include <cstdint>
 
-
-namespace cvk {
-class Image;
-}
 
 namespace jvk {
 /**
@@ -33,7 +31,11 @@ public:
      * @details accesses: src: transfer stage, transfer read, this buffer: transfer stage, transfer write
      * @pre the preconditions of @ref cvk::Buffer::copy()
      */
-    void copy(cmd_buffer auto&, cvk::Buffer<T> const& src, cvk::BufferCopy region = {}) const;
+    void copy(cmd_buffer auto& cmd, cvk::Buffer<T> const& src, cvk::BufferCopy region = {}) const {
+        cmd.use(src, BufferAccess{.stages = TRANSFER, .access = VK_ACCESS_2_TRANSFER_READ_BIT});
+        cmd.use(*this, BufferAccess{.stages = TRANSFER, .access = VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        cvk::Buffer<T>::copy(cmd, src, region);
+    }
 
     /**
      * records a copy from the mip level of the image, with its accesses
@@ -44,11 +46,27 @@ public:
      * @pre the preconditions of @ref cvk::Image::copyTo()
      */
     void copy(
-        cmd_buffer auto&,
+        cmd_buffer auto& cmd,
         cvk::Image const& src,
         size_t dstOffset = 0,
         uint32_t mipLevel = 0,
         VkImageLayout layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-    ) const;
+    ) const {
+        cmd.use(
+            src,
+            ImageAccess{
+                .layout = layout,
+                .stages = TRANSFER,
+                .access = VK_ACCESS_2_TRANSFER_READ_BIT,
+                .firstMipLevel = mipLevel,
+                .mipLevels = 1,
+            }
+        );
+        cmd.use(*this, BufferAccess{.stages = TRANSFER, .access = VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        cvk::Buffer<T>::copy(cmd, src, dstOffset, mipLevel, layout);
+    }
+
+private:
+    static constexpr VkPipelineStageFlags2 TRANSFER = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 };
 }

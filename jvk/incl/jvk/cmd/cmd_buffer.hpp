@@ -1,6 +1,7 @@
 #pragma once
 #include "jvk/sync/resource_states.hpp"
 
+#include "cvk/base/queue/queue_family.hpp"
 #include "cvk/data/buffer/buffer.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/cmd/cmd_pool.hpp"
@@ -8,46 +9,24 @@
 
 #include <volk.h>
 
-#include <cth/ptr/not_null.hpp>
-
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <memory>
 #include <span>
-#include <type_traits>
-#include <vector>
 
 
 namespace cvk {
+class Core;
 class Image;
-}
-
-namespace jvk {
-class PersistentSecondaryCmdBuffer;
-class PrimaryCmdBuffer;
-class SecondaryCmdBuffer;
-}
-
-namespace jvk::dev {
-class CmdPools;
-
-/**
- * key of the jvk command buffer constructors, only @ref CmdPools constructs it
- */
-class cmd_pools_key {
-    friend class CmdPools;
-
-    constexpr explicit cmd_pools_key() = default;
-};
 }
 
 namespace jvk::dev {
 /**
  * cvk command buffer in its own command pool, with the resource states of its recording
- * @details base of @ref PrimaryCmdBuffer, @ref SecondaryCmdBuffer and @ref PersistentSecondaryCmdBuffer,
- *  owns the pool: one command pool per command buffer,
+ * @details base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer, move only,
+ *  owns the pool: one command pool per command buffer, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+ *  the begin of the derived class resets the pool and the resource states,
  *  its buffer commands record the access of the buffer, then call their cvk::BaseCmdBuffer counterpart,
  *  external Vulkan code: @ref use() the state that the code expects, the code, @ref assume() the state it leaves
  * @tparam Base cvk::PrimaryCmdBuffer or cvk::SecondaryCmdBuffer
@@ -56,6 +35,11 @@ namespace jvk::dev {
 template<class Base>
 class BasicCmdBuffer : public Base {
 public:
+    /**
+     * flags of the own command pool
+     */
+    static constexpr VkCommandPoolCreateFlags POOL_FLAGS = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+
     /**
      * accesses the image now, records the barrier from the tracked state
      * @details e.g. a shader access through a descriptor, also bindless,
@@ -140,7 +124,9 @@ public:
      * @details calls @ref bindIndexBuffer(cvk::BaseBuffer const&, VkIndexType, size_t)
      */
     template<cvk::index_element T>
-    void bindIndexBuffer(cvk::Buffer<T> const&, size_t offset = 0);
+    void bindIndexBuffer(cvk::Buffer<T> const& buffer, size_t offset = 0) {
+        bindIndexBuffer(static_cast<cvk::BaseBuffer const&>(buffer), cvk::index_type<T>, offset);
+    }
 
     /**
      * records the access of the buffer, then draws with its VkDrawIndirectCommands
@@ -180,11 +166,12 @@ public:
 
 protected:
     /**
-     * creates the command buffer in the pool, takes the pool
-     * @pre @ref cvk::CmdPool::created()
+     * creates the own command pool for the queue family, then the command buffer in it
+     * @pre @ref cvk::Core::created()
+     * @throws cvk::vk_result_exception result of vkCreateCommandPool()
      * @throws cvk::vk_result_exception result of vkAllocateCommandBuffers()
      */
-    explicit BasicCmdBuffer(std::unique_ptr<cvk::CmdPool>);
+    BasicCmdBuffer(cvk::Core const&, cvk::queue_family_index_t);
 
     /**
      * frees the command buffer, then destroys its pool
@@ -193,9 +180,12 @@ protected:
     ~BasicCmdBuffer() { this->optDestroy(); }
 
     /**
-     * forgets the resource states of the last recording
+     * resets the pool and forgets the resource states of the last recording, for the begin of a recording
+     * @pre the command buffer is not pending
+     * @post !@ref cvk::BaseCmdBuffer::recording()
+     * @throws cvk::vk_result_exception result of vkResetCommandPool()
      */
-    void clearStates() { _states.clear(); }
+    void reset();
 
     /**
      * appends the resource states of a later recording, records the barriers before its commands
@@ -205,6 +195,16 @@ protected:
     void appendStates(ResourceStates const& next);
 
 private:
+    /**
+     * the pool is constructed before the cvk base, the base gets a reference to it
+     */
+    explicit BasicCmdBuffer(std::unique_ptr<cvk::CmdPool>);
+
+    /**
+     * records the barrier if it is not empty
+     */
+    void record(cvk::Barrier const&) const;
+
     ResourceStates _states{};
 
     // the destructor and the move assignment free the command buffer before they destroy its pool
@@ -224,285 +224,108 @@ extern template class BasicCmdBuffer<cvk::SecondaryCmdBuffer>;
 }
 
 
-namespace jvk::dev {
-/**
- * jvk command buffer for one submit, from a @ref CmdPools, neither copyable nor movable
- * @details base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer,
- *  the pools hand it out begun with VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
- *  it holds its lease until a primary or a submit takes its tasks,
- *  the last of these tasks resets its pool and gives it back to the free list of the pools,
- *  the tasks run once after the gpu finished the submit, the submit of a secondary is the submit of its primary
- * @tparam Base cvk::PrimaryCmdBuffer or cvk::SecondaryCmdBuffer
- * @attention not thread safe: one thread at a time
- */
-template<class Base>
-class TransientCmdBuffer : public BasicCmdBuffer<Base> {
-public:
-    /**
-     * keeps the object until the gpu finished the submit of the command buffer, then destroys it
-     * @details calls @ref add()
-     */
-    template<class T> requires std::constructible_from<std::decay_t<T>, T>
-    void retain(T&& object);
-
-    /**
-     * adds a task that runs once after the gpu finished the submit of the command buffer
-     */
-    void add(std::move_only_function<void()> task);
-
-protected:
-    /**
-     * creates the command buffer in the pool, takes the pool
-     * @param pools to give the command buffer back to
-     * @pre @ref cvk::CmdPool::created()
-     * @throws cvk::vk_result_exception result of vkAllocateCommandBuffers()
-     */
-    TransientCmdBuffer(CmdPools& pools, std::unique_ptr<cvk::CmdPool>);
-
-    /**
-     * forgets the resource states of the last recording, the command buffer holds its lease again
-     * @details @ref CmdPools calls it at the hand out
-     * @pre the command buffer went back to its pools
-     */
-    void lease();
-
-    /**
-     * takes the tasks, appends the task that gives the command buffer back to its pools
-     * @return the tasks, empty -> a primary or a submit took them since the hand out
-     * @pre no thread records into the command buffer
-     * @post the command buffer does not hold its lease
-     */
-    [[nodiscard]] std::vector<std::move_only_function<void()>> extractTasks(this auto& self);
-
-private:
-    std::vector<std::move_only_function<void()>> _tasks{};
-    cth::not_null_ptr<CmdPools> _pools;
-
-    /**
-     * no primary and no submit took the tasks since the hand out
-     */
-    bool _leased = false;
-
-public:
-    TransientCmdBuffer(TransientCmdBuffer const& other) = delete;
-    TransientCmdBuffer(TransientCmdBuffer&& other) = delete;
-    TransientCmdBuffer& operator=(TransientCmdBuffer const& other) = delete;
-    TransientCmdBuffer& operator=(TransientCmdBuffer&& other) = delete;
-};
-}
-
-namespace jvk::dev {
-extern template class TransientCmdBuffer<cvk::PrimaryCmdBuffer>;
-extern template class TransientCmdBuffer<cvk::SecondaryCmdBuffer>;
-}
-
-
 namespace jvk {
+class SecondaryCmdBuffer;
+
 /**
- * transient primary command buffer, neither copyable nor movable
- * @details records with the commands of @ref cvk::PrimaryCmdBuffer,
- *  @ref dev::CmdPools hands it out begun, the stage submits it,
- *  holds its pool until the gpu finished the submit, the submit runs the tasks on a scheduler worker after its fence
+ * primary command buffer in its own command pool, tracks the resource states of its recording, move only
+ * @details records with the commands of @ref cvk::PrimaryCmdBuffer, the tracked commands of
+ *  @ref dev::BasicCmdBuffer record the barriers between the accesses
  * @attention not thread safe: one thread at a time
  */
-class PrimaryCmdBuffer : public dev::TransientCmdBuffer<cvk::PrimaryCmdBuffer> {
+class PrimaryCmdBuffer : public dev::BasicCmdBuffer<cvk::PrimaryCmdBuffer> {
 public:
     /**
-     * creates the command buffer in the pool, only @ref dev::CmdPools constructs it
-     * @pre @ref cvk::CmdPool::created()
+     * creates the own command pool for the queue family, then the command buffer in it
+     * @param queueFamilyIndex of the queues that the command buffer is submitted to
+     * @pre @ref cvk::Core::created()
+     * @throws cvk::vk_result_exception result of vkCreateCommandPool()
      * @throws cvk::vk_result_exception result of vkAllocateCommandBuffers()
      */
-    PrimaryCmdBuffer(dev::cmd_pools_key, dev::CmdPools&, std::unique_ptr<cvk::CmdPool>);
+    PrimaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t queueFamilyIndex);
 
     /**
-     * executes the transient secondaries
-     * @details ends the secondaries that did not end, takes over their tasks with their leases,
+     * resets the pool and the resource states, then begins the recording
+     * @param usage 0 -> submit any number of times,
+     *  VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT -> hint: one submit per recording,
+     *  VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT -> pending several times at once
+     * @pre the command buffer is not pending
+     * @post @ref recording()
+     * @throws cvk::vk_result_exception result of vkResetCommandPool()
+     * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
+     */
+    void begin(VkCommandBufferUsageFlags usage = 0);
+
+    /**
+     * executes the secondaries
+     * @details ends the secondaries that are recording,
      *  appends their resource states in execute order, the barriers of a secondary before its vkCmdExecuteCommands()
-     * @pre no thread records into the secondaries
-     * @pre the secondaries hold their lease: no primary executed them
+     * @pre no pointer is nullptr
+     * @pre no other thread records into the secondaries
      * @pre the preconditions of @ref cvk::PrimaryCmdBuffer::execute()
      * @pre @ref rendering() -> the resource states of the secondaries need no barrier
+     * @throws cvk::vk_result_exception result of vkEndCommandBuffer()
      */
     void execute(std::span<SecondaryCmdBuffer* const>);
 
     /**
-     * executes the transient secondary
+     * executes the secondary
      * @details calls @ref execute(std::span<SecondaryCmdBuffer* const>)
      */
     void execute(SecondaryCmdBuffer&);
-
-    /**
-     * executes the persistent secondaries
-     * @details appends their resource states in execute order, the barriers of a secondary before its
-     *  vkCmdExecuteCommands(), adds a task that runs the tasks of the secondaries after the gpu finished the submit,
-     *  several primaries may execute one secondary at the same time, also on other threads
-     * @pre the secondaries ended their recording
-     * @pre a secondary without VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT: no submit of it is pending,
-     *  no other primary that is not submitted executes it
-     * @pre the preconditions of @ref cvk::PrimaryCmdBuffer::execute()
-     * @pre @ref rendering() -> the resource states of the secondaries need no barrier
-     */
-    void execute(std::span<PersistentSecondaryCmdBuffer const* const>);
-
-    /**
-     * executes the persistent secondary
-     * @details calls @ref execute(std::span<PersistentSecondaryCmdBuffer const* const>)
-     */
-    void execute(PersistentSecondaryCmdBuffer const&);
-
-private:
-    friend class dev::CmdPools;
-
-    /**
-     * begins the recording with VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-     * @details calls @ref cvk::PrimaryCmdBuffer::begin()
-     * @pre !@ref recording()
-     * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
-     */
-    void begin();
-
-public:
-    PrimaryCmdBuffer(PrimaryCmdBuffer const& other) = delete;
-    PrimaryCmdBuffer(PrimaryCmdBuffer&& other) = delete;
-    PrimaryCmdBuffer& operator=(PrimaryCmdBuffer const& other) = delete;
-    PrimaryCmdBuffer& operator=(PrimaryCmdBuffer&& other) = delete;
 };
 }
 
 
 namespace jvk {
 /**
- * transient secondary command buffer, neither copyable nor movable
- * @details @ref dev::CmdPools hands it out begun, for use outside of a rendering or with an inheritance,
- *  the primary that executes it takes over its tasks with its lease,
- *  @ref cvk::BaseCmdBuffer::end() is optional: @ref PrimaryCmdBuffer::execute() ends a secondary that did not end,
- *  no primary executes it -> its stage takes its tasks, see @ref dev::CmdPools::extractTasks(SecondaryCmdBuffer&)
+ * secondary command buffer in its own command pool, tracks the resource states of its recording, move only
+ * @details for use outside of a rendering or with an inheritance,
+ *  @ref cvk::BaseCmdBuffer::end() is optional: @ref PrimaryCmdBuffer::execute() ends a secondary that is recording
  * @attention not thread safe: one thread at a time
  */
-class SecondaryCmdBuffer : public dev::TransientCmdBuffer<cvk::SecondaryCmdBuffer> {
+class SecondaryCmdBuffer : public dev::BasicCmdBuffer<cvk::SecondaryCmdBuffer> {
 public:
+    using Inheritance = cvk::SecondaryCmdBuffer::Inheritance;
+
     /**
-     * creates the command buffer in the pool, only @ref dev::CmdPools constructs it
-     * @pre @ref cvk::CmdPool::created()
+     * creates the own command pool for the queue family, then the command buffer in it
+     * @param queueFamilyIndex of the queues that the primaries are submitted to
+     * @pre @ref cvk::Core::created()
+     * @throws cvk::vk_result_exception result of vkCreateCommandPool()
      * @throws cvk::vk_result_exception result of vkAllocateCommandBuffers()
      */
-    SecondaryCmdBuffer(dev::cmd_pools_key, dev::CmdPools&, std::unique_ptr<cvk::CmdPool>);
-
-private:
-    friend class PrimaryCmdBuffer;
-    friend class dev::CmdPools;
+    SecondaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t queueFamilyIndex);
 
     /**
-     * begins the recording for use outside of a rendering, with VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-     * @details calls @ref cvk::SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags)
-     * @pre !@ref recording()
+     * resets the pool and the resource states, then begins the recording for use outside of a rendering
+     * @param usage see @ref PrimaryCmdBuffer::begin(),
+     *  VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT -> several pending primaries execute it
+     * @pre the command buffer is not pending, no pending primary executes it
+     * @post @ref recording()
+     * @throws cvk::vk_result_exception result of vkResetCommandPool()
      * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
      */
-    void begin();
+    void begin(VkCommandBufferUsageFlags usage = 0);
 
     /**
-     * begins the recording for use inside the rendering of a primary, with VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-     * @details calls @ref cvk::SecondaryCmdBuffer::begin(Inheritance const&, VkCommandBufferUsageFlags)
-     * @pre !@ref recording()
+     * resets the pool and the resource states, then begins the recording for use inside the rendering of a primary
+     * @param usage see @ref begin(VkCommandBufferUsageFlags)
+     * @pre the preconditions of @ref begin(VkCommandBufferUsageFlags)
+     * @pre the preconditions of @ref cvk::SecondaryCmdBuffer::begin(Inheritance const&, VkCommandBufferUsageFlags)
+     * @post @ref recording()
+     * @throws cvk::vk_result_exception result of vkResetCommandPool()
      * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
      */
-    void begin(Inheritance const&);
-
-public:
-    SecondaryCmdBuffer(SecondaryCmdBuffer const& other) = delete;
-    SecondaryCmdBuffer(SecondaryCmdBuffer&& other) = delete;
-    SecondaryCmdBuffer& operator=(SecondaryCmdBuffer const& other) = delete;
-    SecondaryCmdBuffer& operator=(SecondaryCmdBuffer&& other) = delete;
+    void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0);
 };
 }
 
 
 namespace jvk {
 /**
- * secondary command buffer that primaries execute many times, owned by the caller, move only
- * @details recorded once: a stage hands it out begun, for use outside of a rendering or with an inheritance,
- *  holds its own command pool for its lifetime,
- *  the retained objects live as long as the command buffer,
- *  the tasks run after each submit that executes the command buffer,
- *  @ref PrimaryCmdBuffer::execute() requires the end of the recording
- * @attention not thread safe: one thread at a time, the primaries that execute it only read it
- */
-class PersistentSecondaryCmdBuffer : public dev::BasicCmdBuffer<cvk::SecondaryCmdBuffer> {
-public:
-    /**
-     * usage without an override: the primaries of several frames in flight execute the command buffer at the same time
-     */
-    static constexpr VkCommandBufferUsageFlags DEFAULT_USAGE = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-    /**
-     * creates the command buffer in the pool, only @ref dev::CmdPools constructs it
-     * @pre @ref cvk::CmdPool::created()
-     * @throws cvk::vk_result_exception result of vkAllocateCommandBuffers()
-     */
-    PersistentSecondaryCmdBuffer(dev::cmd_pools_key, std::unique_ptr<cvk::CmdPool>);
-
-    /**
-     * destroys the retained objects, frees the command buffer, destroys its pool
-     * @details e.g. move it into @ref PrimaryCmdBuffer::retain() of the last primary that executes it
-     * @pre the gpu finished every submit that executes the command buffer, the same for a move assignment to it
-     */
-    ~PersistentSecondaryCmdBuffer() = default;
-
-    /**
-     * keeps the object as long as the command buffer
-     */
-    template<class T> requires std::constructible_from<std::decay_t<T>, T>
-    void retain(T&& object);
-
-    /**
-     * adds a task that runs after the gpu finished each submit that executes the command buffer
-     * @details the submits share the tasks, the tasks stay valid after the destruction of the command buffer
-     * @pre @ref recording()
-     * @attention runs on several workers at the same time if submits that execute the command buffer finish at the
-     *  same time
-     */
-    void add(std::move_only_function<void() const> task);
-
-private:
-    friend class PrimaryCmdBuffer;
-    friend class dev::CmdPools;
-
-    /**
-     * begins the recording for use outside of a rendering
-     * @details calls @ref cvk::SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags)
-     * @pre !@ref recording()
-     * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
-     */
-    void begin(VkCommandBufferUsageFlags usage);
-
-    /**
-     * begins the recording for use inside the rendering of a primary
-     * @details calls @ref cvk::SecondaryCmdBuffer::begin(Inheritance const&, VkCommandBufferUsageFlags)
-     * @pre !@ref recording()
-     * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
-     */
-    void begin(Inheritance const&, VkCommandBufferUsageFlags usage);
-
-    // never called: their destruction destroys the retained objects
-    std::vector<std::move_only_function<void()>> _retained{};
-
-    // shared with the tasks of the submits that execute the command buffer
-    std::shared_ptr<std::vector<std::move_only_function<void() const>>> _tasks;
-
-public:
-    PersistentSecondaryCmdBuffer(PersistentSecondaryCmdBuffer const& other) = delete;
-    PersistentSecondaryCmdBuffer(PersistentSecondaryCmdBuffer&& other) noexcept = default;
-    PersistentSecondaryCmdBuffer& operator=(PersistentSecondaryCmdBuffer const& other) = delete;
-    PersistentSecondaryCmdBuffer& operator=(PersistentSecondaryCmdBuffer&& other) noexcept = default;
-};
-}
-
-
-namespace jvk {
-/**
- * jvk command buffer: @ref PrimaryCmdBuffer, @ref SecondaryCmdBuffer or @ref PersistentSecondaryCmdBuffer
+ * jvk command buffer: @ref PrimaryCmdBuffer or @ref SecondaryCmdBuffer
  */
 template<class T>
-concept cmd_buffer = std::derived_from<T, PrimaryCmdBuffer> || std::derived_from<T, SecondaryCmdBuffer>
-    || std::derived_from<T, PersistentSecondaryCmdBuffer>;
+concept cmd_buffer = std::derived_from<T, PrimaryCmdBuffer> || std::derived_from<T, SecondaryCmdBuffer>;
 }
