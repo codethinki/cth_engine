@@ -26,10 +26,9 @@ class BaseCmdBuffer;
 class Core;
 
 /**
- * VkImage wrapper, owns the image and its memory
- * @details @ref create() creates both with vmaCreateImage(),
- *  swapchain images are wrapped without memory,
- *  the image holds no layout, the commands take it as a value
+ * VkImage wrapper
+ * @details owns the image and its memory, wrapped images may have no memory
+ * @details holds no layout, the commands take it as a parameter
  */
 class Image {
 public:
@@ -180,7 +179,6 @@ public:
 
 private:
     /**
-     * checks the preconditions that both copy directions share
      * @return region of the whole mip level at the buffer offset
      */
     [[nodiscard]] VkBufferImageCopy2 bufferCopy(
@@ -232,7 +230,7 @@ struct Image::State {
     vk_not_null<VkImage> vkImage;
     VkExtent2D extent;
     /**
-     * std::nullopt -> the image does not own its memory, e.g. swapchain images
+     * std::nullopt -> the image does not own its memory
      */
     std::optional<Memory::State> memory = std::nullopt;
 

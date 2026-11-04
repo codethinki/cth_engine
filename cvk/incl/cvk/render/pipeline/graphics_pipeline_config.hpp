@@ -12,8 +12,9 @@ namespace cvk {
 class Shader;
 
 /**
- * graphics pipeline state, the defaults are the legacy defaults
- * @details @ref GraphicsPipeline::create() sets the pointer and count members of the Vulkan structs from the vectors
+ * config of a @ref GraphicsPipeline
+ * @details defaults: the legacy defaults
+ * @details pointer and count members of the Vulkan structs: @ref GraphicsPipeline::create() sets them from the vectors
  */
 struct GraphicsPipelineConfig {
     /**

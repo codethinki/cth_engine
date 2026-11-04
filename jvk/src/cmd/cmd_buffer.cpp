@@ -262,7 +262,7 @@ void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
 void PrimaryCmdBuffer::execute(std::span<SecondaryCmdBuffer* const> secondaries) {
     for(auto* secondary : secondaries) {
         CTH_CRITICAL(secondary == nullptr, "secondaries must not be nullptr") {}
-        if(secondary->recording()) secondary->end();
+        secondary->optEnd();
     }
 
     for(auto const* secondary : secondaries) {

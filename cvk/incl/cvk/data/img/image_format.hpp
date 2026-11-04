@@ -5,7 +5,7 @@
 namespace cvk {
 /**
  * @return the aspects of the format: depth, stencil, depth and stencil, else color
- * @details multi planar formats -> color, cvk does not support their plane aspects
+ * @details multi planar formats -> color
  */
 [[nodiscard]] constexpr VkImageAspectFlags format_aspects(VkFormat format) {
     switch(format) {

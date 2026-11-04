@@ -10,9 +10,9 @@
 
 namespace cvk {
 /**
- * feature bits of a device, one bool per Vulkan feature
- * @details the fields follow the Vulkan feature structs in order, see @ref dev::feature_structs,
- *  a true bit of an extension struct enables its extension, see @ref dev::extensions_of()
+ * feature bits of a device
+ * @details one bool per Vulkan feature, in the order of @ref dev::feature_structs_t
+ * @details a true bit of an extension struct enables its extension, see @ref dev::extensions_of()
  */
 struct DeviceFeatures {
     // Vulkan 1.0, VkPhysicalDeviceFeatures

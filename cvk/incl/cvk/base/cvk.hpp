@@ -6,10 +6,10 @@ class global_switch;
 
 namespace cvk {
 /**
- * loads the vulkan loader while a Cvk exists, neither copyable nor movable
- * @details reference counted like std::ios_base::Init: every Cvk shares the one loader of the process,
- *  the first Cvk loads it, the last one unloads it, thread safe,
- *  the Cvk outlives every instance
+ * vulkan loader guard
+ * @details the first Cvk loads the loader, the last one unloads it
+ * @details thread safe
+ * @details outlives every instance
  */
 class Cvk {
 public:
@@ -34,7 +34,6 @@ public:
 private:
     /**
      * @return the switch that loads and unloads the loader
-     * @details a function local static: a Cvk at namespace scope in another translation unit finds it constructed
      */
     [[nodiscard]] static cth::co::global_switch& loader();
 

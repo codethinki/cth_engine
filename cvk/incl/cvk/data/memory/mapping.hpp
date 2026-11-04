@@ -10,9 +10,9 @@ namespace cvk {
 class Memory;
 
 /**
- * mapped range of a memory, the destructor unmaps
+ * mapped memory range
+ * @details the destructor unmaps
  * @tparam T element, std::byte for the bytes of a memory
- * @details move constructible, not copyable, not assignable, a moved from mapping does not unmap
  */
 template<class T>
 class Mapping {

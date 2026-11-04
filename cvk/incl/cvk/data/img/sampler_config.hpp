@@ -6,7 +6,8 @@
 
 namespace cvk {
 /**
- * sampler state, defaults: linear filtering, repeat, 16x anisotropy
+ * config of a @ref Sampler
+ * @details defaults: linear filtering, repeat, 16x anisotropy
  */
 struct SamplerConfig {
     VkFilter magFilter = VK_FILTER_LINEAR;

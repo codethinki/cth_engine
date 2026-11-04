@@ -19,9 +19,9 @@ class Instance;
 
 namespace jvk {
 /**
- * cvk core with workers and serialized queues, neither copyable nor movable
- * @details one @ref Queue per vulkan queue, roles with the same vulkan queue share one @ref Queue,
- *  converts to cvk::Core const& for the cvk objects
+ * jvk core
+ * @details owns the cvk core, the workers and the serialized queues
+ * @details roles with the same vulkan queue share one @ref Queue
  */
 class Core {
 public:
@@ -47,9 +47,8 @@ public:
     ~Core();
 
     /**
-     * creates the cvk core, starts the workers, constructs the @ref Queues
-     * @details the cvk core enables @ref cvk::constants::OS_FENCE_DEVICE_EXTENSIONS on top of the config,
-     *  empty @ref cvk::CoreConfig::queueSets -> @ref queue_sets() of @ref cvk::CoreConfig::queueProperties
+     * creates the cvk core, the workers and the queues
+     * @details enables @ref cvk::constants::OS_FENCE_DEVICE_EXTENSIONS in addition to the config
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
@@ -60,8 +59,9 @@ public:
     void create();
 
     /**
-     * waits until every queue is idle, destroys the @ref Queues, stops the workers, destroys the cvk core
-     * @details a failed wait does not stop the teardown
+     * destroys the queues, the workers and the cvk core
+     * @details waits until every queue is idle first
+     * @details a failed wait does not stop the destruction
      * @pre @ref created()
      * @pre the calling thread runs no job of the core
      */
@@ -90,7 +90,7 @@ public:
     }
 
     /**
-     * the cvk core, for the cvk objects
+     * the cvk core
      * @attention cvk::Core::queue() returns the queue without its strand
      */
     constexpr operator cvk::Core const&() const { return _core; }

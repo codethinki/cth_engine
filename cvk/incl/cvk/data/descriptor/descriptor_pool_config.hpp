@@ -13,7 +13,7 @@
 
 namespace cvk {
 /**
- * set count, descriptor counts and flags of a descriptor pool
+ * config of a @ref DescriptorPool
  */
 struct DescriptorPoolConfig {
     /**
@@ -30,9 +30,8 @@ struct DescriptorPoolConfig {
     };
 
     /**
-     * counts the sets and descriptors of the layouts
+     * config with the sets and descriptors of the layouts
      * @param flags update after bind layouts add VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
-     * @details calls @ref add() per entry
      */
     [[nodiscard]] static constexpr DescriptorPoolConfig ForLayouts(
         std::initializer_list<Sets> sets,
@@ -56,8 +55,9 @@ struct DescriptorPoolConfig {
     std::vector<VkDescriptorPoolSize> sizes{};
 
     /**
-     * VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT -> @ref DescriptorSet::destroy() frees the set,
-     *  VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT -> sets of update after bind layouts
+     * flags of the pool
+     * @details VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT -> @ref DescriptorSet::destroy() frees the set
+     * @details VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT -> sets of update after bind layouts
      */
     VkDescriptorPoolCreateFlags flags = 0;
 

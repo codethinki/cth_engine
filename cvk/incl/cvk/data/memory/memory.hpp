@@ -23,9 +23,9 @@ namespace cvk {
 class Core;
 
 /**
- * VmaAllocation wrapper, a range of device memory
- * @details VMA places many allocations in one VkDeviceMemory, @ref info() returns the range
- * @attention calls with one memory are not thread safe
+ * VmaAllocation wrapper
+ * @details a range of a VkDeviceMemory, see @ref info()
+ * @attention not thread safe
  */
 class Memory {
 public:
@@ -69,7 +69,7 @@ public:
 
     /**
      * allocates memory for the requirements
-     * @pre !@ref Config::autoUsage(), VMA_MEMORY_USAGE_AUTO* needs a buffer or an image
+     * @pre !@ref Config::autoUsage()
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vmaAllocateMemory()
@@ -96,12 +96,12 @@ public:
 
     /**
      * maps the range of the memory
+     * @details a map while a @ref Mapping lives returns the same memory
      * @param range in bytes
      * @return the mapped range, its destructor unmaps
      * @pre @ref created()
      * @pre @ref properties() has VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
      * @pre the range lies in the memory
-     * @note VMA counts the maps, a map while a mapping lives returns the same memory
      * @throws cvk::vk_result_exception result of vmaMapMemory()
      */
     [[nodiscard]] Mapping<std::byte> map(Range range = {}) const;
@@ -128,7 +128,6 @@ public:
 
     /**
      * copies the data to the memory
-     * @details maps, copies, flushes and unmaps
      * @param offset in bytes
      * @pre @ref created()
      * @pre @ref properties() has VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT

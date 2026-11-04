@@ -9,7 +9,8 @@
 
 namespace cvk {
 /**
- * exception of cvk, the message starts with "cvk: "
+ * exception of cvk
+ * @details the message starts with "cvk: "
  */
 class cvk_exception : public cth::except::default_exception {
     static constexpr auto PREFIX = "cvk: ";
@@ -32,7 +33,8 @@ public:
 };
 
 /**
- * exception for a vulkan call that did not return VK_SUCCESS
+ * exception of a vulkan call
+ * @details holds the VkResult
  */
 class vk_result_exception : public cvk_exception {
     static constexpr auto SEVERITY = cth::except::ERR;
@@ -90,7 +92,6 @@ private:
  * @param result to add to the exception
  * @param msg format string
  * @details braces and else work like the other CTH_ log macros
- *  a range for loop over a one element init list evaluates the add before the body
  */
 #define CVK_RESULT_STABLE_THROW(expression, result, msg, ...)\
     CVK_VK_STABLE_THROW(expression, msg, __VA_ARGS__) \

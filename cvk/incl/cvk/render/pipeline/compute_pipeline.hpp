@@ -10,7 +10,7 @@ namespace cvk {
 class PipelineLayout;
 
 /**
- * shader stage and flags of a compute pipeline
+ * config of a @ref ComputePipeline
  */
 struct ComputePipelineConfig {
     /**
@@ -19,9 +19,6 @@ struct ComputePipelineConfig {
      */
     VkPipelineShaderStageCreateInfo stage{};
 
-    /**
-     * VK_PIPELINE_CREATE_DISPATCH_BASE_BIT, ...
-     */
     VkPipelineCreateFlags flags = 0;
 };
 

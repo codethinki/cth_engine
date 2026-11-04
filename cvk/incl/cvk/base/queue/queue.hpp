@@ -15,11 +15,9 @@ class Fence;
 
 /**
  * VkQueue of a device
- * @details copyable, copies share the vulkan queue,
- *  the device owns the vulkan queue, a queue has no lifecycle,
- *  a copy stays valid while the VkDevice and its function table exist,
- *  also through a release and wrap of the device with the function table of the state
- * @attention not thread safe: one thread at a time per vulkan queue, Vulkan requires it
+ * @details the device owns the vulkan queue
+ * @details valid while the VkDevice and its function table exist, also through a release and wrap of the device
+ * @attention not thread safe per vulkan queue
  */
 class Queue {
 public:
@@ -42,8 +40,7 @@ public:
     void submit(std::span<SubmitInfo const> infos, Fence const* fence = nullptr) const;
 
     /**
-     * submits the info
-     * @details calls @ref submit(std::span<SubmitInfo const>, Fence const*) const
+     * submits the info, see @ref submit(std::span<SubmitInfo const>, Fence const*) const
      */
     void submit(SubmitInfo const& info, Fence const* fence = nullptr) const { submit({&info, 1}, fence); }
 

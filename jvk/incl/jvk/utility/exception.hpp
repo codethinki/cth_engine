@@ -11,7 +11,8 @@
 
 namespace jvk {
 /**
- * exception of jvk, the message starts with "jvk: "
+ * exception of jvk
+ * @details the message starts with "jvk: "
  */
 class jvk_exception : public cth::except::default_exception {
     static constexpr auto PREFIX = "jvk: ";

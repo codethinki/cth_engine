@@ -83,6 +83,21 @@ CVK_TEST(CmdBuffer, begin_and_end) {
     EXPECT_FALSE(primary.recording());
 }
 
+CVK_TEST(CmdBuffer, opt_end_ends_only_a_recording) {
+    test::Context const context{};
+    CmdPool const pool{context.core, pool_config(context.core), create};
+    PrimaryCmdBuffer primary{pool, create};
+
+    primary.optEnd();
+    EXPECT_FALSE(primary.recording());
+
+    primary.begin();
+    primary.optEnd();
+    EXPECT_FALSE(primary.recording());
+
+    test::submit_and_wait(context, primary);
+}
+
 CVK_TEST(CmdBuffer, submit) {
     test::Context const context{};
     CmdPool const pool{context.core, pool_config(context.core), create};

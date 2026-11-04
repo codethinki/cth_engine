@@ -23,7 +23,8 @@ namespace cvk {
 class Core;
 
 /**
- * VkDescriptorSet wrapper, allocated from its pool with its layout
+ * VkDescriptorSet wrapper
+ * @details allocated from its pool with its layout
  * @details @ref DescriptorPool::reset() frees the set, @ref created() is false after it
  */
 class DescriptorSet {
@@ -56,7 +57,6 @@ public:
 
     /**
      * constructs and creates with the maximum variable count
-     * @details calls @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t, create_t)
      */
     explicit DescriptorSet(DescriptorPool const& pool, DescriptorSetLayout const& layout, create_t) : DescriptorSet{
         pool,
@@ -91,7 +91,7 @@ public:
 
     /**
      * destroys and forgets
-     * @details the pool frees sets -> vkFreeDescriptorSets(), else the memory returns with @ref DescriptorPool::reset()
+     * @details the pool frees no sets -> the memory returns with @ref DescriptorPool::reset()
      * @pre @ref created()
      * @pre the gpu does not use the set
      */
@@ -120,14 +120,12 @@ public:
     void write(std::span<DescriptorWrite const>) const;
 
     /**
-     * writes the descriptors into the set, for a braced list: set.write({{0, ubo}, {1, view, sampler}})
-     * @details calls @ref write(std::span<DescriptorWrite const>) const
+     * writes the descriptors into the set, see @ref write(std::span<DescriptorWrite const>) const
      */
     void write(std::initializer_list<DescriptorWrite> writes) const { write(std::span{writes.begin(), writes.size()}); }
 
     /**
-     * writes one descriptor into the set: set.write({0, ubo})
-     * @details calls @ref write(std::span<DescriptorWrite const>) const
+     * writes one descriptor into the set, see @ref write(std::span<DescriptorWrite const>) const
      */
     void write(DescriptorWrite const& descriptorWrite) const { write(std::span{&descriptorWrite, 1}); }
 

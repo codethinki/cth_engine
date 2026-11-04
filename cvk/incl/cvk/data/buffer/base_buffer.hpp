@@ -24,7 +24,7 @@ class Core;
 class Image;
 
 /**
- * offsets and size of a buffer copy
+ * buffer copy region
  * @details in bytes, in elements for a typed buffer
  */
 struct BufferCopy {
@@ -38,10 +38,9 @@ struct BufferCopy {
 };
 
 /**
- * VkBuffer wrapper, owns the buffer and its memory, sizes in bytes
- * @details @ref create() creates both with vmaCreateBuffer(),
- *  map, flush, invalidate and write forward to the memory,
- *  @ref Buffer adds an element type
+ * VkBuffer wrapper
+ * @details owns the buffer and its memory
+ * @details sizes in bytes
  */
 class BaseBuffer {
 public:
@@ -125,7 +124,7 @@ public:
     /**
      * records a copy from the mip level of the image
      * @param dstOffset in bytes
-     * @details calls @ref Image::copyTo()
+     * @pre the preconditions of @ref Image::copyTo()
      */
     void copy(
         BaseCmdBuffer const&,
@@ -140,7 +139,6 @@ public:
      * @param range in bytes
      * @return the mapped range, its destructor unmaps
      * @pre @ref memory() != nullptr
-     * @details calls @ref Memory::map()
      */
     [[nodiscard]] Mapping<std::byte> map(Range range = {}) const;
 
@@ -148,7 +146,6 @@ public:
      * makes host writes visible to the device
      * @param range in bytes
      * @pre @ref memory() != nullptr, the memory is mapped
-     * @details calls @ref Memory::flush()
      */
     void flush(Range range = {}) const;
 
@@ -156,7 +153,6 @@ public:
      * makes device writes visible to the host
      * @param range in bytes
      * @pre @ref memory() != nullptr, the memory is mapped
-     * @details calls @ref Memory::invalidate()
      */
     void invalidate(Range range = {}) const;
 
@@ -164,7 +160,6 @@ public:
      * copies the data to the buffer
      * @param offset in bytes
      * @pre @ref memory() != nullptr
-     * @details calls @ref Memory::write()
      */
     void write(std::span<std::byte const> data, size_t offset = 0) const;
 

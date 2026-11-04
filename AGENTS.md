@@ -173,7 +173,7 @@ public:
 
 - The first public section holds the API: types, constants, lifecycle, operations, accessors.
 - The last public section holds what every class has and readers rarely need: copy and move members, `debug_check` functions.
-- Classes that own a handle are move only. A class that differs says so in the first line of its doc.
+- Classes that own a handle are move only.
 - The handle lives in `cvk::unique_handle<Handle, Deleter>`: a `std::unique_ptr` whose deleter holds the destroy context and calls the global `cvk::destroy`.
   `cvk/utility/handle/` has the deleters and the short forms (`core_handle<VkX>`).
 - `cvk/utility/handle/destroy.hpp` declares all overloads of `cvk::destroy`, the .cpp of the object defines its overload.
@@ -261,12 +261,22 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 - Fragments win over STE100: where STE100 asks for a full sentence or an article, write the shorter fragment.
 - Use `@ref` for every name of code: `@ref create()`, `@ref Core::created()`.
 - Do not document what the signature already tells. A getter without conditions needs no comment.
+- The brief is the purpose. Side effects the caller must know go to `@details`.
+- `@details` holds one fact per line, starting with its keyword, so a reader can scan for it. No text walls.
+  - one item: inline on the tag line: `@details calls @ref optEnd() on the secondaries`
+  - several items: a label on the tag line, then `- ` items: `@details calls:`
+  - one `@details` per topic
+- A class brief names what it is, in a few words: `primary command buffer`. Its properties go to `@details` as a list: `- owns a command pool`. Copy and move are not documented: the declarations tell it.
+- Do not document what Vulkan does anyway: the barriers that Vulkan forces.
+  Document what the abstraction adds on top of Vulkan in `@details`: `execute()` appends the resource states of the secondaries.
+- Document what the caller needs to call it correctly. Nothing about the inside, no examples unless the meaning is unclear without one.
+- Every `@pre` is clear without the code: name the condition the caller must make true.
 
 ### Tags
 
 | Tag | Use |
 |---|---|
-| `@details` | more information after the brief. `calls:` followed by a list of the functions it calls |
+| `@details` | more information after the brief, one per topic, see the form rules: `@details calls:` followed by `- ` items |
 | `@param` | name, then what it is for: `@param config to use` |
 | `@tparam` | template parameter, same form as `@param` |
 | `@return` | what the result is |

@@ -21,7 +21,6 @@ class Core;
 
 /**
  * VkShaderModule wrapper
- * @details a pipeline does not use the module after its creation
  */
 class Shader {
 public:
@@ -63,11 +62,10 @@ public:
 
     /**
      * constructs, compiles the glsl file, loads and creates
-     * @details for development, release builds compile shaders at build time
-     *  calls:
+     * @details calls:
      * - @ref compile()
      * - @ref Shader(Core const&, VkShaderStageFlagBits, path_t const&)
-     * @note warns in release builds
+     * @note warns in release builds: compile the shaders at build time
      */
     Shader(
         Core const&,
@@ -145,8 +143,7 @@ public:
      * compiles a glsl file to a SPIR-V file
      * @param compilerPath glslc compatible compiler
      * @param flags for the compiler
-     * @details the compiler writes its output to the file spvPath + ".log", the call reads and removes the file,
-     *  compiler output without error -> logged as warning
+     * @details compiler output without error -> logged as warning
      * @throws cvk::cvk_exception reason: glsl file missing, compiler failed, details: compiler output
      */
     static void compile(

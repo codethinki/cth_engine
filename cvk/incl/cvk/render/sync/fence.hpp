@@ -126,30 +126,23 @@ public:
      * waits, then resets if signaled
      * @param timeout in nanoseconds
      * @return VK_SUCCESS -> reset, VK_TIMEOUT -> not reset
-     * @details calls:
-     * - @ref wait(uint64_t) const
-     * - @ref reset()
      */
     [[nodiscard]] VkResult waitReset(uint64_t timeout) const;
 
     /**
      * waits and resets
-     * @details calls:
-     * - @ref wait() const
-     * - @ref reset()
      */
     void waitReset() const;
 
     /**
      * exports the fence as an OS handle, see @ref constants::OS_FENCE_HANDLE_TYPE
-     * @details windows: the fence keeps its state,
-     *  posix: the export resets the fence (sync fd, copy transference), invalid handle -> already signaled
+     * @details windows: the fence keeps its state
+     * @details posix: the export resets the fence, invalid handle -> already signaled
      * @return handle, waitable with cth::os::wait() or a scheduler
      * @pre @ref created() with @ref constants::OS_FENCE_HANDLE_TYPE in the export types
      * @pre the device enables @ref constants::OS_FENCE_DEVICE_EXTENSIONS
      * @pre posix: the fence is signaled or a signal operation is pending
-     * @attention posix: blocks until the pending work reaches the kernel, e.g. a wait before signal on a timeline
-     *  semaphore that the host signals later -> deadlock
+     * @attention posix: blocks until the pending work reaches the kernel, work that waits for the host -> deadlock
      * @throws cvk::vk_result_exception result of vkGetFenceWin32HandleKHR() or vkGetFenceFdKHR()
      */
     [[nodiscard]] cth::os::unique_native_handle extractOsHandle() const;

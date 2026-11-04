@@ -35,9 +35,8 @@ constexpr uint32_t MAX_QUERY_ATTEMPTS = 4;
  * @param what name of the elements for the error message
  * @param fn function pointer: a volk global or a VolkDeviceTable member
  * @param args arguments before the count
- * @details VkResult fn -> repeats both calls while the result is VK_INCOMPLETE,
- *  at most @ref MAX_QUERY_ATTEMPTS rounds,
- *  void fn -> one count and one write call
+ * @details VkResult fn -> repeats both calls while the result is VK_INCOMPLETE, at most @ref MAX_QUERY_ATTEMPTS rounds
+ * @details void fn -> one count and one write call
  * @return the elements, as many as the last call wrote
  * @throws cvk::vk_result_exception result of fn other than VK_SUCCESS or VK_INCOMPLETE
  * @throws cvk::vk_result_exception VK_INCOMPLETE in all @ref MAX_QUERY_ATTEMPTS rounds

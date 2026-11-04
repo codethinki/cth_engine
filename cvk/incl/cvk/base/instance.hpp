@@ -20,7 +20,8 @@
 
 namespace cvk {
 /**
- * VkInstance wrapper, owns the debug messenger
+ * VkInstance wrapper
+ * @details owns the debug messenger
  */
 class Instance {
 public:
@@ -41,7 +42,7 @@ public:
 
     /**
      * settings of the validation layers
-     * @details validate_sync: reports missing and too narrow barriers, semaphores and other dependencies
+     * @details validate_sync: synchronization validation
      */
     static constexpr std::array<VkLayerSettingEXT, 1> VALIDATION_LAYER_SETTINGS{
         VkLayerSettingEXT{
@@ -90,9 +91,11 @@ public:
     void wrap(State);
 
     /**
-     * creates the instance with the extensions of the config, debug builds with the validation layers
-     * @details a messenger config (see @ref Config::debugMessenger) -> enables @ref MESSENGER_EXTENSIONS,
-     *  creates the messenger
+     * creates the instance
+     * @details enables the extensions of the config
+     * @details debug builds: enables the validation layers
+     * @details a messenger config, see @ref Config::debugMessenger -> enables @ref MESSENGER_EXTENSIONS
+     * @details a messenger config -> creates the messenger
      * @pre @ref Cvk::initialized()
      * @post @ref created()
      * @post volk uses the functions of this instance

@@ -46,9 +46,9 @@ template<class T>
 concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copyable<T> && !std::is_pointer_v<T>);
 
 /**
- * VkCommandBuffer wrapper, allocated from its pool, base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer
- * @details the derived classes add the begin of the recording and their commands,
- *  the destructor is protected: delete through the derived class
+ * VkCommandBuffer wrapper
+ * @details allocated from its pool
+ * @details base of @ref PrimaryCmdBuffer and @ref SecondaryCmdBuffer
  */
 class BaseCmdBuffer {
 public:
@@ -99,6 +99,11 @@ public:
     void end();
 
     /**
+     * if @ref recording() -> calls @ref end()
+     */
+    void optEnd() { if(recording()) end(); }
+
+    /**
      * resets the command buffer to the initial state
      * @param flags VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT -> returns the memory to the pool
      * @pre @ref created()
@@ -110,6 +115,8 @@ public:
     /**
      * begins a dynamic rendering
      * @details std::nullopt @ref RenderingInfo::area -> the extent that fits every attachment
+     * @details inline contents -> sets viewport 0 and scissor 0 to the area, depth 0 to 1
+     * @details a mapping other than the default -> sets it after the begin
      * @pre @ref recording(), outside of a rendering
      * @pre the attachment views are created and have one mip level
      * @pre the attachment layouts are the layouts of the views
@@ -117,8 +124,6 @@ public:
      * @pre color attachments have color formats, the depth and stencil attachments depth and stencil formats
      * @pre @ref AttachmentMapping::debug_check() passes for the color attachments
      * @post @ref rendering() is the info with the area
-     * @note inline contents -> sets viewport 0 and scissor 0 to the area, depth 0 to 1
-     * @note a mapping other than the default -> sets it after the begin
      */
     void beginRendering(RenderingInfo const&);
 
@@ -130,7 +135,6 @@ public:
 
     /**
      * maps the attachments of the rendering to the fragment shader outputs and input attachments
-     * @details the mapping holds until the next call or the end of the rendering
      * @pre @ref rendering()
      * @pre @ref AttachmentMapping::debug_check() passes for the color attachments of the rendering
      * @post @ref rendering() has the mapping
@@ -152,9 +156,9 @@ public:
     /**
      * binds the pipeline to the graphics bind point
      * @details @ref rendering() -> sets the attachment mapping of the pipeline if the current one differs
+     * @details outside of a rendering -> sets no attachment mapping
      * @pre @ref recording(), @ref GraphicsPipeline::created()
      * @pre a secondary inside the rendering of a primary -> the attachment mapping of the pipeline == the inherited one
-     * @note outside of a rendering: sets no attachment mapping, the draws need the default of @ref beginRendering()
      */
     void bindPipeline(GraphicsPipeline const&);
 
@@ -214,9 +218,8 @@ public:
     void bindIndexBuffer(BaseBuffer const&, VkIndexType, size_t offset = 0) const;
 
     /**
-     * binds the index buffer, the index type follows from T
+     * binds the index buffer with the index type of T
      * @param offset in bytes
-     * @details calls @ref bindIndexBuffer(BaseBuffer const&, VkIndexType, size_t)
      */
     template<index_element T>
     void bindIndexBuffer(Buffer<T> const& buffer, size_t offset = 0) const {
@@ -294,7 +297,7 @@ public:
     [[nodiscard]] constexpr VkCommandBufferLevel level() const { return _level; }
 
     /**
-     * @return recording, a reset of the pool ends it, a moved from command buffer does not record
+     * @return recording, a reset of the pool ends it
      */
     [[nodiscard]] constexpr bool recording() const {
         return created() && _recording && _beginResets == pool().resets();
@@ -407,7 +410,7 @@ namespace cvk {
 class SecondaryCmdBuffer;
 
 /**
- * primary command buffer, queues submit it
+ * primary command buffer
  */
 class PrimaryCmdBuffer : public BaseCmdBuffer {
 public:
@@ -435,7 +438,6 @@ public:
 
     /**
      * begins the recording
-     * @param usage VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, ...
      * @pre @ref created()
      * @pre !@ref recording()
      * @post @ref recording()
@@ -461,22 +463,21 @@ public:
     void execute(std::span<SecondaryCmdBuffer const* const> secondaries) const;
 
     /**
-     * records the secondary command buffers of a braced list: execute({&a, &b})
-     * @details calls @ref execute(std::span<SecondaryCmdBuffer const* const>) const,
-     *  without this overload {&a, &b} binds to std::span<SecondaryCmdBuffer const> as iterator pair -> records [&a, &b)
+     * records the secondary command buffers of a braced list
      */
     void execute(std::initializer_list<SecondaryCmdBuffer const*> secondaries) const;
 
     /**
      * records the secondary command buffer
-     * @details calls @ref execute(std::span<SecondaryCmdBuffer const>) const
      */
     void execute(SecondaryCmdBuffer const& secondary) const;
 
     /**
      * what a secondary inherits from the rendering
-     * @details the formats and samples of the attachments, the flags without
-     *  VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT, the current attachment mapping
+     * @details inherits:
+     * - the formats and samples of the attachments
+     * - the flags without VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
+     * - the current attachment mapping
      * @pre @ref rendering()
      */
     [[nodiscard]] RenderingInheritance inheritance() const;
@@ -494,7 +495,7 @@ private:
 
 namespace cvk {
 /**
- * secondary command buffer, primary command buffers execute it
+ * secondary command buffer
  */
 class SecondaryCmdBuffer : public BaseCmdBuffer {
 public:
@@ -524,7 +525,6 @@ public:
 
     /**
      * begins the recording for use outside of a rendering
-     * @param usage VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, ...
      * @pre @ref created()
      * @pre !@ref recording()
      * @post @ref recording()
@@ -534,12 +534,11 @@ public:
 
     /**
      * begins the recording for use inside the rendering of a primary
-     * @param usage VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, ...
+     * @details adds VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT
      * @pre @ref created()
      * @pre !@ref recording()
      * @pre @ref AttachmentMapping::debug_check() passes for the color formats
      * @post @ref recording()
-     * @note adds VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT
      * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
      */
     void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0);

@@ -7,9 +7,8 @@
 
 namespace cvk {
 /**
- * timeline VkSemaphore with a host counter
- * @details the counter is the last value that @ref next() or @ref signal() gave out,
- *  private base: a timeline semaphore must not pass as a binary @ref Semaphore
+ * timeline VkSemaphore wrapper
+ * @details host counter: the last value that @ref next() or @ref signal() gave out
  * @attention not thread safe: @ref next() and @ref signal() change the counter
  */
 class TimelineSemaphore : Semaphore {
@@ -95,15 +94,13 @@ public:
 
     /**
      * blocks until the semaphore reaches @ref value()
-     * @details calls @ref wait(uint64_t) const
      */
     void wait() const { wait(_value); }
 
     /**
      * advances the counter
      * @return value for the next signal operation
-     * @attention signal the values in counter order: one queue keeps the order,
-     *  two queues need a wait between their submits
+     * @attention signal the values in counter order: two queues need a wait between their submits
      */
     [[nodiscard]] constexpr uint64_t next() const { return ++_value; }
 

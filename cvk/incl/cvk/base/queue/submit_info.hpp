@@ -15,8 +15,8 @@ class Semaphore;
 class TimelineSemaphore;
 
 /**
- * semaphore of a submit, binary or timeline
- * @details the constructor decides the kind
+ * semaphore of a submit
+ * @details binary or timeline, the constructor decides
  */
 struct SemaphoreSubmitInfo {
     /**

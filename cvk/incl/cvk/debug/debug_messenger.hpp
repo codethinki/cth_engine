@@ -15,7 +15,7 @@ class Instance;
 
 /**
  * writes the message to cth::log
- * @return VK_FALSE, the call that caused the message continues
+ * @return VK_FALSE
  */
 VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT,

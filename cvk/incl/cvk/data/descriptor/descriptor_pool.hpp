@@ -19,7 +19,8 @@ namespace cvk {
 class Core;
 
 /**
- * VkDescriptorPool wrapper, counts its descriptor sets and its resets
+ * VkDescriptorPool wrapper
+ * @details counts its descriptor sets and its resets
  * @details the sets allocate themselves, see @ref DescriptorSet::create()
  */
 class DescriptorPool {
@@ -100,15 +101,13 @@ public:
 
     /**
      * counts a set of the pool
-     * @details @ref DescriptorSet::create() and @ref DescriptorSet::wrap() call it,
-     *  code that keeps a released set of the pool may call it too
+     * @details for a released set that the caller keeps, the sets count themselves
      */
     void add() const;
 
     /**
      * stops to count a set of the pool
-     * @details @ref DescriptorSet::destroy() and @ref DescriptorSet::release() call it,
-     *  code that frees a counted set itself calls it too
+     * @details for a counted set that the caller frees, the sets count themselves
      * @pre !@ref unused()
      */
     void remove() const;

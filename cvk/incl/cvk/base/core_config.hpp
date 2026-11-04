@@ -23,10 +23,10 @@ struct CoreConfig {
     std::vector<QueueFamilyProperties> queueProperties;
 
     /**
-     * groups of queues, the first possible set is used, a group shares one vulkan queue
-     * @details each root is a group, the properties of a group are combined,
-     *  groups go to different queue families where possible
-     * @note empty -> every queue is a group, same as {0, ..., N - 1}
+     * groups of queues, the first possible set is used
+     * @details each root is a group, a group shares one vulkan queue
+     * @details groups go to different queue families where possible
+     * @details empty -> every queue is a group
      */
     std::vector<queue_set_t> queueSets{};
 

@@ -9,9 +9,8 @@
 
 namespace cvk {
 /**
- * deleter of instance objects, context: the VkInstance
- * @details calls @ref cvk::destroy(vkInstance, handle),
- *  stores the handle, not the Instance: the instance owns its messenger and can move
+ * deleter of instance objects
+ * @details context: the VkInstance, not the Instance
  */
 class instance_deleter {
 public:
@@ -27,7 +26,7 @@ private:
 };
 
 /**
- * @ref unique_handle of an instance object, the deleter stores the VkInstance
+ * @ref unique_handle of an instance object
  * @tparam Handle with an overload @ref cvk::destroy(vk_not_null<VkInstance>, Handle)
  */
 template<class Handle>

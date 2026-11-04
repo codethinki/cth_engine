@@ -35,7 +35,9 @@ inline constexpr size_t FEATURE_STRUCTS = std::tuple_size_v<feature_structs_t>;
 
 /**
  * sType, VkBool32 flags and extension of a feature struct
- * @details OFFSET: byte offset of the first flag, COUNT: flags, EXTENSION: empty -> core struct
+ * @details OFFSET: byte offset of the first flag
+ * @details COUNT: flags
+ * @details EXTENSION: empty -> core struct
  */
 template<class T>
 struct feature_struct;
@@ -136,7 +138,7 @@ static_assert(alignof(DeviceFeatures) == 1, "DeviceFeatures must have bool field
 }
 
 /**
- * the feature structs as one pNext chain for Vulkan, not copyable, not movable: the chain points into the object
+ * pNext chain of the feature structs
  * @details an extension struct is in the chain only with its extension
  */
 class FeatureChain {

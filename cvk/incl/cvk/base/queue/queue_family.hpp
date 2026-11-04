@@ -23,8 +23,7 @@ namespace cvk {
 /**
  * @param presentSupport the family presents to the surfaces
  * @return the properties of a queue family with the flags
- * @details graphics or compute -> transfer, also without VK_QUEUE_TRANSFER_BIT:
- *  Vulkan lets graphics and compute families leave the bit out
+ * @details graphics or compute -> transfer, also without VK_QUEUE_TRANSFER_BIT
  */
 constexpr QueueFamilyProperties to_queue_properties(VkQueueFlags flags, bool presentSupport) {
     constexpr VkQueueFlags transfer = VK_QUEUE_TRANSFER_BIT | VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;

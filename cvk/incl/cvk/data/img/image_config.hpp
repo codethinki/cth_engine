@@ -14,7 +14,7 @@
 
 namespace cvk {
 /**
- * 2D image: format, usage, mip levels, layers, who uses it and where its memory lives
+ * config of a 2D @ref Image
  */
 struct ImageConfig {
     /**
@@ -33,9 +33,6 @@ struct ImageConfig {
      */
     VkImageUsageFlags usage = 0;
 
-    /**
-     * cube compatible, mutable format, sparse, ...
-     */
     VkImageCreateFlags flags = 0;
 
     VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -84,8 +81,8 @@ struct ImageConfig {
 
     /**
      * sampled cube map, the six faces are the layers
-     * @param mipLevels > 1 -> transfer src usage for @ref Image::blitMipLevels()
      * @details the faces: +x, -x, +y, -y, +z, -z
+     * @param mipLevels > 1 -> transfer src usage for @ref Image::blitMipLevels()
      */
     [[nodiscard]] static constexpr ImageConfig CubeMap(VkFormat format, uint32_t mipLevels = 1) {
         return ImageConfig{

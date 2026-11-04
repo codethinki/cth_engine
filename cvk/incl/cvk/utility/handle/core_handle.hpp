@@ -28,9 +28,9 @@ namespace dev {
 }
 
 /**
- * deleter of the objects of a core, context: the core
- * @details calls @ref cvk::destroy() with the context of the core that fits the handle:
- *  core.deviceTable() or core.allocator().get()
+ * deleter of the objects of a core
+ * @details context: the core
+ * @details calls @ref cvk::destroy() with the device table or the allocator of the core, the one that fits the handle
  * @pre the core outlives the deleter
  */
 class core_deleter {
@@ -50,7 +50,7 @@ private:
 };
 
 /**
- * @ref unique_handle of an object of a core, the deleter stores the core
+ * @ref unique_handle of an object of a core
  * @tparam Handle with an overload @ref cvk::destroy(DeviceTable, Handle) or @ref cvk::destroy(VmaAllocator, Handle)
  */
 template<class Handle>

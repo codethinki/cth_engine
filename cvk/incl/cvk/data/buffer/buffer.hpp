@@ -16,7 +16,7 @@
 
 namespace cvk {
 /**
- * T is an index type of Vulkan 1.3 (VK_INDEX_TYPE_UINT8 needs an extension)
+ * T is an index type of Vulkan 1.3
  */
 template<class T>
 concept index_element = std::same_as<T, uint16_t> || std::same_as<T, uint32_t>;
@@ -28,9 +28,10 @@ template<index_element T>
 constexpr VkIndexType index_type = std::same_as<T, uint16_t> ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 
 /**
- * @ref BaseBuffer with an element type, sizes and offsets in elements
- * @tparam T element, the gpu copies it byte by byte
- * @details adds no members: a @ref BaseBuffer reference to it sees the same buffer in bytes
+ * typed buffer
+ * @details sizes and offsets in elements
+ * @details a @ref BaseBuffer reference sees the same buffer in bytes
+ * @tparam T element
  */
 template<cth::mta::trivially_copyable T>
 class Buffer : public BaseBuffer {
@@ -60,7 +61,6 @@ public:
     /**
      * wraps the state
      * @pre @ref State::size is a multiple of sizeof(T)
-     * @details calls @ref BaseBuffer::wrap()
      */
     void wrap(State const& state) {
         CTH_CRITICAL(state.size % sizeof(T) != 0, "size must be a multiple of the element size") {}
@@ -70,7 +70,6 @@ public:
     /**
      * creates the buffer and its memory
      * @param count of elements
-     * @details calls @ref BaseBuffer::create()
      */
     void create(size_t count) { BaseBuffer::create(count * sizeof(T)); }
 
@@ -78,28 +77,24 @@ public:
      * maps the range of the memory as elements
      * @param range in elements
      * @return the mapped elements, the destructor unmaps
-     * @details calls @ref BaseBuffer::map()
      */
     [[nodiscard]] Mapping<T> map(Range range = {}) const { return BaseBuffer::map(bytes(range)).template as<T>(); }
 
     /**
      * makes host writes visible to the device
      * @param range in elements
-     * @details calls @ref BaseBuffer::flush()
      */
     void flush(Range range = {}) const { BaseBuffer::flush(bytes(range)); }
 
     /**
      * makes device writes visible to the host
      * @param range in elements
-     * @details calls @ref BaseBuffer::invalidate()
      */
     void invalidate(Range range = {}) const { BaseBuffer::invalidate(bytes(range)); }
 
     /**
      * copies the data to the buffer
      * @param offset in elements
-     * @details calls @ref BaseBuffer::write()
      */
     void write(std::span<T const> data, size_t offset = 0) const {
         BaseBuffer::write(std::as_bytes(data), offset * sizeof(T));
@@ -108,7 +103,6 @@ public:
     /**
      * records a copy from the source buffer
      * @param region in elements
-     * @details calls @ref BaseBuffer::copy()
      */
     void copy(BaseCmdBuffer const& cmdBuffer, Buffer const& src, BufferCopy region = {}) const {
         BaseBuffer::copy(
@@ -125,7 +119,6 @@ public:
     /**
      * records a copy from the mip level of the image
      * @param dstOffset in elements
-     * @details calls @ref BaseBuffer::copy(BaseCmdBuffer const&, Image const&, size_t, uint32_t, VkImageLayout) const
      */
     void copy(
         BaseCmdBuffer const& cmdBuffer,

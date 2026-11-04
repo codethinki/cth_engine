@@ -29,10 +29,9 @@ class Core;
 class Surface;
 
 /**
- * VkSwapchainKHR wrapper, owns its images, their views, a present semaphore and a present fence per image
- * @details the images are wrapped without memory and released before the swapchain is destroyed,
- *  @ref resize() and @ref recreate() retire the old swapchain,
- *  the swapchain destroys it once its present fences signal
+ * VkSwapchainKHR wrapper
+ * @details owns its images, their views, a present semaphore and a present fence per image
+ * @details retired swapchains: destroyed once their present fences signal, see @ref resize() and @ref recreate()
  * @attention not thread safe
  */
 class Swapchain {
@@ -108,10 +107,9 @@ public:
     /**
      * creates a new swapchain with the old one as oldSwapchain, the old one retires
      * @param extent of the window, a fixed currentExtent of the surface wins
-     * @details keeps the format and the present mode, queries the surface capabilities again,
-     *  unacquires the images that are still acquired,
-     *  the swapchain destroys the retired one once its present fences signal,
-     *  a format or present mode change needs @ref recreate()
+     * @details keeps the format and the present mode, a change needs @ref recreate()
+     * @details queries the surface capabilities again
+     * @details unacquires the images that are still acquired
      * @pre @ref created()
      * @pre extent width and height > 0
      * @pre the surface still supports the format and the present mode of the swapchain
@@ -121,7 +119,7 @@ public:
     void resize(VkExtent2D extent);
 
     /**
-     * applies the config, e.g. another present mode, retires the old swapchain like @ref resize()
+     * applies the config, retires the old swapchain like @ref resize()
      * @param extent of the window, a fixed currentExtent of the surface wins
      * @details picks the format and the present mode of the config again, see @ref create()
      * @pre @ref created()
@@ -135,7 +133,7 @@ public:
 
     /**
      * waits for the present fences, destroys the swapchain and forgets
-     * @details releases the images, destroys the views, present semaphores, present fences and retired swapchains
+     * @details destroys the views, present semaphores, present fences and retired swapchains
      * @pre @ref created()
      * @pre no present semaphore is signaled without its present
      */
@@ -148,7 +146,7 @@ public:
 
     /**
      * waits for the present fences, releases ownership, returns the state and forgets
-     * @details releases the images, destroys the views, present semaphores, present fences and retired swapchains
+     * @details destroys the views, present semaphores, present fences and retired swapchains
      * @pre @ref created()
      * @pre no present semaphore is signaled without its present
      */
@@ -168,8 +166,8 @@ public:
     /**
      * presents the image once its present semaphore signals
      * @return VK_SUCCESS, VK_SUBOPTIMAL_KHR or VK_ERROR_OUT_OF_DATE_KHR
-     * @details VK_ERROR_OUT_OF_DATE_KHR -> the present still waits for the semaphore,
-     *  destroys the retired swapchains with signaled present fences
+     * @details VK_ERROR_OUT_OF_DATE_KHR -> the present still waits for the semaphore
+     * @details destroys the retired swapchains with signaled present fences
      * @pre the image is acquired
      * @pre a submit signals @ref presentSemaphore() of the image
      * @throws cvk::vk_result_exception other result of vkQueuePresentKHR()
@@ -244,10 +242,7 @@ public:
 private:
     /**
      * one VkSwapchainKHR with its images, views, present semaphores, present fences and acquire states
-     * @details the destructor waits for the present fences and releases the images,
-     *  then the members destroy in reverse order: the swapchain last,
-     *  a moved from generation is empty, its destructor does nothing,
-     *  no move assignment: a member wise one destroys the images without the wait and the release
+     * @details the destructor waits for the present fences and releases the images, the swapchain destroys last
      */
     struct Generation {
         explicit Generation(core_handle<VkSwapchainKHR> swapchain) : handle{std::move(swapchain)} {}

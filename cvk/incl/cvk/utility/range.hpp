@@ -6,7 +6,7 @@
 
 namespace cvk {
 /**
- * offset and size of a part of a buffer or a memory
+ * range of a buffer or a memory
  * @details in bytes, in elements for a typed buffer
  */
 struct Range {

@@ -16,8 +16,9 @@ namespace cvk {
 class ImageView;
 
 /**
- * maps the attachments of a rendering to the fragment shader outputs and input attachments
- * @details a draw requires the same mapping in the bound pipeline and in the command buffer
+ * attachment mapping of a rendering
+ * @details maps the attachments to the fragment shader outputs and input attachments
+ * @details a draw needs the same mapping in the bound pipeline and in the command buffer
  */
 struct AttachmentMapping {
     /**
@@ -84,7 +85,7 @@ struct AttachmentMapping {
 };
 
 /**
- * formats, samples, view mask, flags and attachment mapping of a rendering, what a secondary inherits from it
+ * what a secondary inherits from a rendering
  */
 struct RenderingInheritance {
     std::vector<VkFormat> colorFormats{};
@@ -157,7 +158,7 @@ struct RenderingAttachment {
 };
 
 /**
- * attachments, area, flags and attachment mapping of a dynamic rendering
+ * dynamic rendering info
  */
 struct RenderingInfo {
     std::vector<RenderingAttachment> colorAttachments{};

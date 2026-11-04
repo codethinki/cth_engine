@@ -6,7 +6,7 @@
 
 namespace cvk {
 /**
- * queue family and flags of a command pool
+ * config of a @ref CmdPool
  */
 struct CmdPoolConfig {
     static constexpr VkCommandPoolCreateFlags DEFAULT_FLAGS = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT

@@ -6,7 +6,7 @@
 
 namespace jvk {
 /**
- * cvk core, workers and queue workers of a @ref Core
+ * config of a @ref Core
  */
 struct CoreConfig {
     /**

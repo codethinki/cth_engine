@@ -16,10 +16,9 @@ class Core;
 class PipelineLayout;
 
 /**
- * VkPipeline wrapper, base of @ref GraphicsPipeline and @ref ComputePipeline
- * @details the derived classes build the create info, the base creates the pipeline,
- *  the layout is a parent of the pipeline: it outlives the pipeline,
- *  the destructor is protected: delete through the derived class
+ * VkPipeline wrapper
+ * @details base of @ref GraphicsPipeline and @ref ComputePipeline
+ * @details the layout outlives the pipeline
  */
 class BasePipeline {
 public:
@@ -59,7 +58,7 @@ public:
 
 protected:
     /**
-     * base constructor, keeps the layout, the core comes from the layout
+     * base constructor, keeps the layout
      * @pre @ref Core::created() of the layout
      */
     BasePipeline(PipelineLayout const&, VkPipelineBindPoint);

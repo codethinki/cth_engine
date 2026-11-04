@@ -15,10 +15,11 @@ class ImageView;
 class Sampler;
 
 /**
- * one descriptor of one binding, the constructor decides the kind
- * @details the binding type in the layout of the set decides the descriptor type and the default image layout:
- *  storage image -> VK_IMAGE_LAYOUT_GENERAL, input attachment -> VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
- *  else VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+ * descriptor write
+ * @details one descriptor of one binding, the constructor decides the kind
+ * @details the binding type decides the descriptor type and the default image layout
+ * @details default layout: storage image -> VK_IMAGE_LAYOUT_GENERAL,
+ *  input attachment -> VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, else VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
  */
 class DescriptorWrite {
 public:

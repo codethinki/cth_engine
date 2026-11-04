@@ -5,11 +5,11 @@
 
 namespace cvk {
 /**
- * what the memory is for, VMA picks the memory type from it
+ * config of a @ref Memory
  */
 struct MemoryConfig {
     /**
-     * VMA_ALLOCATION_CREATE_* flags, e.g. host access, mapped, dedicated memory
+     * VMA_ALLOCATION_CREATE_* flags
      */
     VmaAllocationCreateFlags flags = 0;
 

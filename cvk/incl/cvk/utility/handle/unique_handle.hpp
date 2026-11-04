@@ -13,7 +13,7 @@
 
 namespace cvk {
 /**
- * deleter without context, calls @ref cvk::destroy(handle)
+ * deleter without context
  */
 struct handle_deleter {
     template<class Handle>
@@ -21,14 +21,12 @@ struct handle_deleter {
 };
 
 /**
- * owning Vulkan handle, std::unique_ptr with a deleter that holds the destroy context
+ * owning Vulkan handle
+ * @details a std::unique_ptr whose deleter holds the destroy context
+ * @details the constructors and reset() take the context with the handle
+ * @details move assignment destroys the old handle with the old context
  * @tparam Handle Vulkan handle, or Deleter::pointer for handles that are not pointers
- * @tparam Deleter @ref core_deleter, @ref instance_deleter, @ref handle_deleter,
- *  a deleter derived from them or one of its own
- * @details a handle comes only together with its context: the constructors and reset() construct the deleter,
- *  a missing context argument does not compile,
- *  move assignment destroys the old handle with the old context, then takes handle and context,
- *  the size is the size of the handle plus the size of the context
+ * @tparam Deleter @ref core_deleter, @ref instance_deleter, @ref handle_deleter or one of its own
  */
 template<class Handle, class Deleter>
 class unique_handle {

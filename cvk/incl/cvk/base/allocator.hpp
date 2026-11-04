@@ -14,10 +14,9 @@ namespace cvk {
 class Device;
 
 /**
- * VmaAllocator wrapper, allocates the memory of one device
- * @details VMA places many allocations in one VkDeviceMemory,
- *  one allocator per device is enough,
- *  calls with the allocator are thread safe, VMA synchronizes them
+ * VmaAllocator wrapper
+ * @details allocates the memory of one device
+ * @details thread safe
  */
 class Allocator {
 public:
@@ -60,7 +59,7 @@ public:
 
     /**
      * creates the allocator
-     * @details the flags follow the enabled features and extensions of the device: @ref flags()
+     * @details the flags follow the enabled features and extensions of the device, see @ref flags()
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::vk_result_exception result of vmaImportVulkanFunctionsFromVolk()
@@ -87,8 +86,7 @@ public:
     State release();
 
     /**
-     * @return VMA flags for the enabled features and extensions of the device
-     * @details bufferDeviceAddress, maintenance4, VK_EXT_memory_budget
+     * @return VMA flags for bufferDeviceAddress, maintenance4 and VK_EXT_memory_budget of the device
      */
     [[nodiscard]] static VmaAllocatorCreateFlags flags(Device const&);
 

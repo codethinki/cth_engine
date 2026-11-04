@@ -22,8 +22,9 @@ class Surface;
 using device_uuid_t = std::array<uint8_t, VK_UUID_SIZE>;
 
 /**
- * VkPhysicalDevice with its queried extensions, features, properties and queue families
- * @details copyable, the instance owns the physical device
+ * VkPhysicalDevice wrapper
+ * @details holds the queried extensions, features, properties and queue families
+ * @details the instance owns the physical device
  */
 class PhysicalDevice {
 public:
@@ -109,7 +110,8 @@ public:
 };
 
 /**
- * physical device for the requested queues, with the family index of each queue
+ * physical device pick
+ * @details the family index of each requested queue
  */
 struct PhysicalDevicePick {
     PhysicalDevice device;

@@ -31,7 +31,8 @@ struct ImageState {
 };
 
 /**
- * access of a command to the mip levels of an image, all layers and aspects
+ * image access of a command
+ * @details all layers and aspects of the mip levels
  */
 struct ImageAccess {
     VkImageLayout layout;
@@ -48,14 +49,14 @@ struct ImageAccess {
 
     //TODO review
     /**
-     * barrier from VK_IMAGE_LAYOUT_UNDEFINED
+     * the access does not need the previous contents
      * @attention all layers and aspects of the mip levels lose their contents
      */
     bool discard = false;
 };
 
 /**
- * state of a whole buffer after an access
+ * state of a buffer after an access
  */
 struct BufferState {
     /**
@@ -65,7 +66,8 @@ struct BufferState {
 };
 
 /**
- * access of a command to a whole buffer
+ * buffer access of a command
+ * @details the whole buffer
  */
 struct BufferAccess {
     VkPipelineStageFlags2 stages;
@@ -73,30 +75,32 @@ struct BufferAccess {
 };
 
 /**
- * first and last state of the images and buffers in one recording, the barriers between the accesses
- * @details one state per (image, mip level) for all layers and aspects, one per buffer
- * @attention not thread safe, keeps pointers: the images and buffers do not move
+ * resource state tracker of one recording
+ * @details one state per (image, mip level), for all layers and aspects
+ * @details one state per buffer
+ * @attention not thread safe
+ * @attention keeps pointers: the images and buffers do not move
  * @attention call @ref erase() before an image or buffer is destroyed
  */
 class ResourceStates {
 public:
     /**
-     * records the access of the mip levels, appends the barriers from their last states
-     * @details no state -> first use, read after read in the same layout -> no barrier
-     * @param barrier record it before the command of the access
+     * records the access of the mip levels
+     * @details no state -> first use without a barrier
+     * @param barrier gets the barriers, record it before the command of the access
      * @pre the mip range lies in the image
      */
     void access(cvk::Image const&, ImageAccess const&, cvk::Barrier& barrier);
 
     /**
-     * records the access of the buffer, appends the barrier from its last state
-     * @details no state -> first use, read after read -> no barrier
-     * @param barrier record it before the command of the access
+     * records the access of the buffer
+     * @details no state -> first use without a barrier
+     * @param barrier gets the barrier, record it before the command of the access
      */
     void access(cvk::BaseBuffer const&, BufferAccess const&, cvk::Barrier& barrier);
 
     /**
-     * sets the last state of the mip levels without a barrier
+     * sets the last state of the mip levels after untracked code, without a barrier
      * @details no state -> no first use
      * @param state unknown -> VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT
      * @pre the mip range lies in the image
@@ -109,15 +113,15 @@ public:
     );
 
     /**
-     * sets the last state of the buffer without a barrier
+     * sets the last state of the buffer after untracked code, without a barrier
      * @details no state -> no first use
      * @param state unknown -> VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT
      */
     void assume(cvk::BaseBuffer const&, BufferState const& state);
 
     /**
-     * appends the states of a later recording, appends the barriers for its first uses
-     * @param barrier record it before the commands of next
+     * appends the states of a later recording
+     * @param barrier gets the barriers, record it before the commands of next
      */
     void append(ResourceStates const& next, cvk::Barrier& barrier);
 

@@ -8,8 +8,8 @@
 
 namespace cvk {
 /**
- * queues, features and extensions of a device
- * @details cvk needs @ref constants::BASE_DEVICE_FEATURES, @ref Core adds them
+ * config of a @ref Device
+ * @details @ref Core adds @ref constants::BASE_DEVICE_FEATURES
  */
 struct DeviceConfig {
     /**

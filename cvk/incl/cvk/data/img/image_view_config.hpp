@@ -4,7 +4,7 @@
 
 namespace cvk {
 /**
- * type, mip range, layer range and aspect of an image view
+ * config of an @ref ImageView
  */
 struct ImageViewConfig {
     /**

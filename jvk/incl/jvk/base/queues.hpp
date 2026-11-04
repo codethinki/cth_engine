@@ -14,14 +14,15 @@ class Core;
 
 namespace jvk {
 /**
- * serialized queues of a cvk core on an own scheduler, neither copyable nor movable
- * @details one @ref Queue per vulkan queue of the roles, roles with the same vulkan queue share one @ref Queue,
- *  a @ref Queue keeps its address
+ * serialized queues of a cvk core
+ * @details run on an own scheduler
+ * @details roles with the same vulkan queue share one @ref Queue
+ * @details a @ref Queue keeps its address
  */
 class Queues {
 public:
     /**
-     * starts the scheduler, constructs one @ref Queue per vulkan queue of the roles
+     * constructs the queues of the roles and starts their scheduler
      * @param workers threads of the scheduler, 0 -> one per vulkan queue
      * @pre @ref cvk::Core::created()
      */

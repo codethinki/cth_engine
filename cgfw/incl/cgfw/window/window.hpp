@@ -25,7 +25,8 @@ using cvk::create;
 using cvk::create_t;
 
 /**
- * creation flags of a @ref Window, the values of the RGFW_windowFlags
+ * creation flags of a @ref Window
+ * @details the values of the RGFW_windowFlags
  */
 enum class WindowFlags : uint32_t {
     NONE = 0,
@@ -51,8 +52,8 @@ namespace cgfw {
 /**
  * opaque native handles of a window
  * @details windows: display = HINSTANCE, window = HWND
- *  wayland: display = wl_display*, window = wl_surface*
- *  windows that exist at the same time have the same display
+ * @details wayland: display = wl_display*, window = wl_surface*
+ * @details windows that exist at the same time have the same display
  */
 struct native_window {
     void* display;
@@ -61,8 +62,7 @@ struct native_window {
 
 namespace dev {
     /**
-     * deleter of a window, without context: RGFW keeps one global state
-     * @details calls @ref Window::destroy(RGFW_window*)
+     * deleter of a window, without context
      */
     struct window_deleter {
         void operator()(RGFW_window*) const;
@@ -70,10 +70,11 @@ namespace dev {
 }
 
 /**
- * RGFW_window wrapper, a window of the platform: Win32 or Wayland
- * @details RGFW keeps one global state: the first window initializes it, the destruction of the last one
- *  deinitializes it, @ref pollEvents() handles the events of every window
- * @attention not thread safe: RGFW keeps one global state
+ * RGFW_window wrapper
+ * @details a window of the platform: Win32 or Wayland
+ * @details the first window initializes RGFW, the destruction of the last one deinitializes it
+ * @details @ref pollEvents() handles the events of every window
+ * @attention not thread safe, also across windows
  */
 class Window {
 public:
@@ -137,15 +138,15 @@ public:
      * @pre @ref Config::debug_check() passes for the config
      * @post @ref created()
      * @note calls @ref optDestroy()
-     * @throws cgfw::cgfw_exception reason: RGFW_createWindow() failed, e.g. no display
+     * @throws cgfw::cgfw_exception reason: RGFW_createWindow() failed
      */
     void create();
 
     /**
      * destroys and forgets
+     * @details the last window deinitializes RGFW
      * @pre @ref created()
      * @pre every surface of the window is destroyed
-     * @note the last window deinitializes RGFW
      */
     void destroy();
 
@@ -170,7 +171,6 @@ public:
 
     /**
      * handles the pending events of every window
-     * @details RGFW handles the events of all windows together
      * @pre @ref created()
      */
     void pollEvents() const;
@@ -214,7 +214,7 @@ public:
 };
 
 /**
- * @return the instance extensions of @ref Window::surface(): VK_KHR_surface and the surface extension of the platform
+ * @return the instance extensions of @ref Window::surface()
  */
 [[nodiscard]] std::vector<std::string> instance_extensions();
 }

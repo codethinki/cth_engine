@@ -22,7 +22,8 @@ class Instance;
 class PhysicalDevice;
 
 /**
- * VkDevice wrapper, owns the function table and the queues
+ * VkDevice wrapper
+ * @details owns the function table and the queues
  * @details the queues stay valid when the device moves
  */
 class Device {
@@ -97,7 +98,7 @@ public:
     /**
      * blocks until every queue of the device finished its work
      * @pre @ref created()
-     * @pre no other thread uses a queue of the device, Vulkan requires it
+     * @pre no other thread uses a queue of the device
      * @throws cvk::vk_result_exception result of vkDeviceWaitIdle()
      */
     void waitIdle() const;

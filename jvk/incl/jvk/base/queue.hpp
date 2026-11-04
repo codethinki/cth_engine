@@ -14,10 +14,9 @@ class scheduler;
 
 namespace jvk {
 /**
- * serialized vulkan queue: its queue work runs in one strand, neither copyable nor movable
- * @details refers to the queue of the cvk core,
- *  Vulkan requires one thread at a time per vulkan queue,
- *  @ref Queues constructs the queues
+ * serialized vulkan queue
+ * @details refers to the queue of the cvk core
+ * @details runs its work in one strand
  */
 class Queue {
 public:
@@ -28,14 +27,13 @@ public:
 
     /**
      * blocks until the queue finished its work
-     * @details runs vkQueueWaitIdle() inside the strand
      * @attention deadlocks when called from a job of the strand
      * @throws cvk::vk_result_exception result of vkQueueWaitIdle()
      */
     void waitIdle() const;
 
     /**
-     * @return executor of the strand, co_await executor().schedule() continues inside the strand
+     * @return executor of the strand
      */
     [[nodiscard]] constexpr cth::co::executor executor() const { return cth::co::executor{_strand}; }
 

@@ -12,7 +12,7 @@
 
 namespace cvk {
 /**
- * what the buffer is for, who uses it and where its memory lives
+ * config of a @ref BaseBuffer
  */
 struct BufferConfig {
     /**
@@ -20,9 +20,6 @@ struct BufferConfig {
      */
     VkBufferUsageFlags usage = 0;
 
-    /**
-     * sparse binding, protected memory, ...
-     */
     VkBufferCreateFlags flags = 0;
 
     /**

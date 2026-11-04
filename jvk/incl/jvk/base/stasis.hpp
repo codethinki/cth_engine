@@ -22,7 +22,7 @@ class Core;
 
 namespace jvk {
 /**
- * raw handles of a device, held until they are destroyed, move only
+ * raw device handles to destroy
  * @details destroys the pool children first, the rest in the order of @ref add()
  * @attention not thread safe
  */
@@ -60,7 +60,7 @@ public:
     ~Stasis() { clear(); }
 
     /**
-     * takes the raw handles of the state from its decompose(), skips empty optionals
+     * takes the raw handles of the state
      * @pre the gpu does not use the handles after the next @ref clear()
      */
     template<class State>

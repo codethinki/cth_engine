@@ -23,8 +23,7 @@ class Core;
 
 /**
  * VkDescriptorSetLayout wrapper
- * @details a binding with VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT -> the layout has
- *  VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT
+ * @details update after bind binding -> adds VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT
  */
 class DescriptorSetLayout {
 public:
@@ -145,7 +144,7 @@ struct DescriptorSetLayout::Config {
      * @param binding number of the binding
      * @param count of descriptors, 0 -> the binding is reserved without descriptors,
      *  VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT -> the maximum count
-     * @param flags VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT, VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT, ...
+     * @param flags VkDescriptorBindingFlags of the binding
      * @pre no binding with the same number
      */
     constexpr Config& add(

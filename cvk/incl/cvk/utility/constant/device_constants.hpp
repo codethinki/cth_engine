@@ -9,9 +9,10 @@
 namespace cvk::constants {
 /**
  * features that every device enables
- * @details bindless: descriptorIndexing guarantees the minimum set of descriptor indexing features, they are enabled,
- *  descriptorBindingVariableDescriptorCount is not part of the set, the one extra requirement,
- *  dynamicRenderingLocalRead: tile local reads in a dynamic rendering, like subpasses
+ * @details bindless:
+ * - the descriptor indexing features that descriptorIndexing guarantees
+ * - descriptorBindingVariableDescriptorCount
+ * @details dynamicRenderingLocalRead: local reads in a dynamic rendering
  */
 inline constexpr DeviceFeatures BASE_DEVICE_FEATURES{
     .samplerAnisotropy = true,

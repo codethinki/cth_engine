@@ -11,8 +11,8 @@
 
 namespace cvk {
 /**
- * allowed formats and present modes, image count, usage and sharing of a swapchain
- * @details @ref formats and @ref presentModes are preferences, one entry -> exactly this entry or a throw
+ * config of a @ref Swapchain
+ * @details @ref formats and @ref presentModes: preferences, one entry -> exactly this entry or a throw
  */
 struct SwapchainConfig {
     /**
@@ -26,7 +26,7 @@ struct SwapchainConfig {
 
     /**
      * allowed present modes, the first one the surface offers wins
-     * @details empty -> VK_PRESENT_MODE_FIFO_KHR (always available)
+     * @details empty -> VK_PRESENT_MODE_FIFO_KHR
      */
     std::vector<VkPresentModeKHR> presentModes{VK_PRESENT_MODE_FIFO_KHR};
 

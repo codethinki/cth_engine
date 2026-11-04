@@ -9,7 +9,8 @@
 namespace cvk::constants {
 /**
  * handle type of @ref Fence::extractOsHandle()
- * @details windows: opaque win32 handle, posix: sync fd, pollable
+ * @details windows: opaque win32 handle
+ * @details posix: sync fd, pollable
  */
 inline constexpr VkExternalFenceHandleTypeFlagBits OS_FENCE_HANDLE_TYPE =
 #ifdef CTH_PLATFORM_WINDOWS

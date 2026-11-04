@@ -15,13 +15,11 @@
 namespace jvk {
 /**
  * creates the queue sets of @ref cvk::CoreConfig::queueSets for the queue roles
- * @details the sets come in this order, each set merges one more pair of groups than the set before it:
- *  1. each queue is a group
- *  2. groups with equal properties merge
- *  3. groups merge if the properties of one group contain the properties of the other group
- *  4. all queues are one group
- *  a step goes from the last queue to the first queue, a queue merges with the nearest earlier group that matches,
- *  the properties of a group are the combined properties of its queues
+ * @details steps, each set merges one more pair of groups than the set before:
+ * - each queue is a group
+ * - groups with equal properties merge
+ * - a group merges into a group whose combined properties contain its properties
+ * - all queues are one group
  * @param queues properties of each queue
  * @return the sets, each set spans all queues
  * @pre !queues.empty()

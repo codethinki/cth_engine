@@ -18,7 +18,7 @@ class BaseBuffer;
 class Image;
 
 /**
- * one side of a barrier: stages, access and queue family
+ * one side of a barrier
  */
 struct BarrierScope {
     VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_NONE;
@@ -132,9 +132,8 @@ struct MemoryBarrierInfo {
 };
 
 /**
- * pipeline barrier: memory, buffer and image barriers in one vkCmdPipelineBarrier2()
- * @details aggregate, the add functions are shortcuts,
- *  @ref execute() checks the barriers
+ * pipeline barrier
+ * @details memory, buffer and image barriers in one vkCmdPipelineBarrier2()
  * @attention the images and buffers do not move until @ref execute()
  */
 struct Barrier {
@@ -158,7 +157,7 @@ struct Barrier {
     };
 
     /**
-     * VK_DEPENDENCY_BY_REGION_BIT -> the dependency is per framebuffer region, e.g. per tile
+     * VK_DEPENDENCY_BY_REGION_BIT -> the dependency is per framebuffer region
      */
     VkDependencyFlags flags = 0;
 
@@ -200,14 +199,13 @@ struct Barrier {
 
     /**
      * records the barriers
-     * @details inside a rendering: checks the rules of barriers inside a dynamic rendering
      * @pre @ref BaseCmdBuffer::recording()
      * @pre the images and buffers are created and the ranges lie in them
      * @pre memory barriers have no queue family ownership transfer
-     * @pre the new layout of a layout transition or queue family ownership transfer
-     *  is not VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
-     * @pre inside a rendering: framebuffer space stages, VK_DEPENDENCY_BY_REGION_BIT,
-     *  no layout transition, no queue family ownership transfer, attachments in local read or general layout
+     * @pre layout transition or queue family ownership transfer -> new layout not undefined or preinitialized
+     * @pre inside a rendering: framebuffer space stages and VK_DEPENDENCY_BY_REGION_BIT
+     * @pre inside a rendering: no layout transition and no queue family ownership transfer
+     * @pre inside a rendering: the attachments in a local read or general layout
      */
     void execute(BaseCmdBuffer const&) const;
 
@@ -247,7 +245,8 @@ struct LayoutTransition {
 
 /**
  * what the gpu does with an image in the layout
- * @details input attachments: fragment shader only, general: all commands
+ * @details input attachments: fragment shader only
+ * @details general: all commands
  * @param aspects of the image, pick color or depth for the attachment, read only and local read layouts
  * @param shaderStages stages of the shader reads (@ref Barrier::INFERRED_SHADER_STAGES => fragment shader)
  * @return std::nullopt -> no scope for the layout: undefined, preinitialized or not known
@@ -261,8 +260,8 @@ struct LayoutTransition {
 
 /**
  * scopes of the transition: src from the old layout, dst from the new layout
- * @details src keeps the writes of the old layout,
- *  old layout undefined, preinitialized or present -> src waits for the dst stages without access
+ * @details src keeps only the writes of the old layout
+ * @details old layout undefined, preinitialized or present -> src waits for the dst stages without access
  * @return std::nullopt -> no scope for a layout
  * @pre shaderStages has only shader stages
  */

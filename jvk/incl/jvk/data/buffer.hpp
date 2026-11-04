@@ -15,7 +15,8 @@
 
 namespace jvk {
 /**
- * cvk buffer whose copies record their accesses in the jvk command buffer
+ * tracked buffer
+ * @details its copies track their accesses in the jvk command buffer
  */
 template<cth::mta::trivially_copyable T>
 class Buffer : public cvk::Buffer<T> {
@@ -23,7 +24,8 @@ public:
     using cvk::Buffer<T>::Buffer;
 
     /**
-     * records the accesses, then @ref cvk::Buffer::copy()
+     * records a copy from the source buffer
+     * @details tracks the accesses of both buffers
      * @pre the preconditions of @ref cvk::Buffer::copy()
      */
     void copy(cmd_buffer auto& cmd, cvk::Buffer<T> const& src, cvk::BufferCopy region = {}) const {
@@ -33,7 +35,8 @@ public:
     }
 
     /**
-     * records the accesses, then @ref cvk::Buffer::copy()
+     * records a copy from the mip level of the image
+     * @details tracks the accesses of the image and the buffer
      * @pre the preconditions of @ref cvk::Image::copyTo()
      */
     void copy(

@@ -18,8 +18,9 @@ namespace cvk {
 class Core;
 
 /**
- * VkCommandPool wrapper, counts its command buffers and its resets
- * @details the pool and its command buffers are used by one thread at a time
+ * VkCommandPool wrapper
+ * @details counts its command buffers and its resets
+ * @attention not thread safe, also through its command buffers
  */
 class CmdPool {
 public:
@@ -101,15 +102,13 @@ public:
 
     /**
      * counts a command buffer of the pool
-     * @details @ref BaseCmdBuffer::create() and @ref BaseCmdBuffer::wrap() call it,
-     *  code that keeps a released command buffer of the pool may call it too
+     * @details for a released command buffer that the caller keeps, the command buffers count themselves
      */
     void add() const;
 
     /**
      * stops to count a command buffer of the pool
-     * @details @ref BaseCmdBuffer::destroy() and @ref BaseCmdBuffer::release() call it,
-     *  code that frees a counted command buffer itself calls it too
+     * @details for a counted command buffer that the caller frees, the command buffers count themselves
      * @pre !@ref unused()
      */
     void remove() const;

@@ -17,7 +17,7 @@
 
 namespace cvk {
 /**
- * VkImageView wrapper, view of a mip and layer range of its image
+ * VkImageView wrapper
  */
 class ImageView {
 public:
@@ -26,7 +26,6 @@ public:
 
     /**
      * base constructor
-     * @details the core comes from the image
      */
     ImageView(Image const&, Config const&);
 
@@ -108,8 +107,11 @@ public:
     }
 
     /**
-     * @return @ref Config::viewType, VK_IMAGE_VIEW_TYPE_MAX_ENUM -> inferred:
-     *  one layer -> 2D, cube compatible image with 6 layers -> cube, a multiple of 6 -> cube array, else 2D array
+     * @return @ref Config::viewType, VK_IMAGE_VIEW_TYPE_MAX_ENUM -> inferred
+     * @details inferred:
+     * - one layer -> 2D
+     * - cube compatible image with 6 layers -> cube, a multiple of 6 -> cube array
+     * - else 2D array
      */
     [[nodiscard]] constexpr VkImageViewType viewType() const {
         if(_config.viewType != VK_IMAGE_VIEW_TYPE_MAX_ENUM) return _config.viewType;

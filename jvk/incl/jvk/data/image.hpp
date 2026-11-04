@@ -15,7 +15,8 @@
 
 namespace jvk {
 /**
- * cvk image whose commands record their accesses in the jvk command buffer
+ * tracked image
+ * @details its commands track their accesses in the jvk command buffer
  * @details a created image is in its creation layout
  */
 class Image : public cvk::Image {
@@ -23,7 +24,8 @@ public:
     using cvk::Image::Image;
 
     /**
-     * records the accesses, then @ref cvk::Image::copy()
+     * records a copy from the buffer into every layer of the mip level
+     * @details tracks the accesses of the image and the buffer
      * @pre the preconditions of @ref cvk::Image::copy()
      */
     void copy(
@@ -39,7 +41,8 @@ public:
     }
 
     /**
-     * records the accesses, then @ref cvk::Image::copyTo()
+     * records a copy from every layer of the mip level into the buffer
+     * @details tracks the accesses of the image and the buffer
      * @pre the preconditions of @ref cvk::Image::copyTo()
      */
     void copyTo(
@@ -55,7 +58,8 @@ public:
     }
 
     /**
-     * records the accesses, then @ref cvk::Image::blitMipLevels()
+     * records blits that fill each mip level from the level before it
+     * @details tracks the accesses of the mip levels
      * @pre the preconditions of @ref cvk::Image::blitMipLevels() without the layouts
      * @post the levels from firstMipLevel - 1: VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, transfer read
      */
