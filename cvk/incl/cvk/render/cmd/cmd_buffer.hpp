@@ -312,22 +312,14 @@ public:
     }
 
     /**
-     * @return what the secondary inherits from the rendering it continues
-     * @return nullptr -> continues no rendering
-     */
-    [[nodiscard]] constexpr RenderingInheritance const* inheritedRendering() const {
-        return recording() && _inheritedRendering.has_value() ? &*_inheritedRendering : nullptr;
-    }
-
-    /**
-     * @return inside the own @ref rendering() or the @ref inheritedRendering()
+     * @return inside the own @ref rendering() or a rendering that the secondary continues
      */
     [[nodiscard]] constexpr bool insideRendering() const {
-        return rendering() != nullptr || inheritedRendering() != nullptr;
+        return rendering() != nullptr || (recording() && _continuedViewMask.has_value());
     }
 
     /**
-     * @return view mask of the own @ref rendering() or the @ref inheritedRendering()
+     * @return view mask of the own @ref rendering() or of the rendering that the secondary continues
      * @pre @ref insideRendering()
      */
     [[nodiscard]] constexpr uint32_t renderingViewMask() const;
@@ -342,7 +334,7 @@ protected:
     /**
      * @note calls @ref optDestroy()
      */
-    ~BaseCmdBuffer() { optDestroy(); }
+    virtual ~BaseCmdBuffer() { optDestroy(); }
 
     /**
      * begins the recording
@@ -354,12 +346,10 @@ protected:
     void begin(VkCommandBufferBeginInfo const&);
 
     /**
-     * begins the recording that continues a rendering
-     * @details stores the inheritance for @ref inheritedRendering()
-     * @pre the preconditions of @ref begin(VkCommandBufferBeginInfo const&)
-     * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
+     * view mask of the rendering that the secondary continues, std::nullopt -> continues no rendering
+     * @details @ref begin(VkCommandBufferBeginInfo const&) clears it
      */
-    void begin(VkCommandBufferBeginInfo const&, RenderingInheritance const&);
+    std::optional<uint32_t> _continuedViewMask = std::nullopt;
 
 private:
     /**
@@ -400,7 +390,6 @@ private:
     bool _recording = false;
     uint64_t _beginResets = 0;
     std::optional<RenderingInfo> _rendering = std::nullopt;
-    std::optional<RenderingInheritance> _inheritedRendering = std::nullopt;
 
 public:
     BaseCmdBuffer(BaseCmdBuffer const& other) = delete;
@@ -432,7 +421,7 @@ struct BaseCmdBuffer::State {
 namespace cvk {
 constexpr uint32_t BaseCmdBuffer::renderingViewMask() const {
     CTH_CRITICAL(!insideRendering(), "command buffer must be inside a rendering") {}
-    return rendering() != nullptr ? rendering()->viewMask : inheritedRendering()->viewMask;
+    return rendering() != nullptr ? rendering()->viewMask : *_continuedViewMask;
 }
 
 constexpr void BaseCmdBuffer::debug_check(BaseCmdBuffer const& buffer) {
@@ -569,5 +558,16 @@ public:
      * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
      */
     void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0);
+
+    /**
+     * @return what the secondary inherits from the rendering it continues
+     * @return nullptr -> continues no rendering
+     */
+    [[nodiscard]] constexpr Inheritance const* inheritedRendering() const {
+        return recording() && _inheritedRendering.has_value() ? &*_inheritedRendering : nullptr;
+    }
+
+private:
+    std::optional<Inheritance> _inheritedRendering = std::nullopt;
 };
 }

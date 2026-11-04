@@ -11,6 +11,7 @@
 #include "cvk/render/sync/barrier.hpp"
 
 #include <array>
+#include <memory>
 #include <cstdint>
 #include <numeric>
 #include <utility>
@@ -427,6 +428,19 @@ JVK_TEST(CmdBuffer, bind_records_the_buffer_access) {
     EXPECT_EQ(primary.states().first(vertices)->scope.access, VK_ACCESS_2_TRANSFER_WRITE_BIT);
 
     test::submit_and_wait(context, primary);
+}
+
+JVK_TEST(CmdBuffer, delete_through_the_cvk_type_destroys_the_pool) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+
+    std::unique_ptr<cvk::PrimaryCmdBuffer> primary =
+        std::make_unique<PrimaryCmdBuffer>(context.core, test::queue_family(context));
+    std::unique_ptr<cvk::SecondaryCmdBuffer> secondary =
+        std::make_unique<SecondaryCmdBuffer>(context.core, test::queue_family(context));
+
+    primary.reset();
+    secondary.reset();
 }
 
 JVK_TEST(CmdBuffer, move_keeps_the_pool) {

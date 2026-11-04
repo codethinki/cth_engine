@@ -43,12 +43,10 @@ namespace {
     void debug_check_draw(BaseCmdBuffer const& cmdBuffer) {
         BaseCmdBuffer::debug_check(cmdBuffer);
 
-        // a secondary can be inside the rendering of its primary
+        CTH_CRITICAL(!cmdBuffer.insideRendering(), "draws need a rendering") {}
+
+        // the own rendering of the command buffer
         auto const* rendering = cmdBuffer.rendering();
-        CTH_CRITICAL(
-            rendering == nullptr && cmdBuffer.level() == VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            "draws need a rendering"
-        ) {}
         CTH_CRITICAL(
             rendering != nullptr && (rendering->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) != 0
             && (rendering->flags & VK_RENDERING_CONTENTS_INLINE_BIT_KHR) == 0,
@@ -102,7 +100,7 @@ void BaseCmdBuffer::wrap(State const& state) {
     pool().add();
     _recording = false;
     _rendering.reset();
-    _inheritedRendering.reset();
+    _continuedViewMask.reset();
 }
 
 void BaseCmdBuffer::create() {
@@ -130,7 +128,7 @@ void BaseCmdBuffer::create() {
     pool().add();
     _recording = false;
     _rendering.reset();
-    _inheritedRendering.reset();
+    _continuedViewMask.reset();
 }
 
 void BaseCmdBuffer::destroy() {
@@ -159,7 +157,7 @@ void BaseCmdBuffer::end() {
     auto const result = core().functions()->vkEndCommandBuffer(get());
     _recording = false;
     _rendering.reset();
-    _inheritedRendering.reset();
+    _continuedViewMask.reset();
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to end command buffer") {}
 }
@@ -174,7 +172,7 @@ void BaseCmdBuffer::reset(VkCommandBufferResetFlags flags) {
     auto const result = core().functions()->vkResetCommandBuffer(get(), flags);
     _recording = false;
     _rendering.reset();
-    _inheritedRendering.reset();
+    _continuedViewMask.reset();
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to reset command buffer") {}
 }
@@ -534,12 +532,7 @@ void BaseCmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
     _recording = true;
     _beginResets = pool().resets();
     _rendering.reset();
-    _inheritedRendering.reset();
-}
-
-void BaseCmdBuffer::begin(VkCommandBufferBeginInfo const& info, RenderingInheritance const& inheritance) {
-    begin(info);
-    _inheritedRendering = inheritance;
+    _continuedViewMask.reset();
 }
 
 void BaseCmdBuffer::recordAttachmentMapping() const {
@@ -555,7 +548,7 @@ void BaseCmdBuffer::recordAttachmentMapping() const {
 void BaseCmdBuffer::forget() {
     _recording = false;
     _rendering.reset();
-    _inheritedRendering.reset();
+    _continuedViewMask.reset();
 }
 
 void BaseCmdBuffer::pool_deleter::operator()(VkCommandBuffer vkBuffer) const {
@@ -671,6 +664,7 @@ void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
         .pInheritanceInfo = &inheritanceInfo,
     };
     BaseCmdBuffer::begin(info);
+    _inheritedRendering.reset();
 }
 
 void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUsageFlags usage) {
@@ -699,6 +693,8 @@ void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUs
         .flags = usage | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
         .pInheritanceInfo = &inheritanceInfo,
     };
-    BaseCmdBuffer::begin(info, inheritance);
+    BaseCmdBuffer::begin(info);
+    _continuedViewMask = inheritance.viewMask;
+    _inheritedRendering = inheritance;
 }
 }

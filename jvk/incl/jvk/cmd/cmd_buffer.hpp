@@ -242,6 +242,7 @@ class SecondaryCmdBuffer;
  * @details owns a command pool
  * @details tracks resource states
  * @attention not thread safe
+ * @attention do not move into a cvk command buffer value: the pool stays behind
  */
 class PrimaryCmdBuffer : public dev::BasicCmdBuffer<cvk::PrimaryCmdBuffer> {
 public:
@@ -286,6 +287,7 @@ namespace jvk {
  * @details tracks resource states
  * @details @ref cvk::BaseCmdBuffer::end() is optional, @ref PrimaryCmdBuffer::execute() ends it
  * @attention not thread safe
+ * @attention do not move into a cvk command buffer value: the pool stays behind
  */
 class SecondaryCmdBuffer : public dev::BasicCmdBuffer<cvk::SecondaryCmdBuffer> {
 public:

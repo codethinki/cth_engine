@@ -254,7 +254,6 @@ CVK_TEST(CmdBuffer, primary_is_inside_its_rendering) {
         },
     });
     EXPECT_TRUE(primary.insideRendering());
-    EXPECT_EQ(primary.inheritedRendering(), nullptr);
     EXPECT_EQ(primary.renderingViewMask(), 0);
 
     primary.endRendering();
