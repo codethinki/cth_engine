@@ -38,33 +38,25 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref Shader(Core const&, VkShaderStageFlagBits)
-     * - @ref wrap()
+     * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), @ref wrap()
      */
     Shader(Core const&, VkShaderStageFlagBits stage, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref Shader(Core const&, VkShaderStageFlagBits)
-     * - @ref create(std::span<uint32_t const>)
+     * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), @ref create(std::span<uint32_t const>)
      */
     Shader(Core const&, VkShaderStageFlagBits stage, std::span<uint32_t const> spv);
 
     /**
      * constructs, loads and creates
-     * @details calls:
-     * - @ref Shader(Core const&, VkShaderStageFlagBits)
-     * - @ref create(path_t const&)
+     * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), @ref create(path_t const&)
      */
     Shader(Core const&, VkShaderStageFlagBits stage, path_t const& spvPath);
 
     /**
      * constructs, compiles the glsl file, loads and creates
-     * @details calls:
-     * - @ref compile()
-     * - @ref Shader(Core const&, VkShaderStageFlagBits, path_t const&)
+     * @details calls @ref compile(), @ref Shader(Core const&, VkShaderStageFlagBits, path_t const&)
      * @note warns in release builds: compile the shaders at build time
      */
     Shader(
@@ -98,9 +90,7 @@ public:
 
     /**
      * loads the SPIR-V file and creates the module
-     * @details calls:
-     * - @ref load()
-     * - @ref create(std::span<uint32_t const>)
+     * @details calls @ref load(), @ref create(std::span<uint32_t const>)
      */
     void create(path_t const& spvPath);
 

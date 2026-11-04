@@ -30,17 +30,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref Allocator(Device const&)
-     * - @ref wrap()
+     * @details calls @ref Allocator(Device const&), @ref wrap()
      */
     Allocator(Device const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref Allocator(Device const&)
-     * - @ref create()
+     * @details calls @ref Allocator(Device const&), @ref create()
      */
     explicit Allocator(Device const&, create_t);
 

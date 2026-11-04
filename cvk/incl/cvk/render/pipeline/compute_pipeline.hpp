@@ -37,17 +37,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref ComputePipeline(PipelineLayout const&, Config const&)
-     * - @ref wrap()
+     * @details calls @ref ComputePipeline(PipelineLayout const&, Config const&), @ref wrap()
      */
     ComputePipeline(PipelineLayout const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref ComputePipeline(PipelineLayout const&, Config const&)
-     * - @ref create()
+     * @details calls @ref ComputePipeline(PipelineLayout const&, Config const&), @ref create()
      */
     explicit ComputePipeline(PipelineLayout const&, Config const&, create_t);
 

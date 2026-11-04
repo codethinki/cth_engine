@@ -40,17 +40,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref Memory(Core const&, Config const&)
-     * - @ref wrap()
+     * @details calls @ref Memory(Core const&, Config const&), @ref wrap()
      */
     Memory(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref Memory(Core const&, Config const&)
-     * - @ref create()
+     * @details calls @ref Memory(Core const&, Config const&), @ref create()
      */
     Memory(Core const&, Config const&, VkMemoryRequirements const&);
 

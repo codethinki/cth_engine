@@ -31,17 +31,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref ImageView(Image const&, Config const&)
-     * - @ref wrap()
+     * @details calls @ref ImageView(Image const&, Config const&), @ref wrap()
      */
     ImageView(Image const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref ImageView(Image const&, Config const&)
-     * - @ref create()
+     * @details calls @ref ImageView(Image const&, Config const&), @ref create()
      */
     explicit ImageView(Image const&, Config const&, create_t);
 

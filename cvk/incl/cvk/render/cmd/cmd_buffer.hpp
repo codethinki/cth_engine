@@ -422,17 +422,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref PrimaryCmdBuffer(CmdPool const&)
-     * - @ref wrap()
+     * @details calls @ref PrimaryCmdBuffer(CmdPool const&), @ref wrap()
      */
     PrimaryCmdBuffer(CmdPool const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref PrimaryCmdBuffer(CmdPool const&)
-     * - @ref create()
+     * @details calls @ref PrimaryCmdBuffer(CmdPool const&), @ref create()
      */
     explicit PrimaryCmdBuffer(CmdPool const&, create_t);
 
@@ -509,17 +505,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref SecondaryCmdBuffer(CmdPool const&)
-     * - @ref wrap()
+     * @details calls @ref SecondaryCmdBuffer(CmdPool const&), @ref wrap()
      */
     SecondaryCmdBuffer(CmdPool const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref SecondaryCmdBuffer(CmdPool const&)
-     * - @ref create()
+     * @details calls @ref SecondaryCmdBuffer(CmdPool const&), @ref create()
      */
     explicit SecondaryCmdBuffer(CmdPool const&, create_t);
 

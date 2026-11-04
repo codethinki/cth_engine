@@ -43,17 +43,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref Image(Core const&, Config const&)
-     * - @ref wrap()
+     * @details calls @ref Image(Core const&, Config const&), @ref wrap()
      */
     Image(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref Image(Core const&, Config const&)
-     * - @ref create()
+     * @details calls @ref Image(Core const&, Config const&), @ref create()
      */
     Image(Core const&, Config const&, VkExtent2D extent);
 

@@ -41,17 +41,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t)
-     * - @ref wrap()
+     * @details calls @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t), @ref wrap()
      */
     DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t)
-     * - @ref create()
+     * @details calls @ref DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t), @ref create()
      */
     explicit DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount, create_t);
 

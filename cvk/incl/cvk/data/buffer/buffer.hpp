@@ -44,17 +44,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref Buffer(Core const&, Config const&)
-     * - @ref wrap()
+     * @details calls @ref Buffer(Core const&, Config const&), @ref wrap()
      */
     Buffer(Core const& core, Config const& config, State const& state) : Buffer{core, config} { wrap(state); }
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref Buffer(Core const&, Config const&)
-     * - @ref create()
+     * @details calls @ref Buffer(Core const&, Config const&), @ref create()
      */
     Buffer(Core const& core, Config const& config, size_t count) : Buffer{core, config} { create(count); }
 

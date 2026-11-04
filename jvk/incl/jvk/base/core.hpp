@@ -35,9 +35,7 @@ public:
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref Core(cvk::Instance const&, Config)
-     * - @ref create()
+     * @details calls @ref Core(cvk::Instance const&, Config), @ref create()
      */
     explicit Core(cvk::Instance const&, Config, cvk::create_t);
 

@@ -38,17 +38,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref DescriptorSetLayout(Core const&, Config)
-     * - @ref wrap()
+     * @details calls @ref DescriptorSetLayout(Core const&, Config), @ref wrap()
      */
     DescriptorSetLayout(Core const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref DescriptorSetLayout(Core const&, Config)
-     * - @ref create()
+     * @details calls @ref DescriptorSetLayout(Core const&, Config), @ref create()
      */
     explicit DescriptorSetLayout(Core const&, Config, create_t);
 

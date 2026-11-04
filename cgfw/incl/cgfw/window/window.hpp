@@ -105,17 +105,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref Window(Config)
-     * - @ref wrap()
+     * @details calls @ref Window(Config), @ref wrap()
      */
     Window(Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref Window(Config)
-     * - @ref create()
+     * @details calls @ref Window(Config), @ref create()
      */
     explicit Window(Config, create_t);
 

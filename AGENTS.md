@@ -264,7 +264,8 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 - The brief is the purpose. Side effects the caller must know go to `@details`.
 - `@details` holds one fact per line, starting with its keyword, so a reader can scan for it. No text walls.
   - one item: inline on the tag line: `@details calls @ref optEnd() on the secondaries`
-  - several items: a label on the tag line, then `- ` items: `@details calls:`
+  - several names: inline on the tag line: `@details calls @ref Instance(Config), @ref wrap()`
+  - several facts: a label on the tag line, then `- ` items, no item starts with `@ref`
   - one `@details` per topic
 - A class brief names what it is, in a few words: `primary command buffer`. Its properties go to `@details` as a list: `- owns a command pool`. Copy and move are not documented: the declarations tell it.
 - Do not document what Vulkan does anyway: the barriers that Vulkan forces.
@@ -276,7 +277,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 
 | Tag | Use |
 |---|---|
-| `@details` | more information after the brief, one per topic, see the form rules: `@details calls:` followed by `- ` items |
+| `@details` | more information after the brief, one per topic, see the form rules: `@details calls @ref create(), @ref wrap()` |
 | `@param` | name, then what it is for: `@param config to use` |
 | `@tparam` | template parameter, same form as `@param` |
 | `@return` | what the result is |

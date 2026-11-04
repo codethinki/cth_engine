@@ -23,17 +23,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref TimelineSemaphore(Core const&)
-     * - @ref wrap()
+     * @details calls @ref TimelineSemaphore(Core const&), @ref wrap()
      */
     TimelineSemaphore(Core const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref TimelineSemaphore(Core const&)
-     * - @ref create() with the initial value
+     * @details calls @ref TimelineSemaphore(Core const&), @ref create() with the initial value
      */
     explicit TimelineSemaphore(Core const&, create_t, uint64_t initialValue = 0);
 

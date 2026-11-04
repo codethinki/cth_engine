@@ -41,17 +41,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref DebugMessenger(Instance const&, Config)
-     * - @ref wrap()
+     * @details calls @ref DebugMessenger(Instance const&, Config), @ref wrap()
      */
     DebugMessenger(Instance const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref DebugMessenger(Instance const&, Config)
-     * - @ref create()
+     * @details calls @ref DebugMessenger(Instance const&, Config), @ref create()
      */
     explicit DebugMessenger(Instance const&, Config, create_t);
 

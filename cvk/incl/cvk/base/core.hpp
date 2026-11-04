@@ -44,17 +44,13 @@ public:
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref Core(Instance const&)
-     * - @ref create()
+     * @details calls @ref Core(Instance const&), @ref create()
      */
     Core(Instance const&, std::span<Surface const> surfaces, Config const&);
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref Core(Instance const&)
-     * - @ref wrap()
+     * @details calls @ref Core(Instance const&), @ref wrap()
      */
     Core(Instance const&, State);
 

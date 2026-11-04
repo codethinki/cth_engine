@@ -35,17 +35,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls:
-     * - @ref Sampler(Core const&, Config const&)
-     * - @ref wrap()
+     * @details calls @ref Sampler(Core const&, Config const&), @ref wrap()
      */
     Sampler(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls:
-     * - @ref Sampler(Core const&, Config const&)
-     * - @ref create()
+     * @details calls @ref Sampler(Core const&, Config const&), @ref create()
      */
     explicit Sampler(Core const&, Config const&, create_t);
 
