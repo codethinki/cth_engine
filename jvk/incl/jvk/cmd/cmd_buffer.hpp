@@ -14,11 +14,36 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <type_traits>
 
 
 namespace cvk {
 class Core;
 class Image;
+}
+
+namespace jvk::dev {
+template<class Resource, class Access>
+concept access_pair = (std::derived_from<Resource, cvk::Image> && std::same_as<Access, ImageAccess>)
+    || (std::derived_from<Resource, cvk::BaseBuffer> && std::same_as<Access, BufferAccess>);
+
+template<class... Args>
+inline constexpr bool access_pairs = false;
+
+template<>
+inline constexpr bool access_pairs<> = true;
+
+template<class Resource, class Access, class... Rest>
+inline constexpr bool access_pairs<Resource, Access, Rest...> = access_pair<Resource, Access> && access_pairs<Rest...>;
+}
+
+namespace jvk {
+/**
+ * alternating resources and their accesses, at least two pairs
+ * @details pairs: (cvk::Image or derived, @ref ImageAccess) or (cvk::BaseBuffer or derived, @ref BufferAccess)
+ */
+template<class... Args>
+concept access_pairs = sizeof...(Args) >= 4 && dev::access_pairs<std::remove_cvref_t<Args>...>;
 }
 
 namespace jvk::dev {
@@ -50,6 +75,19 @@ public:
      * @pre @ref cvk::BaseCmdBuffer::rendering() -> a read, the last access is no write
      */
     void use(cvk::BaseBuffer const&, BufferAccess const&);
+
+    /**
+     * tracks the accesses of several resources
+     * @details records one barrier for all accesses, in argument order
+     * @param args pairs of a resource and its access, see @ref access_pairs
+     * @pre the preconditions of the single @ref use() per pair
+     */
+    template<class... Args> requires access_pairs<Args...>
+    void use(Args const&... args) {
+        cvk::Barrier barrier{};
+        addAccesses(barrier, args...);
+        record(barrier);
+    }
 
     /**
      * sets the tracked state of the mip levels after untracked code, see @ref ResourceStates::assume()
@@ -159,6 +197,12 @@ private:
     explicit BasicCmdBuffer(std::unique_ptr<cvk::CmdPool>);
 
     void record(cvk::Barrier const&) const;
+
+    template<class Resource, class Access, class... Rest>
+    void addAccesses(cvk::Barrier& barrier, Resource const& resource, Access const& access, Rest const&... rest) {
+        _states.access(resource, access, barrier);
+        if constexpr(sizeof...(Rest) > 0) addAccesses(barrier, rest...);
+    }
 
     ResourceStates _states{};
 

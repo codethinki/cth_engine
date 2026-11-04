@@ -21,6 +21,9 @@ using test::READBACK_CONFIG;
 using test::STAGING_CONFIG;
 
 namespace {
+    template<class... Args>
+    concept usable = requires(PrimaryCmdBuffer& cmd, Args const&... args) { cmd.use(args...); };
+
     constexpr VkExtent2D EXTENT{16, 16};
     constexpr size_t PIXELS = size_t{EXTENT.width} * EXTENT.height;
 
@@ -67,6 +70,59 @@ JVK_TEST(CmdBuffer, cmd_buffer_concept) {
     static_assert(cmd_buffer<PrimaryCmdBuffer>);
     static_assert(cmd_buffer<SecondaryCmdBuffer>);
     static_assert(!cmd_buffer<cvk::PrimaryCmdBuffer>);
+}
+
+JVK_TEST(CmdBuffer, use_takes_pairs_of_resources_and_accesses) {
+    using BaseBuffer = cvk::BaseBuffer;
+
+    static_assert(access_pairs<cvk::Image, ImageAccess, BaseBuffer, BufferAccess>);
+    static_assert(access_pairs<Image const&, ImageAccess, Buffer<uint32_t>, BufferAccess, Image, ImageAccess>);
+    static_assert(!access_pairs<cvk::Image, BufferAccess, BaseBuffer, BufferAccess>);
+    static_assert(!access_pairs<BaseBuffer, BufferAccess, BaseBuffer>);
+    static_assert(!access_pairs<cvk::Image, ImageAccess>);
+
+    static_assert(usable<cvk::Image, ImageAccess>);
+    static_assert(usable<cvk::Image, ImageAccess, BaseBuffer, BufferAccess>);
+    static_assert(!usable<cvk::Image, ImageAccess, BaseBuffer, ImageAccess>);
+    static_assert(!usable<cvk::Image, ImageAccess, BaseBuffer>);
+}
+
+JVK_TEST(CmdBuffer, use_of_several_resources_records_their_barriers) {
+    test::Context const context{};
+    Image const image{context.core, IMAGE_CONFIG, EXTENT};
+    auto const staging = counting_staging(context);
+    Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    constexpr ImageAccess TRANSFER_DST{
+        .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .stages = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        .access = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+    };
+    constexpr ImageAccess TRANSFER_SRC{
+        .layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        .stages = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        .access = VK_ACCESS_2_TRANSFER_READ_BIT,
+    };
+    constexpr BufferAccess TRANSFER_READ{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
+    constexpr BufferAccess TRANSFER_WRITE{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+
+    primary.begin();
+    primary.assume(image, UNDEFINED);
+    primary.assume(readback, BufferState{.scope = {.stages = HOST_READ.stages, .access = HOST_READ.access}});
+
+    // the untracked cvk commands rely on the barriers of the use
+    primary.use(image, TRANSFER_DST, staging, TRANSFER_READ);
+    image.cvk::Image::copy(primary, staging);
+    primary.use(image, TRANSFER_SRC, readback, TRANSFER_WRITE);
+    image.cvk::Image::copyTo(primary, readback);
+    primary.use(readback, HOST_READ);
+    primary.end();
+
+    EXPECT_EQ(primary.states().last(image, 0)->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    EXPECT_EQ(primary.states().last(staging)->scope.access, VK_ACCESS_2_TRANSFER_READ_BIT);
+
+    test::submit_and_wait(context, primary);
+    EXPECT_TRUE(counts(readback));
 }
 
 JVK_TEST(CmdBuffer, owns_its_pool) {

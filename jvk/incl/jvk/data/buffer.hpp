@@ -25,18 +25,22 @@ public:
 
     /**
      * records a copy from the source buffer
-     * @details tracks the accesses of both buffers
+     * @details tracks the accesses of both buffers with one barrier
      * @pre the preconditions of @ref cvk::Buffer::copy()
      */
     void copy(cmd_buffer auto& cmd, cvk::Buffer<T> const& src, cvk::BufferCopy region = {}) const {
-        cmd.use(src, BufferAccess{.stages = TRANSFER, .access = VK_ACCESS_2_TRANSFER_READ_BIT});
-        cmd.use(*this, BufferAccess{.stages = TRANSFER, .access = VK_ACCESS_2_TRANSFER_WRITE_BIT});
+        cmd.use(
+            src,
+            BufferAccess{.stages = TRANSFER, .access = VK_ACCESS_2_TRANSFER_READ_BIT},
+            *this,
+            BufferAccess{.stages = TRANSFER, .access = VK_ACCESS_2_TRANSFER_WRITE_BIT}
+        );
         cvk::Buffer<T>::copy(cmd, src, region);
     }
 
     /**
      * records a copy from the mip level of the image
-     * @details tracks the accesses of the image and the buffer
+     * @details tracks the accesses of the image and the buffer with one barrier
      * @pre the preconditions of @ref cvk::Image::copyTo()
      */
     void copy(
@@ -54,9 +58,10 @@ public:
                 .access = VK_ACCESS_2_TRANSFER_READ_BIT,
                 .firstMipLevel = mipLevel,
                 .mipLevels = 1,
-            }
+            },
+            *this,
+            BufferAccess{.stages = TRANSFER, .access = VK_ACCESS_2_TRANSFER_WRITE_BIT}
         );
-        cmd.use(*this, BufferAccess{.stages = TRANSFER, .access = VK_ACCESS_2_TRANSFER_WRITE_BIT});
         cvk::Buffer<T>::copy(cmd, src, dstOffset, mipLevel, layout);
     }
 
