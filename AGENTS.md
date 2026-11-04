@@ -72,9 +72,9 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 
 | Kind | Style | Example |
 |---|---|---|
-| class, struct of `cvk` / `jvk` | `PascalCase` | `Semaphore`, `DeviceTable`, `DestructionQueue` |
+| type of the Vulkan abstraction: object, data struct | `PascalCase` | `Semaphore`, `Stasis`, `SubmitInfo`, `ImageAccess` |
 | nested config and state | `Config`, `State` | `Instance::State` |
-| generic library type, trait, concept | `snake_case` | `unique_handle`, `handle_t`, `device_destroyable` |
+| general type, like std: handle, deleter, trait, concept | `snake_case` | `unique_handle`, `handle_t`, `device_destroyable` |
 | type alias that renames a type | `snake_case_t` | `callback_t`, `queue_set_t` |
 | member function | `camelCase` | `optDestroy()`, `createInfo()` |
 | named constructor (static factory) | `PascalCase` | `CubeMap()`, `DepthBuffer()`, `LayoutTransition()` |
