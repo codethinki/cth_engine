@@ -64,7 +64,7 @@ public:
      * tracks an access of the image that no tracked command records
      * @details records the barrier from the tracked state
      * @pre @ref cvk::BaseCmdBuffer::recording()
-     * @pre @ref cvk::BaseCmdBuffer::rendering() -> a read in the layout of the last access, which is no write
+     * @pre @ref cvk::BaseCmdBuffer::rendering() -> the access needs no barrier
      */
     void use(cvk::Image const&, ImageAccess const&);
 
@@ -72,7 +72,7 @@ public:
      * tracks an access of the buffer that no tracked command records
      * @details records the barrier from the tracked state
      * @pre @ref cvk::BaseCmdBuffer::recording()
-     * @pre @ref cvk::BaseCmdBuffer::rendering() -> a read, the last access is no write
+     * @pre @ref cvk::BaseCmdBuffer::rendering() -> the access needs no barrier
      */
     void use(cvk::BaseBuffer const&, BufferAccess const&);
 
@@ -255,8 +255,7 @@ public:
      * @details calls @ref optEnd() on the secondaries
      * @details appends the resource states of the secondaries
      * @pre the preconditions of @ref cvk::PrimaryCmdBuffer::execute()
-     * @pre @ref rendering() -> each first access in the secondaries is a read in the layout of the last access
-     *  before it, which is no write
+     * @pre @ref rendering() -> the secondaries need no barrier
      * @throws cvk::vk_result_exception result of vkEndCommandBuffer()
      */
     void execute(std::span<SecondaryCmdBuffer* const>);

@@ -242,7 +242,10 @@ void BasicCmdBuffer<Base>::appendStates(ResourceStates const& next) {
 
 template<class Base>
 void BasicCmdBuffer<Base>::record(cvk::Barrier const& barrier) const {
-    if(!barrier.empty()) barrier.execute(*this);
+    if(barrier.empty()) return;
+
+    CTH_CRITICAL(this->rendering(), "Vulkan forbids a barrier inside a rendering, the accesses need one") {}
+    barrier.execute(*this);
 }
 
 template class BasicCmdBuffer<cvk::PrimaryCmdBuffer>;
