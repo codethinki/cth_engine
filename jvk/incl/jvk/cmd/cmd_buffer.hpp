@@ -64,7 +64,7 @@ public:
      * tracks an access of the image that no tracked command records
      * @details records the barrier from the tracked state
      * @pre @ref cvk::BaseCmdBuffer::recording()
-     * @pre @ref cvk::BaseCmdBuffer::rendering() -> the access needs no barrier
+     * @pre @ref cvk::BaseCmdBuffer::rendering() -> only a local read barrier, see @ref cvk::Barrier::execute()
      */
     void use(cvk::Image const&, ImageAccess const&);
 
@@ -72,7 +72,7 @@ public:
      * tracks an access of the buffer that no tracked command records
      * @details records the barrier from the tracked state
      * @pre @ref cvk::BaseCmdBuffer::recording()
-     * @pre @ref cvk::BaseCmdBuffer::rendering() -> the access needs no barrier
+     * @pre @ref cvk::BaseCmdBuffer::rendering() -> only a local read barrier, see @ref cvk::Barrier::execute()
      */
     void use(cvk::BaseBuffer const&, BufferAccess const&);
 
@@ -196,7 +196,11 @@ protected:
 private:
     explicit BasicCmdBuffer(std::unique_ptr<cvk::CmdPool>);
 
-    void record(cvk::Barrier const&) const;
+    /**
+     * records the barrier if it is not empty
+     * @details inside a rendering: adds VK_DEPENDENCY_BY_REGION_BIT, with multiview VK_DEPENDENCY_VIEW_LOCAL_BIT
+     */
+    void record(cvk::Barrier&) const;
 
     template<class Resource, class Access, class... Rest>
     void addAccesses(cvk::Barrier& barrier, Resource const& resource, Access const& access, Rest const&... rest) {
@@ -255,7 +259,7 @@ public:
      * @details calls @ref optEnd() on the secondaries
      * @details appends the resource states of the secondaries
      * @pre the preconditions of @ref cvk::PrimaryCmdBuffer::execute()
-     * @pre @ref rendering() -> the secondaries need no barrier
+     * @pre @ref rendering() -> the secondaries need only local read barriers, see @ref cvk::Barrier::execute()
      * @throws cvk::vk_result_exception result of vkEndCommandBuffer()
      */
     void execute(std::span<SecondaryCmdBuffer* const>);

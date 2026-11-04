@@ -6,6 +6,7 @@
 #include "jvk/data/buffer.hpp"
 #include "jvk/data/image.hpp"
 
+#include "cvk/base/device.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
@@ -265,6 +266,51 @@ JVK_TEST(CmdBuffer, begin_rendering_records_the_attachments) {
     auto const mapping = readback.map();
     readback.invalidate();
     EXPECT_EQ(mapping[0], 0xff0000ffu);
+}
+
+JVK_TEST(CmdBuffer, use_inside_a_rendering_records_a_local_read_barrier) {
+    test::Context const context{};
+    cvk::Core const& core = context.core;
+    if(!core.device().features().dynamicRenderingLocalRead) GTEST_SKIP() << "needs dynamicRenderingLocalRead";
+
+    constexpr cvk::Image::Config localReadConfig{
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .format = VK_FORMAT_R8G8B8A8_UNORM,
+        .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+    };
+    constexpr ImageAccess INPUT_READ{
+        .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+        .stages = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        .access = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT,
+    };
+    Image const image{context.core, localReadConfig, EXTENT};
+    cvk::ImageView const view{image, {}, cvk::create};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+
+    primary.begin();
+    primary.assume(image, UNDEFINED);
+    primary.beginRendering({
+        .colorAttachments = {
+            cvk::RenderingAttachment{
+                .view = &view,
+                .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = {.color = {.float32 = {1.f, 0.f, 0.f, 1.f}}},
+            },
+        },
+    });
+    // a write of the attachment, then a read through the input attachment: by region barrier, no layout change
+    primary.use(image, INPUT_READ);
+    primary.endRendering();
+
+    auto const last = primary.states().last(image, 0);
+    ASSERT_TRUE(last.has_value());
+    EXPECT_EQ(last->layout, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR);
+    EXPECT_EQ(last->scope.access, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT);
+    primary.end();
+
+    test::submit_and_wait(context, primary);
 }
 
 JVK_TEST(CmdBuffer, bind_records_the_buffer_access) {

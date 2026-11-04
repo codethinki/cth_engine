@@ -9,6 +9,7 @@
 #include <cth/io/log.hpp>
 
 #include <array>
+#include <bit>
 #include <optional>
 
 
@@ -241,10 +242,13 @@ void BasicCmdBuffer<Base>::appendStates(ResourceStates const& next) {
 }
 
 template<class Base>
-void BasicCmdBuffer<Base>::record(cvk::Barrier const& barrier) const {
+void BasicCmdBuffer<Base>::record(cvk::Barrier& barrier) const {
     if(barrier.empty()) return;
 
-    CTH_CRITICAL(this->rendering(), "Vulkan forbids a barrier inside a rendering, the accesses need one") {}
+    if(auto const* rendering = this->rendering()) {
+        barrier.flags |= VK_DEPENDENCY_BY_REGION_BIT;
+        if(std::popcount(rendering->viewMask) > 1) barrier.flags |= VK_DEPENDENCY_VIEW_LOCAL_BIT;
+    }
     barrier.execute(*this);
 }
 
