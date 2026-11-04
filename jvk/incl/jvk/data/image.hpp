@@ -15,21 +15,15 @@
 
 namespace jvk {
 /**
- * cvk image whose commands record their accesses in the resource states of the command buffer
- * @details the commands take a jvk command buffer and record the barriers that their accesses need,
- *  the untracked commands of @ref cvk::Image stay reachable through cvk::Image::,
- *  the image keeps no state: a created image is in its creation layout, the recordings track it
+ * cvk image whose commands record their accesses in the jvk command buffer
+ * @details a created image is in its creation layout
  */
 class Image : public cvk::Image {
 public:
     using cvk::Image::Image;
 
     /**
-     * records a copy from the buffer into every layer of the mip level, with its access
-     * @param srcOffset in bytes, the layers follow each other in the buffer
-     * @param layout of the mip level, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
-     * @details accesses: the mip level in the layout, transfer stage, transfer write,
-     *  the buffer: transfer stage, transfer read
+     * records the accesses, then @ref cvk::Image::copy()
      * @pre the preconditions of @ref cvk::Image::copy()
      */
     void copy(
@@ -45,11 +39,7 @@ public:
     }
 
     /**
-     * records a copy from every layer of the mip level into the buffer, with its access
-     * @param dstOffset in bytes, the layers follow each other in the buffer
-     * @param layout of the mip level, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
-     * @details accesses: the mip level in the layout, transfer stage, transfer read,
-     *  the buffer: transfer stage, transfer write
+     * records the accesses, then @ref cvk::Image::copyTo()
      * @pre the preconditions of @ref cvk::Image::copyTo()
      */
     void copyTo(
@@ -65,16 +55,9 @@ public:
     }
 
     /**
-     * records blits that fill each mip level from the level before it, every layer, with their accesses
-     * @param firstMipLevel first level to fill, the blits read from firstMipLevel - 1
-     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
-     * @param filter depth formats need VK_FILTER_NEAREST
-     * @details accesses: the levels from firstMipLevel - 1 to the last filled level in
-     *  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, transfer write, then the blits of @ref cvk::Image::blitMipLevels()
-     *  with their own barriers
+     * records the accesses, then @ref cvk::Image::blitMipLevels()
      * @pre the preconditions of @ref cvk::Image::blitMipLevels() without the layouts
-     * @post the last state of the levels from firstMipLevel - 1 to the last filled level:
-     *  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, transfer read
+     * @post the levels from firstMipLevel - 1: VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, transfer read
      */
     void blitMipLevels(
         cmd_buffer auto& cmd,
@@ -87,7 +70,7 @@ public:
 
         auto const write = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         cmd.use(*this, mipAccess(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, write, firstMipLevel - 1, levels + 1));
-        // the blits leave each level in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL after a transfer read
+        // cvk leaves the levels in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
         cvk::Image::blitMipLevels(cmd, firstMipLevel, mipLevels, filter);
         cmd.assume(
             *this,
@@ -103,9 +86,6 @@ public:
 private:
     static constexpr VkPipelineStageFlags2 TRANSFER = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 
-    /**
-     * transfer access of the mip levels
-     */
     [[nodiscard]] static constexpr ImageAccess mipAccess(
         VkImageLayout layout,
         VkAccessFlags2 access,

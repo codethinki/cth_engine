@@ -13,7 +13,7 @@ using cvk::Image;
 
 namespace {
     /**
-     * the write accesses: a barrier makes them available, a write after them needs the barrier too
+     * the write accesses
      */
     constexpr VkAccessFlags2 WRITES = VK_ACCESS_2_SHADER_WRITE_BIT
         | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
@@ -29,14 +29,14 @@ namespace {
     [[nodiscard]] constexpr bool writes(VkAccessFlags2 access) { return (access & WRITES) != 0; }
 
     /**
-     * src of a barrier after the scope: the stages finish first, only writes need to be made available
+     * src of a barrier after the scope, only the writes of its access
      */
     [[nodiscard]] constexpr BarrierScope src_scope(BarrierScope const& scope) {
         return BarrierScope{scope.stages, scope.access & WRITES, scope.queueFamilyIndex};
     }
 
     /**
-     * the reads of both scopes
+     * the stages and accesses of both scopes
      */
     [[nodiscard]] constexpr BarrierScope merge(BarrierScope const& scope, BarrierScope const& other) {
         return BarrierScope{scope.stages | other.stages, scope.access | other.access, scope.queueFamilyIndex};
@@ -54,8 +54,7 @@ namespace {
     }
 
     /**
-     * mip range with VK_REMAINING_MIP_LEVELS resolved
-     * @return the mip level count
+     * @return the mip level count, VK_REMAINING_MIP_LEVELS resolved
      */
     [[nodiscard]] uint32_t mip_count(Image const& image, uint32_t firstMipLevel, uint32_t mipLevels) {
         Image::debug_check(image);
@@ -78,7 +77,7 @@ namespace {
     }
 
     /**
-     * appends the barrier of one mip level, merges it into the barrier of the level before if they match
+     * appends the barrier of one mip level, merges it into an equal barrier of the level before
      */
     void add_image_barrier(cvk::Barrier& barrier, Image const& image, cvk::ImageBarrierInfo const& info) {
         if(!barrier.images.empty()) {
@@ -210,7 +209,7 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
         auto& states = it->second;
         states.image = nextStates.image;
 
-        // an assume before the first access of next: the caller synchronized it
+        // an assume before the first access of next: no barrier
         if(!nextStates.first.has_value()) {
             states.last = nextStates.last;
             states.barrier = true;
@@ -228,7 +227,7 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
             continue;
         }
 
-        // read after read in the same layout, the reads of next until its first barrier
+        // read after read in the same layout
         if(!states.barrier && states.first.has_value())
             states.first->scope = merge(states.first->scope, nextStates.first->scope);
         states.last = nextStates.barrier ? nextStates.last
