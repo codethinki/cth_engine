@@ -111,7 +111,8 @@ namespace {
 }
 
 void Barrier::debug_check_rendering(
-    RenderingInfo const& rendering,
+    RenderingInfo const* rendering,
+    uint32_t viewMask,
     std::span<VkMemoryBarrier2 const> memoryBarriers,
     std::span<VkBufferMemoryBarrier2 const> bufferBarriers,
     std::span<VkImageMemoryBarrier2 const> imageBarriers
@@ -136,7 +137,7 @@ void Barrier::debug_check_rendering(
         "barriers inside a rendering need VK_DEPENDENCY_BY_REGION_BIT"
     ) {}
     CTH_CRITICAL(
-        std::popcount(rendering.viewMask) > 1 && (flags & VK_DEPENDENCY_VIEW_LOCAL_BIT) == 0,
+        std::popcount(viewMask) > 1 && (flags & VK_DEPENDENCY_VIEW_LOCAL_BIT) == 0,
         "barriers inside a rendering with more than one view need VK_DEPENDENCY_VIEW_LOCAL_BIT"
     ) {}
     auto const transfer = [](VkBufferMemoryBarrier2 const& barrier) {
@@ -147,14 +148,16 @@ void Barrier::debug_check_rendering(
         "barriers inside a rendering have no queue family ownership transfer"
     ) {}
 
-    auto const attached = [&rendering](Image const& image) {
+    // a continuing secondary does not know the attachment images
+    auto const attached = [rendering](Image const& image) {
+        if(rendering == nullptr) return false;
         auto const uses = [&image](RenderingAttachment const& attachment) {
             return &attachment.view->image() == &image
                 || (attachment.resolveView != nullptr && &attachment.resolveView->image() == &image);
         };
-        return std::ranges::any_of(rendering.colorAttachments, uses)
-            || (rendering.depthAttachment.has_value() && uses(*rendering.depthAttachment))
-            || (rendering.stencilAttachment.has_value() && uses(*rendering.stencilAttachment));
+        return std::ranges::any_of(rendering->colorAttachments, uses)
+            || (rendering->depthAttachment.has_value() && uses(*rendering->depthAttachment))
+            || (rendering->stencilAttachment.has_value() && uses(*rendering->stencilAttachment));
     };
 
     for(auto const [barrier, entry] : std::views::zip(imageBarriers, images)) {
@@ -213,8 +216,14 @@ void Barrier::execute(BaseCmdBuffer const& cmdBuffer) const {
     for(auto const& [image, info] : images)
         imageBarriers.push_back(image_barrier(*image, info));
 
-    if(auto const* rendering = cmdBuffer.rendering())
-        debug_check_rendering(*rendering, memoryBarriers, bufferBarriers, imageBarriers);
+    if(cmdBuffer.insideRendering())
+        debug_check_rendering(
+            cmdBuffer.rendering(),
+            cmdBuffer.renderingViewMask(),
+            memoryBarriers,
+            bufferBarriers,
+            imageBarriers
+        );
 
     VkDependencyInfo const dependency{
         .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,

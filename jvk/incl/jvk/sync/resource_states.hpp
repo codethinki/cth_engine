@@ -120,6 +120,19 @@ public:
     void assume(cvk::BaseBuffer const&, BufferState const& state);
 
     /**
+     * adds the stages and the access to the last state of the mip levels, without a barrier
+     * @details no state -> stays without a state
+     * @details no barrier since the first use -> adds them to the first state too
+     * @pre the mip range lies in the image
+     */
+    void extend(
+        cvk::Image const&,
+        cvk::BarrierScope const& scope,
+        uint32_t firstMipLevel = 0,
+        uint32_t mipLevels = VK_REMAINING_MIP_LEVELS
+    );
+
+    /**
      * appends the states of a later recording
      * @param barrier gets the barriers, record it before the commands of next
      */

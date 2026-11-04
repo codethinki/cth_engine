@@ -201,6 +201,19 @@ void ResourceStates::assume(BaseBuffer const& buffer, BufferState const& state) 
     states.barrier = true;
 }
 
+void ResourceStates::extend(Image const& image, BarrierScope const& scope, uint32_t firstMipLevel, uint32_t mipLevels) {
+    auto const count = mip_count(image, firstMipLevel, mipLevels);
+
+    for(uint32_t level = firstMipLevel; level < firstMipLevel + count; ++level) {
+        auto const it = _images.find(image_key_t{image.get(), level});
+        if(it == _images.end()) continue;
+
+        auto& states = it->second;
+        states.last.scope = merge(states.last.scope, scope);
+        if(!states.barrier && states.first.has_value()) states.first->scope = merge(states.first->scope, scope);
+    }
+}
+
 void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
     for(auto const& [key, nextStates] : next._images) {
         auto const [it, inserted] = _images.try_emplace(key, nextStates);

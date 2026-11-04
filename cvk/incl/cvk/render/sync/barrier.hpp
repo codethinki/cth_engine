@@ -203,9 +203,10 @@ struct Barrier {
      * @pre the images and buffers are created and the ranges lie in them
      * @pre memory barriers have no queue family ownership transfer
      * @pre layout transition or queue family ownership transfer -> new layout not undefined or preinitialized
-     * @pre inside a rendering: framebuffer space stages and VK_DEPENDENCY_BY_REGION_BIT
-     * @pre inside a rendering: no layout transition and no queue family ownership transfer
-     * @pre inside a rendering: the attachments in a local read or general layout
+     * @pre @ref BaseCmdBuffer::insideRendering() -> framebuffer space stages and VK_DEPENDENCY_BY_REGION_BIT
+     * @pre @ref BaseCmdBuffer::insideRendering() -> no layout transition and no queue family ownership transfer
+     * @pre @ref BaseCmdBuffer::insideRendering() with multiview -> VK_DEPENDENCY_VIEW_LOCAL_BIT
+     * @pre @ref BaseCmdBuffer::rendering() -> the attachments in a local read or general layout
      */
     void execute(BaseCmdBuffer const&) const;
 
@@ -223,10 +224,12 @@ struct Barrier {
 private:
     /**
      * checks the rules of barriers inside a dynamic rendering
-     * @param rendering the command buffer began
+     * @param rendering the command buffer began, nullptr -> a secondary continues the rendering
+     * @param viewMask of the rendering
      */
     void debug_check_rendering(
-        RenderingInfo const& rendering,
+        RenderingInfo const* rendering,
+        uint32_t viewMask,
         std::span<VkMemoryBarrier2 const>,
         std::span<VkBufferMemoryBarrier2 const>,
         std::span<VkImageMemoryBarrier2 const>

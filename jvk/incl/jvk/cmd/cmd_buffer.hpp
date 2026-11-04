@@ -117,6 +117,13 @@ public:
     void beginRendering(cvk::RenderingInfo const&);
 
     /**
+     * ends the dynamic rendering
+     * @details adds the attachment accesses to the last states of the attachments
+     * @pre the preconditions of @ref cvk::BaseCmdBuffer::endRendering()
+     */
+    void endRendering();
+
+    /**
      * binds the buffer to the vertex input binding
      * @details tracks the read of the buffer at the bind: write the buffer before the bind
      * @pre the preconditions of @ref cvk::BaseCmdBuffer::bindVertexBuffer() and @ref use()

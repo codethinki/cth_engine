@@ -311,6 +311,27 @@ public:
         return recording() && _rendering.has_value() ? &*_rendering : nullptr;
     }
 
+    /**
+     * @return what the secondary inherits from the rendering it continues
+     * @return nullptr -> continues no rendering
+     */
+    [[nodiscard]] constexpr RenderingInheritance const* inheritedRendering() const {
+        return recording() && _inheritedRendering.has_value() ? &*_inheritedRendering : nullptr;
+    }
+
+    /**
+     * @return inside the own @ref rendering() or the @ref inheritedRendering()
+     */
+    [[nodiscard]] constexpr bool insideRendering() const {
+        return rendering() != nullptr || inheritedRendering() != nullptr;
+    }
+
+    /**
+     * @return view mask of the own @ref rendering() or the @ref inheritedRendering()
+     * @pre @ref insideRendering()
+     */
+    [[nodiscard]] constexpr uint32_t renderingViewMask() const;
+
 protected:
     /**
      * base constructor
@@ -331,6 +352,14 @@ protected:
      * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
      */
     void begin(VkCommandBufferBeginInfo const&);
+
+    /**
+     * begins the recording that continues a rendering
+     * @details stores the inheritance for @ref inheritedRendering()
+     * @pre the preconditions of @ref begin(VkCommandBufferBeginInfo const&)
+     * @throws cvk::vk_result_exception result of vkBeginCommandBuffer()
+     */
+    void begin(VkCommandBufferBeginInfo const&, RenderingInheritance const&);
 
 private:
     /**
@@ -371,6 +400,7 @@ private:
     bool _recording = false;
     uint64_t _beginResets = 0;
     std::optional<RenderingInfo> _rendering = std::nullopt;
+    std::optional<RenderingInheritance> _inheritedRendering = std::nullopt;
 
 public:
     BaseCmdBuffer(BaseCmdBuffer const& other) = delete;
@@ -400,6 +430,11 @@ struct BaseCmdBuffer::State {
 }
 
 namespace cvk {
+constexpr uint32_t BaseCmdBuffer::renderingViewMask() const {
+    CTH_CRITICAL(!insideRendering(), "command buffer must be inside a rendering") {}
+    return rendering() != nullptr ? rendering()->viewMask : inheritedRendering()->viewMask;
+}
+
 constexpr void BaseCmdBuffer::debug_check(BaseCmdBuffer const& buffer) {
     CTH_CRITICAL(!buffer.created(), "command buffer must be created") {}
 }

@@ -55,6 +55,50 @@ namespace {
         return staging;
     }
 
+    constexpr ImageAccess LOCAL_INPUT_READ{
+        .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+        .stages = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        .access = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT,
+    };
+
+    [[nodiscard]] bool local_read_supported(test::Context const& context) {
+        cvk::Core const& core = context.core;
+        return core.device().features().dynamicRenderingLocalRead;
+    }
+
+    /**
+     * color attachment in VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, cleared red
+     */
+    struct LocalRead {
+        static constexpr cvk::Image::Config CONFIG{
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .format = VK_FORMAT_R8G8B8A8_UNORM,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+                | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+        };
+
+        explicit LocalRead(test::Context const& context) :
+            image{context.core, CONFIG, EXTENT}, view{image, {}, cvk::create} {}
+
+        [[nodiscard]] cvk::RenderingInfo renderingInfo(VkRenderingFlags flags = 0) const {
+            return cvk::RenderingInfo{
+                .colorAttachments = {
+                    cvk::RenderingAttachment{
+                        .view = &view,
+                        .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                        .clearValue = {.color = {.float32 = {1.f, 0.f, 0.f, 1.f}}},
+                    },
+                },
+                .flags = flags,
+            };
+        }
+
+        Image image;
+        cvk::ImageView view;
+    };
+
     /**
      * @return the readback holds the counting values of @ref counting_staging()
      */
@@ -270,47 +314,90 @@ JVK_TEST(CmdBuffer, begin_rendering_records_the_attachments) {
 
 JVK_TEST(CmdBuffer, use_inside_a_rendering_records_a_local_read_barrier) {
     test::Context const context{};
-    cvk::Core const& core = context.core;
-    if(!core.device().features().dynamicRenderingLocalRead) GTEST_SKIP() << "needs dynamicRenderingLocalRead";
-
-    constexpr cvk::Image::Config localReadConfig{
-        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .format = VK_FORMAT_R8G8B8A8_UNORM,
-        .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-    };
-    constexpr ImageAccess INPUT_READ{
-        .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-        .stages = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-        .access = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT,
-    };
-    Image const image{context.core, localReadConfig, EXTENT};
-    cvk::ImageView const view{image, {}, cvk::create};
+    if(!local_read_supported(context)) GTEST_SKIP() << "needs dynamicRenderingLocalRead";
+    LocalRead const localRead{context};
     PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
 
     primary.begin();
-    primary.assume(image, UNDEFINED);
-    primary.beginRendering({
-        .colorAttachments = {
-            cvk::RenderingAttachment{
-                .view = &view,
-                .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue = {.color = {.float32 = {1.f, 0.f, 0.f, 1.f}}},
-            },
-        },
-    });
+    primary.assume(localRead.image, UNDEFINED);
+    primary.beginRendering(localRead.renderingInfo());
     // a write of the attachment, then a read through the input attachment: by region barrier, no layout change
-    primary.use(image, INPUT_READ);
+    primary.use(localRead.image, LOCAL_INPUT_READ);
+    EXPECT_EQ(primary.states().last(localRead.image, 0)->scope.access, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT);
     primary.endRendering();
 
-    auto const last = primary.states().last(image, 0);
+    // the end adds the store of the attachment
+    auto const last = primary.states().last(localRead.image, 0);
     ASSERT_TRUE(last.has_value());
     EXPECT_EQ(last->layout, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR);
-    EXPECT_EQ(last->scope.access, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT);
+    EXPECT_EQ(last->scope.access, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
     primary.end();
 
     test::submit_and_wait(context, primary);
+}
+
+JVK_TEST(CmdBuffer, copy_after_a_rendering_with_a_local_read) {
+    test::Context const context{};
+    if(!local_read_supported(context)) GTEST_SKIP() << "needs dynamicRenderingLocalRead";
+    LocalRead const localRead{context};
+    auto const staging = counting_staging(context);
+    Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+
+    primary.begin();
+    primary.assume(localRead.image, UNDEFINED);
+    primary.beginRendering(localRead.renderingInfo());
+    primary.use(localRead.image, LOCAL_INPUT_READ);
+    primary.endRendering();
+
+    // read after the store, then write after the read
+    localRead.image.copyTo(primary, readback);
+    localRead.image.copy(primary, staging);
+    primary.use(readback, HOST_READ);
+    primary.end();
+
+    test::submit_and_wait(context, primary);
+
+    auto const mapping = readback.map();
+    readback.invalidate();
+    EXPECT_EQ(mapping[0], 0xff0000ffu);
+}
+
+JVK_TEST(CmdBuffer, continuing_secondary_records_a_local_read_barrier) {
+    test::Context const context{};
+    if(!local_read_supported(context)) GTEST_SKIP() << "needs dynamicRenderingLocalRead";
+    LocalRead const localRead{context};
+    Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    SecondaryCmdBuffer secondary{context.core, test::queue_family(context)};
+
+    primary.begin();
+    primary.assume(localRead.image, UNDEFINED);
+    primary.beginRendering(localRead.renderingInfo(VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT));
+
+    secondary.begin(primary.inheritance());
+    EXPECT_TRUE(secondary.insideRendering());
+    // the secondary does not know the attachment write of the primary
+    secondary.assume(
+        localRead.image,
+        {
+            .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+            .scope = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT},
+        }
+    );
+    secondary.use(localRead.image, LOCAL_INPUT_READ);
+
+    primary.execute(secondary);
+    primary.endRendering();
+    localRead.image.copyTo(primary, readback);
+    primary.use(readback, HOST_READ);
+    primary.end();
+
+    test::submit_and_wait(context, primary);
+
+    auto const mapping = readback.map();
+    readback.invalidate();
+    EXPECT_EQ(mapping[0], 0xff0000ffu);
 }
 
 JVK_TEST(CmdBuffer, bind_records_the_buffer_access) {

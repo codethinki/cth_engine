@@ -102,6 +102,7 @@ void BaseCmdBuffer::wrap(State const& state) {
     pool().add();
     _recording = false;
     _rendering.reset();
+    _inheritedRendering.reset();
 }
 
 void BaseCmdBuffer::create() {
@@ -129,6 +130,7 @@ void BaseCmdBuffer::create() {
     pool().add();
     _recording = false;
     _rendering.reset();
+    _inheritedRendering.reset();
 }
 
 void BaseCmdBuffer::destroy() {
@@ -157,6 +159,7 @@ void BaseCmdBuffer::end() {
     auto const result = core().functions()->vkEndCommandBuffer(get());
     _recording = false;
     _rendering.reset();
+    _inheritedRendering.reset();
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to end command buffer") {}
 }
@@ -171,6 +174,7 @@ void BaseCmdBuffer::reset(VkCommandBufferResetFlags flags) {
     auto const result = core().functions()->vkResetCommandBuffer(get(), flags);
     _recording = false;
     _rendering.reset();
+    _inheritedRendering.reset();
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to reset command buffer") {}
 }
@@ -530,6 +534,12 @@ void BaseCmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
     _recording = true;
     _beginResets = pool().resets();
     _rendering.reset();
+    _inheritedRendering.reset();
+}
+
+void BaseCmdBuffer::begin(VkCommandBufferBeginInfo const& info, RenderingInheritance const& inheritance) {
+    begin(info);
+    _inheritedRendering = inheritance;
 }
 
 void BaseCmdBuffer::recordAttachmentMapping() const {
@@ -545,6 +555,7 @@ void BaseCmdBuffer::recordAttachmentMapping() const {
 void BaseCmdBuffer::forget() {
     _recording = false;
     _rendering.reset();
+    _inheritedRendering.reset();
 }
 
 void BaseCmdBuffer::pool_deleter::operator()(VkCommandBuffer vkBuffer) const {
@@ -688,6 +699,6 @@ void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUs
         .flags = usage | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
         .pInheritanceInfo = &inheritanceInfo,
     };
-    BaseCmdBuffer::begin(info);
+    BaseCmdBuffer::begin(info, inheritance);
 }
 }

@@ -1,9 +1,14 @@
 #include "context.hpp"
 #include "test.hpp"
 
+#include "cvk/data/img/image.hpp"
+#include "cvk/data/img/image_view.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
+#include "cvk/render/sync/barrier.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
 
 #include <array>
+#include <optional>
 #include <span>
 #include <string>
 #include <type_traits>
@@ -178,6 +183,83 @@ CVK_TEST(CmdBuffer, secondary_begin_with_rendering_inheritance) {
     EXPECT_TRUE(secondary.recording());
 
     secondary.end();
+}
+
+CVK_TEST(CmdBuffer, secondary_continues_the_inherited_rendering) {
+    test::Context const context{};
+    CmdPool const pool{context.core, pool_config(context.core), create};
+    SecondaryCmdBuffer secondary{pool, create};
+
+    secondary.begin();
+    EXPECT_FALSE(secondary.insideRendering());
+    EXPECT_EQ(secondary.inheritedRendering(), nullptr);
+    secondary.end();
+
+    secondary.begin(SecondaryCmdBuffer::Inheritance{.colorFormats = {VK_FORMAT_R8G8B8A8_UNORM}});
+    EXPECT_TRUE(secondary.insideRendering());
+    EXPECT_EQ(secondary.rendering(), nullptr);
+    ASSERT_NE(secondary.inheritedRendering(), nullptr);
+    EXPECT_EQ(secondary.inheritedRendering()->colorFormats, std::vector{VK_FORMAT_R8G8B8A8_UNORM});
+    EXPECT_EQ(secondary.renderingViewMask(), 0);
+    secondary.end();
+
+    // the next begin forgets the inheritance
+    secondary.begin();
+    EXPECT_FALSE(secondary.insideRendering());
+    secondary.end();
+}
+
+CVK_TEST(CmdBuffer, secondary_reports_the_inherited_view_mask) {
+    auto config = test::Context::CONFIG;
+    config.features.multiview = true;
+    std::optional<test::Context> context{};
+    try { context.emplace(config); } catch(cvk_exception const&) { GTEST_SKIP() << "needs multiview"; }
+
+    CmdPool const pool{context->core, pool_config(context->core), create};
+    SecondaryCmdBuffer secondary{pool, create};
+
+    secondary.begin(SecondaryCmdBuffer::Inheritance{.colorFormats = {VK_FORMAT_R8G8B8A8_UNORM}, .viewMask = 0b11});
+    EXPECT_EQ(secondary.renderingViewMask(), 0b11);
+    secondary.end();
+}
+
+CVK_TEST(CmdBuffer, primary_is_inside_its_rendering) {
+    test::Context const context{};
+    CmdPool const pool{context.core, pool_config(context.core), create};
+    PrimaryCmdBuffer primary{pool, create};
+    Image const image{
+        context.core,
+        {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .format = VK_FORMAT_R8G8B8A8_UNORM,
+            .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        },
+        VkExtent2D{4, 4}
+    };
+    ImageView const view{image, {}, create};
+
+    primary.begin();
+    EXPECT_FALSE(primary.insideRendering());
+
+    Barrier transition{};
+    transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+    transition.execute(primary);
+    primary.beginRendering({
+        .colorAttachments = {
+            RenderingAttachment{
+                .view = &view,
+                .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            },
+        },
+    });
+    EXPECT_TRUE(primary.insideRendering());
+    EXPECT_EQ(primary.inheritedRendering(), nullptr);
+    EXPECT_EQ(primary.renderingViewMask(), 0);
+
+    primary.endRendering();
+    EXPECT_FALSE(primary.insideRendering());
+    primary.end();
 }
 
 CVK_TEST(CmdBuffer, release_and_wrap) {

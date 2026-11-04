@@ -7,10 +7,12 @@
 #include "cvk/render/sync/barrier.hpp"
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/not_null.hpp>
 
 #include <array>
 #include <bit>
 #include <optional>
+#include <vector>
 
 
 namespace jvk::dev {
@@ -67,6 +69,86 @@ namespace {
     [[nodiscard]] bool same_mip_level(cvk::ImageView const& view, cvk::ImageView const& other) {
         return &view.image() == &other.image() && view.range().baseMipLevel == other.range().baseMipLevel;
     }
+
+    /**
+     * access of an attachment to the mip level of its image
+     */
+    struct AttachmentAccess {
+        cth::not_null_ptr<cvk::Image const> image;
+        ImageAccess access;
+    };
+
+    /**
+     * @return the accesses of the attachments: color, depth and stencil, resolve
+     */
+    [[nodiscard]] std::vector<AttachmentAccess> attachment_accesses(cvk::RenderingInfo const& info) {
+        std::vector<AttachmentAccess> accesses{};
+
+        for(auto const& attachment : info.colorAttachments) {
+            auto const access = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+                | (attachment.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
+                    : VK_ACCESS_2_NONE);
+            accesses.push_back({
+                &attachment.view->image(),
+                view_access(
+                    *attachment.view,
+                    attachment.layout,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    access,
+                    discards(attachment.loadOp)
+                ),
+            });
+        }
+
+        auto const& depth = info.depthAttachment;
+        auto const& stencil = info.stencilAttachment;
+        bool const shared = depth.has_value() && stencil.has_value()
+            && same_mip_level(*depth->view, *stencil->view);
+        if(shared) {
+            CTH_CRITICAL(
+                depth->layout != stencil->layout,
+                "the depth and the stencil attachment of one image must have the same layout, got {} and {}",
+                depth->layout,
+                stencil->layout
+            ) {}
+
+            auto access = depth_stencil_access(*depth, !depth_read_only(depth->layout));
+            access.access |= depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)).access;
+            access.discard = discards(depth->loadOp) && discards(stencil->loadOp);
+            accesses.push_back({&depth->view->image(), access});
+        } else {
+            if(depth.has_value())
+                accesses.push_back({
+                    &depth->view->image(),
+                    depth_stencil_access(*depth, !depth_read_only(depth->layout)),
+                });
+            if(stencil.has_value())
+                accesses.push_back({
+                    &stencil->view->image(),
+                    depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)),
+                });
+        }
+
+        auto const resolve = [&](cvk::RenderingAttachment const& attachment) {
+            if(attachment.resolveView == nullptr) return;
+            accesses.push_back({
+                &attachment.resolveView->image(),
+                view_access(
+                    *attachment.resolveView,
+                    attachment.resolveLayout,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    false
+                ),
+            });
+        };
+        for(auto const& attachment : info.colorAttachments)
+            resolve(attachment);
+        if(depth.has_value()) resolve(*depth);
+        if(stencil.has_value() && !(shared && stencil->resolveView == depth->resolveView)) resolve(*stencil);
+
+        return accesses;
+    }
 }
 
 template<class Base>
@@ -117,75 +199,26 @@ void BasicCmdBuffer<Base>::assume(cvk::BaseBuffer const& buffer, BufferState con
 template<class Base>
 void BasicCmdBuffer<Base>::beginRendering(cvk::RenderingInfo const& info) {
     cvk::Barrier barrier{};
-
-    for(auto const& attachment : info.colorAttachments) {
-        auto const access = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
-            | (attachment.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
-                : VK_ACCESS_2_NONE);
-        _states.access(
-            attachment.view->image(),
-            view_access(
-                *attachment.view,
-                attachment.layout,
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                access,
-                discards(attachment.loadOp)
-            ),
-            barrier
-        );
-    }
-
-    auto const& depth = info.depthAttachment;
-    auto const& stencil = info.stencilAttachment;
-    bool const shared = depth.has_value() && stencil.has_value() && same_mip_level(*depth->view, *stencil->view);
-    if(shared) {
-        CTH_CRITICAL(
-            depth->layout != stencil->layout,
-            "the depth and the stencil attachment of one image must have the same layout, got {} and {}",
-            depth->layout,
-            stencil->layout
-        ) {}
-
-        auto access = depth_stencil_access(*depth, !depth_read_only(depth->layout));
-        access.access |= depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)).access;
-        access.discard = discards(depth->loadOp) && discards(stencil->loadOp);
-        _states.access(depth->view->image(), access, barrier);
-    } else {
-        if(depth.has_value())
-            _states.access(
-                depth->view->image(),
-                depth_stencil_access(*depth, !depth_read_only(depth->layout)),
-                barrier
-            );
-        if(stencil.has_value())
-            _states.access(
-                stencil->view->image(),
-                depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)),
-                barrier
-            );
-    }
-
-    auto const resolve = [&](cvk::RenderingAttachment const& attachment) {
-        if(attachment.resolveView == nullptr) return;
-        _states.access(
-            attachment.resolveView->image(),
-            view_access(
-                *attachment.resolveView,
-                attachment.resolveLayout,
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                false
-            ),
-            barrier
-        );
-    };
-    for(auto const& attachment : info.colorAttachments)
-        resolve(attachment);
-    if(depth.has_value()) resolve(*depth);
-    if(stencil.has_value() && !(shared && stencil->resolveView == depth->resolveView)) resolve(*stencil);
+    for(auto const& [image, access] : attachment_accesses(info))
+        _states.access(*image, access, barrier);
 
     record(barrier);
     Base::beginRendering(info);
+}
+
+template<class Base>
+void BasicCmdBuffer<Base>::endRendering() {
+    CTH_CRITICAL(this->rendering() == nullptr, "command buffer must be inside its own rendering") {}
+
+    for(auto const& [image, access] : attachment_accesses(*this->rendering()))
+        _states.extend(
+            *image,
+            cvk::BarrierScope{.stages = access.stages, .access = access.access},
+            access.firstMipLevel,
+            access.mipLevels
+        );
+
+    Base::endRendering();
 }
 
 template<class Base>
@@ -245,9 +278,9 @@ template<class Base>
 void BasicCmdBuffer<Base>::record(cvk::Barrier& barrier) const {
     if(barrier.empty()) return;
 
-    if(auto const* rendering = this->rendering()) {
+    if(this->insideRendering()) {
         barrier.flags |= VK_DEPENDENCY_BY_REGION_BIT;
-        if(std::popcount(rendering->viewMask) > 1) barrier.flags |= VK_DEPENDENCY_VIEW_LOCAL_BIT;
+        if(std::popcount(this->renderingViewMask()) > 1) barrier.flags |= VK_DEPENDENCY_VIEW_LOCAL_BIT;
     }
     barrier.execute(*this);
 }
