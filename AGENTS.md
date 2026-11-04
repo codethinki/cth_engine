@@ -265,7 +265,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 - `@details` holds one fact per line, starting with its keyword, so a reader can scan for it. No text walls.
   - one item: inline on the tag line: `@details calls @ref optEnd() on the secondaries`
   - several names: inline on the tag line: `@details calls @ref Instance(Config), @ref wrap()`
-  - several facts: a label on the tag line, then `- ` items, no item starts with `@ref`
+  - several facts: `@details`, optional with a label, then `- ` items, no item starts with `@ref`
   - one `@details` per topic
 - A class brief names what it is, in a few words: `primary command buffer`. Its properties go to `@details` as a list: `- owns a command pool`. Copy and move are not documented: the declarations tell it.
 - Do not document what Vulkan does anyway: the barriers that Vulkan forces.
