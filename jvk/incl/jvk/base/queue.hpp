@@ -30,7 +30,7 @@ class Core;
  * @details
  * - refers to the queue of the cvk core
  * - runs its work in one strand
- * - releases the queue family ownership of resources, see @ref release()
+ * - releases the queue family ownership of resources, see `release()`
  */
 class Queue {
 public:
@@ -47,7 +47,7 @@ public:
     /**
      * blocks until the queue finished its work
      * @attention deadlocks when called from a job of the strand
-     * @throws cvk::vk_result_exception result of vkQueueWaitIdle()
+     * @throws cvk::vk_result_exception result of `vkQueueWaitIdle()`
      */
     void waitIdle() const;
 
@@ -61,11 +61,11 @@ public:
      * - records the barriers into a release command buffer of the queue family of the queue, submits it
      * - the submit signals the next value of the release counter
      * @param barriers the release halves of the queue family ownership transfers
-     * @return wait for the release counter, stages VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, the receiver can narrow them
+     * @return wait for the release counter, stages `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`, the receiver can narrow them
      * @pre the barriers hold only queue family releases from the queue family of the queue
      * @pre the barriers come after the last use of the resources on this queue
      * @pre the receiver records the acquire halves and waits for the returned value
-     * @throws cvk::vk_result_exception result of vkQueueSubmit2()
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      */
     [[nodiscard]] cth::co::executor_task<cvk::SemaphoreSubmitInfo> release(cvk::Barrier barriers) const;
 
@@ -92,7 +92,7 @@ private:
         PrimaryCmdBuffer cmd;
 
         /**
-         * value of the release counter for the last submit of @ref cmd, free once reached
+         * value of the release counter for the last submit of `ReleaseCmd::cmd`, free once reached
          */
         uint64_t value = 0;
     };

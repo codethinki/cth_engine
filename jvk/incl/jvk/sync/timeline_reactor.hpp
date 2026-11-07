@@ -35,8 +35,8 @@ public:
     /**
      * creates the wake semaphore, starts the thread
      * @param workers run the callbacks
-     * @pre @ref cvk::Core::created()
-     * @throws cvk::vk_result_exception result of vkCreateSemaphore()
+     * @pre `cvk::Core::created()`
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`
      */
     TimelineReactor(cvk::Core const&, cth::co::scheduler const& workers);
 
@@ -51,7 +51,7 @@ public:
     // VkResult category
     /**
      * calls the callback on a worker once the semaphore reaches the value
-     * @details the callback gets the result of the wait: empty error_code -> reached
+     * @details the callback gets the result of the wait: empty `std::error_code` -> reached
      * @param cb to call
      * @pre the semaphore is a timeline semaphore of the core
      * @pre the semaphore is not destroyed while the callback is pending
@@ -72,6 +72,8 @@ private:
         cth::co::context::await_func cb;
     };
 
+    using waiter_map_t = cth::dt::flat_hash_map<VkSemaphore, std::vector<Waiter>>;
+
     /**
      * thread function: waits for the semaphores with waiters and the wake semaphore, posts the reached callbacks
      * @details stop request -> raises the wake semaphore, the thread ends
@@ -80,7 +82,7 @@ private:
 
     /**
      * raises the wake semaphore, the thread waits again with the new values
-     * @pre the caller holds @ref _mutex
+     * @pre the caller holds `TimelineReactor::_mutex`
      */
     void wake() const;
 
@@ -94,10 +96,10 @@ private:
     mutable std::mutex _mutex{};
 
     /**
-     * min-heap of the waiters by value per semaphore, see std::ranges::push_heap()
+     * min-heap of the waiters by value per semaphore, see `std::ranges::push_heap()`
      * @details an entry exists while the semaphore has waiters
      */
-    mutable cth::dt::flat_hash_map<VkSemaphore, std::vector<Waiter>> _waiters{};
+    mutable waiter_map_t _waiters{};
 
     // destroyed first: the stop request raises the wake semaphore, the thread ends before the members
     std::jthread _thread;
