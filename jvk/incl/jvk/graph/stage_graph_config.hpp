@@ -54,6 +54,7 @@ struct StageConfig {
 
 /**
  * config of the present stage
+ * @details the stage that acquires the swapchain image of a frame writes it, see @ref Frame::swapchainImage()
  */
 struct PresentStageConfig {
     /**
@@ -66,11 +67,6 @@ struct PresentStageConfig {
      * @pre created, outlives the graph
      */
     cth::not_null_ptr<cvk::Swapchain> swapchainPtr;
-
-    /**
-     * id of the stage that writes the swapchain image, see @ref StageGraphConfig::stages
-     */
-    size_t imageStageId;
 };
 
 /**
@@ -97,7 +93,7 @@ struct StageGraphConfig {
     /**
      * checks the config
      * @details checks:
-     * - the waits and the image stage name stages of the config
+     * - the waits name stages of the config
      * - the waits with frameOffset 0 form no cycle
      */
     static constexpr void debug_check(StageGraphConfig const&);

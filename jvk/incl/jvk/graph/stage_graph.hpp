@@ -21,7 +21,6 @@
 #include <cstdint>
 #include <deque>
 #include <exception>
-#include <memory>
 #include <mutex>
 #include <optional>
 #include <utility>
@@ -76,7 +75,7 @@ public:
 
     //TODO review no base constructor and create(): the graph has no wrap or release
     /**
-     * creates the stages, the frames and the present stage
+     * creates the stage slots, the frame slots and the present stage
      * @pre @ref Core::created()
      * @pre the config passes @ref Config::debug_check()
      * @throws cvk::vk_result_exception result of a create of the semaphores, fences or command buffers
@@ -84,15 +83,15 @@ public:
     StageGraph(Core&, Config);
 
     /**
-     * waits for the fences of every slot, destroys the stages and the frames
+     * waits for the fences of every slot, destroys the slots
      * @pre every frame submitted or skipped its stages
      */
     ~StageGraph();
 
     //TODO review window extent parameter, one caller at a time
     /**
-     * hands out the frame of the next slot
-     * @details waits for the fences of the stages of the slot
+     * constructs the frame and its stages in the next slot
+     * @details waits for the fences of the stage slots of the slot
      * @details stages of the current frame without @ref Stage::submit() or @ref Stage::skip(): skips them,
      *  warns if a waiting stage waited for that skip
      * @details recreate flag of the present stage -> recreates the swapchain, see @ref Frame::extentChanged()
@@ -103,32 +102,19 @@ public:
      */
     [[nodiscard]] cth::co::executor_task<Frame&> nextFrame(VkExtent2D windowExtent = {});
 
-    //TODO review public for the stages instead of a friend
+    //TODO review public: Stage::submit() calls it through its stage slot
     /**
      * posts the submit job of the stage into the strand of its queue
-     * @details @ref Stage::submit() calls it
+     * @details called by @ref Stage::submit()
      * @details the job waits for the marks of the waited stages off the strand, submits in the strand
      * @details after the fence: clears the stasis of the stage
      */
     void submit(Stage&);
 
-    //TODO review public for the jobs instead of a friend
-    /**
-     * stores the first error of a job for @ref nextFrame()
-     */
-    void storeError(std::exception_ptr) noexcept;
-
-    //TODO review public for the frames instead of a friend
-    /**
-     * @return nullptr -> no present
-     */
-    [[nodiscard]] dev::PresentStage* presentStage() { return _presentOpt.has_value() ? &*_presentOpt : nullptr; }
-
     [[nodiscard]] constexpr Core& core() const { return *_corePtr; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
-
     /**
      * release submit of one queue and frame slot
      * @details releases the resources that a submit on another family acquires
@@ -147,6 +133,11 @@ private:
      */
     [[nodiscard]] cth::co::executor_task<void> submitJob(Stage&);
 
+    /**
+     * stores the first error of a job for @ref nextFrame()
+     */
+    void storeError(std::exception_ptr) noexcept;
+
     cth::not_null_ptr<Core> _corePtr;
     Config _config;
 
@@ -155,8 +146,17 @@ private:
      */
     std::deque<cvk::TimelineSemaphore> _timelines{};
 
-    std::vector<std::unique_ptr<Frame>> _frames{};
     std::optional<dev::PresentStage> _presentOpt = std::nullopt;
+
+    /**
+     * one per frame slot, with its stage slots
+     */
+    std::deque<dev::FrameSlot> _frameSlots{};
+
+    /**
+     * the current frame per frame slot, constructed by @ref nextFrame()
+     */
+    std::vector<std::optional<Frame>> _frames{};
 
     std::mutex _statesMutex;
     dev::GraphStates _states{};
@@ -167,12 +167,12 @@ private:
     cth::dt::flat_hash_map<Queue const*, std::vector<ReleaseSubmit>> _releases{};
 
     std::mutex _errorMutex;
-    std::exception_ptr _error = nullptr;
+    std::exception_ptr _errorPtr = nullptr;
 
     /**
      * number of the last frame that @ref nextFrame() handed out
      */
-    uint64_t _frame = 0;
+    uint64_t _frameNumber = 0;
 
 public:
     StageGraph(StageGraph const& other) = delete;

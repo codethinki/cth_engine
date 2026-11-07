@@ -30,33 +30,30 @@ namespace jvk::dev {
 /**
  * present stage of a @ref StageGraph
  * @details acquire and present run in the strand of the present queue
- * @details one acquire semaphore per frame slot, the swapchain has one present semaphore per image
+ * @details the frame slots own the acquire semaphores, the swapchain has one present semaphore per image
  * @details VK_ERROR_OUT_OF_DATE_KHR and VK_SUBOPTIMAL_KHR flag a recreate
  */
 class PresentStage {
 public:
-    /**
-     * creates the acquire semaphores
-     * @throws cvk::vk_result_exception result of vkCreateSemaphore()
-     */
-    PresentStage(Core const&, PresentStageConfig const&, size_t frameSlots);
+    PresentStage(Core const&, PresentStageConfig const&);
 
     /**
      * acquires the next swapchain image in the strand
      * @details VK_ERROR_OUT_OF_DATE_KHR or extent 0 -> std::nullopt
+     * @param signal signaled when the image is ready
      * @return index of the image
-     * @pre no acquire of the slot is pending
+     * @pre signal has no pending operation
      * @throws cvk::vk_result_exception other result of vkAcquireNextImageKHR()
      */
-    [[nodiscard]] cth::co::executor_task<std::optional<uint32_t>> acquire(size_t slot);
+    [[nodiscard]] cth::co::executor_task<std::optional<uint32_t>> acquire(cvk::Semaphore const& signal);
 
     /**
      * posts the present of the image into the strand
-     * @details waits for the mark of the image stage off the strand
+     * @details waits for the mark of the acquiring stage off the strand
      * @details returns at once, an error goes to the graph
-     * @pre the image stage signals the present semaphore of the image
+     * @pre the acquiring stage signals the present semaphore of the image
      */
-    void present(uint32_t imageIdx, cth::os::fence const& imageStageMark);
+    void present(uint32_t imageIdx, cth::os::fence const& acquiringStageMark);
 
     /**
      * recreates the swapchain in the strand
@@ -71,14 +68,12 @@ public:
      */
     [[nodiscard]] bool recreateNeeded() const { return _outOfDate.load() || _suboptimal.load(); }
 
-    [[nodiscard]] cvk::Semaphore const& acquireSemaphore(size_t slot) const { return _acquireSemaphores[slot]; }
     [[nodiscard]] constexpr cvk::Swapchain& swapchain() const { return *_swapchainPtr; }
     [[nodiscard]] constexpr Queue const& queue() const { return *_queuePtr; }
 
 private:
     cth::not_null_ptr<Queue const> _queuePtr;
     cth::not_null_ptr<cvk::Swapchain> _swapchainPtr;
-    std::vector<cvk::Semaphore> _acquireSemaphores{};
 
     std::atomic<bool> _outOfDate = false;
     std::atomic<bool> _suboptimal = false;
