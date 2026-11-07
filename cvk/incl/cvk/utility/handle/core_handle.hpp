@@ -35,18 +35,18 @@ namespace dev {
  */
 class core_deleter {
 public:
-    constexpr explicit core_deleter(Core const& core) : _core{&core} {}
+    constexpr explicit core_deleter(Core const& core) : _corePtr{&core} {}
 
     template<class Handle> requires dev::device_destroyable<Handle> || dev::vma_destroyable<Handle>
     constexpr void operator()(Handle handle) const {
-        if constexpr(dev::device_destroyable<Handle>) cvk::destroy(_core->deviceTable(), handle);
-        else cvk::destroy(_core->allocator().get(), handle);
+        if constexpr(dev::device_destroyable<Handle>) cvk::destroy(_corePtr->deviceTable(), handle);
+        else cvk::destroy(_corePtr->allocator().get(), handle);
     }
 
-    [[nodiscard]] constexpr Core const& core() const { return *_core; }
+    [[nodiscard]] constexpr Core const& core() const { return *_corePtr; }
 
 private:
-    not_null_ptr<Core const> _core;
+    not_null_ptr<Core const> _corePtr;
 };
 
 /**

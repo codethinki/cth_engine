@@ -88,12 +88,12 @@ public:
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VmaAllocator get() const { return _handle.get(); }
-    [[nodiscard]] constexpr Device const& device() const { return *_device; }
+    [[nodiscard]] constexpr Device const& device() const { return *_devicePtr; }
 
 private:
     void forget();
 
-    not_null_ptr<Device const> _device;
+    not_null_ptr<Device const> _devicePtr;
     unique_handle<VmaAllocator, handle_deleter> _handle;
 
 public:

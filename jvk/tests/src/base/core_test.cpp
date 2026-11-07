@@ -29,21 +29,21 @@ namespace {
     using enum cvk::QueueFamilyProperties;
 
     /**
-     * two roles, default queue sets
+     * two queues, default queue sets
      */
-    Core::Config two_roles() {
+    Core::Config two_queues() {
         auto config = test::Context::CONFIG;
         config.vk.queueProperties = {GRAPHICS, COMPUTE};
         return config;
     }
 
     /**
-     * every role in one group
+     * every queue in one group
      */
-    cvk::Core::queue_set_t one_group(size_t roles) {
-        cvk::Core::queue_set_t::group_t group(roles);
+    cvk::Core::queue_set_t one_group(size_t queueCount) {
+        cvk::Core::queue_set_t::group_t group(queueCount);
         std::iota(group.begin(), group.end(), 0uz);
-        return cvk::Core::queue_set_t{roles, {group}};
+        return cvk::Core::queue_set_t{queueCount, {group}};
     }
 
     /**
@@ -146,8 +146,8 @@ JVK_TEST(Core, enables_the_os_fence_extensions) {
 JVK_TEST(Core, default_queue_sets) {
     test::Context const context{};
 
-    // without queue sets a device with one queue has no queue for each role
-    Core const core{context.instance, two_roles(), cvk::create};
+    // without queue sets a device with one queue has no vulkan queue for each queue of the config
+    Core const core{context.instance, two_queues(), cvk::create};
     cvk::Core const& vk = core;
 
     ASSERT_TRUE(core.created());
@@ -157,9 +157,9 @@ JVK_TEST(Core, default_queue_sets) {
     EXPECT_EQ(vk.queueIndex(0) == vk.queueIndex(1), set.find(0) == set.find(1));
 }
 
-JVK_TEST(Core, roles_with_the_same_vulkan_queue_share_a_queue) {
+JVK_TEST(Core, indices_of_one_vulkan_queue_share_a_queue) {
     test::Context const context{};
-    auto config = two_roles();
+    auto config = two_queues();
     config.vk.queueSets = {one_group(config.vk.queueProperties.size())};
 
     Core const core{context.instance, std::move(config), cvk::create};
@@ -170,12 +170,12 @@ JVK_TEST(Core, roles_with_the_same_vulkan_queue_share_a_queue) {
 JVK_TEST(Core, one_queue_per_vulkan_queue) {
     test::Context const context{};
 
-    Core const core{context.instance, two_roles(), cvk::create};
+    Core const core{context.instance, two_queues(), cvk::create};
     cvk::Core const& vk = core;
 
-    for(size_t role = 0; role < 2; ++role) {
-        EXPECT_EQ(&core.queue(role).vk(), &vk.queue(role));
-        EXPECT_EQ(core.queue(role).get(), vk.queue(role).get());
+    for(size_t queueIdx = 0; queueIdx < 2; ++queueIdx) {
+        EXPECT_EQ(&core.queue(queueIdx).vk(), &vk.queue(queueIdx));
+        EXPECT_EQ(core.queue(queueIdx).get(), vk.queue(queueIdx).get());
     }
     EXPECT_EQ(&core.queue(0) == &core.queue(1), vk.queueIndex(0) == vk.queueIndex(1));
 }

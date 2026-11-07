@@ -30,26 +30,26 @@ public:
 
     /**
      * submits the infos in one vkQueueSubmit2()
-     * @param fence nullptr -> no fence
+     * @param fencePtr nullptr -> no fence
      * @details resolves the std::nullopt timeline values in order: the waits, then the signals of each info
      * @pre @ref created()
      * @pre the command buffers ended their recording
      * @pre the semaphores and the fence are created, the fence is unsignaled
      * @throws cvk::vk_result_exception result of vkQueueSubmit2()
      */
-    void submit(std::span<SubmitInfo const> infos, Fence const* fence = nullptr) const;
+    void submit(std::span<SubmitInfo const> infos, Fence const* fencePtr = nullptr) const;
 
     /**
      * submits the info, see @ref submit(std::span<SubmitInfo const>, Fence const*) const
      */
-    void submit(SubmitInfo const& info, Fence const* fence = nullptr) const { submit({&info, 1}, fence); }
+    void submit(SubmitInfo const& info, Fence const* fencePtr = nullptr) const { submit({&info, 1}, fencePtr); }
 
     /**
      * submits to the vulkan queue, for what @ref SubmitInfo does not cover
-     * @param fence VK_NULL_HANDLE -> no fence
+     * @param vkFence VK_NULL_HANDLE -> no fence
      * @throws cvk::vk_result_exception result of vkQueueSubmit2()
      */
-    void rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence fence = VK_NULL_HANDLE) const;
+    void rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence vkFence = VK_NULL_HANDLE) const;
 
     /**
      * presents through vkQueuePresentKHR()
@@ -75,7 +75,7 @@ public:
 
 private:
     QueueFamilyProperties _familyProperties;
-    VolkDeviceTable const* _functions = nullptr;
+    VolkDeviceTable const* _functionsPtr = nullptr;
 
     move_ptr<VkQueue_T> _handle = VK_NULL_HANDLE;
 

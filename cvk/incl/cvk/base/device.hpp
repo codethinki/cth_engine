@@ -102,12 +102,12 @@ public:
     [[nodiscard]] constexpr std::span<Queue const> queues() const { return _queues; }
     [[nodiscard]] constexpr std::span<Queue> queues() { return _queues; }
 
-    [[nodiscard]] constexpr DeviceTable table() const { return DeviceTable{_handle.get(), _functionTable.get()}; }
-    [[nodiscard]] constexpr VolkDeviceTable const* functions() const { return _functionTable.get(); }
+    [[nodiscard]] constexpr DeviceTable table() const { return DeviceTable{_handle.get(), _functionTablePtr.get()}; }
+    [[nodiscard]] constexpr VolkDeviceTable const* functions() const { return _functionTablePtr.get(); }
     [[nodiscard]] constexpr VkDevice get() const { return _handle.get(); }
 
-    [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
-    [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const { return *_physicalDevice; }
+    [[nodiscard]] constexpr Instance const& instance() const { return *_instancePtr; }
+    [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const { return *_physicalDevicePtr; }
 
     /**
      * @return the enabled features
@@ -149,11 +149,11 @@ private:
     void createQueues(std::span<queue_family_index_t const> familyIndices);
 
 
-    not_null_ptr<Instance const> _instance;
-    not_null_ptr<PhysicalDevice const> _physicalDevice;
+    not_null_ptr<Instance const> _instancePtr;
+    not_null_ptr<PhysicalDevice const> _physicalDevicePtr;
 
     unique_handle<VkDevice, handle_deleter> _handle;
-    std::unique_ptr<VolkDeviceTable> _functionTable = std::make_unique<VolkDeviceTable>();
+    std::unique_ptr<VolkDeviceTable> _functionTablePtr = std::make_unique<VolkDeviceTable>();
 
     DeviceFeatures _features{};
     std::vector<std::string> _extensions{};

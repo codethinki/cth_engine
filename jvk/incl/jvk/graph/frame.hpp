@@ -25,9 +25,13 @@ class StageGraph;
  * @details tracked like every image: the commands of the image stage record its accesses
  */
 struct SwapchainImage {
-    cth::not_null_ptr<cvk::Image const> image;
-    cth::not_null_ptr<cvk::ImageView const> view;
-    uint32_t index;
+    cth::not_null_ptr<cvk::Image const> imagePtr;
+    cth::not_null_ptr<cvk::ImageView const> viewPtr;
+
+    /**
+     * index of the image in the swapchain
+     */
+    uint32_t imageIdx;
 };
 
 /**
@@ -38,10 +42,17 @@ struct SwapchainImage {
 class Frame {
 public:
     /**
-     * @return the stage in this frame
-     * @pre id < size of @ref StageGraphConfig::stages
+     * constructs the stages of the frame slot
+     * @details the graph constructs one per frame slot
+     * @throws cvk::vk_result_exception result of a create of a stage
      */
-    [[nodiscard]] Stage& stage(size_t id);
+    Frame(StageGraph&, size_t slot);
+
+    /**
+     * @return the stage in this frame
+     * @pre stageId < size of @ref StageGraphConfig::stages
+     */
+    [[nodiscard]] Stage& stage(size_t stageId);
 
     /**
      * the swapchain image of the frame
@@ -66,12 +77,15 @@ public:
      */
     [[nodiscard]] constexpr bool extentChanged() const { return _extentChanged; }
 
+    /**
+     * prepares the slot and its stages for a new frame
+     * @details called by @ref StageGraph::nextFrame()
+     * @pre the fences of the last submits of the slot signaled
+     */
+    void beginFrame(uint64_t frameNumber, bool extentChanged);
+
 private:
-    friend class StageGraph;
-
-    Frame(StageGraph&, size_t slot);
-
-    cth::not_null_ptr<StageGraph> _graph;
+    cth::not_null_ptr<StageGraph> _graphPtr;
     size_t _slot;
     uint64_t _number = 0;
     bool _extentChanged = false;
@@ -81,7 +95,7 @@ private:
     /**
      * std::nullopt -> no acquire in this frame
      */
-    std::optional<std::optional<SwapchainImage>> _swapchainImage = std::nullopt;
+    std::optional<std::optional<SwapchainImage>> _swapchainImageOpt = std::nullopt;
 
 public:
     Frame(Frame const& other) = delete;

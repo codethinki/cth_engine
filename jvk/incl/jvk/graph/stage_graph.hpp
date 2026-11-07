@@ -103,12 +103,31 @@ public:
      */
     [[nodiscard]] cth::co::executor_task<Frame&> nextFrame(VkExtent2D windowExtent = {});
 
-    [[nodiscard]] constexpr Core& core() const { return *_core; }
+    //TODO review public for the stages instead of a friend
+    /**
+     * posts the submit job of the stage into the strand of its queue
+     * @details @ref Stage::submit() calls it
+     * @details the job waits for the marks of the waited stages off the strand, submits in the strand
+     * @details after the fence: clears the stasis of the stage
+     */
+    void submit(Stage&);
+
+    //TODO review public for the jobs instead of a friend
+    /**
+     * stores the first error of a job for @ref nextFrame()
+     */
+    void storeError(std::exception_ptr) noexcept;
+
+    //TODO review public for the frames instead of a friend
+    /**
+     * @return nullptr -> no present
+     */
+    [[nodiscard]] dev::PresentStage* presentStage() { return _presentOpt.has_value() ? &*_presentOpt : nullptr; }
+
+    [[nodiscard]] constexpr Core& core() const { return *_corePtr; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
-    friend class Frame;
-    friend class Stage;
 
     /**
      * release submit of one queue and frame slot
@@ -124,16 +143,11 @@ private:
     };
 
     /**
-     * submit job of the stage: waits for the marks off the strand, submits in the strand, then awaits the fence
+     * submit job of the stage, see @ref submit()
      */
     [[nodiscard]] cth::co::executor_task<void> submitJob(Stage&);
 
-    /**
-     * stores the first error of a job for @ref nextFrame()
-     */
-    void storeError(std::exception_ptr) noexcept;
-
-    cth::not_null_ptr<Core> _core;
+    cth::not_null_ptr<Core> _corePtr;
     Config _config;
 
     /**
@@ -142,7 +156,7 @@ private:
     std::deque<cvk::TimelineSemaphore> _timelines{};
 
     std::vector<std::unique_ptr<Frame>> _frames{};
-    std::optional<dev::PresentStage> _present = std::nullopt;
+    std::optional<dev::PresentStage> _presentOpt = std::nullopt;
 
     std::mutex _statesMutex;
     dev::GraphStates _states{};

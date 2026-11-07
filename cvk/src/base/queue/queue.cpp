@@ -49,14 +49,14 @@ namespace {
 }
 
 Queue::Queue(QueueFamilyProperties familyProperties, State const& state) : _familyProperties{familyProperties},
-    _functions{state.functions.get()},
+    _functionsPtr{state.functions.get()},
     _handle{state.vkQueue.get()},
     _familyIndex{state.familyIndex},
     _queueIndex{state.queueIndex} {}
 
-void Queue::submit(span<SubmitInfo const> infos, Fence const* fence) const {
+void Queue::submit(span<SubmitInfo const> infos, Fence const* fencePtr) const {
     debug_check(*this);
-    if(fence != nullptr) Fence::debug_check(*fence);
+    if(fencePtr != nullptr) Fence::debug_check(*fencePtr);
 
     size_t cmdBufferCount = 0;
     size_t semaphoreCount = 0;
@@ -115,20 +115,20 @@ void Queue::submit(span<SubmitInfo const> infos, Fence const* fence) const {
         );
     }
 
-    auto const result = _functions->vkQueueSubmit2(
+    auto const result = _functionsPtr->vkQueueSubmit2(
         _handle.get(),
         static_cast<uint32_t>(submits.size()),
         submits.data(),
-        fence != nullptr ? fence->get() : VK_NULL_HANDLE
+        fencePtr != nullptr ? fencePtr->get() : VK_NULL_HANDLE
     );
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit to queue") {}
 }
 
-void Queue::rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence fence) const {
+void Queue::rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence vkFence) const {
     debug_check(*this);
 
-    auto const result = _functions->vkQueueSubmit2(_handle.get(), 1, &submitInfo, fence);
+    auto const result = _functionsPtr->vkQueueSubmit2(_handle.get(), 1, &submitInfo, vkFence);
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit to queue") {}
 }
@@ -136,7 +136,7 @@ void Queue::rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence fence) const {
 VkResult Queue::rawPresent(VkPresentInfoKHR const& presentInfo) const {
     debug_check_present(*this);
 
-    auto const result = _functions->vkQueuePresentKHR(_handle.get(), &presentInfo);
+    auto const result = _functionsPtr->vkQueuePresentKHR(_handle.get(), &presentInfo);
 
     CVK_RESULT_STABLE_THROW(
         result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR,
@@ -150,7 +150,7 @@ VkResult Queue::rawPresent(VkPresentInfoKHR const& presentInfo) const {
 void Queue::waitIdle() const {
     debug_check(*this);
 
-    auto const result = _functions->vkQueueWaitIdle(_handle.get());
+    auto const result = _functionsPtr->vkQueueWaitIdle(_handle.get());
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to wait for queue") {}
 }

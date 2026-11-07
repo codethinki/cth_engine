@@ -94,7 +94,7 @@ Shader::State Shader::release() {
 }
 
 VkPipelineShaderStageCreateInfo Shader::stageInfo(
-    VkSpecializationInfo const* specialization,
+    VkSpecializationInfo const* specializationPtr,
     char const* entryPoint
 ) const {
     debug_check(*this);
@@ -106,7 +106,7 @@ VkPipelineShaderStageCreateInfo Shader::stageInfo(
         .stage = _stage,
         .module = _handle.get(),
         .pName = entryPoint,
-        .pSpecializationInfo = specialization,
+        .pSpecializationInfo = specializationPtr,
     };
 }
 

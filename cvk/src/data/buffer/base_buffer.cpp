@@ -25,7 +25,7 @@ void BaseBuffer::wrap(State const& state) {
     optDestroy();
 
     _handle.reset(state.vkBuffer.get(), core());
-    if(state.memory.has_value()) _memory.emplace(core(), _config.memory, *state.memory);
+    if(state.memory.has_value()) _memoryOpt.emplace(core(), _config.memory, *state.memory);
     _size = state.size;
 }
 
@@ -52,7 +52,7 @@ void BaseBuffer::create(size_t size) {
     }
 
     _handle.reset(vkBuffer, core());
-    _memory.emplace(core(), _config.memory, Memory::State{vmaAllocation});
+    _memoryOpt.emplace(core(), _config.memory, Memory::State{vmaAllocation});
     _size = size;
 }
 
@@ -60,7 +60,7 @@ void BaseBuffer::destroy() {
     debug_check(*this);
 
     _handle.reset();
-    _memory.reset();
+    _memoryOpt.reset();
 
     forget();
 }
@@ -69,7 +69,7 @@ BaseBuffer::State BaseBuffer::release() {
     debug_check(*this);
 
     State state{.vkBuffer = _handle.release(), .size = _size, .memory = std::nullopt};
-    if(_memory.has_value()) state.memory = _memory->release();
+    if(_memoryOpt.has_value()) state.memory = _memoryOpt->release();
 
     forget();
     return state;
@@ -160,7 +160,7 @@ void destroy(DeviceTable table, VkBuffer vkBuffer) {
 }
 
 void BaseBuffer::forget() {
-    _memory.reset();
+    _memoryOpt.reset();
     _size = 0;
 }
 }

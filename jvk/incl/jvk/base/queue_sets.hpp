@@ -14,7 +14,7 @@
 
 namespace jvk {
 /**
- * creates the queue sets of @ref cvk::CoreConfig::queueSets for the queue roles
+ * creates the queue sets of @ref cvk::CoreConfig::queueSets for the queues
  * @details steps, each set merges one more pair of groups than the set before:
  * - each queue is a group
  * - groups with equal properties merge
@@ -34,9 +34,9 @@ namespace jvk::dev {
 [[nodiscard]] inline cvk::QueueFamilyProperties group_properties(
     cvk::Core::queue_set_t const& set,
     std::span<cvk::QueueFamilyProperties const> queues,
-    size_t queue
+    size_t queueIdx
 ) {
-    auto const root = set.find(queue);
+    auto const root = set.find(queueIdx);
 
     auto result = cvk::QueueFamilyProperties::NONE;
     for(size_t i = 0; i < queues.size(); ++i)
@@ -55,14 +55,14 @@ void merge_groups(
     std::span<cvk::QueueFamilyProperties const> queues,
     Match const& match
 ) {
-    for(size_t last = queues.size() - 1; last > 0; --last)
-        for(size_t i = last; i-- > 0;) {
+    for(size_t i = queues.size() - 1; i > 0; --i)
+        for(size_t j = i; j-- > 0;) {
             auto const& set = sets.back();
-            if(set.find(i) == set.find(last)) continue;
-            if(!match(group_properties(set, queues, i), group_properties(set, queues, last))) continue;
+            if(set.find(j) == set.find(i)) continue;
+            if(!match(group_properties(set, queues, j), group_properties(set, queues, i))) continue;
 
             auto next = set;
-            next.merge(i, last);
+            next.merge(j, i);
             sets.push_back(std::move(next));
             break;
         }

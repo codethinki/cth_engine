@@ -74,7 +74,7 @@ namespace {
      * access of an attachment to the mip level of its image
      */
     struct AttachmentAccess {
-        cth::not_null_ptr<cvk::Image const> image;
+        cth::not_null_ptr<cvk::Image const> imagePtr;
         ImageAccess access;
     };
 
@@ -162,8 +162,8 @@ BasicCmdBuffer<Base>::BasicCmdBuffer(cvk::Core const& core, cvk::queue_family_in
     } {}
 
 template<class Base>
-BasicCmdBuffer<Base>::BasicCmdBuffer(std::unique_ptr<cvk::CmdPool> pool) :
-    Base{*pool, cvk::create}, _pool{std::move(pool)} {}
+BasicCmdBuffer<Base>::BasicCmdBuffer(std::unique_ptr<cvk::CmdPool> poolPtr) :
+    Base{*poolPtr, cvk::create}, _poolPtr{std::move(poolPtr)} {}
 
 template<class Base>
 void BasicCmdBuffer<Base>::use(cvk::Image const& image, ImageAccess const& access) {
@@ -199,8 +199,8 @@ void BasicCmdBuffer<Base>::assume(cvk::BaseBuffer const& buffer, BufferState con
 template<class Base>
 void BasicCmdBuffer<Base>::beginRendering(cvk::RenderingInfo const& info) {
     cvk::Barrier barrier{};
-    for(auto const& [image, access] : attachment_accesses(info))
-        _states.access(*image, access, barrier);
+    for(auto const& [imagePtr, access] : attachment_accesses(info))
+        _states.access(*imagePtr, access, barrier);
 
     record(barrier);
     Base::beginRendering(info);
@@ -210,9 +210,9 @@ template<class Base>
 void BasicCmdBuffer<Base>::endRendering() {
     CTH_CRITICAL(this->rendering() == nullptr, "command buffer must be inside its own rendering") {}
 
-    for(auto const& [image, access] : attachment_accesses(*this->rendering()))
+    for(auto const& [imagePtr, access] : attachment_accesses(*this->rendering()))
         _states.extend(
-            *image,
+            *imagePtr,
             cvk::BarrierScope{.stages = access.stages, .access = access.access},
             access.firstMipLevel,
             access.mipLevels
@@ -263,7 +263,7 @@ void BasicCmdBuffer<Base>::dispatchIndirect(cvk::BaseBuffer const& buffer, size_
 
 template<class Base>
 void BasicCmdBuffer<Base>::reset() {
-    _pool->reset();
+    _poolPtr->reset();
     _states.clear();
 }
 
@@ -300,14 +300,14 @@ void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
 }
 
 void PrimaryCmdBuffer::execute(std::span<SecondaryCmdBuffer* const> secondaries) {
-    for(auto* secondary : secondaries) {
-        CTH_CRITICAL(secondary == nullptr, "secondaries must not be nullptr") {}
-        secondary->optEnd();
+    for(auto* secondaryPtr : secondaries) {
+        CTH_CRITICAL(secondaryPtr == nullptr, "secondaries must not be nullptr") {}
+        secondaryPtr->optEnd();
     }
 
-    for(auto const* secondary : secondaries) {
-        appendStates(secondary->states());
-        cvk::PrimaryCmdBuffer::execute(static_cast<cvk::SecondaryCmdBuffer const&>(*secondary));
+    for(auto const* secondaryPtr : secondaries) {
+        appendStates(secondaryPtr->states());
+        cvk::PrimaryCmdBuffer::execute(static_cast<cvk::SecondaryCmdBuffer const&>(*secondaryPtr));
     }
 }
 

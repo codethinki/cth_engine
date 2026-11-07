@@ -99,7 +99,7 @@ public:
      */
     State release();
 
-    [[nodiscard]] constexpr bool created() const { return _device != nullptr; }
+    [[nodiscard]] constexpr bool created() const { return _devicePtr != nullptr; }
 
     /**
      * @return index of the used queue set in @ref Config::queueSets
@@ -108,7 +108,7 @@ public:
      */
     [[nodiscard]] size_t queueSetIndex() const;
 
-    [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
+    [[nodiscard]] constexpr Instance const& instance() const { return *_instancePtr; }
     [[nodiscard]] VkInstance vkInstance() const;
 
     /**
@@ -131,20 +131,20 @@ public:
     [[nodiscard]] Allocator const& allocator() const;
 
     /**
-     * @param idx index in @ref Config::queueProperties
-     * @return the queue of the device, entries with the same @ref queueIndex() return the same queue
+     * @param queueIdx index of the queue in @ref Config::queueProperties
+     * @return the queue of the device, indices with the same @ref queueIndex() return the same queue
      * @pre @ref created()
      */
-    [[nodiscard]] Queue const& queue(size_t idx) const;
+    [[nodiscard]] Queue const& queue(size_t queueIdx) const;
 
     /**
-     * @param idx index in @ref Config::queueProperties
-     * @return index of the queue in @ref Device::queues(), entries with the same index share the VkQueue
+     * @param queueIdx index of the queue in @ref Config::queueProperties
+     * @return index of the queue in @ref Device::queues(), indices with the same result share the VkQueue
      * @pre @ref created()
      */
-    [[nodiscard]] constexpr size_t queueIndex(size_t idx) const {
+    [[nodiscard]] constexpr size_t queueIndex(size_t queueIdx) const {
         debug_check(*this);
-        return _queueIndices[idx];
+        return _queueIndices[queueIdx];
     }
 
     /**
@@ -212,13 +212,13 @@ private:
         queue_set_t const& queueSet
     ) const;
 
-    not_null_ptr<Instance const> _instance;
+    not_null_ptr<Instance const> _instancePtr;
 
-    std::unique_ptr<PhysicalDevice> _physicalDevice;
+    std::unique_ptr<PhysicalDevice> _physicalDevicePtr;
     // declared before the device: move assignment destroys the old allocator before the old device
-    std::unique_ptr<Allocator> _allocator;
-    std::unique_ptr<Device> _device;
-    std::optional<size_t> _queueSetIndex;
+    std::unique_ptr<Allocator> _allocatorPtr;
+    std::unique_ptr<Device> _devicePtr;
+    std::optional<size_t> _queueSetIdxOpt;
     std::vector<size_t> _queueIndices;
 
 public:

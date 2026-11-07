@@ -8,7 +8,7 @@
 namespace jvk {
 Stasis::Stasis(cvk::Core const& core) : Stasis{core.deviceTable(), core.allocator().get()} {}
 
-Stasis::Stasis(cvk::DeviceTable table, VmaAllocator vmaAllocator) : _table{table}, _allocator{vmaAllocator} {}
+Stasis::Stasis(cvk::DeviceTable table, VmaAllocator vmaAllocator) : _table{table}, _vmaAllocator{vmaAllocator} {}
 
 void Stasis::clear() {
     for(auto const& child : _poolChildren)
@@ -24,7 +24,7 @@ void Stasis::clear() {
         std::visit(
             [this]<class Handle>(Handle grave) {
                 if constexpr(requires { cvk::destroy(_table, grave); }) cvk::destroy(_table, grave);
-                else cvk::destroy(_allocator, grave);
+                else cvk::destroy(_vmaAllocator, grave);
             },
             handle
         );
@@ -35,7 +35,7 @@ Stasis& Stasis::operator=(Stasis&& other) noexcept {
     clear();
 
     _table = other._table;
-    _allocator = other._allocator;
+    _vmaAllocator = other._vmaAllocator;
     _handles = std::move(other._handles);
     _poolChildren = std::move(other._poolChildren);
     return *this;

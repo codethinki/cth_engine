@@ -53,7 +53,7 @@ public:
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkPipeline get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
-    [[nodiscard]] constexpr PipelineLayout const& layout() const { return *_layout; }
+    [[nodiscard]] constexpr PipelineLayout const& layout() const { return *_layoutPtr; }
     [[nodiscard]] constexpr VkPipelineBindPoint bindPoint() const { return _bindPoint; }
 
 protected:
@@ -90,7 +90,7 @@ private:
     void forget();
 
     core_handle<VkPipeline> _handle;
-    not_null_ptr<PipelineLayout const> _layout;
+    not_null_ptr<PipelineLayout const> _layoutPtr;
     VkPipelineBindPoint _bindPoint;
 
 public:

@@ -16,16 +16,16 @@ constexpr std::string_view APP_NAME = "cvk_tests";
 
 /**
  * instance config with @ref APP_NAME
- * @param debugMessenger see @ref InstanceConfig::debugMessenger
+ * @param debugMessengerOpt see @ref InstanceConfig::debugMessenger
  */
 [[nodiscard]] inline InstanceConfig instance_config(
     std::vector<std::string> extensions = {},
-    std::optional<DebugMessenger::Config> debugMessenger = std::nullopt
+    std::optional<DebugMessenger::Config> debugMessengerOpt = std::nullopt
 ) {
     return InstanceConfig{
         .appName = std::string{APP_NAME},
         .extensions = std::move(extensions),
-        .debugMessenger = debugMessenger,
+        .debugMessenger = debugMessengerOpt,
     };
 }
 

@@ -191,7 +191,7 @@ public:
 
     [[nodiscard]] constexpr bool created() const { return !_generations.empty(); }
     [[nodiscard]] constexpr VkSwapchainKHR get() const { return created() ? current().handle.get() : VK_NULL_HANDLE; }
-    [[nodiscard]] constexpr Core const& core() const { return *_core; }
+    [[nodiscard]] constexpr Core const& core() const { return *_corePtr; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     [[nodiscard]] constexpr VkExtent2D extent() const { return _extent; }
@@ -297,8 +297,8 @@ private:
     void forget();
 
     Queue _presentQueue;
-    not_null_ptr<Surface const> _surface;
-    not_null_ptr<Core const> _core;
+    not_null_ptr<Surface const> _surfacePtr;
+    not_null_ptr<Core const> _corePtr;
     Config _config;
 
     /**

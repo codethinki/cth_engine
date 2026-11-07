@@ -134,7 +134,7 @@ public:
     [[nodiscard]] constexpr VkDescriptorSet get() const { return _handle.get(); }
     [[nodiscard]] constexpr DescriptorPool const& pool() const { return _handle.deleter().pool(); }
     [[nodiscard]] constexpr Core const& core() const { return pool().core(); }
-    [[nodiscard]] constexpr DescriptorSetLayout const& layout() const { return *_layout; }
+    [[nodiscard]] constexpr DescriptorSetLayout const& layout() const { return *_layoutPtr; }
 
     /**
      * @return descriptors of the variable count binding, 0 -> its maximum count or no such binding
@@ -147,11 +147,11 @@ private:
      */
     class pool_deleter {
     public:
-        constexpr explicit pool_deleter(DescriptorPool const& pool) : _pool{&pool}, _resets{pool.resets()} {}
+        constexpr explicit pool_deleter(DescriptorPool const& pool) : _poolPtr{&pool}, _resets{pool.resets()} {}
 
         void operator()(VkDescriptorSet) const;
 
-        [[nodiscard]] constexpr DescriptorPool const& pool() const { return *_pool; }
+        [[nodiscard]] constexpr DescriptorPool const& pool() const { return *_poolPtr; }
 
         /**
          * @return resets of the pool at the allocation
@@ -159,7 +159,7 @@ private:
         [[nodiscard]] constexpr uint64_t resets() const { return _resets; }
 
     private:
-        not_null_ptr<DescriptorPool const> _pool;
+        not_null_ptr<DescriptorPool const> _poolPtr;
         uint64_t _resets;
     };
 
@@ -171,7 +171,7 @@ private:
     void forget();
 
     unique_handle<VkDescriptorSet, pool_deleter> _handle;
-    not_null_ptr<DescriptorSetLayout const> _layout;
+    not_null_ptr<DescriptorSetLayout const> _layoutPtr;
     uint32_t _variableCount;
 
 public:
@@ -204,7 +204,7 @@ struct DescriptorSet::State {
 
 namespace cvk {
 constexpr uint32_t DescriptorSet::capacity(VkDescriptorSetLayoutBinding const& binding) const {
-    return &binding == _layout->variableBinding() && _variableCount != 0 ? _variableCount : binding.descriptorCount;
+    return &binding == _layoutPtr->variableBinding() && _variableCount != 0 ? _variableCount : binding.descriptorCount;
 }
 
 constexpr void DescriptorSet::debug_check(DescriptorSet const& set) {

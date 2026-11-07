@@ -111,7 +111,7 @@ namespace {
 }
 
 void Barrier::debug_check_rendering(
-    RenderingInfo const* rendering,
+    RenderingInfo const* renderingPtr,
     uint32_t viewMask,
     std::span<VkMemoryBarrier2 const> memoryBarriers,
     std::span<VkBufferMemoryBarrier2 const> bufferBarriers,
@@ -149,15 +149,15 @@ void Barrier::debug_check_rendering(
     ) {}
 
     // a continuing secondary does not know the attachment images
-    auto const attached = [rendering](Image const& image) {
-        if(rendering == nullptr) return false;
+    auto const attached = [renderingPtr](Image const& image) {
+        if(renderingPtr == nullptr) return false;
         auto const uses = [&image](RenderingAttachment const& attachment) {
             return &attachment.view->image() == &image
                 || (attachment.resolveView != nullptr && &attachment.resolveView->image() == &image);
         };
-        return std::ranges::any_of(rendering->colorAttachments, uses)
-            || (rendering->depthAttachment.has_value() && uses(*rendering->depthAttachment))
-            || (rendering->stencilAttachment.has_value() && uses(*rendering->stencilAttachment));
+        return std::ranges::any_of(renderingPtr->colorAttachments, uses)
+            || (renderingPtr->depthAttachment.has_value() && uses(*renderingPtr->depthAttachment))
+            || (renderingPtr->stencilAttachment.has_value() && uses(*renderingPtr->stencilAttachment));
     };
 
     for(auto const [barrier, entry] : std::views::zip(imageBarriers, images)) {

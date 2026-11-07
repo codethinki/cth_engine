@@ -69,10 +69,9 @@ public:
     ) const;
 
     /**
-     * @param idx queue family index
      * @return nullptr -> no family with the index
      */
-    [[nodiscard]] QueueFamily const* queueFamily(queue_family_index_t idx) const;
+    [[nodiscard]] QueueFamily const* queueFamily(queue_family_index_t familyIdx) const;
 
     [[nodiscard]] constexpr VkPhysicalDevice get() const { return _handle.get(); }
     [[nodiscard]] constexpr std::span<std::string const> extensions() const { return _extensions; }
@@ -133,7 +132,7 @@ struct PhysicalDevicePick {
  * picks the best physical device with the features, the extensions and the queues
  * @param surfaces a family presents only if it presents to every surface
  * @param extensions to require, besides the extensions of the features
- * @param uuid std::nullopt -> every device counts, set -> only the device with this uuid counts
+ * @param uuidOpt std::nullopt -> every device counts, set -> only the device with this uuid counts
  * @details best: the lowest @ref dev::device_type_rank(), ties go to the first in enumeration order
  * @return std::nullopt -> no device meets the requirements
  * @pre @ref Instance::created()
@@ -145,7 +144,7 @@ struct PhysicalDevicePick {
     std::span<QueueFamilyProperties const> queueProperties,
     DeviceFeatures const& features,
     std::span<std::string const> extensions = {},
-    std::optional<device_uuid_t> const& uuid = std::nullopt
+    std::optional<device_uuid_t> const& uuidOpt = std::nullopt
 );
 }
 

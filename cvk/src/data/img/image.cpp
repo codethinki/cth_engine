@@ -25,7 +25,7 @@ void Image::wrap(State const& state) {
     optDestroy();
 
     _handle.reset(state.vkImage.get(), core());
-    if(state.memory.has_value()) _memory.emplace(core(), _config.memory, *state.memory);
+    if(state.memory.has_value()) _memoryOpt.emplace(core(), _config.memory, *state.memory);
     _extent = state.extent;
 }
 
@@ -57,7 +57,7 @@ void Image::create(VkExtent2D extent) {
     }
 
     _handle.reset(vkImage, core());
-    _memory.emplace(core(), _config.memory, Memory::State{vmaAllocation});
+    _memoryOpt.emplace(core(), _config.memory, Memory::State{vmaAllocation});
     _extent = extent;
 }
 
@@ -65,7 +65,7 @@ void Image::destroy() {
     debug_check(*this);
 
     _handle.reset();
-    _memory.reset();
+    _memoryOpt.reset();
 
     forget();
 }
@@ -78,7 +78,7 @@ Image::State Image::release() {
         .extent = _extent,
         .memory = std::nullopt,
     };
-    if(_memory.has_value()) state.memory = _memory->release();
+    if(_memoryOpt.has_value()) state.memory = _memoryOpt->release();
 
     forget();
     return state;
@@ -268,7 +268,7 @@ void destroy(DeviceTable table, VkImage vkImage) {
 }
 
 void Image::forget() {
-    _memory.reset();
+    _memoryOpt.reset();
     _extent = {};
 }
 }

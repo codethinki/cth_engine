@@ -94,10 +94,10 @@ constexpr DescriptorPoolConfig& DescriptorPoolConfig::add(
     uint32_t count,
     uint32_t variableCount
 ) {
-    auto const* variable = layout.variableBinding();
-    CTH_CRITICAL(variableCount != 0 && variable == nullptr, "a variable count needs a variable count binding") {}
+    auto const* variablePtr = layout.variableBinding();
+    CTH_CRITICAL(variableCount != 0 && variablePtr == nullptr, "a variable count needs a variable count binding") {}
     CTH_CRITICAL(
-        variable != nullptr && variableCount > variable->descriptorCount,
+        variablePtr != nullptr && variableCount > variablePtr->descriptorCount,
         "the variable count must not exceed the maximum count of the binding"
     ) {}
 
@@ -105,7 +105,7 @@ constexpr DescriptorPoolConfig& DescriptorPoolConfig::add(
     if(layout.updateAfterBind()) flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
     for(auto const& binding : layout.bindings()) {
-        uint32_t const descriptors = &binding == variable && variableCount != 0 ? variableCount
+        uint32_t const descriptors = &binding == variablePtr && variableCount != 0 ? variableCount
             : binding.descriptorCount;
         if(descriptors == 0) continue;
 

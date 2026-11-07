@@ -12,7 +12,7 @@
 namespace jvk {
 namespace {
     /**
-     * @return number of distinct vulkan queues of the roles
+     * @return number of distinct vulkan queues of the core
      * @pre @ref cvk::Core::created()
      */
     [[nodiscard]] size_t vulkan_queue_count(cvk::Core const& core) {
@@ -30,20 +30,25 @@ Queues::Queues(cvk::Core const& core, size_t workers) :
     auto const indices = core.queueIndices();
     _queueIndices.reserve(indices.size());
 
-    for(size_t role = 0; role < indices.size(); ++role) {
-        auto const first = static_cast<size_t>(std::ranges::find(indices, indices[role]) - indices.begin());
-        if(first < role) {
-            _queueIndices.push_back(_queueIndices[first]);
+    for(size_t queueIdx = 0; queueIdx < indices.size(); ++queueIdx) {
+        auto const firstIdx = static_cast<size_t>(std::ranges::find(indices, indices[queueIdx]) - indices.begin());
+        if(firstIdx < queueIdx) {
+            _queueIndices.push_back(_queueIndices[firstIdx]);
             continue;
         }
 
         _queueIndices.push_back(_queues.size());
-        _queues.emplace_back(core.queue(role), _scheduler);
+        _queues.emplace_back(core.queue(queueIdx), _scheduler);
     }
 }
 
-Queue const& Queues::queue(size_t role) const {
-    CTH_CRITICAL(role >= _queueIndices.size(), "role must be < {}, got {}", _queueIndices.size(), role) {}
-    return _queues[_queueIndices[role]];
+Queue const& Queues::queue(size_t queueIdx) const {
+    CTH_CRITICAL(
+        queueIdx >= _queueIndices.size(),
+        "queue index must be < {}, got {}",
+        _queueIndices.size(),
+        queueIdx
+    ) {}
+    return _queues[_queueIndices[queueIdx]];
 }
 }

@@ -56,7 +56,7 @@ public:
      * @details returns at once, an error goes to the graph
      * @pre the image stage signals the present semaphore of the image
      */
-    void present(uint32_t imageIndex, cth::os::fence const& imageStageMark);
+    void present(uint32_t imageIdx, cth::os::fence const& imageStageMark);
 
     /**
      * recreates the swapchain in the strand
@@ -72,12 +72,12 @@ public:
     [[nodiscard]] bool recreateNeeded() const { return _outOfDate.load() || _suboptimal.load(); }
 
     [[nodiscard]] cvk::Semaphore const& acquireSemaphore(size_t slot) const { return _acquireSemaphores[slot]; }
-    [[nodiscard]] constexpr cvk::Swapchain& swapchain() const { return *_swapchain; }
-    [[nodiscard]] constexpr Queue const& queue() const { return *_queue; }
+    [[nodiscard]] constexpr cvk::Swapchain& swapchain() const { return *_swapchainPtr; }
+    [[nodiscard]] constexpr Queue const& queue() const { return *_queuePtr; }
 
 private:
-    cth::not_null_ptr<Queue const> _queue;
-    cth::not_null_ptr<cvk::Swapchain> _swapchain;
+    cth::not_null_ptr<Queue const> _queuePtr;
+    cth::not_null_ptr<cvk::Swapchain> _swapchainPtr;
     std::vector<cvk::Semaphore> _acquireSemaphores{};
 
     std::atomic<bool> _outOfDate = false;

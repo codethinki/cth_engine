@@ -5,7 +5,7 @@
 
 
 namespace cvk {
-ImageView::ImageView(Image const& image, Config const& config) : _handle{image.core()}, _image{&image},
+ImageView::ImageView(Image const& image, Config const& config) : _handle{image.core()}, _imagePtr{&image},
     _config{config} {}
 
 ImageView::ImageView(Image const& image, Config const& config, State const& state) : ImageView{image, config} {
@@ -21,16 +21,17 @@ void ImageView::wrap(State const& state) {
 }
 
 void ImageView::create() {
-    Image::debug_check(*_image);
-    CTH_CRITICAL(_config.baseMipLevel >= _image->mipLevels(), "base mip level must lie in the image") {}
+    Image::debug_check(*_imagePtr);
+    CTH_CRITICAL(_config.baseMipLevel >= _imagePtr->mipLevels(), "base mip level must lie in the image") {}
     CTH_CRITICAL(
-        _config.mipLevels != VK_REMAINING_MIP_LEVELS && _config.mipLevels > _image->mipLevels() - _config.baseMipLevel,
+        _config.mipLevels != VK_REMAINING_MIP_LEVELS
+            && _config.mipLevels > _imagePtr->mipLevels() - _config.baseMipLevel,
         "mip levels must lie in the image"
     ) {}
-    CTH_CRITICAL(_config.baseArrayLayer >= _image->arrayLayers(), "base array layer must lie in the image") {}
+    CTH_CRITICAL(_config.baseArrayLayer >= _imagePtr->arrayLayers(), "base array layer must lie in the image") {}
     CTH_CRITICAL(
         _config.arrayLayers != VK_REMAINING_ARRAY_LAYERS
-        && _config.arrayLayers > _image->arrayLayers() - _config.baseArrayLayer,
+        && _config.arrayLayers > _imagePtr->arrayLayers() - _config.baseArrayLayer,
         "array layers must lie in the image"
     ) {}
 
@@ -40,9 +41,9 @@ void ImageView::create() {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
-        .image = _image->get(),
+        .image = _imagePtr->get(),
         .viewType = viewType(),
-        .format = _image->format(),
+        .format = _imagePtr->format(),
         .components = {
             .r = VK_COMPONENT_SWIZZLE_IDENTITY,
             .g = VK_COMPONENT_SWIZZLE_IDENTITY,

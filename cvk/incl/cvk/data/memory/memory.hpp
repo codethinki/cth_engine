@@ -202,7 +202,7 @@ struct Memory::State {
 namespace cvk {
 template<class T>
 Mapping<T>::~Mapping() {
-    if(_memory != nullptr) _memory->unmap();
+    if(_memoryPtr != nullptr) _memoryPtr->unmap();
 }
 
 template<class T>
@@ -211,7 +211,7 @@ Mapping<U> Mapping<T>::as() && {
     CTH_CRITICAL(_range.size() % sizeof(U) != 0, "the size must be a multiple of the element size") {}
 
     size_t const count = _range.size() / sizeof(U);
-    auto const& memory = *_memory.release();
+    auto const& memory = *_memoryPtr.release();
 #ifdef __cpp_lib_start_lifetime_as
     return Mapping<U>{memory, {std::start_lifetime_as_array<U>(_range.data(), count), count}};
 #else

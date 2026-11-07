@@ -20,9 +20,9 @@ namespace jvk {
  */
 struct StageWait {
     /**
-     * index in @ref StageGraphConfig::stages
+     * id of the waited stage, see @ref StageGraphConfig::stages
      */
-    size_t stage;
+    size_t stageId;
 
     /**
      * stages of the waiting submit that wait
@@ -40,11 +40,16 @@ struct StageWait {
  */
 struct StageConfig {
     /**
-     * role of @ref Core::queue()
+     * index of the queue in @ref cvk::CoreConfig::queueProperties
      */
-    size_t queue;
+    size_t queueIdx;
 
     std::vector<StageWait> waits{};
+
+    /**
+     * secondary command buffers per frame slot, see @ref Stage::secondary()
+     */
+    size_t secondaries = 0;
 };
 
 /**
@@ -52,20 +57,20 @@ struct StageConfig {
  */
 struct PresentStageConfig {
     /**
-     * role of @ref Core::queue() that presents
+     * index of the present queue in @ref cvk::CoreConfig::queueProperties
      * @pre the queue can present to the surface of the swapchain
      */
-    size_t queue;
+    size_t queueIdx;
 
     /**
      * @pre created, outlives the graph
      */
-    cth::not_null_ptr<cvk::Swapchain> swapchain;
+    cth::not_null_ptr<cvk::Swapchain> swapchainPtr;
 
     /**
-     * index in @ref StageGraphConfig::stages of the stage that writes the swapchain image
+     * id of the stage that writes the swapchain image, see @ref StageGraphConfig::stages
      */
-    size_t imageStage;
+    size_t imageStageId;
 };
 
 /**
@@ -81,7 +86,7 @@ struct StageGraphConfig {
     /**
      * std::nullopt -> no present
      */
-    std::optional<PresentStageConfig> present = std::nullopt;
+    std::optional<PresentStageConfig> presentOpt = std::nullopt;
 
     /**
      * frames that the gpu works on at the same time

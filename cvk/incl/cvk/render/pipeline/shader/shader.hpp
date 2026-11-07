@@ -113,13 +113,13 @@ public:
 
     /**
      * @return stage info for a pipeline
-     * @param specialization nullptr -> no specialization constants
+     * @param specializationPtr nullptr -> no specialization constants
      * @param entryPoint name of the entry function
      * @pre @ref created()
-     * @attention @ref specialization and @ref entryPoint must outlive the pipeline creation
+     * @attention @ref specializationPtr and @ref entryPoint must outlive the pipeline creation
      */
     [[nodiscard]] VkPipelineShaderStageCreateInfo stageInfo(
-        VkSpecializationInfo const* specialization = nullptr,
+        VkSpecializationInfo const* specializationPtr = nullptr,
         char const* entryPoint = "main"
     ) const;
 

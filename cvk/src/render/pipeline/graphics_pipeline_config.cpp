@@ -8,7 +8,7 @@
 namespace cvk {
 GraphicsPipelineConfig& GraphicsPipelineConfig::addStage(
     Shader const& shader,
-    VkSpecializationInfo const* specialization,
+    VkSpecializationInfo const* specializationPtr,
     char const* entryPoint
 ) {
     CTH_CRITICAL(
@@ -16,7 +16,7 @@ GraphicsPipelineConfig& GraphicsPipelineConfig::addStage(
         "stage already added"
     ) {}
 
-    stages.push_back(shader.stageInfo(specialization, entryPoint));
+    stages.push_back(shader.stageInfo(specializationPtr, entryPoint));
     return *this;
 }
 }

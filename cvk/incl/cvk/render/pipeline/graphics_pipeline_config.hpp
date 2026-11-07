@@ -34,15 +34,15 @@ struct GraphicsPipelineConfig {
 
     /**
      * adds the stage of the shader
-     * @param specialization nullptr -> no specialization constants
+     * @param specializationPtr nullptr -> no specialization constants
      * @param entryPoint name of the entry function
-     * @attention @ref specialization and @ref entryPoint must outlive @ref GraphicsPipeline::create()
+     * @attention @ref specializationPtr and @ref entryPoint must outlive @ref GraphicsPipeline::create()
      * @pre @ref Shader::created()
      * @pre no stage of the same type
      */
     GraphicsPipelineConfig& addStage(
         Shader const&,
-        VkSpecializationInfo const* specialization = nullptr,
+        VkSpecializationInfo const* specializationPtr = nullptr,
         char const* entryPoint = "main"
     );
 

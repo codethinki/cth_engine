@@ -192,8 +192,8 @@ auto PhysicalDevice::findSupportedFormat(
     return VK_FORMAT_MAX_ENUM;
 }
 
-QueueFamily const* PhysicalDevice::queueFamily(queue_family_index_t idx) const {
-    auto const it = std::ranges::find(_queueFamilies, idx, &QueueFamily::index);
+QueueFamily const* PhysicalDevice::queueFamily(queue_family_index_t familyIdx) const {
+    auto const it = std::ranges::find(_queueFamilies, familyIdx, &QueueFamily::index);
 
     if(it == _queueFamilies.end())
         return nullptr;
@@ -220,20 +220,20 @@ std::optional<PhysicalDevicePick> pick_physical_device(
     span<QueueFamilyProperties const> queueProperties,
     DeviceFeatures const& features,
     span<string const> extensions,
-    std::optional<device_uuid_t> const& uuid
+    std::optional<device_uuid_t> const& uuidOpt
 ) {
-    std::optional<PhysicalDevicePick> best{};
+    std::optional<PhysicalDevicePick> bestOpt{};
 
     for(auto& device : enumerate_physical_devices(instance, surfaces)) {
-        if(uuid.has_value() && device.uuid() != *uuid) continue;
+        if(uuidOpt.has_value() && device.uuid() != *uuidOpt) continue;
 
         auto const missing = device.missing(features, extensions);
         auto indices = device.queueFamilyIndices(queueProperties);
 
         if(missing.empty() && !indices.empty()) {
             auto const rank = dev::device_type_rank(device.properties().deviceType);
-            if(!best.has_value() || rank < dev::device_type_rank(best->device.properties().deviceType))
-                best = PhysicalDevicePick{std::move(device), std::move(indices)};
+            if(!bestOpt.has_value() || rank < dev::device_type_rank(bestOpt->device.properties().deviceType))
+                bestOpt = PhysicalDevicePick{std::move(device), std::move(indices)};
             continue;
         }
 
@@ -244,7 +244,8 @@ std::optional<PhysicalDevicePick> pick_physical_device(
         log::msg<except::LOG>("physical device {} misses: {}", device.properties().deviceName, std::string{reasons});
     }
 
-    if(best.has_value()) log::msg<except::INFO>("chosen physical device: {}", best->device.properties().deviceName);
-    return best;
+    if(bestOpt.has_value())
+        log::msg<except::INFO>("chosen physical device: {}", bestOpt->device.properties().deviceName);
+    return bestOpt;
 }
 }

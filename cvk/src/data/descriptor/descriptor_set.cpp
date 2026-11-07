@@ -48,13 +48,13 @@ namespace {
         }
     }
 
-    void debug_check_image(ImageView const* view, Sampler const* sampler, VkDescriptorType type) {
+    void debug_check_image(ImageView const* viewPtr, Sampler const* samplerPtr, VkDescriptorType type) {
         bool const samples = type == VK_DESCRIPTOR_TYPE_SAMPLER || type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        CTH_CRITICAL(samples && sampler == nullptr, "sampler descriptors need a sampler") {}
-        CTH_CRITICAL(!samples && sampler != nullptr, "the descriptor type takes no sampler") {}
-        CTH_CRITICAL(type != VK_DESCRIPTOR_TYPE_SAMPLER && view == nullptr, "image descriptors need a view") {}
-        if(view != nullptr) ImageView::debug_check(*view);
-        if(sampler != nullptr) Sampler::debug_check(*sampler);
+        CTH_CRITICAL(samples && samplerPtr == nullptr, "sampler descriptors need a sampler") {}
+        CTH_CRITICAL(!samples && samplerPtr != nullptr, "the descriptor type takes no sampler") {}
+        CTH_CRITICAL(type != VK_DESCRIPTOR_TYPE_SAMPLER && viewPtr == nullptr, "image descriptors need a view") {}
+        if(viewPtr != nullptr) ImageView::debug_check(*viewPtr);
+        if(samplerPtr != nullptr) Sampler::debug_check(*samplerPtr);
     }
 
     void debug_check_buffer(BaseBuffer const& buffer, Range range) {
@@ -68,14 +68,14 @@ namespace {
 }
 
 DescriptorSet::DescriptorSet(DescriptorPool const& pool, DescriptorSetLayout const& layout, uint32_t variableCount) :
-    _handle{pool}, _layout{&layout}, _variableCount{variableCount} {
+    _handle{pool}, _layoutPtr{&layout}, _variableCount{variableCount} {
     DescriptorPool::debug_check(pool);
     DescriptorSetLayout::debug_check(layout);
 
-    auto const* variable = layout.variableBinding();
-    CTH_CRITICAL(variableCount != 0 && variable == nullptr, "a variable count needs a variable count binding") {}
+    auto const* variablePtr = layout.variableBinding();
+    CTH_CRITICAL(variableCount != 0 && variablePtr == nullptr, "a variable count needs a variable count binding") {}
     CTH_CRITICAL(
-        variable != nullptr && variableCount > variable->descriptorCount,
+        variablePtr != nullptr && variableCount > variablePtr->descriptorCount,
         "the variable count must not exceed the maximum count of the binding"
     ) {}
 }
@@ -111,14 +111,14 @@ void DescriptorSet::wrap(State const& state) {
 void DescriptorSet::create() {
     DescriptorPool::debug_check(pool());
     CTH_CRITICAL(
-        _layout->updateAfterBind() && (pool().config().flags & VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT) == 0,
+        _layoutPtr->updateAfterBind() && (pool().config().flags & VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT) == 0,
         "update after bind layouts need a pool with VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT"
     ) {}
 
     optDestroy();
 
-    auto const* variable = _layout->variableBinding();
-    uint32_t const variableCount = variable != nullptr ? capacity(*variable) : 0;
+    auto const* variablePtr = _layoutPtr->variableBinding();
+    uint32_t const variableCount = variablePtr != nullptr ? capacity(*variablePtr) : 0;
     VkDescriptorSetVariableDescriptorCountAllocateInfo const variableInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
         .pNext = nullptr,
@@ -126,10 +126,10 @@ void DescriptorSet::create() {
         .pDescriptorCounts = &variableCount,
     };
 
-    VkDescriptorSetLayout const vkLayout = _layout->get();
+    VkDescriptorSetLayout const vkLayout = _layoutPtr->get();
     VkDescriptorSetAllocateInfo const info{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .pNext = variable != nullptr ? &variableInfo : nullptr,
+        .pNext = variablePtr != nullptr ? &variableInfo : nullptr,
         .descriptorPool = pool().get(),
         .descriptorSetCount = 1,
         .pSetLayouts = &vkLayout,
@@ -177,12 +177,12 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
     vkWrites.reserve(writes.size());
 
     for(auto const& write : writes) {
-        auto const* binding = _layout->binding(write._binding);
-        CTH_CRITICAL(binding == nullptr, "the layout has no binding {}", write._binding) {}
+        auto const* bindingPtr = _layoutPtr->binding(write._binding);
+        CTH_CRITICAL(bindingPtr == nullptr, "the layout has no binding {}", write._binding) {}
 
-        auto const type = binding->descriptorType;
+        auto const type = bindingPtr->descriptorType;
         auto const kind = descriptor_kind(type);
-        auto const* buffer = std::get_if<DescriptorWrite::BufferResource>(&write._resource);
+        auto const* bufferPtr = std::get_if<DescriptorWrite::BufferResource>(&write._resource);
 
         CTH_CRITICAL(
             kind == DescriptorKind::UNSUPPORTED,
@@ -191,13 +191,13 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
             write._binding
         ) {}
         CTH_CRITICAL(
-            (kind == DescriptorKind::BUFFER) != (buffer != nullptr),
+            (kind == DescriptorKind::BUFFER) != (bufferPtr != nullptr),
             "the kind of the write must match the type of the binding, got binding {} of type {}",
             write._binding,
             type
         ) {}
         CTH_CRITICAL(
-            write._element >= capacity(*binding),
+            write._element >= capacity(*bindingPtr),
             "the element must lie in the binding, got element {} of binding {}",
             write._element,
             write._binding
@@ -216,27 +216,27 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
             .pTexelBufferView = nullptr,
         };
 
-        if(buffer != nullptr) {
-            debug_check_buffer(*buffer->buffer, buffer->range);
+        if(bufferPtr != nullptr) {
+            debug_check_buffer(*bufferPtr->buffer, bufferPtr->range);
 
-            auto const [offset, size] = buffer->range;
+            auto const [offset, size] = bufferPtr->range;
             bufferInfos.push_back(
                 VkDescriptorBufferInfo{
-                    .buffer = buffer->buffer->get(),
+                    .buffer = bufferPtr->buffer->get(),
                     .offset = offset,
-                    .range = size == VK_WHOLE_SIZE ? buffer->buffer->size() - offset : size,
+                    .range = size == VK_WHOLE_SIZE ? bufferPtr->buffer->size() - offset : size,
                 }
             );
             vkWrite.pBufferInfo = &bufferInfos.back();
         } else {
-            auto const& [view, sampler, layout] = std::get<DescriptorWrite::ImageResource>(write._resource);
-            debug_check_image(view, sampler, type);
+            auto const& [viewPtr, samplerPtr, layout] = std::get<DescriptorWrite::ImageResource>(write._resource);
+            debug_check_image(viewPtr, samplerPtr, type);
 
             imageInfos.push_back(
                 VkDescriptorImageInfo{
-                    .sampler = sampler != nullptr ? sampler->get() : VK_NULL_HANDLE,
-                    .imageView = view != nullptr ? view->get() : VK_NULL_HANDLE,
-                    .imageLayout = view == nullptr ? VK_IMAGE_LAYOUT_UNDEFINED
+                    .sampler = samplerPtr != nullptr ? samplerPtr->get() : VK_NULL_HANDLE,
+                    .imageView = viewPtr != nullptr ? viewPtr->get() : VK_NULL_HANDLE,
+                    .imageLayout = viewPtr == nullptr ? VK_IMAGE_LAYOUT_UNDEFINED
                         : layout != VK_IMAGE_LAYOUT_MAX_ENUM ? layout
                         : descriptor_layout(type),
                 }
@@ -267,9 +267,9 @@ void DescriptorSet::forget() {}
 
 void DescriptorSet::pool_deleter::operator()(VkDescriptorSet vkSet) const {
     // a reset of the pool freed the set already
-    if(_resets != _pool->resets()) return;
+    if(_resets != _poolPtr->resets()) return;
 
-    _pool->remove();
-    if(_pool->freesSets()) cvk::destroy(_pool->core().deviceTable(), _pool->get(), vkSet);
+    _poolPtr->remove();
+    if(_poolPtr->freesSets()) cvk::destroy(_poolPtr->core().deviceTable(), _poolPtr->get(), vkSet);
 }
 }

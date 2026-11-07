@@ -308,14 +308,14 @@ public:
      * @return nullptr -> no rendering of the command buffer
      */
     [[nodiscard]] constexpr RenderingInfo const* rendering() const {
-        return recording() && _rendering.has_value() ? &*_rendering : nullptr;
+        return recording() && _renderingOpt.has_value() ? &*_renderingOpt : nullptr;
     }
 
     /**
      * @return inside the own @ref rendering() or a rendering that the secondary continues
      */
     [[nodiscard]] constexpr bool insideRendering() const {
-        return rendering() != nullptr || (recording() && _continuedViewMask.has_value());
+        return rendering() != nullptr || (recording() && _continuedViewMaskOpt.has_value());
     }
 
     /**
@@ -349,7 +349,7 @@ protected:
      * view mask of the rendering that the secondary continues, std::nullopt -> continues no rendering
      * @details @ref begin(VkCommandBufferBeginInfo const&) clears it
      */
-    std::optional<uint32_t> _continuedViewMask = std::nullopt;
+    std::optional<uint32_t> _continuedViewMaskOpt = std::nullopt;
 
 private:
     /**
@@ -357,15 +357,15 @@ private:
      */
     class pool_deleter {
     public:
-        constexpr explicit pool_deleter(CmdPool const& pool) : _pool{&pool} {}
+        constexpr explicit pool_deleter(CmdPool const& pool) : _poolPtr{&pool} {}
 
         void operator()(VkCommandBuffer) const;
 
-        [[nodiscard]] constexpr CmdPool const& pool() const { return *_pool; }
-        [[nodiscard]] constexpr Core const& core() const { return _pool->core(); }
+        [[nodiscard]] constexpr CmdPool const& pool() const { return *_poolPtr; }
+        [[nodiscard]] constexpr Core const& core() const { return _poolPtr->core(); }
 
     private:
-        not_null_ptr<CmdPool const> _pool;
+        not_null_ptr<CmdPool const> _poolPtr;
     };
 
     /**
@@ -389,7 +389,7 @@ private:
     VkCommandBufferLevel _level;
     bool _recording = false;
     uint64_t _beginResets = 0;
-    std::optional<RenderingInfo> _rendering = std::nullopt;
+    std::optional<RenderingInfo> _renderingOpt = std::nullopt;
 
 public:
     BaseCmdBuffer(BaseCmdBuffer const& other) = delete;
@@ -421,7 +421,7 @@ struct BaseCmdBuffer::State {
 namespace cvk {
 constexpr uint32_t BaseCmdBuffer::renderingViewMask() const {
     CTH_CRITICAL(!insideRendering(), "command buffer must be inside a rendering") {}
-    return rendering() != nullptr ? rendering()->viewMask : *_continuedViewMask;
+    return rendering() != nullptr ? rendering()->viewMask : *_continuedViewMaskOpt;
 }
 
 constexpr void BaseCmdBuffer::debug_check(BaseCmdBuffer const& buffer) {
@@ -564,10 +564,10 @@ public:
      * @return nullptr -> continues no rendering
      */
     [[nodiscard]] constexpr Inheritance const* inheritedRendering() const {
-        return recording() && _inheritedRendering.has_value() ? &*_inheritedRendering : nullptr;
+        return recording() && _inheritedRenderingOpt.has_value() ? &*_inheritedRenderingOpt : nullptr;
     }
 
 private:
-    std::optional<Inheritance> _inheritedRendering = std::nullopt;
+    std::optional<Inheritance> _inheritedRenderingOpt = std::nullopt;
 };
 }

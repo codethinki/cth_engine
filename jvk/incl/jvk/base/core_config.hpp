@@ -10,7 +10,7 @@ namespace jvk {
  */
 struct CoreConfig {
     /**
-     * queue roles, features, extensions and device of the cvk core
+     * queues, features, extensions and device of the cvk core
      * @details empty @ref cvk::CoreConfig::queueSets -> @ref queue_sets() of @ref cvk::CoreConfig::queueProperties
      */
     cvk::CoreConfig vk{};

@@ -40,15 +40,15 @@ public:
     /**
      * @attention not serialized: use it inside the strand
      */
-    [[nodiscard]] constexpr cvk::Queue const& vk() const { return *_queue; }
+    [[nodiscard]] constexpr cvk::Queue const& vk() const { return *_queuePtr; }
 
     /**
      * @attention not serialized: use it inside the strand
      */
-    [[nodiscard]] constexpr VkQueue get() const { return _queue->get(); }
+    [[nodiscard]] constexpr VkQueue get() const { return _queuePtr->get(); }
 
 private:
-    cth::not_null_ptr<cvk::Queue const> _queue;
+    cth::not_null_ptr<cvk::Queue const> _queuePtr;
     cth::co::strand _strand;
 
 public:

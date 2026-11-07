@@ -31,7 +31,7 @@ namespace {
     }
 }
 
-Core::Core(Instance const& instance) : _instance{&instance} {}
+Core::Core(Instance const& instance) : _instancePtr{&instance} {}
 
 Core::Core(Instance const& instance, span<Surface const> surfaces, Config const& config) : Core{instance} {
     create(surfaces, config);
@@ -56,19 +56,22 @@ void Core::wrap(State state) {
         ) {}
     }
     CTH_CRITICAL(
-        std::ranges::any_of(state.queueIndices, [&](size_t index) { return index >= state.device->queues().size(); }),
+        std::ranges::any_of(
+            state.queueIndices,
+            [&](size_t queueIdx) { return queueIdx >= state.device->queues().size(); }
+        ),
         "queue indices must be < queue count of the device"
     ) {}
 
     optDestroy();
 
-    _physicalDevice = state.physicalDevice.release_val();
-    _device = state.device.release_val();
-    _allocator = std::move(state.allocator);
-    if(_allocator == nullptr) _allocator = std::make_unique<Allocator>(*_device, cvk::create);
-    _queueSetIndex = state.queueSetIndex;
+    _physicalDevicePtr = state.physicalDevice.release_val();
+    _devicePtr = state.device.release_val();
+    _allocatorPtr = std::move(state.allocator);
+    if(_allocatorPtr == nullptr) _allocatorPtr = std::make_unique<Allocator>(*_devicePtr, cvk::create);
+    _queueSetIdxOpt = state.queueSetIndex;
 
-    if(state.queueIndices.empty()) _queueIndices.assign_range(std::views::iota(0uz, _device->queues().size()));
+    if(state.queueIndices.empty()) _queueIndices.assign_range(std::views::iota(0uz, _devicePtr->queues().size()));
     else _queueIndices = std::move(state.queueIndices);
 }
 
@@ -81,7 +84,7 @@ void Core::create(span<Surface const> surfaces, Config const& config) {
     auto required = requirements(config);
     auto pick = pickPhysicalDevice(surfaces, config, required);
     auto device = std::make_unique<Device>(
-        *_instance,
+        *_instancePtr,
         *pick.physicalDevice,
         Device::Config{
             .queueFamilyIndices = std::move(pick.uniqueQueueFamilyIndices),
@@ -91,10 +94,10 @@ void Core::create(span<Surface const> surfaces, Config const& config) {
     );
     auto allocator = std::make_unique<Allocator>(*device, cvk::create);
 
-    _physicalDevice = std::move(pick.physicalDevice);
-    _device = std::move(device);
-    _allocator = std::move(allocator);
-    _queueSetIndex = pick.queueSetIndex;
+    _physicalDevicePtr = std::move(pick.physicalDevice);
+    _devicePtr = std::move(device);
+    _allocatorPtr = std::move(allocator);
+    _queueSetIdxOpt = pick.queueSetIndex;
     _queueIndices = std::move(pick.queuesToUniqueQueues);
 }
 
@@ -107,11 +110,11 @@ Core::State Core::release() {
     debug_check(*this);
 
     State state{
-        .physicalDevice = std::move(_physicalDevice),
-        .device = std::move(_device),
-        .allocator = std::move(_allocator),
+        .physicalDevice = std::move(_physicalDevicePtr),
+        .device = std::move(_devicePtr),
+        .allocator = std::move(_allocatorPtr),
         .queueIndices = std::move(_queueIndices),
-        .queueSetIndex = _queueSetIndex,
+        .queueSetIndex = _queueSetIdxOpt,
     };
     forget();
     return state;
@@ -119,22 +122,22 @@ Core::State Core::release() {
 
 size_t Core::queueSetIndex() const {
     debug_check(*this);
-    CTH_CRITICAL(!_queueSetIndex.has_value(), "queue set index has no value, the config had no queue sets") {}
-    return *_queueSetIndex;
+    CTH_CRITICAL(!_queueSetIdxOpt.has_value(), "queue set index has no value, the config had no queue sets") {}
+    return *_queueSetIdxOpt;
 }
 
-VkInstance Core::vkInstance() const { return _instance->get(); }
+VkInstance Core::vkInstance() const { return _instancePtr->get(); }
 
 PhysicalDevice const& Core::physicalDevice() const {
     debug_check(*this);
-    return *_physicalDevice;
+    return *_physicalDevicePtr;
 }
 
 VkPhysicalDevice Core::vkPhysicalDevice() const { return physicalDevice().get(); }
 
 Device const& Core::device() const {
     debug_check(*this);
-    return *_device;
+    return *_devicePtr;
 }
 
 DeviceTable Core::deviceTable() const { return device().table(); }
@@ -143,17 +146,17 @@ VkDevice Core::vkDevice() const { return device().get(); }
 
 Allocator const& Core::allocator() const {
     debug_check(*this);
-    return *_allocator;
+    return *_allocatorPtr;
 }
 
-Queue const& Core::queue(size_t idx) const { return device().queues()[queueIndex(idx)]; }
+Queue const& Core::queue(size_t queueIdx) const { return device().queues()[queueIndex(queueIdx)]; }
 
 void Core::forget() {
     _queueIndices.clear();
-    _allocator = nullptr;
-    _device = nullptr;
-    _physicalDevice = nullptr;
-    _queueSetIndex = std::nullopt;
+    _allocatorPtr = nullptr;
+    _devicePtr = nullptr;
+    _physicalDevicePtr = nullptr;
+    _queueSetIdxOpt = std::nullopt;
 }
 
 auto Core::requirements(Config const& config) -> device_requirements {
@@ -241,7 +244,7 @@ auto Core::tryPickPhysicalDevice(
     auto [uniqueQueues, queueToUniqueQueue] = createQueueSetRelations(queueSet, config.queueProperties);
 
     auto result = pick_physical_device(
-        *_instance,
+        *_instancePtr,
         surfaces,
         uniqueQueues,
         required.features,

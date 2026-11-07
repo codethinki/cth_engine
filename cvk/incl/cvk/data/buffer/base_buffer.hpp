@@ -173,7 +173,7 @@ public:
      * @return nullptr -> the buffer does not own its memory
      */
     [[nodiscard]] constexpr Memory const* memory() const {
-        return _memory.has_value() && _memory->created() ? &*_memory : nullptr;
+        return _memoryOpt.has_value() && _memoryOpt->created() ? &*_memoryOpt : nullptr;
     }
 
 private:
@@ -186,7 +186,7 @@ private:
 
     // declared before the memory: move assignment destroys the old buffer before its memory
     core_handle<VkBuffer> _handle;
-    std::optional<Memory> _memory = std::nullopt;
+    std::optional<Memory> _memoryOpt = std::nullopt;
     Config _config;
     size_t _size = 0;
 
@@ -225,7 +225,7 @@ struct BaseBuffer::State {
 namespace cvk {
 constexpr Memory const& BaseBuffer::ownMemory() const {
     CTH_CRITICAL(memory() == nullptr, "the buffer must own its memory") {}
-    return *_memory;
+    return *_memoryOpt;
 }
 
 constexpr void BaseBuffer::debug_check(BaseBuffer const& buffer) {

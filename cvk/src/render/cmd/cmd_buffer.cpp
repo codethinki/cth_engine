@@ -46,10 +46,10 @@ namespace {
         CTH_CRITICAL(!cmdBuffer.insideRendering(), "draws need a rendering") {}
 
         // the own rendering of the command buffer
-        auto const* rendering = cmdBuffer.rendering();
+        auto const* renderingPtr = cmdBuffer.rendering();
         CTH_CRITICAL(
-            rendering != nullptr && (rendering->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) != 0
-            && (rendering->flags & VK_RENDERING_CONTENTS_INLINE_BIT_KHR) == 0,
+            renderingPtr != nullptr && (renderingPtr->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) != 0
+            && (renderingPtr->flags & VK_RENDERING_CONTENTS_INLINE_BIT_KHR) == 0,
             "the secondaries record the draws of a rendering with VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT"
         ) {}
     }
@@ -99,8 +99,8 @@ void BaseCmdBuffer::wrap(State const& state) {
     _handle.reset(state.vkBuffer.get(), pool());
     pool().add();
     _recording = false;
-    _rendering.reset();
-    _continuedViewMask.reset();
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
 }
 
 void BaseCmdBuffer::create() {
@@ -127,8 +127,8 @@ void BaseCmdBuffer::create() {
     _handle.reset(ptr, pool());
     pool().add();
     _recording = false;
-    _rendering.reset();
-    _continuedViewMask.reset();
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
 }
 
 void BaseCmdBuffer::destroy() {
@@ -156,8 +156,8 @@ void BaseCmdBuffer::end() {
 
     auto const result = core().functions()->vkEndCommandBuffer(get());
     _recording = false;
-    _rendering.reset();
-    _continuedViewMask.reset();
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to end command buffer") {}
 }
@@ -171,8 +171,8 @@ void BaseCmdBuffer::reset(VkCommandBufferResetFlags flags) {
 
     auto const result = core().functions()->vkResetCommandBuffer(get(), flags);
     _recording = false;
-    _rendering.reset();
-    _continuedViewMask.reset();
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to reset command buffer") {}
 }
@@ -183,7 +183,7 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
     CTH_CRITICAL(rendering() != nullptr, "command buffer must be outside of a rendering") {}
     AttachmentMapping::debug_check(info.attachmentMapping, info.colorAttachments.size());
 
-    std::optional<VkExtent2D> extent{};
+    std::optional<VkExtent2D> extentOpt{};
 
     auto const attachmentInfo = [&](RenderingAttachment const& attachment) {
         ImageView const& view = *attachment.view;
@@ -199,8 +199,8 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         ) {}
 
         auto const viewExtent = view_extent(view);
-        extent = extent.has_value()
-            ? VkExtent2D{std::min(extent->width, viewExtent.width), std::min(extent->height, viewExtent.height)}
+        extentOpt = extentOpt.has_value()
+            ? VkExtent2D{std::min(extentOpt->width, viewExtent.width), std::min(extentOpt->height, viewExtent.height)}
             : viewExtent;
         debug_check_attachment_layout(attachment.layout);
 
@@ -243,9 +243,9 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         ) {}
     }
 
-    std::optional<VkRenderingAttachmentInfo> depth{};
+    std::optional<VkRenderingAttachmentInfo> depthOpt{};
     if(info.depthAttachment.has_value()) {
-        depth = attachmentInfo(*info.depthAttachment);
+        depthOpt = attachmentInfo(*info.depthAttachment);
 
         auto const format = info.depthAttachment->view->image().format();
         CTH_CRITICAL(
@@ -255,9 +255,9 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         ) {}
     }
 
-    std::optional<VkRenderingAttachmentInfo> stencil{};
+    std::optional<VkRenderingAttachmentInfo> stencilOpt{};
     if(info.stencilAttachment.has_value()) {
-        stencil = attachmentInfo(*info.stencilAttachment);
+        stencilOpt = attachmentInfo(*info.stencilAttachment);
 
         auto const format = info.stencilAttachment->view->image().format();
         CTH_CRITICAL(
@@ -267,25 +267,25 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
         ) {}
     }
 
-    CTH_CRITICAL(!extent.has_value() && !info.area.has_value(), "a rendering without attachments needs an area") {}
+    CTH_CRITICAL(!extentOpt.has_value() && !info.area.has_value(), "a rendering without attachments needs an area") {}
 
     VkRenderingInfo const renderingInfo{
         .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
         .pNext = nullptr,
         .flags = info.flags,
-        .renderArea = info.area.value_or(VkRect2D{.offset = {0, 0}, .extent = extent.value_or(VkExtent2D{})}),
+        .renderArea = info.area.value_or(VkRect2D{.offset = {0, 0}, .extent = extentOpt.value_or(VkExtent2D{})}),
         .layerCount = info.layerCount,
         .viewMask = info.viewMask,
         .colorAttachmentCount = static_cast<uint32_t>(colors.size()),
         .pColorAttachments = colors.data(),
-        .pDepthAttachment = depth.has_value() ? &*depth : nullptr,
-        .pStencilAttachment = stencil.has_value() ? &*stencil : nullptr,
+        .pDepthAttachment = depthOpt.has_value() ? &*depthOpt : nullptr,
+        .pStencilAttachment = stencilOpt.has_value() ? &*stencilOpt : nullptr,
     };
     core().functions()->vkCmdBeginRendering(get(), &renderingInfo);
 
-    _rendering = info;
-    _rendering->area = renderingInfo.renderArea;
-    if(_rendering->attachmentMapping != AttachmentMapping{}) recordAttachmentMapping();
+    _renderingOpt = info;
+    _renderingOpt->area = renderingInfo.renderArea;
+    if(_renderingOpt->attachmentMapping != AttachmentMapping{}) recordAttachmentMapping();
 
     // secondaries do not inherit dynamic state
     bool const inlineContents = (info.flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) == 0
@@ -312,15 +312,15 @@ void BaseCmdBuffer::endRendering() {
 
     core().functions()->vkCmdEndRendering(get());
 
-    _rendering.reset();
+    _renderingOpt.reset();
 }
 
 void BaseCmdBuffer::setAttachmentMapping(AttachmentMapping const& mapping) {
     debug_check(*this);
     CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside its own rendering") {}
-    AttachmentMapping::debug_check(mapping, _rendering->colorAttachments.size());
+    AttachmentMapping::debug_check(mapping, _renderingOpt->colorAttachments.size());
 
-    _rendering->attachmentMapping = mapping;
+    _renderingOpt->attachmentMapping = mapping;
     recordAttachmentMapping();
 }
 
@@ -531,13 +531,13 @@ void BaseCmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
 
     _recording = true;
     _beginResets = pool().resets();
-    _rendering.reset();
-    _continuedViewMask.reset();
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
 }
 
 void BaseCmdBuffer::recordAttachmentMapping() const {
-    auto const& mapping = _rendering->attachmentMapping;
-    auto const colorAttachments = static_cast<uint32_t>(_rendering->colorAttachments.size());
+    auto const& mapping = _renderingOpt->attachmentMapping;
+    auto const colorAttachments = static_cast<uint32_t>(_renderingOpt->colorAttachments.size());
 
     auto const locations = mapping.locationInfo(colorAttachments);
     auto const inputIndices = mapping.inputIndexInfo(colorAttachments);
@@ -547,13 +547,13 @@ void BaseCmdBuffer::recordAttachmentMapping() const {
 
 void BaseCmdBuffer::forget() {
     _recording = false;
-    _rendering.reset();
-    _continuedViewMask.reset();
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
 }
 
 void BaseCmdBuffer::pool_deleter::operator()(VkCommandBuffer vkBuffer) const {
-    _pool->remove();
-    cvk::destroy(_pool->core().deviceTable(), _pool->get(), vkBuffer);
+    _poolPtr->remove();
+    cvk::destroy(_poolPtr->core().deviceTable(), _poolPtr->get(), vkBuffer);
 }
 }
 
@@ -664,7 +664,7 @@ void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
         .pInheritanceInfo = &inheritanceInfo,
     };
     BaseCmdBuffer::begin(info);
-    _inheritedRendering.reset();
+    _inheritedRenderingOpt.reset();
 }
 
 void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUsageFlags usage) {
@@ -694,7 +694,7 @@ void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUs
         .pInheritanceInfo = &inheritanceInfo,
     };
     BaseCmdBuffer::begin(info);
-    _continuedViewMask = inheritance.viewMask;
-    _inheritedRendering = inheritance;
+    _continuedViewMaskOpt = inheritance.viewMask;
+    _inheritedRenderingOpt = inheritance;
 }
 }

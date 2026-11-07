@@ -29,14 +29,14 @@ struct SemaphoreSubmitInfo {
 
     /**
      * @param stages wait -> the stages that wait, signal -> the stages that finish before the signal
-     * @param value std::nullopt -> resolved at the submit,
+     * @param valueOpt std::nullopt -> resolved at the submit,
      *  wait: @ref TimelineSemaphore::value(), signal: @ref TimelineSemaphore::next()
      */
     constexpr SemaphoreSubmitInfo(
         TimelineSemaphore const& semaphore,
         VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-        std::optional<uint64_t> value = std::nullopt
-    ) : semaphore{&semaphore}, stages{stages}, value{value} {}
+        std::optional<uint64_t> valueOpt = std::nullopt
+    ) : semaphore{&semaphore}, stages{stages}, value{valueOpt} {}
 
     std::variant<not_null_ptr<Semaphore const>, not_null_ptr<TimelineSemaphore const>> semaphore;
     VkPipelineStageFlags2 stages;

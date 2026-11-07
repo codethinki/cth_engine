@@ -21,7 +21,7 @@ namespace jvk {
 /**
  * jvk core
  * @details owns the cvk core, the workers and the serialized queues
- * @details roles with the same vulkan queue share one @ref Queue
+ * @details the indices of one vulkan queue share one @ref Queue
  */
 class Core {
 public:
@@ -71,12 +71,12 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * @param role index in @ref cvk::CoreConfig::queueProperties
-     * @return serialized queue of the role, roles with the same vulkan queue return the same object
+     * @param queueIdx index of the queue in @ref cvk::CoreConfig::queueProperties
+     * @return serialized queue, the indices of one vulkan queue return the same object
      * @pre @ref created()
-     * @pre role < size of @ref cvk::CoreConfig::queueProperties
+     * @pre queueIdx < size of @ref cvk::CoreConfig::queueProperties
      */
-    [[nodiscard]] Queue const& queue(size_t role) const;
+    [[nodiscard]] Queue const& queue(size_t queueIdx) const;
 
     /**
      * @return executor of the workers
@@ -101,7 +101,7 @@ private:
     cvk::Core _core;
     cth::co::scheduler _workers;
     // destroyed before the workers and the cvk core
-    std::optional<Queues> _queues{};
+    std::optional<Queues> _queuesOpt{};
 
 public:
     Core(Core const& other) = delete;

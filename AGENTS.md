@@ -82,13 +82,19 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 | static check function | `debug_check`, `debug_check_handle` | |
 | function parameter | `camelCase` | `appName`, `requiredExtensions` |
 | local variable | `camelCase` | `createResult`, `requiredExtVec` |
-| member variable | `_camelCase` | `_handle`, `_debugMessenger` |
+| member variable | `_camelCase` | `_handle`, `_debugMessengerOpt` |
 | constant | `UPPER_SNAKE_CASE` | `VALIDATION_LAYERS`, `MAX_SECONDARY_CMD_BUFFERS` |
 | template parameter | `PascalCase` | `T`, `Rng`, `Context` |
 | macro | `UPPER_SNAKE_CASE` with library prefix | `CVK_RESULT_STABLE_THROW` |
 | namespace | short lower case | `cvk`, `cvk::constants`, `cvk::dev` |
 
 - A raw handle in a variable or parameter has the prefix of its API: `vkInstance`, `vmaAllocation`.
+- The name says what kind of value it is, a bare object name is the object:
+  - index: `<thing>Idx`: `queueIdx`, never only `queue`
+  - pointer: `<thing>Ptr`, optional: `<thing>Opt`
+  - a name that already says it is no object needs no suffix: `stageId`, `slot`, `handle` (not `handlePtr`)
+  - loop variable: `i`, `j`, `k` in this order, or `<thing>Idx`
+- Names describe the thing, not an invented concept: no `role` for an index.
 - `_t` only for aliases that rename a type: `callback_t`, `queue_set_t`. An alias that is a type of its own gets a std style name, like `std::string`.
 - Declarations leave out parameter names that repeat the type: `wrap(State const&)`, not `VkSemaphore vkSemaphore`. Definitions keep them.
 - `<lib>::dev` holds implementation details that are not part of the API.
@@ -107,6 +113,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Use deducing `this` (`this auto& self`) where a function must work on the derived type.
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.
+- Constructors are public. No `friend` and no passkey class to hide a construction: a friend opens far more than the constructor.
 - Prefer compile time checks (concepts, `static_assert`) to run time checks.
 - An automatically chosen value has an override if:
   - the choice is not guaranteed to be optimal
@@ -181,7 +188,7 @@ public:
 - Inside a class the member `destroy()` hides the global one: write `cvk::destroy(...)`.
 - Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
 - Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.
-- A class that owns several objects declares the objects that depend on its handle first, `= default` assigns in that order: `_debugMessenger` before `_handle`.
+- A class that owns several objects declares the objects that depend on its handle first, `= default` assigns in that order: `_debugMessengerOpt` before `_handle`.
 - Classes that do not own their handle (`Queue`, `PhysicalDevice`) keep `cth::move_ptr`.
 
 After the class, in the same header:

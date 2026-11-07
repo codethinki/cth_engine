@@ -218,7 +218,7 @@ private:
     ResourceStates _states{};
 
     // the destructor body and the base move assignment free the command buffer before the pool
-    std::unique_ptr<cvk::CmdPool> _pool;
+    std::unique_ptr<cvk::CmdPool> _poolPtr;
 
 public:
     BasicCmdBuffer(BasicCmdBuffer const& other) = delete;

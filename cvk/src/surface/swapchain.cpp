@@ -16,7 +16,7 @@ using std::span;
 using std::vector;
 
 Swapchain::Swapchain(Core const& core, Queue const& presentQueue, Surface const& surface, Config config) :
-    _presentQueue{presentQueue}, _surface{&surface}, _core{&core}, _config{std::move(config)} {
+    _presentQueue{presentQueue}, _surfacePtr{&surface}, _corePtr{&core}, _config{std::move(config)} {
     Core::debug_check(core);
     Surface::debug_check(surface);
     Queue::debug_check_present(presentQueue);
@@ -214,7 +214,7 @@ Swapchain::Generation::~Generation() {
 std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> Swapchain::pick(Config const& config) const {
     auto const& physicalDevice = core().physicalDevice();
 
-    auto const formats = _surface->formats(physicalDevice);
+    auto const formats = _surfacePtr->formats(physicalDevice);
     auto const& allowedFormats = config.formats.empty() ? formats : config.formats;
     auto const formatIt = std::ranges::find_first_of(allowedFormats, formats);
     CVK_STABLE_THROW(
@@ -226,7 +226,7 @@ std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> Swapchain::pick(Config const& co
 
     if(config.presentModes.empty()) return {*formatIt, VK_PRESENT_MODE_FIFO_KHR};
 
-    auto const presentModes = _surface->presentModes(physicalDevice);
+    auto const presentModes = _surfacePtr->presentModes(physicalDevice);
     auto const presentModeIt = std::ranges::find_first_of(config.presentModes, presentModes);
     CVK_STABLE_THROW(
         presentModeIt == config.presentModes.end(),
@@ -239,13 +239,13 @@ std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> Swapchain::pick(Config const& co
 }
 
 void Swapchain::createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain) {
-    Surface::debug_check(*_surface);
+    Surface::debug_check(*_surfacePtr);
 
-    auto const capabilities = _surface->capabilities(core().physicalDevice());
+    auto const capabilities = _surfacePtr->capabilities(core().physicalDevice());
     auto const imageExtent = evalExtent(extent, capabilities);
 
     auto const info = _config.createInfo(
-        _surface->get(),
+        _surfacePtr->get(),
         _surfaceFormat,
         _presentMode,
         //TODO override of the pre transform, for pre-rotation on rotated mobile displays
@@ -298,7 +298,7 @@ void Swapchain::createImages() {
 
     generation.presentSemaphores.reserve(count);
     generation.presentFences.reserve(count);
-    for(uint32_t index = 0; index < count; ++index) {
+    for(uint32_t i = 0; i < count; ++i) {
         generation.presentSemaphores.emplace_back(core(), cvk::create);
         generation.presentFences.emplace_back(core(), cvk::create, VK_FENCE_CREATE_SIGNALED_BIT);
     }
@@ -308,8 +308,8 @@ void Swapchain::createImages() {
 
 void Swapchain::unacquireAll() {
     vector<uint32_t> acquiredImages{};
-    for(uint32_t index = 0; index < imageCount(); ++index)
-        if(acquired(index)) acquiredImages.push_back(index);
+    for(uint32_t imageIdx = 0; imageIdx < imageCount(); ++imageIdx)
+        if(acquired(imageIdx)) acquiredImages.push_back(imageIdx);
     unacquire(acquiredImages);
 }
 

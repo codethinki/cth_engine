@@ -7,7 +7,7 @@
 
 
 namespace jvk {
-JVK_TEST(Queues, queue_of_a_role_refers_to_its_cvk_queue) {
+JVK_TEST(Queues, queue_refers_to_its_cvk_queue) {
     test::Context const context{};
     cvk::Core const& vk = context.core;
 

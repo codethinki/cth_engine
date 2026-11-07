@@ -83,6 +83,12 @@ private:
 #define CVK_STABLE_THROW(expression, msg, ...) \
     CTH_STABLE_THROW_T(cvk::cvk_exception, expression, msg, __VA_ARGS__)
 
+#define CVK_STABLE_ERR(expression, msg, ...) \
+    CTH_STABLE_ERR_T(cvk::cvk_exception, expression, msg, __VA_ARGS__)
+
+#define CVK_STABLE_WARN(expression, msg, ...) \
+    CTH_STABLE_WARN_T(cvk::cvk_exception, expression, msg, __VA_ARGS__)
+
 #define CVK_VK_STABLE_THROW(expression, msg, ...) \
     CTH_STABLE_THROW_T(cvk::vk_result_exception, expression, msg, __VA_ARGS__)
 

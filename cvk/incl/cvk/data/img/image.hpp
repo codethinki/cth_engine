@@ -170,7 +170,7 @@ public:
      * @return nullptr -> the image does not own its memory
      */
     [[nodiscard]] constexpr Memory const* memory() const {
-        return _memory.has_value() && _memory->created() ? &*_memory : nullptr;
+        return _memoryOpt.has_value() && _memoryOpt->created() ? &*_memoryOpt : nullptr;
     }
 
 private:
@@ -188,7 +188,7 @@ private:
 
     // declared before the memory: move assignment destroys the old image before its memory
     core_handle<VkImage> _handle;
-    std::optional<Memory> _memory = std::nullopt;
+    std::optional<Memory> _memoryOpt = std::nullopt;
     Config _config;
     VkExtent2D _extent{};
 

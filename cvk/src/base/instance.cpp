@@ -50,7 +50,7 @@ void Instance::wrap(State state) {
 
     loadInstanceFunctions(state.vkInstance);
 
-    if(state.debugMessenger) _debugMessenger.emplace(*this, *messenger, *state.debugMessenger);
+    if(state.debugMessenger) _debugMessengerOpt.emplace(*this, *messenger, *state.debugMessenger);
 }
 
 void Instance::create() {
@@ -129,7 +129,7 @@ void Instance::create() {
 
     // the messenger needs the created instance, only a catch can destroy the instance when the messenger fails
     try {
-        if(messenger) _debugMessenger.emplace(*this, *messenger, cvk::create);
+        if(messenger) _debugMessengerOpt.emplace(*this, *messenger, cvk::create);
     } catch(...) {
         destroy();
         throw;
@@ -139,7 +139,7 @@ void Instance::create() {
 void Instance::destroy() {
     debug_check(*this);
 
-    _debugMessenger.reset();
+    _debugMessengerOpt.reset();
     _handle.reset();
 
     forget();
@@ -150,7 +150,7 @@ Instance::State Instance::release() {
 
     State state{
         .vkInstance = _handle.release(),
-        .debugMessenger = _debugMessenger.transform([](DebugMessenger& debugMessenger) {
+        .debugMessenger = _debugMessengerOpt.transform([](DebugMessenger& debugMessenger) {
             return debugMessenger.release();
         }),
         .extensions = std::move(_extensions),
@@ -168,7 +168,7 @@ void destroy(VkInstance vkInstance) {
 }
 
 void Instance::forget() {
-    _debugMessenger.reset();
+    _debugMessengerOpt.reset();
     _extensions.clear();
 }
 

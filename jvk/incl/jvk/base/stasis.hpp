@@ -78,14 +78,14 @@ public:
     [[nodiscard]] constexpr bool empty() const { return _handles.empty() && _poolChildren.empty(); }
 
     [[nodiscard]] constexpr cvk::DeviceTable table() const { return _table; }
-    [[nodiscard]] constexpr VmaAllocator allocator() const { return _allocator; }
+    [[nodiscard]] constexpr VmaAllocator allocator() const { return _vmaAllocator; }
 
 private:
     template<class Grave>
     void push(Grave grave);
 
     cvk::DeviceTable _table;
-    VmaAllocator _allocator;
+    VmaAllocator _vmaAllocator;
 
     std::vector<handle_t> _handles{};
     std::vector<pool_child_t> _poolChildren{};

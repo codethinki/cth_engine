@@ -188,32 +188,32 @@ private:
     using image_key_t = std::pair<VkImage, uint32_t>;
 
     struct image_states {
-        cth::not_null_ptr<cvk::Image const> image;
+        cth::not_null_ptr<cvk::Image const> imagePtr;
 
         /**
          * std::nullopt -> @ref assume() before the first access
          */
-        std::optional<ImageState> first;
+        std::optional<ImageState> firstOpt;
         ImageState last;
         bool discard = false;
 
         /**
-         * a barrier or @ref assume() after the first use: @ref first is final
+         * a barrier or @ref assume() after the first use: @ref firstOpt is final
          */
         bool barrier = false;
     };
 
     struct buffer_states {
-        cth::not_null_ptr<cvk::BaseBuffer const> buffer;
+        cth::not_null_ptr<cvk::BaseBuffer const> bufferPtr;
 
         /**
          * std::nullopt -> @ref assume() before the first access
          */
-        std::optional<BufferState> first;
+        std::optional<BufferState> firstOpt;
         BufferState last;
 
         /**
-         * a barrier or @ref assume() after the first use: @ref first is final
+         * a barrier or @ref assume() after the first use: @ref firstOpt is final
          */
         bool barrier = false;
     };

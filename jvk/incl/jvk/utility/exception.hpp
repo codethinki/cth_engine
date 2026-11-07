@@ -37,3 +37,9 @@ public:
 
 #define JVK_STABLE_THROW(expression, msg, ...) \
     CTH_STABLE_THROW_T(jvk::jvk_exception, expression, msg, __VA_ARGS__)
+
+#define JVK_STABLE_ERR(expression, msg, ...) \
+    CTH_STABLE_ERR_T(jvk::jvk_exception, expression, msg, __VA_ARGS__)
+
+#define JVK_STABLE_WARN(expression, msg, ...) \
+    CTH_STABLE_WARN_T(jvk::jvk_exception, expression, msg, __VA_ARGS__)

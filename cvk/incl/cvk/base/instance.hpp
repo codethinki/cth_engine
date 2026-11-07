@@ -135,7 +135,7 @@ public:
      * @return nullptr -> no messenger
      */
     [[nodiscard]] constexpr DebugMessenger const* debugMessenger() const {
-        return _debugMessenger.has_value() ? &*_debugMessenger : nullptr;
+        return _debugMessengerOpt.has_value() ? &*_debugMessengerOpt : nullptr;
     }
 
 private:
@@ -153,7 +153,7 @@ private:
     std::vector<std::string> _extensions{};
 
     // declared before the handle: move assignment destroys the old messenger before the old instance
-    std::optional<DebugMessenger> _debugMessenger = std::nullopt;
+    std::optional<DebugMessenger> _debugMessengerOpt = std::nullopt;
     unique_handle<VkInstance, handle_deleter> _handle;
 
 public:
