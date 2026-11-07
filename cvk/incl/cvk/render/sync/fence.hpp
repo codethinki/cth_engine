@@ -132,14 +132,16 @@ public:
 
     /**
      * exports the fence as an OS handle, see @ref constants::OS_FENCE_HANDLE_TYPE
-     * @details windows: the fence keeps its state
-     * @details posix: the export resets the fence, invalid handle -> already signaled
+     * @details the fence keeps its state
+     * @details posix: invalid handle -> already signaled
      * @return handle, waitable with cth::os::wait() or a scheduler
      * @pre @ref created() with @ref constants::OS_FENCE_HANDLE_TYPE in the export types
      * @pre the device enables @ref constants::OS_FENCE_DEVICE_EXTENSIONS
+     * @pre posix: the device can import @ref constants::OS_FENCE_HANDLE_TYPE
      * @pre posix: the fence is signaled or a signal operation is pending
      * @attention posix: blocks until the pending work reaches the kernel, work that waits for the host -> deadlock
-     * @throws cvk::vk_result_exception result of vkGetFenceWin32HandleKHR() or vkGetFenceFdKHR()
+     * @throws cvk::vk_result_exception result of vkGetFenceWin32HandleKHR(), vkGetFenceFdKHR() or vkImportFenceFdKHR()
+     * @throws cvk::cvk_exception reason: posix: the duplication of the handle failed
      */
     [[nodiscard]] cth::os::unique_native_handle extractOsHandle() const;
 

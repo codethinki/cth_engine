@@ -9,6 +9,7 @@
 #include <cth/os/wait.hpp>
 
 #include <chrono>
+#include <cstdint>
 #include <optional>
 #include <ranges>
 
@@ -38,7 +39,7 @@ namespace {
     }
 
     /**
-     * @return the device can export @ref constants::OS_FENCE_HANDLE_TYPE
+     * @return the device can export @ref constants::OS_FENCE_HANDLE_TYPE, posix: and import it
      */
     bool os_fence_exportable(Core const& core) {
         VkPhysicalDeviceExternalFenceInfo const info{
@@ -48,8 +49,16 @@ namespace {
         };
         VkExternalFenceProperties properties{.sType = VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, .pNext = nullptr};
         vkGetPhysicalDeviceExternalFenceProperties(core.vkPhysicalDevice(), &info, &properties);
-        return (properties.externalFenceFeatures & VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT) != 0;
+#ifdef CTH_PLATFORM_WINDOWS
+        constexpr VkExternalFenceFeatureFlags required = VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT;
+#else
+        constexpr VkExternalFenceFeatureFlags required =
+            VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT | VK_EXTERNAL_FENCE_FEATURE_IMPORTABLE_BIT;
+#endif
+        return (properties.externalFenceFeatures & required) == required;
     }
+
+    constexpr uint64_t FIVE_SECONDS = 5'000'000'000;
 }
 
 CVK_TEST(Fence, base_constructor_does_not_create) {
@@ -137,7 +146,7 @@ CVK_TEST(Fence, move_assignment_destroys_the_old_fence) {
     EXPECT_TRUE(fence.signaled());
 }
 
-CVK_TEST(Fence, extract_os_handle_waits_for_the_submit) {
+CVK_TEST(Fence, extract_os_handle_of_a_pending_fence_keeps_the_signal) {
     std::optional<test::Context> context{};
     try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
     if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
@@ -151,25 +160,47 @@ CVK_TEST(Fence, extract_os_handle_waits_for_the_submit) {
     auto const handle = fence.extractOsHandle();
     if(handle) EXPECT_EQ(cth::os::wait(handle.get(), std::chrono::seconds{5}), cth::os::wait_result::WAITED);
 
-#ifndef CTH_PLATFORM_WINDOWS
-    // sync fd export resets the fence
-    EXPECT_FALSE(fence.signaled());
-#endif
+    EXPECT_EQ(fence.wait(FIVE_SECONDS), VK_SUCCESS);
+    EXPECT_TRUE(fence.signaled());
 
     queue.waitIdle();
 }
 
-CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence) {
+CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence_keeps_it_signaled) {
     std::optional<test::Context> context{};
     try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
     if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
 
     Fence const fence{context->core, create, VK_FENCE_CREATE_SIGNALED_BIT, constants::OS_FENCE_HANDLE_TYPE};
 
+    // one export: the validation layers (1.4.363) do not track the state of an imported payload,
+    // a second export reports VUID-VkFenceGetFdInfoKHR-handleType-01454
     auto const handle = fence.extractOsHandle();
 
     // invalid handle -> already signaled
     EXPECT_TRUE(!handle || cth::os::check_ready(handle.get()));
+    EXPECT_TRUE(fence.signaled());
+    EXPECT_EQ(fence.wait(0), VK_SUCCESS);
+}
+
+CVK_TEST(Fence, reset_after_extract_os_handle_unsignals_the_fence) {
+    std::optional<test::Context> context{};
+    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
+    if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
+
+    Fence const fence{context->core, create, VK_FENCE_CREATE_SIGNALED_BIT, constants::OS_FENCE_HANDLE_TYPE};
+    auto const handle = fence.extractOsHandle();
+
+    fence.reset();
+    EXPECT_FALSE(fence.signaled());
+
+    // the fence works after the reset
+    auto const& queue = context->core.queue(0);
+    queue.rawSubmit(EMPTY_SUBMIT, fence.get());
+    EXPECT_EQ(fence.wait(FIVE_SECONDS), VK_SUCCESS);
+    EXPECT_TRUE(fence.signaled());
+
+    queue.waitIdle();
 }
 
 CVK_TEST(Fence, release_and_wrap_keep_the_export_types) {

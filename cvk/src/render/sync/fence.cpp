@@ -4,6 +4,8 @@
 #include "cvk/utility/constant/os_constants.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
+#include <cth/os/exception.hpp>
+
 #include <limits>
 
 #ifdef CTH_PLATFORM_WINDOWS
@@ -158,7 +160,39 @@ cth::os::unique_native_handle Fence::extractOsHandle() const {
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to export the fence") {}
 
-    return cth::os::unique_native_handle{handle};
+    cth::os::unique_native_handle exported{handle};
+
+#ifndef CTH_PLATFORM_WINDOWS
+    // the export of a sync fd resets the fence (copy transference), the temporary import of a copy gives the state
+    // back until the next reset
+    // https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#synchronization-fences-importing
+    // https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#VkImportFenceFdInfoKHR
+    // exported -1: already signaled, the import of -1 signals the fence too
+    cth::os::unique_native_handle copy{};
+    try {
+        if(exported) copy.reset(cth::os::duplicate_handle(exported.get()));
+    } catch(cth::except::os_exception const& e) {
+        throw cvk::cvk_exception{e};
+    }
+
+    VkImportFenceFdInfoKHR const importInfo{
+        .sType = VK_STRUCTURE_TYPE_IMPORT_FENCE_FD_INFO_KHR,
+        .pNext = nullptr,
+        .fence = _handle.get(),
+        .flags = VK_FENCE_IMPORT_TEMPORARY_BIT,
+        .handleType = constants::OS_FENCE_HANDLE_TYPE,
+        .fd = copy.get(),
+    };
+    auto const importResult = core().functions()->vkImportFenceFdKHR(core().vkDevice(), &importInfo);
+
+    // a failed import keeps the copy, its unique handle closes it
+    CVK_RESULT_STABLE_THROW(importResult != VK_SUCCESS, importResult, "failed to import the copy of the fence") {}
+
+    // the import owns the copy now
+    [[maybe_unused]] auto const imported = copy.release();
+#endif
+
+    return exported;
 }
 
 void destroy(DeviceTable table, VkFence vkFence) {

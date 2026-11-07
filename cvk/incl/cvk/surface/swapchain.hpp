@@ -231,8 +231,6 @@ public:
      * @return the fence that the last present of the image signals, created signaled
      * @details exportable with @ref constants::OS_FENCE_HANDLE_TYPE, see @ref Fence::extractOsHandle()
      * @pre imageIndex < @ref imageCount()
-     * @attention posix: the export resets the fence, @ref present() of the image and the destruction then wait for
-     *  a signal: signal it again, for example with an empty submit
      */
     [[nodiscard]] constexpr Fence const& presentFence(uint32_t imageIndex) const {
         return current().presentFences[imageIndex];

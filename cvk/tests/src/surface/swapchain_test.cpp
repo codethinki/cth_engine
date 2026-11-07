@@ -312,12 +312,15 @@ CVK_TEST(Swapchain, present_fences_are_exportable) {
         // invalid handle -> already signaled
         auto const handle = fence.extractOsHandle();
         if(handle) EXPECT_EQ(cth::os::wait(handle.get(), std::chrono::seconds{5}), cth::os::wait_result::WAITED);
-
-        // posix: the export resets the fence, the swapchain waits for it at the destruction
-        if(fence.signaled()) continue;
-        context.queue().submit(SubmitInfo{}, &fence);
-        fence.wait();
+        EXPECT_TRUE(fence.signaled());
     }
+
+    // the presents and the destruction wait for the exported fences
+    for(uint32_t frame = 0; frame < swapchain.imageCount() + 1; ++frame)
+        EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+
+    swapchain.destroy();
+    EXPECT_FALSE(swapchain.created());
 }
 
 CVK_TEST(Swapchain, unacquire_gives_the_image_back) {

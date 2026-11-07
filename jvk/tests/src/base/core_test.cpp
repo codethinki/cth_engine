@@ -57,7 +57,7 @@ namespace {
     }
 
     /**
-     * @return the device can export @ref cvk::constants::OS_FENCE_HANDLE_TYPE
+     * @return the device can export @ref cvk::constants::OS_FENCE_HANDLE_TYPE, posix: and import it
      */
     bool os_fence_exportable(cvk::Core const& core) {
         VkPhysicalDeviceExternalFenceInfo const info{
@@ -67,7 +67,13 @@ namespace {
         };
         VkExternalFenceProperties properties{.sType = VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, .pNext = nullptr};
         vkGetPhysicalDeviceExternalFenceProperties(core.vkPhysicalDevice(), &info, &properties);
-        return (properties.externalFenceFeatures & VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT) != 0;
+#ifdef CTH_PLATFORM_WINDOWS
+        constexpr VkExternalFenceFeatureFlags required = VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT;
+#else
+        constexpr VkExternalFenceFeatureFlags required =
+            VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT | VK_EXTERNAL_FENCE_FEATURE_IMPORTABLE_BIT;
+#endif
+        return (properties.externalFenceFeatures & required) == required;
     }
 
     /**

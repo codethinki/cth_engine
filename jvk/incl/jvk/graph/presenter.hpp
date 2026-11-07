@@ -206,8 +206,6 @@ private:
         ImageState lastState
     );
 
-    //TODO review posix: the export resets the fence, cvk::Swapchain::present() of the image and the destruction
-    // then wait for it forever: signal it again (empty submit) or let cvk keep the state (import the sync fd back)
     /**
      * awaits the present fence of the image, the strand of the queue does not block
      * @details exports @ref cvk::Swapchain::presentFence(), awaits it with cth::co::this_coro::await_handle()
