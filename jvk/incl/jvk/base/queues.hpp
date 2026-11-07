@@ -13,19 +13,27 @@ class Core;
 }
 
 namespace jvk {
+class Core;
+}
+
+namespace jvk {
 /**
- * serialized queues of a cvk core
- * @details run on an own scheduler
- * @details the indices of one vulkan queue share one @ref Queue
- * @details a @ref Queue keeps its address
+ * serialized queues of a core
+ * @details
+ * - run on an own scheduler
+ * - the indices of one vulkan queue share one @ref Queue
+ * - a @ref Queue keeps its address
  */
 class Queues {
 public:
     /**
      * constructs the queues of the core and starts their scheduler
      * @param workers threads of the scheduler, 0 -> one per vulkan queue
-     * @pre @ref cvk::Core::created()
+     * @pre the cvk core and the reactor of the core are created
      */
+    Queues(Core const&, size_t workers);
+
+    //TEMP the old signature until queues.cpp implements the release, Core and the tests use it
     Queues(cvk::Core const&, size_t workers);
 
     /**

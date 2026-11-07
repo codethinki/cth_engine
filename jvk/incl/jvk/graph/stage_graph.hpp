@@ -3,7 +3,6 @@
 #include "stage.hpp"
 #include "stage_graph_config.hpp"
 
-#include "jvk/cmd/cmd_buffer.hpp"
 #include "jvk/sync/resource_states.hpp"
 #include "jvk/sync/semaphore.hpp"
 
@@ -40,8 +39,8 @@ class GraphStates {
 public:
     /**
      * appends the states of a submit on the queue
-     * @param prologue gets the barriers for the first uses of the submit, the acquire barriers included
-     * @param releases gets the release barriers per last queue of another family
+     * @param prologue gets the barriers for the first uses of the submit, the acquire halves included
+     * @param releases gets the release halves per last queue of another family, see @ref Queue::release()
      */
     void append(
         ResourceStates const& recording,
@@ -56,20 +55,6 @@ private:
     cth::dt::flat_hash_map<VkBuffer, cth::not_null_ptr<Queue const>> _bufferQueues{};
 };
 
-/**
- * release submit of one queue and frame slot
- * @details releases the resources that a submit on another family acquires
- */
-struct ReleaseSubmit {
-    PrimaryCmdBuffer cmd;
-
-    /**
-     * signaled by the release submits, the acquiring submit waits for it
-     * @details each release submit: the next value of the counter
-     */
-    Semaphore released;
-};
-
 //TODO review name and split: the parts of the graph that Stage::submit() and Stage::skip() need, reachable
 // through dev::StageSlot::sharedPtr (no friend, no public graph internals)
 /**
@@ -78,16 +63,11 @@ struct ReleaseSubmit {
  */
 struct GraphShared {
     /**
-     * locks @ref states and @ref releases
+     * locks @ref states
      */
     std::mutex statesMutex{};
 
     GraphStates states{};
-
-    /**
-     * per last queue: one release submit per frame slot
-     */
-    cth::dt::flat_hash_map<Queue const*, std::vector<ReleaseSubmit>> releases{};
 
     std::mutex errorMutex{};
 

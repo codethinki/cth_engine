@@ -198,6 +198,7 @@ public:
      * @pre @ref beginPrimary() in this frame
      * @pre @ref status() is UNSUBMITTED
      * @pre the primary has no open rendering
+     * @pre the primary and its executed secondaries belong to the queue family of @ref queue()
      * @note ends the primary
      */
     void submit();
@@ -257,8 +258,10 @@ private:
      * submit job of @ref submit() and @ref skip()
      * @details
      * - off the strand: awaits the marks of the previous frame and of the waited stages on the same queue
-     * - under the lock of the graph states: appends the states of the primary, records the barriers
-     * - in the strand of the queue: the release submits, then the submit, signals the mark
+     * - under the lock of the graph states: appends the states of the primary
+     * - release halves: through @ref Queue::release() of the last queue, the submit waits for the returned values
+     * - the prologue records the acquire halves and the barriers of the first uses
+     * - in the strand of the queue: the submit, then signals the mark
      * - after the gpu finished: clears the stasis
      * - stores its first error in @ref dev::GraphShared::errorPtr
      * @param status SUBMITTED -> the primary, SKIPPED -> the empty submit

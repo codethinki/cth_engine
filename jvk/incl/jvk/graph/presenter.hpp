@@ -61,6 +61,9 @@ struct SwapchainImage {
  * config of a @ref Presenter
  */
 struct PresenterConfig {
+    /**
+     * @pre @ref cvk::SwapchainConfig::queueFamilies has < 2 entries: the images stay VK_SHARING_MODE_EXCLUSIVE
+     */
     cvk::Swapchain::Config swapchain{};
 
     /**
@@ -153,14 +156,16 @@ public:
         VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
     );
 
-    //TODO review a present queue of another family than the stage (EXCLUSIVE sharing): the release barrier
-    // belongs into the submit of the stage, SUBMITTED is too late for it
     /**
      * presents the acquired image after the stage
      * @details by @ref Stage::status():
      * - UNSUBMITTED: submits the stage, then presents
      * - SUBMITTED: presents
      * - SKIPPED: calls @ref unacquire()
+     * @details by queue family of the stage, the images stay VK_SHARING_MODE_EXCLUSIVE:
+     * - another family: the present job calls @ref Queue::release() on the queue of the stage after the stage,
+     *   its submit waits for the returned value and records the acquire half
+     * - the same family: no release
      * @details
      * - returns at once, the present job waits for the stage
      * - transitions the image to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR from its last state in the stage primary,
@@ -213,11 +218,15 @@ private:
     /**
      * present job of @ref present()
      * @details
-     * - stage on the same queue -> off the strand: awaits the submitted mark of the stage
+     * - stage on the same queue or of another family -> off the strand: awaits the submitted mark of the stage
+     * - stage of another family -> @ref Queue::release() of the image on the stage queue
      * - in the strand of the queue: records the command buffer, submits it through @ref Queue::vk(), presents
-     * - the submit waits for the semaphore of the stage, signals the present semaphore and @ref _semaphore
+     * - the submit waits for the semaphore of the stage and the release, signals the present semaphore and
+     *   @ref _semaphore
+     * - the command buffer: the acquire half of another family, the transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
      * - stores its first error for @ref acquire()
      * @param lastState of the image in the stage primary
+     * @pre the command buffer of the submit belongs to the queue family of the queue
      */
     [[nodiscard]] cth::co::executor_task<void> presentJob(
         Queue const& stageQueue,
