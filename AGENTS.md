@@ -114,6 +114,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.
 - Constructors are public. No `friend` and no passkey class to hide a construction: a friend opens far more than the constructor.
+- A `friend` only where no other design gives the access, with a comment at the declaration that says why: `StageGraph` in `Stage` sets the status of the submission.
 - Prefer compile time checks (concepts, `static_assert`) to run time checks.
 - An automatically chosen value has an override if:
   - the choice is not guaranteed to be optimal

@@ -21,8 +21,11 @@
 #include <vector>
 
 
+namespace jvk {
+class StageGraph;
+}
+
 namespace jvk::dev {
-struct GraphShared;
 struct StageSlot;
 
 /**
@@ -52,10 +55,7 @@ struct SlotWait {
  * - the @ref Stage of each frame uses them
  */
 struct StageSlot {
-    /**
-     * parts of the graph that its submits share
-     */
-    cth::not_null_ptr<GraphShared> sharedPtr;
+    cth::not_null_ptr<StageGraph> graphPtr;
 
     /**
      * id of the stage, see @ref StageGraphConfig::stages
@@ -189,29 +189,15 @@ public:
 
     /**
      * submits the primary of the frame
-     * @details
-     * - returns at once, the strand of the queue submits after the waited stages submitted
-     * - resolves the first uses of the primary against the states of the graph
-     * - waits for the stage waits of the config and the waits of @ref addWait()
-     * - signals @ref semaphore() with @ref frameNumber()
-     * - after the gpu finished: destroys the retained objects
-     * @pre @ref beginPrimary() in this frame
-     * @pre @ref status() is UNSUBMITTED
-     * @pre the primary has no open rendering
-     * @pre the primary and its executed secondaries belong to the queue family of @ref queue()
-     * @note ends the primary
+     * @details calls @ref StageGraph::submit() of the graph of the stage
+     * @pre the preconditions of @ref StageGraph::submit()
      */
     void submit();
 
     /**
      * submits no work in this frame
-     * @details returns at once, the strand of the queue submits after the waited stages submitted
-     * @details empty submit on the queue of the stage:
-     * - waits for the stage waits of the config and the waits of @ref addWait()
-     * - signals @ref semaphore() with @ref frameNumber()
-     * @details after the gpu finished the empty submit: destroys the retained objects
-     * @pre no @ref beginPrimary() in this frame
-     * @pre @ref status() is UNSUBMITTED
+     * @details calls @ref StageGraph::skip() of the graph of the stage
+     * @pre the preconditions of @ref StageGraph::skip()
      */
     void skip();
 
@@ -254,24 +240,8 @@ public:
     [[nodiscard]] constexpr cth::os::fence const& submitted() const { return _slotPtr->submitted; }
 
 private:
-    /**
-     * submit job of @ref submit() and @ref skip()
-     * @details
-     * - off the strand: awaits the marks of the previous frame and of the waited stages on the same queue
-     * - under the lock of the graph states: appends the states of the primary
-     * - release halves: through @ref Queue::release() of the last queue, the submit waits for the returned values
-     * - the prologue records the acquire halves and the barriers of the first uses
-     * - in the strand of the queue: the submit, then signals the mark
-     * - after the gpu finished: clears the stasis
-     * - stores its first error in @ref dev::GraphShared::errorPtr
-     * @param status SUBMITTED -> the primary, SKIPPED -> the empty submit
-     */
-    [[nodiscard]] static cth::co::executor_task<void> submitJob(
-        dev::StageSlot&,
-        uint64_t frameNumber,
-        std::vector<cvk::SemaphoreSubmitInfo> extraWaits,
-        Status status
-    );
+    // the graph sets the status of the submission, there is no other access without a public setter
+    friend class StageGraph;
 
     cth::not_null_ptr<dev::StageSlot> _slotPtr;
     uint64_t _frameNumber;
