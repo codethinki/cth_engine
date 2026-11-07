@@ -1,6 +1,5 @@
 #pragma once
 #include "frame.hpp"
-#include "present_stage.hpp"
 #include "stage.hpp"
 #include "stage_graph_config.hpp"
 
@@ -75,7 +74,7 @@ public:
 
     //TODO review no base constructor and create(): the graph has no wrap or release
     /**
-     * creates the stage slots, the frame slots and the present stage
+     * creates the stage slots and the frame slots
      * @pre @ref Core::created()
      * @pre the config passes @ref Config::debug_check()
      * @throws cvk::vk_result_exception result of a create of the semaphores, fences or command buffers
@@ -88,19 +87,16 @@ public:
      */
     ~StageGraph();
 
-    //TODO review window extent parameter, one caller at a time
     /**
      * constructs the frame and its stages in the next slot
      * @details waits for the fences of the stage slots of the slot
      * @details stages of the current frame without @ref Stage::submit() or @ref Stage::skip(): skips them,
      *  warns if a waiting stage waited for that skip
-     * @details recreate flag of the present stage -> recreates the swapchain, see @ref Frame::extentChanged()
-     * @param windowExtent extent for the recreate of the swapchain, ignored without present
      * @return the frame of the slot
-     * @throws cvk::vk_result_exception the first error of a submit or present job
+     * @throws cvk::vk_result_exception the first error of a submit job
      * @attention not thread safe
      */
-    [[nodiscard]] cth::co::executor_task<Frame&> nextFrame(VkExtent2D windowExtent = {});
+    [[nodiscard]] cth::co::executor_task<Frame&> nextFrame();
 
     //TODO review public: Stage::submit() calls it through its stage slot
     /**
@@ -145,8 +141,6 @@ private:
      * one per stage
      */
     std::deque<cvk::TimelineSemaphore> _timelines{};
-
-    std::optional<dev::PresentStage> _presentOpt = std::nullopt;
 
     /**
      * one per frame slot, with its stage slots

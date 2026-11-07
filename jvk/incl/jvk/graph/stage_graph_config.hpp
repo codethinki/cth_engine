@@ -1,17 +1,10 @@
 #pragma once
 #include <volk.h>
 
-#include <cth/ptr/not_null.hpp>
-
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <vector>
 
-
-namespace cvk {
-class Swapchain;
-}
 
 namespace jvk {
 /**
@@ -53,23 +46,6 @@ struct StageConfig {
 };
 
 /**
- * config of the present stage
- * @details the stage that acquires the swapchain image of a frame writes it, see @ref Frame::swapchainImage()
- */
-struct PresentStageConfig {
-    /**
-     * index of the present queue in @ref cvk::CoreConfig::queueProperties
-     * @pre the queue can present to the surface of the swapchain
-     */
-    size_t queueIdx;
-
-    /**
-     * @pre created, outlives the graph
-     */
-    cth::not_null_ptr<cvk::Swapchain> swapchainPtr;
-};
-
-/**
  * config of a @ref StageGraph
  */
 struct StageGraphConfig {
@@ -78,11 +54,6 @@ struct StageGraphConfig {
      * the stages, the id of a stage is its index
      */
     std::vector<StageConfig> stages{};
-
-    /**
-     * std::nullopt -> no present
-     */
-    std::optional<PresentStageConfig> presentOpt = std::nullopt;
 
     /**
      * frames that the gpu works on at the same time

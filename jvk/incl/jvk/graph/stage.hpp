@@ -1,8 +1,10 @@
 #pragma once
+#include "jvk/base/queue.hpp"
 #include "jvk/base/stasis.hpp"
 #include "jvk/cmd/cmd_buffer.hpp"
+#include "jvk/sync/fence.hpp"
 
-#include "cvk/render/sync/fence.hpp"
+#include "cvk/render/sync/timeline_semaphore.hpp"
 
 #include <volk.h>
 
@@ -20,7 +22,6 @@
 
 
 namespace jvk {
-class Queue;
 class StageGraph;
 }
 
@@ -42,6 +43,11 @@ struct StageSlot {
     cth::not_null_ptr<Queue const> queuePtr;
 
     /**
+     * timeline semaphore of the stage, owned by the graph, the submit of frame N signals N
+     */
+    cth::not_null_ptr<cvk::TimelineSemaphore const> timelinePtr;
+
+    /**
      * barriers for the first uses of the primary, submitted before it
      */
     PrimaryCmdBuffer prologue;
@@ -54,9 +60,9 @@ struct StageSlot {
     std::vector<SecondaryCmdBuffer> secondaries{};
 
     /**
-     * fence of the submit, exports its OS handle
+     * fence of the submit
      */
-    cvk::Fence fence;
+    Fence fence;
 
     /**
      * signaled after the vkQueueSubmit2() or the skip of the frame
@@ -135,19 +141,17 @@ public:
      */
     [[nodiscard]] SecondaryCmdBuffer& secondary(size_t secondaryIdx);
 
-    //TODO review begun with the inheritance, while the slot secondaries are not begun
     /**
-     * secondary command buffer for the queue family of the stage, owned by the caller, begun with the inheritance
-     * @param usage VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT -> several pending primaries execute it
+     * secondary command buffer for the queue family of the stage, owned by the caller
+     * @details not begun, see @ref SecondaryCmdBuffer::begin()
      * @throws cvk::vk_result_exception result of vkCreateCommandPool() or vkAllocateCommandBuffers()
      */
-    [[nodiscard]] SecondaryCmdBuffer persistentSecondary(Inheritance const&, VkCommandBufferUsageFlags usage = 0) const;
+    [[nodiscard]] SecondaryCmdBuffer persistentSecondary() const;
 
     /**
      * submits the primary of the frame
      * @details returns at once, the strand of the queue submits after the waited stages submitted
      * @details the submit resolves the first uses of the primary against the states of the graph
-     * @details acquired the swapchain image of the frame -> records its transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
      * @details after the fence: destroys the retained objects
      * @pre @ref beginPrimary() in this frame
      * @pre @ref status() is UNSUBMITTED
@@ -162,7 +166,6 @@ public:
      * @details destroys the retained objects at once
      * @pre no @ref beginPrimary() in this frame
      * @pre @ref status() is UNSUBMITTED
-     * @pre the stage did not acquire the swapchain image of the frame
      */
     void skip();
 
@@ -186,6 +189,22 @@ public:
     [[nodiscard]] constexpr Status status() const { return _status; }
     [[nodiscard]] constexpr size_t id() const { return _slotPtr->stageId; }
     [[nodiscard]] constexpr size_t slot() const { return _slotPtr->slot; }
+    [[nodiscard]] constexpr Queue const& queue() const { return *_slotPtr->queuePtr; }
+
+    /**
+     * @return timeline semaphore of the stage, see @ref timelineValue()
+     */
+    [[nodiscard]] constexpr cvk::TimelineSemaphore const& timeline() const { return *_slotPtr->timelinePtr; }
+
+    /**
+     * @return value of @ref timeline() that the submit of this frame signals
+     */
+    [[nodiscard]] constexpr uint64_t timelineValue() const { return _frameNumber; }
+
+    /**
+     * @return signaled after the vkQueueSubmit2() or the skip of this frame
+     */
+    [[nodiscard]] constexpr cth::os::fence const& submitted() const { return _slotPtr->submitted; }
 
 private:
     cth::not_null_ptr<dev::StageSlot> _slotPtr;

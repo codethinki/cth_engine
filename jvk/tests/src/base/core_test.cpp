@@ -6,6 +6,7 @@
 #include "jvk/base/queue.hpp"
 #include "jvk/base/queue_sets.hpp"
 //TEMP compile check of the phase 6 headers until their sources exist
+#include "jvk/graph/presenter.hpp"
 #include "jvk/graph/stage_graph.hpp"
 
 #include "cvk/base/device.hpp"
