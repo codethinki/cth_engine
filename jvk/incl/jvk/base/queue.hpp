@@ -13,6 +13,11 @@ class scheduler;
 }
 
 namespace jvk {
+//TODO review no jvk::Semaphore per queue that every submit signals (optional, 2026-11-09), it does not fit yet:
+// - the constructor gets the cvk queue and a scheduler, a jvk::Semaphore needs the jvk core (reactor),
+//   Queues is constructed from the cvk core
+// - submits go through vk() in the strand, the queue sees none of them: only the graph could add the signal
+// - it would give the prologue buffers of StageGraph::submit(Queue const&, ...) a completion
 /**
  * serialized vulkan queue
  * @details refers to the queue of the cvk core
