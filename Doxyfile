@@ -1,0 +1,14 @@
+# only the values that differ from the doxygen defaults, run: doxygen (from the repository root)
+PROJECT_NAME           = cth_engine
+OUTPUT_DIRECTORY       = out/doxygen
+INPUT                  = cvk/incl jvk/incl cgfw/incl
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp
+JAVADOC_AUTOBRIEF      = YES
+MARKDOWN_SUPPORT       = YES
+AUTOLINK_SUPPORT       = YES
+EXTRACT_ALL            = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_NO_PARAMDOC       = NO
+QUIET                  = YES
+GENERATE_LATEX         = NO
