@@ -300,7 +300,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 | `@return` | what the result is |
 | `@pre` | condition that must be true before the call: ``@pre `created()` `` |
 | `@post` | condition that is true after the call: ``@post `created()` `` |
-| `@throws` | exception type and the cause: `@throws cvk::vk_result_exception result of vkCreateInstance()` |
+| `@throws` | exception type and the cause: ``@throws cvk::vk_result_exception result of `vkCreateInstance()` ``; the exception type stays raw, doxygen links it |
 | `@note` | side effect the caller must know: ``@note calls `optDestroy()` `` |
 | `@attention` | danger that is not a precondition: undefined behavior, not thread safe |
 
@@ -348,7 +348,7 @@ Use symbols when they are shorter and clearer than words:
  * @pre volk is initialized
  * @post `created()`
  * @note calls `optDestroy()`
- * @throws cvk::vk_result_exception result of vkCreateInstance()
+ * @throws cvk::vk_result_exception result of `vkCreateInstance()`
  */
 void create();
 ```
