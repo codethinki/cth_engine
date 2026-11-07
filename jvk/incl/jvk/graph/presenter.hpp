@@ -15,6 +15,7 @@
 #include <cth/ptr/not_null.hpp>
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <exception>
@@ -35,11 +36,11 @@ class Stage;
 }
 
 namespace jvk {
-//TODO review cvk types: the swapchain owns cvk::Image values, a jvk::Image& to them is not possible
 /**
  * acquired swapchain image
- * @details tracked like every image: the commands that use it record its accesses
- * @details valid until the next @ref Presenter::acquire()
+ * @details
+ * - tracked like every image: the commands that use it record its accesses
+ * - valid until the next @ref Presenter::acquire()
  */
 struct SwapchainImage {
     cth::not_null_ptr<cvk::Image const> imagePtr;
@@ -57,34 +58,51 @@ struct SwapchainImage {
 };
 
 /**
+ * config of a @ref Presenter
+ */
+struct PresenterConfig {
+    cvk::Swapchain::Config swapchain{};
+
+    /**
+     * frames that the gpu works on at the same time, one acquire semaphore each
+     * @pre > 0
+     * @pre >= @ref StageGraphConfig::frameSlots of the graph of the stages
+     */
+    uint32_t framesInFlight = 2;
+};
+
+/**
  * presents to a surface
- * @details owns the surface and the swapchain
- * @details recreates the swapchain in @ref acquire()
- * @details acquires, submits and presents in the strand of its queue
- * @details one acquired image at a time
+ * @details
+ * - owns the surface and the swapchain
+ * - recreates the swapchain in @ref acquire()
+ * - acquires, submits and presents in the strand of its queue
+ * - one acquired image at a time
  * @attention not thread safe
  */
 class Presenter {
 public:
+    using Config = PresenterConfig;
+
     /**
      * base constructor
      * @details the queue presents and runs the present submits
      * @pre @ref Core::created()
      */
-    Presenter(Core const&, Queue const&, cvk::Swapchain::Config);
+    Presenter(Core const&, Queue const&, Config);
 
     /**
      * constructs and creates
-     * @details calls @ref Presenter(Core const&, Queue const&, cvk::Swapchain::Config), @ref create()
+     * @details calls @ref Presenter(Core const&, Queue const&, Config), @ref create()
      */
-    Presenter(Core const&, Queue const&, cvk::Swapchain::Config, cvk::Surface);
+    Presenter(Core const&, Queue const&, Config, cvk::Surface);
 
     /**
      * @note calls @ref optDestroy()
      */
     ~Presenter() { optDestroy(); }
 
-    //TODO review cvk::Surface::extent() (2026-11-08) does not exist yet: create() and acquire() need the extent
+    //TODO cvk::Surface::extent() (2026-11-08): create() and acquire() need the extent of the surface
     /**
      * takes the surface, creates the swapchain, the semaphores and the command buffers
      * @details surface extent 0 -> the first @ref acquire() with an extent > 0 creates the swapchain
@@ -98,8 +116,8 @@ public:
     void create(cvk::Surface);
 
     /**
-     * waits for the present jobs, destroys the swapchain, then the surface, and forgets
-     * @details destroys the semaphores and the command buffers
+     * waits for the present jobs, destroys and forgets
+     * @details destroys the command buffers, the semaphores, the swapchain, then the surface
      * @pre @ref created()
      * @pre no @ref acquire() is pending
      * @pre the acquired image is presented or unacquired
@@ -113,17 +131,19 @@ public:
 
     /**
      * acquires the next swapchain image for the stage
-     * @details adds the wait for the acquire to the stage, see @ref Stage::addWait()
-     * @details sets the graph state of the image to VK_IMAGE_LAYOUT_UNDEFINED with the wait stages, see
-     *  @ref Stage::assume(): the first barrier of the image chains with the wait
-     * @details VK_ERROR_OUT_OF_DATE_KHR of the last present or acquire, or a changed surface extent
-     *  -> recreates the swapchain first
-     * @details all images in use -> awaits the oldest present fence first, the strand of the queue does not block
-     * @details an acquired image without @ref present() or @ref unacquire() -> unacquires it, warns
+     * @details
+     * - adds the wait for the acquire to the stage, see @ref Stage::addWait()
+     * - assumes VK_IMAGE_LAYOUT_UNDEFINED with the wait stages in the primary of the stage, see
+     *   @ref PrimaryCmdBuffer::assume(): the first barrier of the image chains with the wait
+     * - VK_ERROR_OUT_OF_DATE_KHR of the last present or acquire, or a changed surface extent -> recreates the
+     *   swapchain first
+     * - all images in use -> awaits the oldest present fence first
+     * - an acquired image without @ref present() or @ref unacquire() -> unacquires it, warns
      * @param stages pipeline stages of the stage that wait for the acquire
      * @return std::nullopt -> surface extent 0, no image, no wait
      * @pre @ref created()
      * @pre @ref Stage::status() is UNSUBMITTED
+     * @pre @ref Stage::beginPrimary() in this frame, not again after the acquire
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of vkAcquireNextImageKHR() or vkCreateSwapchainKHR()
      * @throws cvk::vk_result_exception the first error of a present job
@@ -141,11 +161,12 @@ public:
      * - UNSUBMITTED: submits the stage, then presents
      * - SUBMITTED: presents
      * - SKIPPED: calls @ref unacquire()
-     * @details returns at once, the present job waits for the stage
-     * @details the present submit transitions the image to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR from its last state in
-     *  the stage recording (@ref PrimaryCmdBuffer::states(), the executed secondaries included)
-     * @details does not change the graph states, the next @ref acquire() of the image sets them
-     * @details VK_ERROR_OUT_OF_DATE_KHR -> the next @ref acquire() recreates the swapchain
+     * @details
+     * - returns at once, the present job waits for the stage
+     * - transitions the image to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR from its last state in the stage primary,
+     *   see @ref PrimaryCmdBuffer::states()
+     * - does not change the graph states
+     * - VK_ERROR_OUT_OF_DATE_KHR -> the next @ref acquire() recreates the swapchain
      * @pre @ref acquire() returned an image, not presented or unacquired
      * @pre the stage recording uses the image
      * @pre the stage is the last use of the image in the frame or waits for the other uses
@@ -162,6 +183,7 @@ public:
     void unacquire();
 
     [[nodiscard]] constexpr bool created() const { return _surface.created(); }
+    [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     /**
      * @pre @ref created()
@@ -178,24 +200,24 @@ private:
      */
     struct PresentSubmit {
         /**
-         * the barrier from the last state of the image in the stage recording to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+         * the barrier of the image to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
          */
         PrimaryCmdBuffer cmd;
 
         /**
-         * value of @ref _semaphore that the last submit of @ref cmd signals, the command buffer is free once reached
+         * value of @ref _semaphore for the last submit of @ref cmd, free once reached
          */
         uint64_t value = 0;
     };
 
     /**
-     * present job, see @ref present()
-     * @details the stage on the same queue -> awaits the submitted mark of the stage first, off the strand
-     * @details in the strand of the queue: records the command buffer, submits it through @ref Queue::vk(),
-     *  presents
-     * @details the submit waits for the semaphore of the stage, signals the present semaphore and @ref _semaphore
-     * @details stores its first error for @ref acquire()
-     * @param lastState of the image in the stage recording
+     * present job of @ref present()
+     * @details
+     * - stage on the same queue -> off the strand: awaits the submitted mark of the stage
+     * - in the strand of the queue: records the command buffer, submits it through @ref Queue::vk(), presents
+     * - the submit waits for the semaphore of the stage, signals the present semaphore and @ref _semaphore
+     * - stores its first error for @ref acquire()
+     * @param lastState of the image in the stage primary
      */
     [[nodiscard]] cth::co::executor_task<void> presentJob(
         Queue const& stageQueue,
@@ -207,14 +229,14 @@ private:
     );
 
     /**
-     * awaits the present fence of the image, the strand of the queue does not block
+     * awaits the present fence of the image without a block of the strand
      * @details exports @ref cvk::Swapchain::presentFence(), awaits it with cth::co::this_coro::await_handle()
      */
     [[nodiscard]] cth::co::executor_task<void> awaitPresentFence(uint32_t imageIdx) const;
 
     cth::not_null_ptr<Core const> _corePtr;
     cth::not_null_ptr<Queue const> _queuePtr;
-    cvk::Swapchain::Config _config;
+    Config _config;
 
     // destroyed after the swapchain
     cvk::Surface _surface;
@@ -224,12 +246,15 @@ private:
      */
     std::optional<cvk::Swapchain> _swapchainOpt = std::nullopt;
 
-    //TODO review not applied yet: a ring of frames in flight semaphores, frames in flight in a presenter config
-    // (2026-11-09 answers)
     /**
-     * signaled by the acquires, free again after the gpu finished the submit that waited for it
+     * ring of @ref PresenterConfig::framesInFlight, signaled by the acquires
      */
     std::vector<cvk::Semaphore> _acquireSemaphores{};
+
+    /**
+     * the semaphore in @ref _acquireSemaphores for the next acquire
+     */
+    size_t _acquireSemaphoreIdx = 0;
 
     /**
      * signaled by the present submits, each submit signals the next value

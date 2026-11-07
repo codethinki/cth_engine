@@ -2,6 +2,7 @@
 
 #include "cvk/base/instance.hpp"
 #include "cvk/surface/surface.hpp"
+#include "cvk/utility/constant/os_constants.hpp"
 #include "cvk/utility/device/feature_chain.hpp"
 #include "cvk/utility/enumerate.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
@@ -201,6 +202,20 @@ QueueFamily const* PhysicalDevice::queueFamily(queue_family_index_t familyIdx) c
     return &*it;
 }
 
+VkExternalFenceFeatureFlags PhysicalDevice::externalFenceFeatures(VkExternalFenceHandleTypeFlagBits handleType) const {
+    debug_check(*this);
+
+    VkPhysicalDeviceExternalFenceInfo const info{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_FENCE_INFO,
+        .pNext = nullptr,
+        .handleType = handleType,
+    };
+    VkExternalFenceProperties properties{.sType = VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, .pNext = nullptr};
+    vkGetPhysicalDeviceExternalFenceProperties(_handle.get(), &info, &properties);
+
+    return properties.externalFenceFeatures;
+}
+
 vector<PhysicalDevice> enumerate_physical_devices(Instance const& instance, span<Surface const> surfaces) {
     Instance::debug_check(instance);
 
@@ -224,13 +239,23 @@ std::optional<PhysicalDevicePick> pick_physical_device(
 ) {
     std::optional<PhysicalDevicePick> bestOpt{};
 
+    bool const present = std::ranges::any_of(
+        queueProperties,
+        [](QueueFamilyProperties properties) { return contains(properties, QueueFamilyProperties::PRESENT); }
+    );
+
     for(auto& device : enumerate_physical_devices(instance, surfaces)) {
         if(uuidOpt.has_value() && device.uuid() != *uuidOpt) continue;
 
         auto const missing = device.missing(features, extensions);
         auto indices = device.queueFamilyIndices(queueProperties);
 
-        if(missing.empty() && !indices.empty()) {
+        // the present fences are exportable, see Swapchain
+        auto const fenceFeatures = device.externalFenceFeatures(constants::OS_FENCE_HANDLE_TYPE);
+        bool const osFences = !present
+            || (fenceFeatures & constants::OS_FENCE_FEATURES) == constants::OS_FENCE_FEATURES;
+
+        if(missing.empty() && !indices.empty() && osFences) {
             auto const rank = dev::device_type_rank(device.properties().deviceType);
             if(!bestOpt.has_value() || rank < dev::device_type_rank(bestOpt->device.properties().deviceType))
                 bestOpt = PhysicalDevicePick{std::move(device), std::move(indices)};
@@ -239,6 +264,7 @@ std::optional<PhysicalDevicePick> pick_physical_device(
 
         cth::dt::string_joiner reasons{", "};
         if(indices.empty()) reasons += "queue families";
+        if(!osFences) reasons += "os fence features";
         for(auto const& name : missing)
             reasons += name;
         log::msg<except::LOG>("physical device {} misses: {}", device.properties().deviceName, std::string{reasons});

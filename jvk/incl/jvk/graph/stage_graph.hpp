@@ -30,7 +30,6 @@ class Core;
 class Queue;
 }
 
-//TODO review dev wrapper instead of a queue field in ResourceStates
 namespace jvk::dev {
 /**
  * resource states after all submits of a graph
@@ -51,13 +50,6 @@ public:
         cth::dt::flat_hash_map<Queue const*, cvk::Barrier>& releases
     );
 
-    /**
-     * sets the state of every mip level of the image and its last queue, without a barrier
-     * @details the next first use of the image resolves against it
-     * @details see @ref ResourceStates::assume()
-     */
-    void assume(cvk::Image const&, ImageState const& state, Queue const&);
-
 private:
     ResourceStates _states{};
     cth::dt::flat_hash_map<std::pair<VkImage, uint32_t>, cth::not_null_ptr<Queue const>> _imageQueues{};
@@ -72,7 +64,8 @@ struct ReleaseSubmit {
     PrimaryCmdBuffer cmd;
 
     /**
-     * each release submit signals the next value of its counter, the acquiring submit waits for it
+     * signaled by the release submits, the acquiring submit waits for it
+     * @details each release submit: the next value of the counter
      */
     Semaphore released;
 };
@@ -109,10 +102,11 @@ struct GraphShared {
 namespace jvk {
 /**
  * stages with their waits, once per frame, in frame slots
- * @details one @ref Semaphore per stage: the submit or the skip of frame N signals N
- * @details the stages of a frame record at the same time, on any thread
- * @details the submits of a stage follow the frame order
- * @details the graph states resolve the first uses of each submit in its prologue
+ * @details
+ * - one @ref Semaphore per stage: the submit or the skip of frame N signals N
+ * - the stages of a frame record at the same time, on any thread
+ * - the submits of a stage follow the frame order
+ * - the graph states resolve the first uses of each submit in its prologue
  */
 class StageGraph {
 public:
@@ -135,9 +129,10 @@ public:
 
     /**
      * constructs the frame and its stages in the next slot
-     * @details awaits the semaphores of the stages for the last frame of the slot
-     * @details stages of the current frame without @ref Stage::submit() or @ref Stage::skip(): skips them,
-     *  warns if a waiting stage waited for that skip
+     * @details
+     * - awaits the semaphores of the stages for the last frame of the slot
+     * - a stage of the current frame without @ref Stage::submit() or @ref Stage::skip(): skips it
+     * - a stage that waited for such a skip: warns
      * @return the frame of the slot
      * @throws cvk::vk_result_exception the first error of a submit job
      * @attention not thread safe

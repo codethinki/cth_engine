@@ -5,7 +5,6 @@
 #include "jvk/utility/exception.hpp"
 
 #include "cvk/surface/surface.hpp"
-#include "cvk/utility/constant/os_constants.hpp"
 #include "cvk/utility/format.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -34,8 +33,6 @@ void Core::create() {
 
     auto config = _config.vk;
     if(config.queueSets.empty()) config.queueSets = queue_sets(config.queueProperties);
-    for(auto const extension : cvk::constants::OS_FENCE_DEVICE_EXTENSIONS)
-        if(!std::ranges::contains(config.extensions, extension)) config.extensions.emplace_back(extension);
 
     _core.create(std::span<cvk::Surface const>{}, config);
 

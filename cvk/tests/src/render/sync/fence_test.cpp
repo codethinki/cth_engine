@@ -39,23 +39,11 @@ namespace {
     }
 
     /**
-     * @return the device can export @ref constants::OS_FENCE_HANDLE_TYPE, posix: and import it
+     * @return the device has @ref constants::OS_FENCE_FEATURES
      */
     bool os_fence_exportable(Core const& core) {
-        VkPhysicalDeviceExternalFenceInfo const info{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_FENCE_INFO,
-            .pNext = nullptr,
-            .handleType = constants::OS_FENCE_HANDLE_TYPE,
-        };
-        VkExternalFenceProperties properties{.sType = VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, .pNext = nullptr};
-        vkGetPhysicalDeviceExternalFenceProperties(core.vkPhysicalDevice(), &info, &properties);
-#ifdef CTH_PLATFORM_WINDOWS
-        constexpr VkExternalFenceFeatureFlags required = VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT;
-#else
-        constexpr VkExternalFenceFeatureFlags required =
-            VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT | VK_EXTERNAL_FENCE_FEATURE_IMPORTABLE_BIT;
-#endif
-        return (properties.externalFenceFeatures & required) == required;
+        auto const features = core.physicalDevice().externalFenceFeatures(constants::OS_FENCE_HANDLE_TYPE);
+        return (features & constants::OS_FENCE_FEATURES) == constants::OS_FENCE_FEATURES;
     }
 
     constexpr uint64_t FIVE_SECONDS = 5'000'000'000;

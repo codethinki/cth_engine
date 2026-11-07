@@ -5,6 +5,7 @@
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
 #include "cvk/utility/constant/device_constants.hpp"
+#include "cvk/utility/constant/os_constants.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
@@ -79,6 +80,16 @@ CVK_TEST(PhysicalDevice, pick_present_finds_a_family_of_the_surface) {
     EXPECT_TRUE(device.features().swapchainMaintenance1);
     ASSERT_EQ(familyIndices.size(), 1);
     EXPECT_TRUE(context.surface().supportsFamily(device, familyIndices[0]));
+}
+
+CVK_TEST(PhysicalDevice, pick_present_requires_the_os_fence_features) {
+    test::PresentContext const context{};
+    std::span const surfaces{&context.surface(), 1};
+
+    auto const [device, _] = test::pick(context.instance, PRESENT_QUEUES, surfaces);
+
+    auto const features = device.externalFenceFeatures(constants::OS_FENCE_HANDLE_TYPE);
+    EXPECT_EQ(features & constants::OS_FENCE_FEATURES, constants::OS_FENCE_FEATURES);
 }
 
 CVK_TEST(PhysicalDevice, enumerate_without_surfaces_has_no_present) {

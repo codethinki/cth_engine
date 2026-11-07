@@ -2,7 +2,6 @@
 #include "jvk/base/queue.hpp"
 #include "jvk/base/stasis.hpp"
 #include "jvk/cmd/cmd_buffer.hpp"
-#include "jvk/sync/resource_states.hpp"
 #include "jvk/sync/semaphore.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
@@ -17,22 +16,17 @@
 #include <cstdint>
 #include <mutex>
 #include <optional>
-#include <span>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
-
-namespace cvk {
-class Image;
-}
 
 namespace jvk::dev {
 struct GraphShared;
 struct StageSlot;
 
 /**
- * wait of a stage slot for another stage slot, from a @ref StageWait
+ * wait of a stage slot for the slot of the waited stage, from a @ref StageWait
  */
 struct SlotWait {
     /**
@@ -53,12 +47,13 @@ struct SlotWait {
 
 /**
  * resources of a stage in one frame slot
- * @details owned by the graph, they live as long as the graph
- * @details @ref Stage uses them for one frame
+ * @details
+ * - owned by the graph, live as long as the graph
+ * - the @ref Stage of each frame uses them
  */
 struct StageSlot {
     /**
-     * the parts of the graph that its submits share
+     * parts of the graph that its submits share
      */
     cth::not_null_ptr<GraphShared> sharedPtr;
 
@@ -70,9 +65,9 @@ struct StageSlot {
     size_t slot;
     cth::not_null_ptr<Queue const> queuePtr;
 
-    //TODO review a pointer: one semaphore per stage (2026-11-09), owned by the graph, shared by the frame slots
     /**
-     * semaphore of the stage, owned by the graph, the submit or the skip of frame N signals N
+     * semaphore of the stage, owned by the graph
+     * @details the submit or the skip of frame N signals N
      */
     cth::not_null_ptr<Semaphore const> semaphorePtr;
 
@@ -82,7 +77,7 @@ struct StageSlot {
     std::vector<SlotWait> waits{};
 
     /**
-     * the stage in the frame slot before, its submit comes first
+     * the stage in the frame slot before, submits first
      */
     cth::not_null_ptr<StageSlot const> previousPtr;
 
@@ -115,9 +110,10 @@ struct StageSlot {
 namespace jvk {
 /**
  * submission of one stage in one frame
- * @details @ref StageGraph::nextFrame() constructs it per frame, @ref Frame::stage() hands it out
- * @details the resources come from its stage slot
- * @details valid until @ref StageGraph::nextFrame() hands out its slot again
+ * @details
+ * - per frame: constructed by @ref StageGraph::nextFrame(), handed out by @ref Frame::stage()
+ * - the resources come from its stage slot
+ * - valid until @ref StageGraph::nextFrame() hands out its slot again
  */
 class Stage {
 public:
@@ -182,8 +178,6 @@ public:
      */
     [[nodiscard]] SecondaryCmdBuffer persistentSecondary() const;
 
-    //TODO review names addWait() and extraWaits(): waits() could be read as the waits of the config
-    //TODO review the extra waits live in the stage (per frame), not in the stage slot (reused capacity)
     /**
      * adds a semaphore wait to the submit of this frame
      * @details @ref submit() and @ref skip() wait for it
@@ -193,25 +187,14 @@ public:
      */
     void addWait(cvk::SemaphoreSubmitInfo const&);
 
-    //TODO review on the stage, not on the graph: the presenter needs no graph, the graph shows no internals;
-    // the name next to PrimaryCmdBuffer::assume()
-    /**
-     * sets the state of every mip level of the image in the graph states, without a barrier
-     * @details for work outside of the graph, for example the acquire of a swapchain image
-     * @details the next first use of the image in a submit of the graph resolves against it
-     * @details the queue of the stage becomes the last queue of the image: no queue family ownership transfer
-     * @details thread safe
-     * @pre the earlier submits that use the image are submitted, see @ref submitted()
-     */
-    void assume(cvk::Image const&, ImageState const& state);
-
     /**
      * submits the primary of the frame
-     * @details returns at once, the strand of the queue submits after the waited stages submitted
-     * @details the submit resolves the first uses of the primary against the states of the graph
-     * @details waits for the stage waits of the config and the extra waits, see @ref addWait()
-     * @details signals @ref semaphore() with @ref frameNumber()
-     * @details after the gpu finished the submit: destroys the retained objects
+     * @details
+     * - returns at once, the strand of the queue submits after the waited stages submitted
+     * - resolves the first uses of the primary against the states of the graph
+     * - waits for the stage waits of the config and the waits of @ref addWait()
+     * - signals @ref semaphore() with @ref frameNumber()
+     * - after the gpu finished: destroys the retained objects
      * @pre @ref beginPrimary() in this frame
      * @pre @ref status() is UNSUBMITTED
      * @pre the primary has no open rendering
@@ -222,8 +205,8 @@ public:
     /**
      * submits no work in this frame
      * @details returns at once, the strand of the queue submits after the waited stages submitted
-     * @details an empty submit on the queue of the stage:
-     * - waits for the stage waits of the config and the extra waits, see @ref addWait()
+     * @details empty submit on the queue of the stage:
+     * - waits for the stage waits of the config and the waits of @ref addWait()
      * - signals @ref semaphore() with @ref frameNumber()
      * @details after the gpu finished the empty submit: destroys the retained objects
      * @pre no @ref beginPrimary() in this frame
@@ -232,7 +215,7 @@ public:
     void skip();
 
     /**
-     * keeps the object until the gpu finished the submit or the skip of the stage in this frame
+     * keeps the object until the gpu finished the submit or the skip of this frame
      * @details thread safe
      * @pre @ref status() is UNSUBMITTED
      * @pre its users on other queues finish before this submit: this submit waits for them
@@ -242,8 +225,8 @@ public:
     void retain(T&& object);
 
     /**
-     * waits until the gpu finished the submit of the frame
-     * @details awaits @ref semaphore() for @ref frameNumber(), resumes on the context of the caller
+     * waits until the gpu finished the submit or the skip of this frame
+     * @details resumes on the context of the caller
      * @pre @ref status() is not UNSUBMITTED
      */
     [[nodiscard]] cth::co::executor_task<void> wait() const;
@@ -254,12 +237,13 @@ public:
     [[nodiscard]] constexpr Queue const& queue() const { return *_slotPtr->queuePtr; }
 
     /**
-     * @return semaphore of the stage, the submit or the skip of frame N signals N
+     * @return semaphore of the stage
+     * @details the submit or the skip of frame N signals N
      */
     [[nodiscard]] constexpr Semaphore const& semaphore() const { return *_slotPtr->semaphorePtr; }
 
     /**
-     * @return number of the frame, the value of @ref semaphore() that this frame signals
+     * @return number of the frame, the value of @ref semaphore() for this frame
      */
     [[nodiscard]] constexpr uint64_t frameNumber() const { return _frameNumber; }
 
@@ -268,21 +252,16 @@ public:
      */
     [[nodiscard]] constexpr cth::os::fence const& submitted() const { return _slotPtr->submitted; }
 
-    /**
-     * @return the waits of @ref addWait()
-     */
-    [[nodiscard]] constexpr std::span<cvk::SemaphoreSubmitInfo const> extraWaits() const { return _extraWaits; }
-
 private:
     /**
      * submit job of @ref submit() and @ref skip()
-     * @details awaits the marks of the previous frame of the stage and of the waited stages on the same queue,
-     *  off the strand
-     * @details appends the states of the primary to the graph states under the lock: prologue, release barriers
-     * @details in the strand of the queue: the release submits, then the prologue and the primary, signals the mark
-     * @details after the gpu finished: clears the stasis
-     * @details stores its first error in @ref dev::GraphShared::errorPtr
-     * @param status SUBMITTED -> submits the primary, SKIPPED -> the empty submit
+     * @details
+     * - off the strand: awaits the marks of the previous frame and of the waited stages on the same queue
+     * - under the lock of the graph states: appends the states of the primary, records the barriers
+     * - in the strand of the queue: the release submits, then the submit, signals the mark
+     * - after the gpu finished: clears the stasis
+     * - stores its first error in @ref dev::GraphShared::errorPtr
+     * @param status SUBMITTED -> the primary, SKIPPED -> the empty submit
      */
     [[nodiscard]] static cth::co::executor_task<void> submitJob(
         dev::StageSlot&,
@@ -295,6 +274,9 @@ private:
     uint64_t _frameNumber;
     Status _status = Status::UNSUBMITTED;
 
+    /**
+     * the waits of @ref addWait()
+     */
     std::vector<cvk::SemaphoreSubmitInfo> _extraWaits{};
 
 public:

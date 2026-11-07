@@ -16,8 +16,9 @@ class StageGraph;
 namespace jvk::dev {
 /**
  * resources of one frame slot
- * @details owned by the graph, they live as long as the graph
- * @details @ref Frame uses them for one frame
+ * @details
+ * - owned by the graph, live as long as the graph
+ * - the @ref Frame of each frame uses them
  */
 struct FrameSlot {
     cth::not_null_ptr<StageGraph> graphPtr;
@@ -28,7 +29,6 @@ struct FrameSlot {
      */
     std::deque<StageSlot> stageSlots{};
 
-    //TODO review the stages of a frame live in its slot: the vector is reused, clear and emplace per frame
     /**
      * the stages of the current frame, constructed by @ref StageGraph::nextFrame()
      */
@@ -39,9 +39,10 @@ struct FrameSlot {
 namespace jvk {
 /**
  * one frame
- * @details @ref StageGraph::nextFrame() constructs it per frame
- * @details the resources come from its frame slot
- * @details valid until @ref StageGraph::nextFrame() hands out its slot again
+ * @details
+ * - per frame: constructed by @ref StageGraph::nextFrame()
+ * - the resources come from its frame slot
+ * - valid until @ref StageGraph::nextFrame() hands out its slot again
  */
 class Frame {
 public:

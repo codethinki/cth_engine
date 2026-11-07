@@ -20,6 +20,17 @@ inline constexpr VkExternalFenceHandleTypeFlagBits OS_FENCE_HANDLE_TYPE =
 #endif
 
 /**
+ * external fence features of @ref OS_FENCE_HANDLE_TYPE that @ref Fence::extractOsHandle() requires
+ * @details posix: the import gives the fence its state back after the export
+ */
+inline constexpr VkExternalFenceFeatureFlags OS_FENCE_FEATURES =
+#ifdef CTH_PLATFORM_WINDOWS
+    VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT;
+#else
+    VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT | VK_EXTERNAL_FENCE_FEATURE_IMPORTABLE_BIT;
+#endif
+
+/**
  * device extensions that @ref Fence::extractOsHandle() requires
  */
 inline constexpr std::array<std::string_view, 1> OS_FENCE_DEVICE_EXTENSIONS{

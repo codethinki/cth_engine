@@ -16,6 +16,7 @@
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
 #include "cvk/utility/constant/os_constants.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
 
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/coro/this_coro.hpp>
@@ -24,6 +25,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <numeric>
+#include <optional>
 #include <utility>
 
 
@@ -57,23 +59,21 @@ namespace {
     }
 
     /**
-     * @return the device can export @ref cvk::constants::OS_FENCE_HANDLE_TYPE, posix: and import it
+     * the config of the test context with @ref cvk::constants::OS_FENCE_DEVICE_EXTENSIONS
+     */
+    Core::Config os_fence_config() {
+        auto config = test::Context::CONFIG;
+        for(auto const extension : cvk::constants::OS_FENCE_DEVICE_EXTENSIONS)
+            config.vk.extensions.emplace_back(extension);
+        return config;
+    }
+
+    /**
+     * @return the device has @ref cvk::constants::OS_FENCE_FEATURES
      */
     bool os_fence_exportable(cvk::Core const& core) {
-        VkPhysicalDeviceExternalFenceInfo const info{
-            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_FENCE_INFO,
-            .pNext = nullptr,
-            .handleType = cvk::constants::OS_FENCE_HANDLE_TYPE,
-        };
-        VkExternalFenceProperties properties{.sType = VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, .pNext = nullptr};
-        vkGetPhysicalDeviceExternalFenceProperties(core.vkPhysicalDevice(), &info, &properties);
-#ifdef CTH_PLATFORM_WINDOWS
-        constexpr VkExternalFenceFeatureFlags required = VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT;
-#else
-        constexpr VkExternalFenceFeatureFlags required =
-            VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT | VK_EXTERNAL_FENCE_FEATURE_IMPORTABLE_BIT;
-#endif
-        return (properties.externalFenceFeatures & required) == required;
+        auto const features = core.physicalDevice().externalFenceFeatures(cvk::constants::OS_FENCE_HANDLE_TYPE);
+        return (features & cvk::constants::OS_FENCE_FEATURES) == cvk::constants::OS_FENCE_FEATURES;
     }
 
     /**
@@ -142,9 +142,13 @@ JVK_TEST(Core, create_and_destroy) {
     EXPECT_TRUE(core.executor().sync_wait(on_worker(core)));
 }
 
-JVK_TEST(Core, enables_the_os_fence_extensions) {
+JVK_TEST(Core, enables_the_extensions_of_the_config) {
     test::Context const context{};
-    cvk::Core const& vk = context.core;
+    std::optional<Core> core{};
+    try { core.emplace(context.instance, os_fence_config(), cvk::create); } catch(cvk::cvk_exception const&) {
+        GTEST_SKIP() << "no os fence extension";
+    }
+    cvk::Core const& vk = *core;
 
     auto const extensions = vk.device().extensions();
 
@@ -198,17 +202,20 @@ JVK_TEST(Core, executor_runs_on_the_workers) {
 
 JVK_TEST(Core, worker_resumes_after_the_gpu_signals_the_fence_of_a_strand_submit) {
     test::Context const context{};
-    if(!os_fence_exportable(context.core)) GTEST_SKIP() << "os fence handle type not exportable";
+    std::optional<Core> core{};
+    try { core.emplace(context.instance, os_fence_config(), cvk::create); } catch(cvk::cvk_exception const&) {
+        GTEST_SKIP() << "no os fence extension";
+    }
+    if(!os_fence_exportable(*core)) GTEST_SKIP() << "os fence handle type not exportable";
 
-    cvk::TimelineSemaphore const semaphore{context.core, cvk::create};
-    cvk::Fence const fence{context.core, cvk::create, 0, cvk::constants::OS_FENCE_HANDLE_TYPE};
+    cvk::TimelineSemaphore const semaphore{*core, cvk::create};
+    cvk::Fence const fence{*core, cvk::create, 0, cvk::constants::OS_FENCE_HANDLE_TYPE};
 
-    auto const [onWorker, gpuValue] =
-        context.core.executor().sync_wait(submit_and_await(context.core, semaphore, fence));
+    auto const [onWorker, gpuValue] = core->executor().sync_wait(submit_and_await(*core, semaphore, fence));
 
     EXPECT_TRUE(onWorker);
     EXPECT_EQ(gpuValue, 1);
 
-    context.core.queue(0).waitIdle();
+    core->queue(0).waitIdle();
 }
 }

@@ -33,8 +33,8 @@ public:
     [[nodiscard]] bool await_ready() const;
 
     /**
-     * gives the resume of the caller to the reactor of the core, see @ref TimelineReactor::await()
-     * @details the callback posts the resume to the context of the caller
+     * registers the resume of the caller with the reactor of the core, see @ref TimelineReactor::await()
+     * @details resumes on the context of the caller
      */
     template<class Caller>
     requires cth::co::this_coro_compatible<Caller>
@@ -62,8 +62,9 @@ namespace jvk {
 // the blocking cvk wait() overloads are hidden
 /**
  * timeline semaphore with an awaitable wait
- * @details @ref wait() blocks no thread, the reactor of the core waits
- * @details the counter and @ref release() of @ref cvk::TimelineSemaphore
+ * @details
+ * - the reactor of the core waits, no thread blocks
+ * - the counter and the release() of @ref cvk::TimelineSemaphore
  */
 class Semaphore : public cvk::TimelineSemaphore {
 public:
@@ -123,8 +124,10 @@ public:
     void optDestroy() { if(created()) destroy(); }
 
     /**
-     * waits until the semaphore reaches the value, resumes on the context of the caller
-     * @details reached -> no suspend
+     * waits until the semaphore reaches the value
+     * @details
+     * - resumes on the context of the caller
+     * - reached -> no suspend
      * @pre @ref created()
      */
     [[nodiscard]] constexpr semaphore_awaiter wait(uint64_t value) const { return semaphore_awaiter{*this, value}; }

@@ -73,6 +73,11 @@ public:
      */
     [[nodiscard]] QueueFamily const* queueFamily(queue_family_index_t familyIdx) const;
 
+    /**
+     * @return the external fence features of the handle type
+     */
+    [[nodiscard]] VkExternalFenceFeatureFlags externalFenceFeatures(VkExternalFenceHandleTypeFlagBits) const;
+
     [[nodiscard]] constexpr VkPhysicalDevice get() const { return _handle.get(); }
     [[nodiscard]] constexpr std::span<std::string const> extensions() const { return _extensions; }
     [[nodiscard]] constexpr DeviceFeatures const& features() const { return _features; }
@@ -134,6 +139,8 @@ struct PhysicalDevicePick {
  * @param extensions to require, besides the extensions of the features
  * @param uuidOpt std::nullopt -> every device counts, set -> only the device with this uuid counts
  * @details best: the lowest @ref dev::device_type_rank(), ties go to the first in enumeration order
+ * @details a present queue -> requires @ref constants::OS_FENCE_FEATURES of @ref constants::OS_FENCE_HANDLE_TYPE
+ *  for the present fences
  * @return std::nullopt -> no device meets the requirements
  * @pre @ref Instance::created()
  * @throws cvk::vk_result_exception result of vkEnumeratePhysicalDevices()
