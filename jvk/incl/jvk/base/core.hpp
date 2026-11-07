@@ -52,10 +52,13 @@ public:
      */
     ~Core();
 
+    //TODO review without a present queue nothing in jvk needs the os fence extensions since jvk::Fence is gone,
+    // only the tests Core.enables_the_os_fence_extensions and Core.worker_resumes_after_the_gpu_signals_...
     /**
      * creates the cvk core, the workers, the reactor and the queues
      * @param surfaces the present queues present to every surface, see @ref cvk::Core::create()
-     * @details enables @ref cvk::constants::OS_FENCE_DEVICE_EXTENSIONS in addition to the config
+     * @details enables @ref cvk::constants::OS_FENCE_DEVICE_EXTENSIONS in addition to the config, also without a
+     *  present queue (a present queue gets them from @ref cvk::constants::PRESENT_DEVICE_EXTENSIONS)
      * @post @ref created()
      * @note calls @ref optDestroy()
      * @throws cvk::cvk_exception reason: no physical device meets the requirements

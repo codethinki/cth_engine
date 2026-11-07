@@ -3,6 +3,7 @@
 #include "cvk/base/core.hpp"
 #include "cvk/base/physical_device.hpp"
 #include "cvk/surface/surface.hpp"
+#include "cvk/utility/constant/os_constants.hpp"
 #include "cvk/utility/enumerate.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 #include "cvk/utility/vk_overloads.hpp"
@@ -300,7 +301,12 @@ void Swapchain::createImages() {
     generation.presentFences.reserve(count);
     for(uint32_t i = 0; i < count; ++i) {
         generation.presentSemaphores.emplace_back(core(), cvk::create);
-        generation.presentFences.emplace_back(core(), cvk::create, VK_FENCE_CREATE_SIGNALED_BIT);
+        generation.presentFences.emplace_back(
+            core(),
+            cvk::create,
+            VK_FENCE_CREATE_SIGNALED_BIT,
+            constants::OS_FENCE_HANDLE_TYPE
+        );
     }
 
     generation.acquired.assign(count, false);

@@ -1,8 +1,11 @@
 #pragma once
+#include "os_constants.hpp"
+
 #include "cvk/utility/device/device_features.hpp"
 
 #include <volk.h>
 
+#include <algorithm>
 #include <array>
 #include <string_view>
 
@@ -46,10 +49,13 @@ inline constexpr DeviceFeatures PRESENT_DEVICE_FEATURES{.swapchainMaintenance1 =
 
 /**
  * extensions without feature bits that a device with a present queue enables
+ * @details the swapchain and @ref OS_FENCE_DEVICE_EXTENSIONS for the exportable present fences
  */
-inline constexpr std::array<std::string_view, 1> PRESENT_DEVICE_EXTENSIONS{
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-};
+inline constexpr auto PRESENT_DEVICE_EXTENSIONS = [] {
+    std::array<std::string_view, 1 + OS_FENCE_DEVICE_EXTENSIONS.size()> extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    std::ranges::copy(OS_FENCE_DEVICE_EXTENSIONS, extensions.begin() + 1);
+    return extensions;
+}();
 
 /**
  * instance extensions that a device with a present queue requires, besides the platform surface extension

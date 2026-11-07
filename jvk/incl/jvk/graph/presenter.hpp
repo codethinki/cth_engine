@@ -1,5 +1,6 @@
 #pragma once
 #include "jvk/cmd/cmd_buffer.hpp"
+#include "jvk/sync/resource_states.hpp"
 #include "jvk/sync/semaphore.hpp"
 
 #include "cvk/render/sync/semaphore.hpp"
@@ -31,7 +32,6 @@ namespace jvk {
 class Core;
 class Queue;
 class Stage;
-class StageGraph;
 }
 
 namespace jvk {
@@ -56,13 +56,11 @@ struct SwapchainImage {
     VkExtent2D extent;
 };
 
-//TODO review no wrap(State) and lifecycle release(): release() gives the acquired image back
-// (vkReleaseSwapchainImagesKHR), a State (surface + swapchain) needs another name for one of them
 /**
  * presents to a surface
  * @details owns the surface and the swapchain
  * @details recreates the swapchain in @ref acquire()
- * @details acquires and presents in the strand of its queue
+ * @details acquires, submits and presents in the strand of its queue
  * @details one acquired image at a time
  * @attention not thread safe
  */
@@ -104,7 +102,7 @@ public:
      * @details destroys the semaphores and the command buffers
      * @pre @ref created()
      * @pre no @ref acquire() is pending
-     * @pre the acquired image is presented or released
+     * @pre the acquired image is presented or unacquired
      */
     void destroy();
 
@@ -113,16 +111,15 @@ public:
      */
     void optDestroy() { if(created()) destroy(); }
 
-    //TODO review stages parameter: an automatic choice with an override (AGENTS.md), ALL_COMMANDS is safe
-    //TODO review the prologue transition of the image chains with the semaphore wait only if its src stages
-    // contain the wait stages: the tracked state of an acquired image must start with them
     /**
      * acquires the next swapchain image for the stage
      * @details adds the wait for the acquire to the stage, see @ref Stage::addWait()
+     * @details sets the graph state of the image to VK_IMAGE_LAYOUT_UNDEFINED with the wait stages, see
+     *  @ref Stage::assume(): the first barrier of the image chains with the wait
      * @details VK_ERROR_OUT_OF_DATE_KHR of the last present or acquire, or a changed surface extent
      *  -> recreates the swapchain first
      * @details all images in use -> awaits the oldest present fence first, the strand of the queue does not block
-     * @details an acquired image without @ref present() or @ref release() -> releases it, warns
+     * @details an acquired image without @ref present() or @ref unacquire() -> unacquires it, warns
      * @param stages pipeline stages of the stage that wait for the acquire
      * @return std::nullopt -> surface extent 0, no image, no wait
      * @pre @ref created()
@@ -136,16 +133,21 @@ public:
         VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
     );
 
+    //TODO review a present queue of another family than the stage (EXCLUSIVE sharing): the release barrier
+    // belongs into the submit of the stage, SUBMITTED is too late for it
     /**
      * presents the acquired image after the stage
      * @details by @ref Stage::status():
      * - UNSUBMITTED: submits the stage, then presents
      * - SUBMITTED: presents
-     * - SKIPPED: calls @ref release()
+     * - SKIPPED: calls @ref unacquire()
      * @details returns at once, the present job waits for the stage
-     * @details the present submit transitions the image from its tracked state to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+     * @details the present submit transitions the image to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR from its last state in
+     *  the stage recording (@ref PrimaryCmdBuffer::states(), the executed secondaries included)
+     * @details does not change the graph states, the next @ref acquire() of the image sets them
      * @details VK_ERROR_OUT_OF_DATE_KHR -> the next @ref acquire() recreates the swapchain
-     * @pre @ref acquire() returned an image, not presented or released
+     * @pre @ref acquire() returned an image, not presented or unacquired
+     * @pre the stage recording uses the image
      * @pre the stage is the last use of the image in the frame or waits for the other uses
      * @pre UNSUBMITTED -> the preconditions of @ref Stage::submit()
      */
@@ -153,11 +155,11 @@ public:
 
     /**
      * gives the acquired image back without a present
-     * @pre @ref acquire() returned an image, not presented or released
+     * @pre @ref acquire() returned an image, not presented or unacquired
      * @pre no submit uses the image
      * @throws cvk::vk_result_exception result of vkReleaseSwapchainImagesKHR()
      */
-    void release();
+    void unacquire();
 
     [[nodiscard]] constexpr bool created() const { return _surface.created(); }
 
@@ -176,7 +178,7 @@ private:
      */
     struct PresentSubmit {
         /**
-         * uses the image as VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, the prologue of the graph transitions it
+         * the barrier from the last state of the image in the stage recording to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
          */
         PrimaryCmdBuffer cmd;
 
@@ -188,26 +190,27 @@ private:
 
     /**
      * present job, see @ref present()
-     * @details awaits the submitted mark of the stage off the strand
-     * @details records the command buffer, submits it through the general @ref StageGraph::submit()
+     * @details the stage on the same queue -> awaits the submitted mark of the stage first, off the strand
+     * @details in the strand of the queue: records the command buffer, submits it through @ref Queue::vk(),
+     *  presents
      * @details the submit waits for the semaphore of the stage, signals the present semaphore and @ref _semaphore
-     * @details then presents in the strand of the queue
      * @details stores its first error for @ref acquire()
+     * @param lastState of the image in the stage recording
      */
     [[nodiscard]] cth::co::executor_task<void> presentJob(
-        StageGraph&,
+        Queue const& stageQueue,
         Semaphore const& stageSemaphore,
         uint64_t frameNumber,
         cth::os::fence const& submitted,
-        uint32_t imageIdx
+        uint32_t imageIdx,
+        ImageState lastState
     );
 
-    //TODO review cvk::Swapchain keeps its present fences private and creates them without an export type:
-    // needs an accessor and cvk::constants::OS_FENCE_HANDLE_TYPE in cvk
+    //TODO review posix: the export resets the fence, cvk::Swapchain::present() of the image and the destruction
+    // then wait for it forever: signal it again (empty submit) or let cvk keep the state (import the sync fd back)
     /**
      * awaits the present fence of the image, the strand of the queue does not block
-     * @details exports the fence with @ref cvk::Fence::extractOsHandle(), awaits it with
-     *  cth::co::this_coro::await_handle()
+     * @details exports @ref cvk::Swapchain::presentFence(), awaits it with cth::co::this_coro::await_handle()
      */
     [[nodiscard]] cth::co::executor_task<void> awaitPresentFence(uint32_t imageIdx) const;
 
@@ -223,7 +226,8 @@ private:
      */
     std::optional<cvk::Swapchain> _swapchainOpt = std::nullopt;
 
-    //TODO review count and reuse (pool, 2026-11-09 point 7): a released image leaves its acquire semaphore pending
+    //TODO review not applied yet: a ring of frames in flight semaphores, frames in flight in a presenter config
+    // (2026-11-09 answers)
     /**
      * signaled by the acquires, free again after the gpu finished the submit that waited for it
      */
@@ -245,7 +249,7 @@ private:
     std::deque<uint32_t> _presentedImageIndices{};
 
     /**
-     * the acquired image, not presented or released
+     * the acquired image, not presented or unacquired
      */
     std::optional<uint32_t> _imageIdxOpt = std::nullopt;
 

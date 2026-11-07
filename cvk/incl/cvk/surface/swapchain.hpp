@@ -31,6 +31,7 @@ class Surface;
 /**
  * VkSwapchainKHR wrapper
  * @details owns its images, their views, a present semaphore and a present fence per image
+ * @details the present fences export @ref constants::OS_FENCE_HANDLE_TYPE
  * @details retired swapchains: destroyed once their present fences signal, see @ref resize() and @ref recreate()
  * @attention not thread safe
  */
@@ -58,6 +59,7 @@ public:
      * base constructor
      * @pre @ref Core::created(), @ref Surface::created()
      * @pre the queue can present to the surface
+     * @pre the device enables @ref constants::PRESENT_DEVICE_EXTENSIONS, a present queue of the core does
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config);
 
@@ -223,6 +225,17 @@ public:
      */
     [[nodiscard]] constexpr Semaphore const& presentSemaphore(uint32_t imageIndex) const {
         return current().presentSemaphores[imageIndex];
+    }
+
+    /**
+     * @return the fence that the last present of the image signals, created signaled
+     * @details exportable with @ref constants::OS_FENCE_HANDLE_TYPE, see @ref Fence::extractOsHandle()
+     * @pre imageIndex < @ref imageCount()
+     * @attention posix: the export resets the fence, @ref present() of the image and the destruction then wait for
+     *  a signal: signal it again, for example with an empty submit
+     */
+    [[nodiscard]] constexpr Fence const& presentFence(uint32_t imageIndex) const {
+        return current().presentFences[imageIndex];
     }
 
     /**

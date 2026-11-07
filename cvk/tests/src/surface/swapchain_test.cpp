@@ -10,10 +10,14 @@
 #include "cvk/render/sync/semaphore.hpp"
 #include "cvk/surface/surface.hpp"
 #include "cvk/surface/swapchain.hpp"
+#include "cvk/utility/constant/os_constants.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
+
+#include <cth/os/wait.hpp>
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <limits>
 #include <utility>
 #include <vector>
@@ -294,6 +298,26 @@ CVK_TEST(Swapchain, presents_destroy_the_retired_swapchain_after_its_present_fen
 
     EXPECT_EQ(swapchain.retired(), 0);
     EXPECT_EQ(swapchain.get(), vkSwapchain);
+}
+
+CVK_TEST(Swapchain, present_fences_are_exportable) {
+    test::PresentContext const context{};
+    Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
+    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+
+    for(uint32_t i = 0; i < swapchain.imageCount(); ++i) {
+        auto const& fence = swapchain.presentFence(i);
+        EXPECT_EQ(fence.exportTypes(), constants::OS_FENCE_HANDLE_TYPE);
+
+        // invalid handle -> already signaled
+        auto const handle = fence.extractOsHandle();
+        if(handle) EXPECT_EQ(cth::os::wait(handle.get(), std::chrono::seconds{5}), cth::os::wait_result::WAITED);
+
+        // posix: the export resets the fence, the swapchain waits for it at the destruction
+        if(fence.signaled()) continue;
+        context.queue().submit(SubmitInfo{}, &fence);
+        fence.wait();
+    }
 }
 
 CVK_TEST(Swapchain, unacquire_gives_the_image_back) {
