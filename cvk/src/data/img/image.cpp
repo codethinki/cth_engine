@@ -176,44 +176,44 @@ void Image::blitMipLevels(
         "image usage must have VK_IMAGE_USAGE_TRANSFER_SRC_BIT and VK_IMAGE_USAGE_TRANSFER_DST_BIT"
     ) {}
 
-    auto const corner = [this](uint32_t level) {
-        auto const extent = mip_extent(_extent, level);
+    auto const corner = [this](uint32_t mipLevelIdx) {
+        auto const extent = mip_extent(_extent, mipLevelIdx);
         return VkOffset3D{static_cast<int32_t>(extent.width), static_cast<int32_t>(extent.height), 1};
     };
     // the level is written, the next blit reads it
-    auto const toSrc = [&](uint32_t level) {
+    auto const toSrc = [&](uint32_t mipLevelIdx) {
         Barrier barrier{};
         barrier.addTransition(
             *this,
             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             Barrier::INFERRED_SHADER_STAGES,
-            level,
+            mipLevelIdx,
             1
         );
         barrier.execute(cmdBuffer);
     };
 
-    for(uint32_t level = firstMipLevel; level < firstMipLevel + levels; ++level) {
-        toSrc(level - 1);
+    for(uint32_t mipLevelIdx = firstMipLevel; mipLevelIdx < firstMipLevel + levels; ++mipLevelIdx) {
+        toSrc(mipLevelIdx - 1);
 
         VkImageBlit2 const region{
             .sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2,
             .pNext = nullptr,
             .srcSubresource = {
                 .aspectMask = aspectMask(),
-                .mipLevel = level - 1,
+                .mipLevel = mipLevelIdx - 1,
                 .baseArrayLayer = 0,
                 .layerCount = arrayLayers(),
             },
-            .srcOffsets = {{0, 0, 0}, corner(level - 1)},
+            .srcOffsets = {{0, 0, 0}, corner(mipLevelIdx - 1)},
             .dstSubresource = {
                 .aspectMask = aspectMask(),
-                .mipLevel = level,
+                .mipLevel = mipLevelIdx,
                 .baseArrayLayer = 0,
                 .layerCount = arrayLayers(),
             },
-            .dstOffsets = {{0, 0, 0}, corner(level)},
+            .dstOffsets = {{0, 0, 0}, corner(mipLevelIdx)},
         };
         VkBlitImageInfo2 const info{
             .sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2,

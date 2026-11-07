@@ -58,7 +58,7 @@ template<class Fn, class... Args>
         fn(args..., &count, elements.data());
     } else {
         VkResult result = VK_INCOMPLETE;
-        for(uint32_t attempt = 0; attempt < MAX_QUERY_ATTEMPTS && result == VK_INCOMPLETE; ++attempt) {
+        for(uint32_t i = 0; i < MAX_QUERY_ATTEMPTS && result == VK_INCOMPLETE; ++i) {
             auto const countResult = fn(args..., &count, nullptr);
             CVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "failed to query {}", what) {}
             // data() of an empty vector can be nullptr, a second count call could return a new count
