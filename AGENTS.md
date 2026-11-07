@@ -115,6 +115,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.
 - Constructors are public. No `friend` and no passkey class to hide a construction: a friend opens far more than the constructor.
 - A `friend` only where no other design gives the access, with a comment at the declaration that says why: `StageGraph` in `Stage` sets the status of the submission.
+- Long or nested template types get a `using` alias next to their use: `using last_queue_map_t = cth::dt::flat_hash_map<image_mip_t, not_null_ptr<Queue const>>;`.
 - Prefer compile time checks (concepts, `static_assert`) to run time checks.
 - An automatically chosen value has an override if:
   - the choice is not guaranteed to be optimal
@@ -267,13 +268,16 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 - Do not put a period at the end of a line.
 - Write short fragments, not full sentences. Start them with a verb in the present tense: `creates the instance`, `destroys and forgets`.
 - Fragments win over STE100: where STE100 asks for a full sentence or an article, write the shorter fragment.
-- Use `@ref` for every name of code: `@ref create()`, `@ref Core::created()`.
+- Put every piece of code in backticks: our names, Vulkan and std names, values, parameter names, expressions:
+  `` `create()` ``, `` `Core::created()` ``, `` `VK_IMAGE_LAYOUT_UNDEFINED` ``, `` `std::nullopt` ``, `` `slotPtr` ``, `` `x < y` ``.
+  Doxygen links our names inside backticks by itself (autolink), CLion shows backticks as code.
+- `@ref` only where autolink does not resolve a name; a member variable is qualified instead: `` `Image::State::memory` ``.
 - Do not document what the signature already tells. A getter without conditions needs no comment.
 - The brief is the purpose. Side effects the caller must know go to `@details`.
 - `@details` holds one fact per line, starting with its keyword, so a reader can scan for it. No text walls.
-  - one item: inline on the tag line: `@details calls @ref optEnd() on the secondaries`
-  - several names: inline on the tag line: `@details calls @ref Instance(Config), @ref wrap()`
-  - several facts: `@details`, optional with a label, then `- ` items, no item starts with `@ref`
+  - one item: inline on the tag line: ``@details calls `optEnd()` on the secondaries``
+  - several names: inline on the tag line: ``@details calls `Instance(Config)`, `wrap()` ``
+  - several facts: `@details`, optional with a label, then `- ` items
   - one `@details` per topic
 - A class brief names what it is, in a few words: `primary command buffer`. Its properties go to `@details` as a list: `- owns a command pool`. Copy and move are not documented: the declarations tell it.
 - Do not document what Vulkan does anyway: the barriers that Vulkan forces.
@@ -285,14 +289,14 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 
 | Tag | Use |
 |---|---|
-| `@details` | more information after the brief, one per topic, see the form rules: `@details calls @ref create(), @ref wrap()` |
+| `@details` | more information after the brief, one per topic, see the form rules: ``@details calls `create()`, `wrap()` `` |
 | `@param` | name, then what it is for: `@param config to use` |
 | `@tparam` | template parameter, same form as `@param` |
 | `@return` | what the result is |
-| `@pre` | condition that must be true before the call: `@pre @ref created()` |
-| `@post` | condition that is true after the call: `@post @ref created()` |
+| `@pre` | condition that must be true before the call: ``@pre `created()` `` |
+| `@post` | condition that is true after the call: ``@post `created()` `` |
 | `@throws` | exception type and the cause: `@throws cvk::vk_result_exception result of vkCreateInstance()` |
-| `@note` | side effect the caller must know: `@note calls @ref optDestroy()` |
+| `@note` | side effect the caller must know: ``@note calls `optDestroy()` `` |
 | `@attention` | danger that is not a precondition: undefined behavior, not thread safe |
 
 - Write preconditions as `@pre`, not as `@attention requires ...`.
@@ -302,9 +306,10 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 
 Use symbols when they are shorter and clearer than words:
 
-- implication: `nullptr -> no messenger`, `@ref memory == nullptr -> memory unknown`
-- conditions and ranges: `@pre 0 < workers < MAX_INT`
-- special values: `(constants::WHOLE_SIZE => whole buffer)`
+- implication: `` `nullptr` -> no messenger ``, `` `memory == nullptr` -> memory unknown ``
+- conditions and ranges: `` @pre `0 < workers < MAX_INT` ``
+- special values: `` (`constants::WHOLE_SIZE` => whole buffer) ``
+- the expression goes in backticks, the arrow and the words stay outside
 
 ### STE100 rules that apply
 
@@ -312,7 +317,7 @@ Use symbols when they are shorter and clearer than words:
 2. Write descriptions with 25 words or fewer and instructions with 20 words or fewer.
 3. Write one topic in one fragment. Split two actions into two lines.
 4. Use the active voice and the present tense.
-5. Write instructions to the caller in the imperative: `call @ref create() first`.
+5. Write instructions to the caller in the imperative: ``call `create()` first``.
 6. Do not use phrasal verbs (`set up`, `carry out`). Use one verb (`create`, `do`).
 7. Do not use `-ing` forms as nouns or adjectives.
 8. Use `it`, `this` and `they` only when the reference is clear.
@@ -334,10 +339,10 @@ Use symbols when they are shorter and clearer than words:
 ```cpp
 /**
  * creates the instance
- * @details a messenger config (see @ref Config::debugMessenger) -> creates the messenger
+ * @details a messenger config (see `Config::debugMessenger`) -> creates the messenger
  * @pre volk is initialized
- * @post @ref created()
- * @note calls @ref optDestroy()
+ * @post `created()`
+ * @note calls `optDestroy()`
  * @throws cvk::vk_result_exception result of vkCreateInstance()
  */
 void create();
