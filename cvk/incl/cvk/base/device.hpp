@@ -40,13 +40,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Device()`, `wrap()`
+     * @details calls @ref Device(Instance const&, PhysicalDevice const&), `wrap()`
      */
     Device(Instance const&, PhysicalDevice const&, State);
 
     /**
      * constructs and creates
-     * @details calls `Device()`, `create()`
+     * @details calls @ref Device(Instance const&, PhysicalDevice const&), `create()`
      */
     Device(Instance const&, PhysicalDevice const&, Config const&);
 

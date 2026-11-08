@@ -32,13 +32,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Fence()`, `wrap()`
+     * @details calls @ref Fence(Core const&), `wrap()`
      */
     Fence(Core const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `Fence()`, `create()`
+     * @details calls @ref Fence(Core const&), `create()`
      */
     explicit Fence(Core const&, create_t, VkFenceCreateFlags flags = 0, VkExternalFenceHandleTypeFlags exportTypes = 0);
 

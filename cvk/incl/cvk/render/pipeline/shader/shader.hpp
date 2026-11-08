@@ -38,25 +38,25 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Shader()`, `wrap()`
+     * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), `wrap()`
      */
     Shader(Core const&, VkShaderStageFlagBits stage, State const&);
 
     /**
      * constructs and creates
-     * @details calls `Shader()`, `create()` with spv code
+     * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), @ref create(std::span<uint32_t const>)
      */
     Shader(Core const&, VkShaderStageFlagBits stage, std::span<uint32_t const> spv);
 
     /**
      * constructs, loads and creates
-     * @details calls `Shader()`, `create()` with a path
+     * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), @ref create(path_t const&)
      */
     Shader(Core const&, VkShaderStageFlagBits stage, path_t const& spvPath);
 
     /**
      * constructs, compiles the glsl file, loads and creates
-     * @details calls `compile()`, `Shader()` with a path
+     * @details calls `compile()`, @ref Shader(Core const&, VkShaderStageFlagBits, path_t const&)
      * @note warns in release builds: compile the shaders at build time
      */
     Shader(
@@ -90,7 +90,7 @@ public:
 
     /**
      * loads the SPIR-V file and creates the module
-     * @details calls `load()`, `create()` with spv code
+     * @details calls `load()`, @ref create(std::span<uint32_t const>)
      */
     void create(path_t const& spvPath);
 

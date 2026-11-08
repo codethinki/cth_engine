@@ -37,13 +37,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `DescriptorPool()`, `wrap()`
+     * @details calls @ref DescriptorPool(Core const&, Config), `wrap()`
      */
     DescriptorPool(Core const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls `DescriptorPool()`, `create()`
+     * @details calls @ref DescriptorPool(Core const&, Config), `create()`
      */
     explicit DescriptorPool(Core const&, Config, create_t);
 

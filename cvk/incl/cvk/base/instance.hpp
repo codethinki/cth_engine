@@ -61,13 +61,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Instance()`, `wrap()`
+     * @details calls @ref Instance(Config), `wrap()`
      */
     Instance(Config, State);
 
     /**
      * constructs and creates
-     * @details calls `Instance()`, `create()`
+     * @details calls @ref Instance(Config), `create()`
      */
     explicit Instance(Config, create_t);
 

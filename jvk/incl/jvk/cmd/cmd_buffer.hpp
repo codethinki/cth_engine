@@ -279,7 +279,7 @@ public:
 
     /**
      * executes the secondary
-     * @see `execute()` with a span of pointers
+     * @see @ref execute(std::span<SecondaryCmdBuffer* const>)
      */
     void execute(SecondaryCmdBuffer&);
 };
@@ -318,7 +318,7 @@ public:
     /**
      * begins the recording inside the rendering of a primary
      * @details resets the pool and the resource states
-     * @pre the preconditions of `begin()` with usage flags
+     * @pre the preconditions of @ref begin(VkCommandBufferUsageFlags)
      * @throws cvk::vk_result_exception result of `vkResetCommandPool()` or `vkBeginCommandBuffer()`
      */
     void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0);

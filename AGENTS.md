@@ -188,7 +188,7 @@ public:
   `cvk/utility/handle/` has the deleters and the short forms (`core_handle<VkX>`).
 - `cvk/utility/handle/destroy.hpp` declares all overloads of `cvk::destroy`, the .cpp of the object defines its overload.
   Reason: the deleters are templates, a qualified name in a template is looked up at its definition.
-- Inside a class the member `destroy()` hides the global one: write `cvk::destroy(...)`.
+- Inside a class the member `destroy()` hides the global one: write `cvk::destroy()`.
 - Handle and context go in together: `_handle.reset(ptr, core())`. A missing context argument does not compile.
 - Move constructor and move assignment are `= default`. The move assignment destroys the old handle with the old context.
 - A class that owns several objects declares the objects that depend on its handle first, `= default` assigns in that order: `_debugMessengerOpt` before `_handle`.
@@ -221,12 +221,12 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 |---|---|
 | base constructor | stores the configuration, does not create a Vulkan object |
 | `wrap(State)` | takes ownership of an existing Vulkan object, calls `optDestroy()` first |
-| `create(...)` | creates a new Vulkan object, calls `optDestroy()` first |
+| `create()` | creates a new Vulkan object, calls `optDestroy()` first |
 | `destroy()` | destroys the Vulkan object now and forgets, requires `created()` |
 | `optDestroy()` | calls `destroy()` if `created()` |
 | `release()` | gives the `State` to the caller and forgets, does not destroy |
 | `State::decompose() &&` | the raw handles of a device state, in destruction order, for the Graveyard |
-| `destroy(...)` (global) | destroys the raw handles, one overload per handle kind, used by the deleters and the Graveyard |
+| `destroy()` (global) | destroys the raw handles, one overload per handle kind, used by the deleters and the Graveyard |
 | `forget()` | sets the members to the not created state, does not destroy |
 
 - The destructor calls `optDestroy()`.
@@ -272,15 +272,17 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 - Put every piece of code in backticks: our names, Vulkan and std names, values, parameter names, expressions:
   `` `create()` ``, `` `Core::created()` ``, `` `VK_IMAGE_LAYOUT_UNDEFINED` ``, `` `std::nullopt` ``, `` `slotPtr` ``, `` `x < y` ``.
   Doxygen links our names inside backticks by itself (autolink), CLion shows backticks as code.
-- `@ref` only where autolink does not resolve a name; a member variable is qualified instead: `` `Image::State::memory` ``.
+- `@ref` only where autolink does not resolve a name (a member variable is qualified instead: `` `Image::State::memory` ``) or where the exact overload matters, see below.
 - Write function references without a parameter list: `` `create()` ``, `` `Instance()` ``, `` `Core::queue()` ``.
+  `` `create()` `` names the function with all its overloads, it does not mean the overload without parameters.
   Doxygen links the class and the parameter types of `` `Fence(Core const&)` ``, not the overload. The name alone links an overload.
-  Exception: the text must name one overload and the name alone is ambiguous: name the parameter in words, ``calls `create()` with a config``.
+  Exception: the text must point at one specific overload: `@ref` with the parameter list links exactly that overload, ``@details calls @ref Instance(Config), `wrap()` ``, `@ref create(Config const&)`.
+  Do not write `(...)`: it does not link.
 - Do not document what the signature already tells. A getter without conditions needs no comment.
 - The brief is the purpose. Side effects the caller must know go to `@details`.
 - `@details` holds one fact per line, starting with its keyword, so a reader can scan for it. No text walls.
   - one item: inline on the tag line: ``@details calls `optEnd()` on the secondaries``
-  - several names: inline on the tag line: ``@details calls `Instance()`, `wrap()` ``
+  - several names: inline on the tag line: ``@details calls @ref Instance(Config), `wrap()` ``
   - several facts: `@details`, optional with a label, then `- ` items
   - one `@details` per topic
 - A member with one fact gets a trailing `///<` on its line: `uint32_t framesInFlight; ///< frames in flight, > 0`.

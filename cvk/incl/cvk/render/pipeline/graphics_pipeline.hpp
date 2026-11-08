@@ -26,13 +26,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `GraphicsPipeline()`, `wrap()`
+     * @details calls @ref GraphicsPipeline(PipelineLayout const&, Config), `wrap()`
      */
     GraphicsPipeline(PipelineLayout const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls `GraphicsPipeline()`, `create()`
+     * @details calls @ref GraphicsPipeline(PipelineLayout const&, Config), `create()`
      */
     explicit GraphicsPipeline(PipelineLayout const&, Config, create_t);
 
@@ -44,7 +44,7 @@ public:
 
     /**
      * constructs and creates a derivative pipeline
-     * @details calls `GraphicsPipeline()` with a parent, `create()`
+     * @details calls @ref GraphicsPipeline(GraphicsPipeline const&, Config), `create()`
      */
     explicit GraphicsPipeline(GraphicsPipeline const& parent, Config, create_t);
 

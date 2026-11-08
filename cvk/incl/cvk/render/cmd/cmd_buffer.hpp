@@ -347,7 +347,7 @@ protected:
 
     /**
      * view mask of the rendering that the secondary continues, `std::nullopt` -> continues no rendering
-     * @details `begin()` with a begin info clears it
+     * @details @ref begin(VkCommandBufferBeginInfo const&) clears it
      */
     std::optional<uint32_t> _continuedViewMaskOpt = std::nullopt;
 
@@ -443,13 +443,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `PrimaryCmdBuffer()`, `wrap()`
+     * @details calls @ref PrimaryCmdBuffer(CmdPool const&), `wrap()`
      */
     PrimaryCmdBuffer(CmdPool const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `PrimaryCmdBuffer()`, `create()`
+     * @details calls @ref PrimaryCmdBuffer(CmdPool const&), `create()`
      */
     explicit PrimaryCmdBuffer(CmdPool const&, create_t);
 
@@ -474,7 +474,7 @@ public:
 
     /**
      * records the secondary command buffers, the secondaries can lie anywhere
-     * @pre the preconditions of `execute()` with a span of secondaries
+     * @pre the preconditions of @ref execute(std::span<SecondaryCmdBuffer const>) const
      * @pre no pointer is `nullptr`
      */
     void execute(std::span<SecondaryCmdBuffer const* const> secondaries) const;
@@ -526,13 +526,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `SecondaryCmdBuffer()`, `wrap()`
+     * @details calls @ref SecondaryCmdBuffer(CmdPool const&), `wrap()`
      */
     SecondaryCmdBuffer(CmdPool const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `SecondaryCmdBuffer()`, `create()`
+     * @details calls @ref SecondaryCmdBuffer(CmdPool const&), `create()`
      */
     explicit SecondaryCmdBuffer(CmdPool const&, create_t);
 

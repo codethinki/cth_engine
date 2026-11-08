@@ -52,13 +52,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `BaseBuffer()`, `wrap()`
+     * @details calls @ref BaseBuffer(Core const&, Config const&), `wrap()`
      */
     BaseBuffer(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `BaseBuffer()`, `create()`
+     * @details calls @ref BaseBuffer(Core const&, Config const&), `create()`
      */
     BaseBuffer(Core const&, Config const&, size_t size);
 

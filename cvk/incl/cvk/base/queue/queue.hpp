@@ -41,7 +41,7 @@ public:
 
     /**
      * submits the info
-     * @see `submit()` with several infos
+     * @see @ref submit(std::span<SubmitInfo const>, Fence const*) const
      */
     void submit(SubmitInfo const& info, Fence const* fencePtr = nullptr) const { submit({&info, 1}, fencePtr); }
 

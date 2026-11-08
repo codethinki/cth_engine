@@ -96,7 +96,7 @@ public:
 
     /**
      * constructs and creates
-     * @details calls `Presenter()`, `create()`
+     * @details calls @ref Presenter(Core const&, Queue const&, Config), `create()`
      */
     Presenter(Core const&, Queue const&, Config, cvk::Surface);
 

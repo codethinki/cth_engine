@@ -38,13 +38,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `ComputePipeline()`, `wrap()`
+     * @details calls @ref ComputePipeline(PipelineLayout const&, Config const&), `wrap()`
      */
     ComputePipeline(PipelineLayout const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `ComputePipeline()`, `create()`
+     * @details calls @ref ComputePipeline(PipelineLayout const&, Config const&), `create()`
      */
     explicit ComputePipeline(PipelineLayout const&, Config const&, create_t);
 
