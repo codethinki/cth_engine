@@ -228,7 +228,7 @@ CVK_TEST(Barrier, image_layout_transition) {
     Barrier const barrier{
         .images = {
             {
-                &image,
+                image,
                 ImageBarrierInfo::LayoutTransition(
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     VK_IMAGE_LAYOUT_UNDEFINED,

@@ -27,7 +27,7 @@ namespace {
             layout{
                 core,
                 PipelineLayout::Config{
-                    .setLayouts = {&setLayout},
+                    .setLayouts = {setLayout},
                     .pushConstantRanges = {{.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, .offset = 0, .size = 16}},
                 },
                 create

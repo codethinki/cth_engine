@@ -39,7 +39,7 @@ namespace {
 CVK_TEST(DescriptorSet, base_constructor_does_not_create) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
-    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&layout}}), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{layout}}), create};
 
     DescriptorSet const set{pool, layout};
 
@@ -54,7 +54,7 @@ CVK_TEST(DescriptorSet, destroy_frees_with_a_freeing_pool) {
     DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
     DescriptorPool const pool{
         context.core,
-        DescriptorPool::Config::ForLayouts({{&layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        DescriptorPool::Config::ForLayouts({{layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
         create
     };
 
@@ -74,7 +74,7 @@ CVK_TEST(DescriptorSet, destroy_frees_with_a_freeing_pool) {
 CVK_TEST(DescriptorSet, destroy_without_free_only_forgets) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
-    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&layout}}), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{layout}}), create};
 
     DescriptorSet set{pool, layout, create};
     set.destroy();
@@ -87,7 +87,7 @@ CVK_TEST(DescriptorSet, destroy_without_free_only_forgets) {
 CVK_TEST(DescriptorSet, pool_reset_frees_the_set) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
-    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&layout}}), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{layout}}), create};
     DescriptorSet set{pool, layout, create};
 
     pool.reset();
@@ -102,7 +102,7 @@ CVK_TEST(DescriptorSet, pool_reset_frees_the_set) {
 CVK_TEST(DescriptorSet, write_buffer_and_image) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
-    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&layout}}), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{layout}}), create};
     DescriptorSet const set{pool, layout, create};
 
     BaseBuffer const buffer{context.core, {.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT}, 64};
@@ -116,7 +116,7 @@ CVK_TEST(DescriptorSet, write_buffer_and_image) {
 CVK_TEST(DescriptorSet, write_one_descriptor_and_the_whole_buffer) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
-    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&layout}}), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{layout}}), create};
     DescriptorSet const set{pool, layout, create};
 
     BaseBuffer const buffer{context.core, {.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT}, 64};
@@ -127,7 +127,7 @@ CVK_TEST(DescriptorSet, write_one_descriptor_and_the_whole_buffer) {
 CVK_TEST(DescriptorSet, variable_count) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, bindless(), create};
-    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&layout, 1, 8}}), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{layout, 1, 8}}), create};
     DescriptorSet const set{pool, layout, 8, create};
 
     Image const image{context.core, TEXTURE_CONFIG, VkExtent2D{4, 4}};
@@ -143,7 +143,7 @@ CVK_TEST(DescriptorSet, release_and_wrap) {
     DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
     DescriptorPool const pool{
         context.core,
-        DescriptorPool::Config::ForLayouts({{&layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        DescriptorPool::Config::ForLayouts({{layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
         create
     };
     DescriptorSet set{pool, layout, create};
@@ -163,7 +163,7 @@ CVK_TEST(DescriptorSet, release_fills_the_pool) {
     DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
     DescriptorPool const pool{
         context.core,
-        DescriptorPool::Config::ForLayouts({{&layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        DescriptorPool::Config::ForLayouts({{layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
         create
     };
     DescriptorSet set{pool, layout, create};
@@ -180,7 +180,7 @@ CVK_TEST(DescriptorSet, decompose_returns_the_pool_and_the_released_handle) {
     DescriptorSetLayout const layout{context.core, buffer_and_texture(), create};
     DescriptorPool const pool{
         context.core,
-        DescriptorPool::Config::ForLayouts({{&layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
+        DescriptorPool::Config::ForLayouts({{layout}}, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT),
         create
     };
     DescriptorSet set{pool, layout, create};

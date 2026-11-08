@@ -16,6 +16,7 @@
 #include <cth/meta/ranges.hpp>
 
 #include <cstddef>
+#include <functional>
 #include <initializer_list>
 #include <optional>
 #include <ranges>
@@ -472,17 +473,17 @@ public:
      */
     void execute(std::span<SecondaryCmdBuffer const> secondaries) const;
 
+    //TODO review the span of values stays: no pointers, contiguous secondaries of the caller pass as they are
     /**
      * records the secondary command buffers, the secondaries can lie anywhere
      * @pre the preconditions of @ref execute(std::span<SecondaryCmdBuffer const>) const
-     * @pre no pointer is `nullptr`
      */
-    void execute(std::span<SecondaryCmdBuffer const* const> secondaries) const;
+    void execute(std::span<std::reference_wrapper<SecondaryCmdBuffer const> const> secondaries) const;
 
     /**
      * records the secondary command buffers of a braced list
      */
-    void execute(std::initializer_list<SecondaryCmdBuffer const*> secondaries) const;
+    void execute(std::initializer_list<std::reference_wrapper<SecondaryCmdBuffer const>> secondaries) const;
 
     /**
      * records the secondary command buffer

@@ -97,7 +97,7 @@ JVK_TEST(ResourceStates, known_state_gets_a_barrier) {
     // one entry for both mip levels
     ASSERT_EQ(barrier.images.size(), 1);
     auto const& [barrierImage, info] = barrier.images[0];
-    EXPECT_EQ(barrierImage.get(), &image);
+    EXPECT_EQ(&barrierImage.get(), &image);
     EXPECT_EQ(info.oldLayout, VK_IMAGE_LAYOUT_UNDEFINED);
     EXPECT_EQ(info.newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     EXPECT_EQ(info.firstMipLevel, 1);
@@ -258,7 +258,7 @@ JVK_TEST(ResourceStates, buffer_barriers) {
 
     ASSERT_EQ(barrier.buffers.size(), 1);
     auto const& [barrierBuffer, info] = barrier.buffers[0];
-    EXPECT_EQ(barrierBuffer.get(), &buffer);
+    EXPECT_EQ(&barrierBuffer.get(), &buffer);
     EXPECT_EQ(info.src.access, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
     EXPECT_EQ(info.dst.access, VK_ACCESS_2_SHADER_STORAGE_READ_BIT);
     EXPECT_EQ(states.last(buffer)->scope.access, VK_ACCESS_2_SHADER_STORAGE_READ_BIT);

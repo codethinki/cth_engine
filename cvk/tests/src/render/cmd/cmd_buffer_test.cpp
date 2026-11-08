@@ -163,7 +163,7 @@ CVK_TEST(CmdBuffer, execute_secondaries_through_pointers) {
 
     PrimaryCmdBuffer primary{pool, create};
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    primary.execute({&secondaries[0], &secondaries[2]});
+    primary.execute({secondaries[0], secondaries[2]});
     primary.end();
 
     test::submit_and_wait(context, primary);
@@ -247,7 +247,7 @@ CVK_TEST(CmdBuffer, primary_is_inside_its_rendering) {
     primary.beginRendering({
         .colorAttachments = {
             RenderingAttachment{
-                .view = &view,
+                .view = view,
                 .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             },

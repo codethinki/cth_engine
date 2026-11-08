@@ -6,6 +6,8 @@
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
+#include <functional>
+
 
 namespace cvk {
 namespace {
@@ -30,7 +32,7 @@ CVK_TEST(PipelineLayout, create_with_sets_and_push_constants) {
     DescriptorSetLayout const set1{context.core, {}, create};
 
     PipelineLayout::Config const config{
-        .setLayouts = {&set0, &set1},
+        .setLayouts = {set0, set1},
         .pushConstantRanges = {{.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, .offset = 0, .size = 16}},
     };
 
@@ -45,7 +47,7 @@ CVK_TEST(PipelineLayout, too_many_sets_throws) {
 
     auto const maxSets = context.core.physicalDevice().limits().maxBoundDescriptorSets;
     PipelineLayout::Config const config{
-        .setLayouts = std::vector<not_null_ptr<DescriptorSetLayout const>>(maxSets + 1, &set),
+        .setLayouts = std::vector<std::reference_wrapper<DescriptorSetLayout const>>(maxSets + 1, std::cref(set)),
     };
 
     auto const construct = [&] { PipelineLayout const layout{context.core, config, create}; };
@@ -57,7 +59,7 @@ CVK_TEST(PipelineLayout, set_layouts_can_be_destroyed_after_create) {
     test::Context const context{};
     auto set = std::make_unique<DescriptorSetLayout>(context.core, uniform_config(), create);
 
-    PipelineLayout const layout{context.core, PipelineLayout::Config{.setLayouts = {set.get()}}, create};
+    PipelineLayout const layout{context.core, PipelineLayout::Config{.setLayouts = {*set}}, create};
     set = nullptr;
 
     EXPECT_TRUE(layout.created());

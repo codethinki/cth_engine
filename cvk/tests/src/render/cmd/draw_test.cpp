@@ -74,7 +74,7 @@ namespace {
                 {
                     .colorAttachments = {
                         RenderingAttachment{
-                            .view = &view,
+                            .view = view,
                             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                             .clearValue = {.color = {.float32 = {0.f, 0.f, 0.f, 1.f}}},

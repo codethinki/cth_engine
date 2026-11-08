@@ -34,7 +34,7 @@ namespace {
      */
     struct Values {
         explicit Values(Core const& core) : setLayout{core, set_config(), create},
-            layout{core, PipelineLayout::Config{.setLayouts = {&setLayout}}, create},
+            layout{core, PipelineLayout::Config{.setLayouts = {setLayout}}, create},
             shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::shaders::VALUES_COMP} {}
 
         [[nodiscard]] ComputePipeline::Config config() const { return {.stage = shader.stageInfo()}; }
@@ -58,7 +58,7 @@ namespace {
         Values const values{context.core};
         ComputePipeline const pipeline{values.layout, values.config(), create};
         Buffer<uint32_t> const output{context.core, OUTPUT_CONFIG, VALUES};
-        DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&values.setLayout}}), create};
+        DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{values.setLayout}}), create};
         DescriptorSet const set{pool, values.setLayout, create};
         set.write({0, output});
 

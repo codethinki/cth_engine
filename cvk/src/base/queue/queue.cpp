@@ -32,15 +32,15 @@ namespace {
     template<class Resolve>
     VkSemaphoreSubmitInfo semaphore_info(SemaphoreSubmitInfo const& info, Resolve resolve) {
         return std::visit(
-            [&]<class T>(not_null_ptr<T const> semaphore) {
-                T::debug_check(*semaphore);
+            [&]<class T>(std::reference_wrapper<T const> semaphore) {
+                T::debug_check(semaphore);
 
                 if constexpr(std::same_as<T, TimelineSemaphore>) {
-                    auto const value = info.value.has_value() ? *info.value : resolve(*semaphore);
-                    return vk_semaphore_info(semaphore->get(), value, info.stages);
+                    auto const value = info.value.has_value() ? *info.value : resolve(semaphore.get());
+                    return vk_semaphore_info(semaphore.get().get(), value, info.stages);
                 } else {
                     CTH_CRITICAL(info.value.has_value(), "binary semaphores have no value") {}
-                    return vk_semaphore_info(semaphore->get(), 0, info.stages);
+                    return vk_semaphore_info(semaphore.get().get(), 0, info.stages);
                 }
             },
             info.semaphore
@@ -54,9 +54,9 @@ Queue::Queue(QueueFamilyProperties familyProperties, State const& state) : _fami
     _familyIndex{state.familyIndex},
     _queueIndex{state.queueIndex} {}
 
-void Queue::submit(span<SubmitInfo const> infos, Fence const* fencePtr) const {
+void Queue::submit(span<SubmitInfo const> infos, fence_opt_t fenceOpt) const {
     debug_check(*this);
-    if(fencePtr != nullptr) Fence::debug_check(*fencePtr);
+    if(fenceOpt.has_value()) Fence::debug_check(*fenceOpt);
 
     size_t cmdBufferCount = 0;
     size_t semaphoreCount = 0;
@@ -86,15 +86,15 @@ void Queue::submit(span<SubmitInfo const> infos, Fence const* fencePtr) const {
             semaphores.push_back(semaphore_info(signal, signalValue));
 
         auto const* const buffers = cmdBuffers.data() + cmdBuffers.size();
-        for(auto const& cmdBuffer : info.cmdBuffers) {
-            BaseCmdBuffer::debug_check(*cmdBuffer);
-            CTH_CRITICAL(cmdBuffer->recording(), "command buffers must end their recording first") {}
+        for(PrimaryCmdBuffer const& cmdBuffer : info.cmdBuffers) {
+            BaseCmdBuffer::debug_check(cmdBuffer);
+            CTH_CRITICAL(cmdBuffer.recording(), "command buffers must end their recording first") {}
 
             cmdBuffers.push_back(
                 VkCommandBufferSubmitInfo{
                     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
                     .pNext = nullptr,
-                    .commandBuffer = cmdBuffer->get(),
+                    .commandBuffer = cmdBuffer.get(),
                     .deviceMask = 0,
                 }
             );
@@ -119,7 +119,7 @@ void Queue::submit(span<SubmitInfo const> infos, Fence const* fencePtr) const {
         _handle.get(),
         static_cast<uint32_t>(submits.size()),
         submits.data(),
-        fencePtr != nullptr ? fencePtr->get() : VK_NULL_HANDLE
+        fenceOpt.has_value() ? fenceOpt->get().get() : VK_NULL_HANDLE
     );
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit to queue") {}

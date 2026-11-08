@@ -120,7 +120,7 @@ Context::ValidationCheck::~ValidationCheck() { EXPECT_EQ(validation_errors(), 0)
 void submit_and_wait(Context const& context, PrimaryCmdBuffer const& primary) {
     Fence const fence{context.core, create};
 
-    context.core.queue(0).submit({.cmdBuffers = {&primary}}, &fence);
+    context.core.queue(0).submit({.cmdBuffers = {primary}}, fence);
     fence.wait();
 }
 

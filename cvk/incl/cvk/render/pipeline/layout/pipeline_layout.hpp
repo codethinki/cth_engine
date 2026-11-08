@@ -9,6 +9,7 @@
 
 #include <cth/io/log.hpp>
 
+#include <functional>
 #include <span>
 #include <tuple>
 #include <vector>
@@ -116,7 +117,7 @@ struct PipelineLayout::Config {
     /**
      * set layout per set number, index == set number
      */
-    std::vector<not_null_ptr<DescriptorSetLayout const>> setLayouts{};
+    std::vector<std::reference_wrapper<DescriptorSetLayout const>> setLayouts{};
 
     std::vector<VkPushConstantRange> pushConstantRanges{};
 };

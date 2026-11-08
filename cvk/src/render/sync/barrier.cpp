@@ -152,8 +152,8 @@ void Barrier::debug_check_rendering(
     auto const attached = [renderingPtr](Image const& image) {
         if(renderingPtr == nullptr) return false;
         auto const uses = [&image](RenderingAttachment const& attachment) {
-            return &attachment.view->image() == &image
-                || (attachment.resolveView != nullptr && &attachment.resolveView->image() == &image);
+            return &attachment.view.get().image() == &image
+                || (attachment.resolveViewOpt.has_value() && &attachment.resolveViewOpt->get().image() == &image);
         };
         return std::ranges::any_of(renderingPtr->colorAttachments, uses)
             || (renderingPtr->depthAttachment.has_value() && uses(*renderingPtr->depthAttachment))
@@ -167,7 +167,7 @@ void Barrier::debug_check_rendering(
             "barriers inside a rendering have no queue family ownership transfer"
         ) {}
         CTH_CRITICAL(
-            attached(*entry.image) && barrier.newLayout != VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
+            attached(entry.image) && barrier.newLayout != VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
             && barrier.newLayout != VK_IMAGE_LAYOUT_GENERAL,
             "attachments inside a rendering must be in the rendering local read or general layout, got {}",
             barrier.newLayout
@@ -209,12 +209,12 @@ void Barrier::execute(BaseCmdBuffer const& cmdBuffer) const {
     std::vector<VkBufferMemoryBarrier2> bufferBarriers{};
     bufferBarriers.reserve(buffers.size());
     for(auto const& [buffer, info] : buffers)
-        bufferBarriers.push_back(buffer_barrier(*buffer, info));
+        bufferBarriers.push_back(buffer_barrier(buffer, info));
 
     std::vector<VkImageMemoryBarrier2> imageBarriers{};
     imageBarriers.reserve(images.size());
     for(auto const& [image, info] : images)
-        imageBarriers.push_back(image_barrier(*image, info));
+        imageBarriers.push_back(image_barrier(image, info));
 
     if(cmdBuffer.insideRendering())
         debug_check_rendering(

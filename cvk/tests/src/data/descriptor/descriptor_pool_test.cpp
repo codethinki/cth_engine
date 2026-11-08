@@ -76,7 +76,7 @@ CVK_TEST(DescriptorPool, for_layouts_counts_every_layout) {
     DescriptorSetLayout const textures{context.core, bindless(), create};
 
     auto const config = DescriptorPool::Config::ForLayouts(
-        {{&layout, 2}, {&textures, 1, 100}},
+        {{layout, 2}, {textures, 1, 100}},
         VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
     );
 
@@ -91,7 +91,7 @@ CVK_TEST(DescriptorPool, create_and_destroy) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
 
-    DescriptorPool pool{context.core, DescriptorPool::Config::ForLayouts({{&layout, 4}}), create};
+    DescriptorPool pool{context.core, DescriptorPool::Config::ForLayouts({{layout, 4}}), create};
 
     ASSERT_TRUE(pool.created());
     EXPECT_TRUE(pool.unused());
@@ -104,7 +104,7 @@ CVK_TEST(DescriptorPool, create_and_destroy) {
 CVK_TEST(DescriptorPool, reset_counts) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
-    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&layout}}), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{layout}}), create};
 
     pool.reset();
     pool.reset();
@@ -115,7 +115,7 @@ CVK_TEST(DescriptorPool, reset_counts) {
 CVK_TEST(DescriptorPool, release_and_wrap) {
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
-    auto const config = DescriptorPool::Config::ForLayouts({{&layout}});
+    auto const config = DescriptorPool::Config::ForLayouts({{layout}});
     DescriptorPool pool{context.core, config, create};
     auto const vkPool = pool.get();
 
@@ -130,7 +130,7 @@ CVK_TEST(DescriptorPool, decompose_returns_the_released_handle) {
     // a leak shows up when the shared device is destroyed
     test::Context const context{};
     DescriptorSetLayout const layout{context.core, buffers_and_texture(), create};
-    DescriptorPool pool{context.core, DescriptorPool::Config::ForLayouts({{&layout}}), create};
+    DescriptorPool pool{context.core, DescriptorPool::Config::ForLayouts({{layout}}), create};
     auto const vkPool = pool.get();
 
     auto const [vkReleased] = pool.release().decompose();

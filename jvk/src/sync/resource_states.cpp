@@ -83,7 +83,7 @@ namespace {
     void add_image_barrier(cvk::Barrier& barrier, Image const& image, cvk::ImageBarrierInfo const& info) {
         if(!barrier.images.empty()) {
             auto& [lastImage, lastInfo] = barrier.images.back();
-            bool const same = lastImage.get() == &image && lastInfo.oldLayout == info.oldLayout
+            bool const same = &lastImage.get() == &image && lastInfo.oldLayout == info.oldLayout
                 && lastInfo.newLayout == info.newLayout && lastInfo.src.stages == info.src.stages
                 && lastInfo.src.access == info.src.access && lastInfo.dst.stages == info.dst.stages
                 && lastInfo.dst.access == info.dst.access

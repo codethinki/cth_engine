@@ -39,7 +39,7 @@ namespace {
         Fill(Core const& core, DescriptorSetLayout const& setLayout, std::span<uint32_t const> fragmentCode,
             std::vector<VkPushConstantRange> pushConstants = {}) : layout{
                 core,
-                PipelineLayout::Config{.setLayouts = {&setLayout}, .pushConstantRanges = std::move(pushConstants)},
+                PipelineLayout::Config{.setLayouts = {setLayout}, .pushConstantRanges = std::move(pushConstants)},
                 create
             },
             vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
@@ -94,7 +94,7 @@ namespace {
             {
                 .colorAttachments = {
                     RenderingAttachment{
-                        .view = &target.view,
+                        .view = target.view,
                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                         .clearValue = {.color = {.float32 = {0.f, 0.f, 0.f, 1.f}}},
                     },
@@ -135,7 +135,7 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
     Buffer<std::array<float, 4>> color{context.core, host_written(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), 1};
     color.write(std::array<std::array<float, 4>, 1>{test::GREEN});
 
-    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{&setLayout}}), create};
+    DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{setLayout}}), create};
     DescriptorSet const set{pool, setLayout, create};
     set.write({0, color});
 
@@ -190,7 +190,7 @@ namespace {
         uint32_t const variableCount = afterBind ? 32 : 0;
         DescriptorPool const pool{
             context.core,
-            DescriptorPool::Config::ForLayouts({{&setLayout, 1, variableCount}}),
+            DescriptorPool::Config::ForLayouts({{setLayout, 1, variableCount}}),
             create
         };
         DescriptorSet const set{pool, setLayout, variableCount, create};

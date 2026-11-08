@@ -14,9 +14,9 @@ PipelineLayout::PipelineLayout(Core const& core, Config const& config) : _handle
     Core::debug_check(core);
 
     _vkSetLayouts.reserve(config.setLayouts.size());
-    for(auto const& layout : config.setLayouts) {
-        DescriptorSetLayout::debug_check(*layout);
-        _vkSetLayouts.push_back(layout->get());
+    for(DescriptorSetLayout const& layout : config.setLayouts) {
+        DescriptorSetLayout::debug_check(layout);
+        _vkSetLayouts.push_back(layout.get());
     }
 }
 

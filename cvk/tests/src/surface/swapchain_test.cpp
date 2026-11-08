@@ -71,7 +71,7 @@ namespace {
             {
                 .colorAttachments = {
                     RenderingAttachment{
-                        .view = &swapchain.views()[*index],
+                        .view = swapchain.views()[*index],
                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                         .clearValue = {.color = {.float32 = {0.f, 0.f, 1.f, 1.f}}},
                     },
@@ -89,11 +89,11 @@ namespace {
         Fence const fence{context.core, create};
         context.queue().submit(
             {
-                .cmdBuffers = {&cmd},
+                .cmdBuffers = {cmd},
                 .waits = {{acquired, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT}},
                 .signals = {swapchain.presentSemaphore(*index)},
             },
-            &fence
+            fence
         );
         auto const presented = swapchain.present(*index);
         fence.wait();
@@ -106,7 +106,7 @@ namespace {
      */
     void consume(test::PresentContext const& context, Semaphore const& acquired) {
         Fence const fence{context.core, create};
-        context.queue().submit({.waits = {acquired}}, &fence);
+        context.queue().submit({.waits = {acquired}}, fence);
         fence.wait();
     }
 }

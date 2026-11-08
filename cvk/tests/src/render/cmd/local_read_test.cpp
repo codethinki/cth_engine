@@ -85,7 +85,7 @@ namespace {
         [[nodiscard]] RenderingInfo renderingInfo(VkRenderingFlags flags = 0, AttachmentMapping mapping = {}) const {
             auto const clear = [](ImageView const& view, VkImageLayout layout) {
                 return RenderingAttachment{
-                    .view = &view,
+                    .view = view,
                     .layout = layout,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -137,9 +137,9 @@ namespace {
             writeLayout{core, {.pushConstantRanges = {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GREEN)}}}, create},
             write{writeLayout, fullscreen(vertex, color, write_first()), create},
             inputLayout{core, input_attachment(), create},
-            readLayout{core, {.setLayouts = {&inputLayout}}, create},
+            readLayout{core, {.setLayouts = {inputLayout}}, create},
             read{readLayout, fullscreen(vertex, localRead, copy_first_to_second()), create},
-            pool{core, DescriptorPool::Config::ForLayouts({{&inputLayout}}), create},
+            pool{core, DescriptorPool::Config::ForLayouts({{inputLayout}}), create},
             input{pool, inputLayout, create},
             vertices{core, test::host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
             // input attachment: VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR from the binding type

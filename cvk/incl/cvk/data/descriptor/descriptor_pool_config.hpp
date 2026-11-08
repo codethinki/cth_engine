@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <initializer_list>
 #include <vector>
 
@@ -20,7 +21,7 @@ struct DescriptorPoolConfig {
      * count sets of one layout
      */
     struct Sets {
-        not_null_ptr<DescriptorSetLayout const> layout;
+        std::reference_wrapper<DescriptorSetLayout const> layout;
         uint32_t count = 1;
 
         uint32_t variableCount = 0; ///< descriptors of the variable count binding per set (`0` => its maximum count)
@@ -36,7 +37,7 @@ struct DescriptorPoolConfig {
     ) {
         DescriptorPoolConfig config{.flags = flags};
         for(auto const& [layout, count, variableCount] : sets)
-            config.add(*layout, count, variableCount);
+            config.add(layout, count, variableCount);
         return config;
     }
 

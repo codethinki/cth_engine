@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <ranges>
 #include <vector>
@@ -126,7 +127,7 @@ struct RenderingAttachment {
     /**
      * @pre one mip level
      */
-    not_null_ptr<ImageView const> view;
+    std::reference_wrapper<ImageView const> view;
 
     /**
      * layout of the view during the rendering, `VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL` fits every aspect
@@ -138,12 +139,16 @@ struct RenderingAttachment {
 
     VkClearValue clearValue{}; ///< `VK_ATTACHMENT_LOAD_OP_CLEAR` -> the clear value
 
-    ImageView const* resolveView = nullptr; ///< `nullptr` -> no resolve
-
-    VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL; ///< layout of `resolveView` during the rendering
+    //TODO review std::optional for the nullable pointer, renamed from resolveView
+    std::optional<std::reference_wrapper<ImageView const>> resolveViewOpt = std::nullopt; ///< `std::nullopt` -> none
 
     /**
-     * @pre `!= VK_RESOLVE_MODE_NONE` if `resolveView`
+     * layout of `RenderingAttachment::resolveViewOpt` during the rendering
+     */
+    VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+
+    /**
+     * @pre `!= VK_RESOLVE_MODE_NONE` if `RenderingAttachment::resolveViewOpt`
      */
     VkResolveModeFlagBits resolveMode = VK_RESOLVE_MODE_NONE;
 };

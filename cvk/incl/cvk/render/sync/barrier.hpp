@@ -8,6 +8,7 @@
 
 #include <cth/io/log.hpp>
 
+#include <functional>
 #include <optional>
 #include <span>
 #include <vector>
@@ -129,12 +130,12 @@ struct Barrier {
     static constexpr VkPipelineStageFlags2 INFERRED_SHADER_STAGES = VK_PIPELINE_STAGE_2_NONE;
 
     struct BufferEntry {
-        not_null_ptr<BaseBuffer const> buffer;
+        std::reference_wrapper<BaseBuffer const> buffer;
         BufferInfo info;
     };
 
     struct ImageEntry {
-        not_null_ptr<Image const> image;
+        std::reference_wrapper<Image const> image;
         ImageInfo info;
     };
 
@@ -154,7 +155,7 @@ struct Barrier {
     /**
      * adds an image barrier
      */
-    constexpr void add(Image const& image, ImageInfo const& info) { images.push_back({&image, info}); }
+    constexpr void add(Image const& image, ImageInfo const& info) { images.push_back({image, info}); }
 
     /**
      * adds a layout transition of every layer with the scopes of `layout_transition()`
@@ -174,7 +175,7 @@ struct Barrier {
     /**
      * adds a buffer barrier
      */
-    constexpr void add(BaseBuffer const& buffer, BufferInfo const& info) { buffers.push_back({&buffer, info}); }
+    constexpr void add(BaseBuffer const& buffer, BufferInfo const& info) { buffers.push_back({buffer, info}); }
 
     /**
      * records the barriers

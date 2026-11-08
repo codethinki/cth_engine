@@ -3,14 +3,17 @@
 #include "context.hpp"
 #include "test.hpp"
 
+#include "jvk/base/queue.hpp"
 #include "jvk/data/buffer.hpp"
 #include "jvk/data/image.hpp"
 
 #include "cvk/base/device.hpp"
+#include "cvk/base/queue/queue.hpp"
+#include "cvk/base/queue/submit_info.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/sync/barrier.hpp"
+#include "cvk/render/sync/fence.hpp"
 
-#include <array>
 #include <concepts>
 #include <cstdint>
 #include <numeric>
@@ -85,7 +88,7 @@ namespace {
             return cvk::RenderingInfo{
                 .colorAttachments = {
                     cvk::RenderingAttachment{
-                        .view = &view,
+                        .view = view,
                         .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -259,8 +262,7 @@ JVK_TEST(CmdBuffer, execute_appends_the_states_of_the_secondaries) {
 
     primary.begin();
     primary.assume(image, UNDEFINED);
-    std::array<SecondaryCmdBuffer*, 2> const secondaries{&first, &second};
-    primary.execute(secondaries);
+    primary.execute({first, second});
     primary.use(readback, HOST_READ);
     primary.end();
 
@@ -286,7 +288,7 @@ JVK_TEST(CmdBuffer, begin_rendering_records_the_attachments) {
     primary.beginRendering({
         .colorAttachments = {
             cvk::RenderingAttachment{
-                .view = &view,
+                .view = view,
                 .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                 .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -437,6 +439,21 @@ JVK_TEST(CmdBuffer, converts_to_the_const_cvk_type) {
     static_assert(std::convertible_to<SecondaryCmdBuffer const&, cvk::BaseCmdBuffer const&>);
     static_assert(!std::convertible_to<PrimaryCmdBuffer&, cvk::PrimaryCmdBuffer&>);
     static_assert(!std::convertible_to<SecondaryCmdBuffer&, cvk::BaseCmdBuffer&>);
+}
+
+JVK_TEST(CmdBuffer, submit_info_takes_the_jvk_buffer) {
+    test::Context const context{};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    primary.begin();
+    primary.end();
+
+    cvk::SubmitInfo const info{.cmdBuffers = {primary}};
+    ASSERT_EQ(info.cmdBuffers.size(), 1);
+    EXPECT_EQ(&info.cmdBuffers[0].get(), &static_cast<cvk::PrimaryCmdBuffer const&>(primary));
+
+    cvk::Fence const fence{context.core, cvk::create};
+    context.core.queue(0).vk().submit(info, fence);
+    fence.wait();
 }
 
 JVK_TEST(CmdBuffer, cvk_function_records_untracked) {

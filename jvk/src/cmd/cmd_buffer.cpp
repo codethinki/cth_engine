@@ -63,11 +63,21 @@ namespace {
             | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
         auto const access = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
             | (writes ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_2_NONE);
-        return view_access(*attachment.view, attachment.layout, tests, access, discards(attachment.loadOp));
+        return view_access(attachment.view, attachment.layout, tests, access, discards(attachment.loadOp));
     }
 
     [[nodiscard]] bool same_mip_level(cvk::ImageView const& view, cvk::ImageView const& other) {
         return &view.image() == &other.image() && view.range().baseMipLevel == other.range().baseMipLevel;
+    }
+
+    /**
+     * @return both are `std::nullopt` or the same view
+     */
+    [[nodiscard]] bool same_resolve(cvk::RenderingAttachment const& attachment, cvk::RenderingAttachment const& other) {
+        auto const& viewOpt = attachment.resolveViewOpt;
+        auto const& otherOpt = other.resolveViewOpt;
+        if(!viewOpt.has_value() || !otherOpt.has_value()) return viewOpt.has_value() == otherOpt.has_value();
+        return &viewOpt->get() == &otherOpt->get();
     }
 
     /**
@@ -89,9 +99,9 @@ namespace {
                 | (attachment.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
                     : VK_ACCESS_2_NONE);
             accesses.push_back({
-                &attachment.view->image(),
+                &attachment.view.get().image(),
                 view_access(
-                    *attachment.view,
+                    attachment.view,
                     attachment.layout,
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                     access,
@@ -103,7 +113,7 @@ namespace {
         auto const& depth = info.depthAttachment;
         auto const& stencil = info.stencilAttachment;
         bool const shared = depth.has_value() && stencil.has_value()
-            && same_mip_level(*depth->view, *stencil->view);
+            && same_mip_level(depth->view, stencil->view);
         if(shared) {
             CTH_CRITICAL(
                 depth->layout != stencil->layout,
@@ -115,26 +125,27 @@ namespace {
             auto access = depth_stencil_access(*depth, !depth_read_only(depth->layout));
             access.access |= depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)).access;
             access.discard = discards(depth->loadOp) && discards(stencil->loadOp);
-            accesses.push_back({&depth->view->image(), access});
+            accesses.push_back({&depth->view.get().image(), access});
         } else {
             if(depth.has_value())
                 accesses.push_back({
-                    &depth->view->image(),
+                    &depth->view.get().image(),
                     depth_stencil_access(*depth, !depth_read_only(depth->layout)),
                 });
             if(stencil.has_value())
                 accesses.push_back({
-                    &stencil->view->image(),
+                    &stencil->view.get().image(),
                     depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)),
                 });
         }
 
         auto const resolve = [&](cvk::RenderingAttachment const& attachment) {
-            if(attachment.resolveView == nullptr) return;
+            if(!attachment.resolveViewOpt.has_value()) return;
+            cvk::ImageView const& resolveView = *attachment.resolveViewOpt;
             accesses.push_back({
-                &attachment.resolveView->image(),
+                &resolveView.image(),
                 view_access(
-                    *attachment.resolveView,
+                    resolveView,
                     attachment.resolveLayout,
                     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                     VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
@@ -145,7 +156,7 @@ namespace {
         for(auto const& attachment : info.colorAttachments)
             resolve(attachment);
         if(depth.has_value()) resolve(*depth);
-        if(stencil.has_value() && !(shared && stencil->resolveView == depth->resolveView)) resolve(*stencil);
+        if(stencil.has_value() && !(shared && same_resolve(*stencil, *depth))) resolve(*stencil);
 
         return accesses;
     }
@@ -299,20 +310,22 @@ void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
     _cmdBuffer.begin(usage);
 }
 
-void PrimaryCmdBuffer::execute(std::span<SecondaryCmdBuffer* const> secondaries) {
-    for(auto* secondaryPtr : secondaries) {
-        CTH_CRITICAL(secondaryPtr == nullptr, "secondaries must not be nullptr") {}
-        secondaryPtr->optEnd();
-    }
+void PrimaryCmdBuffer::execute(std::span<std::reference_wrapper<SecondaryCmdBuffer> const> secondaries) {
+    for(SecondaryCmdBuffer& secondary : secondaries)
+        secondary.optEnd();
 
-    for(auto const* secondaryPtr : secondaries) {
-        appendStates(secondaryPtr->states());
-        _cmdBuffer.execute(static_cast<cvk::SecondaryCmdBuffer const&>(*secondaryPtr));
+    for(SecondaryCmdBuffer const& secondary : secondaries) {
+        appendStates(secondary.states());
+        _cmdBuffer.execute(secondary);
     }
 }
 
+void PrimaryCmdBuffer::execute(std::initializer_list<std::reference_wrapper<SecondaryCmdBuffer>> secondaries) {
+    execute(std::span{secondaries});
+}
+
 void PrimaryCmdBuffer::execute(SecondaryCmdBuffer& secondary) {
-    std::array<SecondaryCmdBuffer*, 1> const secondaries{&secondary};
+    std::array const secondaries{std::ref(secondary)};
     execute(secondaries);
 }
 

@@ -39,7 +39,7 @@ namespace {
 
     RenderingAttachment clear_red(ImageView const& view, VkImageLayout layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL) {
         return RenderingAttachment{
-            .view = &view,
+            .view = view,
             .layout = layout,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -123,7 +123,7 @@ CVK_TEST(Rendering, tracks_the_current_rendering) {
         auto const* rendering = cmd.rendering();
         ASSERT_NE(rendering, nullptr);
         ASSERT_EQ(rendering->colorAttachments.size(), 1);
-        EXPECT_EQ(rendering->colorAttachments[0].view.get(), &view);
+        EXPECT_EQ(&rendering->colorAttachments[0].view.get(), &view);
         ASSERT_TRUE(rendering->area.has_value());
         EXPECT_EQ(rendering->area->extent.width, EXTENT.width);
         EXPECT_EQ(rendering->area->extent.height, EXTENT.height);
@@ -150,7 +150,7 @@ CVK_TEST(Rendering, clear_a_depth_attachment) {
         cmd.beginRendering(
             {
                 .depthAttachment = RenderingAttachment{
-                    .view = &view,
+                    .view = view,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                     .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .clearValue = {.depthStencil = {1.f, 0}},
@@ -176,7 +176,7 @@ CVK_TEST(Rendering, depth_attachment_in_the_default_layout) {
         cmd.beginRendering(
             {
                 .depthAttachment = RenderingAttachment{
-                    .view = &view,
+                    .view = view,
                     .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                     .clearValue = {.depthStencil = {1.f, 0}},
