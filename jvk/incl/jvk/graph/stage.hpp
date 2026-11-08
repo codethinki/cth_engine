@@ -8,15 +8,11 @@
 
 #include <volk.h>
 
-#include <cth/coro/context.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
-#include <cth/coro/utility/fwd.hpp>
 #include <cth/ptr/not_null.hpp>
 
-#include <coroutine>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <mutex>
 #include <optional>
 #include <type_traits>
@@ -80,56 +76,9 @@ struct StageSlot {
 
     Stasis stasis; ///< destroyed when `StageSlot::semaphore` reaches the frame number of the next submit or skip
 };
-
-/**
- * submitted mark of a stage in one frame
- * @details
- * - set once by the graph job, after the `vkQueueSubmit2()` of the submit or the skip
- * - the graph job posts the callbacks to the workers of the core
- */
-struct SubmitMark {
-    std::mutex mutex{};
-
-    bool submitted = false; ///< the graph job reached `vkQueueSubmit2()`
-
-    /**
-     * the waiters before `SubmitMark::submitted`, see `submitted_awaiter`
-     */
-    std::vector<cth::co::context::await_func> callbacks{};
-};
 }
 
 namespace jvk {
-//TODO review name: snake_case like semaphore_awaiter
-/**
- * awaiter of `Stage::submitted()`
- * @details resumes the caller on its context
- */
-class submitted_awaiter : public cth::co::this_coro_awaiter_base {
-public:
-    constexpr explicit submitted_awaiter(dev::SubmitMark& mark) : _markPtr{&mark} {}
-
-    /**
-     * @return the mark is set
-     */
-    [[nodiscard]] bool await_ready() const;
-
-    /**
-     * adds the resume of the caller to the callbacks of the mark
-     * @details resumes on the context of the caller
-     * @return `false` -> the mark is set in the meantime, the caller continues
-     */
-    template<class Caller>
-    requires cth::co::this_coro_compatible<Caller>
-    bool await_suspend(std::coroutine_handle<Caller> caller);
-
-    //TODO review no error: the graph job sets the mark on every path, its error goes to StageGraph::nextFrame()
-    constexpr void await_resume() const noexcept {}
-
-private:
-    cth::not_null_ptr<dev::SubmitMark> _markPtr;
-};
-
 /**
  * submission of one stage in one frame
  * @details
@@ -250,9 +199,10 @@ public:
      * - resumes on the context of the caller
      * - reached -> no suspend
      * - await it before a submit on `queue()` that waits for `semaphore()`
+     * - `Semaphore::submitted()` of `semaphore()` with `frameNumber()`
      * @see `wait()`
      */
-    [[nodiscard]] constexpr submitted_awaiter submitted() const { return submitted_awaiter{*_submitMarkPtr}; }
+    [[nodiscard]] constexpr submitted_awaiter submitted() const { return _slotPtr->semaphore.submitted(_frameNumber); }
 
     [[nodiscard]] constexpr Status status() const { return _status; }
     [[nodiscard]] constexpr size_t id() const { return _slotPtr->stageId; }
@@ -271,8 +221,7 @@ public:
     [[nodiscard]] constexpr uint64_t frameNumber() const { return _frameNumber; }
 
 private:
-    // the graph sets the status and the submitted mark of the submission, there is no other access without a
-    // public setter
+    // the graph sets the status of the submission, there is no other access without a public setter
     friend class StageGraph;
 
     cth::not_null_ptr<dev::StageSlot> _slotPtr;
@@ -280,14 +229,6 @@ private:
     Status _status = Status::UNSUBMITTED;
 
     std::vector<cvk::SemaphoreSubmitInfo> _extraWaits{}; ///< the waits of `addWait()`
-
-    //TODO review behind a std::unique_ptr: the mutex is not movable, dev::FrameSlot::stages moves the stages;
-    // the address stays for the graph job and the waiters
-    /**
-     * set by the graph job
-     * @see `submitted()`
-     */
-    std::unique_ptr<dev::SubmitMark> _submitMarkPtr;
 
 public:
     Stage(Stage const& other) = delete;

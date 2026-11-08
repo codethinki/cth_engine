@@ -56,8 +56,7 @@ public:
      */
     ~StageGraph();
 
-    //TODO review awaits Stage::submitted() of the old frame: the gpu can finish before the graph job sets the mark,
-    // the mark is destroyed with the old stage
+    //TODO review awaits Stage::submitted() of the old frame: the gpu can finish before the graph job marks the submit
     /**
      * constructs the frame and its stages in the next slot
      * @details the old frame of the slot:
@@ -117,30 +116,27 @@ private:
     //TODO review name
     using semaphore_waits_t = std::vector<cvk::SemaphoreSubmitInfo>;
 
-    //TODO review the marks as parameters: submit() and skip() take them from the stages while those live, the job
-    // must register on the marks of earlier frames before nextFrame() replaces their stages
+    //TODO review no marks as parameters: the job awaits Semaphore::submitted() of the slots, they live as long as
+    // the graph
     /**
      * submit job of `submit()` and `skip()`
      * @details
-     * - off the strand: awaits the marks of the previous frame and of the waited stages on the same queue
+     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before and of the waited stages on
+     *   the same queue
      * - under `StageGraph::_statesMutex`: `append()` of the states of the primary
      * - release halves: `release()` on the last queues, the submit waits for the returned values
      * - the prologue records the acquire halves and the barriers of the first uses
-     * - in the strand of the queue: the submit, then sets the mark, posts its callbacks to the workers
+     * - in the strand of the queue: the submit, then `Semaphore::markSubmitted()` of the slot with the frame number
      * - after the gpu finished: clears the stasis
-     * - an error -> stores it, see `storeError()`, then sets the mark
+     * - an error -> stores it, see `storeError()`, then marks the frame number
      * @details the status: `SUBMITTED` -> the primary, `SKIPPED` -> the empty submit
-     * @param[out] mark of the stage in this frame
-     * @param markAwaiters of the marks to await off the strand
      * @see `Stage::submitted()`
      */
     [[nodiscard]] cth::co::executor_task<void> submitJob(
         dev::StageSlot&,
         uint64_t frameNumber,
         semaphore_waits_t extraWaits,
-        Stage::Status,
-        dev::SubmitMark& mark,
-        std::vector<submitted_awaiter> markAwaiters
+        Stage::Status
     );
 
     /**

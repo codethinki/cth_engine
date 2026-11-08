@@ -4,12 +4,16 @@
 
 #include <volk.h>
 
+#include <cth/coro/context.hpp>
 #include <cth/coro/utility/fwd.hpp>
 #include <cth/ptr/not_null.hpp>
 
 #include <coroutine>
 #include <cstdint>
+#include <memory>
+#include <mutex>
 #include <system_error>
+#include <vector>
 
 
 namespace jvk {
@@ -53,18 +57,49 @@ private:
 
     std::error_code _error{}; ///< result of the wait, set by the callback
 };
+
+//TODO review name: snake_case like semaphore_awaiter
+/**
+ * awaiter of `Semaphore::submitted()`
+ * @details resumes the caller on its context
+ */
+class submitted_awaiter : public cth::co::this_coro_awaiter_base {
+public:
+    constexpr submitted_awaiter(Semaphore const& semaphore, uint64_t value) :
+        _semaphorePtr{&semaphore}, _value{value} {}
+
+    /**
+     * @return `Semaphore::submittedValue()` reached the value
+     */
+    [[nodiscard]] bool await_ready() const;
+
+    /**
+     * registers the resume of the caller with the semaphore
+     * @details resumes on the context of the caller
+     * @see `Semaphore::awaitSubmitted()`
+     */
+    template<class Caller>
+    requires cth::co::this_coro_compatible<Caller>
+    void await_suspend(std::coroutine_handle<Caller> caller);
+
+    //TODO review no error: the jvk submit paths mark every signal value, also after an error of the submit
+    constexpr void await_resume() const noexcept {}
+
+private:
+    cth::not_null_ptr<Semaphore const> _semaphorePtr;
+    uint64_t _value;
+};
 }
 
 namespace jvk {
-//TODO review public cvk::TimelineSemaphore base: cvk::SemaphoreSubmitInfo takes it as it is,
-// the blocking cvk wait() overloads are hidden
 /**
- * timeline semaphore with an awaitable wait
+ * timeline semaphore with awaitable waits
  * @details
- * - the reactor of the core waits, no thread blocks
- * - the counter and the `release()` of `cvk::TimelineSemaphore`
+ * - holds a `cvk::TimelineSemaphore`, converts to it
+ * - `wait()`: the reactor of the core waits for the gpu, no thread blocks
+ * - `submitted()`: waits for the submit of a signal, the jvk submit paths call `markSubmitted()`
  */
-class Semaphore : public cvk::TimelineSemaphore {
+class Semaphore {
 public:
     using State = cvk::TimelineSemaphore::State;
 
@@ -91,8 +126,10 @@ public:
      */
     ~Semaphore() { optDestroy(); }
 
+    //TODO review the submitted value of a wrap: State::value, the values given out before the wrap count as submitted
     /**
      * wraps the state
+     * @details `submittedValue()` becomes `State::value`
      * @post `created()`
      * @note calls `optDestroy()`
      */
@@ -100,7 +137,7 @@ public:
 
     /**
      * creates the semaphore
-     * @param initialValue of the semaphore and the counter
+     * @param initialValue of the semaphore, its counter and `submittedValue()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`
@@ -112,7 +149,7 @@ public:
      * destroys and forgets
      * @pre `created()`
      * @pre the gpu does not use the semaphore
-     * @pre no `wait()` is pending
+     * @pre no `wait()` or `submitted()` is pending
      */
     void destroy();
 
@@ -120,6 +157,50 @@ public:
      * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
+
+    /**
+     * releases ownership, returns the state and forgets
+     * @pre `created()`
+     * @pre no `wait()` or `submitted()` is pending
+     */
+    State release();
+
+    //TODO review @pre rising values, like the signal values of a timeline semaphore
+    /**
+     * marks the signal of the value as submitted
+     * @details
+     * - for the jvk submit paths, after the `vkQueueSubmit2()` of the signal
+     * - posts the callbacks of `awaitSubmitted()` up to the value to the workers of the core
+     * - thread safe
+     * @pre `created()`
+     * @pre `value > submittedValue()`
+     */
+    void markSubmitted(uint64_t value) const;
+
+    /**
+     * waits until a submit of a signal of the value reached `vkQueueSubmit2()`
+     * @details
+     * - not until the gpu reached the value
+     * - resumes on the context of the caller
+     * - marked -> no suspend
+     * @pre `created()`
+     * @see `markSubmitted()`, `wait()`
+     */
+    [[nodiscard]] constexpr submitted_awaiter submitted(uint64_t value) const {
+        return submitted_awaiter{*this, value};
+    }
+
+    //TODO review like TimelineReactor::await(): marked -> posts the callback at once, no bool result
+    /**
+     * calls the callback on a worker of the core once `markSubmitted()` reached the value
+     * @details
+     * - the callback gets an empty `std::error_code`
+     * - marked -> posts the callback at once
+     * - thread safe
+     * @pre `created()`
+     * @see `submitted()`
+     */
+    void awaitSubmitted(uint64_t value, cth::co::context::await_func cb) const;
 
     /**
      * waits until the semaphore reaches the value
@@ -130,11 +211,65 @@ public:
      */
     [[nodiscard]] constexpr semaphore_awaiter wait(uint64_t value) const { return semaphore_awaiter{*this, value}; }
 
-    //TODO review hides cvk::TimelineSemaphore::core(): the jvk core converts to the cvk core
+    //TODO review the counter forwarded: next(), value(), gpuValue(); signal() not: a host signal bypasses
+    // markSubmitted()
+    /**
+     * advances the counter
+     * @see `cvk::TimelineSemaphore::next()`
+     */
+    [[nodiscard]] constexpr uint64_t next() const { return _semaphore.next(); }
+
+    /**
+     * @see `cvk::TimelineSemaphore::value()`
+     */
+    [[nodiscard]] constexpr uint64_t value() const { return _semaphore.value(); }
+
+    /**
+     * @see `cvk::TimelineSemaphore::gpuValue()`
+     */
+    [[nodiscard]] uint64_t gpuValue() const { return _semaphore.gpuValue(); }
+
+    /**
+     * @return the largest value of `markSubmitted()`, the initial value before
+     * @details thread safe
+     */
+    [[nodiscard]] uint64_t submittedValue() const;
+
+    [[nodiscard]] constexpr bool created() const { return _semaphore.created(); }
+    [[nodiscard]] constexpr VkSemaphore get() const { return _semaphore.get(); }
     [[nodiscard]] constexpr Core const& core() const { return *_corePtr; }
 
+    /**
+     * the cvk semaphore
+     * @attention the `wait()` overloads of `cvk::TimelineSemaphore` block the thread
+     */
+    constexpr operator cvk::TimelineSemaphore const&() const { return _semaphore; }
+
 private:
+    /**
+     * callback of `awaitSubmitted()`
+     */
+    struct SubmittedWaiter {
+        uint64_t value;
+        cth::co::context::await_func cb;
+    };
+
+    /**
+     * the submitted value with its waiters
+     */
+    struct Submitted {
+        std::mutex mutex{};
+
+        uint64_t value = 0; ///< see `submittedValue()`
+
+        std::vector<SubmittedWaiter> waiters{}; ///< the callbacks of `awaitSubmitted()` above `Submitted::value`
+    };
+
     cth::not_null_ptr<Core const> _corePtr;
+    cvk::TimelineSemaphore _semaphore;
+
+    //TODO review behind a std::unique_ptr: the mutex is not movable, the moves stay = default
+    std::unique_ptr<Submitted> _submittedPtr;
 
 public:
     Semaphore(Semaphore const& other) = delete;

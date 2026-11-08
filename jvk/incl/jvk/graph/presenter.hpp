@@ -32,7 +32,6 @@ namespace jvk {
 class Core;
 class Queue;
 class Stage;
-class submitted_awaiter;
 }
 
 namespace jvk {
@@ -209,17 +208,18 @@ private:
         uint64_t value = 0;
     };
 
+    //TODO review no submitted_awaiter parameter: the job takes it from the stage semaphore and the frame number
     /**
      * present job of `present()`
      * @details
-     * - stage on the same queue or of another family -> off the strand: awaits `Stage::submitted()`
+     * - stage on the same queue or of another family -> off the strand: awaits `Semaphore::submitted()` of the stage
+     *   semaphore with the frame number
      * - stage of another family -> `Queue::release()` of the image on the stage queue
      * - in the strand of the queue: records the command buffer, submits it through `Queue::vk()`, presents
      * - the submit waits for the semaphore of the stage and the release, signals the present semaphore and
      *   `Presenter::_semaphore`
      * - the command buffer: the acquire half of another family, the transition to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
      * - stores its first error for `acquire()`
-     * @param submitted `Stage::submitted()` of the stage
      * @param lastState of the image in the stage primary
      * @pre the command buffer of the submit belongs to the queue family of the queue
      */
@@ -227,7 +227,6 @@ private:
         Queue const& stageQueue,
         Semaphore const& stageSemaphore,
         uint64_t frameNumber,
-        submitted_awaiter submitted,
         uint32_t imageIdx,
         ImageState lastState
     );
