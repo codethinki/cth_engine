@@ -273,11 +273,14 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
   `` `create()` ``, `` `Core::created()` ``, `` `VK_IMAGE_LAYOUT_UNDEFINED` ``, `` `std::nullopt` ``, `` `slotPtr` ``, `` `x < y` ``.
   Doxygen links our names inside backticks by itself (autolink), CLion shows backticks as code.
 - `@ref` only where autolink does not resolve a name; a member variable is qualified instead: `` `Image::State::memory` ``.
+- Write function references without a parameter list: `` `create()` ``, `` `Instance()` ``, `` `Core::queue()` ``.
+  Doxygen links the class and the parameter types of `` `Fence(Core const&)` ``, not the overload. The name alone links an overload.
+  Exception: the text must name one overload and the name alone is ambiguous: name the parameter in words, ``calls `create()` with a config``.
 - Do not document what the signature already tells. A getter without conditions needs no comment.
 - The brief is the purpose. Side effects the caller must know go to `@details`.
 - `@details` holds one fact per line, starting with its keyword, so a reader can scan for it. No text walls.
   - one item: inline on the tag line: ``@details calls `optEnd()` on the secondaries``
-  - several names: inline on the tag line: ``@details calls `Instance(Config)`, `wrap()` ``
+  - several names: inline on the tag line: ``@details calls `Instance()`, `wrap()` ``
   - several facts: `@details`, optional with a label, then `- ` items
   - one `@details` per topic
 - A member with one fact gets a trailing `///<` on its line: `uint32_t framesInFlight; ///< frames in flight, > 0`.

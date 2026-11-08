@@ -35,13 +35,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `CmdPool(Core const&, Config const&)`, `wrap()`
+     * @details calls `CmdPool()`, `wrap()`
      */
     CmdPool(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `CmdPool(Core const&, Config const&)`, `create()`
+     * @details calls `CmdPool()`, `create()`
      */
     explicit CmdPool(Core const&, Config const&, create_t);
 

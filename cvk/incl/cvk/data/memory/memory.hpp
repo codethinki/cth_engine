@@ -41,13 +41,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Memory(Core const&, Config const&)`, `wrap()`
+     * @details calls `Memory()`, `wrap()`
      */
     Memory(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `Memory(Core const&, Config const&)`, `create()`
+     * @details calls `Memory()`, `create()`
      */
     Memory(Core const&, Config const&, VkMemoryRequirements const&);
 

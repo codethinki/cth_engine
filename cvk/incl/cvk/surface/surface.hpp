@@ -30,7 +30,7 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Surface(Instance const&)`, `wrap()`
+     * @details calls `Surface()`, `wrap()`
      */
     Surface(Instance const&, State const&);
 

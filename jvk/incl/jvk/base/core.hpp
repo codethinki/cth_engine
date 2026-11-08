@@ -40,7 +40,7 @@ public:
     //TODO review no default for the surfaces, like cvk::Core::create(): a core without windows passes {}
     /**
      * constructs and creates
-     * @details calls `Core(cvk::Instance const&, Config)`, `create()`
+     * @details calls `Core()`, `create()`
      */
     Core(cvk::Instance const&, Config, std::span<cvk::Surface const> surfaces);
 

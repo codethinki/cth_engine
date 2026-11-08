@@ -78,13 +78,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Semaphore(Core const&)`, `wrap()`
+     * @details calls `Semaphore()`, `wrap()`
      */
     Semaphore(Core const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `Semaphore(Core const&)`, `create()` with the initial value
+     * @details calls `Semaphore()`, `create()` with the initial value
      */
     explicit Semaphore(Core const&, cvk::create_t, uint64_t initialValue = 0);
 

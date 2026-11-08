@@ -105,13 +105,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Window(Config)`, `wrap()`
+     * @details calls `Window()`, `wrap()`
      */
     Window(Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls `Window(Config)`, `create()`
+     * @details calls `Window()`, `create()`
      */
     explicit Window(Config, create_t);
 

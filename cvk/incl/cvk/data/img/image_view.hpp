@@ -31,13 +31,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `ImageView(Image const&, Config const&)`, `wrap()`
+     * @details calls `ImageView()`, `wrap()`
      */
     ImageView(Image const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `ImageView(Image const&, Config const&)`, `create()`
+     * @details calls `ImageView()`, `create()`
      */
     explicit ImageView(Image const&, Config const&, create_t);
 

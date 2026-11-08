@@ -63,13 +63,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Swapchain(Core const&, Queue const&, Surface const&, Config)`, `wrap()`
+     * @details calls `Swapchain()`, `wrap()`
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls `Swapchain(Core const&, Queue const&, Surface const&, Config)`, `create()`
+     * @details calls `Swapchain()`, `create()`
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config, VkExtent2D extent);
 

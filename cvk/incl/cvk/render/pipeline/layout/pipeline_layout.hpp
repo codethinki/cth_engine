@@ -35,13 +35,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `PipelineLayout(Core const&, Config const&)`, `wrap()`
+     * @details calls `PipelineLayout()`, `wrap()`
      */
     PipelineLayout(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `PipelineLayout(Core const&, Config const&)`, `create()`
+     * @details calls `PipelineLayout()`, `create()`
      */
     explicit PipelineLayout(Core const&, Config const&, create_t);
 

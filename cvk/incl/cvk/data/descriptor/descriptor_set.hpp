@@ -41,13 +41,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t)`, `wrap()`
+     * @details calls `DescriptorSet()`, `wrap()`
      */
     DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount, State const&);
 
     /**
      * constructs and creates
-     * @details calls `DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t)`, `create()`
+     * @details calls `DescriptorSet()`, `create()`
      */
     explicit DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount, create_t);
 
@@ -117,13 +117,13 @@ public:
 
     /**
      * writes the descriptors into the set
-     * @see `write(std::span<DescriptorWrite const>) const`
+     * @see `write()` with several writes
      */
     void write(std::initializer_list<DescriptorWrite> writes) const { write(std::span{writes.begin(), writes.size()}); }
 
     /**
      * writes one descriptor into the set
-     * @see `write(std::span<DescriptorWrite const>) const`
+     * @see `write()` with several writes
      */
     void write(DescriptorWrite const& descriptorWrite) const { write(std::span{&descriptorWrite, 1}); }
 

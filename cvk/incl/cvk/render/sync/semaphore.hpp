@@ -30,13 +30,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Semaphore(Core const&)`, `wrap()`
+     * @details calls `Semaphore()`, `wrap()`
      */
     Semaphore(Core const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls `Semaphore(Core const&)`, `create()`
+     * @details calls `Semaphore()`, `create()`
      */
     explicit Semaphore(Core const&, create_t);
 

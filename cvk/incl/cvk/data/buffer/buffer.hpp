@@ -44,13 +44,13 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls `Buffer(Core const&, Config const&)`, `wrap()`
+     * @details calls `Buffer()`, `wrap()`
      */
     Buffer(Core const& core, Config const& config, State const& state) : Buffer{core, config} { wrap(state); }
 
     /**
      * constructs and creates
-     * @details calls `Buffer(Core const&, Config const&)`, `create()`
+     * @details calls `Buffer()`, `create()`
      */
     Buffer(Core const& core, Config const& config, size_t count) : Buffer{core, config} { create(count); }
 

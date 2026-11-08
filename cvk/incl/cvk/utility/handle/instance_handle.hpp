@@ -27,7 +27,7 @@ private:
 
 /**
  * `unique_handle` of an instance object
- * @tparam Handle with an overload `cvk::destroy(vk_not_null<VkInstance>, Handle)`
+ * @tparam Handle with an overload `cvk::destroy()` for a `vk_not_null<VkInstance>`
  */
 template<class Handle>
 using instance_handle = unique_handle<Handle, instance_deleter>;
