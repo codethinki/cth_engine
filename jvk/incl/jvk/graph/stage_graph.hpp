@@ -33,6 +33,8 @@ namespace jvk {
  * stages with their waits, once per frame, in frame slots
  * @details
  * - one `Semaphore` per stage slot: the submit or the skip of frame N signals N
+ * - the frame numbers start at `firstFrameNumber()`, the semaphores at the number before: a wait for a frame before
+ *   the first frame is reached from the start
  * - the stages of a frame record at the same time, on any thread
  * - the submits of a stage follow the frame order
  * - the resource states after all submits resolve the first uses of each submit in its prologue
@@ -44,6 +46,7 @@ public:
     //TODO review no base constructor and create(): the graph has no wrap or release
     /**
      * creates the stage slots and the frame slots
+     * @details computes `firstFrameNumber()` from the config
      * @pre `Core::created()`
      * @pre the config passes `Config::debug_check()`
      * @throws cvk::vk_result_exception result of a create of the semaphores or command buffers
@@ -101,6 +104,11 @@ public:
      * @pre `Stage::status()` is `UNSUBMITTED`
      */
     void skip(Stage&);
+
+    /**
+     * @return number of the first frame: `1 +` the largest `StageWait::frameOffset` of the config
+     */
+    [[nodiscard]] constexpr uint64_t firstFrameNumber() const { return _firstFrameNumber; }
 
     [[nodiscard]] constexpr Core& core() const { return *_core; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
@@ -187,7 +195,14 @@ private:
 
     std::exception_ptr _errorPtr = nullptr; ///< the first error of a submit job, `nextFrame()` rethrows it
 
-    uint64_t _frameNumber = 0; ///< number of the last frame that `nextFrame()` handed out
+    //TODO review name firstFrameNumber
+    uint64_t _firstFrameNumber; ///< see `firstFrameNumber()`
+
+    /**
+     * number of the last frame that `nextFrame()` handed out
+     * @details `firstFrameNumber() - 1` before the first frame
+     */
+    uint64_t _frameNumber;
 
 public:
     StageGraph(StageGraph const& other) = delete;

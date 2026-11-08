@@ -11,7 +11,6 @@
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
@@ -27,10 +26,9 @@ class StageGraph;
 
 namespace jvk::dev {
 //TODO review name: cvk::SemaphoreSubmitInfo with the jvk semaphore and a fixed value
-//TODO review int64_t value: a wait for a frame before the first frame is < 1, next() keeps adding to it
 /**
  * semaphore of a prebuilt submit
- * @details converts to `cvk::SemaphoreSubmitInfo`, a `value < 0` waits for `0`
+ * @details converts to `cvk::SemaphoreSubmitInfo`
  */
 struct SemaphoreSubmitInfo {
     cth::ref_wrapper<Semaphore const> semaphore; ///< the jvk semaphore: `Semaphore::submitted()` needs it
@@ -42,12 +40,12 @@ struct SemaphoreSubmitInfo {
 
     /**
      * a frame number
-     * @details `< 1` -> a frame before the first frame, its wait is reached at once
+     * @details `< StageGraph::firstFrameNumber()` -> a frame before the first frame, the wait is reached from the start
      */
-    int64_t value;
+    uint64_t value;
 
     [[nodiscard]] constexpr operator cvk::SemaphoreSubmitInfo() const {
-        return cvk::SemaphoreSubmitInfo{*semaphore, stages, static_cast<uint64_t>(std::max<int64_t>(value, 0))};
+        return cvk::SemaphoreSubmitInfo{*semaphore, stages, value};
     }
 };
 
@@ -103,6 +101,7 @@ struct StageSlot {
     /**
      * signaled by the submit or the skip of each frame of the slot
      * @details value: the frame number, rises by `StageGraphConfig::frameSlots` per signal
+     * @details initial value: `StageGraph::firstFrameNumber() - 1`
      */
     Semaphore semaphore;
 
@@ -264,6 +263,7 @@ public:
 
     /**
      * @return number of the frame, the value of `semaphore()` for this frame
+     * @details the first frame is `StageGraph::firstFrameNumber()`
      */
     [[nodiscard]] constexpr uint64_t frameNumber() const { return _frameNumber; }
 
@@ -288,7 +288,7 @@ public:
 namespace jvk::dev {
 constexpr void SubmitInfo::next(size_t frameSlots) {
     for(auto& wait : waits)
-        wait.value += static_cast<int64_t>(frameSlots);
-    signal.value += static_cast<int64_t>(frameSlots);
+        wait.value += frameSlots;
+    signal.value += frameSlots;
 }
 }
