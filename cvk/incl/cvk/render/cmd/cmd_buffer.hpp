@@ -334,7 +334,7 @@ protected:
     /**
      * @note calls `optDestroy()`
      */
-    virtual ~BaseCmdBuffer() { optDestroy(); }
+    ~BaseCmdBuffer() { optDestroy(); }
 
     /**
      * begins the recording

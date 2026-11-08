@@ -151,8 +151,8 @@ namespace {
     }
 }
 
-template<class Base>
-BasicCmdBuffer<Base>::BasicCmdBuffer(cvk::Core const& core, cvk::queue_family_index_t queueFamilyIndex) :
+template<class Cvk>
+BasicCmdBuffer<Cvk>::BasicCmdBuffer(cvk::Core const& core, cvk::queue_family_index_t queueFamilyIndex) :
     BasicCmdBuffer{
         std::make_unique<cvk::CmdPool>(
             core,
@@ -161,56 +161,56 @@ BasicCmdBuffer<Base>::BasicCmdBuffer(cvk::Core const& core, cvk::queue_family_in
         )
     } {}
 
-template<class Base>
-BasicCmdBuffer<Base>::BasicCmdBuffer(std::unique_ptr<cvk::CmdPool> poolPtr) :
-    Base{*poolPtr, cvk::create}, _poolPtr{std::move(poolPtr)} {}
+template<class Cvk>
+BasicCmdBuffer<Cvk>::BasicCmdBuffer(std::unique_ptr<cvk::CmdPool> poolPtr) :
+    _cmdBuffer{*poolPtr, cvk::create}, _poolPtr{std::move(poolPtr)} {}
 
-template<class Base>
-void BasicCmdBuffer<Base>::use(cvk::Image const& image, ImageAccess const& access) {
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::use(cvk::Image const& image, ImageAccess const& access) {
     cvk::Barrier barrier{};
     _states.access(image, access, barrier);
     record(barrier);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::use(cvk::BaseBuffer const& buffer, BufferAccess const& access) {
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::use(cvk::BaseBuffer const& buffer, BufferAccess const& access) {
     cvk::Barrier barrier{};
     _states.access(buffer, access, barrier);
     record(barrier);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::assume(
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::assume(
     cvk::Image const& image,
     ImageState const& state,
     uint32_t firstMipLevel,
     uint32_t mipLevels
 ) {
-    CTH_CRITICAL(!this->recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
     _states.assume(image, state, firstMipLevel, mipLevels);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::assume(cvk::BaseBuffer const& buffer, BufferState const& state) {
-    CTH_CRITICAL(!this->recording(), "command buffer must be recording") {}
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::assume(cvk::BaseBuffer const& buffer, BufferState const& state) {
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
     _states.assume(buffer, state);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::beginRendering(cvk::RenderingInfo const& info) {
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::beginRendering(cvk::RenderingInfo const& info) {
     cvk::Barrier barrier{};
     for(auto const& [imagePtr, access] : attachment_accesses(info))
         _states.access(*imagePtr, access, barrier);
 
     record(barrier);
-    Base::beginRendering(info);
+    _cmdBuffer.beginRendering(info);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::endRendering() {
-    CTH_CRITICAL(this->rendering() == nullptr, "command buffer must be inside its own rendering") {}
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::endRendering() {
+    CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside its own rendering") {}
 
-    for(auto const& [imagePtr, access] : attachment_accesses(*this->rendering()))
+    for(auto const& [imagePtr, access] : attachment_accesses(*rendering()))
         _states.extend(
             *imagePtr,
             cvk::BarrierScope{.stages = access.stages, .access = access.access},
@@ -218,71 +218,71 @@ void BasicCmdBuffer<Base>::endRendering() {
             access.mipLevels
         );
 
-    Base::endRendering();
+    _cmdBuffer.endRendering();
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::bindVertexBuffer(uint32_t binding, cvk::BaseBuffer const& buffer, size_t offset) {
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::bindVertexBuffer(uint32_t binding, cvk::BaseBuffer const& buffer, size_t offset) {
     use(buffer, {VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT, VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT});
-    Base::bindVertexBuffer(binding, buffer, offset);
+    _cmdBuffer.bindVertexBuffer(binding, buffer, offset);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::bindIndexBuffer(cvk::BaseBuffer const& buffer, VkIndexType type, size_t offset) {
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::bindIndexBuffer(cvk::BaseBuffer const& buffer, VkIndexType type, size_t offset) {
     use(buffer, {VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
-    Base::bindIndexBuffer(buffer, type, offset);
+    _cmdBuffer.bindIndexBuffer(buffer, type, offset);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::drawIndirect(
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::drawIndirect(
     cvk::BaseBuffer const& buffer,
     size_t offset,
     uint32_t drawCount,
     uint32_t stride
 ) {
     use(buffer, {VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-    Base::drawIndirect(buffer, offset, drawCount, stride);
+    _cmdBuffer.drawIndirect(buffer, offset, drawCount, stride);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::drawIndexedIndirect(
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::drawIndexedIndirect(
     cvk::BaseBuffer const& buffer,
     size_t offset,
     uint32_t drawCount,
     uint32_t stride
 ) {
     use(buffer, {VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-    Base::drawIndexedIndirect(buffer, offset, drawCount, stride);
+    _cmdBuffer.drawIndexedIndirect(buffer, offset, drawCount, stride);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::dispatchIndirect(cvk::BaseBuffer const& buffer, size_t offset) {
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::dispatchIndirect(cvk::BaseBuffer const& buffer, size_t offset) {
     use(buffer, {VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT});
-    Base::dispatchIndirect(buffer, offset);
+    _cmdBuffer.dispatchIndirect(buffer, offset);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::reset() {
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::reset() {
     _poolPtr->reset();
     _states.clear();
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::appendStates(ResourceStates const& next) {
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::appendStates(ResourceStates const& next) {
     cvk::Barrier barrier{};
     _states.append(next, barrier);
     record(barrier);
 }
 
-template<class Base>
-void BasicCmdBuffer<Base>::record(cvk::Barrier& barrier) const {
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::record(cvk::Barrier& barrier) const {
     if(barrier.empty()) return;
 
-    if(this->insideRendering()) {
+    if(insideRendering()) {
         barrier.flags |= VK_DEPENDENCY_BY_REGION_BIT;
-        if(std::popcount(this->renderingViewMask()) > 1) barrier.flags |= VK_DEPENDENCY_VIEW_LOCAL_BIT;
+        if(std::popcount(renderingViewMask()) > 1) barrier.flags |= VK_DEPENDENCY_VIEW_LOCAL_BIT;
     }
-    barrier.execute(*this);
+    barrier.execute(_cmdBuffer);
 }
 
 template class BasicCmdBuffer<cvk::PrimaryCmdBuffer>;
@@ -296,7 +296,7 @@ PrimaryCmdBuffer::PrimaryCmdBuffer(cvk::Core const& core, cvk::queue_family_inde
 
 void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
     reset();
-    cvk::PrimaryCmdBuffer::begin(usage);
+    _cmdBuffer.begin(usage);
 }
 
 void PrimaryCmdBuffer::execute(std::span<SecondaryCmdBuffer* const> secondaries) {
@@ -307,7 +307,7 @@ void PrimaryCmdBuffer::execute(std::span<SecondaryCmdBuffer* const> secondaries)
 
     for(auto const* secondaryPtr : secondaries) {
         appendStates(secondaryPtr->states());
-        cvk::PrimaryCmdBuffer::execute(static_cast<cvk::SecondaryCmdBuffer const&>(*secondaryPtr));
+        _cmdBuffer.execute(static_cast<cvk::SecondaryCmdBuffer const&>(*secondaryPtr));
     }
 }
 
@@ -321,11 +321,11 @@ SecondaryCmdBuffer::SecondaryCmdBuffer(cvk::Core const& core, cvk::queue_family_
 
 void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
     reset();
-    cvk::SecondaryCmdBuffer::begin(usage);
+    _cmdBuffer.begin(usage);
 }
 
 void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUsageFlags usage) {
     reset();
-    cvk::SecondaryCmdBuffer::begin(inheritance, usage);
+    _cmdBuffer.begin(inheritance, usage);
 }
 }

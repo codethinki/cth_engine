@@ -11,7 +11,7 @@
 #include "cvk/render/sync/barrier.hpp"
 
 #include <array>
-#include <memory>
+#include <concepts>
 #include <cstdint>
 #include <numeric>
 #include <utility>
@@ -430,17 +430,38 @@ JVK_TEST(CmdBuffer, bind_records_the_buffer_access) {
     test::submit_and_wait(context, primary);
 }
 
-JVK_TEST(CmdBuffer, delete_through_the_cvk_type_destroys_the_pool) {
-    // a leak shows up when the shared device is destroyed
+JVK_TEST(CmdBuffer, converts_to_the_const_cvk_type) {
+    static_assert(std::convertible_to<PrimaryCmdBuffer&, cvk::PrimaryCmdBuffer const&>);
+    static_assert(std::convertible_to<SecondaryCmdBuffer&, cvk::SecondaryCmdBuffer const&>);
+    static_assert(std::convertible_to<PrimaryCmdBuffer const&, cvk::BaseCmdBuffer const&>);
+    static_assert(std::convertible_to<SecondaryCmdBuffer const&, cvk::BaseCmdBuffer const&>);
+    static_assert(!std::convertible_to<PrimaryCmdBuffer&, cvk::PrimaryCmdBuffer&>);
+    static_assert(!std::convertible_to<SecondaryCmdBuffer&, cvk::BaseCmdBuffer&>);
+}
+
+JVK_TEST(CmdBuffer, cvk_function_records_untracked) {
     test::Context const context{};
+    cvk::Image const image{context.core, IMAGE_CONFIG, EXTENT};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
 
-    std::unique_ptr<cvk::PrimaryCmdBuffer> primary =
-        std::make_unique<PrimaryCmdBuffer>(context.core, test::queue_family(context));
-    std::unique_ptr<cvk::SecondaryCmdBuffer> secondary =
-        std::make_unique<SecondaryCmdBuffer>(context.core, test::queue_family(context));
+    primary.begin();
+    cvk::Barrier barrier{};
+    barrier.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+    // cvk::Barrier::execute() takes cvk::BaseCmdBuffer const&
+    barrier.execute(primary);
+    EXPECT_TRUE(primary.states().empty());
 
-    primary.reset();
-    secondary.reset();
+    primary.assume(
+        image,
+        {
+            .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .scope = {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT},
+        }
+    );
+    primary.end();
+
+    EXPECT_EQ(primary.states().last(image, 0)->layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    test::submit_and_wait(context, primary);
 }
 
 JVK_TEST(CmdBuffer, move_keeps_the_pool) {
