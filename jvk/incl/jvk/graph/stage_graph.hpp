@@ -74,7 +74,7 @@ public:
      * @details
      * - sets the status of the stage to `SUBMITTED`
      * - thread safe for different stages
-     * - returns at once, the strand of the queue submits after the waited stages submitted
+     * - returns at once, the strand of the queue submits after the waited stages on the same queue submitted
      * - resolves the first uses of the primary against the resource states after all submits
      * - waits for the stage waits of the config and the waits of `Stage::addWait()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
@@ -91,7 +91,7 @@ public:
     /**
      * submits no work for the stage in this frame
      * @details sets the status of the stage to `SKIPPED`, thread safe for different stages
-     * @details returns at once, the strand of the queue submits after the waited stages submitted
+     * @details returns at once, the strand of the queue submits after the waited stages on the same queue submitted
      * @details empty submit on the queue of the stage:
      * - waits for the stage waits of the config and the waits of `Stage::addWait()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
@@ -118,18 +118,21 @@ private:
 
     //TODO review no marks as parameters: the job awaits Semaphore::submitted() of the slots, they live as long as
     // the graph
+    //TODO review next() before the mark: the job of the next frame of the slot awaits the mark, it reads the values
     /**
      * submit job of `submit()` and `skip()`
      * @details
-     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before and of the waited stages on
-     *   the same queue
+     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before and of the first
+     *   `SubmitInfo::queueWaits` waits of `StageSlot::submitInfo`
      * - under `StageGraph::_statesMutex`: `append()` of the states of the primary
      * - release halves: `release()` on the last queues, the submit waits for the returned values
      * - the prologue records the acquire halves and the barriers of the first uses
-     * - in the strand of the queue: the submit, then `Semaphore::markSubmitted()` of the slot with the frame number
+     * - in the strand of the queue: submits `StageSlot::submitInfo` with the extra waits of the stage and the release
+     *   waits, `SubmitInfo::next()`, then `Semaphore::markSubmitted()` of the slot with the frame number
      * - after the gpu finished: clears the stasis
-     * - an error -> stores it, see `storeError()`, then marks the frame number
-     * @details the status: `SUBMITTED` -> the primary, `SKIPPED` -> the empty submit
+     * - an error -> stores it, see `storeError()`, then `SubmitInfo::next()` and the mark
+     * @details the status: `SUBMITTED` -> with `SubmitInfo::cmdBuffers`, `SKIPPED` -> the same waits and signal,
+     *  no command buffers
      * @see `Stage::submitted()`
      */
     [[nodiscard]] cth::co::executor_task<void> submitJob(

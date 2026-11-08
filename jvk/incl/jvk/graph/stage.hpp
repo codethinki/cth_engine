@@ -11,6 +11,7 @@
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
@@ -25,22 +26,64 @@ class StageGraph;
 }
 
 namespace jvk::dev {
-struct StageSlot;
-
+//TODO review name: cvk::SemaphoreSubmitInfo with the jvk semaphore and a fixed value
+//TODO review int64_t value: a wait for a frame before the first frame is < 1, next() keeps adding to it
 /**
- * wait of a stage slot for the slot of the waited stage, from a `StageWait`
+ * semaphore of a prebuilt submit
+ * @details converts to `cvk::SemaphoreSubmitInfo`, a `value < 0` waits for `0`
  */
-struct SlotWait {
+struct SemaphoreSubmitInfo {
+    cth::ref_wrapper<Semaphore const> semaphore; ///< the jvk semaphore: `Semaphore::submitted()` needs it
+
     /**
-     * the waited stage in the frame slot of the waited frame
-     * @details the submit waits for its `StageSlot::semaphore` with the number of the waited frame
+     * wait -> the stages that wait, signal -> the stages that finish before the signal
      */
-    //TODO review name stageSlot, not slot: slot is the index of the frame slot, see StageSlot::slot
-    cth::ref_wrapper<StageSlot const> stageSlot;
+    VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 
-    VkPipelineStageFlags2 stages; ///< see `StageWait::stages`
+    /**
+     * a frame number
+     * @details `< 1` -> a frame before the first frame, its wait is reached at once
+     */
+    int64_t value;
 
-    uint32_t frameOffset; ///< see `StageWait::frameOffset`
+    [[nodiscard]] constexpr operator cvk::SemaphoreSubmitInfo() const {
+        return cvk::SemaphoreSubmitInfo{*semaphore, stages, static_cast<uint64_t>(std::max<int64_t>(value, 0))};
+    }
+};
+
+//TODO review name: like cvk::SubmitInfo and the legacy jvk::SubmitInfo
+/**
+ * prebuilt submit of a stage slot
+ * @details
+ * - the graph builds it once, at its construction
+ * - holds the values of the next submit or skip of the slot
+ * - a skip submits the waits and the signal without the command buffers
+ */
+struct SubmitInfo {
+    std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{}; ///< `StageSlot::prologue`, `StageSlot::primary`
+
+    /**
+     * one per `StageConfig::waits`: `StageSlot::semaphore` of the waited stage slot
+     * @details the waited stage slot: stage `StageWait::stageId`, `StageWait::frameOffset` frame slots before
+     * @details the waits for a stage on the same `Queue` come first, `SubmitInfo::queueWaits` of them
+     */
+    std::vector<SemaphoreSubmitInfo> waits{};
+
+    //TODO review the waits on the same queue first, counted by queueWaits: like the legacy timeline waits first
+    /**
+     * the first `queueWaits` waits wait for a stage on the same `Queue`
+     * @details the submit job awaits their `Semaphore::submitted()` before its submit
+     */
+    size_t queueWaits = 0;
+
+    SemaphoreSubmitInfo signal; ///< `StageSlot::semaphore` with the frame number
+
+    /**
+     * advances every wait and signal value to the next frame of the slot
+     * @details never reads the waited semaphores: their submit jobs run at the same time, a read can see an old frame
+     * @param frameSlots `StageGraphConfig::frameSlots`, the values rise by it
+     */
+    constexpr void next(size_t frameSlots);
 };
 
 /**
@@ -63,7 +106,9 @@ struct StageSlot {
      */
     Semaphore semaphore;
 
-    std::vector<SlotWait> waits{}; ///< one per `StageConfig::waits`
+    //TODO review a member of the stage slot: it refers to StageSlot::semaphore, StageSlot::prologue,
+    // StageSlot::primary and the semaphores of the waited stage slots, they live as long as the graph
+    SubmitInfo submitInfo; ///< the waits and the signal of the next submit or skip, see `SubmitInfo::next()`
 
     cth::ref_wrapper<StageSlot const> previous; ///< the stage in the frame slot before, submits first
 
@@ -238,4 +283,12 @@ public:
     Stage& operator=(Stage const& other) = delete;
     Stage& operator=(Stage&& other) noexcept = default;
 };
+}
+
+namespace jvk::dev {
+constexpr void SubmitInfo::next(size_t frameSlots) {
+    for(auto& wait : waits)
+        wait.value += static_cast<int64_t>(frameSlots);
+    signal.value += static_cast<int64_t>(frameSlots);
+}
 }
