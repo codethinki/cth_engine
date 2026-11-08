@@ -30,7 +30,8 @@ class Core;
  * @details
  * - refers to the queue of the cvk core
  * - runs its work in one strand
- * - releases the queue family ownership of resources, see `release()`
+ * - releases the queue family ownership of resources
+ * @see `release()`
  */
 class Queue {
 public:
@@ -100,10 +101,7 @@ private:
     cth::not_null_ptr<cvk::Queue const> _queuePtr;
     cth::co::strand _strand;
 
-    /**
-     * used in the strand only
-     */
-    mutable std::deque<ReleaseCmd> _releaseCmds{};
+    mutable std::deque<ReleaseCmd> _releaseCmds{}; ///< used in the strand only
 
     //TODO member `mutable Semaphore _released`: the release counter, raised by each release submit;
     // a member now breaks the link of queue.cpp, the destructor of jvk::Semaphore needs its source

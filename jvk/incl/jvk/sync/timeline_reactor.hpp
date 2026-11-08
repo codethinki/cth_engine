@@ -88,16 +88,14 @@ private:
 
     cth::not_null_ptr<cth::co::scheduler const> _workersPtr;
 
-    /**
-     * the thread waits for it next to the semaphores with waiters
-     */
-    mutable cvk::TimelineSemaphore _wake;
+    mutable cvk::TimelineSemaphore _wake; ///< the thread waits for it next to the semaphores with waiters
 
     mutable std::mutex _mutex{};
 
     /**
-     * min-heap of the waiters by value per semaphore, see `std::ranges::push_heap()`
+     * min-heap of the waiters by value per semaphore
      * @details an entry exists while the semaphore has waiters
+     * @see `std::ranges::push_heap()`
      */
     mutable waiter_map_t _waiters{};
 

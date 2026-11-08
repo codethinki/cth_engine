@@ -12,35 +12,24 @@ namespace jvk {
  * @details `frameOffset > 0` -> timeline wait for an earlier frame of the stage
  */
 struct StageWait {
-    /**
-     * id of the waited stage, see `StageGraphConfig::stages`
-     */
-    size_t stageId;
+    size_t stageId; ///< id of the waited stage, see `StageGraphConfig::stages`
 
-    /**
-     * stages of the waiting submit that wait
-     */
-    VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT; ///< stages of the waiting submit that wait
 
-    /**
-     * frames before the current frame (`0` => the same frame, `1` => the previous frame)
-     */
-    uint32_t frameOffset = 0;
+    uint32_t frameOffset = 0; ///< frames before the current frame (`0` => the same frame, `1` => the previous frame)
 };
 
 /**
  * config of a `Stage`
  */
 struct StageConfig {
-    /**
-     * index of the queue in `cvk::CoreConfig::queueProperties`
-     */
-    size_t queueIdx;
+    size_t queueIdx; ///< index of the queue in `cvk::CoreConfig::queueProperties`
 
     std::vector<StageWait> waits{};
 
     /**
-     * secondary command buffers per frame slot, see `Stage::secondary()`
+     * secondary command buffers per frame slot
+     * @see `Stage::secondary()`
      */
     size_t secondaries = 0;
 };
@@ -50,10 +39,7 @@ struct StageConfig {
  */
 struct StageGraphConfig {
     //TODO review id = index instead of the hash map of the old sketch
-    /**
-     * the stages, the id of a stage is its index
-     */
-    std::vector<StageConfig> stages{};
+    std::vector<StageConfig> stages{}; ///< the stages, the id of a stage is its index
 
     /**
      * frames that the gpu works on at the same time

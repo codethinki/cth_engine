@@ -46,15 +46,9 @@ struct SwapchainImage {
     cth::not_null_ptr<cvk::Image const> imagePtr;
     cth::not_null_ptr<cvk::ImageView const> viewPtr;
 
-    /**
-     * index of the image in the swapchain
-     */
-    uint32_t imageIdx;
+    uint32_t imageIdx; ///< index of the image in the swapchain
 
-    /**
-     * extent of the swapchain at the acquire
-     */
-    VkExtent2D extent;
+    VkExtent2D extent; ///< extent of the swapchain at the acquire
 };
 
 /**
@@ -136,7 +130,7 @@ public:
     /**
      * acquires the next swapchain image for the stage
      * @details
-     * - adds the wait for the acquire to the stage, see `Stage::addWait()`
+     * - adds the wait for the acquire to the stage
      * - assumes `VK_IMAGE_LAYOUT_UNDEFINED` with the wait stages in the primary of the stage, see
      *   `PrimaryCmdBuffer::assume()`: the first barrier of the image chains with the wait
      * - `VK_ERROR_OUT_OF_DATE_KHR` of the last present or acquire, or a changed surface extent -> recreates the
@@ -151,6 +145,7 @@ public:
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
      * @throws cvk::vk_result_exception the first error of a present job
+     * @see `Stage::addWait()`
      */
     [[nodiscard]] cth::co::executor_task<std::optional<SwapchainImage>> acquire(
         Stage&,
@@ -169,14 +164,14 @@ public:
      * - the same family: no release
      * @details
      * - returns at once, the present job waits for the stage
-     * - transitions the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` from its last state in the stage primary,
-     *   see `PrimaryCmdBuffer::states()`
+     * - transitions the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` from its last state in the stage primary
      * - does not change the graph states
      * - `VK_ERROR_OUT_OF_DATE_KHR` -> the next `acquire()` recreates the swapchain
      * @pre `acquire()` returned an image, not presented or unacquired
      * @pre the stage recording uses the image
      * @pre the stage is the last use of the image in the frame or waits for the other uses
      * @pre `UNSUBMITTED` -> the preconditions of `Stage::submit()`
+     * @see `PrimaryCmdBuffer::states()`
      */
     void present(Stage&);
 
@@ -202,13 +197,11 @@ public:
 private:
     /**
      * submit before the present of one swapchain image
-     * @details signals the present semaphore of the image, see `cvk::Swapchain::presentSemaphore()`
+     * @details signals the present semaphore of the image
+     * @see `cvk::Swapchain::presentSemaphore()`
      */
     struct PresentSubmit {
-        /**
-         * the barrier of the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
-         */
-        PrimaryCmdBuffer cmd;
+        PrimaryCmdBuffer cmd; ///< the barrier of the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
 
         /**
          * value of `Presenter::_semaphore` for the last submit of `PresentSubmit::cmd`, free once reached
@@ -262,30 +255,15 @@ private:
      */
     std::vector<cvk::Semaphore> _acquireSemaphores{};
 
-    /**
-     * the semaphore in `Presenter::_acquireSemaphores` for the next acquire
-     */
-    size_t _acquireSemaphoreIdx = 0;
+    size_t _acquireSemaphoreIdx = 0; ///< the semaphore in `Presenter::_acquireSemaphores` for the next acquire
 
-    /**
-     * signaled by the present submits, each submit signals the next value
-     */
-    Semaphore _semaphore;
+    Semaphore _semaphore; ///< signaled by the present submits, each submit signals the next value
 
-    /**
-     * one per swapchain image
-     */
-    std::vector<PresentSubmit> _submits{};
+    std::vector<PresentSubmit> _submits{}; ///< one per swapchain image
 
-    /**
-     * the images of the pending presents, the oldest first
-     */
-    std::deque<uint32_t> _presentedImageIndices{};
+    std::deque<uint32_t> _presentedImageIndices{}; ///< the images of the pending presents, the oldest first
 
-    /**
-     * the acquired image, not presented or unacquired
-     */
-    std::optional<uint32_t> _imageIdxOpt = std::nullopt;
+    std::optional<uint32_t> _imageIdxOpt = std::nullopt; ///< the acquired image, not presented or unacquired
 
     /**
      * `VK_ERROR_OUT_OF_DATE_KHR` of a present, the next `acquire()` recreates the swapchain

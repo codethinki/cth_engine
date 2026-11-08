@@ -130,8 +130,9 @@ private:
      * - after the gpu finished: clears the stasis
      * - an error -> stores it, see `storeError()`, then sets the mark
      * @details the status: `SUBMITTED` -> the primary, `SKIPPED` -> the empty submit
-     * @param[out] mark of the stage in this frame, see `Stage::submitted()`
+     * @param[out] mark of the stage in this frame
      * @param markAwaiters of the marks to await off the strand
+     * @see `Stage::submitted()`
      */
     [[nodiscard]] cth::co::executor_task<void> submitJob(
         dev::StageSlot&,
@@ -152,9 +153,10 @@ private:
     void append(ResourceStates const& recording, Queue const& queue, cvk::Barrier& prologue, release_map_t& releases);
 
     /**
-     * releases the resources on their last queues, see `Queue::release()`
+     * releases the resources on their last queues
      * @param releases the release halves per last queue, from `append()`
      * @return the waits for the releases
+     * @see `Queue::release()`
      */
     [[nodiscard]] cth::co::executor_task<semaphore_waits_t> release(release_map_t releases);
 
@@ -166,42 +168,27 @@ private:
     cth::not_null_ptr<Core> _corePtr;
     Config _config;
 
-    /**
-     * one per frame slot, with its stage slots
-     */
-    std::deque<dev::FrameSlot> _frameSlots{};
+    std::deque<dev::FrameSlot> _frameSlots{}; ///< one per frame slot, with its stage slots
 
     /**
      * locks `StageGraph::_states`, `StageGraph::_imageQueues` and `StageGraph::_bufferQueues`
      */
     std::mutex _statesMutex{};
 
-    /**
-     * resource states after all submits
-     */
-    ResourceStates _states{};
+    ResourceStates _states{}; ///< resource states after all submits
 
     /**
      * last queue per mip level of an image, for the queue family ownership transfers
      */
     last_queue_map_t<image_mip_t> _imageQueues{};
 
-    /**
-     * last queue per buffer, for the queue family ownership transfers
-     */
-    last_queue_map_t<VkBuffer> _bufferQueues{};
+    last_queue_map_t<VkBuffer> _bufferQueues{}; ///< last queue per buffer, for the queue family ownership transfers
 
     std::mutex _errorMutex{};
 
-    /**
-     * the first error of a submit job, `nextFrame()` rethrows it
-     */
-    std::exception_ptr _errorPtr = nullptr;
+    std::exception_ptr _errorPtr = nullptr; ///< the first error of a submit job, `nextFrame()` rethrows it
 
-    /**
-     * number of the last frame that `nextFrame()` handed out
-     */
-    uint64_t _frameNumber = 0;
+    uint64_t _frameNumber = 0; ///< number of the last frame that `nextFrame()` handed out
 
 public:
     StageGraph(StageGraph const& other) = delete;

@@ -41,15 +41,9 @@ struct SlotWait {
      */
     cth::not_null_ptr<StageSlot const> slotPtr;
 
-    /**
-     * see `StageWait::stages`
-     */
-    VkPipelineStageFlags2 stages;
+    VkPipelineStageFlags2 stages; ///< see `StageWait::stages`
 
-    /**
-     * see `StageWait::frameOffset`
-     */
-    uint32_t frameOffset;
+    uint32_t frameOffset; ///< see `StageWait::frameOffset`
 };
 
 /**
@@ -61,10 +55,7 @@ struct SlotWait {
 struct StageSlot {
     cth::not_null_ptr<StageGraph> graphPtr;
 
-    /**
-     * id of the stage, see `StageGraphConfig::stages`
-     */
-    size_t stageId;
+    size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
     size_t slot;
     cth::not_null_ptr<Queue const> queuePtr;
@@ -75,34 +66,19 @@ struct StageSlot {
      */
     Semaphore semaphore;
 
-    /**
-     * one per `StageConfig::waits`
-     */
-    std::vector<SlotWait> waits{};
+    std::vector<SlotWait> waits{}; ///< one per `StageConfig::waits`
 
-    /**
-     * the stage in the frame slot before, submits first
-     */
-    cth::not_null_ptr<StageSlot const> previousPtr;
+    cth::not_null_ptr<StageSlot const> previousPtr; ///< the stage in the frame slot before, submits first
 
-    /**
-     * barriers for the first uses of the primary, submitted before it
-     */
-    PrimaryCmdBuffer prologue;
+    PrimaryCmdBuffer prologue; ///< barriers for the first uses of the primary, submitted before it
 
     PrimaryCmdBuffer primary;
 
-    /**
-     * `StageConfig::secondaries` of them
-     */
-    std::vector<SecondaryCmdBuffer> secondaries{};
+    std::vector<SecondaryCmdBuffer> secondaries{}; ///< `StageConfig::secondaries` of them
 
     std::mutex stasisMutex{};
 
-    /**
-     * destroyed when `StageSlot::semaphore` reaches the frame number of the next submit or skip
-     */
-    Stasis stasis;
+    Stasis stasis; ///< destroyed when `StageSlot::semaphore` reaches the frame number of the next submit or skip
 };
 
 /**
@@ -114,10 +90,7 @@ struct StageSlot {
 struct SubmitMark {
     std::mutex mutex{};
 
-    /**
-     * the graph job reached `vkQueueSubmit2()`
-     */
-    bool submitted = false;
+    bool submitted = false; ///< the graph job reached `vkQueueSubmit2()`
 
     /**
      * the waiters before `SubmitMark::submitted`, see `submitted_awaiter`
@@ -194,7 +167,8 @@ public:
 
     /**
      * primary command buffer of the frame slot
-     * @details not begun, see `beginPrimary()`
+     * @details not begun
+     * @see `beginPrimary()`
      */
     [[nodiscard]] PrimaryCmdBuffer& primary() { return _slotPtr->primary; }
 
@@ -213,17 +187,19 @@ public:
 
     /**
      * secondary command buffer of the frame slot
-     * @details not begun, see `beginSecondary()`
+     * @details not begun
      * @details the same index in the next frames of the slot is the same secondary
      * @pre `secondaryIdx < StageConfig::secondaries`
      * @pre `primary()` executes it before the `submit()`
+     * @see `beginSecondary()`
      */
     [[nodiscard]] SecondaryCmdBuffer& secondary(size_t secondaryIdx);
 
     /**
      * secondary command buffer for the queue family of the stage, owned by the caller
-     * @details not begun, see `SecondaryCmdBuffer::begin()`
+     * @details not begun
      * @throws cvk::vk_result_exception result of `vkCreateCommandPool()` or `vkAllocateCommandBuffers()`
+     * @see `SecondaryCmdBuffer::begin()`
      */
     [[nodiscard]] SecondaryCmdBuffer persistentSecondary() const;
 
@@ -270,10 +246,11 @@ public:
     /**
      * waits until the submit or the skip of this frame reached `vkQueueSubmit2()`
      * @details
-     * - not until the gpu finished, see `wait()`
+     * - not until the gpu finished
      * - resumes on the context of the caller
      * - reached -> no suspend
      * - await it before a submit on `queue()` that waits for `semaphore()`
+     * @see `wait()`
      */
     [[nodiscard]] constexpr submitted_awaiter submitted() const { return submitted_awaiter{*_submitMarkPtr}; }
 
@@ -302,15 +279,13 @@ private:
     uint64_t _frameNumber;
     Status _status = Status::UNSUBMITTED;
 
-    /**
-     * the waits of `addWait()`
-     */
-    std::vector<cvk::SemaphoreSubmitInfo> _extraWaits{};
+    std::vector<cvk::SemaphoreSubmitInfo> _extraWaits{}; ///< the waits of `addWait()`
 
     //TODO review behind a std::unique_ptr: the mutex is not movable, dev::FrameSlot::stages moves the stages;
     // the address stays for the graph job and the waiters
     /**
-     * set by the graph job, see `submitted()`
+     * set by the graph job
+     * @see `submitted()`
      */
     std::unique_ptr<dev::SubmitMark> _submitMarkPtr;
 

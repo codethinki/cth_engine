@@ -33,8 +33,9 @@ public:
     [[nodiscard]] bool await_ready() const;
 
     /**
-     * registers the resume of the caller with the reactor of the core, see `TimelineReactor::await()`
+     * registers the resume of the caller with the reactor of the core
      * @details resumes on the context of the caller
+     * @see `TimelineReactor::await()`
      */
     template<class Caller>
     requires cth::co::this_coro_compatible<Caller>
@@ -50,10 +51,7 @@ private:
     cth::not_null_ptr<Semaphore const> _semaphorePtr;
     uint64_t _value;
 
-    /**
-     * result of the wait, set by the callback
-     */
-    std::error_code _error{};
+    std::error_code _error{}; ///< result of the wait, set by the callback
 };
 }
 

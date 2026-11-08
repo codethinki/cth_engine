@@ -70,15 +70,9 @@ struct FrameSlot {
     cth::not_null_ptr<StageGraph> graphPtr;
     size_t slot;
 
-    /**
-     * one per stage of the config
-     */
-    std::deque<StageSlot> stageSlots{};
+    std::deque<StageSlot> stageSlots{}; ///< one per stage of the config
 
-    /**
-     * the stages of the current frame, constructed by `StageGraph::nextFrame()`
-     */
-    std::vector<Stage> stages{};
+    std::vector<Stage> stages{}; ///< the stages of the current frame, constructed by `StageGraph::nextFrame()`
 
     /**
      * the current frame of the slot, constructed by `StageGraph::nextFrame()`
