@@ -8,12 +8,15 @@
 
 #include <volk.h>
 
+#include <cth/coro/context.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
-#include <cth/os/fence.hpp>
+#include <cth/coro/utility/fwd.hpp>
 #include <cth/ptr/not_null.hpp>
 
+#include <coroutine>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <type_traits>
@@ -29,21 +32,22 @@ namespace jvk::dev {
 struct StageSlot;
 
 /**
- * wait of a stage slot for the slot of the waited stage, from a @ref StageWait
+ * wait of a stage slot for the slot of the waited stage, from a `StageWait`
  */
 struct SlotWait {
     /**
      * the waited stage in the frame slot of the waited frame
+     * @details the submit waits for its `StageSlot::semaphore` with the number of the waited frame
      */
     cth::not_null_ptr<StageSlot const> slotPtr;
 
     /**
-     * see @ref StageWait::stages
+     * see `StageWait::stages`
      */
     VkPipelineStageFlags2 stages;
 
     /**
-     * see @ref StageWait::frameOffset
+     * see `StageWait::frameOffset`
      */
     uint32_t frameOffset;
 };
@@ -52,13 +56,13 @@ struct SlotWait {
  * resources of a stage in one frame slot
  * @details
  * - owned by the graph, live as long as the graph
- * - the @ref Stage of each frame uses them
+ * - the `Stage` of each frame uses them
  */
 struct StageSlot {
     cth::not_null_ptr<StageGraph> graphPtr;
 
     /**
-     * id of the stage, see @ref StageGraphConfig::stages
+     * id of the stage, see `StageGraphConfig::stages`
      */
     size_t stageId;
 
@@ -66,13 +70,13 @@ struct StageSlot {
     cth::not_null_ptr<Queue const> queuePtr;
 
     /**
-     * semaphore of the stage, owned by the graph
-     * @details the submit or the skip of frame N signals N
+     * signaled by the submit or the skip of each frame of the slot
+     * @details value: the frame number, rises by `StageGraphConfig::frameSlots` per signal
      */
-    cth::not_null_ptr<Semaphore const> semaphorePtr;
+    Semaphore semaphore;
 
     /**
-     * one per @ref StageConfig::waits
+     * one per `StageConfig::waits`
      */
     std::vector<SlotWait> waits{};
 
@@ -89,31 +93,76 @@ struct StageSlot {
     PrimaryCmdBuffer primary;
 
     /**
-     * @ref StageConfig::secondaries of them
+     * `StageConfig::secondaries` of them
      */
     std::vector<SecondaryCmdBuffer> secondaries{};
-
-    /**
-     * signaled after the vkQueueSubmit2() or the skip of the frame
-     */
-    cth::os::fence submitted{};
 
     std::mutex stasisMutex{};
 
     /**
-     * destroyed when @ref semaphorePtr reaches the frame number of the next submit or skip
+     * destroyed when `StageSlot::semaphore` reaches the frame number of the next submit or skip
      */
     Stasis stasis;
+};
+
+/**
+ * submitted mark of a stage in one frame
+ * @details
+ * - set once by the graph job, after the `vkQueueSubmit2()` of the submit or the skip
+ * - the graph job posts the callbacks to the workers of the core
+ */
+struct SubmitMark {
+    std::mutex mutex{};
+
+    /**
+     * the graph job reached `vkQueueSubmit2()`
+     */
+    bool submitted = false;
+
+    /**
+     * the waiters before `SubmitMark::submitted`, see `submitted_awaiter`
+     */
+    std::vector<cth::co::context::await_func> callbacks{};
 };
 }
 
 namespace jvk {
+//TODO review name: snake_case like semaphore_awaiter
+/**
+ * awaiter of `Stage::submitted()`
+ * @details resumes the caller on its context
+ */
+class submitted_awaiter : public cth::co::this_coro_awaiter_base {
+public:
+    constexpr explicit submitted_awaiter(dev::SubmitMark& mark) : _markPtr{&mark} {}
+
+    /**
+     * @return the mark is set
+     */
+    [[nodiscard]] bool await_ready() const;
+
+    /**
+     * adds the resume of the caller to the callbacks of the mark
+     * @details resumes on the context of the caller
+     * @return `false` -> the mark is set in the meantime, the caller continues
+     */
+    template<class Caller>
+    requires cth::co::this_coro_compatible<Caller>
+    bool await_suspend(std::coroutine_handle<Caller> caller);
+
+    //TODO review no error: the graph job sets the mark on every path, its error goes to StageGraph::nextFrame()
+    constexpr void await_resume() const noexcept {}
+
+private:
+    cth::not_null_ptr<dev::SubmitMark> _markPtr;
+};
+
 /**
  * submission of one stage in one frame
  * @details
- * - per frame: constructed by @ref StageGraph::nextFrame(), handed out by @ref Frame::stage()
+ * - per frame: constructed by `StageGraph::nextFrame()`, handed out by `Frame::stage()`
  * - the resources come from its stage slot
- * - valid until @ref StageGraph::nextFrame() hands out its slot again
+ * - valid until `StageGraph::nextFrame()` hands out its slot again
  */
 class Stage {
 public:
@@ -130,7 +179,7 @@ public:
 
     /**
      * @param slotPtr resources of the stage in the frame slot
-     * @pre slotPtr != nullptr
+     * @pre `slotPtr != nullptr`
      */
     Stage(dev::StageSlot* slotPtr, uint64_t frameNumber);
 
@@ -138,24 +187,24 @@ public:
      * begins the primary command buffer of the frame
      * @details resets the primary at each begin
      * @return the primary
-     * @pre @ref status() is UNSUBMITTED
+     * @pre `status()` is `UNSUBMITTED`
      * @attention not thread safe
      */
     PrimaryCmdBuffer& beginPrimary();
 
     /**
      * primary command buffer of the frame slot
-     * @details not begun, see @ref beginPrimary()
+     * @details not begun, see `beginPrimary()`
      */
     [[nodiscard]] PrimaryCmdBuffer& primary() { return _slotPtr->primary; }
 
     //TODO review std::optional instead of a default inheritance {}: an empty inheritance continues a rendering
     /**
      * begins the secondary command buffer of the frame slot
-     * @param inheritanceOpt std::nullopt -> for use outside of a rendering
+     * @param inheritanceOpt `std::nullopt` -> for use outside of a rendering
      * @return the secondary
-     * @pre the preconditions of @ref secondary()
-     * @attention not thread safe for one secondaryIdx
+     * @pre the preconditions of `secondary()`
+     * @attention not thread safe for one `secondaryIdx`
      */
     SecondaryCmdBuffer& beginSecondary(
         size_t secondaryIdx,
@@ -164,24 +213,24 @@ public:
 
     /**
      * secondary command buffer of the frame slot
-     * @details not begun, see @ref beginSecondary()
+     * @details not begun, see `beginSecondary()`
      * @details the same index in the next frames of the slot is the same secondary
-     * @pre secondaryIdx < @ref StageConfig::secondaries
-     * @pre @ref primary() executes it before the @ref submit()
+     * @pre `secondaryIdx < StageConfig::secondaries`
+     * @pre `primary()` executes it before the `submit()`
      */
     [[nodiscard]] SecondaryCmdBuffer& secondary(size_t secondaryIdx);
 
     /**
      * secondary command buffer for the queue family of the stage, owned by the caller
-     * @details not begun, see @ref SecondaryCmdBuffer::begin()
-     * @throws cvk::vk_result_exception result of vkCreateCommandPool() or vkAllocateCommandBuffers()
+     * @details not begun, see `SecondaryCmdBuffer::begin()`
+     * @throws cvk::vk_result_exception result of `vkCreateCommandPool()` or `vkAllocateCommandBuffers()`
      */
     [[nodiscard]] SecondaryCmdBuffer persistentSecondary() const;
 
     /**
      * adds a semaphore wait to the submit of this frame
-     * @details @ref submit() and @ref skip() wait for it
-     * @pre @ref status() is UNSUBMITTED
+     * @details `submit()` and `skip()` wait for it
+     * @pre `status()` is `UNSUBMITTED`
      * @pre the semaphore lives until the gpu finished the submit
      * @attention not thread safe
      */
@@ -189,22 +238,22 @@ public:
 
     /**
      * submits the primary of the frame
-     * @details calls @ref StageGraph::submit() of the graph of the stage
-     * @pre the preconditions of @ref StageGraph::submit()
+     * @details calls `StageGraph::submit()` of the graph of the stage
+     * @pre the preconditions of `StageGraph::submit()`
      */
     void submit();
 
     /**
      * submits no work in this frame
-     * @details calls @ref StageGraph::skip() of the graph of the stage
-     * @pre the preconditions of @ref StageGraph::skip()
+     * @details calls `StageGraph::skip()` of the graph of the stage
+     * @pre the preconditions of `StageGraph::skip()`
      */
     void skip();
 
     /**
      * keeps the object until the gpu finished the submit or the skip of this frame
      * @details thread safe
-     * @pre @ref status() is UNSUBMITTED
+     * @pre `status()` is `UNSUBMITTED`
      * @pre its users on other queues finish before this submit: this submit waits for them
      */
     template<class T>
@@ -214,9 +263,19 @@ public:
     /**
      * waits until the gpu finished the submit or the skip of this frame
      * @details resumes on the context of the caller
-     * @pre @ref status() is not UNSUBMITTED
+     * @pre `status()` is not `UNSUBMITTED`
      */
     [[nodiscard]] cth::co::executor_task<void> wait() const;
+
+    /**
+     * waits until the submit or the skip of this frame reached `vkQueueSubmit2()`
+     * @details
+     * - not until the gpu finished, see `wait()`
+     * - resumes on the context of the caller
+     * - reached -> no suspend
+     * - await it before a submit on `queue()` that waits for `semaphore()`
+     */
+    [[nodiscard]] constexpr submitted_awaiter submitted() const { return submitted_awaiter{*_submitMarkPtr}; }
 
     [[nodiscard]] constexpr Status status() const { return _status; }
     [[nodiscard]] constexpr size_t id() const { return _slotPtr->stageId; }
@@ -224,23 +283,19 @@ public:
     [[nodiscard]] constexpr Queue const& queue() const { return *_slotPtr->queuePtr; }
 
     /**
-     * @return semaphore of the stage
+     * @return semaphore of the stage slot
      * @details the submit or the skip of frame N signals N
      */
-    [[nodiscard]] constexpr Semaphore const& semaphore() const { return *_slotPtr->semaphorePtr; }
+    [[nodiscard]] constexpr Semaphore const& semaphore() const { return _slotPtr->semaphore; }
 
     /**
-     * @return number of the frame, the value of @ref semaphore() for this frame
+     * @return number of the frame, the value of `semaphore()` for this frame
      */
     [[nodiscard]] constexpr uint64_t frameNumber() const { return _frameNumber; }
 
-    /**
-     * @return signaled after the vkQueueSubmit2() or the skip of this frame
-     */
-    [[nodiscard]] constexpr cth::os::fence const& submitted() const { return _slotPtr->submitted; }
-
 private:
-    // the graph sets the status of the submission, there is no other access without a public setter
+    // the graph sets the status and the submitted mark of the submission, there is no other access without a
+    // public setter
     friend class StageGraph;
 
     cth::not_null_ptr<dev::StageSlot> _slotPtr;
@@ -248,9 +303,16 @@ private:
     Status _status = Status::UNSUBMITTED;
 
     /**
-     * the waits of @ref addWait()
+     * the waits of `addWait()`
      */
     std::vector<cvk::SemaphoreSubmitInfo> _extraWaits{};
+
+    //TODO review behind a std::unique_ptr: the mutex is not movable, dev::FrameSlot::stages moves the stages;
+    // the address stays for the graph job and the waiters
+    /**
+     * set by the graph job, see `submitted()`
+     */
+    std::unique_ptr<dev::SubmitMark> _submitMarkPtr;
 
 public:
     Stage(Stage const& other) = delete;

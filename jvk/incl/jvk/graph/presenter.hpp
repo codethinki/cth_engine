@@ -11,7 +11,6 @@
 
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/io/log.hpp>
-#include <cth/os/fence.hpp>
 #include <cth/ptr/not_null.hpp>
 
 #include <atomic>
@@ -33,6 +32,7 @@ namespace jvk {
 class Core;
 class Queue;
 class Stage;
+class submitted_awaiter;
 }
 
 namespace jvk {
@@ -40,7 +40,7 @@ namespace jvk {
  * acquired swapchain image
  * @details
  * - tracked like every image: the commands that use it record its accesses
- * - valid until the next @ref Presenter::acquire()
+ * - valid until the next `Presenter::acquire()`
  */
 struct SwapchainImage {
     cth::not_null_ptr<cvk::Image const> imagePtr;
@@ -58,18 +58,18 @@ struct SwapchainImage {
 };
 
 /**
- * config of a @ref Presenter
+ * config of a `Presenter`
  */
 struct PresenterConfig {
     /**
-     * @pre @ref cvk::SwapchainConfig::queueFamilies has < 2 entries: the images stay VK_SHARING_MODE_EXCLUSIVE
+     * @pre `cvk::SwapchainConfig::queueFamilies.size() < 2`: the images stay `VK_SHARING_MODE_EXCLUSIVE`
      */
     cvk::Swapchain::Config swapchain{};
 
     /**
      * frames that the gpu works on at the same time, one acquire semaphore each
-     * @pre > 0
-     * @pre >= @ref StageGraphConfig::frameSlots of the graph of the stages
+     * @pre `framesInFlight > 0`
+     * @pre `framesInFlight >= StageGraphConfig::frameSlots` of the graph of the stages
      */
     uint32_t framesInFlight = 2;
 };
@@ -78,7 +78,7 @@ struct PresenterConfig {
  * presents to a surface
  * @details
  * - owns the surface and the swapchain
- * - recreates the swapchain in @ref acquire()
+ * - recreates the swapchain in `acquire()`
  * - acquires, submits and presents in the strand of its queue
  * - one acquired image at a time
  * @attention not thread safe
@@ -90,29 +90,29 @@ public:
     /**
      * base constructor
      * @details the queue presents and runs the present submits
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     Presenter(Core const&, Queue const&, Config);
 
     /**
      * constructs and creates
-     * @details calls @ref Presenter(Core const&, Queue const&, Config), @ref create()
+     * @details calls `Presenter(Core const&, Queue const&, Config)`, `create()`
      */
     Presenter(Core const&, Queue const&, Config, cvk::Surface);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Presenter() { optDestroy(); }
 
     //TODO cvk::Surface::extent() (2026-11-08): create() and acquire() need the extent of the surface
     /**
      * takes the surface, creates the swapchain, the semaphores and the command buffers
-     * @details surface extent 0 -> the first @ref acquire() with an extent > 0 creates the swapchain
-     * @pre @ref cvk::Surface::created()
+     * @details surface extent `0` -> the first `acquire()` with an extent `> 0` creates the swapchain
+     * @pre `cvk::Surface::created()`
      * @pre the queue can present to the surface
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception result of a create of the swapchain, semaphores or command buffers
      */
@@ -121,34 +121,35 @@ public:
     /**
      * waits for the present jobs, destroys and forgets
      * @details destroys the command buffers, the semaphores, the swapchain, then the surface
-     * @pre @ref created()
-     * @pre no @ref acquire() is pending
+     * @pre `created()`
+     * @pre no `acquire()` is pending
      * @pre the acquired image is presented or unacquired
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
+    //TODO review no alias for the nested result type: the public result stays visible
     /**
      * acquires the next swapchain image for the stage
      * @details
-     * - adds the wait for the acquire to the stage, see @ref Stage::addWait()
-     * - assumes VK_IMAGE_LAYOUT_UNDEFINED with the wait stages in the primary of the stage, see
-     *   @ref PrimaryCmdBuffer::assume(): the first barrier of the image chains with the wait
-     * - VK_ERROR_OUT_OF_DATE_KHR of the last present or acquire, or a changed surface extent -> recreates the
+     * - adds the wait for the acquire to the stage, see `Stage::addWait()`
+     * - assumes `VK_IMAGE_LAYOUT_UNDEFINED` with the wait stages in the primary of the stage, see
+     *   `PrimaryCmdBuffer::assume()`: the first barrier of the image chains with the wait
+     * - `VK_ERROR_OUT_OF_DATE_KHR` of the last present or acquire, or a changed surface extent -> recreates the
      *   swapchain first
      * - all images in use -> awaits the oldest present fence first
-     * - an acquired image without @ref present() or @ref unacquire() -> unacquires it, warns
+     * - an acquired image without `present()` or `unacquire()` -> unacquires it, warns
      * @param stages pipeline stages of the stage that wait for the acquire
-     * @return std::nullopt -> surface extent 0, no image, no wait
-     * @pre @ref created()
-     * @pre @ref Stage::status() is UNSUBMITTED
-     * @pre @ref Stage::beginPrimary() in this frame, not again after the acquire
+     * @return `std::nullopt` -> surface extent `0`, no image, no wait
+     * @pre `created()`
+     * @pre `Stage::status()` is `UNSUBMITTED`
+     * @pre `Stage::beginPrimary()` in this frame, not again after the acquire
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
-     * @throws cvk::vk_result_exception other result of vkAcquireNextImageKHR() or vkCreateSwapchainKHR()
+     * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
      * @throws cvk::vk_result_exception the first error of a present job
      */
     [[nodiscard]] cth::co::executor_task<std::optional<SwapchainImage>> acquire(
@@ -158,32 +159,32 @@ public:
 
     /**
      * presents the acquired image after the stage
-     * @details by @ref Stage::status():
-     * - UNSUBMITTED: submits the stage, then presents
-     * - SUBMITTED: presents
-     * - SKIPPED: calls @ref unacquire()
-     * @details by queue family of the stage, the images stay VK_SHARING_MODE_EXCLUSIVE:
-     * - another family: the present job calls @ref Queue::release() on the queue of the stage after the stage,
+     * @details by `Stage::status()`:
+     * - `UNSUBMITTED`: submits the stage, then presents
+     * - `SUBMITTED`: presents
+     * - `SKIPPED`: calls `unacquire()`
+     * @details by queue family of the stage, the images stay `VK_SHARING_MODE_EXCLUSIVE`:
+     * - another family: the present job calls `Queue::release()` on the queue of the stage after the stage,
      *   its submit waits for the returned value and records the acquire half
      * - the same family: no release
      * @details
      * - returns at once, the present job waits for the stage
-     * - transitions the image to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR from its last state in the stage primary,
-     *   see @ref PrimaryCmdBuffer::states()
+     * - transitions the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` from its last state in the stage primary,
+     *   see `PrimaryCmdBuffer::states()`
      * - does not change the graph states
-     * - VK_ERROR_OUT_OF_DATE_KHR -> the next @ref acquire() recreates the swapchain
-     * @pre @ref acquire() returned an image, not presented or unacquired
+     * - `VK_ERROR_OUT_OF_DATE_KHR` -> the next `acquire()` recreates the swapchain
+     * @pre `acquire()` returned an image, not presented or unacquired
      * @pre the stage recording uses the image
      * @pre the stage is the last use of the image in the frame or waits for the other uses
-     * @pre UNSUBMITTED -> the preconditions of @ref Stage::submit()
+     * @pre `UNSUBMITTED` -> the preconditions of `Stage::submit()`
      */
     void present(Stage&);
 
     /**
      * gives the acquired image back without a present
-     * @pre @ref acquire() returned an image, not presented or unacquired
+     * @pre `acquire()` returned an image, not presented or unacquired
      * @pre no submit uses the image
-     * @throws cvk::vk_result_exception result of vkReleaseSwapchainImagesKHR()
+     * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
      */
     void unacquire();
 
@@ -191,7 +192,7 @@ public:
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     /**
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] constexpr cvk::Swapchain const& swapchain() const {
         debug_check(*this);
@@ -201,30 +202,31 @@ public:
 private:
     /**
      * submit before the present of one swapchain image
-     * @details signals the present semaphore of the image, see @ref cvk::Swapchain::presentSemaphore()
+     * @details signals the present semaphore of the image, see `cvk::Swapchain::presentSemaphore()`
      */
     struct PresentSubmit {
         /**
-         * the barrier of the image to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+         * the barrier of the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
          */
         PrimaryCmdBuffer cmd;
 
         /**
-         * value of @ref _semaphore for the last submit of @ref cmd, free once reached
+         * value of `Presenter::_semaphore` for the last submit of `PresentSubmit::cmd`, free once reached
          */
         uint64_t value = 0;
     };
 
     /**
-     * present job of @ref present()
+     * present job of `present()`
      * @details
-     * - stage on the same queue or of another family -> off the strand: awaits the submitted mark of the stage
-     * - stage of another family -> @ref Queue::release() of the image on the stage queue
-     * - in the strand of the queue: records the command buffer, submits it through @ref Queue::vk(), presents
+     * - stage on the same queue or of another family -> off the strand: awaits `Stage::submitted()`
+     * - stage of another family -> `Queue::release()` of the image on the stage queue
+     * - in the strand of the queue: records the command buffer, submits it through `Queue::vk()`, presents
      * - the submit waits for the semaphore of the stage and the release, signals the present semaphore and
-     *   @ref _semaphore
-     * - the command buffer: the acquire half of another family, the transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-     * - stores its first error for @ref acquire()
+     *   `Presenter::_semaphore`
+     * - the command buffer: the acquire half of another family, the transition to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
+     * - stores its first error for `acquire()`
+     * @param submitted `Stage::submitted()` of the stage
      * @param lastState of the image in the stage primary
      * @pre the command buffer of the submit belongs to the queue family of the queue
      */
@@ -232,14 +234,14 @@ private:
         Queue const& stageQueue,
         Semaphore const& stageSemaphore,
         uint64_t frameNumber,
-        cth::os::fence const& submitted,
+        submitted_awaiter submitted,
         uint32_t imageIdx,
         ImageState lastState
     );
 
     /**
      * awaits the present fence of the image without a block of the strand
-     * @details exports @ref cvk::Swapchain::presentFence(), awaits it with cth::co::this_coro::await_handle()
+     * @details exports `cvk::Swapchain::presentFence()`, awaits it with `cth::co::this_coro::await_handle()`
      */
     [[nodiscard]] cth::co::executor_task<void> awaitPresentFence(uint32_t imageIdx) const;
 
@@ -251,17 +253,17 @@ private:
     cvk::Surface _surface;
 
     /**
-     * constructed by @ref create(), created once the surface extent is > 0
+     * constructed by `create()`, created once the surface extent is `> 0`
      */
     std::optional<cvk::Swapchain> _swapchainOpt = std::nullopt;
 
     /**
-     * ring of @ref PresenterConfig::framesInFlight, signaled by the acquires
+     * ring of `PresenterConfig::framesInFlight`, signaled by the acquires
      */
     std::vector<cvk::Semaphore> _acquireSemaphores{};
 
     /**
-     * the semaphore in @ref _acquireSemaphores for the next acquire
+     * the semaphore in `Presenter::_acquireSemaphores` for the next acquire
      */
     size_t _acquireSemaphoreIdx = 0;
 
@@ -286,7 +288,7 @@ private:
     std::optional<uint32_t> _imageIdxOpt = std::nullopt;
 
     /**
-     * VK_ERROR_OUT_OF_DATE_KHR of a present, the next @ref acquire() recreates the swapchain
+     * `VK_ERROR_OUT_OF_DATE_KHR` of a present, the next `acquire()` recreates the swapchain
      */
     std::atomic<bool> _outOfDate = false;
 

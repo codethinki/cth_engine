@@ -53,6 +53,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Tests that need more queues than the device has skip. Mesa Intel devices get more queues with `ANV_QUEUE_OVERRIDE=gc=2,c=1`.
 - Tests that need a device use `test::Context` (`cvk/tests/src/context.hpp`). It fails the test on validation errors, leaked objects included.
 - `VCPKG_ROOT` must point at vcpkg.
+- `doxygen` in the repository root checks the docs (`Doxyfile`, output in `out/doxygen`). A change adds no doxygen warning.
 
 ## Code style
 
@@ -279,6 +280,9 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
   - several names: inline on the tag line: ``@details calls `Instance(Config)`, `wrap()` ``
   - several facts: `@details`, optional with a label, then `- ` items
   - one `@details` per topic
+- A member with one fact gets a trailing `///<` on its line: `uint32_t framesInFlight; ///< frames in flight, > 0`.
+  More than one fact: a `/** */` block above it.
+- Related functions go to `@see`, not into the text: ``@see `skip()` ``.
 - A class brief names what it is, in a few words: `primary command buffer`. Its properties go to `@details` as a list: `- owns a command pool`. Copy and move are not documented: the declarations tell it.
 - Do not document what Vulkan does anyway: the barriers that Vulkan forces.
   Document what the abstraction adds on top of Vulkan in `@details`: `execute()` appends the resource states of the secondaries.
@@ -290,12 +294,13 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 | Tag | Use |
 |---|---|
 | `@details` | more information after the brief, one per topic, see the form rules: ``@details calls `create()`, `wrap()` `` |
-| `@param` | name, then what it is for: `@param config to use` |
+| `@param` | name, then what it is for: `@param config to use`; input is implicit, an output parameter is explicit: `@param[out] prologue gets the barriers` |
+| `@see` | related functions: ``@see `skip()` `` |
 | `@tparam` | template parameter, same form as `@param` |
 | `@return` | what the result is |
 | `@pre` | condition that must be true before the call: ``@pre `created()` `` |
 | `@post` | condition that is true after the call: ``@post `created()` `` |
-| `@throws` | exception type and the cause: `@throws cvk::vk_result_exception result of vkCreateInstance()` |
+| `@throws` | exception type and the cause: ``@throws cvk::vk_result_exception result of `vkCreateInstance()` ``; the exception type stays raw, doxygen links it |
 | `@note` | side effect the caller must know: ``@note calls `optDestroy()` `` |
 | `@attention` | danger that is not a precondition: undefined behavior, not thread safe |
 
@@ -343,7 +348,7 @@ Use symbols when they are shorter and clearer than words:
  * @pre volk is initialized
  * @post `created()`
  * @note calls `optDestroy()`
- * @throws cvk::vk_result_exception result of vkCreateInstance()
+ * @throws cvk::vk_result_exception result of `vkCreateInstance()`
  */
 void create();
 ```
