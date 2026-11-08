@@ -18,6 +18,8 @@ namespace {
 
     /**
      * acts like a Vulkan query with the available elements
+     * @param[out] count
+     * @param[out] data
      * @return `VK_INCOMPLETE` -> data has less space than available
      */
     VkResult query(std::span<int const> available, uint32_t* count, int* data) {
@@ -34,6 +36,9 @@ namespace {
 
     /**
      * 2 elements at the first call, 4 at the later calls -> the first write is incomplete
+     * @param[out] calls
+     * @param[out] count
+     * @param[out] data
      */
     VkResult growing(uint32_t* calls, uint32_t* count, int* data) {
         auto const call = (*calls)++;
@@ -42,6 +47,9 @@ namespace {
 
     /**
      * 4 elements at the count call, 2 at the write call
+     * @param[out] calls
+     * @param[out] count
+     * @param[out] data
      */
     VkResult shrinking(uint32_t* calls, uint32_t* count, int* data) {
         auto const call = (*calls)++;
@@ -50,6 +58,9 @@ namespace {
 
     /**
      * one element at every count call, `VK_INCOMPLETE` at every write call
+     * @param[out] calls
+     * @param[out] count
+     * @param[out] data
      */
     VkResult always_incomplete(uint32_t* calls, uint32_t* count, int* data) {
         ++*calls;
@@ -60,6 +71,9 @@ namespace {
     }
 
     /**
+     * @param[out] calls
+     * @param[out] count
+     * @param[out] data
      * @return `VK_ERROR_OUT_OF_HOST_MEMORY` at the call with the index `failingCall`
      */
     VkResult failing(uint32_t failingCall, uint32_t* calls, uint32_t* count, int* data) {
@@ -69,6 +83,8 @@ namespace {
 
     /**
      * writes the first `elementCount` elements, like `vkGetPhysicalDeviceQueueFamilyProperties()`
+     * @param[out] count
+     * @param[out] data
      */
     void void_query(uint32_t elementCount, uint32_t* count, int* data) {
         [[maybe_unused]] auto const result = query(std::span{ELEMENTS}.first(elementCount), count, data);

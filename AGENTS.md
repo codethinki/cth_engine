@@ -297,7 +297,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 | Tag | Use |
 |---|---|
 | `@details` | more information after the brief, one per topic, see the form rules: ``@details calls `create()`, `wrap()` `` |
-| `@param` | name, then what it is for: `@param config to use`; input is implicit, an output parameter is explicit: `@param[out] prologue gets the barriers` |
+| `@param` | name, then what it is for: `@param config to use`; input is implicit, every output parameter (a non-const reference or pointer that the function writes to) is explicit, also without a description: `@param[out] prologue gets the barriers`, `@param[out] sets` |
 | `@see` | related functions: ``@see `skip()` `` |
 | `@tparam` | template parameter, same form as `@param` |
 | `@return` | what the result is |

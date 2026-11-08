@@ -28,6 +28,7 @@ namespace {
 
     /**
      * enters the strand and leaves it to the workers, each round
+     * @param[out] jobs
      */
     cth::co::executor_task<void> enter_rounds(Core const& core, Queue const& queue, StrandJobs& jobs) {
         for(size_t round = 0; round < ROUNDS; ++round) {

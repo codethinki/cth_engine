@@ -46,6 +46,7 @@ namespace jvk::dev {
 
 /**
  * appends one set per merge of two groups that match
+ * @param[out] sets
  * @param match(lhs, rhs) properties of two groups, `true` -> the groups merge
  * @pre `!sets.empty()`
  */

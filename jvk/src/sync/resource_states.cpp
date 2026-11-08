@@ -78,6 +78,7 @@ namespace {
 
     /**
      * appends the barrier of one mip level, merges it into an equal barrier of the level before
+     * @param[out] barrier
      */
     void add_image_barrier(cvk::Barrier& barrier, Image const& image, cvk::ImageBarrierInfo const& info) {
         if(!barrier.images.empty()) {

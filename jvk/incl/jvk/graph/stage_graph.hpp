@@ -130,7 +130,7 @@ private:
      * - after the gpu finished: clears the stasis
      * - an error -> stores it, see `storeError()`, then sets the mark
      * @details the status: `SUBMITTED` -> the primary, `SKIPPED` -> the empty submit
-     * @param mark of the stage in this frame, see `Stage::submitted()`
+     * @param[out] mark of the stage in this frame, see `Stage::submitted()`
      * @param markAwaiters of the marks to await off the strand
      */
     [[nodiscard]] cth::co::executor_task<void> submitJob(
@@ -145,8 +145,8 @@ private:
     /**
      * appends the states of a submit on the queue to the resource states after all submits
      * @details sets the queue as the last queue of the resources
-     * @param prologue gets the barriers for the first uses of the submit, the acquire halves included
-     * @param releases gets the release halves per last queue of another family
+     * @param[out] prologue gets the barriers for the first uses of the submit, the acquire halves included
+     * @param[out] releases gets the release halves per last queue of another family
      * @pre the caller holds `StageGraph::_statesMutex`
      */
     void append(ResourceStates const& recording, Queue const& queue, cvk::Barrier& prologue, release_map_t& releases);
