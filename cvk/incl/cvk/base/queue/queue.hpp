@@ -7,8 +7,6 @@
 
 #include <cth/io/log.hpp>
 
-#include <functional>
-#include <optional>
 #include <span>
 
 
@@ -25,9 +23,6 @@ class Queue {
 public:
     using State = QueueState;
 
-    //TODO review the optional fence as std::optional<std::reference_wrapper>, not a pointer
-    using fence_opt_t = std::optional<std::reference_wrapper<Fence const>>;
-
     /**
      * the device constructs its queues
      */
@@ -35,20 +30,20 @@ public:
 
     /**
      * submits the infos in one `vkQueueSubmit2()`
-     * @param fenceOpt `std::nullopt` -> no fence
+     * @param fencePtr `nullptr` -> no fence
      * @details resolves the `std::nullopt` timeline values in order: the waits, then the signals of each info
      * @pre `created()`
      * @pre the command buffers ended their recording
      * @pre the semaphores and the fence are created, the fence is unsignaled
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      */
-    void submit(std::span<SubmitInfo const> infos, fence_opt_t fenceOpt = std::nullopt) const;
+    void submit(std::span<SubmitInfo const> infos, Fence const* fencePtr = nullptr) const;
 
     /**
      * submits the info
-     * @see @ref submit(std::span<SubmitInfo const>, fence_opt_t) const
+     * @see @ref submit(std::span<SubmitInfo const>, Fence const*) const
      */
-    void submit(SubmitInfo const& info, fence_opt_t fenceOpt = std::nullopt) const { submit({&info, 1}, fenceOpt); }
+    void submit(SubmitInfo const& info, Fence const* fencePtr = nullptr) const { submit({&info, 1}, fencePtr); }
 
     /**
      * submits to the vulkan queue, for what `SubmitInfo` does not cover

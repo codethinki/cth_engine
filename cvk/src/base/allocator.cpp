@@ -10,7 +10,7 @@
 
 
 namespace cvk {
-Allocator::Allocator(Device const& device) : _devicePtr{&device} { Device::debug_check(device); }
+Allocator::Allocator(Device const& device) : _device{device} { Device::debug_check(device); }
 
 Allocator::Allocator(Device const& device, State const& state) : Allocator{device} { wrap(state); }
 
@@ -26,15 +26,15 @@ void Allocator::create() {
     optDestroy();
 
     VmaAllocatorCreateInfo info{
-        .flags = flags(*_devicePtr),
-        .physicalDevice = _devicePtr->physicalDevice().get(),
-        .device = _devicePtr->get(),
+        .flags = flags(*_device),
+        .physicalDevice = _device->physicalDevice().get(),
+        .device = _device->get(),
         .preferredLargeHeapBlockSize = 0,
         .pAllocationCallbacks = nullptr,
         .pDeviceMemoryCallbacks = nullptr,
         .pHeapSizeLimit = nullptr,
         .pVulkanFunctions = nullptr,
-        .instance = _devicePtr->instance().get(),
+        .instance = _device->instance().get(),
         .vulkanApiVersion = VK_API_VERSION_1_3,
         .pTypeExternalMemoryHandleTypes = nullptr,
     };

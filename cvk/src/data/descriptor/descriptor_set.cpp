@@ -68,7 +68,7 @@ namespace {
 }
 
 DescriptorSet::DescriptorSet(DescriptorPool const& pool, DescriptorSetLayout const& layout, uint32_t variableCount) :
-    _handle{pool}, _layoutPtr{&layout}, _variableCount{variableCount} {
+    _handle{pool}, _layout{layout}, _variableCount{variableCount} {
     DescriptorPool::debug_check(pool);
     DescriptorSetLayout::debug_check(layout);
 
@@ -111,13 +111,13 @@ void DescriptorSet::wrap(State const& state) {
 void DescriptorSet::create() {
     DescriptorPool::debug_check(pool());
     CTH_CRITICAL(
-        _layoutPtr->updateAfterBind() && (pool().config().flags & VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT) == 0,
+        _layout->updateAfterBind() && (pool().config().flags & VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT) == 0,
         "update after bind layouts need a pool with VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT"
     ) {}
 
     optDestroy();
 
-    auto const* variablePtr = _layoutPtr->variableBinding();
+    auto const* variablePtr = _layout->variableBinding();
     uint32_t const variableCount = variablePtr != nullptr ? capacity(*variablePtr) : 0;
     VkDescriptorSetVariableDescriptorCountAllocateInfo const variableInfo{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
@@ -126,7 +126,7 @@ void DescriptorSet::create() {
         .pDescriptorCounts = &variableCount,
     };
 
-    VkDescriptorSetLayout const vkLayout = _layoutPtr->get();
+    VkDescriptorSetLayout const vkLayout = _layout->get();
     VkDescriptorSetAllocateInfo const info{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
         .pNext = variablePtr != nullptr ? &variableInfo : nullptr,
@@ -177,7 +177,7 @@ void DescriptorSet::write(span<DescriptorWrite const> writes) const {
     vkWrites.reserve(writes.size());
 
     for(auto const& write : writes) {
-        auto const* bindingPtr = _layoutPtr->binding(write._binding);
+        auto const* bindingPtr = _layout->binding(write._binding);
         CTH_CRITICAL(bindingPtr == nullptr, "the layout has no binding {}", write._binding) {}
 
         auto const type = bindingPtr->descriptorType;
@@ -267,9 +267,9 @@ void DescriptorSet::forget() {}
 
 void DescriptorSet::pool_deleter::operator()(VkDescriptorSet vkSet) const {
     // a reset of the pool freed the set already
-    if(_resets != _poolPtr->resets()) return;
+    if(_resets != _pool->resets()) return;
 
-    _poolPtr->remove();
-    if(_poolPtr->freesSets()) cvk::destroy(_poolPtr->core().deviceTable(), _poolPtr->get(), vkSet);
+    _pool->remove();
+    if(_pool->freesSets()) cvk::destroy(_pool->core().deviceTable(), _pool->get(), vkSet);
 }
 }

@@ -12,7 +12,7 @@
 
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/data/hash_map.hpp>
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -102,14 +102,14 @@ public:
      */
     void skip(Stage&);
 
-    [[nodiscard]] constexpr Core& core() const { return *_corePtr; }
+    [[nodiscard]] constexpr Core& core() const { return *_core; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
     using image_mip_t = std::pair<VkImage, uint32_t>;
 
     template<class Key>
-    using last_queue_map_t = cth::dt::flat_hash_map<Key, cth::not_null_ptr<Queue const>>;
+    using last_queue_map_t = cth::dt::flat_hash_map<Key, cth::ref_wrapper<Queue const>>;
 
     using release_map_t = cth::dt::flat_hash_map<Queue const*, cvk::Barrier>;
 
@@ -161,7 +161,7 @@ private:
      */
     void storeError(std::exception_ptr) noexcept;
 
-    cth::not_null_ptr<Core> _corePtr;
+    cth::ref_wrapper<Core> _core;
     Config _config;
 
     std::deque<dev::FrameSlot> _frameSlots{}; ///< one per frame slot, with its stage slots

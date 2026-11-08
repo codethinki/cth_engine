@@ -34,7 +34,7 @@ void Core::create() {
     auto config = _config.vk;
     if(config.queueSets.empty()) config.queueSets = queue_sets(config.queueProperties);
 
-    _core.create(std::span<cvk::Surface const>{}, config);
+    _core.create({}, config);
 
     // the cvk core exists before the workers and the queues, only a catch can destroy it when a later step fails
     try {

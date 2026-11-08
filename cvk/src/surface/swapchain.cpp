@@ -17,7 +17,7 @@ using std::span;
 using std::vector;
 
 Swapchain::Swapchain(Core const& core, Queue const& presentQueue, Surface const& surface, Config config) :
-    _presentQueue{presentQueue}, _surfacePtr{&surface}, _corePtr{&core}, _config{std::move(config)} {
+    _presentQueue{presentQueue}, _surface{surface}, _core{core}, _config{std::move(config)} {
     Core::debug_check(core);
     Surface::debug_check(surface);
     Queue::debug_check_present(presentQueue);
@@ -215,7 +215,7 @@ Swapchain::Generation::~Generation() {
 std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> Swapchain::pick(Config const& config) const {
     auto const& physicalDevice = core().physicalDevice();
 
-    auto const formats = _surfacePtr->formats(physicalDevice);
+    auto const formats = _surface->formats(physicalDevice);
     auto const& allowedFormats = config.formats.empty() ? formats : config.formats;
     auto const formatIt = std::ranges::find_first_of(allowedFormats, formats);
     CVK_STABLE_THROW(
@@ -227,7 +227,7 @@ std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> Swapchain::pick(Config const& co
 
     if(config.presentModes.empty()) return {*formatIt, VK_PRESENT_MODE_FIFO_KHR};
 
-    auto const presentModes = _surfacePtr->presentModes(physicalDevice);
+    auto const presentModes = _surface->presentModes(physicalDevice);
     auto const presentModeIt = std::ranges::find_first_of(config.presentModes, presentModes);
     CVK_STABLE_THROW(
         presentModeIt == config.presentModes.end(),
@@ -240,13 +240,13 @@ std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> Swapchain::pick(Config const& co
 }
 
 void Swapchain::createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain) {
-    Surface::debug_check(*_surfacePtr);
+    Surface::debug_check(*_surface);
 
-    auto const capabilities = _surfacePtr->capabilities(core().physicalDevice());
+    auto const capabilities = _surface->capabilities(core().physicalDevice());
     auto const imageExtent = evalExtent(extent, capabilities);
 
     auto const info = _config.createInfo(
-        _surfacePtr->get(),
+        _surface->get(),
         _surfaceFormat,
         _presentMode,
         //TODO override of the pre transform, for pre-rotation on rotated mobile displays

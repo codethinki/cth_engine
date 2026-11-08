@@ -67,7 +67,7 @@ namespace {
      * @param surfaces a family presents only if it presents to every surface, empty -> no present support
      */
     [[nodiscard]] vector<QueueFamily> query_queue_families(
-        span<Surface const> surfaces,
+        span<cth::ref_wrapper<Surface const> const> surfaces,
         vk_not_null<VkPhysicalDevice> vkDevice
     ) {
         auto const familyProperties = dev::enumerate(
@@ -82,7 +82,7 @@ namespace {
         for(uint32_t i = 0; i < familyProperties.size(); i++) {
             bool presentSupport = !surfaces.empty();
 
-            for(auto const& surface : surfaces) {
+            for(Surface const& surface : surfaces) {
                 VkBool32 support = VK_FALSE;
                 auto const result = vkGetPhysicalDeviceSurfaceSupportKHR(vkDevice.get(), i, surface.get(), &support);
                 CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "device-surface support query failed") {}
@@ -119,8 +119,10 @@ namespace {
     }
 }
 
-PhysicalDevice::PhysicalDevice(vk_not_null<VkPhysicalDevice> vkDevice, span<Surface const> surfaces) :
-    _handle{vkDevice.get()},
+PhysicalDevice::PhysicalDevice(
+    vk_not_null<VkPhysicalDevice> vkDevice,
+    span<cth::ref_wrapper<Surface const> const> surfaces
+) : _handle{vkDevice.get()},
     _extensions{query_extensions(vkDevice)},
     _features{dev::query_features(vkDevice, _extensions)},
     _memoryProperties{query_memory_properties(vkDevice)},
@@ -216,7 +218,10 @@ VkExternalFenceFeatureFlags PhysicalDevice::externalFenceFeatures(VkExternalFenc
     return properties.externalFenceFeatures;
 }
 
-vector<PhysicalDevice> enumerate_physical_devices(Instance const& instance, span<Surface const> surfaces) {
+vector<PhysicalDevice> enumerate_physical_devices(
+    Instance const& instance,
+    span<cth::ref_wrapper<Surface const> const> surfaces
+) {
     Instance::debug_check(instance);
 
     auto const vkDevices = dev::enumerate("physical devices", vkEnumeratePhysicalDevices, instance.get());
@@ -231,7 +236,7 @@ vector<PhysicalDevice> enumerate_physical_devices(Instance const& instance, span
 
 std::optional<PhysicalDevicePick> pick_physical_device(
     Instance const& instance,
-    span<Surface const> surfaces,
+    span<cth::ref_wrapper<Surface const> const> surfaces,
     span<QueueFamilyProperties const> queueProperties,
     DeviceFeatures const& features,
     span<string const> extensions,

@@ -8,7 +8,9 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
+#include <initializer_list>
 #include <memory>
 #include <optional>
 #include <span>
@@ -46,7 +48,17 @@ public:
      * constructs and creates
      * @details calls @ref Core(Instance const&), `create()`
      */
-    Core(Instance const&, std::span<Surface const> surfaces, Config const&);
+    Core(Instance const&, std::span<cth::ref_wrapper<Surface const> const> surfaces, Config const&);
+
+    /**
+     * constructs and creates with the surfaces of a braced list
+     * @see @ref Core(Instance const&, std::span<cth::ref_wrapper<Surface const> const>, Config const&)
+     */
+    Core(
+        Instance const& instance,
+        std::initializer_list<cth::ref_wrapper<Surface const>> surfaces,
+        Config const& config
+    ) : Core{instance, std::span{surfaces}, config} {}
 
     /**
      * constructs and wraps
@@ -81,7 +93,15 @@ public:
      * @throws cvk::vk_result_exception result of `vmaCreateAllocator()`
      * @see `pick_physical_device()`, `Config::device`
      */
-    void create(std::span<Surface const> surfaces, Config const&);
+    void create(std::span<cth::ref_wrapper<Surface const> const> surfaces, Config const&);
+
+    /**
+     * creates with the surfaces of a braced list
+     * @see @ref create(std::span<cth::ref_wrapper<Surface const> const>, Config const&)
+     */
+    void create(std::initializer_list<cth::ref_wrapper<Surface const>> surfaces, Config const& config) {
+        create(std::span{surfaces}, config);
+    }
 
     /**
      * destroys and forgets
@@ -109,7 +129,7 @@ public:
      */
     [[nodiscard]] size_t queueSetIndex() const;
 
-    [[nodiscard]] constexpr Instance const& instance() const { return *_instancePtr; }
+    [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
     [[nodiscard]] VkInstance vkInstance() const;
 
     /**
@@ -190,7 +210,7 @@ private:
      * @throws cvk::cvk_exception reason: `Config::device` is missing or does not meet the requirements
      */
     [[nodiscard]] device_pick pickPhysicalDevice(
-        std::span<Surface const> surfaces,
+        std::span<cth::ref_wrapper<Surface const> const> surfaces,
         Config const&,
         device_requirements const&
     ) const;
@@ -204,13 +224,13 @@ private:
      * @return `std::nullopt` -> no physical device supports the queue set
      */
     [[nodiscard]] std::optional<device_pick> tryPickPhysicalDevice(
-        std::span<Surface const> surfaces,
+        std::span<cth::ref_wrapper<Surface const> const> surfaces,
         Config const&,
         device_requirements const&,
         queue_set_t const& queueSet
     ) const;
 
-    not_null_ptr<Instance const> _instancePtr;
+    cth::ref_wrapper<Instance const> _instance;
 
     std::unique_ptr<PhysicalDevice> _physicalDevicePtr;
     // declared before the device: move assignment destroys the old allocator before the old device

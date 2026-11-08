@@ -7,7 +7,7 @@
 
 namespace cvk {
 BasePipeline::BasePipeline(PipelineLayout const& layout, VkPipelineBindPoint bindPoint) : _handle{layout.core()},
-    _layoutPtr{&layout}, _bindPoint{bindPoint} {
+    _layout{layout}, _bindPoint{bindPoint} {
     Core::debug_check(layout.core());
 }
 
@@ -40,8 +40,8 @@ void destroy(DeviceTable table, VkPipeline vkPipeline) {
 }
 
 void BasePipeline::create(VkGraphicsPipelineCreateInfo const& info) {
-    PipelineLayout::debug_check(*_layoutPtr);
-    CTH_CRITICAL(info.layout != _layoutPtr->get(), "the create info must use the layout of the pipeline") {}
+    PipelineLayout::debug_check(*_layout);
+    CTH_CRITICAL(info.layout != _layout->get(), "the create info must use the layout of the pipeline") {}
 
     optDestroy();
 
@@ -64,8 +64,8 @@ void BasePipeline::create(VkGraphicsPipelineCreateInfo const& info) {
 }
 
 void BasePipeline::create(VkComputePipelineCreateInfo const& info) {
-    PipelineLayout::debug_check(*_layoutPtr);
-    CTH_CRITICAL(info.layout != _layoutPtr->get(), "the create info must use the layout of the pipeline") {}
+    PipelineLayout::debug_check(*_layout);
+    CTH_CRITICAL(info.layout != _layout->get(), "the create info must use the layout of the pipeline") {}
 
     optDestroy();
 

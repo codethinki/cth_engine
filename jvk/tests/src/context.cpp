@@ -55,7 +55,7 @@ cvk::queue_family_index_t queue_family(Context const& context) { return context.
 void submit_and_wait(Context const& context, cvk::PrimaryCmdBuffer const& primary) {
     cvk::Fence const fence{context.core, cvk::create};
 
-    context.core.queue(0).vk().submit({.cmdBuffers = {primary}}, fence);
+    context.core.queue(0).vk().submit({.cmdBuffers = {primary}}, &fence);
     fence.wait();
 }
 

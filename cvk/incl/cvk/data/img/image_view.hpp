@@ -11,6 +11,7 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <tuple>
 
@@ -86,19 +87,19 @@ public:
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkImageView get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
-    [[nodiscard]] constexpr Image const& image() const { return *_imagePtr; }
+    [[nodiscard]] constexpr Image const& image() const { return *_image; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     /**
      * @return the subresource range of the view in the image
      */
-    [[nodiscard]] constexpr VkImageSubresourceRange range() const { return _config.range(_imagePtr->aspectMask()); }
+    [[nodiscard]] constexpr VkImageSubresourceRange range() const { return _config.range(_image->aspectMask()); }
 
     /**
      * @return the layers of the view
      */
     [[nodiscard]] constexpr uint32_t arrayLayers() const {
-        return _config.arrayLayers == VK_REMAINING_ARRAY_LAYERS ? _imagePtr->arrayLayers() - _config.baseArrayLayer
+        return _config.arrayLayers == VK_REMAINING_ARRAY_LAYERS ? _image->arrayLayers() - _config.baseArrayLayer
             : _config.arrayLayers;
     }
 
@@ -114,7 +115,7 @@ public:
 
         auto const layers = arrayLayers();
         if(layers == 1) return VK_IMAGE_VIEW_TYPE_2D;
-        if((_imagePtr->config().flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) == 0 || layers % 6 != 0)
+        if((_image->config().flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) == 0 || layers % 6 != 0)
             return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
         return layers == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
     }
@@ -123,7 +124,7 @@ private:
     void forget();
 
     core_handle<VkImageView> _handle;
-    not_null_ptr<Image const> _imagePtr;
+    cth::ref_wrapper<Image const> _image;
     Config _config;
 
 public:

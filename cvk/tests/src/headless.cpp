@@ -35,7 +35,7 @@ Surface headless_surface(Instance const& instance) {
 PhysicalDevicePick pick(
     Instance const& instance,
     std::span<QueueFamilyProperties const> queueProperties,
-    std::span<Surface const> surfaces
+    std::initializer_list<cth::ref_wrapper<Surface const>> surfaces
 ) {
     auto features = constants::BASE_DEVICE_FEATURES;
     std::vector<std::string> extensions{};
@@ -50,6 +50,6 @@ PhysicalDevicePick pick(
             extensions.emplace_back(extension);
     }
 
-    return pick_physical_device(instance, surfaces, queueProperties, features, extensions).value();
+    return pick_physical_device(instance, std::span{surfaces}, queueProperties, features, extensions).value();
 }
 }

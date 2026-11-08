@@ -14,9 +14,9 @@
 
 #include <cth/io/log.hpp>
 #include <cth/meta/ranges.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
-#include <functional>
 #include <initializer_list>
 #include <optional>
 #include <ranges>
@@ -358,15 +358,15 @@ private:
      */
     class pool_deleter {
     public:
-        constexpr explicit pool_deleter(CmdPool const& pool) : _poolPtr{&pool} {}
+        constexpr explicit pool_deleter(CmdPool const& pool) : _pool{pool} {}
 
         void operator()(VkCommandBuffer) const;
 
-        [[nodiscard]] constexpr CmdPool const& pool() const { return *_poolPtr; }
-        [[nodiscard]] constexpr Core const& core() const { return _poolPtr->core(); }
+        [[nodiscard]] constexpr CmdPool const& pool() const { return *_pool; }
+        [[nodiscard]] constexpr Core const& core() const { return _pool->core(); }
 
     private:
-        not_null_ptr<CmdPool const> _poolPtr;
+        cth::ref_wrapper<CmdPool const> _pool;
     };
 
     /**
@@ -471,19 +471,12 @@ public:
      * @pre `rendering()` -> the secondaries continue it with the current attachment mapping
      * @pre outside of a rendering -> the secondaries continue no rendering
      */
-    void execute(std::span<SecondaryCmdBuffer const> secondaries) const;
-
-    //TODO review the span of values stays: no pointers, contiguous secondaries of the caller pass as they are
-    /**
-     * records the secondary command buffers, the secondaries can lie anywhere
-     * @pre the preconditions of @ref execute(std::span<SecondaryCmdBuffer const>) const
-     */
-    void execute(std::span<std::reference_wrapper<SecondaryCmdBuffer const> const> secondaries) const;
+    void execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer const> const> secondaries) const;
 
     /**
      * records the secondary command buffers of a braced list
      */
-    void execute(std::initializer_list<std::reference_wrapper<SecondaryCmdBuffer const>> secondaries) const;
+    void execute(std::initializer_list<cth::ref_wrapper<SecondaryCmdBuffer const>> secondaries) const;
 
     /**
      * records the secondary command buffer

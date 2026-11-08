@@ -10,7 +10,7 @@
 #include <cth/coro/executor.hpp>
 #include <cth/coro/strand.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstdint>
 #include <deque>
@@ -78,12 +78,12 @@ public:
     /**
      * @attention not serialized: use it inside the strand
      */
-    [[nodiscard]] constexpr cvk::Queue const& vk() const { return *_queuePtr; }
+    [[nodiscard]] constexpr cvk::Queue const& vk() const { return *_queue; }
 
     /**
      * @attention not serialized: use it inside the strand
      */
-    [[nodiscard]] constexpr VkQueue get() const { return _queuePtr->get(); }
+    [[nodiscard]] constexpr VkQueue get() const { return _queue->get(); }
 
 private:
     /**
@@ -98,7 +98,7 @@ private:
         uint64_t value = 0;
     };
 
-    cth::not_null_ptr<cvk::Queue const> _queuePtr;
+    cth::ref_wrapper<cvk::Queue const> _queue;
     cth::co::strand _strand;
 
     mutable std::deque<ReleaseCmd> _releaseCmds{}; ///< used in the strand only

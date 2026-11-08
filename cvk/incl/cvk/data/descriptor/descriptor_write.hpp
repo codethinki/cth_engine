@@ -4,6 +4,8 @@
 
 #include <volk.h>
 
+#include <cth/ptr/ref_wrapper.hpp>
+
 #include <cstdint>
 #include <variant>
 
@@ -29,7 +31,7 @@ public:
      * @param element array element of the binding
      */
     constexpr DescriptorWrite(uint32_t binding, BaseBuffer const& buffer, Range range = {}, uint32_t element = 0) :
-        _binding{binding}, _element{element}, _resource{BufferResource{&buffer, range}} {}
+        _binding{binding}, _element{element}, _resource{BufferResource{buffer, range}} {}
 
     /**
      * image descriptor without sampler: sampled image, storage image, input attachment
@@ -65,16 +67,16 @@ public:
 
 private:
     struct BufferResource {
-        not_null_ptr<BaseBuffer const> buffer;
+        cth::ref_wrapper<BaseBuffer const> buffer;
         Range range;
     };
 
     /**
-     * view `nullptr` -> sampler descriptor, sampler `nullptr` -> no sampler
+     * `viewPtr == nullptr` -> sampler descriptor, `samplerPtr == nullptr` -> no sampler
      */
     struct ImageResource {
-        ImageView const* view;
-        Sampler const* sampler;
+        ImageView const* viewPtr;
+        Sampler const* samplerPtr;
         VkImageLayout layout;
     };
 

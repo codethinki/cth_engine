@@ -12,6 +12,7 @@
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <ranges>
 
@@ -206,8 +207,8 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
 
         VkImageView resolveView = VK_NULL_HANDLE;
         VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        if(attachment.resolveViewOpt.has_value()) {
-            ImageView const& resolve = *attachment.resolveViewOpt;
+        if(attachment.resolveViewPtr != nullptr) {
+            ImageView const& resolve = *attachment.resolveViewPtr;
             ImageView::debug_check(resolve);
             CTH_CRITICAL(attachment.resolveMode == VK_RESOLVE_MODE_NONE, "a resolve view needs a resolve mode") {}
 
@@ -236,7 +237,7 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
     for(auto const& attachment : info.colorAttachments) {
         colors.push_back(attachmentInfo(attachment));
 
-        auto const format = attachment.view.get().image().format();
+        auto const format = attachment.view->image().format();
         CTH_CRITICAL(
             format_aspects(format) != VK_IMAGE_ASPECT_COLOR_BIT,
             "color attachments need a color format, got {}",
@@ -248,7 +249,7 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
     if(info.depthAttachment.has_value()) {
         depthOpt = attachmentInfo(*info.depthAttachment);
 
-        auto const format = info.depthAttachment->view.get().image().format();
+        auto const format = info.depthAttachment->view->image().format();
         CTH_CRITICAL(
             (format_aspects(format) & VK_IMAGE_ASPECT_DEPTH_BIT) == 0,
             "the depth attachment needs a depth format, got {}",
@@ -260,7 +261,7 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
     if(info.stencilAttachment.has_value()) {
         stencilOpt = attachmentInfo(*info.stencilAttachment);
 
-        auto const format = info.stencilAttachment->view.get().image().format();
+        auto const format = info.stencilAttachment->view->image().format();
         CTH_CRITICAL(
             (format_aspects(format) & VK_IMAGE_ASPECT_STENCIL_BIT) == 0,
             "the stencil attachment needs a stencil format, got {}",
@@ -553,8 +554,8 @@ void BaseCmdBuffer::forget() {
 }
 
 void BaseCmdBuffer::pool_deleter::operator()(VkCommandBuffer vkBuffer) const {
-    _poolPtr->remove();
-    cvk::destroy(_poolPtr->core().deviceTable(), _poolPtr->get(), vkBuffer);
+    _pool->remove();
+    cvk::destroy(_pool->core().deviceTable(), _pool->get(), vkBuffer);
 }
 }
 
@@ -575,15 +576,7 @@ void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
     BaseCmdBuffer::begin(info);
 }
 
-void PrimaryCmdBuffer::execute(span<SecondaryCmdBuffer const> secondaries) const {
-    for(auto const& secondary : secondaries)
-        debug_check_secondary(secondary);
-
-    std::vector const vkBuffers{std::from_range, secondaries | std::views::transform(&SecondaryCmdBuffer::get)};
-    recordExecute(vkBuffers);
-}
-
-void PrimaryCmdBuffer::execute(span<std::reference_wrapper<SecondaryCmdBuffer const> const> secondaries) const {
+void PrimaryCmdBuffer::execute(span<cth::ref_wrapper<SecondaryCmdBuffer const> const> secondaries) const {
     for(SecondaryCmdBuffer const& secondary : secondaries)
         debug_check_secondary(secondary);
 
@@ -592,24 +585,27 @@ void PrimaryCmdBuffer::execute(span<std::reference_wrapper<SecondaryCmdBuffer co
 }
 
 void PrimaryCmdBuffer::execute(
-    std::initializer_list<std::reference_wrapper<SecondaryCmdBuffer const>> secondaries
+    std::initializer_list<cth::ref_wrapper<SecondaryCmdBuffer const>> secondaries
 ) const {
     execute(span{secondaries});
 }
 
-void PrimaryCmdBuffer::execute(SecondaryCmdBuffer const& secondary) const { execute(span{&secondary, 1}); }
+void PrimaryCmdBuffer::execute(SecondaryCmdBuffer const& secondary) const {
+    std::array const secondaries{cth::ref_wrapper{secondary}};
+    execute(secondaries);
+}
 
 RenderingInheritance PrimaryCmdBuffer::inheritance() const {
     debug_check(*this);
     CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside its own rendering") {}
 
     auto const& info = *rendering();
-    auto const format = [](RenderingAttachment const& attachment) { return attachment.view.get().image().format(); };
+    auto const format = [](RenderingAttachment const& attachment) { return attachment.view->image().format(); };
 
     // every attachment has the same sample count
     auto const samples = [&info] {
         auto const of = [](RenderingAttachment const& attachment) {
-            return attachment.view.get().image().config().samples;
+            return attachment.view->image().config().samples;
         };
         if(!info.colorAttachments.empty()) return of(info.colorAttachments.front());
         if(info.depthAttachment.has_value()) return of(*info.depthAttachment);

@@ -17,8 +17,8 @@ namespace cvk {
 using std::span;
 using std::vector;
 
-Device::Device(Instance const& instance, PhysicalDevice const& physicalDevice) : _instancePtr{&instance},
-    _physicalDevicePtr{&physicalDevice} {}
+Device::Device(Instance const& instance, PhysicalDevice const& physicalDevice) : _instance{instance},
+    _physicalDevice{physicalDevice} {}
 
 Device::Device(Instance const& instance, PhysicalDevice const& physicalDevice, State state) : Device{
     instance,
@@ -112,7 +112,7 @@ void Device::forget() {
 }
 
 vector<uint32_t> Device::calcQueueFamiliesQueueCounts(span<uint32_t const> familyIndices) const {
-    vector<uint32_t> queueCounts(_physicalDevicePtr->queueFamilies().size());
+    vector<uint32_t> queueCounts(_physicalDevice->queueFamilies().size());
 
     for(auto const familyIndex : familyIndices) {
         CTH_CRITICAL(
@@ -173,7 +173,7 @@ void Device::createLogicalDevice(span<uint32_t const> queueFamiliesQueueCounts) 
     };
     VkDevice ptr = VK_NULL_HANDLE;
 
-    auto const createResult = vkCreateDevice(_physicalDevicePtr->get(), &createInfo, nullptr, &ptr);
+    auto const createResult = vkCreateDevice(_physicalDevice->get(), &createInfo, nullptr, &ptr);
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to create logical device") {
         forget();
         throw cvk::vk_result_exception{createResult, details->exception()};
@@ -186,7 +186,7 @@ void Device::createLogicalDevice(span<uint32_t const> queueFamiliesQueueCounts) 
 void Device::loadFunctionTable(VkDevice vkDevice) const { volkLoadDeviceTable(_functionTablePtr.get(), vkDevice); }
 
 void Device::createQueues(span<queue_family_index_t const> familyIndices) {
-    vector<uint32_t> queueCounts(_physicalDevicePtr->queueFamilies().size());
+    vector<uint32_t> queueCounts(_physicalDevice->queueFamilies().size());
 
     _queues.reserve(familyIndices.size());
 
@@ -206,8 +206,8 @@ void Device::createQueues(span<queue_family_index_t const> familyIndices) {
         CTH_CRITICAL(ptr == VK_NULL_HANDLE, "the device has no queue {} in family {}", queueIndex, familyIndex) {}
 
         _queues.emplace_back(
-            _physicalDevicePtr->queueFamily(familyIndex)->properties,
-            Queue::State{_functionTablePtr.get(), ptr, familyIndex, queueIndex++}
+            _physicalDevice->queueFamily(familyIndex)->properties,
+            Queue::State{*_functionTablePtr, ptr, familyIndex, queueIndex++}
         );
     }
 }

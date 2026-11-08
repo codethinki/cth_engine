@@ -10,10 +10,13 @@
 #include <cth/coro/executor.hpp>
 #include <cth/coro/scheduler.hpp>
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
+#include <initializer_list>
 #include <optional>
 #include <span>
+#include <utility>
 
 
 namespace cvk {
@@ -42,7 +45,17 @@ public:
      * constructs and creates
      * @details calls @ref Core(cvk::Instance const&, Config), `create()`
      */
-    Core(cvk::Instance const&, Config, std::span<cvk::Surface const> surfaces);
+    Core(cvk::Instance const&, Config, std::span<cth::ref_wrapper<cvk::Surface const> const> surfaces);
+
+    /**
+     * constructs and creates with the surfaces of a braced list
+     * @see @ref Core(cvk::Instance const&, Config, std::span<cth::ref_wrapper<cvk::Surface const> const>)
+     */
+    Core(
+        cvk::Instance const& instance,
+        Config config,
+        std::initializer_list<cth::ref_wrapper<cvk::Surface const>> surfaces
+    ) : Core{instance, std::move(config), std::span{surfaces}} {}
 
     //TEMP the old signature until core.cpp implements the surfaces, the tests use it
     explicit Core(cvk::Instance const&, Config, cvk::create_t);
@@ -64,7 +77,13 @@ public:
      * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the reactor
      * @see `cvk::Core::create()`
      */
-    void create(std::span<cvk::Surface const> surfaces);
+    void create(std::span<cth::ref_wrapper<cvk::Surface const> const> surfaces);
+
+    /**
+     * creates with the surfaces of a braced list
+     * @see @ref create(std::span<cth::ref_wrapper<cvk::Surface const> const>)
+     */
+    void create(std::initializer_list<cth::ref_wrapper<cvk::Surface const>> surfaces) { create(std::span{surfaces}); }
 
     //TEMP the old signature until core.cpp implements the surfaces, the tests use it
     void create();

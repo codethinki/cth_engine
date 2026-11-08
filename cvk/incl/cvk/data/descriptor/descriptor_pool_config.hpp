@@ -4,10 +4,10 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <algorithm>
 #include <cstdint>
-#include <functional>
 #include <initializer_list>
 #include <vector>
 
@@ -21,7 +21,7 @@ struct DescriptorPoolConfig {
      * count sets of one layout
      */
     struct Sets {
-        std::reference_wrapper<DescriptorSetLayout const> layout;
+        cth::ref_wrapper<DescriptorSetLayout const> layout;
         uint32_t count = 1;
 
         uint32_t variableCount = 0; ///< descriptors of the variable count binding per set (`0` => its maximum count)

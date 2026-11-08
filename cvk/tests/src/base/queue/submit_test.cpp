@@ -8,8 +8,9 @@
 #include "cvk/render/sync/semaphore.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
 
+#include <cth/ptr/ref_wrapper.hpp>
+
 #include <array>
-#include <functional>
 #include <variant>
 
 
@@ -22,11 +23,11 @@ CVK_TEST(Submit, semaphore_info_takes_the_kind_from_the_semaphore) {
     SemaphoreSubmitInfo const binaryInfo{binary};
     SemaphoreSubmitInfo const timelineInfo{timeline, VK_PIPELINE_STAGE_2_TRANSFER_BIT, 3};
 
-    EXPECT_TRUE(std::holds_alternative<std::reference_wrapper<Semaphore const>>(binaryInfo.semaphore));
+    EXPECT_TRUE(std::holds_alternative<cth::ref_wrapper<Semaphore const>>(binaryInfo.semaphore));
     EXPECT_EQ(binaryInfo.stages, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
     EXPECT_FALSE(binaryInfo.value.has_value());
 
-    EXPECT_TRUE(std::holds_alternative<std::reference_wrapper<TimelineSemaphore const>>(timelineInfo.semaphore));
+    EXPECT_TRUE(std::holds_alternative<cth::ref_wrapper<TimelineSemaphore const>>(timelineInfo.semaphore));
     EXPECT_EQ(timelineInfo.stages, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
     EXPECT_EQ(timelineInfo.value, 3);
 }
@@ -52,7 +53,7 @@ CVK_TEST(Submit, binary_semaphore_orders_two_infos) {
         SubmitInfo{.signals = {semaphore}},
         SubmitInfo{.waits = {semaphore}},
     };
-    context.core.queue(0).submit(infos, fence);
+    context.core.queue(0).submit(infos, &fence);
 
     fence.wait();
 }

@@ -11,7 +11,7 @@
 
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/io/log.hpp>
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <atomic>
 #include <cstddef>
@@ -42,8 +42,8 @@ namespace jvk {
  * - valid until the next `Presenter::acquire()`
  */
 struct SwapchainImage {
-    cth::not_null_ptr<cvk::Image const> imagePtr;
-    cth::not_null_ptr<cvk::ImageView const> viewPtr;
+    cth::ref_wrapper<cvk::Image const> image;
+    cth::ref_wrapper<cvk::ImageView const> view;
 
     uint32_t imageIdx; ///< index of the image in the swapchain
 
@@ -237,8 +237,8 @@ private:
      */
     [[nodiscard]] cth::co::executor_task<void> awaitPresentFence(uint32_t imageIdx) const;
 
-    cth::not_null_ptr<Core const> _corePtr;
-    cth::not_null_ptr<Queue const> _queuePtr;
+    cth::ref_wrapper<Core const> _core;
+    cth::ref_wrapper<Queue const> _queue;
     Config _config;
 
     // destroyed after the swapchain

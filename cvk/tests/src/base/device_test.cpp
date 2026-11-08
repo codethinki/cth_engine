@@ -171,10 +171,9 @@ CVK_TEST(Device, release_twice_is_safe) {
 
 CVK_TEST(Device, present_enables_swapchain_maintenance1) {
     test::PresentContext const context{};
-    std::span const surfaces{&context.surface(), 1};
     std::array const queues{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
 
-    auto const [physicalDevice, familyIndices] = test::pick(context.instance, queues, surfaces);
+    auto const [physicalDevice, familyIndices] = test::pick(context.instance, queues, {context.surface()});
 
     Device const device{
         context.instance,

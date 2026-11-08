@@ -7,4 +7,4 @@
 #include <cth/data/union_find.hpp>
 #include <cth/exception.hpp>
 #include <cth/io/log.hpp>
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>

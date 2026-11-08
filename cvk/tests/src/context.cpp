@@ -7,6 +7,7 @@
 #include "cvk/render/sync/fence.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <optional>
 #include <ranges>
@@ -21,6 +22,8 @@ Core::Config const PresentContext::CONFIG{
 };
 
 namespace {
+    constexpr std::span<cth::ref_wrapper<Surface const> const> NO_SURFACES{};
+
     /**
      * one instance for both shared contexts, the cores and the surface come at their first use
      * @details volk holds the functions of one instance, cvk assumes one instance per process
@@ -44,7 +47,7 @@ namespace {
     Core const& shared_core() {
         auto& contexts = shared_contexts();
         if(!contexts.core.has_value())
-            contexts.core.emplace(contexts.instance, std::span<Surface const>{}, Context::CONFIG);
+            contexts.core.emplace(contexts.instance, NO_SURFACES, Context::CONFIG);
         return *contexts.core;
     }
 
@@ -59,7 +62,7 @@ namespace {
         if(!contexts.presentCore.has_value()) {
             contexts.presentCore.emplace(
                 contexts.instance,
-                std::span{&shared_surface(), 1},
+                std::array{cth::ref_wrapper{shared_surface()}},
                 PresentContext::CONFIG
             );
         }
@@ -70,7 +73,7 @@ namespace {
 Context::Context() : instance{shared_contexts().instance}, core{shared_core()} {}
 
 Context::Context(Core::Config const& config) :
-    _core{std::in_place, shared_contexts().instance, std::span<Surface const>{}, config},
+    _core{std::in_place, shared_contexts().instance, NO_SURFACES, config},
     instance{shared_contexts().instance}, core{*_core} {}
 
 PresentContext::PresentContext() : instance{shared_contexts().instance}, core{shared_present_core()},
@@ -120,7 +123,7 @@ Context::ValidationCheck::~ValidationCheck() { EXPECT_EQ(validation_errors(), 0)
 void submit_and_wait(Context const& context, PrimaryCmdBuffer const& primary) {
     Fence const fence{context.core, create};
 
-    context.core.queue(0).submit({.cmdBuffers = {primary}}, fence);
+    context.core.queue(0).submit({.cmdBuffers = {primary}}, &fence);
     fence.wait();
 }
 

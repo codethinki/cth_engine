@@ -7,6 +7,7 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <tuple>
 
@@ -53,7 +54,7 @@ public:
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkPipeline get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
-    [[nodiscard]] constexpr PipelineLayout const& layout() const { return *_layoutPtr; }
+    [[nodiscard]] constexpr PipelineLayout const& layout() const { return *_layout; }
     [[nodiscard]] constexpr VkPipelineBindPoint bindPoint() const { return _bindPoint; }
 
 protected:
@@ -90,7 +91,7 @@ private:
     void forget();
 
     core_handle<VkPipeline> _handle;
-    not_null_ptr<PipelineLayout const> _layoutPtr;
+    cth::ref_wrapper<PipelineLayout const> _layout;
     VkPipelineBindPoint _bindPoint;
 
 public:

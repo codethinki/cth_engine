@@ -4,7 +4,7 @@
 #include <volk.h>
 
 #include <cth/data/hash_map.hpp>
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -179,7 +179,7 @@ private:
     using image_key_t = std::pair<VkImage, uint32_t>;
 
     struct image_states {
-        cth::not_null_ptr<cvk::Image const> imagePtr;
+        cth::ref_wrapper<cvk::Image const> image;
 
         std::optional<ImageState> firstOpt; ///< `std::nullopt` -> `assume()` before the first access
         ImageState last;
@@ -189,7 +189,7 @@ private:
     };
 
     struct buffer_states {
-        cth::not_null_ptr<cvk::BaseBuffer const> bufferPtr;
+        cth::ref_wrapper<cvk::BaseBuffer const> buffer;
 
         std::optional<BufferState> firstOpt; ///< `std::nullopt` -> `assume()` before the first access
         BufferState last;

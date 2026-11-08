@@ -139,15 +139,17 @@ CVK_TEST(CmdBuffer, execute_secondaries) {
         secondary.end();
     }
 
+    std::vector<cth::ref_wrapper<SecondaryCmdBuffer const>> const refs{secondaries.begin(), secondaries.end()};
+
     PrimaryCmdBuffer primary{pool, create};
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    primary.execute(secondaries);
+    primary.execute(refs);
     primary.end();
 
     test::submit_and_wait(context, primary);
 }
 
-CVK_TEST(CmdBuffer, execute_secondaries_through_pointers) {
+CVK_TEST(CmdBuffer, execute_secondaries_of_a_braced_list) {
     test::Context const context{};
     CmdPool const pool{context.core, pool_config(context.core), create};
     // secondaries[1] is not recorded, the iterator pair [&secondaries[0], &secondaries[2]) would execute it

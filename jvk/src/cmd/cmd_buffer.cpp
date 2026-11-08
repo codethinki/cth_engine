@@ -7,7 +7,7 @@
 #include "cvk/render/sync/barrier.hpp"
 
 #include <cth/io/log.hpp>
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <array>
 #include <bit>
@@ -70,21 +70,12 @@ namespace {
         return &view.image() == &other.image() && view.range().baseMipLevel == other.range().baseMipLevel;
     }
 
-    /**
-     * @return both are `std::nullopt` or the same view
-     */
-    [[nodiscard]] bool same_resolve(cvk::RenderingAttachment const& attachment, cvk::RenderingAttachment const& other) {
-        auto const& viewOpt = attachment.resolveViewOpt;
-        auto const& otherOpt = other.resolveViewOpt;
-        if(!viewOpt.has_value() || !otherOpt.has_value()) return viewOpt.has_value() == otherOpt.has_value();
-        return &viewOpt->get() == &otherOpt->get();
-    }
 
     /**
      * access of an attachment to the mip level of its image
      */
     struct AttachmentAccess {
-        cth::not_null_ptr<cvk::Image const> imagePtr;
+        cth::ref_wrapper<cvk::Image const> image;
         ImageAccess access;
     };
 
@@ -99,7 +90,7 @@ namespace {
                 | (attachment.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD ? VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
                     : VK_ACCESS_2_NONE);
             accesses.push_back({
-                &attachment.view.get().image(),
+                attachment.view->image(),
                 view_access(
                     attachment.view,
                     attachment.layout,
@@ -125,25 +116,25 @@ namespace {
             auto access = depth_stencil_access(*depth, !depth_read_only(depth->layout));
             access.access |= depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)).access;
             access.discard = discards(depth->loadOp) && discards(stencil->loadOp);
-            accesses.push_back({&depth->view.get().image(), access});
+            accesses.push_back({depth->view->image(), access});
         } else {
             if(depth.has_value())
                 accesses.push_back({
-                    &depth->view.get().image(),
+                    depth->view->image(),
                     depth_stencil_access(*depth, !depth_read_only(depth->layout)),
                 });
             if(stencil.has_value())
                 accesses.push_back({
-                    &stencil->view.get().image(),
+                    stencil->view->image(),
                     depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)),
                 });
         }
 
         auto const resolve = [&](cvk::RenderingAttachment const& attachment) {
-            if(!attachment.resolveViewOpt.has_value()) return;
-            cvk::ImageView const& resolveView = *attachment.resolveViewOpt;
+            if(attachment.resolveViewPtr == nullptr) return;
+            cvk::ImageView const& resolveView = *attachment.resolveViewPtr;
             accesses.push_back({
-                &resolveView.image(),
+                resolveView.image(),
                 view_access(
                     resolveView,
                     attachment.resolveLayout,
@@ -156,7 +147,7 @@ namespace {
         for(auto const& attachment : info.colorAttachments)
             resolve(attachment);
         if(depth.has_value()) resolve(*depth);
-        if(stencil.has_value() && !(shared && same_resolve(*stencil, *depth))) resolve(*stencil);
+        if(stencil.has_value() && !(shared && stencil->resolveViewPtr == depth->resolveViewPtr)) resolve(*stencil);
 
         return accesses;
     }
@@ -210,8 +201,8 @@ void BasicCmdBuffer<Cvk>::assume(cvk::BaseBuffer const& buffer, BufferState cons
 template<class Cvk>
 void BasicCmdBuffer<Cvk>::beginRendering(cvk::RenderingInfo const& info) {
     cvk::Barrier barrier{};
-    for(auto const& [imagePtr, access] : attachment_accesses(info))
-        _states.access(*imagePtr, access, barrier);
+    for(auto const& [image, access] : attachment_accesses(info))
+        _states.access(*image, access, barrier);
 
     record(barrier);
     _cmdBuffer.beginRendering(info);
@@ -221,9 +212,9 @@ template<class Cvk>
 void BasicCmdBuffer<Cvk>::endRendering() {
     CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside its own rendering") {}
 
-    for(auto const& [imagePtr, access] : attachment_accesses(*rendering()))
+    for(auto const& [image, access] : attachment_accesses(*rendering()))
         _states.extend(
-            *imagePtr,
+            *image,
             cvk::BarrierScope{.stages = access.stages, .access = access.access},
             access.firstMipLevel,
             access.mipLevels
@@ -310,7 +301,7 @@ void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
     _cmdBuffer.begin(usage);
 }
 
-void PrimaryCmdBuffer::execute(std::span<std::reference_wrapper<SecondaryCmdBuffer> const> secondaries) {
+void PrimaryCmdBuffer::execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer> const> secondaries) {
     for(SecondaryCmdBuffer& secondary : secondaries)
         secondary.optEnd();
 
@@ -320,12 +311,12 @@ void PrimaryCmdBuffer::execute(std::span<std::reference_wrapper<SecondaryCmdBuff
     }
 }
 
-void PrimaryCmdBuffer::execute(std::initializer_list<std::reference_wrapper<SecondaryCmdBuffer>> secondaries) {
+void PrimaryCmdBuffer::execute(std::initializer_list<cth::ref_wrapper<SecondaryCmdBuffer>> secondaries) {
     execute(std::span{secondaries});
 }
 
 void PrimaryCmdBuffer::execute(SecondaryCmdBuffer& secondary) {
-    std::array const secondaries{std::ref(secondary)};
+    std::array const secondaries{cth::ref_wrapper{secondary}};
     execute(secondaries);
 }
 

@@ -7,8 +7,8 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
-#include <functional>
 #include <optional>
 #include <span>
 #include <vector>
@@ -130,12 +130,12 @@ struct Barrier {
     static constexpr VkPipelineStageFlags2 INFERRED_SHADER_STAGES = VK_PIPELINE_STAGE_2_NONE;
 
     struct BufferEntry {
-        std::reference_wrapper<BaseBuffer const> buffer;
+        cth::ref_wrapper<BaseBuffer const> buffer;
         BufferInfo info;
     };
 
     struct ImageEntry {
-        std::reference_wrapper<Image const> image;
+        cth::ref_wrapper<Image const> image;
         ImageInfo info;
     };
 

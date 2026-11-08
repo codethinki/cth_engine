@@ -31,11 +31,10 @@ namespace {
     }
 }
 
-Core::Core(Instance const& instance) : _instancePtr{&instance} {}
+Core::Core(Instance const& instance) : _instance{instance} {}
 
-Core::Core(Instance const& instance, span<Surface const> surfaces, Config const& config) : Core{instance} {
-    create(surfaces, config);
-}
+Core::Core(Instance const& instance, span<cth::ref_wrapper<Surface const> const> surfaces, Config const& config) :
+    Core{instance} { create(surfaces, config); }
 
 Core::Core(Instance const& instance, State state) : Core{instance} { wrap(std::move(state)); }
 
@@ -75,7 +74,7 @@ void Core::wrap(State state) {
     else _queueIndices = std::move(state.queueIndices);
 }
 
-void Core::create(span<Surface const> surfaces, Config const& config) {
+void Core::create(span<cth::ref_wrapper<Surface const> const> surfaces, Config const& config) {
     Config::debug_check(config);
 
     optDestroy();
@@ -84,7 +83,7 @@ void Core::create(span<Surface const> surfaces, Config const& config) {
     auto required = requirements(config);
     auto pick = pickPhysicalDevice(surfaces, config, required);
     auto device = std::make_unique<Device>(
-        *_instancePtr,
+        *_instance,
         *pick.physicalDevice,
         Device::Config{
             .queueFamilyIndices = std::move(pick.uniqueQueueFamilyIndices),
@@ -126,7 +125,7 @@ size_t Core::queueSetIndex() const {
     return *_queueSetIdxOpt;
 }
 
-VkInstance Core::vkInstance() const { return _instancePtr->get(); }
+VkInstance Core::vkInstance() const { return _instance->get(); }
 
 PhysicalDevice const& Core::physicalDevice() const {
     debug_check(*this);
@@ -177,7 +176,7 @@ auto Core::requirements(Config const& config) -> device_requirements {
 }
 
 auto Core::pickPhysicalDevice(
-    span<Surface const> surfaces,
+    span<cth::ref_wrapper<Surface const> const> surfaces,
     Config const& config,
     device_requirements const& required
 ) const -> device_pick {
@@ -234,7 +233,7 @@ auto Core::createQueueSetRelations(
 }
 
 auto Core::tryPickPhysicalDevice(
-    span<Surface const> surfaces,
+    span<cth::ref_wrapper<Surface const> const> surfaces,
     Config const& config,
     device_requirements const& required,
     queue_set_t const& queueSet
@@ -244,7 +243,7 @@ auto Core::tryPickPhysicalDevice(
     auto [uniqueQueues, queueToUniqueQueue] = createQueueSetRelations(queueSet, config.queueProperties);
 
     auto result = pick_physical_device(
-        *_instancePtr,
+        *_instance,
         surfaces,
         uniqueQueues,
         required.features,

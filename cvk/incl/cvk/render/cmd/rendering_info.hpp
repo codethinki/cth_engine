@@ -4,10 +4,10 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <algorithm>
 #include <cstdint>
-#include <functional>
 #include <optional>
 #include <ranges>
 #include <vector>
@@ -127,7 +127,7 @@ struct RenderingAttachment {
     /**
      * @pre one mip level
      */
-    std::reference_wrapper<ImageView const> view;
+    cth::ref_wrapper<ImageView const> view;
 
     /**
      * layout of the view during the rendering, `VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL` fits every aspect
@@ -139,16 +139,15 @@ struct RenderingAttachment {
 
     VkClearValue clearValue{}; ///< `VK_ATTACHMENT_LOAD_OP_CLEAR` -> the clear value
 
-    //TODO review std::optional for the nullable pointer, renamed from resolveView
-    std::optional<std::reference_wrapper<ImageView const>> resolveViewOpt = std::nullopt; ///< `std::nullopt` -> none
+    ImageView const* resolveViewPtr = nullptr; ///< `nullptr` -> no resolve
 
     /**
-     * layout of `RenderingAttachment::resolveViewOpt` during the rendering
+     * layout of `RenderingAttachment::resolveViewPtr` during the rendering
      */
     VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
     /**
-     * @pre `!= VK_RESOLVE_MODE_NONE` if `RenderingAttachment::resolveViewOpt`
+     * @pre `!= VK_RESOLVE_MODE_NONE` if `RenderingAttachment::resolveViewPtr`
      */
     VkResolveModeFlagBits resolveMode = VK_RESOLVE_MODE_NONE;
 };

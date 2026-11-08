@@ -6,7 +6,8 @@
 #include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
-#include <functional>
+#include <cth/ptr/ref_wrapper.hpp>
+
 
 
 namespace cvk {
@@ -47,7 +48,7 @@ CVK_TEST(PipelineLayout, too_many_sets_throws) {
 
     auto const maxSets = context.core.physicalDevice().limits().maxBoundDescriptorSets;
     PipelineLayout::Config const config{
-        .setLayouts = std::vector<std::reference_wrapper<DescriptorSetLayout const>>(maxSets + 1, std::cref(set)),
+        .setLayouts = std::vector<cth::ref_wrapper<DescriptorSetLayout const>>(maxSets + 1, cth::ref_wrapper{set}),
     };
 
     auto const construct = [&] { PipelineLayout const layout{context.core, config, create}; };

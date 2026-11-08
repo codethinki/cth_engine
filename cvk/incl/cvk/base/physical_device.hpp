@@ -6,9 +6,11 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <array>
 #include <cstdint>
+#include <initializer_list>
 #include <optional>
 #include <span>
 #include <string>
@@ -35,7 +37,10 @@ public:
      * @throws cvk::vk_result_exception result of `vkEnumerateDeviceExtensionProperties()`
      * @throws cvk::vk_result_exception result of `vkGetPhysicalDeviceSurfaceSupportKHR()`
      */
-    explicit PhysicalDevice(vk_not_null<VkPhysicalDevice>, std::span<Surface const> surfaces = {});
+    explicit PhysicalDevice(
+        vk_not_null<VkPhysicalDevice>,
+        std::span<cth::ref_wrapper<Surface const> const> surfaces = {}
+    );
 
     ~PhysicalDevice() = default;
 
@@ -130,8 +135,19 @@ struct PhysicalDevicePick {
  */
 [[nodiscard]] std::vector<PhysicalDevice> enumerate_physical_devices(
     Instance const&,
-    std::span<Surface const> surfaces = {}
+    std::span<cth::ref_wrapper<Surface const> const> surfaces = {}
 );
+
+/**
+ * queries every physical device of the instance with the surfaces of a braced list
+ * @see @ref enumerate_physical_devices(Instance const&, std::span<cth::ref_wrapper<Surface const> const>)
+ */
+[[nodiscard]] inline std::vector<PhysicalDevice> enumerate_physical_devices(
+    Instance const& instance,
+    std::initializer_list<cth::ref_wrapper<Surface const>> surfaces
+) {
+    return enumerate_physical_devices(instance, std::span{surfaces});
+}
 
 /**
  * picks the best physical device with the features, the extensions and the queues
@@ -147,12 +163,27 @@ struct PhysicalDevicePick {
  */
 [[nodiscard]] std::optional<PhysicalDevicePick> pick_physical_device(
     Instance const&,
-    std::span<Surface const> surfaces,
+    std::span<cth::ref_wrapper<Surface const> const> surfaces,
     std::span<QueueFamilyProperties const> queueProperties,
     DeviceFeatures const& features,
     std::span<std::string const> extensions = {},
     std::optional<device_uuid_t> const& uuidOpt = std::nullopt
 );
+
+/**
+ * picks with the surfaces of a braced list
+ * @see `pick_physical_device()`
+ */
+[[nodiscard]] inline std::optional<PhysicalDevicePick> pick_physical_device(
+    Instance const& instance,
+    std::initializer_list<cth::ref_wrapper<Surface const>> surfaces,
+    std::span<QueueFamilyProperties const> queueProperties,
+    DeviceFeatures const& features,
+    std::span<std::string const> extensions = {},
+    std::optional<device_uuid_t> const& uuidOpt = std::nullopt
+) {
+    return pick_physical_device(instance, std::span{surfaces}, queueProperties, features, extensions, uuidOpt);
+}
 }
 
 namespace cvk::dev {

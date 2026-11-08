@@ -6,7 +6,7 @@
 
 #include <cth/coro/context.hpp>
 #include <cth/coro/utility/fwd.hpp>
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <coroutine>
 #include <cstdint>
@@ -28,7 +28,7 @@ class Semaphore;
 class semaphore_awaiter : public cth::co::this_coro_awaiter_base {
 public:
     constexpr semaphore_awaiter(Semaphore const& semaphore, uint64_t value) :
-        _semaphorePtr{&semaphore}, _value{value} {}
+        _semaphore{semaphore}, _value{value} {}
 
     /**
      * @return the semaphore reached the value
@@ -52,7 +52,7 @@ public:
     void await_resume() const;
 
 private:
-    cth::not_null_ptr<Semaphore const> _semaphorePtr;
+    cth::ref_wrapper<Semaphore const> _semaphore;
     uint64_t _value;
 
     std::error_code _error{}; ///< result of the wait, set by the callback
@@ -66,7 +66,7 @@ private:
 class submitted_awaiter : public cth::co::this_coro_awaiter_base {
 public:
     constexpr submitted_awaiter(Semaphore const& semaphore, uint64_t value) :
-        _semaphorePtr{&semaphore}, _value{value} {}
+        _semaphore{semaphore}, _value{value} {}
 
     /**
      * @return `Semaphore::submittedValue()` reached the value
@@ -86,7 +86,7 @@ public:
     constexpr void await_resume() const noexcept {}
 
 private:
-    cth::not_null_ptr<Semaphore const> _semaphorePtr;
+    cth::ref_wrapper<Semaphore const> _semaphore;
     uint64_t _value;
 };
 }
@@ -237,7 +237,7 @@ public:
 
     [[nodiscard]] constexpr bool created() const { return _semaphore.created(); }
     [[nodiscard]] constexpr VkSemaphore get() const { return _semaphore.get(); }
-    [[nodiscard]] constexpr Core const& core() const { return *_corePtr; }
+    [[nodiscard]] constexpr Core const& core() const { return *_core; }
 
     /**
      * the cvk semaphore
@@ -265,7 +265,7 @@ private:
         std::vector<SubmittedWaiter> waiters{}; ///< the callbacks of `awaitSubmitted()` above `Submitted::value`
     };
 
-    cth::not_null_ptr<Core const> _corePtr;
+    cth::ref_wrapper<Core const> _core;
     cvk::TimelineSemaphore _semaphore;
 
     //TODO review behind a std::unique_ptr: the mutex is not movable, the moves stay = default

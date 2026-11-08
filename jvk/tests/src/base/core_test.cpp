@@ -86,7 +86,7 @@ namespace {
         cvk::Fence const& fence
     ) {
         co_await queue.executor().schedule();
-        queue.vk().submit({.signals = {cvk::SemaphoreSubmitInfo{semaphore}}}, fence);
+        queue.vk().submit({.signals = {cvk::SemaphoreSubmitInfo{semaphore}}}, &fence);
         co_return fence.extractOsHandle();
     }
 

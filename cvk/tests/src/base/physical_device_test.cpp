@@ -73,9 +73,8 @@ CVK_TEST(PhysicalDevice, pick_present_without_surfaces_finds_nothing) {
 
 CVK_TEST(PhysicalDevice, pick_present_finds_a_family_of_the_surface) {
     test::PresentContext const context{};
-    std::span const surfaces{&context.surface(), 1};
 
-    auto const [device, familyIndices] = test::pick(context.instance, PRESENT_QUEUES, surfaces);
+    auto const [device, familyIndices] = test::pick(context.instance, PRESENT_QUEUES, {context.surface()});
 
     EXPECT_TRUE(device.features().swapchainMaintenance1);
     ASSERT_EQ(familyIndices.size(), 1);
@@ -84,9 +83,8 @@ CVK_TEST(PhysicalDevice, pick_present_finds_a_family_of_the_surface) {
 
 CVK_TEST(PhysicalDevice, pick_present_requires_the_os_fence_features) {
     test::PresentContext const context{};
-    std::span const surfaces{&context.surface(), 1};
 
-    auto const [device, _] = test::pick(context.instance, PRESENT_QUEUES, surfaces);
+    auto const [device, _] = test::pick(context.instance, PRESENT_QUEUES, {context.surface()});
 
     auto const features = device.externalFenceFeatures(constants::OS_FENCE_HANDLE_TYPE);
     EXPECT_EQ(features & constants::OS_FENCE_FEATURES, constants::OS_FENCE_FEATURES);

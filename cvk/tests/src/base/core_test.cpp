@@ -222,9 +222,8 @@ CVK_TEST(Core, queues_work_after_move) {
 
 CVK_TEST(Core, present_queue_with_headless_surface) {
     test::PresentContext const context{};
-    std::span const surfaces{&context.surface(), 1};
 
-    Core const core{context.instance, surfaces, test::PresentContext::CONFIG};
+    Core const core{context.instance, {context.surface()}, test::PresentContext::CONFIG};
 
     ASSERT_TRUE(core.created());
     EXPECT_TRUE(core.queue(0).canPresent());

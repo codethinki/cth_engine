@@ -1,7 +1,7 @@
 #pragma once
 #include "stage.hpp"
 
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -29,10 +29,9 @@ namespace jvk {
 class Frame {
 public:
     /**
-     * @param slotPtr resources of the frame slot, with the stages of the frame
-     * @pre `slotPtr != nullptr`
+     * @param frameSlot resources of the frame slot, with the stages of the frame
      */
-    Frame(dev::FrameSlot* slotPtr, uint64_t number);
+    Frame(dev::FrameSlot& frameSlot, uint64_t number);
 
     /**
      * @return the stage in this frame
@@ -48,7 +47,7 @@ public:
     [[nodiscard]] constexpr size_t slot() const;
 
 private:
-    cth::not_null_ptr<dev::FrameSlot> _slotPtr;
+    cth::ref_wrapper<dev::FrameSlot> _frameSlot;
     uint64_t _number;
 
 public:
@@ -67,7 +66,7 @@ namespace jvk::dev {
  * - the `Frame` of each frame uses them
  */
 struct FrameSlot {
-    cth::not_null_ptr<StageGraph> graphPtr;
+    cth::ref_wrapper<StageGraph> graph;
     size_t slot;
 
     std::deque<StageSlot> stageSlots{}; ///< one per stage of the config
@@ -83,5 +82,5 @@ struct FrameSlot {
 }
 
 namespace jvk {
-constexpr size_t Frame::slot() const { return _slotPtr->slot; }
+constexpr size_t Frame::slot() const { return _frameSlot->slot; }
 }

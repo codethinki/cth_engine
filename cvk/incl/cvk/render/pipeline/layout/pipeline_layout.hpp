@@ -8,8 +8,8 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
-#include <functional>
 #include <span>
 #include <tuple>
 #include <vector>
@@ -117,7 +117,7 @@ struct PipelineLayout::Config {
     /**
      * set layout per set number, index == set number
      */
-    std::vector<std::reference_wrapper<DescriptorSetLayout const>> setLayouts{};
+    std::vector<cth::ref_wrapper<DescriptorSetLayout const>> setLayouts{};
 
     std::vector<VkPushConstantRange> pushConstantRanges{};
 };

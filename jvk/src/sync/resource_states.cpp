@@ -126,12 +126,12 @@ void ResourceStates::access(Image const& image, ImageAccess const& access, cvk::
     for(uint32_t level = access.firstMipLevel; level < access.firstMipLevel + count; ++level) {
         auto const [it, inserted] = _images.try_emplace(
             image_key_t{image.get(), level},
-            image_states{.imagePtr = &image, .firstOpt = next, .last = next, .discard = access.discard}
+            image_states{.image = image, .firstOpt = next, .last = next, .discard = access.discard}
         );
         if(inserted) continue;
 
         auto& states = it->second;
-        states.imagePtr = &image;
+        states.image = image;
 
         if(needs_barrier(states.last, next, access.discard)) {
             add_image_barrier(barrier, image, image_barrier(states.last, next, access.discard, level));
@@ -153,12 +153,12 @@ void ResourceStates::access(BaseBuffer const& buffer, BufferAccess const& access
 
     auto const [it, inserted] = _buffers.try_emplace(
         buffer.get(),
-        buffer_states{.bufferPtr = &buffer, .firstOpt = next, .last = next}
+        buffer_states{.buffer = buffer, .firstOpt = next, .last = next}
     );
     if(inserted) return;
 
     auto& states = it->second;
-    states.bufferPtr = &buffer;
+    states.buffer = buffer;
 
     if(needs_barrier(states.last, next)) {
         barrier.add(buffer, cvk::BufferBarrierInfo{.src = src_scope(states.last.scope), .dst = next.scope});
@@ -178,12 +178,12 @@ void ResourceStates::assume(Image const& image, ImageState const& state, uint32_
     for(uint32_t level = firstMipLevel; level < firstMipLevel + count; ++level) {
         auto const [it, inserted] = _images.try_emplace(
             image_key_t{image.get(), level},
-            image_states{.imagePtr = &image, .firstOpt = std::nullopt, .last = state, .barrier = true}
+            image_states{.image = image, .firstOpt = std::nullopt, .last = state, .barrier = true}
         );
         if(inserted) continue;
 
         auto& states = it->second;
-        states.imagePtr = &image;
+        states.image = image;
         states.last = state;
         states.barrier = true;
     }
@@ -194,12 +194,12 @@ void ResourceStates::assume(BaseBuffer const& buffer, BufferState const& state) 
 
     auto const [it, inserted] = _buffers.try_emplace(
         buffer.get(),
-        buffer_states{.bufferPtr = &buffer, .firstOpt = std::nullopt, .last = state, .barrier = true}
+        buffer_states{.buffer = buffer, .firstOpt = std::nullopt, .last = state, .barrier = true}
     );
     if(inserted) return;
 
     auto& states = it->second;
-    states.bufferPtr = &buffer;
+    states.buffer = buffer;
     states.last = state;
     states.barrier = true;
 }
@@ -224,7 +224,7 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
         if(inserted) continue;
 
         auto& states = it->second;
-        states.imagePtr = nextStates.imagePtr;
+        states.image = nextStates.image;
 
         // an assume before the first access of next: no barrier
         if(!nextStates.firstOpt.has_value()) {
@@ -236,7 +236,7 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
         if(needs_barrier(states.last, *nextStates.firstOpt, nextStates.discard)) {
             add_image_barrier(
                 barrier,
-                *nextStates.imagePtr,
+                *nextStates.image,
                 image_barrier(states.last, *nextStates.firstOpt, nextStates.discard, key.second)
             );
             states.last = nextStates.last;
@@ -257,7 +257,7 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
         if(inserted) continue;
 
         auto& states = it->second;
-        states.bufferPtr = nextStates.bufferPtr;
+        states.buffer = nextStates.buffer;
 
         if(!nextStates.firstOpt.has_value()) {
             states.last = nextStates.last;
@@ -267,7 +267,7 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
 
         if(needs_barrier(states.last, *nextStates.firstOpt)) {
             barrier.add(
-                *nextStates.bufferPtr,
+                *nextStates.buffer,
                 cvk::BufferBarrierInfo{.src = src_scope(states.last.scope), .dst = nextStates.firstOpt->scope}
             );
             states.last = nextStates.last;

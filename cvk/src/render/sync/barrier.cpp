@@ -152,8 +152,8 @@ void Barrier::debug_check_rendering(
     auto const attached = [renderingPtr](Image const& image) {
         if(renderingPtr == nullptr) return false;
         auto const uses = [&image](RenderingAttachment const& attachment) {
-            return &attachment.view.get().image() == &image
-                || (attachment.resolveViewOpt.has_value() && &attachment.resolveViewOpt->get().image() == &image);
+            return &attachment.view->image() == &image
+                || (attachment.resolveViewPtr != nullptr && &attachment.resolveViewPtr->image() == &image);
         };
         return std::ranges::any_of(renderingPtr->colorAttachments, uses)
             || (renderingPtr->depthAttachment.has_value() && uses(*renderingPtr->depthAttachment))

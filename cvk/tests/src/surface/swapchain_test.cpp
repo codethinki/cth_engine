@@ -93,7 +93,7 @@ namespace {
                 .waits = {{acquired, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT}},
                 .signals = {swapchain.presentSemaphore(*index)},
             },
-            fence
+            &fence
         );
         auto const presented = swapchain.present(*index);
         fence.wait();
@@ -106,7 +106,7 @@ namespace {
      */
     void consume(test::PresentContext const& context, Semaphore const& acquired) {
         Fence const fence{context.core, create};
-        context.queue().submit({.waits = {acquired}}, fence);
+        context.queue().submit({.waits = {acquired}}, &fence);
         fence.wait();
     }
 }

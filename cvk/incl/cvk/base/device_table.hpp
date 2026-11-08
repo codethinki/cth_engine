@@ -3,12 +3,14 @@
 
 #include <volk.h>
 
+#include <cth/ptr/ref_wrapper.hpp>
+
 namespace cvk {
 struct DeviceTable {
     vk_not_null<VkDevice> vkDevice;
-    not_null_ptr<VolkDeviceTable const> table;
+    cth::ref_wrapper<VolkDeviceTable const> table;
 
-    VolkDeviceTable const* operator ->() const { return table.get(); }
+    VolkDeviceTable const* operator ->() const { return &table.get(); }
     [[nodiscard]] constexpr VkDevice device() const { return vkDevice.get(); }
 };
 }

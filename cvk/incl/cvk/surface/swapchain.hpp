@@ -14,6 +14,7 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstdint>
 #include <limits>
@@ -192,7 +193,7 @@ public:
 
     [[nodiscard]] constexpr bool created() const { return !_generations.empty(); }
     [[nodiscard]] constexpr VkSwapchainKHR get() const { return created() ? current().handle.get() : VK_NULL_HANDLE; }
-    [[nodiscard]] constexpr Core const& core() const { return *_corePtr; }
+    [[nodiscard]] constexpr Core const& core() const { return *_core; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     [[nodiscard]] constexpr VkExtent2D extent() const { return _extent; }
@@ -308,8 +309,8 @@ private:
     void forget();
 
     Queue _presentQueue;
-    not_null_ptr<Surface const> _surfacePtr;
-    not_null_ptr<Core const> _corePtr;
+    cth::ref_wrapper<Surface const> _surface;
+    cth::ref_wrapper<Core const> _core;
     Config _config;
 
     /**

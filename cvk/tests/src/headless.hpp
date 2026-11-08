@@ -3,6 +3,9 @@
 #include "cvk/base/physical_device.hpp"
 #include "cvk/surface/surface.hpp"
 
+#include <cth/ptr/ref_wrapper.hpp>
+
+#include <initializer_list>
 #include <span>
 #include <string>
 #include <vector>
@@ -28,6 +31,6 @@ namespace cvk::test {
 [[nodiscard]] PhysicalDevicePick pick(
     Instance const&,
     std::span<QueueFamilyProperties const> queueProperties,
-    std::span<Surface const> surfaces = {}
+    std::initializer_list<cth::ref_wrapper<Surface const>> surfaces = {}
 );
 }

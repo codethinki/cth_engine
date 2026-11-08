@@ -94,7 +94,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
   - index: `<thing>Idx`: `queueIdx`, never only `queue`
   - pointer: `<thing>Ptr`, optional: `<thing>Opt`
   - a name that already says it is no object needs no suffix: `stageId`, `slot`, `handle` (not `handlePtr`)
-  - a reference is the object: `std::reference_wrapper` gets the bare name too: `cmdBuffers`
+  - a reference is the object: `cth::ref_wrapper` gets the bare name too: `cmdBuffers`, `_core`
   - loop variable: `i`, `j`, `k` in this order, or `<thing>Idx`
 - Names describe the thing, not an invented concept: no `role` for an index.
 - `_t` only for aliases that rename a type: `callback_t`, `queue_set_t`. An alias that is a type of its own gets a std style name, like `std::string`.
@@ -115,11 +115,13 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Use deducing `this` (`this auto& self`) where a function must work on the derived type.
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.
-- Objects that callers hand in (data struct fields, lists, parameters) are `std::reference_wrapper<T const>`, not pointers: a type with a conversion operator to `T const&` (a jvk wrapper) passes directly.
-  Internal members of the exact type stay `cth::not_null_ptr`. Raw Vulkan handles stay `vk_not_null`.
+- A non-owning reference that is never null is a `cth::ref_wrapper<T>`: members, data struct fields, lists and parameters.
+  A type with a conversion operator to `T&` (a jvk wrapper) passes directly. `->` and `*` reach the object.
+  `==` of a `cth::ref_wrapper` compares the objects: identity compares the addresses, `&a.get() == &b.get()`.
+  A nullable non-owning reference is a `T*` named `<thing>Ptr`. Identity map keys stay `T const*`. Raw Vulkan handles stay `vk_not_null`.
 - Constructors are public. No `friend` and no passkey class to hide a construction: a friend opens far more than the constructor.
 - A `friend` only where no other design gives the access, with a comment at the declaration that says why: `StageGraph` in `Stage` sets the status of the submission.
-- Long or nested template types get a `using` alias next to their use: `using last_queue_map_t = cth::dt::flat_hash_map<image_mip_t, not_null_ptr<Queue const>>;`.
+- Long or nested template types get a `using` alias next to their use: `using last_queue_map_t = cth::dt::flat_hash_map<image_mip_t, cth::ref_wrapper<Queue const>>;`.
 - Prefer compile time checks (concepts, `static_assert`) to run time checks.
 - An automatically chosen value has an override if:
   - the choice is not guaranteed to be optimal
@@ -273,7 +275,7 @@ Documentation uses doxygen comments and follows ASD-STE100 (Simplified Technical
 - Write short fragments, not full sentences. Start them with a verb in the present tense: `creates the instance`, `destroys and forgets`.
 - Fragments win over STE100: where STE100 asks for a full sentence or an article, write the shorter fragment.
 - Put every piece of code in backticks: our names, Vulkan and std names, values, parameter names, expressions:
-  `` `create()` ``, `` `Core::created()` ``, `` `VK_IMAGE_LAYOUT_UNDEFINED` ``, `` `std::nullopt` ``, `` `slotPtr` ``, `` `x < y` ``.
+  `` `create()` ``, `` `Core::created()` ``, `` `VK_IMAGE_LAYOUT_UNDEFINED` ``, `` `std::nullopt` ``, `` `stageSlot` ``, `` `x < y` ``.
   Doxygen links our names inside backticks by itself (autolink), CLion shows backticks as code.
 - `@ref` only where autolink does not resolve a name (a member variable is qualified instead: `` `Image::State::memory` ``) or where the exact overload matters, see below.
 - Write function references without a parameter list: `` `create()` ``, `` `Instance()` ``, `` `Core::queue()` ``.

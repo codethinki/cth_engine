@@ -452,7 +452,7 @@ JVK_TEST(CmdBuffer, submit_info_takes_the_jvk_buffer) {
     EXPECT_EQ(&info.cmdBuffers[0].get(), &static_cast<cvk::PrimaryCmdBuffer const&>(primary));
 
     cvk::Fence const fence{context.core, cvk::create};
-    context.core.queue(0).vk().submit(info, fence);
+    context.core.queue(0).vk().submit(info, &fence);
     fence.wait();
 }
 

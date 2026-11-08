@@ -5,7 +5,7 @@
 
 #include <cth/coro/context.hpp>
 #include <cth/data/hash_map.hpp>
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstdint>
 #include <mutex>
@@ -86,7 +86,7 @@ private:
      */
     void wake() const;
 
-    cth::not_null_ptr<cth::co::scheduler const> _workersPtr;
+    cth::ref_wrapper<cth::co::scheduler const> _workers;
 
     mutable cvk::TimelineSemaphore _wake; ///< the thread waits for it next to the semaphores with waiters
 

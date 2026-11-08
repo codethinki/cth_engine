@@ -9,7 +9,7 @@
 #include <volk.h>
 
 #include <cth/coro/tasks/executor_task.hpp>
-#include <cth/ptr/not_null.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -35,7 +35,8 @@ struct SlotWait {
      * the waited stage in the frame slot of the waited frame
      * @details the submit waits for its `StageSlot::semaphore` with the number of the waited frame
      */
-    cth::not_null_ptr<StageSlot const> slotPtr;
+    //TODO review name stageSlot, not slot: slot is the index of the frame slot, see StageSlot::slot
+    cth::ref_wrapper<StageSlot const> stageSlot;
 
     VkPipelineStageFlags2 stages; ///< see `StageWait::stages`
 
@@ -49,12 +50,12 @@ struct SlotWait {
  * - the `Stage` of each frame uses them
  */
 struct StageSlot {
-    cth::not_null_ptr<StageGraph> graphPtr;
+    cth::ref_wrapper<StageGraph> graph;
 
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
     size_t slot;
-    cth::not_null_ptr<Queue const> queuePtr;
+    cth::ref_wrapper<Queue const> queue;
 
     /**
      * signaled by the submit or the skip of each frame of the slot
@@ -64,7 +65,7 @@ struct StageSlot {
 
     std::vector<SlotWait> waits{}; ///< one per `StageConfig::waits`
 
-    cth::not_null_ptr<StageSlot const> previousPtr; ///< the stage in the frame slot before, submits first
+    cth::ref_wrapper<StageSlot const> previous; ///< the stage in the frame slot before, submits first
 
     PrimaryCmdBuffer prologue; ///< barriers for the first uses of the primary, submitted before it
 
@@ -100,10 +101,9 @@ public:
     };
 
     /**
-     * @param slotPtr resources of the stage in the frame slot
-     * @pre `slotPtr != nullptr`
+     * @param stageSlot resources of the stage in the frame slot
      */
-    Stage(dev::StageSlot* slotPtr, uint64_t frameNumber);
+    Stage(dev::StageSlot& stageSlot, uint64_t frameNumber);
 
     /**
      * begins the primary command buffer of the frame
@@ -119,7 +119,7 @@ public:
      * @details not begun
      * @see `beginPrimary()`
      */
-    [[nodiscard]] PrimaryCmdBuffer& primary() { return _slotPtr->primary; }
+    [[nodiscard]] PrimaryCmdBuffer& primary() { return _stageSlot->primary; }
 
     //TODO review std::optional instead of a default inheritance {}: an empty inheritance continues a rendering
     /**
@@ -202,18 +202,20 @@ public:
      * - `Semaphore::submitted()` of `semaphore()` with `frameNumber()`
      * @see `wait()`
      */
-    [[nodiscard]] constexpr submitted_awaiter submitted() const { return _slotPtr->semaphore.submitted(_frameNumber); }
+    [[nodiscard]] constexpr submitted_awaiter submitted() const {
+        return _stageSlot->semaphore.submitted(_frameNumber);
+    }
 
     [[nodiscard]] constexpr Status status() const { return _status; }
-    [[nodiscard]] constexpr size_t id() const { return _slotPtr->stageId; }
-    [[nodiscard]] constexpr size_t slot() const { return _slotPtr->slot; }
-    [[nodiscard]] constexpr Queue const& queue() const { return *_slotPtr->queuePtr; }
+    [[nodiscard]] constexpr size_t id() const { return _stageSlot->stageId; }
+    [[nodiscard]] constexpr size_t slot() const { return _stageSlot->slot; }
+    [[nodiscard]] constexpr Queue const& queue() const { return *_stageSlot->queue; }
 
     /**
      * @return semaphore of the stage slot
      * @details the submit or the skip of frame N signals N
      */
-    [[nodiscard]] constexpr Semaphore const& semaphore() const { return _slotPtr->semaphore; }
+    [[nodiscard]] constexpr Semaphore const& semaphore() const { return _stageSlot->semaphore; }
 
     /**
      * @return number of the frame, the value of `semaphore()` for this frame
@@ -224,7 +226,7 @@ private:
     // the graph sets the status of the submission, there is no other access without a public setter
     friend class StageGraph;
 
-    cth::not_null_ptr<dev::StageSlot> _slotPtr;
+    cth::ref_wrapper<dev::StageSlot> _stageSlot;
     uint64_t _frameNumber;
     Status _status = Status::UNSUBMITTED;
 

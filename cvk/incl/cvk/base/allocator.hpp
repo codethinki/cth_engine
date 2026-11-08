@@ -8,6 +8,7 @@
 #include <vk_mem_alloc.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 
 namespace cvk {
@@ -89,12 +90,12 @@ public:
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VmaAllocator get() const { return _handle.get(); }
-    [[nodiscard]] constexpr Device const& device() const { return *_devicePtr; }
+    [[nodiscard]] constexpr Device const& device() const { return *_device; }
 
 private:
     void forget();
 
-    not_null_ptr<Device const> _devicePtr;
+    cth::ref_wrapper<Device const> _device;
     unique_handle<VmaAllocator, handle_deleter> _handle;
 
 public:

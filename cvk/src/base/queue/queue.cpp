@@ -32,7 +32,7 @@ namespace {
     template<class Resolve>
     VkSemaphoreSubmitInfo semaphore_info(SemaphoreSubmitInfo const& info, Resolve resolve) {
         return std::visit(
-            [&]<class T>(std::reference_wrapper<T const> semaphore) {
+            [&]<class T>(cth::ref_wrapper<T const> semaphore) {
                 T::debug_check(semaphore);
 
                 if constexpr(std::same_as<T, TimelineSemaphore>) {
@@ -49,14 +49,14 @@ namespace {
 }
 
 Queue::Queue(QueueFamilyProperties familyProperties, State const& state) : _familyProperties{familyProperties},
-    _functionsPtr{state.functions.get()},
+    _functionsPtr{&state.functions.get()},
     _handle{state.vkQueue.get()},
     _familyIndex{state.familyIndex},
     _queueIndex{state.queueIndex} {}
 
-void Queue::submit(span<SubmitInfo const> infos, fence_opt_t fenceOpt) const {
+void Queue::submit(span<SubmitInfo const> infos, Fence const* fencePtr) const {
     debug_check(*this);
-    if(fenceOpt.has_value()) Fence::debug_check(*fenceOpt);
+    if(fencePtr != nullptr) Fence::debug_check(*fencePtr);
 
     size_t cmdBufferCount = 0;
     size_t semaphoreCount = 0;
@@ -119,7 +119,7 @@ void Queue::submit(span<SubmitInfo const> infos, fence_opt_t fenceOpt) const {
         _handle.get(),
         static_cast<uint32_t>(submits.size()),
         submits.data(),
-        fenceOpt.has_value() ? fenceOpt->get().get() : VK_NULL_HANDLE
+        fencePtr != nullptr ? fencePtr->get() : VK_NULL_HANDLE
     );
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to submit to queue") {}

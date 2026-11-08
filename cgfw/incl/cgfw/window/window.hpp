@@ -8,6 +8,7 @@
 
 #include <cth/enums.hpp>
 #include <cth/io/log.hpp>
+#include <cth/ptr/not_null.hpp>
 
 #include <cstdint>
 #include <string>
@@ -217,7 +218,8 @@ public:
 
 namespace cgfw {
 struct Window::State {
-    cvk::not_null_ptr<RGFW_window> rgfwWindow;
+    //TODO review stays a not_null pointer: the raw handle of RGFW, like vk_not_null for Vulkan handles
+    cth::not_null_ptr<RGFW_window> rgfwWindow;
 };
 }
 

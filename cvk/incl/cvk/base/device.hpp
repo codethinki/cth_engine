@@ -10,6 +10,7 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <memory>
 #include <span>
@@ -102,12 +103,12 @@ public:
     [[nodiscard]] constexpr std::span<Queue const> queues() const { return _queues; }
     [[nodiscard]] constexpr std::span<Queue> queues() { return _queues; }
 
-    [[nodiscard]] constexpr DeviceTable table() const { return DeviceTable{_handle.get(), _functionTablePtr.get()}; }
+    [[nodiscard]] constexpr DeviceTable table() const { return DeviceTable{_handle.get(), *_functionTablePtr}; }
     [[nodiscard]] constexpr VolkDeviceTable const* functions() const { return _functionTablePtr.get(); }
     [[nodiscard]] constexpr VkDevice get() const { return _handle.get(); }
 
-    [[nodiscard]] constexpr Instance const& instance() const { return *_instancePtr; }
-    [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const { return *_physicalDevicePtr; }
+    [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
+    [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const { return *_physicalDevice; }
 
     /**
      * @return the enabled features
@@ -149,8 +150,8 @@ private:
     void createQueues(std::span<queue_family_index_t const> familyIndices);
 
 
-    not_null_ptr<Instance const> _instancePtr;
-    not_null_ptr<PhysicalDevice const> _physicalDevicePtr;
+    cth::ref_wrapper<Instance const> _instance;
+    cth::ref_wrapper<PhysicalDevice const> _physicalDevice;
 
     unique_handle<VkDevice, handle_deleter> _handle;
     std::unique_ptr<VolkDeviceTable> _functionTablePtr = std::make_unique<VolkDeviceTable>();

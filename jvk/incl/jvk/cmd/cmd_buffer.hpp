@@ -9,10 +9,11 @@
 
 #include <volk.h>
 
+#include <cth/ptr/ref_wrapper.hpp>
+
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <initializer_list>
 #include <memory>
 #include <span>
@@ -417,18 +418,18 @@ public:
      * @throws cvk::vk_result_exception result of `vkEndCommandBuffer()`
      * @see `cvk::Barrier::execute()`
      */
-    void execute(std::span<std::reference_wrapper<SecondaryCmdBuffer> const>);
+    void execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer> const>);
 
     //TODO review braced list overload like cvk: libstdc++ 16 has no std::span constructor from a braced list
     /**
      * executes the secondaries of a braced list
-     * @see @ref execute(std::span<std::reference_wrapper<SecondaryCmdBuffer> const>)
+     * @see @ref execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer> const>)
      */
-    void execute(std::initializer_list<std::reference_wrapper<SecondaryCmdBuffer>>);
+    void execute(std::initializer_list<cth::ref_wrapper<SecondaryCmdBuffer>>);
 
     /**
      * executes the secondary
-     * @see @ref execute(std::span<std::reference_wrapper<SecondaryCmdBuffer> const>)
+     * @see @ref execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer> const>)
      */
     void execute(SecondaryCmdBuffer&);
 
