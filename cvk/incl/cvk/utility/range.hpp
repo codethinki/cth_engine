@@ -12,9 +12,6 @@ namespace cvk {
 struct Range {
     size_t offset = 0;
 
-    /**
-     * (`VK_WHOLE_SIZE` => to the end)
-     */
-    size_t size = VK_WHOLE_SIZE;
+    size_t size = VK_WHOLE_SIZE; ///< (`VK_WHOLE_SIZE` => to the end)
 };
 }

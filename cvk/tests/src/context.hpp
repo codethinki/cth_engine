@@ -99,10 +99,7 @@ inline constexpr std::array<unsigned char, 4> GREEN_PIXEL{0, 255, 0, 255};
  *  `destroy_shared_contexts()` destroys them, the leaks of all tests show up there
  */
 struct Context {
-    /**
-     * the queues of `QUEUES`
-     */
-    static Core::Config const CONFIG;
+    static Core::Config const CONFIG; ///< the queues of `QUEUES`
 
     struct ValidationCheck {
         ValidationCheck();
@@ -141,10 +138,7 @@ public:
  * @details the shared ones of the process, made at the first use, see `Context`
  */
 struct PresentContext {
-    /**
-     * one graphics queue that presents
-     */
-    static Core::Config const CONFIG;
+    static Core::Config const CONFIG; ///< one graphics queue that presents
 
     PresentContext();
 

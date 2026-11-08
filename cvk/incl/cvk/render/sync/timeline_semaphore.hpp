@@ -133,7 +133,8 @@ namespace cvk {
 struct TimelineSemaphore::State {
     vk_not_null<VkSemaphore> vkSemaphore;
     /**
-     * counter, see `value()`
+     * counter
+     * @see `value()`
      */
     uint64_t value;
 

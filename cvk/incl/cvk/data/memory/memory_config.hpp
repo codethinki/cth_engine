@@ -8,25 +8,16 @@ namespace cvk {
  * config of a `Memory`
  */
 struct MemoryConfig {
-    /**
-     * `VMA_ALLOCATION_CREATE_*` flags
-     */
-    VmaAllocationCreateFlags flags = 0;
+    VmaAllocationCreateFlags flags = 0; ///< `VMA_ALLOCATION_CREATE_*` flags
 
     /**
      * `VMA_MEMORY_USAGE_AUTO*` -> only for buffers and images that VMA creates with the memory
      */
     VmaMemoryUsage usage = VMA_MEMORY_USAGE_AUTO;
 
-    /**
-     * the memory type must have these flags
-     */
-    VkMemoryPropertyFlags requiredFlags = 0;
+    VkMemoryPropertyFlags requiredFlags = 0; ///< the memory type must have these flags
 
-    /**
-     * VMA prefers memory types with these flags
-     */
-    VkMemoryPropertyFlags preferredFlags = 0;
+    VkMemoryPropertyFlags preferredFlags = 0; ///< VMA prefers memory types with these flags
 
     /**
      * @return create info with the members of the config, no pool

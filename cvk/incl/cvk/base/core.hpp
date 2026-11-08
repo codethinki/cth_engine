@@ -72,13 +72,14 @@ public:
      * creates the device, the allocator and the queues on a picked physical device
      * @param surfaces the present queues present to every surface
      * @details picks the first queue set that a physical device supports
-     * @details picks the best physical device for it, see `pick_physical_device()` and `Config::device`
+     * @details picks the best physical device for it
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
      * @throws cvk::cvk_exception reason: `Config::device` is missing or does not meet the requirements
      * @throws cvk::vk_result_exception result of `vkCreateDevice()`
      * @throws cvk::vk_result_exception result of `vmaCreateAllocator()`
+     * @see `pick_physical_device()`, `Config::device`
      */
     void create(std::span<Surface const> surfaces, Config const&);
 
@@ -169,10 +170,7 @@ private:
         std::vector<queue_family_index_t> uniqueQueueFamilyIndices;
         std::vector<size_t> queuesToUniqueQueues;
 
-        /**
-         * `std::nullopt` -> the config had no queue sets
-         */
-        std::optional<size_t> queueSetIndex = std::nullopt;
+        std::optional<size_t> queueSetIndex = std::nullopt; ///< `std::nullopt` -> the config had no queue sets
     };
     struct queue_set_relations {
         std::vector<QueueFamilyProperties> uniqueQueues;

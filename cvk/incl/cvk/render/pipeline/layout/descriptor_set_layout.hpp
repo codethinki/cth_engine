@@ -157,10 +157,7 @@ struct DescriptorSetLayout::Config {
      */
     constexpr Config& remove(uint32_t binding);
 
-    /**
-     * bindings sorted by binding number
-     */
-    std::vector<VkDescriptorSetLayoutBinding> bindings{};
+    std::vector<VkDescriptorSetLayoutBinding> bindings{}; ///< bindings sorted by binding number
 
     /**
      * flags per binding in the order of `bindings`, empty -> no flags

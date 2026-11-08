@@ -20,20 +20,11 @@ struct SamplerConfig {
 
     float mipLodBias = 0.f;
     float minLod = 0.f;
-    /**
-     * `VK_LOD_CLAMP_NONE` -> no clamp
-     */
-    float maxLod = VK_LOD_CLAMP_NONE;
+    float maxLod = VK_LOD_CLAMP_NONE; ///< `VK_LOD_CLAMP_NONE` -> no clamp
 
-    /**
-     * `0` -> no anisotropic filtering
-     */
-    float maxAnisotropy = 16.f;
+    float maxAnisotropy = 16.f; ///< `0` -> no anisotropic filtering
 
-    /**
-     * `std::nullopt` -> no comparison
-     */
-    std::optional<VkCompareOp> compareOp = std::nullopt;
+    std::optional<VkCompareOp> compareOp = std::nullopt; ///< `std::nullopt` -> no comparison
 
     VkBorderColor borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     VkBool32 unnormalizedCoordinates = VK_FALSE;

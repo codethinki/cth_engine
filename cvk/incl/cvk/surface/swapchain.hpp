@@ -32,8 +32,9 @@ class Surface;
  * `VkSwapchainKHR` wrapper
  * @details owns its images, their views, a present semaphore and a present fence per image
  * @details the present fences export `constants::OS_FENCE_HANDLE_TYPE`
- * @details retired swapchains: destroyed once their present fences signal, see `resize()` and `recreate()`
+ * @details retired swapchains: destroyed once their present fences signal
  * @attention not thread safe
+ * @see `resize()`, `recreate()`
  */
 class Swapchain {
 public:
@@ -49,10 +50,7 @@ public:
          */
         VkResult result;
 
-        /**
-         * `std::nullopt` -> no image acquired, the semaphore stays unsignaled
-         */
-        std::optional<uint32_t> imageIndex;
+        std::optional<uint32_t> imageIndex; ///< `std::nullopt` -> no image acquired, the semaphore stays unsignaled
     };
 
     /**
@@ -119,13 +117,14 @@ public:
     /**
      * applies the config, retires the old swapchain like `resize()`
      * @param extent of the window, a fixed `currentExtent` of the surface wins
-     * @details picks the format and the present mode of the config again, see `create()`
+     * @details picks the format and the present mode of the config again
      * @pre `created()`
      * @pre `extent` width and height > 0
      * @pre no present semaphore is signaled without its present
      * @note a new format needs new pipelines for the swapchain images
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode, nothing changes
      * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`, destroys the old swapchains and forgets
+     * @see `create()`
      */
     void recreate(VkExtent2D extent, Config);
 
@@ -229,8 +228,9 @@ public:
 
     /**
      * @return the fence that the last present of the image signals, created signaled
-     * @details exportable with `constants::OS_FENCE_HANDLE_TYPE`, see `Fence::extractOsHandle()`
+     * @details exportable with `constants::OS_FENCE_HANDLE_TYPE`
      * @pre `imageIndex < imageCount()`
+     * @see `Fence::extractOsHandle()`
      */
     [[nodiscard]] constexpr Fence const& presentFence(uint32_t imageIndex) const {
         return current().presentFences[imageIndex];

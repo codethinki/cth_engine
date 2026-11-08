@@ -51,10 +51,7 @@ struct GraphicsPipelineConfig {
      */
     constexpr GraphicsPipelineConfig& removeStage(VkShaderStageFlagBits stage);
 
-    /**
-     * `VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT` -> the pipeline can be a parent
-     */
-    VkPipelineCreateFlags flags = 0;
+    VkPipelineCreateFlags flags = 0; ///< `VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT` -> the pipeline can be a parent
 
     std::vector<VkPipelineShaderStageCreateInfo> stages{};
 
@@ -137,17 +134,15 @@ struct GraphicsPipelineConfig {
 
     std::vector<VkDynamicState> dynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-    /**
-     * formats of the color attachments of the rendering
-     */
-    std::vector<VkFormat> colorFormats{};
+    std::vector<VkFormat> colorFormats{}; ///< formats of the color attachments of the rendering
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
     VkFormat stencilFormat = VK_FORMAT_UNDEFINED;
     uint32_t viewMask = 0;
 
     /**
-     * `==` the mapping of the command buffer at a draw, see `BaseCmdBuffer::setAttachmentMapping()`
+     * `==` the mapping of the command buffer at a draw
      * @pre `AttachmentMapping::debug_check()` passes for `colorFormats`
+     * @see `BaseCmdBuffer::setAttachmentMapping()`
      */
     AttachmentMapping attachmentMapping{};
 };

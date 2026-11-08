@@ -52,10 +52,7 @@ struct SemaphoreSubmitInfo {
  * one batch of a queue submit
  */
 struct SubmitInfo {
-    /**
-     * the gpu executes them in order
-     */
-    std::vector<not_null_ptr<PrimaryCmdBuffer const>> cmdBuffers{};
+    std::vector<not_null_ptr<PrimaryCmdBuffer const>> cmdBuffers{}; ///< the gpu executes them in order
 
     std::vector<SemaphoreSubmitInfo> waits{};
     std::vector<SemaphoreSubmitInfo> signals{};

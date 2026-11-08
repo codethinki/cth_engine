@@ -48,10 +48,7 @@ private:
     // destroyed before the scheduler: their strands run on it
     std::deque<Queue> _queues{};
 
-    /**
-     * index in `_queues` per index of `cvk::CoreConfig::queueProperties`
-     */
-    std::vector<size_t> _queueIndices{};
+    std::vector<size_t> _queueIndices{}; ///< index in `_queues` per index of `cvk::CoreConfig::queueProperties`
 
 public:
     Queues(Queues const& other) = delete;

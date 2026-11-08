@@ -21,7 +21,8 @@ class Core;
 /**
  * `VkDescriptorPool` wrapper
  * @details counts its descriptor sets and its resets
- * @details the sets allocate themselves, see `DescriptorSet::create()`
+ * @details the sets allocate themselves
+ * @see `DescriptorSet::create()`
  */
 class DescriptorPool {
 public:

@@ -31,10 +31,7 @@ struct BufferCopy {
     size_t srcOffset = 0;
     size_t dstOffset = 0;
 
-    /**
-     * (`VK_WHOLE_SIZE` => as much as fits into both buffers)
-     */
-    size_t size = VK_WHOLE_SIZE;
+    size_t size = VK_WHOLE_SIZE; ///< (`VK_WHOLE_SIZE` => as much as fits into both buffers)
 };
 
 /**
@@ -203,14 +200,8 @@ public:
 namespace cvk {
 struct BaseBuffer::State {
     vk_not_null<VkBuffer> vkBuffer;
-    /**
-     * in bytes
-     */
-    size_t size;
-    /**
-     * `std::nullopt` -> the buffer does not own its memory
-     */
-    std::optional<Memory::State> memory = std::nullopt;
+    size_t size; ///< in bytes
+    std::optional<Memory::State> memory = std::nullopt; ///< `std::nullopt` -> the buffer does not own its memory
 
     /**
      * the raw handles to destroy, in destruction order

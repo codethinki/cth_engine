@@ -54,7 +54,7 @@ public:
 
     /**
      * creates the cvk core, the workers, the reactor and the queues
-     * @param surfaces the present queues present to every surface, see `cvk::Core::create()`
+     * @param surfaces the present queues present to every surface
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
@@ -62,6 +62,7 @@ public:
      * @throws cvk::vk_result_exception result of `vkCreateDevice()`
      * @throws cvk::vk_result_exception result of `vmaCreateAllocator()`
      * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the reactor
+     * @see `cvk::Core::create()`
      */
     void create(std::span<cvk::Surface const> surfaces);
 

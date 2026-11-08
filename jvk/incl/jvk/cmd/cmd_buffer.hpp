@@ -64,7 +64,8 @@ public:
      * tracks an access of the image that no tracked command records
      * @details records the barrier from the tracked state
      * @pre `cvk::BaseCmdBuffer::recording()`
-     * @pre `cvk::BaseCmdBuffer::rendering()` -> only a local read barrier, see `cvk::Barrier::execute()`
+     * @pre `cvk::BaseCmdBuffer::rendering()` -> only a local read barrier
+     * @see `cvk::Barrier::execute()`
      */
     void use(cvk::Image const&, ImageAccess const&);
 
@@ -72,7 +73,8 @@ public:
      * tracks an access of the buffer that no tracked command records
      * @details records the barrier from the tracked state
      * @pre `cvk::BaseCmdBuffer::recording()`
-     * @pre `cvk::BaseCmdBuffer::rendering()` -> only a local read barrier, see `cvk::Barrier::execute()`
+     * @pre `cvk::BaseCmdBuffer::rendering()` -> only a local read barrier
+     * @see `cvk::Barrier::execute()`
      */
     void use(cvk::BaseBuffer const&, BufferAccess const&);
 
@@ -90,8 +92,9 @@ public:
     }
 
     /**
-     * sets the tracked state of the mip levels after untracked code, see `ResourceStates::assume()`
+     * sets the tracked state of the mip levels after untracked code
      * @pre `cvk::BaseCmdBuffer::recording()`
+     * @see `ResourceStates::assume()`
      */
     void assume(
         cvk::Image const&,
@@ -101,8 +104,9 @@ public:
     );
 
     /**
-     * sets the tracked state of the buffer after untracked code, see `ResourceStates::assume()`
+     * sets the tracked state of the buffer after untracked code
      * @pre `cvk::BaseCmdBuffer::recording()`
+     * @see `ResourceStates::assume()`
      */
     void assume(cvk::BaseBuffer const&, BufferState const& state);
 
@@ -267,13 +271,15 @@ public:
      * @details calls `optEnd()` on the secondaries
      * @details appends the resource states of the secondaries
      * @pre the preconditions of `cvk::PrimaryCmdBuffer::execute()`
-     * @pre `rendering()` -> the secondaries need only local read barriers, see `cvk::Barrier::execute()`
+     * @pre `rendering()` -> the secondaries need only local read barriers
      * @throws cvk::vk_result_exception result of `vkEndCommandBuffer()`
+     * @see `cvk::Barrier::execute()`
      */
     void execute(std::span<SecondaryCmdBuffer* const>);
 
     /**
-     * executes the secondary, see `execute(std::span<SecondaryCmdBuffer* const>)`
+     * executes the secondary
+     * @see `execute(std::span<SecondaryCmdBuffer* const>)`
      */
     void execute(SecondaryCmdBuffer&);
 };

@@ -17,10 +17,7 @@ namespace cvk {
 struct CoreConfig {
     using queue_set_t = cth::dt::union_find;
 
-    /**
-     * properties of each queue to create
-     */
-    std::vector<QueueFamilyProperties> queueProperties;
+    std::vector<QueueFamilyProperties> queueProperties; ///< properties of each queue to create
 
     /**
      * groups of queues, the first possible set is used
@@ -44,7 +41,8 @@ struct CoreConfig {
 
     /**
      * `std::nullopt` -> the best suitable device
-     * @details set -> exactly this device, see `PhysicalDevice::uuid()`
+     * @details set -> exactly this device
+     * @see `PhysicalDevice::uuid()`
      */
     std::optional<device_uuid_t> device = std::nullopt;
 

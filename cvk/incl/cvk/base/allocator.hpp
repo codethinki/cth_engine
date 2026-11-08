@@ -55,11 +55,12 @@ public:
 
     /**
      * creates the allocator
-     * @details the flags follow the enabled features and extensions of the device, see `flags()`
+     * @details the flags follow the enabled features and extensions of the device
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vmaImportVulkanFunctionsFromVolk()`
      * @throws cvk::vk_result_exception result of `vmaCreateAllocator()`
+     * @see `flags()`
      */
     void create();
 

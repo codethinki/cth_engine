@@ -403,10 +403,7 @@ public:
 
 namespace cvk {
 struct BaseCmdBuffer::State {
-    /**
-     * pool that allocated `vkBuffer`
-     */
-    vk_not_null<VkCommandPool> vkPool;
+    vk_not_null<VkCommandPool> vkPool; ///< pool that allocated `vkBuffer`
     vk_not_null<VkCommandBuffer> vkBuffer;
 
     /**

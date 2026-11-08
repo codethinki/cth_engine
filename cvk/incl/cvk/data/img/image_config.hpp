@@ -18,8 +18,9 @@ namespace cvk {
  */
 struct ImageConfig {
     /**
-     * `0` -> the aspects of `format`, see `format_aspects()`
+     * `0` -> the aspects of `format`
      * @pre the aspects of `format` contain it
+     * @see `format_aspects()`
      */
     VkImageAspectFlags aspectMask = 0;
 
@@ -62,10 +63,7 @@ struct ImageConfig {
      */
     std::vector<queue_family_index_t> queueFamilies{};
 
-    /**
-     * memory of the image
-     */
-    MemoryConfig memory{};
+    MemoryConfig memory{}; ///< memory of the image
 
     /**
      * depth attachment, depth aspect only

@@ -170,10 +170,7 @@ public:
 namespace cvk {
 struct Fence::State {
     vk_not_null<VkFence> vkFence;
-    /**
-     * handle types the fence was created to export
-     */
-    VkExternalFenceHandleTypeFlags exportTypes = 0;
+    VkExternalFenceHandleTypeFlags exportTypes = 0; ///< handle types the fence was created to export
 
     /**
      * the raw handles to destroy, in destruction order

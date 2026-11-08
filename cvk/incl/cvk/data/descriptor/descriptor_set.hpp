@@ -116,12 +116,14 @@ public:
     void write(std::span<DescriptorWrite const>) const;
 
     /**
-     * writes the descriptors into the set, see `write(std::span<DescriptorWrite const>) const`
+     * writes the descriptors into the set
+     * @see `write(std::span<DescriptorWrite const>) const`
      */
     void write(std::initializer_list<DescriptorWrite> writes) const { write(std::span{writes.begin(), writes.size()}); }
 
     /**
-     * writes one descriptor into the set, see `write(std::span<DescriptorWrite const>) const`
+     * writes one descriptor into the set
+     * @see `write(std::span<DescriptorWrite const>) const`
      */
     void write(DescriptorWrite const& descriptorWrite) const { write(std::span{&descriptorWrite, 1}); }
 
@@ -186,10 +188,7 @@ public:
 
 namespace cvk {
 struct DescriptorSet::State {
-    /**
-     * pool that allocated `vkSet`
-     */
-    vk_not_null<VkDescriptorPool> vkPool;
+    vk_not_null<VkDescriptorPool> vkPool; ///< pool that allocated `vkSet`
     vk_not_null<VkDescriptorSet> vkSet;
 
     /**

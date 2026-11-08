@@ -29,10 +29,7 @@ struct BufferConfig {
      */
     std::vector<queue_family_index_t> queueFamilies{};
 
-    /**
-     * memory of the buffer, `VMA_MEMORY_USAGE_AUTO` picks the memory type from `usage`
-     */
-    MemoryConfig memory{};
+    MemoryConfig memory{}; ///< memory of the buffer, `VMA_MEMORY_USAGE_AUTO` picks the memory type from `usage`
 
     /**
      * @param size in bytes

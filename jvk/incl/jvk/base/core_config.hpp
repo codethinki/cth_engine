@@ -21,9 +21,6 @@ struct CoreConfig {
      */
     size_t workers = 0;
 
-    /**
-     * threads of the queue scheduler, `0` -> one per vulkan queue
-     */
-    size_t queueWorkers = 0;
+    size_t queueWorkers = 0; ///< threads of the queue scheduler, `0` -> one per vulkan queue
 };
 }

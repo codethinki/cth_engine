@@ -191,10 +191,7 @@ struct Instance::State {
      */
     std::optional<DebugMessenger::State> debugMessenger = std::nullopt;
 
-    /**
-     * the extensions that the instance enables
-     */
-    std::vector<std::string> extensions{};
+    std::vector<std::string> extensions{}; ///< the extensions that the instance enables
 };
 }
 

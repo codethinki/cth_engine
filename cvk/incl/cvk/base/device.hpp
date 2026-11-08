@@ -184,10 +184,7 @@ struct Device::State {
      */
     std::vector<queue_family_index_t> queueFamilyIndices{};
 
-    /**
-     * the features that the device enables
-     */
-    DeviceFeatures features{};
+    DeviceFeatures features{}; ///< the features that the device enables
 
     /**
      * the extensions that the device enables, the extensions of the features included

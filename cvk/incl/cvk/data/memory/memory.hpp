@@ -24,8 +24,9 @@ class Core;
 
 /**
  * `VmaAllocation` wrapper
- * @details a range of a `VkDeviceMemory`, see `info()`
+ * @details a range of a `VkDeviceMemory`
  * @attention not thread safe
+ * @see `info()`
  */
 class Memory {
 public:

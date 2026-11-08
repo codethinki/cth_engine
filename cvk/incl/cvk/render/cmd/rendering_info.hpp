@@ -136,20 +136,11 @@ struct RenderingAttachment {
     VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-    /**
-     * `VK_ATTACHMENT_LOAD_OP_CLEAR` -> the clear value
-     */
-    VkClearValue clearValue{};
+    VkClearValue clearValue{}; ///< `VK_ATTACHMENT_LOAD_OP_CLEAR` -> the clear value
 
-    /**
-     * `nullptr` -> no resolve
-     */
-    ImageView const* resolveView = nullptr;
+    ImageView const* resolveView = nullptr; ///< `nullptr` -> no resolve
 
-    /**
-     * layout of `resolveView` during the rendering
-     */
-    VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL; ///< layout of `resolveView` during the rendering
 
     /**
      * @pre `!= VK_RESOLVE_MODE_NONE` if `resolveView`
@@ -165,10 +156,7 @@ struct RenderingInfo {
     std::optional<RenderingAttachment> depthAttachment = std::nullopt;
     std::optional<RenderingAttachment> stencilAttachment = std::nullopt;
 
-    /**
-     * `std::nullopt` -> the extent that fits every attachment
-     */
-    std::optional<VkRect2D> area = std::nullopt;
+    std::optional<VkRect2D> area = std::nullopt; ///< `std::nullopt` -> the extent that fits every attachment
 
     /**
      * layers that the rendering writes, `viewMask != 0` -> ignored

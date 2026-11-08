@@ -14,8 +14,9 @@ class PipelineLayout;
  */
 struct ComputePipelineConfig {
     /**
-     * stage of a compute shader, see `Shader::stageInfo()`
+     * stage of a compute shader
      * @attention the specialization info and the entry point name outlive `ComputePipeline::create()`
+     * @see `Shader::stageInfo()`
      */
     VkPipelineShaderStageCreateInfo stage{};
 

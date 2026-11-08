@@ -37,10 +37,7 @@ struct ImageBarrierInfo {
     BarrierScope src{};
     BarrierScope dst{};
 
-    /**
-     * `== oldLayout` -> no layout transition
-     */
-    VkImageLayout newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkImageLayout newLayout = VK_IMAGE_LAYOUT_UNDEFINED; ///< `== oldLayout` -> no layout transition
 
     /**
      * layout of the mip range before the barrier
@@ -50,22 +47,13 @@ struct ImageBarrierInfo {
 
     uint32_t firstMipLevel = 0;
 
-    /**
-     * `VK_REMAINING_MIP_LEVELS` -> to the last mip level
-     */
-    uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
+    uint32_t mipLevels = VK_REMAINING_MIP_LEVELS; ///< `VK_REMAINING_MIP_LEVELS` -> to the last mip level
 
     uint32_t firstArrayLayer = 0;
 
-    /**
-     * `VK_REMAINING_ARRAY_LAYERS` -> to the last layer
-     */
-    uint32_t arrayLayers = VK_REMAINING_ARRAY_LAYERS;
+    uint32_t arrayLayers = VK_REMAINING_ARRAY_LAYERS; ///< `VK_REMAINING_ARRAY_LAYERS` -> to the last layer
 
-    /**
-     * `0` -> the aspect mask of the image
-     */
-    VkImageAspectFlags aspectMask = 0;
+    VkImageAspectFlags aspectMask = 0; ///< `0` -> the aspect mask of the image
 
     [[nodiscard]] static constexpr ImageBarrierInfo LayoutTransition(
         VkImageLayout newLayout,
@@ -105,15 +93,9 @@ struct BufferBarrierInfo {
     BarrierScope src{};
     BarrierScope dst{};
 
-    /**
-     * in bytes
-     */
-    size_t offset = 0;
+    size_t offset = 0; ///< in bytes
 
-    /**
-     * in bytes (`VK_WHOLE_SIZE` => to the end)
-     */
-    size_t size = VK_WHOLE_SIZE;
+    size_t size = VK_WHOLE_SIZE; ///< in bytes (`VK_WHOLE_SIZE` => to the end)
 
     /**
      * queue family ownership transfer, `dst` and `src` name the families
@@ -156,10 +138,7 @@ struct Barrier {
         ImageInfo info;
     };
 
-    /**
-     * `VK_DEPENDENCY_BY_REGION_BIT` -> the dependency is per framebuffer region
-     */
-    VkDependencyFlags flags = 0;
+    VkDependencyFlags flags = 0; ///< `VK_DEPENDENCY_BY_REGION_BIT` -> the dependency is per framebuffer region
 
     std::vector<MemoryInfo> memory{};
     std::vector<BufferEntry> buffers{};

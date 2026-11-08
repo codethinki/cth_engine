@@ -24,10 +24,7 @@ namespace jvk {
 struct ImageState {
     VkImageLayout layout;
 
-    /**
-     * `VK_QUEUE_FAMILY_IGNORED` -> the family of the recording
-     */
-    cvk::BarrierScope scope;
+    cvk::BarrierScope scope; ///< `VK_QUEUE_FAMILY_IGNORED` -> the family of the recording
 };
 
 /**
@@ -42,10 +39,7 @@ struct ImageAccess {
 
     uint32_t firstMipLevel = 0;
 
-    /**
-     * (`VK_REMAINING_MIP_LEVELS` => to the last mip level)
-     */
-    uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
+    uint32_t mipLevels = VK_REMAINING_MIP_LEVELS; ///< (`VK_REMAINING_MIP_LEVELS` => to the last mip level)
 
     //TODO review
     /**
@@ -59,10 +53,7 @@ struct ImageAccess {
  * state of a buffer after an access
  */
 struct BufferState {
-    /**
-     * `VK_QUEUE_FAMILY_IGNORED` -> the family of the recording
-     */
-    cvk::BarrierScope scope;
+    cvk::BarrierScope scope; ///< `VK_QUEUE_FAMILY_IGNORED` -> the family of the recording
 };
 
 /**
@@ -87,7 +78,7 @@ public:
     /**
      * records the access of the mip levels
      * @details no state -> first use without a barrier
-     * @param barrier gets the barriers, record it before the command of the access
+     * @param[out] barrier gets the barriers, record it before the command of the access
      * @pre the mip range lies in the image
      */
     void access(cvk::Image const&, ImageAccess const&, cvk::Barrier& barrier);
@@ -95,7 +86,7 @@ public:
     /**
      * records the access of the buffer
      * @details no state -> first use without a barrier
-     * @param barrier gets the barrier, record it before the command of the access
+     * @param[out] barrier gets the barrier, record it before the command of the access
      */
     void access(cvk::BaseBuffer const&, BufferAccess const&, cvk::Barrier& barrier);
 
@@ -134,7 +125,7 @@ public:
 
     /**
      * appends the states of a later recording
-     * @param barrier gets the barriers, record it before the commands of next
+     * @param[out] barrier gets the barriers, record it before the commands of next
      */
     void append(ResourceStates const& next, cvk::Barrier& barrier);
 
@@ -190,32 +181,20 @@ private:
     struct image_states {
         cth::not_null_ptr<cvk::Image const> imagePtr;
 
-        /**
-         * `std::nullopt` -> `assume()` before the first access
-         */
-        std::optional<ImageState> firstOpt;
+        std::optional<ImageState> firstOpt; ///< `std::nullopt` -> `assume()` before the first access
         ImageState last;
         bool discard = false;
 
-        /**
-         * a barrier or `assume()` after the first use: `firstOpt` is final
-         */
-        bool barrier = false;
+        bool barrier = false; ///< a barrier or `assume()` after the first use: `firstOpt` is final
     };
 
     struct buffer_states {
         cth::not_null_ptr<cvk::BaseBuffer const> bufferPtr;
 
-        /**
-         * `std::nullopt` -> `assume()` before the first access
-         */
-        std::optional<BufferState> firstOpt;
+        std::optional<BufferState> firstOpt; ///< `std::nullopt` -> `assume()` before the first access
         BufferState last;
 
-        /**
-         * a barrier or `assume()` after the first use: `firstOpt` is final
-         */
-        bool barrier = false;
+        bool barrier = false; ///< a barrier or `assume()` after the first use: `firstOpt` is final
     };
 
     cth::dt::flat_hash_map<image_key_t, image_states> _images{};

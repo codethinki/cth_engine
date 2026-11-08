@@ -23,10 +23,7 @@ struct DescriptorPoolConfig {
         not_null_ptr<DescriptorSetLayout const> layout;
         uint32_t count = 1;
 
-        /**
-         * descriptors of the variable count binding per set (`0` => its maximum count)
-         */
-        uint32_t variableCount = 0;
+        uint32_t variableCount = 0; ///< descriptors of the variable count binding per set (`0` => its maximum count)
     };
 
     /**
