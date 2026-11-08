@@ -94,6 +94,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
   - index: `<thing>Idx`: `queueIdx`, never only `queue`
   - pointer: `<thing>Ptr`, optional: `<thing>Opt`
   - a name that already says it is no object needs no suffix: `stageId`, `slot`, `handle` (not `handlePtr`)
+  - a reference is the object: `std::reference_wrapper` gets the bare name too: `cmdBuffers`
   - loop variable: `i`, `j`, `k` in this order, or `<thing>Idx`
 - Names describe the thing, not an invented concept: no `role` for an index.
 - `_t` only for aliases that rename a type: `callback_t`, `queue_set_t`. An alias that is a type of its own gets a std style name, like `std::string`.
@@ -114,6 +115,8 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Use deducing `this` (`this auto& self`) where a function must work on the derived type.
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.
 - No raw `new` and `delete`. Use `std::unique_ptr`, `cth::move_ptr` and `cth::not_null`.
+- Objects that callers hand in (data struct fields, lists, parameters) are `std::reference_wrapper<T const>`, not pointers: a type with a conversion operator to `T const&` (a jvk wrapper) passes directly.
+  Internal members of the exact type stay `cth::not_null_ptr`. Raw Vulkan handles stay `vk_not_null`.
 - Constructors are public. No `friend` and no passkey class to hide a construction: a friend opens far more than the constructor.
 - A `friend` only where no other design gives the access, with a comment at the declaration that says why: `StageGraph` in `Stage` sets the status of the submission.
 - Long or nested template types get a `using` alias next to their use: `using last_queue_map_t = cth::dt::flat_hash_map<image_mip_t, not_null_ptr<Queue const>>;`.
