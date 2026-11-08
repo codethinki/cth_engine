@@ -8,8 +8,8 @@
 
 namespace cvk {
 /**
- * config of a @ref Device
- * @details @ref Core adds @ref constants::BASE_DEVICE_FEATURES
+ * config of a `Device`
+ * @details `Core` adds `constants::BASE_DEVICE_FEATURES`
  */
 struct DeviceConfig {
     /**
@@ -18,7 +18,7 @@ struct DeviceConfig {
     std::vector<queue_family_index_t> queueFamilyIndices;
 
     /**
-     * features to enable, a true bit of an extension struct enables its extension
+     * features to enable, a `true` bit of an extension struct enables its extension
      */
     DeviceFeatures features{};
 

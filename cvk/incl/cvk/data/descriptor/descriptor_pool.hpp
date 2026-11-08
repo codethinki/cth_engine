@@ -19,9 +19,9 @@ namespace cvk {
 class Core;
 
 /**
- * VkDescriptorPool wrapper
+ * `VkDescriptorPool` wrapper
  * @details counts its descriptor sets and its resets
- * @details the sets allocate themselves, see @ref DescriptorSet::create()
+ * @details the sets allocate themselves, see `DescriptorSet::create()`
  */
 class DescriptorPool {
 public:
@@ -30,68 +30,68 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     DescriptorPool(Core const&, Config);
 
     /**
      * constructs and wraps
-     * @details calls @ref DescriptorPool(Core const&, Config), @ref wrap()
+     * @details calls `DescriptorPool(Core const&, Config)`, `wrap()`
      */
     DescriptorPool(Core const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref DescriptorPool(Core const&, Config), @ref create()
+     * @details calls `DescriptorPool(Core const&, Config)`, `create()`
      */
     explicit DescriptorPool(Core const&, Config, create_t);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~DescriptorPool() { optDestroy(); }
 
     /**
      * wraps the state
      * @pre the pool was created with the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the pool
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateDescriptorPool()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateDescriptorPool()`
      */
     void create();
 
     /**
      * destroys and forgets
-     * @pre @ref created()
-     * @pre @ref unused()
+     * @pre `created()`
+     * @pre `unused()`
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
-     * @pre @ref unused()
+     * @pre `created()`
+     * @pre `unused()`
      */
     State release();
 
     /**
      * frees every set of the pool
-     * @pre @ref created()
+     * @pre `created()`
      * @pre the gpu does not use a set of the pool
-     * @post @ref unused(), @ref DescriptorSet::created() of every set of the pool is false
-     * @throws cvk::vk_result_exception result of vkResetDescriptorPool()
+     * @post `unused()`, `DescriptorSet::created()` of every set of the pool is `false`
+     * @throws cvk::vk_result_exception result of `vkResetDescriptorPool()`
      */
     void reset() const;
 
@@ -104,7 +104,7 @@ public:
     /**
      * stops to count a set of the pool
      * @details for a counted set that the caller frees, the sets count themselves
-     * @pre !@ref unused()
+     * @pre `!unused()`
      */
     void remove() const;
 
@@ -119,12 +119,12 @@ public:
     [[nodiscard]] constexpr bool unused() const { return _sets == 0; }
 
     /**
-     * @return number of @ref reset() calls
+     * @return number of `reset()` calls
      */
     [[nodiscard]] constexpr uint64_t resets() const { return _resets; }
 
     /**
-     * @return VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT is set
+     * @return `VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT` is set
      */
     [[nodiscard]] constexpr bool freesSets() const {
         return (_config.flags & VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT) != 0;

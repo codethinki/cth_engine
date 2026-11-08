@@ -7,12 +7,12 @@
 namespace cvk::test {
 /**
  * messenger config that logs every message and counts the errors
- * @details for the instance create info too -> counts the errors of vkDestroyInstance(), e.g. leaked objects
+ * @details for the instance create info too -> counts the errors of `vkDestroyInstance()`, e.g. leaked objects
  */
 [[nodiscard]] DebugMessenger::Config counting_messenger();
 
 /**
- * @return errors since the last @ref reset_validation_errors()
+ * @return errors since the last `reset_validation_errors()`
  */
 [[nodiscard]] size_t validation_errors();
 

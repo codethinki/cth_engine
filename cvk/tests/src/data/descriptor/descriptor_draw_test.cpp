@@ -77,7 +77,7 @@ namespace {
     };
 
     /**
-     * records: clear the target, draw with draw(), copy the target into the readback buffer
+     * records: clear the target, draw with `draw()`, copy the target into the readback buffer
      */
     void record_fill(
         test::Context const& context,
@@ -149,9 +149,9 @@ CVK_TEST(DescriptorDraw, uniform_buffer_color) {
 namespace {
     /**
      * draws a green texture
-     * @param layout of the texture at the draw (VK_IMAGE_LAYOUT_MAX_ENUM => the default, shader read only)
-     * @param afterBind true -> bindless binding of 64, the descriptor at element 17 comes after the recording,
-     *  false -> one sampler2D, the descriptor comes before the recording, the layers check its layout at the draw
+     * @param layout of the texture at the draw (`VK_IMAGE_LAYOUT_MAX_ENUM` => the default, shader read only)
+     * @param afterBind `true` -> bindless binding of 64, the descriptor at element 17 comes after the recording,
+     *  `false` -> one `sampler2D`, the descriptor comes before the recording, the layers check its layout at the draw
      */
     void draw_texture(test::Context const& context, VkImageLayout layout, bool afterBind) {
         uint32_t const index = afterBind ? 17 : 0;

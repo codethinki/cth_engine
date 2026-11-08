@@ -23,7 +23,7 @@ class Core;
 namespace jvk {
 /**
  * raw device handles to destroy
- * @details destroys the pool children first, the rest in the order of @ref add()
+ * @details destroys the pool children first, the rest in the order of `add()`
  * @attention not thread safe
  */
 class Stasis {
@@ -61,7 +61,7 @@ public:
 
     /**
      * takes the raw handles of the state
-     * @pre the gpu does not use the handles after the next @ref clear()
+     * @pre the gpu does not use the handles after the next `clear()`
      */
     template<class State>
     requires(!std::is_lvalue_reference_v<State>) && requires(State&& state) { std::move(state).decompose(); }

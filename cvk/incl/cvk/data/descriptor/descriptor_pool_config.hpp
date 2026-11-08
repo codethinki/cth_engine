@@ -13,7 +13,7 @@
 
 namespace cvk {
 /**
- * config of a @ref DescriptorPool
+ * config of a `DescriptorPool`
  */
 struct DescriptorPoolConfig {
     /**
@@ -24,14 +24,14 @@ struct DescriptorPoolConfig {
         uint32_t count = 1;
 
         /**
-         * descriptors of the variable count binding per set (0 => its maximum count)
+         * descriptors of the variable count binding per set (`0` => its maximum count)
          */
         uint32_t variableCount = 0;
     };
 
     /**
      * config with the sets and descriptors of the layouts
-     * @param flags update after bind layouts add VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
+     * @param flags update after bind layouts add `VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT`
      */
     [[nodiscard]] static constexpr DescriptorPoolConfig ForLayouts(
         std::initializer_list<Sets> sets,
@@ -44,7 +44,7 @@ struct DescriptorPoolConfig {
     }
 
     /**
-     * @pre > 0
+     * @pre `> 0`
      */
     uint32_t maxSets = 0;
 
@@ -56,22 +56,22 @@ struct DescriptorPoolConfig {
 
     /**
      * flags of the pool
-     * @details VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT -> @ref DescriptorSet::destroy() frees the set
-     * @details VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT -> sets of update after bind layouts
+     * @details `VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT` -> `DescriptorSet::destroy()` frees the set
+     * @details `VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT` -> sets of update after bind layouts
      */
     VkDescriptorPoolCreateFlags flags = 0;
 
     /**
-     * adds count sets of the layout to the set count and the descriptor counts
+     * adds `count` sets of the layout to the set count and the descriptor counts
      * @param count of sets
-     * @param variableCount descriptors of the variable count binding per set (0 => its maximum count)
-     * @details update after bind layout -> adds VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT
-     * @pre variableCount != 0 -> the layout has a variable count binding with a maximum >= variableCount
+     * @param variableCount descriptors of the variable count binding per set (`0` => its maximum count)
+     * @details update after bind layout -> adds `VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT`
+     * @pre `variableCount != 0` -> the layout has a variable count binding with a maximum >= `variableCount`
      */
     constexpr DescriptorPoolConfig& add(DescriptorSetLayout const&, uint32_t count = 1, uint32_t variableCount = 0);
 
     /**
-     * @attention pPoolSizes points into @ref sizes
+     * @attention `pPoolSizes` points into `sizes`
      */
     [[nodiscard]] constexpr VkDescriptorPoolCreateInfo createInfo() const {
         return VkDescriptorPoolCreateInfo{

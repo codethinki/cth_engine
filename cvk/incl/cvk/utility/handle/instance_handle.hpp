@@ -10,7 +10,7 @@
 namespace cvk {
 /**
  * deleter of instance objects
- * @details context: the VkInstance, not the Instance
+ * @details context: the `VkInstance`, not the `Instance`
  */
 class instance_deleter {
 public:
@@ -26,8 +26,8 @@ private:
 };
 
 /**
- * @ref unique_handle of an instance object
- * @tparam Handle with an overload @ref cvk::destroy(vk_not_null<VkInstance>, Handle)
+ * `unique_handle` of an instance object
+ * @tparam Handle with an overload `cvk::destroy(vk_not_null<VkInstance>, Handle)`
  */
 template<class Handle>
 using instance_handle = unique_handle<Handle, instance_deleter>;

@@ -39,7 +39,7 @@ namespace {
     }
 
     /**
-     * @return the device has @ref constants::OS_FENCE_FEATURES
+     * @return the device has `constants::OS_FENCE_FEATURES`
      */
     bool os_fence_exportable(Core const& core) {
         auto const features = core.physicalDevice().externalFenceFeatures(constants::OS_FENCE_HANDLE_TYPE);

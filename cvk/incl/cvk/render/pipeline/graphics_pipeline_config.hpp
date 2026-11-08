@@ -12,9 +12,9 @@ namespace cvk {
 class Shader;
 
 /**
- * config of a @ref GraphicsPipeline
+ * config of a `GraphicsPipeline`
  * @details defaults: the legacy defaults
- * @details pointer and count members of the Vulkan structs: @ref GraphicsPipeline::create() sets them from the vectors
+ * @details pointer and count members of the Vulkan structs: `GraphicsPipeline::create()` sets them from the vectors
  */
 struct GraphicsPipelineConfig {
     /**
@@ -34,10 +34,10 @@ struct GraphicsPipelineConfig {
 
     /**
      * adds the stage of the shader
-     * @param specializationPtr nullptr -> no specialization constants
+     * @param specializationPtr `nullptr` -> no specialization constants
      * @param entryPoint name of the entry function
-     * @attention @ref specializationPtr and @ref entryPoint must outlive @ref GraphicsPipeline::create()
-     * @pre @ref Shader::created()
+     * @attention `specializationPtr` and `entryPoint` must outlive `GraphicsPipeline::create()`
+     * @pre `Shader::created()`
      * @pre no stage of the same type
      */
     GraphicsPipelineConfig& addStage(
@@ -52,7 +52,7 @@ struct GraphicsPipelineConfig {
     constexpr GraphicsPipelineConfig& removeStage(VkShaderStageFlagBits stage);
 
     /**
-     * VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT -> the pipeline can be a parent
+     * `VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT` -> the pipeline can be a parent
      */
     VkPipelineCreateFlags flags = 0;
 
@@ -113,7 +113,7 @@ struct GraphicsPipelineConfig {
     };
 
     /**
-     * color blend state, attachmentCount and pAttachments come from @ref colorBlendAttachments
+     * color blend state, `attachmentCount` and `pAttachments` come from `colorBlendAttachments`
      */
     VkPipelineColorBlendStateCreateInfo colorBlend{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
@@ -127,8 +127,8 @@ struct GraphicsPipelineConfig {
     };
 
     /**
-     * blend state per color attachment, empty -> @ref ALPHA_BLENDING per color format
-     * @pre empty or size == @ref colorFormats size
+     * blend state per color attachment, empty -> `ALPHA_BLENDING` per color format
+     * @pre empty or size == `colorFormats` size
      */
     std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments{};
 
@@ -146,8 +146,8 @@ struct GraphicsPipelineConfig {
     uint32_t viewMask = 0;
 
     /**
-     * == the mapping of the command buffer at a draw, see @ref BaseCmdBuffer::setAttachmentMapping()
-     * @pre @ref AttachmentMapping::debug_check() passes for @ref colorFormats
+     * `==` the mapping of the command buffer at a draw, see `BaseCmdBuffer::setAttachmentMapping()`
+     * @pre `AttachmentMapping::debug_check()` passes for `colorFormats`
      */
     AttachmentMapping attachmentMapping{};
 };

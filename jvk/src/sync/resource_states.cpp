@@ -54,7 +54,7 @@ namespace {
     }
 
     /**
-     * @return the mip level count, VK_REMAINING_MIP_LEVELS resolved
+     * @return the mip level count, `VK_REMAINING_MIP_LEVELS` resolved
      */
     [[nodiscard]] uint32_t mip_count(Image const& image, uint32_t firstMipLevel, uint32_t mipLevels) {
         Image::debug_check(image);

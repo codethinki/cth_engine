@@ -13,7 +13,7 @@ namespace jvk {
 namespace {
     /**
      * @return number of distinct vulkan queues of the core
-     * @pre @ref cvk::Core::created()
+     * @pre `cvk::Core::created()`
      */
     [[nodiscard]] size_t vulkan_queue_count(cvk::Core const& core) {
         cvk::Core::debug_check(core);

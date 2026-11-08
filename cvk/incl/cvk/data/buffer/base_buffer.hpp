@@ -32,13 +32,13 @@ struct BufferCopy {
     size_t dstOffset = 0;
 
     /**
-     * (VK_WHOLE_SIZE => as much as fits into both buffers)
+     * (`VK_WHOLE_SIZE` => as much as fits into both buffers)
      */
     size_t size = VK_WHOLE_SIZE;
 };
 
 /**
- * VkBuffer wrapper
+ * `VkBuffer` wrapper
  * @details owns the buffer and its memory
  * @details sizes in bytes
  */
@@ -49,70 +49,70 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     BaseBuffer(Core const&, Config const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref BaseBuffer(Core const&, Config const&), @ref wrap()
+     * @details calls `BaseBuffer(Core const&, Config const&)`, `wrap()`
      */
     BaseBuffer(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref BaseBuffer(Core const&, Config const&), @ref create()
+     * @details calls `BaseBuffer(Core const&, Config const&)`, `create()`
      */
     BaseBuffer(Core const&, Config const&, size_t size);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~BaseBuffer() { optDestroy(); }
 
     /**
      * wraps the state
-     * @details std::nullopt @ref State::memory -> no own memory, @ref destroy() only destroys the buffer
+     * @details `std::nullopt` `State::memory` -> no own memory, `destroy()` only destroys the buffer
      * @pre the buffer is bound to its memory
      * @pre the buffer was created with the usage of the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the buffer and its memory
      * @param size in bytes
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vmaCreateBuffer()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vmaCreateBuffer()`
      */
     void create(size_t size);
 
     /**
      * destroys the buffer, then its memory, and forgets
-     * @pre @ref created()
+     * @pre `created()`
      * @pre the gpu does not use the buffer
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership of the buffer and its memory, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     /**
      * records a copy from the source buffer
      * @param region in bytes
-     * @pre @ref created() and src created
-     * @pre @ref BaseCmdBuffer::recording()
-     * @pre src usage has VK_BUFFER_USAGE_TRANSFER_SRC_BIT, the usage has VK_BUFFER_USAGE_TRANSFER_DST_BIT
+     * @pre `created()` and `src` created
+     * @pre `BaseCmdBuffer::recording()`
+     * @pre `src` usage has `VK_BUFFER_USAGE_TRANSFER_SRC_BIT`, the usage has `VK_BUFFER_USAGE_TRANSFER_DST_BIT`
      * @pre 0 < copied size, the ranges lie in the buffers
      */
     void copy(BaseCmdBuffer const&, BaseBuffer const& src, BufferCopy region = {}) const;
@@ -120,7 +120,7 @@ public:
     /**
      * records a copy from the mip level of the image
      * @param dstOffset in bytes
-     * @pre the preconditions of @ref Image::copyTo()
+     * @pre the preconditions of `Image::copyTo()`
      */
     void copy(
         BaseCmdBuffer const&,
@@ -134,28 +134,28 @@ public:
      * maps the range of the memory
      * @param range in bytes
      * @return the mapped range, its destructor unmaps
-     * @pre @ref memory() != nullptr
+     * @pre `memory() != nullptr`
      */
     [[nodiscard]] Mapping<std::byte> map(Range range = {}) const;
 
     /**
      * makes host writes visible to the device
      * @param range in bytes
-     * @pre @ref memory() != nullptr, the memory is mapped
+     * @pre `memory() != nullptr`, the memory is mapped
      */
     void flush(Range range = {}) const;
 
     /**
      * makes device writes visible to the host
      * @param range in bytes
-     * @pre @ref memory() != nullptr, the memory is mapped
+     * @pre `memory() != nullptr`, the memory is mapped
      */
     void invalidate(Range range = {}) const;
 
     /**
      * copies the data to the buffer
      * @param offset in bytes
-     * @pre @ref memory() != nullptr
+     * @pre `memory() != nullptr`
      */
     void write(std::span<std::byte const> data, size_t offset = 0) const;
 
@@ -170,7 +170,7 @@ public:
     [[nodiscard]] constexpr size_t size() const { return _size; }
 
     /**
-     * @return nullptr -> the buffer does not own its memory
+     * @return `nullptr` -> the buffer does not own its memory
      */
     [[nodiscard]] constexpr Memory const* memory() const {
         return _memoryOpt.has_value() && _memoryOpt->created() ? &*_memoryOpt : nullptr;
@@ -180,7 +180,7 @@ private:
     void forget();
 
     /**
-     * @pre @ref memory() != nullptr
+     * @pre `memory() != nullptr`
      */
     [[nodiscard]] constexpr Memory const& ownMemory() const;
 
@@ -208,13 +208,13 @@ struct BaseBuffer::State {
      */
     size_t size;
     /**
-     * std::nullopt -> the buffer does not own its memory
+     * `std::nullopt` -> the buffer does not own its memory
      */
     std::optional<Memory::State> memory = std::nullopt;
 
     /**
      * the raw handles to destroy, in destruction order
-     * @return the buffer, then its own memory, std::nullopt -> no own memory
+     * @return the buffer, then its own memory, `std::nullopt` -> no own memory
      */
     [[nodiscard]] constexpr std::tuple<VkBuffer, std::optional<VmaAllocation>> decompose() && {
         return {vkBuffer.get(), memory.transform([](Memory::State const& state) { return state.vmaAllocation.get(); })};

@@ -17,7 +17,7 @@ namespace {
     constexpr VkMemoryRequirements REQUIREMENTS{.size = SIZE, .alignment = 16, .memoryTypeBits = ~0u};
 
     /**
-     * host visible memory, memory without a buffer or an image cannot use VMA_MEMORY_USAGE_AUTO
+     * host visible memory, memory without a buffer or an image cannot use `VMA_MEMORY_USAGE_AUTO`
      */
     constexpr Memory::Config HOST_CONFIG{
         .usage = VMA_MEMORY_USAGE_UNKNOWN,

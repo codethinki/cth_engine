@@ -12,7 +12,7 @@
 namespace cgfw {
 /**
  * exception of cgfw
- * @details the message starts with "cgfw: "
+ * @details the message starts with `"cgfw: "`
  */
 class cgfw_exception : public cth::except::default_exception {
     static constexpr auto PREFIX = "cgfw: ";

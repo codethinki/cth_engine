@@ -68,7 +68,7 @@ namespace {
     }
 
     /**
-     * color attachment in VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, cleared red
+     * color attachment in `VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR`, cleared red
      */
     struct LocalRead {
         static constexpr cvk::Image::Config CONFIG{
@@ -101,7 +101,7 @@ namespace {
     };
 
     /**
-     * @return the readback holds the counting values of @ref counting_staging()
+     * @return the readback holds the counting values of `counting_staging()`
      */
     [[nodiscard]] bool counts(cvk::Buffer<uint32_t> const& readback) {
         auto const mapping = readback.map();

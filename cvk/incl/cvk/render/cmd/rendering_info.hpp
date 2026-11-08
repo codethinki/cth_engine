@@ -22,31 +22,31 @@ class ImageView;
  */
 struct AttachmentMapping {
     /**
-     * fragment shader output location per color attachment (VK_ATTACHMENT_UNUSED => no output)
+     * fragment shader output location per color attachment (`VK_ATTACHMENT_UNUSED` => no output)
      * @details empty -> color attachment i writes location i
      */
     std::vector<uint32_t> locations{};
 
     /**
-     * input attachment index per color attachment (VK_ATTACHMENT_UNUSED => no input attachment)
+     * input attachment index per color attachment (`VK_ATTACHMENT_UNUSED` => no input attachment)
      * @details empty -> color attachment i is input attachment i
      */
     std::vector<uint32_t> colorInputIndices{};
 
     /**
-     * std::nullopt -> the depth attachment is the input attachment without index
+     * `std::nullopt` -> the depth attachment is the input attachment without index
      */
     std::optional<uint32_t> depthInputIndex = std::nullopt;
 
     /**
-     * std::nullopt -> the stencil attachment is the input attachment without index
+     * `std::nullopt` -> the stencil attachment is the input attachment without index
      */
     std::optional<uint32_t> stencilInputIndex = std::nullopt;
 
     /**
      * @param colorAttachments of the rendering
-     * @pre @ref debug_check() passes for colorAttachments
-     * @attention pColorAttachmentLocations points into @ref locations
+     * @pre `debug_check()` passes for `colorAttachments`
+     * @attention `pColorAttachmentLocations` points into `locations`
      */
     [[nodiscard]] constexpr VkRenderingAttachmentLocationInfoKHR locationInfo(uint32_t colorAttachments) const {
         return VkRenderingAttachmentLocationInfoKHR{
@@ -59,7 +59,7 @@ struct AttachmentMapping {
 
     /**
      * @param colorAttachments of the rendering
-     * @pre @ref debug_check() passes for colorAttachments
+     * @pre `debug_check()` passes for `colorAttachments`
      * @attention the pointers point into this mapping
      */
     [[nodiscard]] constexpr VkRenderingInputAttachmentIndexInfoKHR inputIndexInfo(uint32_t colorAttachments) const {
@@ -97,12 +97,12 @@ struct RenderingInheritance {
 
     /**
      * mapping at the begin of the secondary
-     * @pre == the mapping of the primary at the execute
+     * @pre `==` the mapping of the primary at the execute
      */
     AttachmentMapping attachmentMapping{};
 
     /**
-     * @attention pColorAttachmentFormats points into @ref colorFormats
+     * @attention `pColorAttachmentFormats` points into `colorFormats`
      */
     [[nodiscard]] constexpr VkCommandBufferInheritanceRenderingInfo renderingInfo() const {
         return VkCommandBufferInheritanceRenderingInfo{
@@ -129,7 +129,7 @@ struct RenderingAttachment {
     not_null_ptr<ImageView const> view;
 
     /**
-     * layout of the view during the rendering, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL fits every aspect
+     * layout of the view during the rendering, `VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL` fits every aspect
      */
     VkImageLayout layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
@@ -137,22 +137,22 @@ struct RenderingAttachment {
     VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
     /**
-     * VK_ATTACHMENT_LOAD_OP_CLEAR -> the clear value
+     * `VK_ATTACHMENT_LOAD_OP_CLEAR` -> the clear value
      */
     VkClearValue clearValue{};
 
     /**
-     * nullptr -> no resolve
+     * `nullptr` -> no resolve
      */
     ImageView const* resolveView = nullptr;
 
     /**
-     * layout of @ref resolveView during the rendering
+     * layout of `resolveView` during the rendering
      */
     VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
     /**
-     * @pre != VK_RESOLVE_MODE_NONE if @ref resolveView
+     * @pre `!= VK_RESOLVE_MODE_NONE` if `resolveView`
      */
     VkResolveModeFlagBits resolveMode = VK_RESOLVE_MODE_NONE;
 };
@@ -166,12 +166,12 @@ struct RenderingInfo {
     std::optional<RenderingAttachment> stencilAttachment = std::nullopt;
 
     /**
-     * std::nullopt -> the extent that fits every attachment
+     * `std::nullopt` -> the extent that fits every attachment
      */
     std::optional<VkRect2D> area = std::nullopt;
 
     /**
-     * layers that the rendering writes, viewMask != 0 -> ignored
+     * layers that the rendering writes, `viewMask != 0` -> ignored
      * @pre the attachment views have the layers
      */
     uint32_t layerCount = 1;
@@ -183,12 +183,12 @@ struct RenderingInfo {
     uint32_t viewMask = 0;
 
     /**
-     * VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT -> secondaries record the rendering
+     * `VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT` -> secondaries record the rendering
      */
     VkRenderingFlags flags = 0;
 
     /**
-     * mapping at the begin, @ref BaseCmdBuffer::setAttachmentMapping() changes it inside the rendering
+     * mapping at the begin, `BaseCmdBuffer::setAttachmentMapping()` changes it inside the rendering
      */
     AttachmentMapping attachmentMapping{};
 };

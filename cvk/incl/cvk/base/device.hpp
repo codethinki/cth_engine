@@ -22,7 +22,7 @@ class Instance;
 class PhysicalDevice;
 
 /**
- * VkDevice wrapper
+ * `VkDevice` wrapper
  * @details owns the function table and the queues
  * @details the queues stay valid when the device moves
  */
@@ -33,69 +33,69 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Instance::created()
-     * @pre @ref PhysicalDevice::created()
+     * @pre `Instance::created()`
+     * @pre `PhysicalDevice::created()`
      */
     Device(Instance const&, PhysicalDevice const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref Device(Instance const&, PhysicalDevice const&), @ref wrap()
+     * @details calls `Device(Instance const&, PhysicalDevice const&)`, `wrap()`
      */
     Device(Instance const&, PhysicalDevice const&, State);
 
     /**
      * constructs and creates
-     * @details calls @ref Device(Instance const&, PhysicalDevice const&), @ref create()
+     * @details calls `Device(Instance const&, PhysicalDevice const&)`, `create()`
      */
     Device(Instance const&, PhysicalDevice const&, Config const&);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Device() { optDestroy(); }
 
     /**
-     * wraps the state and retrieves the queues of @ref State::queueFamilyIndices
-     * @details nullptr @ref State::functionTable -> loads the functions
-     * @pre the device has the queues of @ref State::queueFamilyIndices
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * wraps the state and retrieves the queues of `State::queueFamilyIndices`
+     * @details `nullptr` `State::functionTable` -> loads the functions
+     * @pre the device has the queues of `State::queueFamilyIndices`
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State);
 
     /**
      * creates the device with the features and extensions of the config and retrieves the queues
-     * @details queues of one family get the indices 0, 1, ... in the order of @ref Config::queueFamilyIndices
+     * @details queues of one family get the indices 0, 1, ... in the order of `Config::queueFamilyIndices`
      * @pre the physical device has the features and the extensions of the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateDevice()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateDevice()`
      */
     void create(Config const&);
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     /**
      * blocks until every queue of the device finished its work
-     * @pre @ref created()
+     * @pre `created()`
      * @pre no other thread uses a queue of the device
-     * @throws cvk::vk_result_exception result of vkDeviceWaitIdle()
+     * @throws cvk::vk_result_exception result of `vkDeviceWaitIdle()`
      */
     void waitIdle() const;
 
@@ -132,10 +132,10 @@ private:
     [[nodiscard]] std::vector<uint32_t> calcQueueFamiliesQueueCounts(std::span<uint32_t const> familyIndices) const;
 
     /**
-     * creates the device with @ref _features and @ref _extensions
+     * creates the device with `_features` and `_extensions`
      * @param queueFamiliesQueueCounts count of queues per family, the index is the family index
      * @pre some count > 0
-     * @throws cvk::vk_result_exception result of vkCreateDevice()
+     * @throws cvk::vk_result_exception result of `vkCreateDevice()`
      */
     void createLogicalDevice(std::span<uint32_t const> queueFamiliesQueueCounts);
 
@@ -174,13 +174,13 @@ namespace cvk {
 struct Device::State {
     vk_not_null<VkDevice> vkDevice;
     /**
-     * volk function table of @ref vkDevice
-     * @details nullptr -> @ref wrap() loads it
+     * volk function table of `vkDevice`
+     * @details `nullptr` -> `wrap()` loads it
      */
     std::unique_ptr<VolkDeviceTable> functionTable;
 
     /**
-     * family index of each queue, see @ref Config::queueFamilyIndices
+     * family index of each queue, see `Config::queueFamilyIndices`
      */
     std::vector<queue_family_index_t> queueFamilyIndices{};
 

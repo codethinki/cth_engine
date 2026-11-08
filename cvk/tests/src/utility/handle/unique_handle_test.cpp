@@ -28,7 +28,7 @@ namespace {
     }
 
     /**
-     * custom deleter: derives from core_deleter, adds the pool
+     * custom deleter: derives from `core_deleter`, adds the pool
      */
     struct pool_deleter : core_deleter {
         pool_deleter(Core const& core, VkCommandPool vkPool) : core_deleter{core}, pool{vkPool} {}
@@ -57,7 +57,7 @@ namespace {
     };
 
     /**
-     * test local deleter: the deleters of cvk call cvk::destroy(), the pch includes them before a test overload
+     * test local deleter: the deleters of cvk call `cvk::destroy()`, the pch includes them before a test overload
      */
     struct pair_deleter {
         using pointer = pair_handle;

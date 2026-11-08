@@ -11,8 +11,8 @@
 namespace cvk {
 /**
  * feature bits of a device
- * @details one bool per Vulkan feature, in the order of @ref dev::feature_structs_t
- * @details a true bit of an extension struct enables its extension, see @ref dev::extensions_of()
+ * @details one bool per Vulkan feature, in the order of `dev::feature_structs_t`
+ * @details a `true` bit of an extension struct enables its extension, see `dev::extensions_of()`
  */
 struct DeviceFeatures {
     // Vulkan 1.0, VkPhysicalDeviceFeatures
@@ -174,7 +174,7 @@ struct DeviceFeatures {
 
 namespace cvk::dev {
 /**
- * feature bits in @ref DeviceFeatures, every field is a bool without padding
+ * feature bits in `DeviceFeatures`, every field is a bool without padding
  */
 inline constexpr size_t FEATURE_COUNT = sizeof(DeviceFeatures);
 

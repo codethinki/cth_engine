@@ -4,11 +4,11 @@
 
 /**
  * generated from cvk/tests/shaders, regenerate with:
- * glslc --target-env=vulkan1.3 -O -mfmt=num -o <name>.num <name>
+ * `glslc --target-env=vulkan1.3 -O -mfmt=num -o <name>.num <name>`
  */
 namespace cvk::test::shaders {
 /**
- * vertex shader: location 0 vec3 position, set 0 binding 0 uniform buffer
+ * vertex shader: location 0 `vec3` position, set 0 binding 0 uniform buffer
  */
 inline constexpr std::array<uint32_t, 218> TRIANGLE_VERT{
     0x07230203, 0x00010600, 0x000d000b, 0x00000023, 0x00000000, 0x00020011, 0x00000001, 0x0006000b,
@@ -42,7 +42,7 @@ inline constexpr std::array<uint32_t, 218> TRIANGLE_VERT{
 };
 
 /**
- * fragment shader: push constant vec4 color, location 0 color output
+ * fragment shader: push constant `vec4` color, location 0 color output
  */
 inline constexpr std::array<uint32_t, 102> TRIANGLE_FRAG{
     0x07230203, 0x00010600, 0x000d000b, 0x00000012, 0x00000000, 0x00020011, 0x00000001, 0x0006000b,
@@ -61,7 +61,7 @@ inline constexpr std::array<uint32_t, 102> TRIANGLE_FRAG{
 };
 
 /**
- * vertex shader: location 0 vec3 position, no descriptors
+ * vertex shader: location 0 `vec3` position, no descriptors
  */
 inline constexpr std::array<uint32_t, 159> FILL_VERT{
     0x07230203, 0x00010600, 0x000d000b, 0x0000001b, 0x00000000, 0x00020011, 0x00000001, 0x0006000b,
@@ -87,7 +87,7 @@ inline constexpr std::array<uint32_t, 159> FILL_VERT{
 };
 
 /**
- * fragment shader: set 0 binding 0 uniform buffer vec4 color, location 0 color output
+ * fragment shader: set 0 binding 0 uniform buffer `vec4` color, location 0 color output
  */
 inline constexpr std::array<uint32_t, 110> UNIFORM_COLOR_FRAG{
     0x07230203, 0x00010600, 0x000d000b, 0x00000012, 0x00000000, 0x00020011, 0x00000001, 0x0006000b,
@@ -107,7 +107,7 @@ inline constexpr std::array<uint32_t, 110> UNIFORM_COLOR_FRAG{
 };
 
 /**
- * fragment shader: set 0 binding 0 runtime array of combined image samplers, push constant uint index
+ * fragment shader: set 0 binding 0 runtime array of combined image samplers, push constant `uint` index
  */
 inline constexpr std::array<uint32_t, 188> BINDLESS_FRAG{
     0x07230203, 0x00010600, 0x000d000b, 0x00000020, 0x00000000, 0x00020011, 0x00000001, 0x00020011,
@@ -178,7 +178,7 @@ inline constexpr std::array<uint32_t, 112> TEXTURE_FRAG{
 };
 
 /**
- * compute shader: local size 64, set 0 binding 0 storage buffer uint values[], value i = 3 * i
+ * compute shader: local size 64, set 0 binding 0 storage buffer `uint values[]`, value `i = 3 * i`
  */
 inline constexpr std::array<uint32_t, 144> VALUES_COMP{
     0x07230203, 0x00010600, 0x000d000b, 0x0000001a, 0x00000000, 0x00020011, 0x00000001, 0x0006000b,

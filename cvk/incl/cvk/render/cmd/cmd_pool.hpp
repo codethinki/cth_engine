@@ -18,7 +18,7 @@ namespace cvk {
 class Core;
 
 /**
- * VkCommandPool wrapper
+ * `VkCommandPool` wrapper
  * @details counts its command buffers and its resets
  * @attention not thread safe, also through its command buffers
  */
@@ -29,70 +29,70 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     CmdPool(Core const&, Config const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref CmdPool(Core const&, Config const&), @ref wrap()
+     * @details calls `CmdPool(Core const&, Config const&)`, `wrap()`
      */
     CmdPool(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref CmdPool(Core const&, Config const&), @ref create()
+     * @details calls `CmdPool(Core const&, Config const&)`, `create()`
      */
     explicit CmdPool(Core const&, Config const&, create_t);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~CmdPool() { optDestroy(); }
 
     /**
      * wraps the state
      * @pre the pool was created with the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the pool
-     * @pre the config has a queue family (!= VK_QUEUE_FAMILY_IGNORED)
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateCommandPool()
+     * @pre the config has a queue family (`!= VK_QUEUE_FAMILY_IGNORED`)
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateCommandPool()`
      */
     void create();
 
     /**
      * destroys and forgets
-     * @pre @ref created()
-     * @pre @ref unused()
+     * @pre `created()`
+     * @pre `unused()`
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
-     * @pre @ref unused()
+     * @pre `created()`
+     * @pre `unused()`
      */
     State release();
 
     /**
      * resets every command buffer of the pool to the initial state
-     * @param flags VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT -> returns the memory of the pool to the system
-     * @pre @ref created()
+     * @param flags `VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT` -> returns the memory of the pool to the system
+     * @pre `created()`
      * @pre no command buffer of the pool is pending
-     * @post @ref BaseCmdBuffer::recording() of every command buffer of the pool is false
-     * @throws cvk::vk_result_exception result of vkResetCommandPool()
+     * @post `BaseCmdBuffer::recording()` of every command buffer of the pool is `false`
+     * @throws cvk::vk_result_exception result of `vkResetCommandPool()`
      */
     void reset(VkCommandPoolResetFlags flags = 0) const;
 
@@ -105,7 +105,7 @@ public:
     /**
      * stops to count a command buffer of the pool
      * @details for a counted command buffer that the caller frees, the command buffers count themselves
-     * @pre !@ref unused()
+     * @pre `!unused()`
      */
     void remove() const;
 
@@ -120,7 +120,7 @@ public:
     [[nodiscard]] constexpr bool unused() const { return _buffers == 0; }
 
     /**
-     * @return number of @ref reset() calls
+     * @return number of `reset()` calls
      */
     [[nodiscard]] constexpr uint64_t resets() const { return _resets; }
 

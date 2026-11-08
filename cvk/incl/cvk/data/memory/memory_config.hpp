@@ -5,16 +5,16 @@
 
 namespace cvk {
 /**
- * config of a @ref Memory
+ * config of a `Memory`
  */
 struct MemoryConfig {
     /**
-     * VMA_ALLOCATION_CREATE_* flags
+     * `VMA_ALLOCATION_CREATE_*` flags
      */
     VmaAllocationCreateFlags flags = 0;
 
     /**
-     * VMA_MEMORY_USAGE_AUTO* -> only for buffers and images that VMA creates with the memory
+     * `VMA_MEMORY_USAGE_AUTO*` -> only for buffers and images that VMA creates with the memory
      */
     VmaMemoryUsage usage = VMA_MEMORY_USAGE_AUTO;
 
@@ -46,7 +46,7 @@ struct MemoryConfig {
     }
 
     /**
-     * @return @ref usage is VMA_MEMORY_USAGE_AUTO*
+     * @return `usage` is `VMA_MEMORY_USAGE_AUTO*`
      */
     [[nodiscard]] constexpr bool autoUsage() const {
         return usage == VMA_MEMORY_USAGE_AUTO || usage == VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE ||

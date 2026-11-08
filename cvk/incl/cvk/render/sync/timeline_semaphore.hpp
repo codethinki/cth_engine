@@ -7,9 +7,9 @@
 
 namespace cvk {
 /**
- * timeline VkSemaphore wrapper
- * @details host counter: the last value that @ref next() or @ref signal() gave out
- * @attention not thread safe: @ref next() and @ref signal() change the counter
+ * timeline `VkSemaphore` wrapper
+ * @details host counter: the last value that `next()` or `signal()` gave out
+ * @attention not thread safe: `next()` and `signal()` change the counter
  */
 class TimelineSemaphore : Semaphore {
 public:
@@ -17,40 +17,40 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     explicit TimelineSemaphore(Core const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref TimelineSemaphore(Core const&), @ref wrap()
+     * @details calls `TimelineSemaphore(Core const&)`, `wrap()`
      */
     TimelineSemaphore(Core const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref TimelineSemaphore(Core const&), @ref create() with the initial value
+     * @details calls `TimelineSemaphore(Core const&)`, `create()` with the initial value
      */
     explicit TimelineSemaphore(Core const&, create_t, uint64_t initialValue = 0);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~TimelineSemaphore() = default;
 
     /**
      * wraps the state
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the semaphore
      * @param initialValue of the semaphore and the counter
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateSemaphore()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`
      */
     void create(uint64_t initialValue = 0);
 
@@ -59,37 +59,37 @@ public:
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     /**
      * advances the counter and signals the semaphore from the host
      * @return the signaled value
-     * @pre @ref created()
+     * @pre `created()`
      * @pre no signal of the semaphore is pending
-     * @throws cvk::vk_result_exception result of vkSignalSemaphore()
+     * @throws cvk::vk_result_exception result of `vkSignalSemaphore()`
      */
     uint64_t signal();
 
     /**
      * blocks until the semaphore reaches the value or the timeout ends
      * @param timeout in nanoseconds
-     * @return VK_SUCCESS or VK_TIMEOUT
-     * @pre @ref created()
-     * @throws cvk::vk_result_exception other result of vkWaitSemaphores()
+     * @return `VK_SUCCESS` or `VK_TIMEOUT`
+     * @pre `created()`
+     * @throws cvk::vk_result_exception other result of `vkWaitSemaphores()`
      */
     [[nodiscard]] VkResult wait(uint64_t value, uint64_t timeout) const;
 
     /**
      * blocks until the semaphore reaches the value
-     * @pre @ref created()
-     * @throws cvk::vk_result_exception result of vkWaitSemaphores()
+     * @pre `created()`
+     * @throws cvk::vk_result_exception result of `vkWaitSemaphores()`
      */
     void wait(uint64_t value) const;
 
     /**
-     * blocks until the semaphore reaches @ref value()
+     * blocks until the semaphore reaches `value()`
      */
     void wait() const { wait(_value); }
 
@@ -107,8 +107,8 @@ public:
 
     /**
      * @return current value of the semaphore
-     * @pre @ref created()
-     * @throws cvk::vk_result_exception result of vkGetSemaphoreCounterValue()
+     * @pre `created()`
+     * @throws cvk::vk_result_exception result of `vkGetSemaphoreCounterValue()`
      */
     [[nodiscard]] uint64_t gpuValue() const;
 
@@ -133,7 +133,7 @@ namespace cvk {
 struct TimelineSemaphore::State {
     vk_not_null<VkSemaphore> vkSemaphore;
     /**
-     * counter, see @ref value()
+     * counter, see `value()`
      */
     uint64_t value;
 

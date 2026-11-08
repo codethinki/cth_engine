@@ -15,8 +15,8 @@ namespace jvk::test {
 constexpr std::string_view APP_NAME = "jvk_tests";
 
 /**
- * instance config with @ref APP_NAME
- * @param debugMessengerOpt see @ref cvk::InstanceConfig::debugMessenger
+ * instance config with `APP_NAME`
+ * @param debugMessengerOpt see `cvk::InstanceConfig::debugMessenger`
  */
 [[nodiscard]] inline cvk::InstanceConfig instance_config(
     std::vector<std::string> extensions = {},

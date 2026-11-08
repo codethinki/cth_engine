@@ -13,9 +13,9 @@ namespace cvk::constants {
 /**
  * features that every device enables
  * @details bindless:
- * - the descriptor indexing features that descriptorIndexing guarantees
- * - descriptorBindingVariableDescriptorCount
- * @details dynamicRenderingLocalRead: local reads in a dynamic rendering
+ * - the descriptor indexing features that `descriptorIndexing` guarantees
+ * - `descriptorBindingVariableDescriptorCount`
+ * @details `dynamicRenderingLocalRead`: local reads in a dynamic rendering
  */
 inline constexpr DeviceFeatures BASE_DEVICE_FEATURES{
     .samplerAnisotropy = true,
@@ -49,7 +49,7 @@ inline constexpr DeviceFeatures PRESENT_DEVICE_FEATURES{.swapchainMaintenance1 =
 
 /**
  * extensions without feature bits that a device with a present queue enables
- * @details the swapchain and @ref OS_FENCE_DEVICE_EXTENSIONS for the exportable present fences
+ * @details the swapchain and `OS_FENCE_DEVICE_EXTENSIONS` for the exportable present fences
  */
 inline constexpr auto PRESENT_DEVICE_EXTENSIONS = [] {
     std::array<std::string_view, 1 + OS_FENCE_DEVICE_EXTENSIONS.size()> extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};

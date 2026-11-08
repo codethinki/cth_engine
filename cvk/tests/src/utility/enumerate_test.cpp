@@ -18,7 +18,7 @@ namespace {
 
     /**
      * acts like a Vulkan query with the available elements
-     * @return VK_INCOMPLETE -> data has less space than available
+     * @return `VK_INCOMPLETE` -> data has less space than available
      */
     VkResult query(std::span<int const> available, uint32_t* count, int* data) {
         if(data == nullptr) {
@@ -49,7 +49,7 @@ namespace {
     }
 
     /**
-     * one element at every count call, VK_INCOMPLETE at every write call
+     * one element at every count call, `VK_INCOMPLETE` at every write call
      */
     VkResult always_incomplete(uint32_t* calls, uint32_t* count, int* data) {
         ++*calls;
@@ -60,7 +60,7 @@ namespace {
     }
 
     /**
-     * @return VK_ERROR_OUT_OF_HOST_MEMORY at the call with the index failingCall
+     * @return `VK_ERROR_OUT_OF_HOST_MEMORY` at the call with the index `failingCall`
      */
     VkResult failing(uint32_t failingCall, uint32_t* calls, uint32_t* count, int* data) {
         if((*calls)++ == failingCall) return VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -68,7 +68,7 @@ namespace {
     }
 
     /**
-     * writes the first elementCount elements, like vkGetPhysicalDeviceQueueFamilyProperties()
+     * writes the first `elementCount` elements, like `vkGetPhysicalDeviceQueueFamilyProperties()`
      */
     void void_query(uint32_t elementCount, uint32_t* count, int* data) {
         [[maybe_unused]] auto const result = query(std::span{ELEMENTS}.first(elementCount), count, data);

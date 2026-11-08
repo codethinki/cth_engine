@@ -29,8 +29,8 @@ struct SemaphoreSubmitInfo {
 
     /**
      * @param stages wait -> the stages that wait, signal -> the stages that finish before the signal
-     * @param valueOpt std::nullopt -> resolved at the submit,
-     *  wait: @ref TimelineSemaphore::value(), signal: @ref TimelineSemaphore::next()
+     * @param valueOpt `std::nullopt` -> resolved at the submit,
+     *  wait: `TimelineSemaphore::value()`, signal: `TimelineSemaphore::next()`
      */
     constexpr SemaphoreSubmitInfo(
         TimelineSemaphore const& semaphore,

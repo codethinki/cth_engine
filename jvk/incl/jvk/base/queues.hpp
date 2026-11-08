@@ -21,14 +21,14 @@ namespace jvk {
  * serialized queues of a core
  * @details
  * - run on an own scheduler
- * - the indices of one vulkan queue share one @ref Queue
- * - a @ref Queue keeps its address
+ * - the indices of one vulkan queue share one `Queue`
+ * - a `Queue` keeps its address
  */
 class Queues {
 public:
     /**
      * constructs the queues of the core and starts their scheduler
-     * @param workers threads of the scheduler, 0 -> one per vulkan queue
+     * @param workers threads of the scheduler, `0` -> one per vulkan queue
      * @pre the cvk core and the reactor of the core are created
      */
     Queues(Core const&, size_t workers);
@@ -37,9 +37,9 @@ public:
     Queues(cvk::Core const&, size_t workers);
 
     /**
-     * @param queueIdx index of the queue in @ref cvk::CoreConfig::queueProperties
+     * @param queueIdx index of the queue in `cvk::CoreConfig::queueProperties`
      * @return serialized queue, the indices of one vulkan queue return the same object
-     * @pre queueIdx < size of @ref cvk::Core::queueIndices()
+     * @pre `queueIdx` < size of `cvk::Core::queueIndices()`
      */
     [[nodiscard]] Queue const& queue(size_t queueIdx) const;
 
@@ -49,7 +49,7 @@ private:
     std::deque<Queue> _queues{};
 
     /**
-     * index in @ref _queues per index of @ref cvk::CoreConfig::queueProperties
+     * index in `_queues` per index of `cvk::CoreConfig::queueProperties`
      */
     std::vector<size_t> _queueIndices{};
 

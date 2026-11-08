@@ -6,7 +6,7 @@
 
 namespace cvk {
 /**
- * config of a @ref CmdPool
+ * config of a `CmdPool`
  */
 struct CmdPoolConfig {
     static constexpr VkCommandPoolCreateFlags DEFAULT_FLAGS = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
@@ -14,12 +14,12 @@ struct CmdPoolConfig {
 
     /**
      * the family of the queues that the command buffers are submitted to
-     * @details VK_QUEUE_FAMILY_IGNORED is not allowed at create
+     * @details `VK_QUEUE_FAMILY_IGNORED` is not allowed at create
      */
     queue_family_index_t queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
     /**
-     * VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT -> @ref BaseCmdBuffer::reset() is allowed
+     * `VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT` -> `BaseCmdBuffer::reset()` is allowed
      */
     VkCommandPoolCreateFlags flags = DEFAULT_FLAGS;
 

@@ -26,7 +26,7 @@ public:
     /**
      * records a copy from the buffer into every layer of the mip level
      * @details tracks the accesses of the image and the buffer with one barrier
-     * @pre the preconditions of @ref cvk::Image::copy()
+     * @pre the preconditions of `cvk::Image::copy()`
      */
     void copy(
         cmd_buffer auto& cmd,
@@ -47,7 +47,7 @@ public:
     /**
      * records a copy from every layer of the mip level into the buffer
      * @details tracks the accesses of the image and the buffer with one barrier
-     * @pre the preconditions of @ref cvk::Image::copyTo()
+     * @pre the preconditions of `cvk::Image::copyTo()`
      */
     void copyTo(
         cmd_buffer auto& cmd,
@@ -68,8 +68,8 @@ public:
     /**
      * records blits that fill each mip level from the level before it
      * @details tracks the accesses of the mip levels
-     * @pre the preconditions of @ref cvk::Image::blitMipLevels() without the layouts
-     * @post the levels from firstMipLevel - 1: VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, transfer read
+     * @pre the preconditions of `cvk::Image::blitMipLevels()` without the layouts
+     * @post the levels from `firstMipLevel - 1`: `VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL`, transfer read
      */
     void blitMipLevels(
         cmd_buffer auto& cmd,

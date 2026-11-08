@@ -22,7 +22,7 @@ class Surface;
 using device_uuid_t = std::array<uint8_t, VK_UUID_SIZE>;
 
 /**
- * VkPhysicalDevice wrapper
+ * `VkPhysicalDevice` wrapper
  * @details holds the queried extensions, features, properties and queue families
  * @details the instance owns the physical device
  */
@@ -32,8 +32,8 @@ public:
      * queries the device
      * @param surfaces a family presents only if it presents to every surface, empty -> no present support
      * @pre the instance of the device is created
-     * @throws cvk::vk_result_exception result of vkEnumerateDeviceExtensionProperties()
-     * @throws cvk::vk_result_exception result of vkGetPhysicalDeviceSurfaceSupportKHR()
+     * @throws cvk::vk_result_exception result of `vkEnumerateDeviceExtensionProperties()`
+     * @throws cvk::vk_result_exception result of `vkGetPhysicalDeviceSurfaceSupportKHR()`
      */
     explicit PhysicalDevice(vk_not_null<VkPhysicalDevice>, std::span<Surface const> surfaces = {});
 
@@ -69,7 +69,7 @@ public:
     ) const;
 
     /**
-     * @return nullptr -> no family with the index
+     * @return `nullptr` -> no family with the index
      */
     [[nodiscard]] QueueFamily const* queueFamily(queue_family_index_t familyIdx) const;
 
@@ -85,7 +85,7 @@ public:
     [[nodiscard]] constexpr VkPhysicalDeviceLimits const& limits() const { return _properties.limits; }
 
     /**
-     * @return deviceUUID of VkPhysicalDeviceIDProperties, the same across instances and processes
+     * @return `deviceUUID` of `VkPhysicalDeviceIDProperties`, the same across instances and processes
      */
     [[nodiscard]] constexpr device_uuid_t const& uuid() const { return _uuid; }
     [[nodiscard]] constexpr VkPhysicalDeviceMemoryProperties const& memoryProperties() const {
@@ -125,8 +125,8 @@ struct PhysicalDevicePick {
 /**
  * queries every physical device of the instance
  * @param surfaces a family presents only if it presents to every surface, empty -> no present support
- * @pre @ref Instance::created()
- * @throws cvk::vk_result_exception result of vkEnumeratePhysicalDevices()
+ * @pre `Instance::created()`
+ * @throws cvk::vk_result_exception result of `vkEnumeratePhysicalDevices()`
  */
 [[nodiscard]] std::vector<PhysicalDevice> enumerate_physical_devices(
     Instance const&,
@@ -137,13 +137,13 @@ struct PhysicalDevicePick {
  * picks the best physical device with the features, the extensions and the queues
  * @param surfaces a family presents only if it presents to every surface
  * @param extensions to require, besides the extensions of the features
- * @param uuidOpt std::nullopt -> every device counts, set -> only the device with this uuid counts
- * @details best: the lowest @ref dev::device_type_rank(), ties go to the first in enumeration order
- * @details a present queue -> requires @ref constants::OS_FENCE_FEATURES of @ref constants::OS_FENCE_HANDLE_TYPE
+ * @param uuidOpt `std::nullopt` -> every device counts, set -> only the device with this uuid counts
+ * @details best: the lowest `dev::device_type_rank()`, ties go to the first in enumeration order
+ * @details a present queue -> requires `constants::OS_FENCE_FEATURES` of `constants::OS_FENCE_HANDLE_TYPE`
  *  for the present fences
- * @return std::nullopt -> no device meets the requirements
- * @pre @ref Instance::created()
- * @throws cvk::vk_result_exception result of vkEnumeratePhysicalDevices()
+ * @return `std::nullopt` -> no device meets the requirements
+ * @pre `Instance::created()`
+ * @throws cvk::vk_result_exception result of `vkEnumeratePhysicalDevices()`
  */
 [[nodiscard]] std::optional<PhysicalDevicePick> pick_physical_device(
     Instance const&,

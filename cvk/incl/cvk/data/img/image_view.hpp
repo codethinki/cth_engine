@@ -17,7 +17,7 @@
 
 namespace cvk {
 /**
- * VkImageView wrapper
+ * `VkImageView` wrapper
  */
 class ImageView {
 public:
@@ -31,55 +31,55 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls @ref ImageView(Image const&, Config const&), @ref wrap()
+     * @details calls `ImageView(Image const&, Config const&)`, `wrap()`
      */
     ImageView(Image const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref ImageView(Image const&, Config const&), @ref create()
+     * @details calls `ImageView(Image const&, Config const&)`, `create()`
      */
     explicit ImageView(Image const&, Config const&, create_t);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~ImageView() { optDestroy(); }
 
     /**
      * wraps the state
      * @pre the view was created for the image with the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the view
-     * @pre @ref Image::created()
+     * @pre `Image::created()`
      * @pre the mip range and the layer range lie in the image
      * @pre the layers fit the view type
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateImageView()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateImageView()`
      */
     void create();
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      * @pre the gpu does not use the view
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
@@ -103,7 +103,7 @@ public:
     }
 
     /**
-     * @return @ref Config::viewType, VK_IMAGE_VIEW_TYPE_MAX_ENUM -> inferred
+     * @return `Config::viewType`, `VK_IMAGE_VIEW_TYPE_MAX_ENUM` -> inferred
      * @details inferred:
      * - one layer -> 2D
      * - cube compatible image with 6 layers -> cube, a multiple of 6 -> cube array

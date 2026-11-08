@@ -11,8 +11,8 @@
 
 namespace cvk {
 /**
- * config of a @ref Swapchain
- * @details @ref formats and @ref presentModes: preferences, one entry -> exactly this entry or a throw
+ * config of a `Swapchain`
+ * @details `formats` and `presentModes`: preferences, one entry -> exactly this entry or a throw
  */
 struct SwapchainConfig {
     /**
@@ -26,23 +26,23 @@ struct SwapchainConfig {
 
     /**
      * allowed present modes, the first one the surface offers wins
-     * @details empty -> VK_PRESENT_MODE_FIFO_KHR
+     * @details empty -> `VK_PRESENT_MODE_FIFO_KHR`
      */
     std::vector<VkPresentModeKHR> presentModes{VK_PRESENT_MODE_FIFO_KHR};
 
     /**
-     * 0 -> minImageCount of the surface + 1, clamped to the limits of the surface
+     * `0` -> `minImageCount` of the surface + 1, clamped to the limits of the surface
      */
     uint32_t minImageCount = 0;
 
     /**
-     * @pre != 0
+     * @pre `!= 0`
      */
     VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     /**
      * queue families that use the images at the same time
-     * @details size < 2 -> VK_SHARING_MODE_EXCLUSIVE, else VK_SHARING_MODE_CONCURRENT
+     * @details `size < 2` -> `VK_SHARING_MODE_EXCLUSIVE`, else `VK_SHARING_MODE_CONCURRENT`
      * @pre unique
      */
     std::vector<queue_family_index_t> queueFamilies{};
@@ -50,7 +50,7 @@ struct SwapchainConfig {
     VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
     /**
-     * @attention pQueueFamilyIndices points into @ref queueFamilies
+     * @attention `pQueueFamilyIndices` points into `queueFamilies`
      */
     [[nodiscard]] constexpr VkSwapchainCreateInfoKHR createInfo(
         VkSurfaceKHR surface,

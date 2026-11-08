@@ -14,22 +14,22 @@
 
 namespace cvk {
 /**
- * config of a 2D @ref Image
+ * config of a 2D `Image`
  */
 struct ImageConfig {
     /**
-     * 0 -> the aspects of @ref format, see @ref format_aspects()
-     * @pre the aspects of @ref format contain it
+     * `0` -> the aspects of `format`, see `format_aspects()`
+     * @pre the aspects of `format` contain it
      */
     VkImageAspectFlags aspectMask = 0;
 
     /**
-     * @pre != VK_FORMAT_UNDEFINED
+     * @pre `!= VK_FORMAT_UNDEFINED`
      */
     VkFormat format = VK_FORMAT_UNDEFINED;
 
     /**
-     * @pre != 0
+     * @pre `!= 0`
      */
     VkImageUsageFlags usage = 0;
 
@@ -38,26 +38,26 @@ struct ImageConfig {
     VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
 
     /**
-     * @pre >= 1
+     * @pre `>= 1`
      */
     uint32_t mipLevels = 1;
 
     /**
-     * @pre >= 1
-     * @pre VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT -> a multiple of 6, one layer per face
+     * @pre `>= 1`
+     * @pre `VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT` -> a multiple of 6, one layer per face
      */
     uint32_t arrayLayers = 1;
 
     VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
 
     /**
-     * @pre VK_IMAGE_LAYOUT_UNDEFINED or VK_IMAGE_LAYOUT_PREINITIALIZED
+     * @pre `VK_IMAGE_LAYOUT_UNDEFINED` or `VK_IMAGE_LAYOUT_PREINITIALIZED`
      */
     VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     /**
      * queue families that use the image at the same time
-     * @details size < 2 -> VK_SHARING_MODE_EXCLUSIVE, else VK_SHARING_MODE_CONCURRENT
+     * @details `size < 2` -> `VK_SHARING_MODE_EXCLUSIVE`, else `VK_SHARING_MODE_CONCURRENT`
      * @pre unique
      */
     std::vector<queue_family_index_t> queueFamilies{};
@@ -82,7 +82,7 @@ struct ImageConfig {
     /**
      * sampled cube map, the six faces are the layers
      * @details the faces: +x, -x, +y, -y, +z, -z
-     * @param mipLevels > 1 -> transfer src usage for @ref Image::blitMipLevels()
+     * @param mipLevels `> 1` -> transfer src usage for `Image::blitMipLevels()`
      */
     [[nodiscard]] static constexpr ImageConfig CubeMap(VkFormat format, uint32_t mipLevels = 1) {
         return ImageConfig{
@@ -96,7 +96,7 @@ struct ImageConfig {
     }
 
     /**
-     * @attention pQueueFamilyIndices points into @ref queueFamilies
+     * @attention `pQueueFamilyIndices` points into `queueFamilies`
      */
     [[nodiscard]] constexpr VkImageCreateInfo createInfo(VkExtent2D extent) const {
         return VkImageCreateInfo{

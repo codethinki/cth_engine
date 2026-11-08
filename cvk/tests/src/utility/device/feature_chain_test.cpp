@@ -47,7 +47,7 @@ namespace {
     }
 
     /**
-     * @return the struct of the type in the chain, nullptr -> not in the chain
+     * @return the struct of the type in the chain, `nullptr` -> not in the chain
      */
     template<class T>
     T const* find(FeatureChain const& chain) {

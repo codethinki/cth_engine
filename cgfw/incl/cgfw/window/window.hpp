@@ -25,8 +25,8 @@ using cvk::create;
 using cvk::create_t;
 
 /**
- * creation flags of a @ref Window
- * @details the values of the RGFW_windowFlags
+ * creation flags of a `Window`
+ * @details the values of the `RGFW_windowFlags`
  */
 enum class WindowFlags : uint32_t {
     NONE = 0,
@@ -51,8 +51,8 @@ CTH_GEN_ENUM_FLAG_OVERLOADS(cgfw::WindowFlags)
 namespace cgfw {
 /**
  * opaque native handles of a window
- * @details windows: display = HINSTANCE, window = HWND
- * @details wayland: display = wl_display*, window = wl_surface*
+ * @details windows: `display = HINSTANCE`, `window = HWND`
+ * @details wayland: `display = wl_display*`, `window = wl_surface*`
  * @details windows that exist at the same time have the same display
  */
 struct native_window {
@@ -70,10 +70,10 @@ namespace dev {
 }
 
 /**
- * RGFW_window wrapper
+ * `RGFW_window` wrapper
  * @details a window of the platform: Win32 or Wayland
  * @details the first window initializes RGFW, the destruction of the last one deinitializes it
- * @details @ref pollEvents() handles the events of every window
+ * @details `pollEvents()` handles the events of every window
  * @attention not thread safe, also across windows
  */
 class Window {
@@ -89,7 +89,7 @@ public:
 
         /**
          * requested size of the window
-         * @pre width > 0, height > 0
+         * @pre `width > 0`, `height > 0`
          */
         VkExtent2D extent{};
 
@@ -105,88 +105,88 @@ public:
 
     /**
      * constructs and wraps
-     * @details calls @ref Window(Config), @ref wrap()
+     * @details calls `Window(Config)`, `wrap()`
      */
     Window(Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref Window(Config), @ref create()
+     * @details calls `Window(Config)`, `create()`
      */
     explicit Window(Config, create_t);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Window() { optDestroy(); }
 
     /**
      * wraps the state
-     * @pre RGFW_createWindow() created the window with the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @pre `RGFW_createWindow()` created the window with the config
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the window with the config
      * @details no window exists -> initializes RGFW first
-     * @pre @ref Config::debug_check() passes for the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cgfw::cgfw_exception reason: RGFW_createWindow() failed
+     * @pre `Config::debug_check()` passes for the config
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cgfw::cgfw_exception reason: `RGFW_createWindow()` failed
      */
     void create();
 
     /**
      * destroys and forgets
      * @details the last window deinitializes RGFW
-     * @pre @ref created()
+     * @pre `created()`
      * @pre every surface of the window is destroyed
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     /**
      * creates a surface of the window
-     * @pre @ref created()
-     * @pre the instance enables @ref instance_extensions()
-     * @throws cgfw::cgfw_exception reason: RGFW_window_createSurface_Vulkan() failed, the message has the VkResult
+     * @pre `created()`
+     * @pre the instance enables `instance_extensions()`
+     * @throws cgfw::cgfw_exception reason: `RGFW_window_createSurface_Vulkan()` failed, the message has the `VkResult`
      */
     [[nodiscard]] cvk::Surface surface(cvk::Instance const&) const;
 
     /**
      * handles the pending events of every window
-     * @pre @ref created()
+     * @pre `created()`
      */
     void pollEvents() const;
 
     /**
      * @return the user or the platform requested to close the window
-     * @details @ref pollEvents() receives the requests
-     * @pre @ref created()
+     * @details `pollEvents()` receives the requests
+     * @pre `created()`
      */
     [[nodiscard]] bool shouldClose() const;
 
     /**
      * @return the native handles of the window
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] native_window nativeWindow() const;
 
     /**
      * closes the window and frees it
-     * @pre the window is not nullptr
+     * @pre the window is not `nullptr`
      */
     static void destroy(RGFW_window*);
 
@@ -210,7 +210,7 @@ public:
 };
 
 /**
- * @return the instance extensions of @ref Window::surface()
+ * @return the instance extensions of `Window::surface()`
  */
 [[nodiscard]] std::vector<std::string> instance_extensions();
 }

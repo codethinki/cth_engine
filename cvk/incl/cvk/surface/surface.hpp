@@ -15,8 +15,8 @@ class Instance;
 class PhysicalDevice;
 
 /**
- * VkSurfaceKHR wrapper
- * @details the window system creates the surface, @ref wrap() takes it
+ * `VkSurfaceKHR` wrapper
+ * @details the window system creates the surface, `wrap()` takes it
  */
 class Surface {
 public:
@@ -24,66 +24,66 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Instance::created()
+     * @pre `Instance::created()`
      */
     explicit Surface(Instance const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref Surface(Instance const&), @ref wrap()
+     * @details calls `Surface(Instance const&)`, `wrap()`
      */
     Surface(Instance const&, State const&);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Surface() { optDestroy(); }
 
     /**
      * wraps the state
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     /**
-     * @return queue family @ref familyIndex can present to this surface
-     * @throws cvk::vk_result_exception result of vkGetPhysicalDeviceSurfaceSupportKHR()
+     * @return queue family `familyIndex` can present to this surface
+     * @throws cvk::vk_result_exception result of `vkGetPhysicalDeviceSurfaceSupportKHR()`
      */
     [[nodiscard]] bool supportsFamily(PhysicalDevice const&, uint32_t familyIndex) const;
 
     /**
      * @return present modes the physical device offers for the surface
-     * @throws cvk::vk_result_exception result of vkGetPhysicalDeviceSurfacePresentModesKHR()
+     * @throws cvk::vk_result_exception result of `vkGetPhysicalDeviceSurfacePresentModesKHR()`
      */
     [[nodiscard]] std::vector<VkPresentModeKHR> presentModes(PhysicalDevice const&) const;
 
     /**
-     * @throws cvk::vk_result_exception result of vkGetPhysicalDeviceSurfaceCapabilitiesKHR()
+     * @throws cvk::vk_result_exception result of `vkGetPhysicalDeviceSurfaceCapabilitiesKHR()`
      */
     [[nodiscard]] VkSurfaceCapabilitiesKHR capabilities(PhysicalDevice const&) const;
 
     /**
      * @return formats the physical device offers for the surface
      * @attention no format -> the surface is not usable with the physical device
-     * @throws cvk::vk_result_exception result of vkGetPhysicalDeviceSurfaceFormatsKHR()
+     * @throws cvk::vk_result_exception result of `vkGetPhysicalDeviceSurfaceFormatsKHR()`
      */
     [[nodiscard]] std::vector<VkSurfaceFormatKHR> formats(PhysicalDevice const&) const;
 

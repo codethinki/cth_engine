@@ -31,20 +31,20 @@ struct CoreConfig {
     std::vector<queue_set_t> queueSets{};
 
     /**
-     * device features besides @ref constants::BASE_DEVICE_FEATURES
-     * @details a present queue adds @ref constants::PRESENT_DEVICE_FEATURES
+     * device features besides `constants::BASE_DEVICE_FEATURES`
+     * @details a present queue adds `constants::PRESENT_DEVICE_FEATURES`
      */
     DeviceFeatures features{};
 
     /**
      * device extensions besides the extensions of the features
-     * @details a present queue adds @ref constants::PRESENT_DEVICE_EXTENSIONS
+     * @details a present queue adds `constants::PRESENT_DEVICE_EXTENSIONS`
      */
     std::vector<std::string> extensions{};
 
     /**
-     * std::nullopt -> the best suitable device
-     * @details set -> exactly this device, see @ref PhysicalDevice::uuid()
+     * `std::nullopt` -> the best suitable device
+     * @details set -> exactly this device, see `PhysicalDevice::uuid()`
      */
     std::optional<device_uuid_t> device = std::nullopt;
 

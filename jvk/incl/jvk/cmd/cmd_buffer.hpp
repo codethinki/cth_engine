@@ -40,7 +40,7 @@ inline constexpr bool access_pairs<Resource, Access, Rest...> = access_pair<Reso
 namespace jvk {
 /**
  * alternating resources and their accesses, at least two pairs
- * @details pairs: (cvk::Image or derived, @ref ImageAccess) or (cvk::BaseBuffer or derived, @ref BufferAccess)
+ * @details pairs: (`cvk::Image` or derived, `ImageAccess`) or (`cvk::BaseBuffer` or derived, `BufferAccess`)
  */
 template<class... Args>
 concept access_pairs = sizeof...(Args) >= 4 && dev::access_pairs<std::remove_cvref_t<Args>...>;
@@ -51,8 +51,8 @@ namespace jvk::dev {
  * base of the jvk command buffers
  * @details owns a command pool
  * @details tracks resource states
- * @details external Vulkan code: @ref use() before, @ref assume() after
- * @tparam Base cvk::PrimaryCmdBuffer or cvk::SecondaryCmdBuffer
+ * @details external Vulkan code: `use()` before, `assume()` after
+ * @tparam Base `cvk::PrimaryCmdBuffer` or `cvk::SecondaryCmdBuffer`
  * @attention not thread safe
  */
 template<class Base>
@@ -63,24 +63,24 @@ public:
     /**
      * tracks an access of the image that no tracked command records
      * @details records the barrier from the tracked state
-     * @pre @ref cvk::BaseCmdBuffer::recording()
-     * @pre @ref cvk::BaseCmdBuffer::rendering() -> only a local read barrier, see @ref cvk::Barrier::execute()
+     * @pre `cvk::BaseCmdBuffer::recording()`
+     * @pre `cvk::BaseCmdBuffer::rendering()` -> only a local read barrier, see `cvk::Barrier::execute()`
      */
     void use(cvk::Image const&, ImageAccess const&);
 
     /**
      * tracks an access of the buffer that no tracked command records
      * @details records the barrier from the tracked state
-     * @pre @ref cvk::BaseCmdBuffer::recording()
-     * @pre @ref cvk::BaseCmdBuffer::rendering() -> only a local read barrier, see @ref cvk::Barrier::execute()
+     * @pre `cvk::BaseCmdBuffer::recording()`
+     * @pre `cvk::BaseCmdBuffer::rendering()` -> only a local read barrier, see `cvk::Barrier::execute()`
      */
     void use(cvk::BaseBuffer const&, BufferAccess const&);
 
     /**
      * tracks the accesses of several resources
      * @details records one barrier for all accesses, in argument order
-     * @param args pairs of a resource and its access, see @ref access_pairs
-     * @pre the preconditions of the single @ref use() per pair
+     * @param args pairs of a resource and its access, see `access_pairs`
+     * @pre the preconditions of the single `use()` per pair
      */
     template<class... Args> requires access_pairs<Args...>
     void use(Args const&... args) {
@@ -90,8 +90,8 @@ public:
     }
 
     /**
-     * sets the tracked state of the mip levels after untracked code, see @ref ResourceStates::assume()
-     * @pre @ref cvk::BaseCmdBuffer::recording()
+     * sets the tracked state of the mip levels after untracked code, see `ResourceStates::assume()`
+     * @pre `cvk::BaseCmdBuffer::recording()`
      */
     void assume(
         cvk::Image const&,
@@ -101,17 +101,17 @@ public:
     );
 
     /**
-     * sets the tracked state of the buffer after untracked code, see @ref ResourceStates::assume()
-     * @pre @ref cvk::BaseCmdBuffer::recording()
+     * sets the tracked state of the buffer after untracked code, see `ResourceStates::assume()`
+     * @pre `cvk::BaseCmdBuffer::recording()`
      */
     void assume(cvk::BaseBuffer const&, BufferState const& state);
 
     /**
      * begins the dynamic rendering
      * @details tracks the accesses of the attachments
-     * @details discard: VK_ATTACHMENT_LOAD_OP_CLEAR or VK_ATTACHMENT_LOAD_OP_DONT_CARE -> the whole mip level
+     * @details discard: `VK_ATTACHMENT_LOAD_OP_CLEAR` or `VK_ATTACHMENT_LOAD_OP_DONT_CARE` -> the whole mip level
      *  loses its contents, also outside the view and the render area
-     * @pre the preconditions of @ref cvk::BaseCmdBuffer::beginRendering()
+     * @pre the preconditions of `cvk::BaseCmdBuffer::beginRendering()`
      * @pre the depth and the stencil attachment of one image have the same layout
      */
     void beginRendering(cvk::RenderingInfo const&);
@@ -119,26 +119,26 @@ public:
     /**
      * ends the dynamic rendering
      * @details adds the attachment accesses to the last states of the attachments
-     * @pre the preconditions of @ref cvk::BaseCmdBuffer::endRendering()
+     * @pre the preconditions of `cvk::BaseCmdBuffer::endRendering()`
      */
     void endRendering();
 
     /**
      * binds the buffer to the vertex input binding
      * @details tracks the read of the buffer at the bind: write the buffer before the bind
-     * @pre the preconditions of @ref cvk::BaseCmdBuffer::bindVertexBuffer() and @ref use()
+     * @pre the preconditions of `cvk::BaseCmdBuffer::bindVertexBuffer()` and `use()`
      */
     void bindVertexBuffer(uint32_t binding, cvk::BaseBuffer const&, size_t offset = 0);
 
     /**
      * binds the index buffer
      * @details tracks the read of the buffer at the bind: write the buffer before the bind
-     * @pre the preconditions of @ref cvk::BaseCmdBuffer::bindIndexBuffer() and @ref use()
+     * @pre the preconditions of `cvk::BaseCmdBuffer::bindIndexBuffer()` and `use()`
      */
     void bindIndexBuffer(cvk::BaseBuffer const&, VkIndexType, size_t offset = 0);
 
     /**
-     * binds the index buffer with the index type of T
+     * binds the index buffer with the index type of `T`
      */
     template<cvk::index_element T>
     void bindIndexBuffer(cvk::Buffer<T> const& buffer, size_t offset = 0) {
@@ -146,9 +146,9 @@ public:
     }
 
     /**
-     * draws with the VkDrawIndirectCommands in the buffer
+     * draws with the `VkDrawIndirectCommands` in the buffer
      * @details tracks the read of the buffer
-     * @pre the preconditions of @ref cvk::BaseCmdBuffer::drawIndirect() and @ref use()
+     * @pre the preconditions of `cvk::BaseCmdBuffer::drawIndirect()` and `use()`
      */
     void drawIndirect(
         cvk::BaseBuffer const&,
@@ -158,9 +158,9 @@ public:
     );
 
     /**
-     * draws with the VkDrawIndexedIndirectCommands in the buffer
+     * draws with the `VkDrawIndexedIndirectCommands` in the buffer
      * @details tracks the read of the buffer
-     * @pre the preconditions of @ref cvk::BaseCmdBuffer::drawIndexedIndirect() and @ref use()
+     * @pre the preconditions of `cvk::BaseCmdBuffer::drawIndexedIndirect()` and `use()`
      */
     void drawIndexedIndirect(
         cvk::BaseBuffer const&,
@@ -170,9 +170,9 @@ public:
     );
 
     /**
-     * dispatches with the VkDispatchIndirectCommand in the buffer
+     * dispatches with the `VkDispatchIndirectCommand` in the buffer
      * @details tracks the read of the buffer
-     * @pre the preconditions of @ref cvk::BaseCmdBuffer::dispatchIndirect() and @ref use()
+     * @pre the preconditions of `cvk::BaseCmdBuffer::dispatchIndirect()` and `use()`
      */
     void dispatchIndirect(cvk::BaseBuffer const&, size_t offset = 0);
 
@@ -189,14 +189,14 @@ protected:
     /**
      * resets the pool and the resource states
      * @pre the command buffer is not pending
-     * @throws cvk::vk_result_exception result of vkResetCommandPool()
+     * @throws cvk::vk_result_exception result of `vkResetCommandPool()`
      */
     void reset();
 
     /**
      * appends the resource states of a later recording
      * @details records the barriers for its first accesses
-     * @pre the preconditions of @ref cvk::Barrier::execute()
+     * @pre the preconditions of `cvk::Barrier::execute()`
      */
     void appendStates(ResourceStates const& next);
 
@@ -205,7 +205,7 @@ private:
 
     /**
      * records the barrier if it is not empty
-     * @details inside a rendering: adds VK_DEPENDENCY_BY_REGION_BIT, with multiview VK_DEPENDENCY_VIEW_LOCAL_BIT
+     * @details inside a rendering: adds `VK_DEPENDENCY_BY_REGION_BIT`, with multiview `VK_DEPENDENCY_VIEW_LOCAL_BIT`
      */
     void record(cvk::Barrier&) const;
 
@@ -249,31 +249,31 @@ public:
     /**
      * creates the own command pool and the command buffer
      * @param queueFamilyIndex of the queues it is submitted to
-     * @throws cvk::vk_result_exception result of vkCreateCommandPool() or vkAllocateCommandBuffers()
+     * @throws cvk::vk_result_exception result of `vkCreateCommandPool()` or `vkAllocateCommandBuffers()`
      */
     PrimaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t queueFamilyIndex);
 
     /**
      * begins the recording
      * @details resets the pool and the resource states
-     * @param usage 0 -> any number of submits, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT -> hint: one submit
+     * @param usage `0` -> any number of submits, `VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT` -> hint: one submit
      * @pre the command buffer is not pending
-     * @throws cvk::vk_result_exception result of vkResetCommandPool() or vkBeginCommandBuffer()
+     * @throws cvk::vk_result_exception result of `vkResetCommandPool()` or `vkBeginCommandBuffer()`
      */
     void begin(VkCommandBufferUsageFlags usage = 0);
 
     /**
      * executes the secondaries
-     * @details calls @ref optEnd() on the secondaries
+     * @details calls `optEnd()` on the secondaries
      * @details appends the resource states of the secondaries
-     * @pre the preconditions of @ref cvk::PrimaryCmdBuffer::execute()
-     * @pre @ref rendering() -> the secondaries need only local read barriers, see @ref cvk::Barrier::execute()
-     * @throws cvk::vk_result_exception result of vkEndCommandBuffer()
+     * @pre the preconditions of `cvk::PrimaryCmdBuffer::execute()`
+     * @pre `rendering()` -> the secondaries need only local read barriers, see `cvk::Barrier::execute()`
+     * @throws cvk::vk_result_exception result of `vkEndCommandBuffer()`
      */
     void execute(std::span<SecondaryCmdBuffer* const>);
 
     /**
-     * executes the secondary, see @ref execute(std::span<SecondaryCmdBuffer* const>)
+     * executes the secondary, see `execute(std::span<SecondaryCmdBuffer* const>)`
      */
     void execute(SecondaryCmdBuffer&);
 };
@@ -285,7 +285,7 @@ namespace jvk {
  * secondary command buffer
  * @details owns a command pool
  * @details tracks resource states
- * @details @ref cvk::BaseCmdBuffer::end() is optional, @ref PrimaryCmdBuffer::execute() ends it
+ * @details `cvk::BaseCmdBuffer::end()` is optional, `PrimaryCmdBuffer::execute()` ends it
  * @attention not thread safe
  * @attention do not move into a cvk command buffer value: the pool stays behind
  */
@@ -296,24 +296,24 @@ public:
     /**
      * creates the own command pool and the command buffer
      * @param queueFamilyIndex of the queues its primaries are submitted to
-     * @throws cvk::vk_result_exception result of vkCreateCommandPool() or vkAllocateCommandBuffers()
+     * @throws cvk::vk_result_exception result of `vkCreateCommandPool()` or `vkAllocateCommandBuffers()`
      */
     SecondaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t queueFamilyIndex);
 
     /**
      * begins the recording outside of a rendering
      * @details resets the pool and the resource states
-     * @param usage VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT -> several pending primaries execute it
+     * @param usage `VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT` -> several pending primaries execute it
      * @pre no pending primary executes it
-     * @throws cvk::vk_result_exception result of vkResetCommandPool() or vkBeginCommandBuffer()
+     * @throws cvk::vk_result_exception result of `vkResetCommandPool()` or `vkBeginCommandBuffer()`
      */
     void begin(VkCommandBufferUsageFlags usage = 0);
 
     /**
      * begins the recording inside the rendering of a primary
      * @details resets the pool and the resource states
-     * @pre the preconditions of @ref begin(VkCommandBufferUsageFlags)
-     * @throws cvk::vk_result_exception result of vkResetCommandPool() or vkBeginCommandBuffer()
+     * @pre the preconditions of `begin(VkCommandBufferUsageFlags)`
+     * @throws cvk::vk_result_exception result of `vkResetCommandPool()` or `vkBeginCommandBuffer()`
      */
     void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0);
 };
@@ -323,7 +323,7 @@ public:
 namespace jvk {
 /**
  * jvk command buffer
- * @details @ref PrimaryCmdBuffer or @ref SecondaryCmdBuffer
+ * @details `PrimaryCmdBuffer` or `SecondaryCmdBuffer`
  */
 template<class T>
 concept cmd_buffer = std::derived_from<T, PrimaryCmdBuffer> || std::derived_from<T, SecondaryCmdBuffer>;

@@ -16,8 +16,8 @@ class Core;
 class PipelineLayout;
 
 /**
- * VkPipeline wrapper
- * @details base of @ref GraphicsPipeline and @ref ComputePipeline
+ * `VkPipeline` wrapper
+ * @details base of `GraphicsPipeline` and `ComputePipeline`
  * @details the layout outlives the pipeline
  */
 class BasePipeline {
@@ -27,26 +27,26 @@ public:
     /**
      * wraps the state
      * @pre the pipeline was created with the layout and the config of the derived class
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      * @pre the gpu does not use the pipeline
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
@@ -59,30 +59,30 @@ public:
 protected:
     /**
      * base constructor, keeps the layout
-     * @pre @ref Core::created() of the layout
+     * @pre `Core::created()` of the layout
      */
     BasePipeline(PipelineLayout const&, VkPipelineBindPoint);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~BasePipeline() { optDestroy(); }
 
     /**
      * creates the pipeline with the info
-     * @pre the layout of the info is @ref layout()
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateGraphicsPipelines()
+     * @pre the layout of the info is `layout()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateGraphicsPipelines()`
      */
     void create(VkGraphicsPipelineCreateInfo const&);
 
     /**
      * creates the pipeline with the info
-     * @pre the layout of the info is @ref layout()
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateComputePipelines()
+     * @pre the layout of the info is `layout()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateComputePipelines()`
      */
     void create(VkComputePipelineCreateInfo const&);
 

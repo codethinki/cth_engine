@@ -50,7 +50,7 @@ namespace {
     };
 
     /**
-     * clears an attachment to black, draws with draw() and expects every pixel green
+     * clears an attachment to black, draws with `draw()` and expects every pixel green
      */
     template<class Draw>
     void expect_filled(test::Context const& context, Fill const& fill, Draw draw) {

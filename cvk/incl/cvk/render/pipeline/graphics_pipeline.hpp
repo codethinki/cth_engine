@@ -11,7 +11,7 @@ namespace cvk {
 class PipelineLayout;
 
 /**
- * graphics VkPipeline wrapper
+ * graphics `VkPipeline` wrapper
  * @details for dynamic rendering
  */
 class GraphicsPipeline : public BasePipeline {
@@ -20,47 +20,47 @@ public:
 
     /**
      * base constructor, keeps the layout
-     * @pre @ref Core::created() of the layout
+     * @pre `Core::created()` of the layout
      */
     GraphicsPipeline(PipelineLayout const&, Config);
 
     /**
      * constructs and wraps
-     * @details calls @ref GraphicsPipeline(PipelineLayout const&, Config), @ref wrap()
+     * @details calls `GraphicsPipeline(PipelineLayout const&, Config)`, `wrap()`
      */
     GraphicsPipeline(PipelineLayout const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref GraphicsPipeline(PipelineLayout const&, Config), @ref create()
+     * @details calls `GraphicsPipeline(PipelineLayout const&, Config)`, `create()`
      */
     explicit GraphicsPipeline(PipelineLayout const&, Config, create_t);
 
     /**
      * base constructor of a derivative pipeline, keeps the layout and copies the handle of the parent
-     * @pre @ref created() of the parent, with VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT in its flags
+     * @pre `created()` of the parent, with `VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT` in its flags
      */
     GraphicsPipeline(GraphicsPipeline const& parent, Config);
 
     /**
      * constructs and creates a derivative pipeline
-     * @details calls @ref GraphicsPipeline(GraphicsPipeline const&, Config), @ref create()
+     * @details calls `GraphicsPipeline(GraphicsPipeline const&, Config)`, `create()`
      */
     explicit GraphicsPipeline(GraphicsPipeline const& parent, Config, create_t);
 
     /**
      * creates the pipeline
-     * @details derivative pipeline -> adds VK_PIPELINE_CREATE_DERIVATIVE_BIT
-     * @details empty @ref Config::colorBlendAttachments -> @ref Config::ALPHA_BLENDING per color format
+     * @details derivative pipeline -> adds `VK_PIPELINE_CREATE_DERIVATIVE_BIT`
+     * @details empty `Config::colorBlendAttachments` -> `Config::ALPHA_BLENDING` per color format
      * @pre the layout, the parent and the shader modules of the config are not destroyed
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateGraphicsPipelines()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateGraphicsPipelines()`
      */
     void create();
 
     /**
-     * @return VK_NULL_HANDLE -> not a derivative pipeline
+     * @return `VK_NULL_HANDLE` -> not a derivative pipeline
      */
     [[nodiscard]] constexpr VkPipeline parent() const { return _vkParent; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }

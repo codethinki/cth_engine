@@ -22,11 +22,11 @@ struct handle_deleter {
 
 /**
  * owning Vulkan handle
- * @details a std::unique_ptr whose deleter holds the destroy context
- * @details the constructors and reset() take the context with the handle
+ * @details a `std::unique_ptr` whose deleter holds the destroy context
+ * @details the constructors and `reset()` take the context with the handle
  * @details move assignment destroys the old handle with the old context
- * @tparam Handle Vulkan handle, or Deleter::pointer for handles that are not pointers
- * @tparam Deleter @ref core_deleter, @ref instance_deleter, @ref handle_deleter or one of its own
+ * @tparam Handle Vulkan handle, or `Deleter::pointer` for handles that are not pointers
+ * @tparam Deleter `core_deleter`, `instance_deleter`, `handle_deleter` or one of its own
  */
 template<class Handle, class Deleter>
 class unique_handle {
@@ -45,7 +45,7 @@ public:
     constexpr explicit unique_handle(Args&&... context) : _ptr{Handle{}, Deleter{std::forward<Args>(context)...}} {}
 
     /**
-     * owns @ref handle
+     * owns `handle`
      * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
@@ -60,7 +60,7 @@ public:
     constexpr void reset() noexcept { _ptr.reset(); }
 
     /**
-     * destroys the owned handle with the old context, then owns @ref handle with the new context
+     * destroys the owned handle with the old context, then owns `handle` with the new context
      * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
@@ -81,14 +81,14 @@ public:
     [[nodiscard]] constexpr Deleter const& deleter() const noexcept { return _ptr.get_deleter(); }
 
     /**
-     * @pre the deleter has core()
+     * @pre the deleter has `core()`
      */
     [[nodiscard]] constexpr decltype(auto) core() const requires requires(Deleter const& d) { d.core(); } {
         return deleter().core();
     }
 
     /**
-     * @pre the deleter has vkInstance()
+     * @pre the deleter has `vkInstance()`
      */
     [[nodiscard]] constexpr VkInstance vkInstance() const requires requires(Deleter const& d) { d.vkInstance(); } {
         return deleter().vkInstance();

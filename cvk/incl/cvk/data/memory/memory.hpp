@@ -23,8 +23,8 @@ namespace cvk {
 class Core;
 
 /**
- * VmaAllocation wrapper
- * @details a range of a VkDeviceMemory, see @ref info()
+ * `VmaAllocation` wrapper
+ * @details a range of a `VkDeviceMemory`, see `info()`
  * @attention not thread safe
  */
 class Memory {
@@ -34,71 +34,71 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     Memory(Core const&, Config const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref Memory(Core const&, Config const&), @ref wrap()
+     * @details calls `Memory(Core const&, Config const&)`, `wrap()`
      */
     Memory(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref Memory(Core const&, Config const&), @ref create()
+     * @details calls `Memory(Core const&, Config const&)`, `create()`
      */
     Memory(Core const&, Config const&, VkMemoryRequirements const&);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Memory() { optDestroy(); }
 
     /**
      * wraps the state
      * @pre the allocator of the core created the allocation
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * allocates memory for the requirements
-     * @pre !@ref Config::autoUsage()
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vmaAllocateMemory()
+     * @pre `!Config::autoUsage()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vmaAllocateMemory()`
      */
     void create(VkMemoryRequirements const&);
 
     /**
      * frees the memory and forgets
-     * @pre @ref created()
+     * @pre `created()`
      * @pre the gpu does not use the memory
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     /**
      * maps the range of the memory
-     * @details a map while a @ref Mapping lives returns the same memory
+     * @details a map while a `Mapping` lives returns the same memory
      * @param range in bytes
      * @return the mapped range, its destructor unmaps
-     * @pre @ref created()
-     * @pre @ref properties() has VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+     * @pre `created()`
+     * @pre `properties()` has `VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT`
      * @pre the range lies in the memory
-     * @throws cvk::vk_result_exception result of vmaMapMemory()
+     * @throws cvk::vk_result_exception result of `vmaMapMemory()`
      */
     [[nodiscard]] Mapping<std::byte> map(Range range = {}) const;
 
@@ -106,9 +106,9 @@ public:
      * makes host writes visible to the device
      * @param range in bytes
      * @details host coherent memory -> does nothing
-     * @pre @ref created()
-     * @pre the memory is mapped: a @ref Mapping lives or VMA_ALLOCATION_CREATE_MAPPED_BIT
-     * @throws cvk::vk_result_exception result of vmaFlushAllocation()
+     * @pre `created()`
+     * @pre the memory is mapped: a `Mapping` lives or `VMA_ALLOCATION_CREATE_MAPPED_BIT`
+     * @throws cvk::vk_result_exception result of `vmaFlushAllocation()`
      */
     void flush(Range range = {}) const;
 
@@ -116,20 +116,20 @@ public:
      * makes device writes visible to the host
      * @param range in bytes
      * @details host coherent memory -> does nothing
-     * @pre @ref created()
-     * @pre the memory is mapped: a @ref Mapping lives or VMA_ALLOCATION_CREATE_MAPPED_BIT
-     * @throws cvk::vk_result_exception result of vmaInvalidateAllocation()
+     * @pre `created()`
+     * @pre the memory is mapped: a `Mapping` lives or `VMA_ALLOCATION_CREATE_MAPPED_BIT`
+     * @throws cvk::vk_result_exception result of `vmaInvalidateAllocation()`
      */
     void invalidate(Range range = {}) const;
 
     /**
      * copies the data to the memory
      * @param offset in bytes
-     * @pre @ref created()
-     * @pre @ref properties() has VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+     * @pre `created()`
+     * @pre `properties()` has `VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT`
      * @pre the data fits into the memory after the offset
-     * @throws cvk::vk_result_exception result of vmaMapMemory()
-     * @throws cvk::vk_result_exception result of vmaFlushAllocation()
+     * @throws cvk::vk_result_exception result of `vmaMapMemory()`
+     * @throws cvk::vk_result_exception result of `vmaFlushAllocation()`
      */
     void write(std::span<std::byte const> data, size_t offset = 0) const;
 
@@ -139,26 +139,26 @@ public:
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     /**
-     * @return the VkDeviceMemory, the offset and the size of the range
-     * @pre @ref created()
+     * @return the `VkDeviceMemory`, the offset and the size of the range
+     * @pre `created()`
      */
     [[nodiscard]] VmaAllocationInfo info() const;
 
     /**
      * @return the property flags of the memory type that VMA picked
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] VkMemoryPropertyFlags properties() const;
 
     /**
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] size_t size() const { return info().size; }
 
     /**
      * @return the whole memory if mapped, not mapped -> empty
-     * @details a living @ref Mapping or VMA_ALLOCATION_CREATE_MAPPED_BIT maps it
-     * @pre @ref created()
+     * @details a living `Mapping` or `VMA_ALLOCATION_CREATE_MAPPED_BIT` maps it
+     * @pre `created()`
      */
     [[nodiscard]] std::span<std::byte> mapped() const;
 
@@ -167,7 +167,7 @@ private:
     friend class Mapping;
 
     /**
-     * unmaps the memory once, the destructor of a @ref Mapping calls it
+     * unmaps the memory once, the destructor of a `Mapping` calls it
      */
     void unmap() const;
 

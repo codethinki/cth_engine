@@ -25,7 +25,7 @@ struct ImageState {
     VkImageLayout layout;
 
     /**
-     * VK_QUEUE_FAMILY_IGNORED -> the family of the recording
+     * `VK_QUEUE_FAMILY_IGNORED` -> the family of the recording
      */
     cvk::BarrierScope scope;
 };
@@ -43,7 +43,7 @@ struct ImageAccess {
     uint32_t firstMipLevel = 0;
 
     /**
-     * (VK_REMAINING_MIP_LEVELS => to the last mip level)
+     * (`VK_REMAINING_MIP_LEVELS` => to the last mip level)
      */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
 
@@ -60,7 +60,7 @@ struct ImageAccess {
  */
 struct BufferState {
     /**
-     * VK_QUEUE_FAMILY_IGNORED -> the family of the recording
+     * `VK_QUEUE_FAMILY_IGNORED` -> the family of the recording
      */
     cvk::BarrierScope scope;
 };
@@ -80,7 +80,7 @@ struct BufferAccess {
  * @details one state per buffer
  * @attention not thread safe
  * @attention keeps pointers: the images and buffers do not move
- * @attention call @ref erase() before an image or buffer is destroyed
+ * @attention call `erase()` before an image or buffer is destroyed
  */
 class ResourceStates {
 public:
@@ -102,7 +102,7 @@ public:
     /**
      * sets the last state of the mip levels after untracked code, without a barrier
      * @details no state -> no first use
-     * @param state unknown -> VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT
+     * @param state unknown -> `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`, `VK_ACCESS_2_MEMORY_WRITE_BIT`
      * @pre the mip range lies in the image
      */
     void assume(
@@ -115,7 +115,7 @@ public:
     /**
      * sets the last state of the buffer after untracked code, without a barrier
      * @details no state -> no first use
-     * @param state unknown -> VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT
+     * @param state unknown -> `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`, `VK_ACCESS_2_MEMORY_WRITE_BIT`
      */
     void assume(cvk::BaseBuffer const&, BufferState const& state);
 
@@ -139,27 +139,27 @@ public:
     void append(ResourceStates const& next, cvk::Barrier& barrier);
 
     /**
-     * @return std::nullopt -> no access or an @ref assume() before it
+     * @return `std::nullopt` -> no access or an `assume()` before it
      */
     [[nodiscard]] std::optional<ImageState> first(cvk::Image const&, uint32_t mipLevel) const;
 
     /**
-     * @return the first use of the mip level has @ref ImageAccess::discard
+     * @return the first use of the mip level has `ImageAccess::discard`
      */
     [[nodiscard]] bool discards(cvk::Image const&, uint32_t mipLevel) const;
 
     /**
-     * @return std::nullopt -> no access and no @ref assume()
+     * @return `std::nullopt` -> no access and no `assume()`
      */
     [[nodiscard]] std::optional<ImageState> last(cvk::Image const&, uint32_t mipLevel) const;
 
     /**
-     * @return std::nullopt -> no access or an @ref assume() before it
+     * @return `std::nullopt` -> no access or an `assume()` before it
      */
     [[nodiscard]] std::optional<BufferState> first(cvk::BaseBuffer const&) const;
 
     /**
-     * @return std::nullopt -> no access and no @ref assume()
+     * @return `std::nullopt` -> no access and no `assume()`
      */
     [[nodiscard]] std::optional<BufferState> last(cvk::BaseBuffer const&) const;
 
@@ -191,14 +191,14 @@ private:
         cth::not_null_ptr<cvk::Image const> imagePtr;
 
         /**
-         * std::nullopt -> @ref assume() before the first access
+         * `std::nullopt` -> `assume()` before the first access
          */
         std::optional<ImageState> firstOpt;
         ImageState last;
         bool discard = false;
 
         /**
-         * a barrier or @ref assume() after the first use: @ref firstOpt is final
+         * a barrier or `assume()` after the first use: `firstOpt` is final
          */
         bool barrier = false;
     };
@@ -207,13 +207,13 @@ private:
         cth::not_null_ptr<cvk::BaseBuffer const> bufferPtr;
 
         /**
-         * std::nullopt -> @ref assume() before the first access
+         * `std::nullopt` -> `assume()` before the first access
          */
         std::optional<BufferState> firstOpt;
         BufferState last;
 
         /**
-         * a barrier or @ref assume() after the first use: @ref firstOpt is final
+         * a barrier or `assume()` after the first use: `firstOpt` is final
          */
         bool barrier = false;
     };

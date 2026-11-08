@@ -14,8 +14,8 @@ namespace cvk {
 class Instance;
 
 /**
- * writes the message to cth::log
- * @return VK_FALSE
+ * writes the message to `cth::log`
+ * @return `VK_FALSE`
  */
 VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT,
@@ -25,7 +25,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
 );
 
 /**
- * VkDebugUtilsMessengerEXT wrapper
+ * `VkDebugUtilsMessengerEXT` wrapper
  */
 class DebugMessenger {
 public:
@@ -35,64 +35,64 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Instance::created()
+     * @pre `Instance::created()`
      */
     DebugMessenger(Instance const&, Config);
 
     /**
      * constructs and wraps
-     * @details calls @ref DebugMessenger(Instance const&, Config), @ref wrap()
+     * @details calls `DebugMessenger(Instance const&, Config)`, `wrap()`
      */
     DebugMessenger(Instance const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref DebugMessenger(Instance const&, Config), @ref create()
+     * @details calls `DebugMessenger(Instance const&, Config)`, `create()`
      */
     explicit DebugMessenger(Instance const&, Config, create_t);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~DebugMessenger() { optDestroy(); }
 
     /**
      * wraps the state
      * @pre the instance created the messenger
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the messenger
-     * @pre the instance enables VK_EXT_debug_utils
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateDebugUtilsMessengerEXT()
+     * @pre the instance enables `VK_EXT_debug_utils`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateDebugUtilsMessengerEXT()`
      */
     void create();
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     struct Config {
         /**
-         * @pre != nullptr
+         * @pre `!= nullptr`
          */
         callback_t callback = &default_debug_callback;
         VkDebugUtilsMessageSeverityFlagsEXT messageSeverities = constants::DEBUG_MESSAGE_SEVERITY;

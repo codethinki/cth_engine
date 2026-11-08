@@ -38,7 +38,7 @@ namespace {
     };
 
     /**
-     * Buffer<T> is a valid type
+     * `Buffer<T>` is a valid type
      */
     template<class T>
     concept valid_buffer = requires { sizeof(Buffer<T>); };

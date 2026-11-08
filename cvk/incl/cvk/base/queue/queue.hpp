@@ -14,9 +14,9 @@ namespace cvk {
 class Fence;
 
 /**
- * VkQueue of a device
+ * `VkQueue` of a device
  * @details the device owns the vulkan queue
- * @details valid while the VkDevice and its function table exist, also through a release and wrap of the device
+ * @details valid while the `VkDevice` and its function table exist, also through a release and wrap of the device
  * @attention not thread safe per vulkan queue
  */
 class Queue {
@@ -29,39 +29,39 @@ public:
     Queue(QueueFamilyProperties familyProperties, State const&);
 
     /**
-     * submits the infos in one vkQueueSubmit2()
-     * @param fencePtr nullptr -> no fence
-     * @details resolves the std::nullopt timeline values in order: the waits, then the signals of each info
-     * @pre @ref created()
+     * submits the infos in one `vkQueueSubmit2()`
+     * @param fencePtr `nullptr` -> no fence
+     * @details resolves the `std::nullopt` timeline values in order: the waits, then the signals of each info
+     * @pre `created()`
      * @pre the command buffers ended their recording
      * @pre the semaphores and the fence are created, the fence is unsignaled
-     * @throws cvk::vk_result_exception result of vkQueueSubmit2()
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      */
     void submit(std::span<SubmitInfo const> infos, Fence const* fencePtr = nullptr) const;
 
     /**
-     * submits the info, see @ref submit(std::span<SubmitInfo const>, Fence const*) const
+     * submits the info, see `submit(std::span<SubmitInfo const>, Fence const*) const`
      */
     void submit(SubmitInfo const& info, Fence const* fencePtr = nullptr) const { submit({&info, 1}, fencePtr); }
 
     /**
-     * submits to the vulkan queue, for what @ref SubmitInfo does not cover
-     * @param vkFence VK_NULL_HANDLE -> no fence
-     * @throws cvk::vk_result_exception result of vkQueueSubmit2()
+     * submits to the vulkan queue, for what `SubmitInfo` does not cover
+     * @param vkFence `VK_NULL_HANDLE` -> no fence
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      */
     void rawSubmit(VkSubmitInfo2 const& submitInfo, VkFence vkFence = VK_NULL_HANDLE) const;
 
     /**
-     * presents through vkQueuePresentKHR()
-     * @return VK_SUCCESS, VK_SUBOPTIMAL_KHR or VK_ERROR_OUT_OF_DATE_KHR
-     * @pre @ref canPresent()
-     * @throws cvk::vk_result_exception other result of vkQueuePresentKHR()
+     * presents through `vkQueuePresentKHR()`
+     * @return `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` or `VK_ERROR_OUT_OF_DATE_KHR`
+     * @pre `canPresent()`
+     * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
      */
     [[nodiscard]] VkResult rawPresent(VkPresentInfoKHR const& presentInfo) const;
 
     /**
      * blocks until the queue finished all its work
-     * @throws cvk::vk_result_exception result of vkQueueWaitIdle()
+     * @throws cvk::vk_result_exception result of `vkQueueWaitIdle()`
      */
     void waitIdle() const;
 

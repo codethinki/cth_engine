@@ -13,7 +13,7 @@
 
 namespace cvk {
 /**
- * T is a Vulkan or VMA handle that cvk uses
+ * `T` is a Vulkan or VMA handle that cvk uses
  */
 template<class T>
 concept vk_handle = cth::mta::is_any_of<

@@ -12,11 +12,11 @@
 
 namespace cvk {
 /**
- * config of a @ref BaseBuffer
+ * config of a `BaseBuffer`
  */
 struct BufferConfig {
     /**
-     * @pre != 0
+     * @pre `!= 0`
      */
     VkBufferUsageFlags usage = 0;
 
@@ -24,19 +24,19 @@ struct BufferConfig {
 
     /**
      * queue families that use the buffer at the same time
-     * @details size < 2 -> VK_SHARING_MODE_EXCLUSIVE, else VK_SHARING_MODE_CONCURRENT
+     * @details `size < 2` -> `VK_SHARING_MODE_EXCLUSIVE`, else `VK_SHARING_MODE_CONCURRENT`
      * @pre unique
      */
     std::vector<queue_family_index_t> queueFamilies{};
 
     /**
-     * memory of the buffer, VMA_MEMORY_USAGE_AUTO picks the memory type from @ref usage
+     * memory of the buffer, `VMA_MEMORY_USAGE_AUTO` picks the memory type from `usage`
      */
     MemoryConfig memory{};
 
     /**
      * @param size in bytes
-     * @attention pQueueFamilyIndices points into @ref queueFamilies
+     * @attention `pQueueFamilyIndices` points into `queueFamilies`
      */
     [[nodiscard]] constexpr VkBufferCreateInfo createInfo(size_t size) const {
         return VkBufferCreateInfo{

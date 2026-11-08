@@ -18,8 +18,8 @@ class Sampler;
  * descriptor write
  * @details one descriptor of one binding, the constructor decides the kind
  * @details the binding type decides the descriptor type and the default image layout
- * @details default layout: storage image -> VK_IMAGE_LAYOUT_GENERAL,
- *  input attachment -> VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, else VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+ * @details default layout: storage image -> `VK_IMAGE_LAYOUT_GENERAL`,
+ *  input attachment -> `VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR`, else `VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL`
  */
 class DescriptorWrite {
 public:
@@ -34,7 +34,7 @@ public:
     /**
      * image descriptor without sampler: sampled image, storage image, input attachment
      * @param element array element of the binding
-     * @param layout of the view at the gpu access (VK_IMAGE_LAYOUT_MAX_ENUM => the default of the binding type)
+     * @param layout of the view at the gpu access (`VK_IMAGE_LAYOUT_MAX_ENUM` => the default of the binding type)
      */
     constexpr DescriptorWrite(
         uint32_t binding,
@@ -46,7 +46,7 @@ public:
     /**
      * combined image sampler descriptor
      * @param element array element of the binding
-     * @param layout of the view at the gpu access (VK_IMAGE_LAYOUT_MAX_ENUM => the default of the binding type)
+     * @param layout of the view at the gpu access (`VK_IMAGE_LAYOUT_MAX_ENUM` => the default of the binding type)
      */
     constexpr DescriptorWrite(
         uint32_t binding,
@@ -70,7 +70,7 @@ private:
     };
 
     /**
-     * view nullptr -> sampler descriptor, sampler nullptr -> no sampler
+     * view `nullptr` -> sampler descriptor, sampler `nullptr` -> no sampler
      */
     struct ImageResource {
         ImageView const* view;

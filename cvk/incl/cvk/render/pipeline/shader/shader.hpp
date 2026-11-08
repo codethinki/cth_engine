@@ -20,7 +20,7 @@ namespace cvk {
 class Core;
 
 /**
- * VkShaderModule wrapper
+ * `VkShaderModule` wrapper
  */
 class Shader {
 public:
@@ -32,31 +32,31 @@ public:
     /**
      * base constructor
      * @param stage of the shader
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     Shader(Core const&, VkShaderStageFlagBits stage);
 
     /**
      * constructs and wraps
-     * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), @ref wrap()
+     * @details calls `Shader(Core const&, VkShaderStageFlagBits)`, `wrap()`
      */
     Shader(Core const&, VkShaderStageFlagBits stage, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), @ref create(std::span<uint32_t const>)
+     * @details calls `Shader(Core const&, VkShaderStageFlagBits)`, `create(std::span<uint32_t const>)`
      */
     Shader(Core const&, VkShaderStageFlagBits stage, std::span<uint32_t const> spv);
 
     /**
      * constructs, loads and creates
-     * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), @ref create(path_t const&)
+     * @details calls `Shader(Core const&, VkShaderStageFlagBits)`, `create(path_t const&)`
      */
     Shader(Core const&, VkShaderStageFlagBits stage, path_t const& spvPath);
 
     /**
      * constructs, compiles the glsl file, loads and creates
-     * @details calls @ref compile(), @ref Shader(Core const&, VkShaderStageFlagBits, path_t const&)
+     * @details calls `compile()`, `Shader(Core const&, VkShaderStageFlagBits, path_t const&)`
      * @note warns in release builds: compile the shaders at build time
      */
     Shader(
@@ -68,55 +68,55 @@ public:
     );
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Shader() { optDestroy(); }
 
     /**
      * wraps the state
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the module
      * @param spv SPIR-V code
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateShaderModule()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateShaderModule()`
      */
     void create(std::span<uint32_t const> spv);
 
     /**
      * loads the SPIR-V file and creates the module
-     * @details calls @ref load(), @ref create(std::span<uint32_t const>)
+     * @details calls `load()`, `create(std::span<uint32_t const>)`
      */
     void create(path_t const& spvPath);
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     /**
      * @return stage info for a pipeline
-     * @param specializationPtr nullptr -> no specialization constants
+     * @param specializationPtr `nullptr` -> no specialization constants
      * @param entryPoint name of the entry function
-     * @pre @ref created()
-     * @attention @ref specializationPtr and @ref entryPoint must outlive the pipeline creation
+     * @pre `created()`
+     * @attention `specializationPtr` and `entryPoint` must outlive the pipeline creation
      */
     [[nodiscard]] VkPipelineShaderStageCreateInfo stageInfo(
         VkSpecializationInfo const* specializationPtr = nullptr,

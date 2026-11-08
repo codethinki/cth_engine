@@ -13,13 +13,13 @@
 namespace cvk {
 namespace dev {
     /**
-     * @ref cvk::destroy(DeviceTable, Handle) exists
+     * `cvk::destroy(DeviceTable, Handle)` exists
      */
     template<class Handle>
     concept device_destroyable = requires(DeviceTable table, Handle handle) { cvk::destroy(table, handle); };
 
     /**
-     * @ref cvk::destroy(VmaAllocator, Handle) exists
+     * `cvk::destroy(VmaAllocator, Handle)` exists
      */
     template<class Handle>
     concept vma_destroyable = requires(VmaAllocator vmaAllocator, Handle handle) {
@@ -30,7 +30,7 @@ namespace dev {
 /**
  * deleter of the objects of a core
  * @details context: the core
- * @details calls @ref cvk::destroy() with the device table or the allocator of the core, the one that fits the handle
+ * @details calls `cvk::destroy()` with the device table or the allocator of the core, the one that fits the handle
  * @pre the core outlives the deleter
  */
 class core_deleter {
@@ -50,8 +50,8 @@ private:
 };
 
 /**
- * @ref unique_handle of an object of a core
- * @tparam Handle with an overload @ref cvk::destroy(DeviceTable, Handle) or @ref cvk::destroy(VmaAllocator, Handle)
+ * `unique_handle` of an object of a core
+ * @tparam Handle with an overload `cvk::destroy(DeviceTable, Handle)` or `cvk::destroy(VmaAllocator, Handle)`
  */
 template<class Handle>
 using core_handle = unique_handle<Handle, core_deleter>;

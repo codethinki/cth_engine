@@ -59,7 +59,7 @@ namespace {
     }
 
     /**
-     * the config of the test context with @ref cvk::constants::OS_FENCE_DEVICE_EXTENSIONS
+     * the config of the test context with `cvk::constants::OS_FENCE_DEVICE_EXTENSIONS`
      */
     Core::Config os_fence_config() {
         auto config = test::Context::CONFIG;
@@ -69,7 +69,7 @@ namespace {
     }
 
     /**
-     * @return the device has @ref cvk::constants::OS_FENCE_FEATURES
+     * @return the device has `cvk::constants::OS_FENCE_FEATURES`
      */
     bool os_fence_exportable(cvk::Core const& core) {
         auto const features = core.physicalDevice().externalFenceFeatures(cvk::constants::OS_FENCE_HANDLE_TYPE);

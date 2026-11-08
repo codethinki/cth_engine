@@ -26,7 +26,7 @@ class BaseCmdBuffer;
 class Core;
 
 /**
- * VkImage wrapper
+ * `VkImage` wrapper
  * @details owns the image and its memory, wrapped images may have no memory
  * @details holds no layout, the commands take it as a parameter
  */
@@ -37,72 +37,72 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     Image(Core const&, Config const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref Image(Core const&, Config const&), @ref wrap()
+     * @details calls `Image(Core const&, Config const&)`, `wrap()`
      */
     Image(Core const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref Image(Core const&, Config const&), @ref create()
+     * @details calls `Image(Core const&, Config const&)`, `create()`
      */
     Image(Core const&, Config const&, VkExtent2D extent);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Image() { optDestroy(); }
 
     /**
      * wraps the state
-     * @details std::nullopt @ref State::memory -> no own memory, @ref destroy() only destroys the image
+     * @details `std::nullopt` `State::memory` -> no own memory, `destroy()` only destroys the image
      * @pre the image is bound to its memory
      * @pre the image was created with the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the image and its memory
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vmaCreateImage()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vmaCreateImage()`
      */
     void create(VkExtent2D extent);
 
     /**
      * destroys the image, then its memory, and forgets
-     * @pre @ref created()
+     * @pre `created()`
      * @pre the gpu does not use the image
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership of the image and its memory, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     /**
      * records a copy from the buffer into every layer of the mip level
      * @param srcOffset in bytes, the layers follow each other in the buffer
-     * @param layout of the mip level, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
-     * @pre @ref created() and src created
-     * @pre @ref BaseCmdBuffer::recording()
-     * @pre mipLevel < @ref mipLevels()
-     * @pre @ref aspectMask() has one bit
-     * @pre src usage has VK_BUFFER_USAGE_TRANSFER_SRC_BIT, the usage has VK_IMAGE_USAGE_TRANSFER_DST_BIT
+     * @param layout of the mip level, `VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL` or `VK_IMAGE_LAYOUT_GENERAL`
+     * @pre `created()` and `src` created
+     * @pre `BaseCmdBuffer::recording()`
+     * @pre `mipLevel < mipLevels()`
+     * @pre `aspectMask()` has one bit
+     * @pre `src` usage has `VK_BUFFER_USAGE_TRANSFER_SRC_BIT`, the usage has `VK_IMAGE_USAGE_TRANSFER_DST_BIT`
      */
     void copy(
         BaseCmdBuffer const&,
@@ -115,13 +115,13 @@ public:
     /**
      * records a copy from every layer of the mip level into the buffer
      * @param dstOffset in bytes, the layers follow each other in the buffer
-     * @param layout of the mip level, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL or VK_IMAGE_LAYOUT_GENERAL
-     * @pre @ref created() and dst created
-     * @pre @ref BaseCmdBuffer::recording()
-     * @pre mipLevel < @ref mipLevels()
-     * @pre @ref aspectMask() has one bit
-     * @pre the usage has VK_IMAGE_USAGE_TRANSFER_SRC_BIT, dst usage has VK_BUFFER_USAGE_TRANSFER_DST_BIT
-     * @pre the mip level fits into dst after dstOffset
+     * @param layout of the mip level, `VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL` or `VK_IMAGE_LAYOUT_GENERAL`
+     * @pre `created()` and `dst` created
+     * @pre `BaseCmdBuffer::recording()`
+     * @pre `mipLevel < mipLevels()`
+     * @pre `aspectMask()` has one bit
+     * @pre the usage has `VK_IMAGE_USAGE_TRANSFER_SRC_BIT`, dst usage has `VK_BUFFER_USAGE_TRANSFER_DST_BIT`
+     * @pre the mip level fits into `dst` after `dstOffset`
      */
     void copyTo(
         BaseCmdBuffer const&,
@@ -133,15 +133,15 @@ public:
 
     /**
      * records blits that fill each mip level from the level before it, every layer
-     * @param firstMipLevel first level to fill, the blits read from firstMipLevel - 1
-     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
-     * @param filter depth formats need VK_FILTER_NEAREST
-     * @pre @ref created(), @ref BaseCmdBuffer::recording()
-     * @pre 0 < firstMipLevel, the levels lie in the image
-     * @pre the usage has VK_IMAGE_USAGE_TRANSFER_SRC_BIT and VK_IMAGE_USAGE_TRANSFER_DST_BIT
+     * @param firstMipLevel first level to fill, the blits read from `firstMipLevel - 1`
+     * @param mipLevels (`VK_REMAINING_MIP_LEVELS` => to the last mip level)
+     * @param filter depth formats need `VK_FILTER_NEAREST`
+     * @pre `created()`, `BaseCmdBuffer::recording()`
+     * @pre `0 < firstMipLevel`, the levels lie in the image
+     * @pre the usage has `VK_IMAGE_USAGE_TRANSFER_SRC_BIT` and `VK_IMAGE_USAGE_TRANSFER_DST_BIT`
      * @pre the format supports blits and the filter
-     * @pre the levels from firstMipLevel - 1 to the last filled level are in VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-     * @post the same levels are in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+     * @pre the levels from `firstMipLevel - 1` to the last filled level are in `VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL`
+     * @post the same levels are in `VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL`
      */
     void blitMipLevels(
         BaseCmdBuffer const&,
@@ -158,7 +158,7 @@ public:
     [[nodiscard]] constexpr VkExtent2D extent() const { return _extent; }
     [[nodiscard]] constexpr VkFormat format() const { return _config.format; }
     /**
-     * @return @ref Config::aspectMask, 0 -> the aspects of the format
+     * @return `Config::aspectMask`, `0` -> the aspects of the format
      */
     [[nodiscard]] constexpr VkImageAspectFlags aspectMask() const {
         return _config.aspectMask != 0 ? _config.aspectMask : format_aspects(_config.format);
@@ -167,7 +167,7 @@ public:
     [[nodiscard]] constexpr uint32_t arrayLayers() const { return _config.arrayLayers; }
 
     /**
-     * @return nullptr -> the image does not own its memory
+     * @return `nullptr` -> the image does not own its memory
      */
     [[nodiscard]] constexpr Memory const* memory() const {
         return _memoryOpt.has_value() && _memoryOpt->created() ? &*_memoryOpt : nullptr;
@@ -203,14 +203,14 @@ public:
 
 /**
  * @return mip levels down to 1x1
- * @pre width > 0, height > 0
+ * @pre `width > 0`, `height > 0`
  */
 [[nodiscard]] constexpr uint32_t mip_level_count(VkExtent2D extent) {
     return static_cast<uint32_t>(std::bit_width(std::max(extent.width, extent.height)));
 }
 
 /**
- * @return extent of the mip level, at least 1x1, also beyond @ref mip_level_count()
+ * @return extent of the mip level, at least 1x1, also beyond `mip_level_count()`
  */
 [[nodiscard]] constexpr VkExtent2D mip_extent(VkExtent2D extent, uint32_t mipLevel) {
     // a shift by the bit count or more is undefined
@@ -226,13 +226,13 @@ struct Image::State {
     vk_not_null<VkImage> vkImage;
     VkExtent2D extent;
     /**
-     * std::nullopt -> the image does not own its memory
+     * `std::nullopt` -> the image does not own its memory
      */
     std::optional<Memory::State> memory = std::nullopt;
 
     /**
      * the raw handles to destroy, in destruction order
-     * @return the image, then its own memory, std::nullopt -> no own memory
+     * @return the image, then its own memory, `std::nullopt` -> no own memory
      */
     [[nodiscard]] constexpr std::tuple<VkImage, std::optional<VmaAllocation>> decompose() && {
         return {vkImage.get(), memory.transform([](Memory::State const& state) { return state.vmaAllocation.get(); })};

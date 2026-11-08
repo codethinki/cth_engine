@@ -11,7 +11,7 @@
 
 namespace cvk {
 /**
- * config of an @ref Instance
+ * config of an `Instance`
  */
 struct InstanceConfig {
     std::string appName;
@@ -20,14 +20,14 @@ struct InstanceConfig {
     uint32_t engineVersion = 0;
 
     /**
-     * instance extensions, a messenger adds @ref Instance::MESSENGER_EXTENSIONS
+     * instance extensions, a messenger adds `Instance::MESSENGER_EXTENSIONS`
      */
     std::vector<std::string> extensions{};
 
     /**
      * value -> messenger with this config
      * @details debug builds: always a messenger
-     * @details debug builds, std::nullopt -> the default config
+     * @details debug builds, `std::nullopt` -> the default config
      */
     std::optional<DebugMessenger::Config> debugMessenger = std::nullopt;
 

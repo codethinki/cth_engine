@@ -12,13 +12,13 @@ class Memory;
 /**
  * mapped memory range
  * @details the destructor unmaps
- * @tparam T element, std::byte for the bytes of a memory
+ * @tparam T element, `std::byte` for the bytes of a memory
  */
 template<class T>
 class Mapping {
 public:
     /**
-     * takes over one map of the memory, @ref Memory::map() constructs it
+     * takes over one map of the memory, `Memory::map()` constructs it
      * @pre the range lies in the mapped memory
      */
     constexpr Mapping(Memory const& memory, std::span<T> range) : _memoryPtr{&memory}, _range{range} {}
@@ -31,7 +31,7 @@ public:
     /**
      * the range as elements of U, takes over the map
      * @details starts the lifetime of the elements, keeps their values
-     * @pre the size is a multiple of sizeof(U), the data is aligned for U
+     * @pre the size is a multiple of `sizeof(U)`, the data is aligned for `U`
      */
     template<class U> requires std::same_as<T, std::byte>
     [[nodiscard]] Mapping<U> as() &&;

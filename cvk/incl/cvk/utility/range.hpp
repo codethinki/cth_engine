@@ -13,7 +13,7 @@ struct Range {
     size_t offset = 0;
 
     /**
-     * (VK_WHOLE_SIZE => to the end)
+     * (`VK_WHOLE_SIZE` => to the end)
      */
     size_t size = VK_WHOLE_SIZE;
 };

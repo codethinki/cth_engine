@@ -22,7 +22,7 @@ namespace cgfw::test {
 constexpr std::string_view APP_NAME = "cgfw_tests";
 
 /**
- * @return a display exists, linux: WAYLAND_DISPLAY is set
+ * @return a display exists, linux: `WAYLAND_DISPLAY` is set
  */
 [[nodiscard]] bool display_available();
 
@@ -34,8 +34,8 @@ constexpr std::string_view APP_NAME = "cgfw_tests";
 }
 
 /**
- * instance config with @ref APP_NAME
- * @param debugMessengerOpt see @ref cvk::InstanceConfig::debugMessenger
+ * instance config with `APP_NAME`
+ * @param debugMessengerOpt see `cvk::InstanceConfig::debugMessenger`
  */
 [[nodiscard]] inline cvk::InstanceConfig instance_config(
     std::vector<std::string> extensions = {},

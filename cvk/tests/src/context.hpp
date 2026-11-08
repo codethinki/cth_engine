@@ -56,7 +56,7 @@ inline constexpr VkDescriptorBindingFlags BINDLESS = VK_DESCRIPTOR_BINDING_PARTI
     | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
 
 /**
- * vertex of @ref FULLSCREEN, the vec3 position at location 0 of the test vertex shaders
+ * vertex of `cvk::test::FULLSCREEN`, the `vec3` position at location 0 of the test vertex shaders
  */
 struct Vec3 {
     float x, y, z;
@@ -73,12 +73,12 @@ inline constexpr std::array<Vec3, 3> FULLSCREEN{Vec3{-1.f, -1.f, 0.f}, Vec3{3.f,
 inline constexpr std::array<float, 4> GREEN{0.f, 1.f, 0.f, 1.f};
 
 /**
- * @ref GREEN as a VK_FORMAT_R8G8B8A8_UNORM pixel
+ * `GREEN` as a `VK_FORMAT_R8G8B8A8_UNORM` pixel
  */
 inline constexpr std::array<unsigned char, 4> GREEN_PIXEL{0, 255, 0, 255};
 
 /**
- * pipeline config that draws @ref FULLSCREEN from vertex binding 0 without culling
+ * pipeline config that draws `FULLSCREEN` from vertex binding 0 without culling
  * @pre the shaders are created
  */
 [[nodiscard]] GraphicsPipeline::Config fullscreen_config(
@@ -88,7 +88,7 @@ inline constexpr std::array<unsigned char, 4> GREEN_PIXEL{0, 255, 0, 255};
 );
 
 /**
- * @return every VK_FORMAT_R8G8B8A8_UNORM pixel of the buffer is the pixel
+ * @return every `VK_FORMAT_R8G8B8A8_UNORM` pixel of the buffer is the pixel
  * @pre the buffer is host visible, the gpu writes are visible to the host
  */
 [[nodiscard]] bool every_pixel_is(BaseBuffer const& readback, std::array<unsigned char, 4> pixel);
@@ -96,11 +96,11 @@ inline constexpr std::array<unsigned char, 4> GREEN_PIXEL{0, 255, 0, 255};
 /**
  * instance and core for tests, fails the test on validation errors
  * @details the default is the shared instance and core of the process, made at the first use,
- *  @ref destroy_shared_contexts() destroys them, the leaks of all tests show up there
+ *  `destroy_shared_contexts()` destroys them, the leaks of all tests show up there
  */
 struct Context {
     /**
-     * the queues of @ref QUEUES
+     * the queues of `QUEUES`
      */
     static Core::Config const CONFIG;
 
@@ -116,7 +116,7 @@ struct Context {
 
     /**
      * the shared instance and an own core with the config
-     * @details destroys the core at the end -> the check sees the errors of vkDestroyDevice() too, e.g. leaks
+     * @details destroys the core at the end -> the check sees the errors of `vkDestroyDevice()` too, e.g. leaks
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
      */
     explicit Context(Core::Config const&);
@@ -138,7 +138,7 @@ public:
 
 /**
  * instance, headless surface and core with a present queue, fails the test on validation errors
- * @details the shared ones of the process, made at the first use, see @ref Context
+ * @details the shared ones of the process, made at the first use, see `Context`
  */
 struct PresentContext {
     /**
@@ -167,8 +167,8 @@ public:
 };
 
 /**
- * own instance with @ref counting_messenger(), fails the test on validation errors
- * @details for the tests that need an own instance, e.g. the leak reports of vkDestroyInstance():
+ * own instance with `counting_messenger()`, fails the test on validation errors
+ * @details for the tests that need an own instance, e.g. the leak reports of `vkDestroyInstance()`:
  *  the check runs after the instance is destroyed
  */
 struct InstanceContext {
@@ -223,7 +223,7 @@ void copy_to_buffer(
 
 /**
  * records into a primary command buffer of a new pool, submits it and waits for the gpu
- * @param record called with the recording PrimaryCmdBuffer&
+ * @param record called with the recording `PrimaryCmdBuffer&`
  */
 template<class Record>
 void record_and_submit(Context const& context, Record&& record) {

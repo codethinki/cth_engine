@@ -49,7 +49,7 @@ namespace {
 
     /**
      * acquires an image, clears it and presents it
-     * @return result of @ref Swapchain::present()
+     * @return result of `Swapchain::present()`
      */
     VkResult present_cleared_image(test::PresentContext const& context, Swapchain& swapchain) {
         Semaphore const acquired{context.core, create};

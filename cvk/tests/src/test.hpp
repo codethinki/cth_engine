@@ -15,8 +15,8 @@ namespace cvk::test {
 constexpr std::string_view APP_NAME = "cvk_tests";
 
 /**
- * instance config with @ref APP_NAME
- * @param debugMessengerOpt see @ref InstanceConfig::debugMessenger
+ * instance config with `APP_NAME`
+ * @param debugMessengerOpt see `InstanceConfig::debugMessenger`
  */
 [[nodiscard]] inline InstanceConfig instance_config(
     std::vector<std::string> extensions = {},

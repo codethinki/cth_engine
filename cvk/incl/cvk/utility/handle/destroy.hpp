@@ -18,7 +18,7 @@
 namespace cvk {
 // outside the core
 /**
- * @pre volk loaded the instance functions, @ref Instance::create() and @ref Instance::wrap() load them
+ * @pre volk loaded the instance functions, `Instance::create()` and `Instance::wrap()` load them
  */
 void destroy(VkInstance);
 void destroy(vk_not_null<VkInstance>, VkDebugUtilsMessengerEXT);
@@ -26,7 +26,7 @@ void destroy(vk_not_null<VkInstance>, VkSurfaceKHR);
 
 /**
  * destroys the device
- * @details gets vkDestroyDevice through vkGetDeviceProcAddr()
+ * @details gets `vkDestroyDevice` through `vkGetDeviceProcAddr()`
  */
 void destroy(VkDevice);
 void destroy(VmaAllocator);

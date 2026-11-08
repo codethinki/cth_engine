@@ -26,7 +26,7 @@ public:
     /**
      * records a copy from the source buffer
      * @details tracks the accesses of both buffers with one barrier
-     * @pre the preconditions of @ref cvk::Buffer::copy()
+     * @pre the preconditions of `cvk::Buffer::copy()`
      */
     void copy(cmd_buffer auto& cmd, cvk::Buffer<T> const& src, cvk::BufferCopy region = {}) const {
         cmd.use(
@@ -41,7 +41,7 @@ public:
     /**
      * records a copy from the mip level of the image
      * @details tracks the accesses of the image and the buffer with one barrier
-     * @pre the preconditions of @ref cvk::Image::copyTo()
+     * @pre the preconditions of `cvk::Image::copyTo()`
      */
     void copy(
         cmd_buffer auto& cmd,

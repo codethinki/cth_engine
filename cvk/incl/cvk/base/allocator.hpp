@@ -14,7 +14,7 @@ namespace cvk {
 class Device;
 
 /**
- * VmaAllocator wrapper
+ * `VmaAllocator` wrapper
  * @details allocates the memory of one device
  * @details thread safe
  */
@@ -24,65 +24,65 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Device::created()
+     * @pre `Device::created()`
      */
     explicit Allocator(Device const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref Allocator(Device const&), @ref wrap()
+     * @details calls `Allocator(Device const&)`, `wrap()`
      */
     Allocator(Device const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref Allocator(Device const&), @ref create()
+     * @details calls `Allocator(Device const&)`, `create()`
      */
     explicit Allocator(Device const&, create_t);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Allocator() { optDestroy(); }
 
     /**
      * wraps the state
      * @pre the allocator was created with the device
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the allocator
-     * @details the flags follow the enabled features and extensions of the device, see @ref flags()
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vmaImportVulkanFunctionsFromVolk()
-     * @throws cvk::vk_result_exception result of vmaCreateAllocator()
+     * @details the flags follow the enabled features and extensions of the device, see `flags()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vmaImportVulkanFunctionsFromVolk()`
+     * @throws cvk::vk_result_exception result of `vmaCreateAllocator()`
      */
     void create();
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      * @pre every memory of the allocator is destroyed
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     /**
-     * @return VMA flags for bufferDeviceAddress, maintenance4 and VK_EXT_memory_budget of the device
+     * @return VMA flags for `bufferDeviceAddress`, `maintenance4` and `VK_EXT_memory_budget` of the device
      */
     [[nodiscard]] static VmaAllocatorCreateFlags flags(Device const&);
 

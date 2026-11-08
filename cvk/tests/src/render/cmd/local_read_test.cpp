@@ -148,7 +148,7 @@ namespace {
         }
 
         /**
-         * records the draw of @ref write
+         * records the draw of `write`
          * @pre the command buffer has a viewport and a scissor
          */
         void drawWrite(BaseCmdBuffer& cmd) const {

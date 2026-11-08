@@ -10,7 +10,7 @@ using std::span;
 
 namespace {
     /**
-     * @return the VkBool32 flags of the feature struct
+     * @return the `VkBool32` flags of the feature struct
      */
     template<class T>
     [[nodiscard]] auto flags(T& features) {

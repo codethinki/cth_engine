@@ -38,33 +38,33 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Instance::created()
+     * @pre `Instance::created()`
      */
     explicit Core(Instance const&);
 
     /**
      * constructs and creates
-     * @details calls @ref Core(Instance const&), @ref create()
+     * @details calls `Core(Instance const&)`, `create()`
      */
     Core(Instance const&, std::span<Surface const> surfaces, Config const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref Core(Instance const&), @ref wrap()
+     * @details calls `Core(Instance const&)`, `wrap()`
      */
     Core(Instance const&, State);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Core();
 
     /**
      * wraps the state
-     * @details empty @ref State::queueIndices -> entry i uses queue i of the device
-     * @details nullptr @ref State::allocator -> creates the allocator
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @details empty `State::queueIndices` -> entry i uses queue i of the device
+     * @details `nullptr` `State::allocator` -> creates the allocator
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State);
 
@@ -72,38 +72,38 @@ public:
      * creates the device, the allocator and the queues on a picked physical device
      * @param surfaces the present queues present to every surface
      * @details picks the first queue set that a physical device supports
-     * @details picks the best physical device for it, see @ref pick_physical_device() and @ref Config::device
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @details picks the best physical device for it, see `pick_physical_device()` and `Config::device`
+     * @post `created()`
+     * @note calls `optDestroy()`
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
-     * @throws cvk::cvk_exception reason: @ref Config::device is missing or does not meet the requirements
-     * @throws cvk::vk_result_exception result of vkCreateDevice()
-     * @throws cvk::vk_result_exception result of vmaCreateAllocator()
+     * @throws cvk::cvk_exception reason: `Config::device` is missing or does not meet the requirements
+     * @throws cvk::vk_result_exception result of `vkCreateDevice()`
+     * @throws cvk::vk_result_exception result of `vmaCreateAllocator()`
      */
     void create(std::span<Surface const> surfaces, Config const&);
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
     [[nodiscard]] constexpr bool created() const { return _devicePtr != nullptr; }
 
     /**
-     * @return index of the used queue set in @ref Config::queueSets
-     * @pre @ref created()
+     * @return index of the used queue set in `Config::queueSets`
+     * @pre `created()`
      * @pre the config had queue sets
      */
     [[nodiscard]] size_t queueSetIndex() const;
@@ -112,13 +112,13 @@ public:
     [[nodiscard]] VkInstance vkInstance() const;
 
     /**
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] PhysicalDevice const& physicalDevice() const;
     [[nodiscard]] VkPhysicalDevice vkPhysicalDevice() const;
 
     /**
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] Device const& device() const;
     [[nodiscard]] DeviceTable deviceTable() const;
@@ -126,21 +126,21 @@ public:
     [[nodiscard]] VkDevice vkDevice() const;
 
     /**
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] Allocator const& allocator() const;
 
     /**
-     * @param queueIdx index of the queue in @ref Config::queueProperties
-     * @return the queue of the device, indices with the same @ref queueIndex() return the same queue
-     * @pre @ref created()
+     * @param queueIdx index of the queue in `Config::queueProperties`
+     * @return the queue of the device, indices with the same `queueIndex()` return the same queue
+     * @pre `created()`
      */
     [[nodiscard]] Queue const& queue(size_t queueIdx) const;
 
     /**
-     * @param queueIdx index of the queue in @ref Config::queueProperties
-     * @return index of the queue in @ref Device::queues(), indices with the same result share the VkQueue
-     * @pre @ref created()
+     * @param queueIdx index of the queue in `Config::queueProperties`
+     * @return index of the queue in `Device::queues()`, indices with the same result share the `VkQueue`
+     * @pre `created()`
      */
     [[nodiscard]] constexpr size_t queueIndex(size_t queueIdx) const {
         debug_check(*this);
@@ -148,7 +148,7 @@ public:
     }
 
     /**
-     * @return @ref queueIndex() per entry of @ref Config::queueProperties
+     * @return `queueIndex()` per entry of `Config::queueProperties`
      */
     [[nodiscard]] constexpr std::span<size_t const> queueIndices() const { return _queueIndices; }
 
@@ -170,7 +170,7 @@ private:
         std::vector<size_t> queuesToUniqueQueues;
 
         /**
-         * std::nullopt -> the config had no queue sets
+         * `std::nullopt` -> the config had no queue sets
          */
         std::optional<size_t> queueSetIndex = std::nullopt;
     };
@@ -189,7 +189,7 @@ private:
     /**
      * picks a physical device for the first possible queue set
      * @throws cvk::cvk_exception reason: no physical device meets the requirements
-     * @throws cvk::cvk_exception reason: @ref Config::device is missing or does not meet the requirements
+     * @throws cvk::cvk_exception reason: `Config::device` is missing or does not meet the requirements
      */
     [[nodiscard]] device_pick pickPhysicalDevice(
         std::span<Surface const> surfaces,
@@ -203,7 +203,7 @@ private:
     );
 
     /**
-     * @return std::nullopt -> no physical device supports the queue set
+     * @return `std::nullopt` -> no physical device supports the queue set
      */
     [[nodiscard]] std::optional<device_pick> tryPickPhysicalDevice(
         std::span<Surface const> surfaces,
@@ -234,24 +234,24 @@ public:
 namespace cvk {
 struct Core::State {
     /**
-     * @pre @ref PhysicalDevice::created()
+     * @pre `PhysicalDevice::created()`
      */
     unique_not_null<PhysicalDevice> physicalDevice;
     /**
-     * @pre @ref Device::created()
-     * @pre created with @ref physicalDevice
+     * @pre `Device::created()`
+     * @pre created with `physicalDevice`
      */
     unique_not_null<Device> device;
     /**
-     * @details nullptr -> @ref wrap() creates it
-     * @pre @ref Allocator::created()
-     * @pre created with @ref device
+     * @details `nullptr` -> `wrap()` creates it
+     * @pre `Allocator::created()`
+     * @pre created with `device`
      */
     std::unique_ptr<Allocator> allocator;
     /**
-     * index in @ref Device::queues() per entry of @ref Config::queueProperties
-     * @details empty -> entry i uses queue i of @ref device
-     * @pre every index < queue count of @ref device
+     * index in `Device::queues()` per entry of `Config::queueProperties`
+     * @details empty -> entry i uses queue i of `device`
+     * @pre every index < queue count of `device`
      */
     std::vector<size_t> queueIndices{};
     std::optional<size_t> queueSetIndex = std::nullopt;

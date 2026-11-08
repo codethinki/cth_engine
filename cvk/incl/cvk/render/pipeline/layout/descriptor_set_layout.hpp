@@ -22,8 +22,8 @@ namespace cvk {
 class Core;
 
 /**
- * VkDescriptorSetLayout wrapper
- * @details update after bind binding -> adds VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT
+ * `VkDescriptorSetLayout` wrapper
+ * @details update after bind binding -> adds `VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT`
  */
 class DescriptorSetLayout {
 public:
@@ -32,58 +32,58 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     DescriptorSetLayout(Core const&, Config);
 
     /**
      * constructs and wraps
-     * @details calls @ref DescriptorSetLayout(Core const&, Config), @ref wrap()
+     * @details calls `DescriptorSetLayout(Core const&, Config)`, `wrap()`
      */
     DescriptorSetLayout(Core const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref DescriptorSetLayout(Core const&, Config), @ref create()
+     * @details calls `DescriptorSetLayout(Core const&, Config)`, `create()`
      */
     explicit DescriptorSetLayout(Core const&, Config, create_t);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~DescriptorSetLayout() { optDestroy(); }
 
     /**
      * wraps the state
      * @pre the layout was created with the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the layout
-     * @pre @ref Config::debug_check() of the config
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateDescriptorSetLayout()
+     * @pre `Config::debug_check()` of the config
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateDescriptorSetLayout()`
      */
     void create();
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
@@ -97,22 +97,22 @@ public:
     [[nodiscard]] constexpr std::span<VkDescriptorSetLayoutBinding const> bindings() const { return _bindings; }
 
     /**
-     * @return nullptr -> no binding with that number
+     * @return `nullptr` -> no binding with that number
      */
     [[nodiscard]] constexpr VkDescriptorSetLayoutBinding const* binding(uint32_t binding) const;
 
     /**
-     * @return flags of the binding, no binding with that number -> 0
+     * @return flags of the binding, no binding with that number -> `0`
      */
     [[nodiscard]] constexpr VkDescriptorBindingFlags bindingFlags(uint32_t binding) const;
 
     /**
-     * @return a binding has VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+     * @return a binding has `VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT`
      */
     [[nodiscard]] constexpr bool updateAfterBind() const;
 
     /**
-     * @return binding with VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT, nullptr -> none
+     * @return binding with `VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT`, `nullptr` -> none
      */
     [[nodiscard]] constexpr VkDescriptorSetLayoutBinding const* variableBinding() const;
 
@@ -138,9 +138,9 @@ struct DescriptorSetLayout::Config {
     /**
      * adds a binding, the numbers may have gaps
      * @param binding number of the binding
-     * @param count of descriptors, 0 -> the binding is reserved without descriptors,
-     *  VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT -> the maximum count
-     * @param flags VkDescriptorBindingFlags of the binding
+     * @param count of descriptors, `0` -> the binding is reserved without descriptors,
+     *  `VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT` -> the maximum count
+     * @param flags `VkDescriptorBindingFlags` of the binding
      * @pre no binding with the same number
      */
     constexpr Config& add(
@@ -163,7 +163,7 @@ struct DescriptorSetLayout::Config {
     std::vector<VkDescriptorSetLayoutBinding> bindings{};
 
     /**
-     * flags per binding in the order of @ref bindings, empty -> no flags
+     * flags per binding in the order of `bindings`, empty -> no flags
      */
     std::vector<VkDescriptorBindingFlags> bindingFlags{};
 

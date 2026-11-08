@@ -16,13 +16,13 @@
 
 namespace cvk {
 /**
- * T is an index type of Vulkan 1.3
+ * `T` is an index type of Vulkan 1.3
  */
 template<class T>
 concept index_element = std::same_as<T, uint16_t> || std::same_as<T, uint32_t>;
 
 /**
- * VkIndexType of T
+ * `VkIndexType` of `T`
  */
 template<index_element T>
 constexpr VkIndexType index_type = std::same_as<T, uint16_t> ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
@@ -30,7 +30,7 @@ constexpr VkIndexType index_type = std::same_as<T, uint16_t> ? VK_INDEX_TYPE_UIN
 /**
  * typed buffer
  * @details sizes and offsets in elements
- * @details a @ref BaseBuffer reference sees the same buffer in bytes
+ * @details a `BaseBuffer` reference sees the same buffer in bytes
  * @tparam T element
  */
 template<cth::mta::trivially_copyable T>
@@ -38,25 +38,25 @@ class Buffer : public BaseBuffer {
 public:
     /**
      * base constructor
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     Buffer(Core const& core, Config const& config) : BaseBuffer{core, config} {}
 
     /**
      * constructs and wraps
-     * @details calls @ref Buffer(Core const&, Config const&), @ref wrap()
+     * @details calls `Buffer(Core const&, Config const&)`, `wrap()`
      */
     Buffer(Core const& core, Config const& config, State const& state) : Buffer{core, config} { wrap(state); }
 
     /**
      * constructs and creates
-     * @details calls @ref Buffer(Core const&, Config const&), @ref create()
+     * @details calls `Buffer(Core const&, Config const&)`, `create()`
      */
     Buffer(Core const& core, Config const& config, size_t count) : Buffer{core, config} { create(count); }
 
     /**
      * wraps the state
-     * @pre @ref State::size is a multiple of sizeof(T)
+     * @pre `BaseBuffer::State::size` is a multiple of `sizeof(T)`
      */
     void wrap(State const& state) {
         CTH_CRITICAL(state.size % sizeof(T) != 0, "size must be a multiple of the element size") {}
@@ -130,7 +130,7 @@ public:
 
 private:
     /**
-     * @param count (VK_WHOLE_SIZE => VK_WHOLE_SIZE)
+     * @param count (`VK_WHOLE_SIZE` => `VK_WHOLE_SIZE`)
      */
     [[nodiscard]] static constexpr size_t bytes(size_t count) {
         return count == VK_WHOLE_SIZE ? VK_WHOLE_SIZE : count * sizeof(T);

@@ -16,7 +16,7 @@ namespace cvk {
 class Core;
 
 /**
- * binary VkSemaphore wrapper
+ * binary `VkSemaphore` wrapper
  */
 class Semaphore {
 public:
@@ -24,57 +24,57 @@ public:
 
     /**
      * base constructor
-     * @pre @ref Core::created()
+     * @pre `Core::created()`
      */
     explicit Semaphore(Core const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref Semaphore(Core const&), @ref wrap()
+     * @details calls `Semaphore(Core const&)`, `wrap()`
      */
     Semaphore(Core const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref Semaphore(Core const&), @ref create()
+     * @details calls `Semaphore(Core const&)`, `create()`
      */
     explicit Semaphore(Core const&, create_t);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Semaphore() { optDestroy(); }
 
     /**
      * wraps the state
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @post `created()`
+     * @note calls `optDestroy()`
      */
     void wrap(State const&);
 
     /**
      * creates the semaphore
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateSemaphore()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`
      */
     void create();
 
     /**
      * destroys and forgets
-     * @pre @ref created()
+     * @pre `created()`
      * @pre the gpu does not use the semaphore
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * releases ownership, returns the state and forgets
-     * @pre @ref created()
+     * @pre `created()`
      */
     State release();
 
@@ -85,9 +85,9 @@ public:
 protected:
     /**
      * creates the semaphore with info
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateSemaphore()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`
      */
     void create(VkSemaphoreCreateInfo const& info);
 

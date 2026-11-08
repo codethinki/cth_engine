@@ -37,17 +37,17 @@ inline constexpr cvk::BaseBuffer::Config READBACK_CONFIG{
 /**
  * messenger config that logs every message and counts the errors
  * @details a small copy of the cvk tests, the instance create info gets it too:
- *  counts the errors of vkDestroyInstance(), e.g. leaked objects
+ *  counts the errors of `vkDestroyInstance()`, e.g. leaked objects
  */
 [[nodiscard]] cvk::DebugMessenger::Config counting_messenger();
 
 /**
  * shared instance and core for tests, fails the test on validation errors
- * @details made at the first use, @ref destroy_shared_contexts() destroys them, the leaks of all tests show up there
+ * @details made at the first use, `destroy_shared_contexts()` destroys them, the leaks of all tests show up there
  */
 struct Context {
     /**
-     * the queues of @ref QUEUES, two workers and two queue workers: jobs of one strand can run on different threads
+     * the queues of `QUEUES`, two workers and two queue workers: jobs of one strand can run on different threads
      */
     static Core::Config const CONFIG;
 

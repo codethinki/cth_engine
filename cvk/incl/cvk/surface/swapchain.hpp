@@ -29,10 +29,10 @@ class Core;
 class Surface;
 
 /**
- * VkSwapchainKHR wrapper
+ * `VkSwapchainKHR` wrapper
  * @details owns its images, their views, a present semaphore and a present fence per image
- * @details the present fences export @ref constants::OS_FENCE_HANDLE_TYPE
- * @details retired swapchains: destroyed once their present fences signal, see @ref resize() and @ref recreate()
+ * @details the present fences export `constants::OS_FENCE_HANDLE_TYPE`
+ * @details retired swapchains: destroyed once their present fences signal, see `resize()` and `recreate()`
  * @attention not thread safe
  */
 class Swapchain {
@@ -41,42 +41,42 @@ public:
     struct State;
 
     /**
-     * result of @ref acquire()
+     * result of `acquire()`
      */
     struct Acquired {
         /**
-         * VK_SUCCESS, VK_SUBOPTIMAL_KHR, VK_ERROR_OUT_OF_DATE_KHR, VK_TIMEOUT or VK_NOT_READY
+         * `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR`, `VK_ERROR_OUT_OF_DATE_KHR`, `VK_TIMEOUT` or `VK_NOT_READY`
          */
         VkResult result;
 
         /**
-         * std::nullopt -> no image acquired, the semaphore stays unsignaled
+         * `std::nullopt` -> no image acquired, the semaphore stays unsignaled
          */
         std::optional<uint32_t> imageIndex;
     };
 
     /**
      * base constructor
-     * @pre @ref Core::created(), @ref Surface::created()
+     * @pre `Core::created()`, `Surface::created()`
      * @pre the queue can present to the surface
-     * @pre the device enables @ref constants::PRESENT_DEVICE_EXTENSIONS, a present queue of the core does
+     * @pre the device enables `constants::PRESENT_DEVICE_EXTENSIONS`, a present queue of the core does
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config);
 
     /**
      * constructs and wraps
-     * @details calls @ref Swapchain(Core const&, Queue const&, Surface const&, Config), @ref wrap()
+     * @details calls `Swapchain(Core const&, Queue const&, Surface const&, Config)`, `wrap()`
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref Swapchain(Core const&, Queue const&, Surface const&, Config), @ref create()
+     * @details calls `Swapchain(Core const&, Queue const&, Surface const&, Config)`, `create()`
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config, VkExtent2D extent);
 
     /**
-     * @note calls @ref optDestroy()
+     * @note calls `optDestroy()`
      */
     ~Swapchain() { optDestroy(); }
 
@@ -84,68 +84,68 @@ public:
      * wraps the state, gets the images, creates their views, present semaphores and present fences
      * @details the format and the present mode come from the state, not from the config
      * @pre the swapchain was created for the surface with the config and the state
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkGetSwapchainImagesKHR()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkGetSwapchainImagesKHR()`
      */
     void wrap(State const&);
 
     /**
      * picks the format and the present mode of the config, creates the swapchain
-     * @param extent of the window, a fixed currentExtent of the surface wins
-     * @details the first entries of @ref Config::formats and @ref Config::presentModes that the surface offers win
-     * @pre extent width and height > 0
-     * @post @ref created()
-     * @note calls @ref optDestroy()
+     * @param extent of the window, a fixed `currentExtent` of the surface wins
+     * @details the first entries of `Config::formats` and `Config::presentModes` that the surface offers win
+     * @pre `extent` width and height > 0
+     * @post `created()`
+     * @note calls `optDestroy()`
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
-     * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR()
+     * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`
      */
     void create(VkExtent2D extent);
 
     /**
-     * creates a new swapchain with the old one as oldSwapchain, the old one retires
-     * @param extent of the window, a fixed currentExtent of the surface wins
-     * @details keeps the format and the present mode, a change needs @ref recreate()
+     * creates a new swapchain with the old one as `oldSwapchain`, the old one retires
+     * @param extent of the window, a fixed `currentExtent` of the surface wins
+     * @details keeps the format and the present mode, a change needs `recreate()`
      * @details queries the surface capabilities again
      * @details unacquires the images that are still acquired
-     * @pre @ref created()
-     * @pre extent width and height > 0
+     * @pre `created()`
+     * @pre `extent` width and height > 0
      * @pre the surface still supports the format and the present mode of the swapchain
      * @pre no present semaphore is signaled without its present
-     * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR(), destroys the old swapchains and forgets
+     * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`, destroys the old swapchains and forgets
      */
     void resize(VkExtent2D extent);
 
     /**
-     * applies the config, retires the old swapchain like @ref resize()
-     * @param extent of the window, a fixed currentExtent of the surface wins
-     * @details picks the format and the present mode of the config again, see @ref create()
-     * @pre @ref created()
-     * @pre extent width and height > 0
+     * applies the config, retires the old swapchain like `resize()`
+     * @param extent of the window, a fixed `currentExtent` of the surface wins
+     * @details picks the format and the present mode of the config again, see `create()`
+     * @pre `created()`
+     * @pre `extent` width and height > 0
      * @pre no present semaphore is signaled without its present
      * @note a new format needs new pipelines for the swapchain images
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode, nothing changes
-     * @throws cvk::vk_result_exception result of vkCreateSwapchainKHR(), destroys the old swapchains and forgets
+     * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`, destroys the old swapchains and forgets
      */
     void recreate(VkExtent2D extent, Config);
 
     /**
      * waits for the present fences, destroys the swapchain and forgets
      * @details destroys the views, present semaphores, present fences and retired swapchains
-     * @pre @ref created()
+     * @pre `created()`
      * @pre no present semaphore is signaled without its present
      */
     void destroy();
 
     /**
-     * if @ref created() -> calls @ref destroy()
+     * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
 
     /**
      * waits for the present fences, releases ownership, returns the state and forgets
      * @details destroys the views, present semaphores, present fences and retired swapchains
-     * @pre @ref created()
+     * @pre `created()`
      * @pre no present semaphore is signaled without its present
      */
     State release();
@@ -155,20 +155,20 @@ public:
      * @param signal signaled when the image is ready
      * @param timeout in nanoseconds
      * @details destroys the retired swapchains with signaled present fences
-     * @pre @ref created()
-     * @pre signal is unsignaled and has no pending operation
-     * @throws cvk::vk_result_exception other result of vkAcquireNextImageKHR()
+     * @pre `created()`
+     * @pre `signal` is unsignaled and has no pending operation
+     * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()`
      */
     [[nodiscard]] Acquired acquire(Semaphore const& signal, uint64_t timeout = std::numeric_limits<uint64_t>::max());
 
     /**
      * presents the image once its present semaphore signals
-     * @return VK_SUCCESS, VK_SUBOPTIMAL_KHR or VK_ERROR_OUT_OF_DATE_KHR
-     * @details VK_ERROR_OUT_OF_DATE_KHR -> the present still waits for the semaphore
+     * @return `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` or `VK_ERROR_OUT_OF_DATE_KHR`
+     * @details `VK_ERROR_OUT_OF_DATE_KHR` -> the present still waits for the semaphore
      * @details destroys the retired swapchains with signaled present fences
      * @pre the image is acquired
-     * @pre a submit signals @ref presentSemaphore() of the image
-     * @throws cvk::vk_result_exception other result of vkQueuePresentKHR()
+     * @pre a submit signals `presentSemaphore()` of the image
+     * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
      */
     [[nodiscard]] VkResult present(uint32_t imageIndex);
 
@@ -176,18 +176,18 @@ public:
      * gives acquired images back without a present
      * @pre the images are acquired and all uses of them completed
      * @attention the acquire semaphores of the images still signal, wait for them before reuse
-     * @throws cvk::vk_result_exception result of vkReleaseSwapchainImagesKHR()
+     * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
      */
     void unacquire(std::span<uint32_t const> imageIndices);
 
     /**
-     * @return the extent clamped to the limits of the surface, a fixed currentExtent wins
+     * @return the extent clamped to the limits of the surface, a fixed `currentExtent` wins
      */
     [[nodiscard]] static constexpr VkExtent2D evalExtent(VkExtent2D extent, VkSurfaceCapabilitiesKHR const&);
 
     /**
-     * @param minImageCount 0 -> minImageCount of the surface + 1
-     * @return the count clamped to the limits of the surface (maxImageCount 0 => no limit)
+     * @param minImageCount `0` -> `minImageCount` of the surface + 1
+     * @return the count clamped to the limits of the surface (`maxImageCount` `0` => no limit)
      */
     [[nodiscard]] static constexpr uint32_t evalImageCount(uint32_t minImageCount, VkSurfaceCapabilitiesKHR const&);
 
@@ -206,7 +206,7 @@ public:
 
     /**
      * @return width / height
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] constexpr float aspectRatio() const {
         return static_cast<float>(_extent.width) / static_cast<float>(_extent.height);
@@ -220,8 +220,8 @@ public:
     }
 
     /**
-     * @return the semaphore that @ref present() of the image waits for, a submit signals it
-     * @pre imageIndex < @ref imageCount()
+     * @return the semaphore that `present()` of the image waits for, a submit signals it
+     * @pre `imageIndex < imageCount()`
      */
     [[nodiscard]] constexpr Semaphore const& presentSemaphore(uint32_t imageIndex) const {
         return current().presentSemaphores[imageIndex];
@@ -229,15 +229,15 @@ public:
 
     /**
      * @return the fence that the last present of the image signals, created signaled
-     * @details exportable with @ref constants::OS_FENCE_HANDLE_TYPE, see @ref Fence::extractOsHandle()
-     * @pre imageIndex < @ref imageCount()
+     * @details exportable with `constants::OS_FENCE_HANDLE_TYPE`, see `Fence::extractOsHandle()`
+     * @pre `imageIndex < imageCount()`
      */
     [[nodiscard]] constexpr Fence const& presentFence(uint32_t imageIndex) const {
         return current().presentFences[imageIndex];
     }
 
     /**
-     * @pre imageIndex < @ref imageCount()
+     * @pre `imageIndex < imageCount()`
      */
     [[nodiscard]] constexpr bool acquired(uint32_t imageIndex) const { return current().acquired[imageIndex]; }
 
@@ -248,7 +248,7 @@ public:
 
 private:
     /**
-     * one VkSwapchainKHR with its images, views, present semaphores, present fences and acquire states
+     * one `VkSwapchainKHR` with its images, views, present semaphores, present fences and acquire states
      * @details the destructor waits for the present fences and releases the images, the swapchain destroys last
      */
     struct Generation {
@@ -269,12 +269,12 @@ private:
     };
 
     /**
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] constexpr Generation& current() { return _generations.back(); }
 
     /**
-     * @pre @ref created()
+     * @pre `created()`
      */
     [[nodiscard]] constexpr Generation const& current() const { return _generations.back(); }
 
@@ -285,7 +285,7 @@ private:
     [[nodiscard]] std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> pick(Config const&) const;
 
     /**
-     * creates a swapchain with @ref _surfaceFormat and @ref _presentMode as the new current generation
+     * creates a swapchain with `_surfaceFormat` and `_presentMode` as the new current generation
      * @details a failure destroys every generation and forgets
      */
     void createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain);
@@ -313,7 +313,7 @@ private:
     Config _config;
 
     /**
-     * back() is the current swapchain, the others are retired, empty -> not created
+     * `back()` is the current swapchain, the others are retired, empty -> not created
      */
     std::vector<Generation> _generations;
 

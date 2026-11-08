@@ -10,12 +10,12 @@ namespace cvk {
 class PipelineLayout;
 
 /**
- * config of a @ref ComputePipeline
+ * config of a `ComputePipeline`
  */
 struct ComputePipelineConfig {
     /**
-     * stage of a compute shader, see @ref Shader::stageInfo()
-     * @attention the specialization info and the entry point name outlive @ref ComputePipeline::create()
+     * stage of a compute shader, see `Shader::stageInfo()`
+     * @attention the specialization info and the entry point name outlive `ComputePipeline::create()`
      */
     VkPipelineShaderStageCreateInfo stage{};
 
@@ -23,7 +23,7 @@ struct ComputePipelineConfig {
 };
 
 /**
- * compute VkPipeline wrapper
+ * compute `VkPipeline` wrapper
  */
 class ComputePipeline : public BasePipeline {
 public:
@@ -31,19 +31,19 @@ public:
 
     /**
      * base constructor, keeps the layout
-     * @pre @ref Core::created() of the layout
+     * @pre `Core::created()` of the layout
      */
     ComputePipeline(PipelineLayout const&, Config const&);
 
     /**
      * constructs and wraps
-     * @details calls @ref ComputePipeline(PipelineLayout const&, Config const&), @ref wrap()
+     * @details calls `ComputePipeline(PipelineLayout const&, Config const&)`, `wrap()`
      */
     ComputePipeline(PipelineLayout const&, Config const&, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref ComputePipeline(PipelineLayout const&, Config const&), @ref create()
+     * @details calls `ComputePipeline(PipelineLayout const&, Config const&)`, `create()`
      */
     explicit ComputePipeline(PipelineLayout const&, Config const&, create_t);
 
@@ -51,9 +51,9 @@ public:
      * creates the pipeline
      * @pre the stage of the config is a compute shader
      * @pre the layout and the shader module of the config are not destroyed
-     * @post @ref created()
-     * @note calls @ref optDestroy()
-     * @throws cvk::vk_result_exception result of vkCreateComputePipelines()
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateComputePipelines()`
      */
     void create();
 

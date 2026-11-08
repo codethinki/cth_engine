@@ -14,7 +14,7 @@
 
 namespace jvk {
 /**
- * creates the queue sets of @ref cvk::CoreConfig::queueSets for the queues
+ * creates the queue sets of `cvk::CoreConfig::queueSets` for the queues
  * @details steps, each set merges one more pair of groups than the set before:
  * - each queue is a group
  * - groups with equal properties merge
@@ -22,7 +22,7 @@ namespace jvk {
  * - all queues are one group
  * @param queues properties of each queue
  * @return the sets, each set spans all queues
- * @pre !queues.empty()
+ * @pre `!queues.empty()`
  */
 [[nodiscard]] std::vector<cvk::Core::queue_set_t> queue_sets(std::span<cvk::QueueFamilyProperties const>);
 }
@@ -46,8 +46,8 @@ namespace jvk::dev {
 
 /**
  * appends one set per merge of two groups that match
- * @param match(lhs, rhs) properties of two groups, true -> the groups merge
- * @pre !sets.empty()
+ * @param match(lhs, rhs) properties of two groups, `true` -> the groups merge
+ * @pre `!sets.empty()`
  */
 template<class Match>
 void merge_groups(

@@ -25,7 +25,7 @@ struct BarrierScope {
     VkAccessFlags2 access = VK_ACCESS_2_NONE;
 
     /**
-     * VK_QUEUE_FAMILY_IGNORED -> no queue family ownership transfer
+     * `VK_QUEUE_FAMILY_IGNORED` -> no queue family ownership transfer
      */
     queue_family_index_t queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 };
@@ -38,32 +38,32 @@ struct ImageBarrierInfo {
     BarrierScope dst{};
 
     /**
-     * == @ref oldLayout -> no layout transition
+     * `== oldLayout` -> no layout transition
      */
     VkImageLayout newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     /**
      * layout of the mip range before the barrier
-     * @attention VK_IMAGE_LAYOUT_UNDEFINED discards the contents, the validation layers do not report it
+     * @attention `VK_IMAGE_LAYOUT_UNDEFINED` discards the contents, the validation layers do not report it
      */
     VkImageLayout oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     uint32_t firstMipLevel = 0;
 
     /**
-     * VK_REMAINING_MIP_LEVELS -> to the last mip level
+     * `VK_REMAINING_MIP_LEVELS` -> to the last mip level
      */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
 
     uint32_t firstArrayLayer = 0;
 
     /**
-     * VK_REMAINING_ARRAY_LAYERS -> to the last layer
+     * `VK_REMAINING_ARRAY_LAYERS` -> to the last layer
      */
     uint32_t arrayLayers = VK_REMAINING_ARRAY_LAYERS;
 
     /**
-     * 0 -> the aspect mask of the image
+     * `0` -> the aspect mask of the image
      */
     VkImageAspectFlags aspectMask = 0;
 
@@ -86,7 +86,7 @@ struct ImageBarrierInfo {
     }
 
     /**
-     * queue family ownership transfer without layout transition, dst and src name the families
+     * queue family ownership transfer without layout transition, `dst` and `src` name the families
      * @param layout of the image
      */
     [[nodiscard]] static constexpr ImageBarrierInfo QueueTransition(
@@ -111,12 +111,12 @@ struct BufferBarrierInfo {
     size_t offset = 0;
 
     /**
-     * in bytes (VK_WHOLE_SIZE => to the end)
+     * in bytes (`VK_WHOLE_SIZE` => to the end)
      */
     size_t size = VK_WHOLE_SIZE;
 
     /**
-     * queue family ownership transfer, dst and src name the families
+     * queue family ownership transfer, `dst` and `src` name the families
      */
     [[nodiscard]] static constexpr BufferBarrierInfo QueueTransition(BarrierScope const& dst, BarrierScope const& src) {
         return BufferBarrierInfo{.src = src, .dst = dst};
@@ -133,8 +133,8 @@ struct MemoryBarrierInfo {
 
 /**
  * pipeline barrier
- * @details memory, buffer and image barriers in one vkCmdPipelineBarrier2()
- * @attention the images and buffers do not move until @ref execute()
+ * @details memory, buffer and image barriers in one `vkCmdPipelineBarrier2()`
+ * @attention the images and buffers do not move until `execute()`
  */
 struct Barrier {
     using MemoryInfo = MemoryBarrierInfo;
@@ -142,7 +142,7 @@ struct Barrier {
     using BufferInfo = BufferBarrierInfo;
 
     /**
-     * shader stages of @ref addTransition(): the layout decides, fragment shader for shader reads
+     * shader stages of `addTransition()`: the layout decides, fragment shader for shader reads
      */
     static constexpr VkPipelineStageFlags2 INFERRED_SHADER_STAGES = VK_PIPELINE_STAGE_2_NONE;
 
@@ -157,7 +157,7 @@ struct Barrier {
     };
 
     /**
-     * VK_DEPENDENCY_BY_REGION_BIT -> the dependency is per framebuffer region
+     * `VK_DEPENDENCY_BY_REGION_BIT` -> the dependency is per framebuffer region
      */
     VkDependencyFlags flags = 0;
 
@@ -178,10 +178,10 @@ struct Barrier {
     constexpr void add(Image const& image, ImageInfo const& info) { images.push_back({&image, info}); }
 
     /**
-     * adds a layout transition of every layer with the scopes of @ref layout_transition()
-     * @param shaderStages stages of the shader reads in the layouts (@ref INFERRED_SHADER_STAGES => fragment shader)
-     * @param mipLevels (VK_REMAINING_MIP_LEVELS => to the last mip level)
-     * @pre @ref layout_scope() knows both layouts
+     * adds a layout transition of every layer with the scopes of `layout_transition()`
+     * @param shaderStages stages of the shader reads in the layouts (`INFERRED_SHADER_STAGES` => fragment shader)
+     * @param mipLevels (`VK_REMAINING_MIP_LEVELS` => to the last mip level)
+     * @pre `layout_scope()` knows both layouts
      */
     void addTransition(
         Image const&,
@@ -199,14 +199,14 @@ struct Barrier {
 
     /**
      * records the barriers
-     * @pre @ref BaseCmdBuffer::recording()
+     * @pre `BaseCmdBuffer::recording()`
      * @pre the images and buffers are created and the ranges lie in them
      * @pre memory barriers have no queue family ownership transfer
      * @pre layout transition or queue family ownership transfer -> new layout not undefined or preinitialized
-     * @pre @ref BaseCmdBuffer::insideRendering() -> framebuffer space stages and VK_DEPENDENCY_BY_REGION_BIT
-     * @pre @ref BaseCmdBuffer::insideRendering() -> no layout transition and no queue family ownership transfer
-     * @pre @ref BaseCmdBuffer::insideRendering() with multiview -> VK_DEPENDENCY_VIEW_LOCAL_BIT
-     * @pre @ref BaseCmdBuffer::rendering() -> the attachments in a local read or general layout
+     * @pre `BaseCmdBuffer::insideRendering()` -> framebuffer space stages and `VK_DEPENDENCY_BY_REGION_BIT`
+     * @pre `BaseCmdBuffer::insideRendering()` -> no layout transition and no queue family ownership transfer
+     * @pre `BaseCmdBuffer::insideRendering()` with multiview -> `VK_DEPENDENCY_VIEW_LOCAL_BIT`
+     * @pre `BaseCmdBuffer::rendering()` -> the attachments in a local read or general layout
      */
     void execute(BaseCmdBuffer const&) const;
 
@@ -224,7 +224,7 @@ struct Barrier {
 private:
     /**
      * checks the rules of barriers inside a dynamic rendering
-     * @param renderingPtr the rendering the command buffer began, nullptr -> a secondary continues the rendering
+     * @param renderingPtr the rendering the command buffer began, `nullptr` -> a secondary continues the rendering
      * @param viewMask of the rendering
      */
     void debug_check_rendering(
@@ -251,9 +251,9 @@ struct LayoutTransition {
  * @details input attachments: fragment shader only
  * @details general: all commands
  * @param aspects of the image, pick color or depth for the attachment, read only and local read layouts
- * @param shaderStages stages of the shader reads (@ref Barrier::INFERRED_SHADER_STAGES => fragment shader)
- * @return std::nullopt -> no scope for the layout: undefined, preinitialized or not known
- * @pre shaderStages has only shader stages
+ * @param shaderStages stages of the shader reads (`Barrier::INFERRED_SHADER_STAGES` => fragment shader)
+ * @return `std::nullopt` -> no scope for the layout: undefined, preinitialized or not known
+ * @pre `shaderStages` has only shader stages
  */
 [[nodiscard]] constexpr std::optional<BarrierScope> layout_scope(
     VkImageLayout,
@@ -262,11 +262,11 @@ struct LayoutTransition {
 );
 
 /**
- * scopes of the transition: src from the old layout, dst from the new layout
- * @details src keeps only the writes of the old layout
- * @details old layout undefined, preinitialized or present -> src waits for the dst stages without access
- * @return std::nullopt -> no scope for a layout
- * @pre shaderStages has only shader stages
+ * scopes of the transition: `src` from the old layout, `dst` from the new layout
+ * @details `src` keeps only the writes of the old layout
+ * @details old layout undefined, preinitialized or present -> `src` waits for the `dst` stages without access
+ * @return `std::nullopt` -> no scope for a layout
+ * @pre `shaderStages` has only shader stages
  */
 [[nodiscard]] constexpr std::optional<LayoutTransition> layout_transition(
     VkImageLayout newLayout,

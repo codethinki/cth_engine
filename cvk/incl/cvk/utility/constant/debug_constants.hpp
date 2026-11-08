@@ -5,7 +5,7 @@
 
 namespace cvk::constants {
 /**
- * true in debug builds, follows @ref cth::debug_mode()
+ * `true` in debug builds, follows `cth::debug_mode()`
  */
 constexpr bool DEBUG_MODE = cth::debug_mode();
 
