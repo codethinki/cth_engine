@@ -188,6 +188,26 @@ public:
     void await(SemaphoreSubmitInfo const&);
 
     /**
+     * adds a wait on a jvk semaphore to the submit of this frame
+     * @details calls @ref await(SemaphoreSubmitInfo const&)
+     * @param semaphore to wait for
+     * @param stages of this submit that wait
+     * @param value to wait for
+     */
+    void await(Semaphore const& semaphore, VkPipelineStageFlags2 stages, uint64_t value) {
+        await(SemaphoreSubmitInfo{semaphore, stages, value});
+    }
+
+    //TODO review deleted with a reason (C++26): without it a jvk semaphore takes the binary overload through the
+    // private base of cvk::TimelineSemaphore and fails with an inaccessible base error
+    /**
+     * a jvk semaphore needs a value
+     */
+    void await(Semaphore const&, VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT) = delete(
+        "a jvk semaphore needs a value: await(semaphore, stages, value)"
+    );
+
+    /**
      * adds a wait on a binary semaphore to the submit of this frame
      * @details `submit()` and `skip()` wait for it, no await on the cpu: for binary semaphores like the acquire
      * @param binary semaphore to wait for
