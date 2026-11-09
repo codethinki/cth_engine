@@ -65,7 +65,7 @@ public:
      * @details the old frame of the slot:
      * - a stage without `Stage::submit()` or `Stage::skip()`: skips it
      * - a stage that waited for such a skip: warns
-     * - awaits `Stage::submitted()` and `Stage::semaphore()` of its stages
+     * - awaits `Stage::submitted()` of its stages, then each stage: the gpu finished it
      * @return the frame of the slot
      * @throws cvk::vk_result_exception the first error of a submit job
      * @attention not thread safe
@@ -79,7 +79,7 @@ public:
      * - thread safe for different stages
      * - returns at once, the strand of the queue submits after the waited stages on the same queue submitted
      * - resolves the first uses of the primary against the resource states after all submits
-     * - waits for the stage waits of the config and the waits of `Stage::addWait()`
+     * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
      * - after the gpu finished: destroys the retained objects
      * @pre the stage is of this graph
@@ -96,7 +96,7 @@ public:
      * @details sets the status of the stage to `SKIPPED`, thread safe for different stages
      * @details returns at once, the strand of the queue submits after the waited stages on the same queue submitted
      * @details empty submit on the queue of the stage:
-     * - waits for the stage waits of the config and the waits of `Stage::addWait()`
+     * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
      * @details after the gpu finished the empty submit: destroys the retained objects
      * @pre the stage is of this graph
@@ -133,7 +133,7 @@ private:
      * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before, of the first
      *   `SubmitInfo::queueWaits` waits of `StageSlot::submitInfo` and of every jvk extra wait
      * - the jvk extra waits: always awaited, the graph does not know the queue that signals them
-     * - the cvk extra waits: no await on the cpu
+     * - the binary extra waits: no await on the cpu
      * - under `StageGraph::_statesMutex`: `append()` of the states of the primary
      * - release halves: `release()` on the last queues, the submit waits for the returned values
      * - the prologue records the acquire halves and the barriers of the first uses
@@ -149,7 +149,7 @@ private:
         dev::StageSlot&,
         uint64_t frameNumber,
         std::vector<SemaphoreSubmitInfo> extraWaits,
-        semaphore_waits_t extraCvkWaits,
+        semaphore_waits_t extraBinaryWaits,
         Stage::Status
     );
 

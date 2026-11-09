@@ -129,7 +129,7 @@ public:
     /**
      * acquires the next swapchain image for the stage
      * @details
-     * - adds the wait for the acquire to the stage
+     * - adds the wait for the acquire to the stage: `Stage::await()` with the acquire semaphore and the stages
      * - assumes `VK_IMAGE_LAYOUT_UNDEFINED` with the wait stages in the primary of the stage, see
      *   `PrimaryCmdBuffer::assume()`: the first barrier of the image chains with the wait
      * - `VK_ERROR_OUT_OF_DATE_KHR` of the last present or acquire, or a changed surface extent -> recreates the
@@ -144,7 +144,7 @@ public:
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
      * @throws cvk::vk_result_exception the first error of a present job
-     * @see `Stage::addWait()`
+     * @see `Stage::await()`
      */
     [[nodiscard]] cth::co::executor_task<std::optional<SwapchainImage>> acquire(
         Stage&,

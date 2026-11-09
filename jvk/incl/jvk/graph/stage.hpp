@@ -8,7 +8,6 @@
 
 #include <volk.h>
 
-#include <cth/coro/tasks/executor_task.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
@@ -19,6 +18,10 @@
 #include <utility>
 #include <vector>
 
+
+namespace cvk {
+class Semaphore;
+}
 
 namespace jvk {
 class StageGraph;
@@ -174,7 +177,6 @@ public:
      */
     [[nodiscard]] SecondaryCmdBuffer persistentSecondary() const;
 
-    //TODO review a braced {jvkSemaphore, stages, value} is ambiguous between the two overloads: callers name the type
     /**
      * adds a wait on a jvk semaphore to the submit of this frame
      * @details `submit()` and `skip()` wait for it, the submit job first awaits its `Semaphore::submitted()`
@@ -183,17 +185,19 @@ public:
      * @attention not thread safe
      * @see `StageGraph::submit()`
      */
-    void addWait(SemaphoreSubmitInfo const&);
+    void await(SemaphoreSubmitInfo const&);
 
     /**
-     * adds a wait on a cvk semaphore to the submit of this frame
+     * adds a wait on a binary semaphore to the submit of this frame
      * @details `submit()` and `skip()` wait for it, no await on the cpu: for binary semaphores like the acquire
+     * @param binary semaphore to wait for
+     * @param stages of this submit that wait
      * @pre `status()` is `UNSUBMITTED`
+     * @pre the signal of the semaphore is submitted before the submit of this frame
      * @pre the semaphore lives until the gpu finished the submit
-     * @pre a binary semaphore: its signal is submitted before the submit of this frame
      * @attention not thread safe
      */
-    void addWait(cvk::SemaphoreSubmitInfo const&);
+    void await(cvk::Semaphore const& binary, VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
 
     /**
      * submits the primary of the frame
@@ -220,11 +224,16 @@ public:
     void retain(T&& object);
 
     /**
-     * waits until the gpu finished the submit or the skip of this frame
-     * @details resumes on the context of the caller
+     * waits until the gpu finished the submit or the skip of this frame: `co_await stage`
+     * @details
+     * - resumes on the context of the caller
+     * - reached -> no suspend
+     * - `Semaphore::wait()` of `semaphore()` with `frameNumber()`
      * @pre `status()` is not `UNSUBMITTED`
      */
-    [[nodiscard]] cth::co::executor_task<void> wait() const;
+    [[nodiscard]] constexpr semaphore_awaiter operator co_await() const {
+        return _stageSlot->semaphore.wait(_frameNumber);
+    }
 
     /**
      * waits until the submit or the skip of this frame reached `vkQueueSubmit2()`
@@ -234,7 +243,7 @@ public:
      * - reached -> no suspend
      * - await it before a submit on `queue()` that waits for `semaphore()`
      * - `Semaphore::submitted()` of `semaphore()` with `frameNumber()`
-     * @see `wait()`
+     * @see `operator co_await()`
      */
     [[nodiscard]] constexpr submitted_awaiter submitted() const {
         return _stageSlot->semaphore.submitted(_frameNumber);
@@ -266,12 +275,12 @@ private:
     Status _status = Status::UNSUBMITTED;
 
     //TODO review names: the extra waits per kind, the jvk ones keep the jvk semaphore
-    std::vector<SemaphoreSubmitInfo> _extraWaits{}; ///< the waits of @ref addWait(SemaphoreSubmitInfo const&)
+    std::vector<SemaphoreSubmitInfo> _extraWaits{}; ///< the waits of @ref await(SemaphoreSubmitInfo const&)
 
     /**
-     * the waits of @ref addWait(cvk::SemaphoreSubmitInfo const&)
+     * the waits of @ref await(cvk::Semaphore const&, VkPipelineStageFlags2)
      */
-    std::vector<cvk::SemaphoreSubmitInfo> _extraCvkWaits{};
+    std::vector<cvk::SemaphoreSubmitInfo> _extraBinaryWaits{};
 
 public:
     Stage(Stage const& other) = delete;

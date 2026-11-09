@@ -23,7 +23,7 @@ class Semaphore;
 
 //TODO review name: snake_case like the awaiters of cth (general type, like std)
 /**
- * awaiter of `Semaphore::wait()`
+ * awaiter of `Semaphore::wait()` and of `co_await` on a `Stage`
  * @details resumes the caller on its context
  */
 class semaphore_awaiter : public cth::co::this_coro_awaiter_base {
