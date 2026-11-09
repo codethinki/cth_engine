@@ -23,9 +23,13 @@
 #include <cth/os/native_handle.hpp>
 
 #include <algorithm>
+#include <array>
+#include <chrono>
 #include <cstdint>
+#include <future>
 #include <numeric>
 #include <optional>
+#include <system_error>
 #include <utility>
 
 
@@ -127,7 +131,7 @@ JVK_TEST(Core, create_and_destroy) {
     Core core{context.instance, test::Context::CONFIG};
     cvk::Core const& vk = core;
 
-    core.create();
+    core.create({});
     ASSERT_TRUE(core.created());
     EXPECT_TRUE(vk.created());
     EXPECT_TRUE(core.executor().sync_wait(on_worker(core)));
@@ -137,15 +141,72 @@ JVK_TEST(Core, create_and_destroy) {
     EXPECT_FALSE(core.created());
     EXPECT_FALSE(vk.created());
 
-    core.create();
+    core.create({});
     ASSERT_TRUE(core.created());
     EXPECT_TRUE(core.executor().sync_wait(on_worker(core)));
+}
+
+JVK_TEST(Core, create_with_a_surface) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    Core::Config config = test::Context::CONFIG;
+    config.vk.queueProperties = {GRAPHICS | PRESENT};
+
+    std::optional<Core> core{};
+    try { core.emplace(context.instance, std::move(config), std::array{cth::ref_wrapper{surface}}); } catch(
+        cvk::cvk_exception const&) {
+        GTEST_SKIP() << "no device presents to a headless surface";
+    }
+    cvk::Core const& vk = *core;
+
+    ASSERT_TRUE(core->created());
+    EXPECT_TRUE(vk.queue(0).canPresent());
+    EXPECT_TRUE(core->reactor().created());
+}
+
+JVK_TEST(Core, create_with_a_braced_surface_list) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    Core::Config config = test::Context::CONFIG;
+    config.vk.queueProperties = {GRAPHICS | PRESENT};
+    Core core{context.instance, std::move(config)};
+
+    try { core.create({surface}); } catch(cvk::cvk_exception const&) {
+        GTEST_SKIP() << "no device presents to a headless surface";
+    }
+
+    cvk::Core const& vk = core;
+    EXPECT_TRUE(vk.queue(0).canPresent());
+}
+
+JVK_TEST(Core, reactor_waits_after_a_new_create) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+
+    for(size_t round = 0; round < 2; ++round) {
+        ASSERT_TRUE(core.reactor().created());
+        cvk::TimelineSemaphore semaphore{core, cvk::create};
+
+        std::promise<std::error_code> promise{};
+        auto result = promise.get_future();
+        core.reactor().await(semaphore.get(), 1, [promise = std::move(promise)](std::error_code error) mutable {
+            promise.set_value(error);
+        });
+        [[maybe_unused]] auto const signaled = semaphore.signal();
+
+        ASSERT_EQ(result.wait_for(std::chrono::seconds{5}), std::future_status::ready);
+        EXPECT_FALSE(result.get());
+
+        semaphore.destroy();
+        core.destroy();
+        core.create({});
+    }
 }
 
 JVK_TEST(Core, enables_the_extensions_of_the_config) {
     test::Context const context{};
     std::optional<Core> core{};
-    try { core.emplace(context.instance, os_fence_config(), cvk::create); } catch(cvk::cvk_exception const&) {
+    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); } catch(cvk::cvk_exception const&) {
         GTEST_SKIP() << "no os fence extension";
     }
     cvk::Core const& vk = *core;
@@ -160,7 +221,7 @@ JVK_TEST(Core, default_queue_sets) {
     test::Context const context{};
 
     // without queue sets a device with one queue has no vulkan queue for each queue of the config
-    Core const core{context.instance, two_queues(), cvk::create};
+    Core const core{context.instance, two_queues(), {}};
     cvk::Core const& vk = core;
 
     ASSERT_TRUE(core.created());
@@ -175,7 +236,7 @@ JVK_TEST(Core, indices_of_one_vulkan_queue_share_a_queue) {
     auto config = two_queues();
     config.vk.queueSets = {one_group(config.vk.queueProperties.size())};
 
-    Core const core{context.instance, std::move(config), cvk::create};
+    Core const core{context.instance, std::move(config), {}};
 
     EXPECT_EQ(&core.queue(0), &core.queue(1));
 }
@@ -183,7 +244,7 @@ JVK_TEST(Core, indices_of_one_vulkan_queue_share_a_queue) {
 JVK_TEST(Core, one_queue_per_vulkan_queue) {
     test::Context const context{};
 
-    Core const core{context.instance, two_queues(), cvk::create};
+    Core const core{context.instance, two_queues(), {}};
     cvk::Core const& vk = core;
 
     for(size_t queueIdx = 0; queueIdx < 2; ++queueIdx) {
@@ -203,7 +264,7 @@ JVK_TEST(Core, executor_runs_on_the_workers) {
 JVK_TEST(Core, worker_resumes_after_the_gpu_signals_the_fence_of_a_strand_submit) {
     test::Context const context{};
     std::optional<Core> core{};
-    try { core.emplace(context.instance, os_fence_config(), cvk::create); } catch(cvk::cvk_exception const&) {
+    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); } catch(cvk::cvk_exception const&) {
         GTEST_SKIP() << "no os fence extension";
     }
     if(!os_fence_exportable(*core)) GTEST_SKIP() << "os fence handle type not exportable";

@@ -14,6 +14,8 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <system_error>
+#include <utility>
 #include <vector>
 
 
@@ -50,6 +52,12 @@ public:
     void await_suspend(std::coroutine_handle<Caller> caller);
 
 private:
+    //TODO review a private helper: the reactor needs the complete jvk::Core, the template stays in the header
+    /**
+     * registers the callback with the reactor of the core
+     */
+    void awaitReactor(cth::co::context::await_func cb) const;
+
     cth::ref_wrapper<Semaphore const> _semaphore;
     uint64_t _value;
 };
@@ -302,6 +310,38 @@ struct SemaphoreSubmitInfo {
 };
 }
 
+namespace jvk::dev {
+//TODO review name post_to
+/**
+ * callback that posts the callback to the context
+ * @details the reactor and `Semaphore::markSubmitted()` call on a worker, the awaiters resume on the context of the
+ *  caller
+ */
+[[nodiscard]] inline cth::co::context::await_func post_to(
+    cth::co::context const& context,
+    cth::co::context::await_func cb
+) {
+    return [&context, cb = std::move(cb)](std::error_code error) mutable {
+        context.post([cb = std::move(cb), error]() mutable { cb(error); });
+    };
+}
+}
+
 namespace jvk {
 constexpr void Semaphore::debug_check(Semaphore const& semaphore) { cvk::TimelineSemaphore::debug_check(semaphore); }
+
+template<class Caller>
+requires cth::co::this_coro_compatible<Caller>
+void semaphore_awaiter::await_suspend(std::coroutine_handle<Caller> caller) {
+    awaitReactor(dev::post_to(caller.promise().context(), resume(caller)));
+}
+
+template<class Caller>
+requires cth::co::this_coro_compatible<Caller>
+void submitted_awaiter::await_suspend(std::coroutine_handle<Caller> caller) {
+    _semaphore->awaitSubmitted(
+        _value,
+        dev::post_to(caller.promise().context(), [caller](std::error_code) { caller.resume(); })
+    );
+}
 }

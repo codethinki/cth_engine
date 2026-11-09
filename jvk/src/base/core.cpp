@@ -16,17 +16,19 @@
 
 
 namespace jvk {
+using std::span;
+
 Core::Core(cvk::Instance const& instance, Config config) :
     _config{std::move(config)}, _core{instance},
-    _workers{_config.workers == 0 ? std::max(std::thread::hardware_concurrency(), 1u) : _config.workers} {}
+    _workers{_config.workers == 0 ? std::max(std::thread::hardware_concurrency(), 1u) : _config.workers},
+    _reactor{_core, _workers} {}
 
-Core::Core(cvk::Instance const& instance, Config config, cvk::create_t) : Core{instance, std::move(config)} {
-    create();
-}
+Core::Core(cvk::Instance const& instance, Config config, span<cth::ref_wrapper<cvk::Surface const> const> surfaces) :
+    Core{instance, std::move(config)} { create(surfaces); }
 
 Core::~Core() { optDestroy(); }
 
-void Core::create() {
+void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
     cvk::CoreConfig::debug_check(_config.vk);
 
     optDestroy();
@@ -34,14 +36,17 @@ void Core::create() {
     auto config = _config.vk;
     if(config.queueSets.empty()) config.queueSets = queue_sets(config.queueProperties);
 
-    _core.create({}, config);
+    _core.create(surfaces, config);
 
-    // the cvk core exists before the workers and the queues, only a catch can destroy it when a later step fails
+    // the cvk core exists before the workers, the reactor and the queues, only a catch can destroy it when a later
+    // step fails
     try {
         _workers.start();
+        _reactor.create();
         _queuesOpt.emplace(_core, _config.queueWorkers);
     }
     catch(...) {
+        _reactor.optDestroy();
         _workers.await_stop();
         _core.destroy();
         throw;
@@ -76,6 +81,7 @@ void Core::destroy() {
     }
 
     _queuesOpt.reset();
+    _reactor.destroy();
     _workers.await_stop();
     _core.destroy();
 }

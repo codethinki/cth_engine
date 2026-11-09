@@ -1,9 +1,11 @@
 #include "context.hpp"
 
 #include "cvk/render/sync/fence.hpp"
+#include "cvk/utility/constant/device_constants.hpp"
 
 #include <cstddef>
 #include <optional>
+#include <ranges>
 
 
 namespace jvk::test {
@@ -30,7 +32,7 @@ namespace {
      * one instance and core for all tests, the core comes at its first use
      */
     struct SharedContexts {
-        cvk::Instance instance{instance_config({}, counting_messenger()), cvk::create};
+        cvk::Instance instance{instance_config(headless_extensions(), counting_messenger()), cvk::create};
         std::optional<Core> core{};
     };
 
@@ -43,7 +45,7 @@ namespace {
 
     Core const& shared_core() {
         auto& contexts = shared_contexts();
-        if(!contexts.core.has_value()) contexts.core.emplace(contexts.instance, Context::CONFIG, cvk::create);
+        if(!contexts.core.has_value()) contexts.core.emplace(contexts.instance, Context::CONFIG, NO_SURFACES);
         return *contexts.core;
     }
 }
@@ -60,6 +62,31 @@ void submit_and_wait(Context const& context, cvk::PrimaryCmdBuffer const& primar
 }
 
 Context::Context() : instance{shared_contexts().instance}, core{shared_core()} {}
+
+std::vector<std::string> headless_extensions() {
+    std::vector<std::string> extensions{
+        std::from_range,
+        cvk::constants::PRESENT_INSTANCE_EXTENSIONS | std::views::transform(
+            [](std::string_view extension) { return std::string{extension}; }
+        )
+    };
+    extensions.emplace_back(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
+    return extensions;
+}
+
+cvk::Surface headless_surface(cvk::Instance const& instance) {
+    VkHeadlessSurfaceCreateInfoEXT const createInfo{
+        .sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT,
+        .pNext = nullptr,
+        .flags = 0,
+    };
+
+    VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
+    auto const result = vkCreateHeadlessSurfaceEXT(instance.get(), &createInfo, nullptr, &vkSurface);
+    CTH_STABLE_THROW(result != VK_SUCCESS, "failed to create headless surface") {}
+
+    return cvk::Surface{instance, cvk::Surface::State{vkSurface}};
+}
 
 Context::ValidationCheck::ValidationCheck() { errors = 0; }
 

@@ -8,8 +8,14 @@
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/debug/debug_messenger.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
+#include "cvk/surface/surface.hpp"
+
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <array>
+#include <span>
+#include <string>
+#include <vector>
 
 
 namespace jvk::test {
@@ -17,6 +23,11 @@ namespace jvk::test {
  * one queue, some devices have one queue only
  */
 inline constexpr std::array QUEUES{cvk::QueueFamilyProperties::GRAPHICS | cvk::QueueFamilyProperties::COMPUTE};
+
+/**
+ * no surfaces for `Core`, for calls that cannot take a braced list like `std::optional::emplace()`
+ */
+inline constexpr std::span<cth::ref_wrapper<cvk::Surface const> const> NO_SURFACES{};
 
 /**
  * buffer the cpu writes once and the gpu copies from
@@ -79,6 +90,17 @@ struct Context {
  * @attention outside of the strand of the queue: no job of the strand runs at the same time
  */
 void submit_and_wait(Context const&, cvk::PrimaryCmdBuffer const&);
+
+/**
+ * the instance extensions of the shared instance: the present extensions and `VK_EXT_headless_surface`
+ */
+[[nodiscard]] std::vector<std::string> headless_extensions();
+
+/**
+ * @return a headless surface of the instance
+ * @pre the instance has `headless_extensions()`
+ */
+[[nodiscard]] cvk::Surface headless_surface(cvk::Instance const&);
 
 /**
  * destroys the shared contexts, fails on their validation errors

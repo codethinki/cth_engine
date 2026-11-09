@@ -9,7 +9,9 @@
 
 #include <cstdint>
 #include <mutex>
+#include <optional>
 #include <stop_token>
+#include <system_error>
 #include <thread>
 #include <vector>
 
@@ -33,28 +35,48 @@ namespace jvk {
 class TimelineReactor {
 public:
     /**
-     * creates the wake semaphore, starts the thread
+     * base constructor
      * @param workers run the callbacks
-     * @pre `cvk::Core::created()`
-     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`
      */
     TimelineReactor(cvk::Core const&, cth::co::scheduler const& workers);
 
     /**
-     * stops the thread
+     * @note calls `optDestroy()`
+     */
+    ~TimelineReactor() { optDestroy(); }
+
+    /**
+     * creates the wake semaphore, starts the thread
+     * @pre `cvk::Core::created()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`
+     */
+    void create();
+
+    /**
+     * stops the thread, destroys the wake semaphore
+     * @pre `created()`
      * @pre no callback is pending
      */
-    ~TimelineReactor() = default;
+    void destroy();
+
+    /**
+     * if `created()` -> calls `destroy()`
+     */
+    void optDestroy() { if(created()) destroy(); }
 
     /**
      * calls the callback on a worker once the semaphore reaches the value
      * @details the callback gets the result of the wait:
      * - empty `std::error_code` -> reached
      * - a failed `vkWaitSemaphores()` of the thread -> every pending callback gets `cvk::make_error_code()` of the
-     *   result
+     *   result, the thread ends, later callbacks get the same code at once
      * @param cb to call
+     * @pre `created()`
      * @pre the semaphore is a timeline semaphore of the core
      * @pre the semaphore is not destroyed while the callback is pending
+     * @throws cvk::vk_result_exception result of `vkSignalSemaphore()` for the wake semaphore
      */
     void await(VkSemaphore, uint64_t value, cth::co::context::await_func cb) const;
 
@@ -62,6 +84,8 @@ public:
      * @return a callback waits for the semaphore
      */
     [[nodiscard]] bool pending(VkSemaphore) const;
+
+    [[nodiscard]] constexpr bool created() const { return _wakeOpt.has_value(); }
 
 private:
     /**
@@ -76,19 +100,38 @@ private:
 
     /**
      * thread function: waits for the semaphores with waiters and the wake semaphore, posts the reached callbacks
-     * @details stop request -> raises the wake semaphore, the thread ends
+     * @details stop request -> ends at the next wake
      */
     void run(std::stop_token);
 
     /**
      * raises the wake semaphore, the thread waits again with the new values
      * @pre the caller holds `TimelineReactor::_mutex`
+     * @throws cvk::vk_result_exception result of `vkSignalSemaphore()`
      */
     void wake() const;
 
+    /**
+     * stores the error, takes every pending callback
+     * @return the callbacks to post with the error
+     * @pre the caller holds `TimelineReactor::_mutex`
+     */
+    [[nodiscard]] std::vector<cth::co::context::await_func> fail(std::error_code) const;
+
+    /**
+     * posts the callback to the workers
+     */
+    void post(cth::co::context::await_func cb, std::error_code) const;
+
+    cth::ref_wrapper<cvk::Core const> _core;
     cth::ref_wrapper<cth::co::scheduler const> _workers;
 
-    mutable cvk::TimelineSemaphore _wake; ///< the thread waits for it next to the semaphores with waiters
+    //TODO review std::optional: the base constructor of cvk::TimelineSemaphore needs a created core
+    /**
+     * the thread waits for it next to the semaphores with waiters
+     * @details constructed by `create()`
+     */
+    mutable std::optional<cvk::TimelineSemaphore> _wakeOpt = std::nullopt;
 
     mutable std::mutex _mutex{};
 
@@ -99,8 +142,10 @@ private:
      */
     mutable waiter_map_t _waiters{};
 
-    // destroyed first: the stop request raises the wake semaphore, the thread ends before the members
-    std::jthread _thread;
+    mutable std::error_code _error{}; ///< the result of a failed wait of the thread, empty -> none
+
+    // destroyed first: destroy() stops it before the members
+    std::jthread _thread{};
 
 public:
     TimelineReactor(TimelineReactor const& other) = delete;

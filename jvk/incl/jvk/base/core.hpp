@@ -5,7 +5,6 @@
 #include "jvk/sync/timeline_reactor.hpp"
 
 #include "cvk/base/core.hpp"
-#include "cvk/utility/constants.hpp"
 
 #include <cth/coro/executor.hpp>
 #include <cth/coro/scheduler.hpp>
@@ -57,9 +56,6 @@ public:
         std::initializer_list<cth::ref_wrapper<cvk::Surface const>> surfaces
     ) : Core{instance, std::move(config), std::span{surfaces}} {}
 
-    //TEMP the old signature until core.cpp implements the surfaces, the tests use it
-    explicit Core(cvk::Instance const&, Config, cvk::create_t);
-
     /**
      * @note calls `optDestroy()`
      */
@@ -84,9 +80,6 @@ public:
      * @see @ref create(std::span<cth::ref_wrapper<cvk::Surface const> const>)
      */
     void create(std::initializer_list<cth::ref_wrapper<cvk::Surface const>> surfaces) { create(std::span{surfaces}); }
-
-    //TEMP the old signature until core.cpp implements the surfaces, the tests use it
-    void create();
 
     /**
      * destroys the queues, the reactor, the workers and the cvk core
@@ -125,7 +118,7 @@ public:
      */
     [[nodiscard]] constexpr TimelineReactor const& reactor() const {
         debug_check(*this);
-        return *_reactorOpt;
+        return _reactor;
     }
 
     /**
@@ -142,7 +135,9 @@ private:
     cvk::Core _core;
     cth::co::scheduler _workers;
     // destroyed after the queues, before the workers and the cvk core: it posts to the workers
-    std::optional<TimelineReactor> _reactorOpt{};
+    TimelineReactor _reactor;
+    //TODO review stays a std::optional: Queues owns no vulkan object, the device owns the queues, its construction
+    // needs the created cvk core and starts its scheduler
     // destroyed before the reactor, the workers and the cvk core
     std::optional<Queues> _queuesOpt{};
 
