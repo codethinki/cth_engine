@@ -46,12 +46,12 @@ public:
      */
     ~TimelineReactor() = default;
 
-    //TODO review const like cth::co::context::await(): Core::reactor() is const, the members are mutable
-    //TODO review a failed vkWaitSemaphores() of the thread: error code per callback, std::error_code has no
-    // VkResult category
     /**
      * calls the callback on a worker once the semaphore reaches the value
-     * @details the callback gets the result of the wait: empty `std::error_code` -> reached
+     * @details the callback gets the result of the wait:
+     * - empty `std::error_code` -> reached
+     * - a failed `vkWaitSemaphores()` of the thread -> every pending callback gets `cvk::make_error_code()` of the
+     *   result
      * @param cb to call
      * @pre the semaphore is a timeline semaphore of the core
      * @pre the semaphore is not destroyed while the callback is pending

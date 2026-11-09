@@ -5,6 +5,7 @@
 
 #include <volk.h>
 
+#include <cth/coro/awaiters/base/wait_awaiter_base.hpp>
 #include <cth/coro/context.hpp>
 #include <cth/coro/utility/fwd.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
@@ -13,7 +14,6 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <system_error>
 #include <vector>
 
 
@@ -24,9 +24,9 @@ class Semaphore;
 //TODO review name: snake_case like the awaiters of cth (general type, like std)
 /**
  * awaiter of `Semaphore::wait()` and of `co_await` on a `Stage`
- * @details resumes the caller on its context
+ * @details resumes the caller on its context, a failed wait throws in the caller
  */
-class semaphore_awaiter : public cth::co::this_coro_awaiter_base {
+class semaphore_awaiter : public cth::co::this_coro_awaiter_base, public cth::co::wait_awaiter_base {
 public:
     constexpr semaphore_awaiter(Semaphore const& semaphore, uint64_t value) :
         _semaphore{semaphore}, _value{value} {}
@@ -39,24 +39,19 @@ public:
 
     /**
      * registers the resume of the caller with the reactor of the core
-     * @details resumes on the context of the caller
+     * @details
+     * - the callback of `cth::co::wait_awaiter_base::resume()`, posted to the context of the caller
+     * - a failed wait: `await_resume()` throws `cth::except::coro_exception`, `code()` is `cvk::make_error_code()`
+     *   of the result
      * @see `TimelineReactor::await()`
      */
     template<class Caller>
     requires cth::co::this_coro_compatible<Caller>
     void await_suspend(std::coroutine_handle<Caller> caller);
 
-    //TODO review own await_resume(), not cth::co::wait_awaiter_base: jvk throws no cth::except::coro_exception
-    /**
-     * @throws jvk::jvk_exception reason: the wait of the reactor failed
-     */
-    void await_resume() const;
-
 private:
     cth::ref_wrapper<Semaphore const> _semaphore;
     uint64_t _value;
-
-    std::error_code _error{}; ///< result of the wait, set by the callback
 };
 
 //TODO review name: snake_case like semaphore_awaiter

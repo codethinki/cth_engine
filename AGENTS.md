@@ -252,6 +252,7 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 - `CTH_WARN(condition, "message") {}`: suspicious state that is not an error.
 - `CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "message") {}`: throws `cvk::vk_result_exception` with the `VkResult`.
 - A module of cth_engine throws only its exception type `<lib>::<lib>_exception` or a derived type: `cvk::cvk_exception`.
+- A failed `co_await` of cth's coroutine machinery, also of a jvk awaiter on its bases, throws `cth::except::coro_exception` with `code()`. Nobody catches per `co_await`, the exception propagates to the top.
 - The condition is the error case: `CTH_CRITICAL(!created(), ...)`, not the expected case.
 
 ### Comment markers
