@@ -130,8 +130,10 @@ private:
     /**
      * submit job of `submit()` and `skip()`
      * @details
-     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before and of the first
-     *   `SubmitInfo::queueWaits` waits of `StageSlot::submitInfo`
+     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before, of the first
+     *   `SubmitInfo::queueWaits` waits of `StageSlot::submitInfo` and of every jvk extra wait
+     * - the jvk extra waits: always awaited, the graph does not know the queue that signals them
+     * - the cvk extra waits: no await on the cpu
      * - under `StageGraph::_statesMutex`: `append()` of the states of the primary
      * - release halves: `release()` on the last queues, the submit waits for the returned values
      * - the prologue records the acquire halves and the barriers of the first uses
@@ -146,7 +148,8 @@ private:
     [[nodiscard]] cth::co::executor_task<void> submitJob(
         dev::StageSlot&,
         uint64_t frameNumber,
-        semaphore_waits_t extraWaits,
+        std::vector<SemaphoreSubmitInfo> extraWaits,
+        semaphore_waits_t extraCvkWaits,
         Stage::Status
     );
 

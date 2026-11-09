@@ -1,4 +1,5 @@
 #pragma once
+#include "cvk/base/queue/submit_info.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
 #include "cvk/utility/constants.hpp"
 
@@ -278,6 +279,31 @@ public:
     Semaphore& operator=(Semaphore&& other) noexcept = default;
 
     static constexpr void debug_check(Semaphore const&);
+};
+}
+
+namespace jvk {
+//TODO review name: cvk::SemaphoreSubmitInfo with the jvk semaphore and a fixed value
+//TODO review in semaphore.hpp next to Semaphore: it is small, no own header
+/**
+ * wait or signal of a submit on a jvk semaphore
+ * @details
+ * - keeps the jvk semaphore: `Semaphore::submitted()` needs it
+ * - converts to `cvk::SemaphoreSubmitInfo`
+ */
+struct SemaphoreSubmitInfo {
+    cth::ref_wrapper<Semaphore const> semaphore;
+
+    /**
+     * wait -> the stages that wait, signal -> the stages that finish before the signal
+     */
+    VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+
+    uint64_t value; ///< wait -> the value to wait for, signal -> the value to signal
+
+    [[nodiscard]] constexpr operator cvk::SemaphoreSubmitInfo() const {
+        return cvk::SemaphoreSubmitInfo{*semaphore, stages, value};
+    }
 };
 }
 

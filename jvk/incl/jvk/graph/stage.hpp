@@ -25,30 +25,6 @@ class StageGraph;
 }
 
 namespace jvk::dev {
-//TODO review name: cvk::SemaphoreSubmitInfo with the jvk semaphore and a fixed value
-/**
- * semaphore of a prebuilt submit
- * @details converts to `cvk::SemaphoreSubmitInfo`
- */
-struct SemaphoreSubmitInfo {
-    cth::ref_wrapper<Semaphore const> semaphore; ///< the jvk semaphore: `Semaphore::submitted()` needs it
-
-    /**
-     * wait -> the stages that wait, signal -> the stages that finish before the signal
-     */
-    VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-
-    /**
-     * a frame number
-     * @details `< StageGraph::firstFrameNumber()` -> a frame before the first frame, the wait is reached from the start
-     */
-    uint64_t value;
-
-    [[nodiscard]] constexpr operator cvk::SemaphoreSubmitInfo() const {
-        return cvk::SemaphoreSubmitInfo{*semaphore, stages, value};
-    }
-};
-
 //TODO review name: like cvk::SubmitInfo and the legacy jvk::SubmitInfo
 /**
  * prebuilt submit of a stage slot
@@ -64,6 +40,8 @@ struct SubmitInfo {
      * one per `StageConfig::waits`: `StageSlot::semaphore` of the waited stage slot
      * @details the waited stage slot: stage `StageWait::stageId`, `StageWait::frameOffset` frame slots before
      * @details the waits for a stage on the same `Queue` come first, `SubmitInfo::queueWaits` of them
+     * @details value: a frame number, `< StageGraph::firstFrameNumber()` -> a frame before the first frame, reached
+     *  from the start
      */
     std::vector<SemaphoreSubmitInfo> waits{};
 
@@ -196,11 +174,23 @@ public:
      */
     [[nodiscard]] SecondaryCmdBuffer persistentSecondary() const;
 
+    //TODO review a braced {jvkSemaphore, stages, value} is ambiguous between the two overloads: callers name the type
     /**
-     * adds a semaphore wait to the submit of this frame
-     * @details `submit()` and `skip()` wait for it
+     * adds a wait on a jvk semaphore to the submit of this frame
+     * @details `submit()` and `skip()` wait for it, the submit job first awaits its `Semaphore::submitted()`
      * @pre `status()` is `UNSUBMITTED`
      * @pre the semaphore lives until the gpu finished the submit
+     * @attention not thread safe
+     * @see `StageGraph::submit()`
+     */
+    void addWait(SemaphoreSubmitInfo const&);
+
+    /**
+     * adds a wait on a cvk semaphore to the submit of this frame
+     * @details `submit()` and `skip()` wait for it, no await on the cpu: for binary semaphores like the acquire
+     * @pre `status()` is `UNSUBMITTED`
+     * @pre the semaphore lives until the gpu finished the submit
+     * @pre a binary semaphore: its signal is submitted before the submit of this frame
      * @attention not thread safe
      */
     void addWait(cvk::SemaphoreSubmitInfo const&);
@@ -275,7 +265,13 @@ private:
     uint64_t _frameNumber;
     Status _status = Status::UNSUBMITTED;
 
-    std::vector<cvk::SemaphoreSubmitInfo> _extraWaits{}; ///< the waits of `addWait()`
+    //TODO review names: the extra waits per kind, the jvk ones keep the jvk semaphore
+    std::vector<SemaphoreSubmitInfo> _extraWaits{}; ///< the waits of @ref addWait(SemaphoreSubmitInfo const&)
+
+    /**
+     * the waits of @ref addWait(cvk::SemaphoreSubmitInfo const&)
+     */
+    std::vector<cvk::SemaphoreSubmitInfo> _extraCvkWaits{};
 
 public:
     Stage(Stage const& other) = delete;
