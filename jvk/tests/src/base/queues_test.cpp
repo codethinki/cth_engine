@@ -11,7 +11,7 @@ JVK_TEST(Queues, queue_refers_to_its_cvk_queue) {
     test::Context const context{};
     cvk::Core const& vk = context.core;
 
-    Queues const queues{vk, 0};
+    Queues const queues{context.core, 0};
 
     EXPECT_EQ(&queues.queue(0).vk(), &vk.queue(0));
     EXPECT_EQ(queues.queue(0).get(), vk.queue(0).get());

@@ -1,5 +1,7 @@
 #include "jvk/base/queues.hpp"
 
+#include "jvk/base/core.hpp"
+
 #include "cvk/base/core.hpp"
 
 #include <cth/data/hash_map.hpp>
@@ -23,11 +25,12 @@ namespace {
     }
 }
 
-Queues::Queues(cvk::Core const& core, size_t workers) :
+Queues::Queues(Core const& core, size_t workers) :
     _scheduler{cth::co::autostart, workers == 0 ? vulkan_queue_count(core) : workers} {
-    cvk::Core::debug_check(core);
+    cvk::Core const& vk = core;
+    cvk::Core::debug_check(vk);
 
-    auto const indices = core.queueIndices();
+    auto const indices = vk.queueIndices();
     _queueIndices.reserve(indices.size());
 
     for(size_t queueIdx = 0; queueIdx < indices.size(); ++queueIdx) {
@@ -38,7 +41,7 @@ Queues::Queues(cvk::Core const& core, size_t workers) :
         }
 
         _queueIndices.push_back(_queues.size());
-        _queues.emplace_back(core.queue(queueIdx), _scheduler);
+        _queues.emplace_back(core, vk.queue(queueIdx), _scheduler);
     }
 }
 

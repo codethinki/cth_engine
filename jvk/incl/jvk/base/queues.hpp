@@ -30,11 +30,9 @@ public:
      * constructs the queues of the core and starts their scheduler
      * @param workers threads of the scheduler, `0` -> one per vulkan queue
      * @pre the cvk core and the reactor of the core are created
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the release counters
      */
     Queues(Core const&, size_t workers);
-
-    //TEMP the old signature until queues.cpp implements the release, Core and the tests use it
-    Queues(cvk::Core const&, size_t workers);
 
     /**
      * @param queueIdx index of the queue in `cvk::CoreConfig::queueProperties`
