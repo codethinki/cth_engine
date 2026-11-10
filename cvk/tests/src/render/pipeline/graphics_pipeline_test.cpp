@@ -247,8 +247,24 @@ CVK_TEST(GraphicsPipeline, derivative) {
     GraphicsPipeline const child{parent, std::move(childConfig), create};
 
     ASSERT_TRUE(child.created());
-    EXPECT_EQ(child.parent(), parent.get());
+    EXPECT_EQ(child.parent(), &parent);
     EXPECT_EQ(&child.layout(), &triangle.layout);
-    EXPECT_EQ(parent.parent(), VK_NULL_HANDLE);
+    EXPECT_EQ(parent.parent(), nullptr);
+}
+
+CVK_TEST(GraphicsPipeline, derivative_constructs_before_the_parent_is_created) {
+    test::Context const context{};
+    Triangle const triangle{context.core};
+    auto parentConfig = triangle.config();
+    parentConfig.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+
+    GraphicsPipeline parent{triangle.layout, std::move(parentConfig)};
+    GraphicsPipeline child{parent, triangle.config()};
+
+    parent.create();
+    child.create();
+
+    EXPECT_TRUE(child.created());
+    EXPECT_EQ(child.parent(), &parent);
 }
 }

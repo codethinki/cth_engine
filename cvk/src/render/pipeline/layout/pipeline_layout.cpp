@@ -10,13 +10,7 @@
 
 namespace cvk {
 PipelineLayout::PipelineLayout(Core const& core, Config const& config) : _handle{core},
-    _pushConstantRanges{config.pushConstantRanges} {
-    _vkSetLayouts.reserve(config.setLayouts.size());
-    for(DescriptorSetLayout const& layout : config.setLayouts) {
-        DescriptorSetLayout::debug_check(layout);
-        _vkSetLayouts.push_back(layout.get());
-    }
-}
+    _setLayouts{config.setLayouts}, _pushConstantRanges{config.pushConstantRanges} {}
 
 PipelineLayout::PipelineLayout(Core const& core, Config const& config, State const& state) : PipelineLayout{
     core,
@@ -28,13 +22,20 @@ PipelineLayout::PipelineLayout(Core const& core, Config const& config, create_t)
 }
 
 void PipelineLayout::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
+    copySetLayouts();
     _handle.reset(state.vkLayout.get(), core());
 }
 
 void PipelineLayout::create() {
+    Core::debug_check(core());
+
     optDestroy();
+
+    copySetLayouts();
 
     auto const maxSets = core().physicalDevice().limits().maxBoundDescriptorSets;
     CTH_STABLE_ERR(
@@ -88,6 +89,15 @@ void destroy(DeviceTable table, VkPipelineLayout vkLayout) {
     CTH_WARN(vkLayout == VK_NULL_HANDLE, "vkLayout invalid (VK_NULL_HANDLE)") {}
 
     table->vkDestroyPipelineLayout(table.device(), vkLayout, nullptr);
+}
+
+void PipelineLayout::copySetLayouts() {
+    _vkSetLayouts.clear();
+    _vkSetLayouts.reserve(_setLayouts.size());
+    for(DescriptorSetLayout const& layout : _setLayouts) {
+        DescriptorSetLayout::debug_check(layout);
+        _vkSetLayouts.push_back(layout.get());
+    }
 }
 
 void PipelineLayout::forget() {}

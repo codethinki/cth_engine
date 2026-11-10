@@ -28,8 +28,7 @@ public:
     struct State;
 
     /**
-     * base constructor, copies the handles of the set layouts
-     * @pre the set layouts are created
+     * base constructor, keeps the set layouts
      */
     PipelineLayout(Core const&, Config const&);
 
@@ -52,7 +51,9 @@ public:
 
     /**
      * wraps the state
+     * @details copies the handles of the set layouts
      * @pre `Core::created()`
+     * @pre the set layouts of the config are created
      * @pre the layout was created with the config
      * @post `created()`
      * @note calls `optDestroy()`
@@ -61,8 +62,9 @@ public:
 
     /**
      * creates the layout
+     * @details copies the handles of the set layouts, they can be destroyed after the create
      * @pre `Core::created()`
-     * @pre the set layouts of the config are not destroyed
+     * @pre the set layouts of the config are created
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::cvk_exception reason: more set layouts than `maxBoundDescriptorSets`
@@ -97,10 +99,17 @@ public:
     [[nodiscard]] constexpr std::span<VkDescriptorSetLayout const> setLayouts() const { return _vkSetLayouts; }
 
 private:
+    /**
+     * copies the handles of `PipelineLayout::_setLayouts`
+     * @pre the set layouts are created
+     */
+    void copySetLayouts();
+
     void forget();
 
     core_handle<VkPipelineLayout> _handle;
-    std::vector<VkDescriptorSetLayout> _vkSetLayouts;
+    std::vector<cth::ref_wrapper<DescriptorSetLayout const>> _setLayouts; ///< see `Config::setLayouts`
+    std::vector<VkDescriptorSetLayout> _vkSetLayouts{}; ///< handles of the set layouts, copied by `create()`, `wrap()`
     std::vector<VkPushConstantRange> _pushConstantRanges;
 
 public:

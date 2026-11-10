@@ -1,8 +1,11 @@
 #include "context.hpp"
+#include "headless.hpp"
 #include "test.hpp"
 #include "validation.hpp"
 
 #include "cvk/base/instance.hpp"
+#include "cvk/debug/debug_messenger.hpp"
+#include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -187,5 +190,21 @@ CVK_TEST(Instance, release_and_wrap) {
     EXPECT_TRUE(std::ranges::equal(wrapped.extensions(), extensions));
     ASSERT_NE(wrapped.debugMessenger(), nullptr);
     EXPECT_EQ(wrapped.debugMessenger()->get(), vkMessenger);
+}
+
+CVK_TEST(Instance, objects_construct_before_the_instance_is_created) {
+    test::Context::ValidationCheck const validationCheck{};
+    Instance instance{test::instance_config(test::headless_extensions(), test::counting_messenger())};
+
+    // the base constructors only store, none of them needs the created instance
+    DebugMessenger messenger{instance, test::counting_messenger()};
+    Surface surface{instance};
+
+    instance.create();
+    messenger.create();
+    surface.wrap(test::headless_surface(instance).release());
+
+    EXPECT_TRUE(messenger.created());
+    EXPECT_TRUE(surface.created());
 }
 }

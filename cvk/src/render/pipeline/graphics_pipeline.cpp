@@ -21,14 +21,8 @@ GraphicsPipeline::GraphicsPipeline(PipelineLayout const& layout, Config config, 
 
 GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config) :
     BasePipeline{parent.layout(), VK_PIPELINE_BIND_POINT_GRAPHICS},
-    _vkParent{parent.get()},
-    _config{std::move(config)} {
-    debug_check(parent);
-    CTH_CRITICAL(
-        (parent.config().flags & VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT) == 0,
-        "parent must allow derivatives (VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT)"
-    ) {}
-}
+    _parentPtr{&parent},
+    _config{std::move(config)} {}
 
 GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config, create_t) :
     GraphicsPipeline{parent, std::move(config)} {
@@ -36,6 +30,13 @@ GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config
 }
 
 void GraphicsPipeline::create() {
+    if(_parentPtr != nullptr) {
+        debug_check(*_parentPtr);
+        CTH_CRITICAL(
+            (_parentPtr->config().flags & VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT) == 0,
+            "parent must allow derivatives (VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT)"
+        ) {}
+    }
     CTH_CRITICAL(
         !_config.colorBlendAttachments.empty() && _config.colorBlendAttachments.size() != _config.colorFormats.size(),
         "one color blend attachment per color format required, got {} for {}",
@@ -104,7 +105,7 @@ void GraphicsPipeline::create() {
     VkGraphicsPipelineCreateInfo const info{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .pNext = &rendering,
-        .flags = config.flags | (_vkParent != VK_NULL_HANDLE ? VK_PIPELINE_CREATE_DERIVATIVE_BIT : 0u),
+        .flags = config.flags | (_parentPtr != nullptr ? VK_PIPELINE_CREATE_DERIVATIVE_BIT : 0u),
         .stageCount = static_cast<uint32_t>(config.stages.size()),
         .pStages = config.stages.data(),
         .pVertexInputState = &vertexInput,
@@ -119,7 +120,7 @@ void GraphicsPipeline::create() {
         .layout = layout().get(),
         .renderPass = VK_NULL_HANDLE,
         .subpass = 0,
-        .basePipelineHandle = _vkParent,
+        .basePipelineHandle = _parentPtr != nullptr ? _parentPtr->get() : VK_NULL_HANDLE,
         .basePipelineIndex = -1,
     };
 

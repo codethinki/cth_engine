@@ -35,7 +35,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Instance::created()`
      */
     DebugMessenger(Instance const&, Config);
 
@@ -58,6 +57,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Instance::created()`
      * @pre the instance created the messenger
      * @post `created()`
      * @note calls `optDestroy()`
@@ -66,6 +66,7 @@ public:
 
     /**
      * creates the messenger
+     * @pre `Instance::created()`
      * @pre the instance enables `VK_EXT_debug_utils`
      * @post `created()`
      * @note calls `optDestroy()`
@@ -121,7 +122,8 @@ private:
     void forget();
 
     Config _config;
-    instance_handle<VkDebugUtilsMessengerEXT> _handle;
+    cth::ref_wrapper<Instance const> _instance;
+    instance_handle<VkDebugUtilsMessengerEXT> _handle{nullptr};
 
 public:
     DebugMessenger(DebugMessenger const& other) = delete;

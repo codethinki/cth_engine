@@ -36,8 +36,7 @@ public:
     explicit GraphicsPipeline(PipelineLayout const&, Config, create_t);
 
     /**
-     * base constructor of a derivative pipeline, keeps the layout and copies the handle of the parent
-     * @pre `created()` of the parent, with `VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT` in its flags
+     * base constructor of a derivative pipeline, keeps the parent and its layout
      */
     GraphicsPipeline(GraphicsPipeline const& parent, Config);
 
@@ -49,9 +48,11 @@ public:
 
     /**
      * creates the pipeline
-     * @details derivative pipeline -> adds `VK_PIPELINE_CREATE_DERIVATIVE_BIT`
+     * @details derivative pipeline -> adds `VK_PIPELINE_CREATE_DERIVATIVE_BIT`, the parent is the base pipeline
      * @details empty `Config::colorBlendAttachments` -> `Config::ALPHA_BLENDING` per color format
-     * @pre the layout, the parent and the shader modules of the config are not destroyed
+     * @pre the layout and the shader modules of the config are not destroyed
+     * @pre derivative pipeline -> `created()` of the parent, with `VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT` in
+     *  its flags
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateGraphicsPipelines()`
@@ -59,13 +60,13 @@ public:
     void create();
 
     /**
-     * @return `VK_NULL_HANDLE` -> not a derivative pipeline
+     * @return `nullptr` -> not a derivative pipeline
      */
-    [[nodiscard]] constexpr VkPipeline parent() const { return _vkParent; }
+    [[nodiscard]] constexpr GraphicsPipeline const* parent() const { return _parentPtr; }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
-    VkPipeline _vkParent = VK_NULL_HANDLE;
+    GraphicsPipeline const* _parentPtr = nullptr; ///< `nullptr` -> not a derivative pipeline
     Config _config;
 };
 }

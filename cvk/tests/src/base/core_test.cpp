@@ -14,6 +14,7 @@
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/cmd/cmd_pool.hpp"
 #include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
+#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/render/sync/semaphore.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
@@ -281,6 +282,7 @@ CVK_TEST(Core, objects_construct_before_the_core_is_created) {
     CmdPool pool{core, test::pool_config(context.core)};
     PrimaryCmdBuffer primary{pool};
     DescriptorSetLayout layout{core, layoutConfig};
+    PipelineLayout pipelineLayout{core, {.setLayouts = {layout}}};
     DescriptorPool descriptorPool{core, DescriptorPool::Config::ForLayouts({{layout}})};
     DescriptorSet set{descriptorPool, layout};
 
@@ -295,6 +297,7 @@ CVK_TEST(Core, objects_construct_before_the_core_is_created) {
     pool.create();
     primary.create();
     layout.create();
+    pipelineLayout.create();
     descriptorPool.create();
     set.create();
 
@@ -305,6 +308,8 @@ CVK_TEST(Core, objects_construct_before_the_core_is_created) {
     EXPECT_TRUE(image.created());
     EXPECT_TRUE(sampler.created());
     EXPECT_TRUE(primary.created());
+    ASSERT_EQ(pipelineLayout.setLayouts().size(), 1);
+    EXPECT_EQ(pipelineLayout.setLayouts()[0], layout.get());
     EXPECT_TRUE(set.created());
 }
 }

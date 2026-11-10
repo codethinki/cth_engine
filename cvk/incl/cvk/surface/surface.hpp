@@ -6,6 +6,7 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
 #include <vector>
 
@@ -24,7 +25,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Instance::created()`
      */
     explicit Surface(Instance const&);
 
@@ -41,6 +41,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Instance::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      */
@@ -93,7 +94,8 @@ public:
 private:
     void forget();
 
-    instance_handle<VkSurfaceKHR> _handle;
+    cth::ref_wrapper<Instance const> _instance;
+    instance_handle<VkSurfaceKHR> _handle{nullptr};
 
 public:
     Surface(Surface const& other) = delete;

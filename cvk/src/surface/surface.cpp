@@ -9,15 +9,16 @@
 namespace cvk {
 using std::vector;
 
-Surface::Surface(Instance const& instance) : _handle{instance.get()} {}
+Surface::Surface(Instance const& instance) : _instance{instance} {}
 
 Surface::Surface(Instance const& instance, State const& state) : Surface{instance} { wrap(state); }
 
 void Surface::wrap(State const& state) {
+    Instance::debug_check(*_instance);
     debug_check_handle(state.vkSurface);
     optDestroy();
 
-    _handle.reset(state.vkSurface.get(), _handle.vkInstance());
+    _handle.reset(state.vkSurface.get(), _instance->get());
 }
 
 void Surface::destroy() {
