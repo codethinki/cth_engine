@@ -8,7 +8,6 @@
 
 #include <volk.h>
 
-#include <cth/coro/tasks/sync_task.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
@@ -116,14 +115,6 @@ struct StageSlot {
     std::mutex stasisMutex{};
 
     Stasis stasis; ///< destroyed when `StageSlot::semaphore` reaches the frame number of the next submit or skip
-
-    //TODO review the job as a started sync_task: cth has no detached task, the next frame of the slot and the graph
-    // destructor wait for it
-    /**
-     * the submit job of the last submit or skip, started
-     * @details `StageGraph::nextFrame()` waits for it before the slot gets its next frame
-     */
-    std::optional<cth::co::sync_task<void>> jobOpt = std::nullopt;
 
 public:
     StageSlot(StageSlot const& other) = delete;

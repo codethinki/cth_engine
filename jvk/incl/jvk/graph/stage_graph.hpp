@@ -10,6 +10,7 @@
 
 #include <volk.h>
 
+#include <cth/coro/simple_counting_scope.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/data/hash_map.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
@@ -55,7 +56,7 @@ public:
 
     /**
      * waits until the gpu finished the submits of every slot, destroys the slots
-     * @details waits for the submit jobs first
+     * @details waits for the end of every submit job first
      * @pre every frame submitted or skipped its stages
      * @attention blocks the calling thread: a worker of the core must be free for the jobs
      */
@@ -205,6 +206,8 @@ private:
     std::mutex _errorMutex{};
 
     std::exception_ptr _errorPtr = nullptr; ///< the first error of a submit job, `nextFrame()` rethrows it
+
+    cth::co::simple_counting_scope _jobs{}; ///< the running submit jobs, `~StageGraph()` waits for them
 
     //TODO review name firstFrameNumber
     uint64_t _firstFrameNumber; ///< see `firstFrameNumber()`

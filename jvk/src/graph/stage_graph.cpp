@@ -8,7 +8,6 @@
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <cth/coro/executor.hpp>
-#include <cth/coro/tasks/sync_task.hpp>
 #include <cth/io/log.hpp>
 
 #include <algorithm>
@@ -32,14 +31,6 @@ namespace {
             for(auto const& wait : stage.waits)
                 maxOffset = std::max<uint64_t>(maxOffset, wait.frameOffset);
         return maxOffset + 1;
-    }
-
-    /**
-     * runs the job on the workers of the core once started
-     * @return the job, ends when the job ends
-     */
-    [[nodiscard]] cth::co::sync_task<void> spawn_job(cth::co::executor workers, cth::co::executor_task<void> job) {
-        co_await workers.spawn(std::move(job));
     }
 }
 
@@ -102,10 +93,10 @@ StageGraph::~StageGraph() {
                 stage.frameNumber()
             ) {}
 
+    _jobs.wait();
+
     for(auto& frameSlot : _frameSlots)
         for(auto& stageSlot : frameSlot.stageSlots) {
-            if(stageSlot.jobOpt.has_value()) stageSlot.jobOpt->wait();
-
             // a destructor does not throw: a failed wait leaves the gpu work, the destruction goes on
             try {
                 cvk::TimelineSemaphore const& semaphore = stageSlot.semaphore;
@@ -153,12 +144,6 @@ cth::co::executor_task<Frame&> StageGraph::nextFrame() {
 
         for(auto const& stage : frameSlot.stages)
             co_await stage;
-
-        //TODO review a short block: the job ends right after its mark, the gpu finished it
-        for(auto& stageSlot : frameSlot.stageSlots) {
-            if(stageSlot.jobOpt.has_value()) stageSlot.jobOpt->wait();
-            stageSlot.jobOpt.reset();
-        }
     }
 
     rethrowError();
@@ -177,13 +162,12 @@ void StageGraph::submit(Stage& stage) {
     CTH_CRITICAL(&*stageSlot.graph != this, "the stage must be of this graph") {}
     CTH_CRITICAL(stage._status != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
     CTH_CRITICAL(stageSlot.primary.rendering() != nullptr, "the primary must have no open rendering") {}
-    CTH_CRITICAL(stageSlot.jobOpt.has_value(), "the job of the last frame of the slot must be done") {}
 
     stageSlot.primary.optEnd();
     stage._status = Stage::Status::SUBMITTED;
 
-    stageSlot.jobOpt.emplace(spawn_job(
-        core().executor(),
+    core().executor().detach(
+        _jobs,
         submitJob(
             stageSlot,
             stage._frameNumber,
@@ -191,8 +175,7 @@ void StageGraph::submit(Stage& stage) {
             std::move(stage._extraBinaryWaits),
             Stage::Status::SUBMITTED
         )
-    ));
-    stageSlot.jobOpt->start();
+    );
 }
 
 void StageGraph::skip(Stage& stage) {
@@ -200,12 +183,11 @@ void StageGraph::skip(Stage& stage) {
     CTH_CRITICAL(&*stageSlot.graph != this, "the stage must be of this graph") {}
     CTH_CRITICAL(stage._status != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
     CTH_CRITICAL(stageSlot.primary.recording(), "a skipped stage must not begin its primary") {}
-    CTH_CRITICAL(stageSlot.jobOpt.has_value(), "the job of the last frame of the slot must be done") {}
 
     stage._status = Stage::Status::SKIPPED;
 
-    stageSlot.jobOpt.emplace(spawn_job(
-        core().executor(),
+    core().executor().detach(
+        _jobs,
         submitJob(
             stageSlot,
             stage._frameNumber,
@@ -213,8 +195,7 @@ void StageGraph::skip(Stage& stage) {
             std::move(stage._extraBinaryWaits),
             Stage::Status::SKIPPED
         )
-    ));
-    stageSlot.jobOpt->start();
+    );
 }
 
 cth::co::executor_task<void> StageGraph::submitJob(
