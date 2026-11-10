@@ -8,6 +8,7 @@
 
 #include <volk.h>
 
+#include <cth/coro/tasks/sync_task.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
@@ -65,6 +66,8 @@ struct SubmitInfo {
     constexpr void next(size_t frameSlots);
 };
 
+//TODO review a constructor, no aggregate: `SubmitInfo::signal` and `SubmitInfo::cmdBuffers` refer to members, the
+// mutex does not move
 /**
  * resources of a stage in one frame slot
  * @details
@@ -72,6 +75,18 @@ struct SubmitInfo {
  * - the `Stage` of each frame uses them
  */
 struct StageSlot {
+    /**
+     * creates the semaphore and the command buffers of the stage slot
+     * @details
+     * - the semaphore starts at `StageGraph::firstFrameNumber() - 1`
+     * - `SubmitInfo::signal`: the semaphore with the first frame number of the slot
+     * - the graph sets `StageSlot::previous` and the waits of `StageSlot::submitInfo` once all slots exist
+     * - `secondaries`: `StageConfig::secondaries` of the stage
+     * @pre `StageGraph::firstFrameNumber()` is set
+     * @throws cvk::vk_result_exception result of a create of the semaphore or the command buffers
+     */
+    StageSlot(StageGraph& graph, size_t stageId, size_t slot, Queue const& queue, size_t secondaries);
+
     cth::ref_wrapper<StageGraph> graph;
 
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
@@ -101,6 +116,20 @@ struct StageSlot {
     std::mutex stasisMutex{};
 
     Stasis stasis; ///< destroyed when `StageSlot::semaphore` reaches the frame number of the next submit or skip
+
+    //TODO review the job as a started sync_task: cth has no detached task, the next frame of the slot and the graph
+    // destructor wait for it
+    /**
+     * the submit job of the last submit or skip, started
+     * @details `StageGraph::nextFrame()` waits for it before the slot gets its next frame
+     */
+    std::optional<cth::co::sync_task<void>> jobOpt = std::nullopt;
+
+public:
+    StageSlot(StageSlot const& other) = delete;
+    StageSlot(StageSlot&& other) = delete;
+    StageSlot& operator=(StageSlot const& other) = delete;
+    StageSlot& operator=(StageSlot&& other) = delete;
 };
 }
 

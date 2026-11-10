@@ -1,6 +1,8 @@
 #pragma once
 #include <volk.h>
 
+#include <cth/io/log.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -55,4 +57,43 @@ struct StageGraphConfig {
      */
     static constexpr void debug_check(StageGraphConfig const&);
 };
+}
+
+namespace jvk {
+constexpr void StageGraphConfig::debug_check(StageGraphConfig const& config) {
+    CTH_CRITICAL(config.frameSlots == 0, "frameSlots must be > 0") {}
+
+    auto const stageCount = config.stages.size();
+    // the waits with frameOffset == 0 per stage
+    std::vector<size_t> waitCounts(stageCount, 0);
+    for(size_t stageId = 0; stageId < stageCount; ++stageId)
+        for(auto const& wait : config.stages[stageId].waits) {
+            CTH_CRITICAL(
+                wait.stageId >= stageCount,
+                "the waits must name stages of the config, got {} for {} stages",
+                wait.stageId,
+                stageCount
+            ) {}
+            if(wait.frameOffset == 0) ++waitCounts[stageId];
+        }
+
+    // removes the stages without open waits until none is left, a rest is a cycle
+    std::vector<size_t> ready{};
+    for(size_t stageId = 0; stageId < stageCount; ++stageId)
+        if(waitCounts[stageId] == 0) ready.push_back(stageId);
+
+    size_t removed = 0;
+    while(!ready.empty()) {
+        auto const doneId = ready.back();
+        ready.pop_back();
+        ++removed;
+
+        for(size_t stageId = 0; stageId < stageCount; ++stageId)
+            for(auto const& wait : config.stages[stageId].waits)
+                if(wait.frameOffset == 0 && wait.stageId == doneId && --waitCounts[stageId] == 0)
+                    ready.push_back(stageId);
+    }
+
+    CTH_CRITICAL(removed != stageCount, "the waits with frameOffset == 0 must form no cycle") {}
+}
 }

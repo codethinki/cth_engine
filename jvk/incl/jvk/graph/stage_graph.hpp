@@ -55,7 +55,9 @@ public:
 
     /**
      * waits until the gpu finished the submits of every slot, destroys the slots
+     * @details waits for the submit jobs first
      * @pre every frame submitted or skipped its stages
+     * @attention blocks the calling thread: a worker of the core must be free for the jobs
      */
     ~StageGraph();
 
@@ -174,6 +176,12 @@ private:
      * stores the first error of a job for `nextFrame()`
      */
     void storeError(std::exception_ptr) noexcept;
+
+    //TODO review the error stays: every nextFrame() rethrows it, the errors of the jobs are fatal
+    /**
+     * rethrows the first error of a job
+     */
+    void rethrowError();
 
     cth::ref_wrapper<Core> _core;
     Config _config;
