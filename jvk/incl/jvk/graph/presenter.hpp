@@ -83,7 +83,6 @@ public:
     /**
      * base constructor
      * @details the queue presents and runs the present submits
-     * @pre `Core::created()`
      */
     Presenter(Core const&, Queue const&, Config);
 
@@ -102,6 +101,7 @@ public:
     /**
      * takes the surface, creates the swapchain, the semaphores and the command buffers
      * @details surface extent `0` -> the first `acquire()` with an extent `> 0` creates the swapchain
+     * @pre `Core::created()`
      * @pre `cvk::Surface::created()`
      * @pre the queue can present to the surface
      * @post `created()`

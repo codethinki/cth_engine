@@ -32,7 +32,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     DescriptorSetLayout(Core const&, Config);
 
@@ -55,6 +54,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @pre the layout was created with the config
      * @post `created()`
      * @note calls `optDestroy()`
@@ -63,6 +63,7 @@ public:
 
     /**
      * creates the layout
+     * @pre `Core::created()`
      * @pre `Config::debug_check()` of the config
      * @post `created()`
      * @note calls `optDestroy()`

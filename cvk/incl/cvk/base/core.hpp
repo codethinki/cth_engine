@@ -40,7 +40,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Instance::created()`
      */
     explicit Core(Instance const&);
 
@@ -75,6 +74,7 @@ public:
      * wraps the state
      * @details empty `State::queueIndices` -> entry i uses queue i of the device
      * @details `nullptr` `State::allocator` -> creates the allocator
+     * @pre `Instance::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      */
@@ -85,6 +85,7 @@ public:
      * @param surfaces the present queues present to every surface
      * @details picks the first queue set that a physical device supports
      * @details picks the best physical device for it
+     * @pre `Instance::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::cvk_exception reason: no physical device meets the requirements

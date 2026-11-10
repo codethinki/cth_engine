@@ -224,7 +224,7 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 
 | Function | Meaning |
 |---|---|
-| base constructor | stores the configuration, does not create a Vulkan object |
+| base constructor | stores the configuration, does not create a Vulkan object, needs no created parent |
 | `wrap(State)` | takes ownership of an existing Vulkan object, calls `optDestroy()` first |
 | `create()` | creates a new Vulkan object, calls `optDestroy()` first |
 | `destroy()` | destroys the Vulkan object now and forgets, requires `created()` |

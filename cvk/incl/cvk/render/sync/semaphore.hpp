@@ -24,7 +24,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     explicit Semaphore(Core const&);
 
@@ -47,6 +46,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      */
@@ -54,6 +54,7 @@ public:
 
     /**
      * creates the semaphore
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`

@@ -26,7 +26,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     explicit Fence(Core const&);
 
@@ -49,6 +48,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      */
@@ -59,6 +59,7 @@ public:
      * @param flags `VK_FENCE_CREATE_SIGNALED_BIT` -> created signaled
      * @param exportTypes handle types the fence can export, `0` -> not exportable,
      *  `constants::OS_FENCE_HANDLE_TYPE` for `extractOsHandle()`
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateFence()`

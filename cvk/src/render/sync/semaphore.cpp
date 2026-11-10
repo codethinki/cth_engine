@@ -5,13 +5,15 @@
 
 
 namespace cvk {
-Semaphore::Semaphore(Core const& core) : _handle{core} { Core::debug_check(core); }
+Semaphore::Semaphore(Core const& core) : _handle{core} {}
 
 Semaphore::Semaphore(Core const& core, State const& state) : Semaphore{core} { wrap(state); }
 
 Semaphore::Semaphore(Core const& core, create_t) : Semaphore{core} { create(); }
 
 void Semaphore::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
     _handle.reset(state.vkSemaphore.get(), core());
@@ -49,6 +51,8 @@ void destroy(DeviceTable table, VkSemaphore vkSemaphore) {
 }
 
 void Semaphore::create(VkSemaphoreCreateInfo const& info) {
+    Core::debug_check(core());
+
     optDestroy();
 
     VkSemaphore ptr = VK_NULL_HANDLE;

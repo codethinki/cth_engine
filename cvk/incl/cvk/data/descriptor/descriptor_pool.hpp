@@ -31,7 +31,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     DescriptorPool(Core const&, Config);
 
@@ -54,6 +53,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @pre the pool was created with the config
      * @post `created()`
      * @note calls `optDestroy()`
@@ -62,6 +62,7 @@ public:
 
     /**
      * creates the pool
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateDescriptorPool()`

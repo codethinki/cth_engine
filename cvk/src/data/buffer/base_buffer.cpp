@@ -11,7 +11,6 @@
 
 namespace cvk {
 BaseBuffer::BaseBuffer(Core const& core, Config const& config) : _handle{core}, _config{config} {
-    Core::debug_check(core);
     Config::debug_check(config);
 }
 
@@ -22,6 +21,8 @@ BaseBuffer::BaseBuffer(Core const& core, Config const& config, State const& stat
 BaseBuffer::BaseBuffer(Core const& core, Config const& config, size_t size) : BaseBuffer{core, config} { create(size); }
 
 void BaseBuffer::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
     _handle.reset(state.vkBuffer.get(), core());
@@ -30,6 +31,8 @@ void BaseBuffer::wrap(State const& state) {
 }
 
 void BaseBuffer::create(size_t size) {
+    Core::debug_check(core());
+
     optDestroy();
 
     auto const bufferInfo = _config.createInfo(size);

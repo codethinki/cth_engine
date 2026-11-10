@@ -38,7 +38,6 @@ class Buffer : public BaseBuffer {
 public:
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     Buffer(Core const& core, Config const& config) : BaseBuffer{core, config} {}
 

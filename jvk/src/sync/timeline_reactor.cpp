@@ -21,21 +21,19 @@ using std::vector;
 using await_func = cth::co::context::await_func;
 
 TimelineReactor::TimelineReactor(cvk::Core const& core, cth::co::scheduler const& workers) :
-    _core{core}, _workers{workers} {}
+    _workers{workers}, _wake{core} {}
 
 void TimelineReactor::create() {
-    cvk::Core::debug_check(*_core);
-
     optDestroy();
 
-    _wakeOpt.emplace(*_core, cvk::create);
+    _wake.create();
     _error = {};
 
     try {
         _thread = std::jthread{[this](std::stop_token stop) { run(std::move(stop)); }};
     }
     catch(...) {
-        _wakeOpt.reset();
+        _wake.destroy();
         throw;
     }
 }
@@ -63,7 +61,7 @@ void TimelineReactor::destroy() {
 
     _waiters.clear();
     _error = {};
-    _wakeOpt.reset();
+    _wake.destroy();
 }
 
 void TimelineReactor::await(VkSemaphore vkSemaphore, uint64_t value, await_func cb) const {
@@ -99,7 +97,7 @@ bool TimelineReactor::pending(VkSemaphore vkSemaphore) const {
 }
 
 void TimelineReactor::run(std::stop_token stop) {
-    auto const table = _core->deviceTable();
+    auto const table = _wake.core().deviceTable();
 
     vector<VkSemaphore> vkSemaphores{};
     vector<uint64_t> values{};
@@ -112,8 +110,8 @@ void TimelineReactor::run(std::stop_token stop) {
             std::scoped_lock const lock{_mutex};
             if(stop.stop_requested()) return;
 
-            vkSemaphores.assign({_wakeOpt->get()});
-            values.assign({_wakeOpt->value() + 1});
+            vkSemaphores.assign({_wake.get()});
+            values.assign({_wake.value() + 1});
             for(auto const& [vkSemaphore, waiters] : _waiters) {
                 vkSemaphores.push_back(vkSemaphore);
                 values.push_back(waiters.front().value);
@@ -171,7 +169,7 @@ void TimelineReactor::run(std::stop_token stop) {
     }
 }
 
-void TimelineReactor::wake() const { _wakeOpt->signal(); }
+void TimelineReactor::wake() const { _wake.signal(); }
 
 vector<await_func> TimelineReactor::fail(std::error_code error) const {
     _error = error;

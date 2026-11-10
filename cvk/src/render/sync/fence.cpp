@@ -18,7 +18,7 @@
 
 
 namespace cvk {
-Fence::Fence(Core const& core) : _handle{core} { Core::debug_check(core); }
+Fence::Fence(Core const& core) : _handle{core} {}
 
 Fence::Fence(Core const& core, State const& state) : Fence{core} { wrap(state); }
 
@@ -28,6 +28,8 @@ Fence::Fence(Core const& core, create_t, VkFenceCreateFlags flags, VkExternalFen
 }
 
 void Fence::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
     _handle.reset(state.vkFence.get(), core());
@@ -35,6 +37,8 @@ void Fence::wrap(State const& state) {
 }
 
 void Fence::create(VkFenceCreateFlags flags, VkExternalFenceHandleTypeFlags exportTypes) {
+    Core::debug_check(core());
+
     optDestroy();
 
     VkExportFenceCreateInfo const exportInfo{

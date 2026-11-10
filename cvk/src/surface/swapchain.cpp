@@ -18,9 +18,6 @@ using std::vector;
 
 Swapchain::Swapchain(Core const& core, Queue const& presentQueue, Surface const& surface, Config config) :
     _presentQueue{presentQueue}, _surface{surface}, _core{core}, _config{std::move(config)} {
-    Core::debug_check(core);
-    Surface::debug_check(surface);
-    Queue::debug_check_present(presentQueue);
     Config::debug_check(_config);
 }
 
@@ -41,6 +38,10 @@ Swapchain::Swapchain(
 ) : Swapchain{core, presentQueue, surface, std::move(config)} { create(extent); }
 
 void Swapchain::wrap(State const& state) {
+    Core::debug_check(*_core);
+    Surface::debug_check(*_surface);
+    Queue::debug_check_present(_presentQueue);
+
     optDestroy();
 
     _generations.emplace_back(core_handle<VkSwapchainKHR>{state.vkSwapchain.get(), core()});
@@ -52,6 +53,9 @@ void Swapchain::wrap(State const& state) {
 }
 
 void Swapchain::create(VkExtent2D extent) {
+    Core::debug_check(*_core);
+    Surface::debug_check(*_surface);
+    Queue::debug_check_present(_presentQueue);
     CTH_CRITICAL(extent.width == 0 || extent.height == 0, "extent width and height must be > 0, got {}", extent) {}
     optDestroy();
 

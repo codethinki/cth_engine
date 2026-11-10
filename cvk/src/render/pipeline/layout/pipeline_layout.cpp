@@ -11,8 +11,6 @@
 namespace cvk {
 PipelineLayout::PipelineLayout(Core const& core, Config const& config) : _handle{core},
     _pushConstantRanges{config.pushConstantRanges} {
-    Core::debug_check(core);
-
     _vkSetLayouts.reserve(config.setLayouts.size());
     for(DescriptorSetLayout const& layout : config.setLayouts) {
         DescriptorSetLayout::debug_check(layout);

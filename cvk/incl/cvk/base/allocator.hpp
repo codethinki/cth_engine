@@ -25,7 +25,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Device::created()`
      */
     explicit Allocator(Device const&);
 
@@ -48,6 +47,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Device::created()`
      * @pre the allocator was created with the device
      * @post `created()`
      * @note calls `optDestroy()`
@@ -57,6 +57,7 @@ public:
     /**
      * creates the allocator
      * @details the flags follow the enabled features and extensions of the device
+     * @pre `Device::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vmaImportVulkanFunctionsFromVolk()`

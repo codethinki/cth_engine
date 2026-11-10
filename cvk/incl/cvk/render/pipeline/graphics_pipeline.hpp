@@ -20,7 +20,6 @@ public:
 
     /**
      * base constructor, keeps the layout
-     * @pre `Core::created()` of the layout
      */
     GraphicsPipeline(PipelineLayout const&, Config);
 

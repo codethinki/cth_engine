@@ -35,7 +35,6 @@ public:
 
     /**
      * base constructor
-     * @pre `cvk::Instance::created()`
      */
     Core(cvk::Instance const&, Config);
 
@@ -64,6 +63,7 @@ public:
     /**
      * creates the cvk core, the workers, the reactor and the queues
      * @param surfaces the present queues present to every surface
+     * @pre `cvk::Instance::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::cvk_exception reason: no physical device meets the requirements

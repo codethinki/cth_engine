@@ -83,11 +83,10 @@ namespace {
     }
 }
 
-BaseCmdBuffer::BaseCmdBuffer(CmdPool const& pool, VkCommandBufferLevel level) : _handle{pool}, _level{level} {
-    CmdPool::debug_check(pool);
-}
+BaseCmdBuffer::BaseCmdBuffer(CmdPool const& pool, VkCommandBufferLevel level) : _handle{pool}, _level{level} {}
 
 void BaseCmdBuffer::wrap(State const& state) {
+    CmdPool::debug_check(pool());
     CTH_CRITICAL(
         state.vkPool.get() != pool().get(),
         "state.vkPool must be the pool of the command buffer {}, got {}",

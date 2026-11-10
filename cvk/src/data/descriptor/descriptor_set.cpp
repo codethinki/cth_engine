@@ -69,9 +69,6 @@ namespace {
 
 DescriptorSet::DescriptorSet(DescriptorPool const& pool, DescriptorSetLayout const& layout, uint32_t variableCount) :
     _handle{pool}, _layout{layout}, _variableCount{variableCount} {
-    DescriptorPool::debug_check(pool);
-    DescriptorSetLayout::debug_check(layout);
-
     auto const* variablePtr = layout.variableBinding();
     CTH_CRITICAL(variableCount != 0 && variablePtr == nullptr, "a variable count needs a variable count binding") {}
     CTH_CRITICAL(
@@ -95,6 +92,8 @@ DescriptorSet::DescriptorSet(
 ) : DescriptorSet{pool, layout, variableCount} { create(); }
 
 void DescriptorSet::wrap(State const& state) {
+    DescriptorPool::debug_check(pool());
+    DescriptorSetLayout::debug_check(*_layout);
     CTH_CRITICAL(
         state.vkPool.get() != pool().get(),
         "state.vkPool must be the pool of the set {}, got {}",
@@ -110,6 +109,7 @@ void DescriptorSet::wrap(State const& state) {
 
 void DescriptorSet::create() {
     DescriptorPool::debug_check(pool());
+    DescriptorSetLayout::debug_check(*_layout);
     CTH_CRITICAL(
         _layout->updateAfterBind() && (pool().config().flags & VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT) == 0,
         "update after bind layouts need a pool with VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT"

@@ -34,8 +34,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Instance::created()`
-     * @pre `PhysicalDevice::created()`
      */
     Device(Instance const&, PhysicalDevice const&);
 
@@ -59,6 +57,8 @@ public:
     /**
      * wraps the state and retrieves the queues of `State::queueFamilyIndices`
      * @details `nullptr` `State::functionTable` -> loads the functions
+     * @pre `Instance::created()`
+     * @pre the physical device is not moved from
      * @pre the device has the queues of `State::queueFamilyIndices`
      * @post `created()`
      * @note calls `optDestroy()`
@@ -68,6 +68,8 @@ public:
     /**
      * creates the device with the features and extensions of the config and retrieves the queues
      * @details queues of one family get the indices 0, 1, ... in the order of `Config::queueFamilyIndices`
+     * @pre `Instance::created()`
+     * @pre the physical device is not moved from
      * @pre the physical device has the features and the extensions of the config
      * @post `created()`
      * @note calls `optDestroy()`

@@ -9,7 +9,6 @@
 
 #include <cstdint>
 #include <mutex>
-#include <optional>
 #include <stop_token>
 #include <system_error>
 #include <thread>
@@ -85,7 +84,7 @@ public:
      */
     [[nodiscard]] bool pending(VkSemaphore) const;
 
-    [[nodiscard]] constexpr bool created() const { return _wakeOpt.has_value(); }
+    [[nodiscard]] constexpr bool created() const { return _wake.created(); }
 
 private:
     /**
@@ -123,15 +122,9 @@ private:
      */
     void post(cth::co::context::await_func cb, std::error_code) const;
 
-    cth::ref_wrapper<cvk::Core const> _core;
     cth::ref_wrapper<cth::co::scheduler const> _workers;
 
-    //TODO review std::optional: the base constructor of cvk::TimelineSemaphore needs a created core
-    /**
-     * the thread waits for it next to the semaphores with waiters
-     * @details constructed by `create()`
-     */
-    mutable std::optional<cvk::TimelineSemaphore> _wakeOpt = std::nullopt;
+    mutable cvk::TimelineSemaphore _wake; ///< the thread waits for it next to the semaphores with waiters
 
     mutable std::mutex _mutex{};
 

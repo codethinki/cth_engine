@@ -35,7 +35,6 @@ public:
     /**
      * base constructor
      * @param variableCount descriptors of the variable count binding (`0` => its maximum count)
-     * @pre `DescriptorPool::created()`, `DescriptorSetLayout::created()`
      * @pre `variableCount != 0` -> the layout has a variable count binding with a maximum >= `variableCount`
      */
     DescriptorSet(DescriptorPool const&, DescriptorSetLayout const&, uint32_t variableCount = 0);
@@ -69,6 +68,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `DescriptorPool::created()`, `DescriptorSetLayout::created()`
      * @pre `State::vkPool` is the pool of the set
      * @pre the pool allocated the set with the layout and the variable count
      * @post `created()`
@@ -78,6 +78,7 @@ public:
 
     /**
      * allocates the set from the pool
+     * @pre `DescriptorPool::created()`, `DescriptorSetLayout::created()`
      * @pre `DescriptorPool::created()`
      * @pre update after bind layout -> the pool has `VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT`
      * @post `created()`

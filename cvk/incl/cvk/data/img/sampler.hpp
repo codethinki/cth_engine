@@ -27,9 +27,6 @@ public:
 
     /**
      * base constructor
-     * @details clamps `Config::maxAnisotropy` to `maxSamplerAnisotropy` of the device
-     * @details warns if it clamps
-     * @pre `Core::created()`
      */
     Sampler(Core const&, Config const&);
 
@@ -52,6 +49,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @pre the sampler was created with the config
      * @post `created()`
      * @note calls `optDestroy()`
@@ -60,6 +58,8 @@ public:
 
     /**
      * creates the sampler
+     * @details clamps `Config::maxAnisotropy` to `maxSamplerAnisotropy` of the device, warns if it clamps
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateSampler()`

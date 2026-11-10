@@ -41,6 +41,7 @@ Core::Core(Instance const& instance, State state) : Core{instance} { wrap(std::m
 Core::~Core() { optDestroy(); }
 
 void Core::wrap(State state) {
+    Instance::debug_check(*_instance);
     PhysicalDevice::debug_check(*state.physicalDevice);
     Device::debug_check(*state.device);
     CTH_CRITICAL(
@@ -75,6 +76,7 @@ void Core::wrap(State state) {
 }
 
 void Core::create(span<cth::ref_wrapper<Surface const> const> surfaces, Config const& config) {
+    Instance::debug_check(*_instance);
     Config::debug_check(config);
 
     optDestroy();

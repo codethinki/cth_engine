@@ -10,19 +10,23 @@
 
 
 namespace cvk {
-Allocator::Allocator(Device const& device) : _device{device} { Device::debug_check(device); }
+Allocator::Allocator(Device const& device) : _device{device} {}
 
 Allocator::Allocator(Device const& device, State const& state) : Allocator{device} { wrap(state); }
 
 Allocator::Allocator(Device const& device, create_t) : Allocator{device} { create(); }
 
 void Allocator::wrap(State const& state) {
+    Device::debug_check(*_device);
+
     optDestroy();
 
     _handle.reset(state.vmaAllocator.get());
 }
 
 void Allocator::create() {
+    Device::debug_check(*_device);
+
     optDestroy();
 
     VmaAllocatorCreateInfo info{

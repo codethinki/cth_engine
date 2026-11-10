@@ -56,9 +56,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`, `Surface::created()`
-     * @pre the queue can present to the surface
-     * @pre the device enables `constants::PRESENT_DEVICE_EXTENSIONS`, a present queue of the core does
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config);
 
@@ -82,6 +79,9 @@ public:
     /**
      * wraps the state, gets the images, creates their views, present semaphores and present fences
      * @details the format and the present mode come from the state, not from the config
+     * @pre `Core::created()`, `Surface::created()`
+     * @pre the queue can present to the surface
+     * @pre the device enables `constants::PRESENT_DEVICE_EXTENSIONS`, a present queue of the core does
      * @pre the swapchain was created for the surface with the config and the state
      * @post `created()`
      * @note calls `optDestroy()`
@@ -93,6 +93,9 @@ public:
      * picks the format and the present mode of the config, creates the swapchain
      * @param extent of the window, a fixed `currentExtent` of the surface wins
      * @details the first entries of `Config::formats` and `Config::presentModes` that the surface offers win
+     * @pre `Core::created()`, `Surface::created()`
+     * @pre the queue can present to the surface
+     * @pre the device enables `constants::PRESENT_DEVICE_EXTENSIONS`, a present queue of the core does
      * @pre `extent` width and height > 0
      * @post `created()`
      * @note calls `optDestroy()`

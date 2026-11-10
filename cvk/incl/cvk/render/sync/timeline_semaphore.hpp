@@ -17,7 +17,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     explicit TimelineSemaphore(Core const&);
 
@@ -40,6 +39,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      */
@@ -48,6 +48,7 @@ public:
     /**
      * creates the semaphore
      * @param initialValue of the semaphore and the counter
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`

@@ -6,7 +6,6 @@
 
 namespace cvk {
 DescriptorPool::DescriptorPool(Core const& core, Config config) : _handle{core}, _config{std::move(config)} {
-    Core::debug_check(core);
     Config::debug_check(_config);
 }
 
@@ -20,12 +19,16 @@ DescriptorPool::DescriptorPool(Core const& core, Config config, create_t) : Desc
 }
 
 void DescriptorPool::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
     _handle.reset(state.vkPool.get(), core());
 }
 
 void DescriptorPool::create() {
+    Core::debug_check(core());
+
     optDestroy();
 
     auto const info = _config.createInfo();

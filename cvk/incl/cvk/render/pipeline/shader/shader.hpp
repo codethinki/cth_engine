@@ -32,7 +32,6 @@ public:
     /**
      * base constructor
      * @param stage of the shader
-     * @pre `Core::created()`
      */
     Shader(Core const&, VkShaderStageFlagBits stage);
 
@@ -74,6 +73,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      */
@@ -82,6 +82,7 @@ public:
     /**
      * creates the module
      * @param spv SPIR-V code
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateShaderModule()`
@@ -91,6 +92,7 @@ public:
     /**
      * loads the SPIR-V file and creates the module
      * @details calls `load()`, @ref create(std::span<uint32_t const>)
+     * @pre `Core::created()`
      */
     void create(path_t const& spvPath);
 

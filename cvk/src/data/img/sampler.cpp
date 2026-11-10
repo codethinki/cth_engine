@@ -8,10 +8,24 @@
 
 
 namespace cvk {
-Sampler::Sampler(Core const& core, Config const& config) : _handle{core}, _config{config} {
-    Core::debug_check(core);
+Sampler::Sampler(Core const& core, Config const& config) : _handle{core}, _config{config} {}
 
-    auto const limit = core.physicalDevice().limits().maxSamplerAnisotropy;
+Sampler::Sampler(Core const& core, Config const& config, State const& state) : Sampler{core, config} { wrap(state); }
+
+Sampler::Sampler(Core const& core, Config const& config, create_t) : Sampler{core, config} { create(); }
+
+void Sampler::wrap(State const& state) {
+    Core::debug_check(core());
+
+    optDestroy();
+
+    _handle.reset(state.vkSampler.get(), core());
+}
+
+void Sampler::create() {
+    Core::debug_check(core());
+
+    auto const limit = core().physicalDevice().limits().maxSamplerAnisotropy;
     CTH_WARN(
         _config.maxAnisotropy > limit,
         "maxAnisotropy clamped to the device limit {}, got {}",
@@ -19,19 +33,7 @@ Sampler::Sampler(Core const& core, Config const& config) : _handle{core}, _confi
         _config.maxAnisotropy
     ) {}
     _config.maxAnisotropy = std::min(_config.maxAnisotropy, limit);
-}
 
-Sampler::Sampler(Core const& core, Config const& config, State const& state) : Sampler{core, config} { wrap(state); }
-
-Sampler::Sampler(Core const& core, Config const& config, create_t) : Sampler{core, config} { create(); }
-
-void Sampler::wrap(State const& state) {
-    optDestroy();
-
-    _handle.reset(state.vkSampler.get(), core());
-}
-
-void Sampler::create() {
     optDestroy();
 
     auto const info = _config.createInfo();

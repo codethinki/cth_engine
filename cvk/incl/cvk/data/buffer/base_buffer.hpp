@@ -46,7 +46,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     BaseBuffer(Core const&, Config const&);
 
@@ -70,6 +69,7 @@ public:
     /**
      * wraps the state
      * @details `std::nullopt` `State::memory` -> no own memory, `destroy()` only destroys the buffer
+     * @pre `Core::created()`
      * @pre the buffer is bound to its memory
      * @pre the buffer was created with the usage of the config
      * @post `created()`
@@ -80,6 +80,7 @@ public:
     /**
      * creates the buffer and its memory
      * @param size in bytes
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vmaCreateBuffer()`

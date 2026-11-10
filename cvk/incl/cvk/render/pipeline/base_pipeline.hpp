@@ -60,7 +60,6 @@ public:
 protected:
     /**
      * base constructor, keeps the layout
-     * @pre `Core::created()` of the layout
      */
     BasePipeline(PipelineLayout const&, VkPipelineBindPoint);
 

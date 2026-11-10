@@ -13,7 +13,6 @@
 
 namespace cvk {
 Image::Image(Core const& core, Config const& config) : _handle{core}, _config{config} {
-    Core::debug_check(core);
     Config::debug_check(config);
 }
 
@@ -22,6 +21,8 @@ Image::Image(Core const& core, Config const& config, State const& state) : Image
 Image::Image(Core const& core, Config const& config, VkExtent2D extent) : Image{core, config} { create(extent); }
 
 void Image::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
     _handle.reset(state.vkImage.get(), core());
@@ -30,6 +31,7 @@ void Image::wrap(State const& state) {
 }
 
 void Image::create(VkExtent2D extent) {
+    Core::debug_check(core());
     CTH_CRITICAL(
         (_config.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0 && extent.width != extent.height,
         "a cube compatible image needs a square extent"

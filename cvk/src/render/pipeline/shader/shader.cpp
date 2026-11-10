@@ -13,9 +13,7 @@
 
 
 namespace cvk {
-Shader::Shader(Core const& core, VkShaderStageFlagBits stage) : _handle{core}, _stage{stage} {
-    Core::debug_check(core);
-}
+Shader::Shader(Core const& core, VkShaderStageFlagBits stage) : _handle{core}, _stage{stage} {}
 
 Shader::Shader(Core const& core, VkShaderStageFlagBits stage, State const& state) : Shader{core, stage} {
     wrap(state);
@@ -43,12 +41,15 @@ Shader::Shader(
 }
 
 void Shader::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
     _handle.reset(state.vkShader.get(), core());
 }
 
 void Shader::create(std::span<uint32_t const> spv) {
+    Core::debug_check(core());
     CTH_CRITICAL(spv.empty(), "spv must not be empty") {}
 
     optDestroy();

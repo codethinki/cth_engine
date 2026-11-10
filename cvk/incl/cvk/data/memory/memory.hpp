@@ -35,7 +35,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     Memory(Core const&, Config const&);
 
@@ -58,6 +57,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @pre the allocator of the core created the allocation
      * @post `created()`
      * @note calls `optDestroy()`
@@ -66,6 +66,7 @@ public:
 
     /**
      * allocates memory for the requirements
+     * @pre `Core::created()`
      * @pre `!Config::autoUsage()`
      * @post `created()`
      * @note calls `optDestroy()`

@@ -37,7 +37,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     Image(Core const&, Config const&);
 
@@ -61,6 +60,7 @@ public:
     /**
      * wraps the state
      * @details `std::nullopt` `State::memory` -> no own memory, `destroy()` only destroys the image
+     * @pre `Core::created()`
      * @pre the image is bound to its memory
      * @pre the image was created with the config
      * @post `created()`
@@ -70,6 +70,7 @@ public:
 
     /**
      * creates the image and its memory
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vmaCreateImage()`

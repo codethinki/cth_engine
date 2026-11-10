@@ -32,7 +32,6 @@ public:
 
     /**
      * base constructor, keeps the layout
-     * @pre `Core::created()` of the layout
      */
     ComputePipeline(PipelineLayout const&, Config const&);
 

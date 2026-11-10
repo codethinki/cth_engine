@@ -109,7 +109,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     explicit Semaphore(Core const&);
 
@@ -134,6 +133,7 @@ public:
     /**
      * wraps the state
      * @details `submittedValue()` becomes `State::value`
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      */
@@ -142,6 +142,7 @@ public:
     /**
      * creates the semaphore
      * @param initialValue of the semaphore, its counter and `submittedValue()`
+     * @pre `Core::created()`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`

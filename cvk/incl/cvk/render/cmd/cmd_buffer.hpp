@@ -57,6 +57,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `CmdPool::created()`
      * @pre `State::vkPool` is the pool of the command buffer
      * @pre the pool of the command buffer allocated it with the level
      * @pre the command buffer is not recording
@@ -328,7 +329,6 @@ public:
 protected:
     /**
      * base constructor
-     * @pre `CmdPool::created()`
      */
     BaseCmdBuffer(CmdPool const&, VkCommandBufferLevel);
 
@@ -438,7 +438,6 @@ class PrimaryCmdBuffer : public BaseCmdBuffer {
 public:
     /**
      * base constructor
-     * @pre `CmdPool::created()`
      */
     explicit PrimaryCmdBuffer(CmdPool const&);
 
@@ -514,7 +513,6 @@ public:
 
     /**
      * base constructor
-     * @pre `CmdPool::created()`
      */
     explicit SecondaryCmdBuffer(CmdPool const&);
 

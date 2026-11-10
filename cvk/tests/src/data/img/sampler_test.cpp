@@ -26,13 +26,16 @@ CVK_TEST(Sampler, config_create_info_is_constexpr) {
     static_assert(Sampler::Config{.compareOp = VK_COMPARE_OP_LESS}.createInfo().compareOp == VK_COMPARE_OP_LESS);
 }
 
-CVK_TEST(Sampler, base_constructor_clamps_anisotropy) {
+CVK_TEST(Sampler, create_clamps_anisotropy) {
     test::Context const context{};
     auto const limit = context.core.physicalDevice().limits().maxSamplerAnisotropy;
 
-    Sampler const sampler{context.core, Sampler::Config{.maxAnisotropy = limit * 2}};
+    Sampler sampler{context.core, Sampler::Config{.maxAnisotropy = limit * 2}};
+    EXPECT_EQ(sampler.config().maxAnisotropy, limit * 2);
 
-    EXPECT_FALSE(sampler.created());
+    sampler.create();
+
+    EXPECT_TRUE(sampler.created());
     EXPECT_EQ(sampler.config().maxAnisotropy, limit);
 }
 

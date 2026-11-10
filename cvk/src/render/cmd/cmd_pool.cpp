@@ -5,21 +5,22 @@
 
 
 namespace cvk {
-CmdPool::CmdPool(Core const& core, Config const& config) : _handle{core}, _config{config} {
-    Core::debug_check(core);
-}
+CmdPool::CmdPool(Core const& core, Config const& config) : _handle{core}, _config{config} {}
 
 CmdPool::CmdPool(Core const& core, Config const& config, State const& state) : CmdPool{core, config} { wrap(state); }
 
 CmdPool::CmdPool(Core const& core, Config const& config, create_t) : CmdPool{core, config} { create(); }
 
 void CmdPool::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
     _handle.reset(state.vkPool.get(), core());
 }
 
 void CmdPool::create() {
+    Core::debug_check(core());
     CTH_CRITICAL(_config.queueFamilyIndex == VK_QUEUE_FAMILY_IGNORED, "the config needs a queue family") {}
 
     optDestroy();

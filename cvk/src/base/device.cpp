@@ -35,6 +35,9 @@ Device::Device(
 } { create(config); }
 
 void Device::wrap(State state) {
+    Instance::debug_check(*_instance);
+    PhysicalDevice::debug_check(*_physicalDevice);
+
     optDestroy();
 
     _functionTablePtr = std::move(state.functionTable);
@@ -50,6 +53,9 @@ void Device::wrap(State state) {
 }
 
 void Device::create(Config const& config) {
+    Instance::debug_check(*_instance);
+    PhysicalDevice::debug_check(*_physicalDevice);
+
     optDestroy();
 
     _features = config.features;

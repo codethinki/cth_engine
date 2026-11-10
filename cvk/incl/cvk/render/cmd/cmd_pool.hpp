@@ -29,7 +29,6 @@ public:
 
     /**
      * base constructor
-     * @pre `Core::created()`
      */
     CmdPool(Core const&, Config const&);
 
@@ -52,6 +51,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @pre the pool was created with the config
      * @post `created()`
      * @note calls `optDestroy()`
@@ -60,6 +60,7 @@ public:
 
     /**
      * creates the pool
+     * @pre `Core::created()`
      * @pre the config has a queue family (`!= VK_QUEUE_FAMILY_IGNORED`)
      * @post `created()`
      * @note calls `optDestroy()`

@@ -8,7 +8,6 @@
 
 namespace cvk {
 DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config) : _handle{core} {
-    Core::debug_check(core);
     Config::debug_check(config);
 
     _bindings = std::move(config.bindings);
@@ -26,12 +25,16 @@ DescriptorSetLayout::DescriptorSetLayout(Core const& core, Config config, create
 } { create(); }
 
 void DescriptorSetLayout::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
     _handle.reset(state.vkLayout.get(), core());
 }
 
 void DescriptorSetLayout::create() {
+    Core::debug_check(core());
+
     optDestroy();
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo const flagsInfo{

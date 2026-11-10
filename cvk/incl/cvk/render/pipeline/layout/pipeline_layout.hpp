@@ -29,7 +29,6 @@ public:
 
     /**
      * base constructor, copies the handles of the set layouts
-     * @pre `Core::created()`
      * @pre the set layouts are created
      */
     PipelineLayout(Core const&, Config const&);
@@ -53,6 +52,7 @@ public:
 
     /**
      * wraps the state
+     * @pre `Core::created()`
      * @pre the layout was created with the config
      * @post `created()`
      * @note calls `optDestroy()`
@@ -61,6 +61,7 @@ public:
 
     /**
      * creates the layout
+     * @pre `Core::created()`
      * @pre the set layouts of the config are not destroyed
      * @post `created()`
      * @note calls `optDestroy()`

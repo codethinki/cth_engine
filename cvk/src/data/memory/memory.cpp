@@ -8,7 +8,7 @@
 
 
 namespace cvk {
-Memory::Memory(Core const& core, Config const& config) : _handle{core}, _config{config} { Core::debug_check(core); }
+Memory::Memory(Core const& core, Config const& config) : _handle{core}, _config{config} {}
 
 Memory::Memory(Core const& core, Config const& config, State const& state) : Memory{core, config} { wrap(state); }
 
@@ -18,12 +18,15 @@ Memory::Memory(Core const& core, Config const& config, VkMemoryRequirements cons
 } { create(requirements); }
 
 void Memory::wrap(State const& state) {
+    Core::debug_check(core());
+
     optDestroy();
 
     _handle.reset(state.vmaAllocation.get(), core());
 }
 
 void Memory::create(VkMemoryRequirements const& requirements) {
+    Core::debug_check(core());
     CTH_CRITICAL(_config.autoUsage(), "VMA_MEMORY_USAGE_AUTO* needs a buffer or an image, use the flags") {}
 
     optDestroy();
