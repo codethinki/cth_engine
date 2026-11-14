@@ -67,7 +67,7 @@ namespace {
         toAttachment.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
         toAttachment.execute(cmd);
 
-        auto const rendering = cmd.beginRendering(
+        cmd.beginRendering(
             {
                 .colorAttachments = {
                     RenderingAttachment{

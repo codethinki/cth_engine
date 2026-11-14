@@ -47,50 +47,6 @@ template<class T>
 concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copyable<T> && !std::is_pointer_v<T>);
 
 /**
- * dynamic rendering of a command buffer for the scope
- * @details
- * - `beginRendering()` of the command buffer returns it
- * - normal end and exception: ends the rendering if it is still open
- * - an explicit `endRendering()` of the command buffer: the end does nothing
- * - a moved-from or released scope does nothing
- * @tparam CmdBuffer with `rendering()` and `endRendering()`: `BaseCmdBuffer` or a jvk command buffer
- * @attention a coroutine destroyed while suspended with the scope alive ends the rendering
- */
-template<class CmdBuffer>
-class scoped_rendering {
-public:
-    /**
-     * @param cmdBuffer that began the rendering
-     */
-    explicit constexpr scoped_rendering(CmdBuffer& cmdBuffer) noexcept : _cmdBufferPtr{&cmdBuffer} {}
-
-    ~scoped_rendering() {
-        if(_cmdBufferPtr && _cmdBufferPtr->rendering() != nullptr) _cmdBufferPtr->endRendering();
-    }
-
-    /**
-     * ends the rendering now, the destructor then does nothing
-     * @pre the rendering is open
-     */
-    void end() { _cmdBufferPtr.release()->endRendering(); }
-
-    /**
-     * gives the end of the rendering to the caller, the destructor then does nothing
-     * @details like `std::experimental::scope_exit::release()`
-     */
-    void release() noexcept { static_cast<void>(_cmdBufferPtr.release()); }
-
-private:
-    move_ptr<CmdBuffer> _cmdBufferPtr;
-
-public:
-    scoped_rendering(scoped_rendering const& other) = delete;
-    scoped_rendering(scoped_rendering&& other) noexcept = default;
-    scoped_rendering& operator=(scoped_rendering const& other) = delete;
-    scoped_rendering& operator=(scoped_rendering&& other) = delete;
-};
-
-/**
  * `VkCommandBuffer` wrapper
  * @details allocated from its pool
  * @details base of `PrimaryCmdBuffer` and `SecondaryCmdBuffer`
@@ -170,9 +126,8 @@ public:
      * @pre color attachments have color formats, the depth and stencil attachments depth and stencil formats
      * @pre `AttachmentMapping::debug_check()` passes for the color attachments
      * @post `rendering()` is the info with the area
-     * @return scope, ends the rendering at its end, see `scoped_rendering`
      */
-    [[nodiscard]] scoped_rendering<BaseCmdBuffer> beginRendering(RenderingInfo const&);
+    void beginRendering(RenderingInfo const&);
 
     /**
      * ends the dynamic rendering

@@ -246,7 +246,7 @@ CVK_TEST(CmdBuffer, primary_is_inside_its_rendering) {
     Barrier transition{};
     transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
     transition.execute(primary);
-    auto const rendering = primary.beginRendering({
+    primary.beginRendering({
         .colorAttachments = {
             RenderingAttachment{
                 .view = view,

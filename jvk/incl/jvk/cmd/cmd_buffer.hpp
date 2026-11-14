@@ -9,6 +9,7 @@
 
 #include <volk.h>
 
+#include <cth/ptr/move_ptr.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <concepts>
@@ -51,6 +52,46 @@ namespace jvk {
  */
 template<class... Args>
 concept access_pairs = sizeof...(Args) >= 4 && dev::access_pairs<std::remove_cvref_t<Args>...>;
+}
+
+namespace jvk {
+/**
+ * dynamic rendering of a jvk command buffer for the scope, ends it at its end
+ * @details
+ * - `beginRendering()` of the command buffer returns it
+ * - normal end and exception: calls `endRendering()` of the command buffer if the rendering is still open
+ * - an explicit `endRendering()` of the command buffer: the end does nothing
+ * - a moved-from scope does nothing
+ * @tparam CmdBuffer a jvk command buffer
+ * @attention a coroutine destroyed while suspended with the scope alive ends the rendering
+ */
+template<class CmdBuffer>
+class scoped_rendering {
+public:
+    /**
+     * @param cmdBuffer that began the rendering
+     */
+    explicit constexpr scoped_rendering(CmdBuffer& cmdBuffer) noexcept : _cmdBufferPtr{&cmdBuffer} {}
+
+    ~scoped_rendering() {
+        if(_cmdBufferPtr && _cmdBufferPtr->rendering() != nullptr) _cmdBufferPtr->endRendering();
+    }
+
+    /**
+     * ends the rendering now, the end of the scope does nothing
+     * @pre the rendering is open
+     */
+    void end() { _cmdBufferPtr.release()->endRendering(); }
+
+private:
+    cth::move_ptr<CmdBuffer> _cmdBufferPtr;
+
+public:
+    scoped_rendering(scoped_rendering const& other) = delete;
+    scoped_rendering(scoped_rendering&& other) noexcept = default;
+    scoped_rendering& operator=(scoped_rendering const& other) = delete;
+    scoped_rendering& operator=(scoped_rendering&& other) = delete;
+};
 }
 
 namespace jvk::dev {
@@ -139,9 +180,9 @@ public:
      *  loses its contents, also outside the view and the render area
      * @pre the preconditions of `cvk::BaseCmdBuffer::beginRendering()`
      * @pre the depth and the stencil attachment of one image have the same layout
-     * @return scope, calls `endRendering()` at its end, see `cvk::scoped_rendering`
+     * @return scope, calls `endRendering()` at its end, see `scoped_rendering`
      */
-    [[nodiscard]] cvk::scoped_rendering<BasicCmdBuffer> beginRendering(cvk::RenderingInfo const&);
+    [[nodiscard]] scoped_rendering<BasicCmdBuffer> beginRendering(cvk::RenderingInfo const&);
 
     /**
      * ends the dynamic rendering

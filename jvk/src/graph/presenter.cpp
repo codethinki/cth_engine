@@ -179,15 +179,7 @@ void Presenter::present(Stage& stage) {
     _imageOpt.reset();
 }
 
-cth::co::executor_task<void> Presenter::unacquire() {
-    debug_check(*this);
-    CTH_CRITICAL(!_imageOpt.has_value(), "the presenter must have an acquired image") {}
-
-    co_await _queue->executor().schedule();
-    unacquireImage();
-}
-
-void Presenter::detachUnacquire() {
+void Presenter::unacquire() {
     debug_check(*this);
     CTH_CRITICAL(!_imageOpt.has_value(), "the presenter must have an acquired image") {}
 
@@ -363,7 +355,7 @@ scoped_acquire::~scoped_acquire() {
     // a destructor does not throw: the next acquire() rethrows
     try {
         if(stage.status() == Stage::Status::SUBMITTED) _presenterPtr->present(stage);
-        else _presenterPtr->detachUnacquire();
+        else _presenterPtr->unacquire();
     }
     catch(...) {
         _error->store(std::current_exception());
@@ -378,8 +370,8 @@ void scoped_acquire::present() {
     _presenterPtr.release()->present(*_stage);
 }
 
-cth::co::executor_task<void> scoped_acquire::unacquire() {
+void scoped_acquire::unacquire() {
     debug_check(*this);
-    return _presenterPtr.release()->unacquire();
+    _presenterPtr.release()->unacquire();
 }
 }

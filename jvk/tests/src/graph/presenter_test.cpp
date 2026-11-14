@@ -231,7 +231,9 @@ JVK_TEST(Presenter, unacquire_gives_the_image_back_early) {
         auto const imageIdx = image->imageIdx;
         EXPECT_TRUE(presenter.swapchain().acquired(imageIdx));
 
-        core.executor().sync_wait(image.unacquire());
+        // the strand gives the image back
+        image.unacquire();
+        core.executor().sync_wait(enter_strand(core.queue(0)));
         EXPECT_FALSE(presenter.swapchain().acquired(imageIdx));
 
         // the submit waits for the acquire semaphore

@@ -30,6 +30,13 @@ namespace {
     concept usable = requires(PrimaryCmdBuffer& cmd, Args const&... args) { cmd.use(args...); };
 
     constexpr VkExtent2D EXTENT{16, 16};
+
+    /**
+     * rendering without attachments
+     */
+    constexpr VkRect2D AREA{.offset = {0, 0}, .extent = EXTENT};
+
+    struct test_exception {};
     constexpr size_t PIXELS = size_t{EXTENT.width} * EXTENT.height;
 
     constexpr cvk::Image::Config IMAGE_CONFIG{
@@ -313,6 +320,58 @@ JVK_TEST(CmdBuffer, begin_rendering_records_the_attachments) {
     auto const mapping = readback.map();
     readback.invalidate();
     EXPECT_EQ(mapping[0], 0xff0000ffu);
+}
+
+JVK_TEST(CmdBuffer, rendering_scope_ends_the_rendering_at_its_end) {
+    test::Context const context{};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+
+    primary.begin();
+    {
+        auto const rendering = primary.beginRendering({.area = AREA});
+        EXPECT_NE(primary.rendering(), nullptr);
+    }
+    EXPECT_EQ(primary.rendering(), nullptr);
+
+    // an exception ends it too
+    try {
+        auto const rendering = primary.beginRendering({.area = AREA});
+        throw test_exception{};
+    }
+    catch(test_exception const&) {}
+    EXPECT_EQ(primary.rendering(), nullptr);
+    primary.end();
+
+    test::submit_and_wait(context, primary);
+}
+
+JVK_TEST(CmdBuffer, rendering_scope_does_nothing_after_an_end_or_a_move) {
+    test::Context const context{};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+
+    // a second end fails its check
+    primary.begin();
+    {
+        auto rendering = primary.beginRendering({.area = AREA});
+        rendering.end();
+        EXPECT_EQ(primary.rendering(), nullptr);
+    }
+
+    // ended by the command buffer: the rendering is not open at the end
+    {
+        auto const rendering = primary.beginRendering({.area = AREA});
+        primary.endRendering();
+    }
+
+    // the moved-from scope does nothing
+    {
+        auto rendering = primary.beginRendering({.area = AREA});
+        auto const moved = std::move(rendering);
+    }
+    EXPECT_EQ(primary.rendering(), nullptr);
+    primary.end();
+
+    test::submit_and_wait(context, primary);
 }
 
 JVK_TEST(CmdBuffer, use_inside_a_rendering_records_a_local_read_barrier) {

@@ -169,8 +169,6 @@ public:
         VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
     );
 
-    //TODO review public: scoped_acquire is no nested class, it reaches the presenter through present(), unacquire()
-    // and detachUnacquire(), the first error comes into its constructor
     /**
      * presents the acquired image after the submitted stage
      * @details
@@ -189,23 +187,12 @@ public:
     void present(Stage&);
 
     /**
-     * gives the acquired image back without a present, in the strand of the queue
-     * @pre an acquired image without a present or unacquire
+     * gives the acquired image back without a present
+     * @details returns at once: the strand of the queue gives it back before the next `acquire()`
+     * @pre an acquired image, not presented
      * @pre no submit uses the image
-     * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
-     * @see `scoped_acquire`
      */
-    [[nodiscard]] cth::co::executor_task<void> unacquire();
-
-    /**
-     * gives the acquired image back without a present, in a job in the strand of the queue
-     * @details
-     * - returns at once, the job runs before the next `acquire()`
-     * - a failure of the job: the next `acquire()` rethrows it
-     * @pre the preconditions of `unacquire()`
-     * @see `scoped_acquire`
-     */
-    void detachUnacquire();
+    void unacquire();
 
     [[nodiscard]] constexpr bool created() const { return _surface.created(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
@@ -346,7 +333,7 @@ namespace jvk {
  * @details
  * - `Presenter::acquire()` returns it
  * - normal end, by `Stage::status()`: `SUBMITTED` -> `Presenter::present()`, `SKIPPED` or `UNSUBMITTED` ->
- *   `Presenter::detachUnacquire()`
+ *   `Presenter::unacquire()`
  * - exception, by `Stage::status()`: `SUBMITTED` -> presents, the frame is complete, else nothing: the next
  *   `Presenter::acquire()` or `Presenter::destroy()` unacquires the image
  * - no image or a moved-from scope: nothing
@@ -389,13 +376,11 @@ public:
 
     /**
      * gives the image back without a present, the end of the scope does nothing
-     * @details the task is not awaited -> the next `Presenter::acquire()` unacquires the image
      * @pre an image
      * @pre no submit uses the image
-     * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
      * @see `Presenter::unacquire()`
      */
-    [[nodiscard]] cth::co::executor_task<void> unacquire();
+    void unacquire();
 
     [[nodiscard]] constexpr explicit operator bool() const { return _imageOpt.has_value(); }
 
