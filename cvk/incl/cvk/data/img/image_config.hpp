@@ -93,6 +93,14 @@ struct ImageConfig {
         };
     }
 
+    //TODO review one place for the rule: the create info and the jvk tracking read it
+    /**
+     * @return `VK_SHARING_MODE_CONCURRENT` for two or more `queueFamilies`, else `VK_SHARING_MODE_EXCLUSIVE`
+     */
+    [[nodiscard]] constexpr VkSharingMode sharingMode() const {
+        return queueFamilies.size() >= 2 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+    }
+
     /**
      * @attention `pQueueFamilyIndices` points into `queueFamilies`
      */
@@ -109,7 +117,7 @@ struct ImageConfig {
             .samples = samples,
             .tiling = tiling,
             .usage = usage,
-            .sharingMode = queueFamilies.size() >= 2 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+            .sharingMode = sharingMode(),
             .queueFamilyIndexCount = static_cast<uint32_t>(queueFamilies.size()),
             .pQueueFamilyIndices = queueFamilies.data(),
             .initialLayout = initialLayout,

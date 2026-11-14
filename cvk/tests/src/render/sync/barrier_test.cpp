@@ -225,19 +225,16 @@ CVK_TEST(Barrier, image_layout_transition) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
 
-    Barrier const barrier{
-        .images = {
-            {
-                image,
-                ImageBarrierInfo::LayoutTransition(
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_IMAGE_LAYOUT_UNDEFINED,
-                    TRANSFER_WRITE,
-                    {}
-                ),
-            },
-        },
-    };
+    Barrier barrier{};
+    barrier.add(
+        image,
+        ImageBarrierInfo::LayoutTransition(
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            TRANSFER_WRITE,
+            {}
+        )
+    );
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) { barrier.execute(primary); });
 }
 

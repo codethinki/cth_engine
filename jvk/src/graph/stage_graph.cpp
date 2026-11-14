@@ -36,14 +36,6 @@ namespace {
     }
 
     /**
-     * @return `VK_SHARING_MODE_EXCLUSIVE`: one queue family at a time owns the resource
-     */
-    template<class Resource>
-    [[nodiscard]] constexpr bool exclusive(Resource const& resource) {
-        return resource.config().queueFamilies.size() < 2;
-    }
-
-    /**
      * transition of the first use from `VK_IMAGE_LAYOUT_UNDEFINED`, no queue family ownership transfer
      * @details `src` waits for the stages of the first use, no access: like `cvk::layout_transition()`
      */
@@ -368,31 +360,32 @@ void StageGraph::append(
         return &it->second.get();
     };
 
-    for(auto const& [image, mipLevel] : recording.images()) {
-        auto const firstOpt = recording.first(*image, mipLevel);
+    for(auto const& [vkImage, mipLevel, aspectMask, sharingMode] : recording.images()) {
+        auto const firstOpt = recording.first(vkImage, mipLevel);
         // an assume() before the first use: ResourceStates::append() takes the state
         if(!firstOpt.has_value()) continue;
 
-        auto const lastOpt = _states.last(*image, mipLevel);
+        auto const lastOpt = _states.last(vkImage, mipLevel);
         if(!lastOpt.has_value()) {
-            prologue.add(*image, from_undefined(*firstOpt, mipLevel));
+            prologue.add(vkImage, aspectMask, from_undefined(*firstOpt, mipLevel));
             continue;
         }
 
-        auto const* lastQueuePtr = otherFamilyQueue(_imageQueues, image_mip_t{image->get(), mipLevel});
-        if(lastQueuePtr == nullptr || !exclusive(*image)) continue;
+        auto const* lastQueuePtr = otherFamilyQueue(_imageQueues, image_mip_t{vkImage, mipLevel});
+        if(lastQueuePtr == nullptr || sharingMode != VK_SHARING_MODE_EXCLUSIVE) continue;
 
         // ResourceStates::append() inserts the state of the recording without a barrier
-        _states.erase(image->get(), mipLevel);
+        _states.erase(vkImage, mipLevel);
 
-        if(recording.discards(*image, mipLevel) || lastOpt->layout == VK_IMAGE_LAYOUT_UNDEFINED) {
-            prologue.add(*image, from_undefined(*firstOpt, mipLevel));
+        if(recording.discards(vkImage, mipLevel) || lastOpt->layout == VK_IMAGE_LAYOUT_UNDEFINED) {
+            prologue.add(vkImage, aspectMask, from_undefined(*firstOpt, mipLevel));
             continue;
         }
 
         auto const lastFamily = lastQueuePtr->vk().familyIndex();
         releases[lastQueuePtr].add(
-            *image,
+            vkImage,
+            aspectMask,
             image_transfer(
                 {lastOpt->scope.stages, lastOpt->scope.access, lastFamily},
                 {.queueFamilyIndex = family},
@@ -402,7 +395,8 @@ void StageGraph::append(
             )
         );
         prologue.add(
-            *image,
+            vkImage,
+            aspectMask,
             image_transfer(
                 acquire_src(lastFamily),
                 {firstOpt->scope.stages, firstOpt->scope.access, family},
@@ -413,27 +407,27 @@ void StageGraph::append(
         );
     }
 
-    for(auto const& buffer : recording.buffers()) {
-        auto const firstOpt = recording.first(*buffer);
-        auto const lastOpt = _states.last(*buffer);
+    for(auto const& [vkBuffer, sharingMode] : recording.buffers()) {
+        auto const firstOpt = recording.first(vkBuffer);
+        auto const lastOpt = _states.last(vkBuffer);
         // unknown buffer: no barrier
         if(!firstOpt.has_value() || !lastOpt.has_value()) continue;
 
-        auto const* lastQueuePtr = otherFamilyQueue(_bufferQueues, buffer->get());
-        if(lastQueuePtr == nullptr || !exclusive(*buffer)) continue;
+        auto const* lastQueuePtr = otherFamilyQueue(_bufferQueues, vkBuffer);
+        if(lastQueuePtr == nullptr || sharingMode != VK_SHARING_MODE_EXCLUSIVE) continue;
 
-        _states.erase(buffer->get());
+        _states.erase(vkBuffer);
 
         auto const lastFamily = lastQueuePtr->vk().familyIndex();
         releases[lastQueuePtr].add(
-            *buffer,
+            vkBuffer,
             cvk::BufferBarrierInfo::QueueTransition(
                 {.queueFamilyIndex = family},
                 {lastOpt->scope.stages, lastOpt->scope.access, lastFamily}
             )
         );
         prologue.add(
-            *buffer,
+            vkBuffer,
             cvk::BufferBarrierInfo::QueueTransition(
                 {firstOpt->scope.stages, firstOpt->scope.access, family},
                 acquire_src(lastFamily)
@@ -443,10 +437,10 @@ void StageGraph::append(
 
     _states.append(recording, prologue);
 
-    for(auto const& [image, mipLevel] : recording.images())
-        _imageQueues.insert_or_assign(image_mip_t{image->get(), mipLevel}, cth::ref_wrapper<Queue const>{queue});
-    for(auto const& buffer : recording.buffers())
-        _bufferQueues.insert_or_assign(buffer->get(), cth::ref_wrapper<Queue const>{queue});
+    for(auto const& [vkImage, mipLevel, aspectMask, sharingMode] : recording.images())
+        _imageQueues.insert_or_assign(image_mip_t{vkImage, mipLevel}, cth::ref_wrapper<Queue const>{queue});
+    for(auto const& [vkBuffer, sharingMode] : recording.buffers())
+        _bufferQueues.insert_or_assign(vkBuffer, cth::ref_wrapper<Queue const>{queue});
 }
 
 cth::co::executor_task<vector<SemaphoreSubmitInfo>> StageGraph::release(release_map_t releases) {

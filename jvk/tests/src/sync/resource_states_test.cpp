@@ -96,13 +96,14 @@ JVK_TEST(ResourceStates, known_state_gets_a_barrier) {
 
     // one entry for both mip levels
     ASSERT_EQ(barrier.images.size(), 1);
-    auto const& [barrierImage, info] = barrier.images[0];
-    EXPECT_EQ(&barrierImage.get(), &image);
-    EXPECT_EQ(info.oldLayout, VK_IMAGE_LAYOUT_UNDEFINED);
-    EXPECT_EQ(info.newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    EXPECT_EQ(info.firstMipLevel, 1);
-    EXPECT_EQ(info.mipLevels, 2);
-    EXPECT_EQ(info.dst.access, VK_ACCESS_2_TRANSFER_WRITE_BIT);
+    auto const& vkBarrier = barrier.images[0];
+    EXPECT_EQ(vkBarrier.image, image.get());
+    EXPECT_EQ(vkBarrier.oldLayout, VK_IMAGE_LAYOUT_UNDEFINED);
+    EXPECT_EQ(vkBarrier.newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    EXPECT_EQ(vkBarrier.subresourceRange.baseMipLevel, 1);
+    EXPECT_EQ(vkBarrier.subresourceRange.levelCount, 2);
+    EXPECT_EQ(vkBarrier.subresourceRange.aspectMask, image.aspectMask());
+    EXPECT_EQ(vkBarrier.dstAccessMask, VK_ACCESS_2_TRANSFER_WRITE_BIT);
 
     // the assume came before the first access
     EXPECT_FALSE(states.first(image, 1).has_value());
@@ -136,10 +137,10 @@ JVK_TEST(ResourceStates, write_after_write_gets_a_barrier) {
     states.access(image, with_mips(TRANSFER_WRITE, 0, 1), barrier);
 
     ASSERT_EQ(barrier.images.size(), 1);
-    auto const& info = barrier.images[0].info;
-    EXPECT_EQ(info.oldLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    EXPECT_EQ(info.newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    EXPECT_EQ(info.src.access, VK_ACCESS_2_TRANSFER_WRITE_BIT);
+    auto const& vkBarrier = barrier.images[0];
+    EXPECT_EQ(vkBarrier.oldLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    EXPECT_EQ(vkBarrier.newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    EXPECT_EQ(vkBarrier.srcAccessMask, VK_ACCESS_2_TRANSFER_WRITE_BIT);
 }
 
 JVK_TEST(ResourceStates, a_barrier_ends_the_first_use) {
@@ -167,8 +168,8 @@ JVK_TEST(ResourceStates, read_after_read_only_makes_writes_available) {
     states.access(image, TRANSFER_WRITE, barrier);
 
     ASSERT_EQ(barrier.images.size(), 1);
-    EXPECT_EQ(barrier.images[0].info.src.stages, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
-    EXPECT_EQ(barrier.images[0].info.src.access, VK_ACCESS_2_NONE);
+    EXPECT_EQ(barrier.images[0].srcStageMask, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
+    EXPECT_EQ(barrier.images[0].srcAccessMask, VK_ACCESS_2_NONE);
 }
 
 JVK_TEST(ResourceStates, discard_comes_from_undefined) {
@@ -187,8 +188,8 @@ JVK_TEST(ResourceStates, discard_comes_from_undefined) {
     states.access(image, with_mips(discard, 0, 1), barrier);
 
     ASSERT_EQ(barrier.images.size(), 2);
-    EXPECT_EQ(barrier.images[1].info.oldLayout, VK_IMAGE_LAYOUT_UNDEFINED);
-    EXPECT_EQ(barrier.images[1].info.newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    EXPECT_EQ(barrier.images[1].oldLayout, VK_IMAGE_LAYOUT_UNDEFINED);
+    EXPECT_EQ(barrier.images[1].newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 }
 
 JVK_TEST(ResourceStates, assume_a_mip_range) {
@@ -257,10 +258,10 @@ JVK_TEST(ResourceStates, buffer_barriers) {
     states.access(buffer, SHADER_READ, barrier);
 
     ASSERT_EQ(barrier.buffers.size(), 1);
-    auto const& [barrierBuffer, info] = barrier.buffers[0];
-    EXPECT_EQ(&barrierBuffer.get(), &buffer);
-    EXPECT_EQ(info.src.access, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
-    EXPECT_EQ(info.dst.access, VK_ACCESS_2_SHADER_STORAGE_READ_BIT);
+    auto const& vkBarrier = barrier.buffers[0];
+    EXPECT_EQ(vkBarrier.buffer, buffer.get());
+    EXPECT_EQ(vkBarrier.srcAccessMask, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
+    EXPECT_EQ(vkBarrier.dstAccessMask, VK_ACCESS_2_SHADER_STORAGE_READ_BIT);
     EXPECT_EQ(states.last(buffer)->scope.access, VK_ACCESS_2_SHADER_STORAGE_READ_BIT);
 }
 
@@ -275,7 +276,7 @@ JVK_TEST(ResourceStates, assume_a_buffer) {
 
     EXPECT_FALSE(states.first(buffer).has_value());
     ASSERT_EQ(barrier.buffers.size(), 1);
-    EXPECT_EQ(barrier.buffers[0].info.src.access, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
+    EXPECT_EQ(barrier.buffers[0].srcAccessMask, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
 }
 
 JVK_TEST(ResourceStates, append_gets_barriers_for_the_first_uses_of_next) {
@@ -297,10 +298,10 @@ JVK_TEST(ResourceStates, append_gets_barriers_for_the_first_uses_of_next) {
     states.append(next, barrier);
 
     ASSERT_EQ(barrier.images.size(), 1);
-    EXPECT_EQ(barrier.images[0].info.oldLayout, VK_IMAGE_LAYOUT_UNDEFINED);
-    EXPECT_EQ(barrier.images[0].info.newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    EXPECT_EQ(barrier.images[0].oldLayout, VK_IMAGE_LAYOUT_UNDEFINED);
+    EXPECT_EQ(barrier.images[0].newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     ASSERT_EQ(barrier.buffers.size(), 1);
-    EXPECT_EQ(barrier.buffers[0].info.src.access, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
+    EXPECT_EQ(barrier.buffers[0].srcAccessMask, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
 
     EXPECT_EQ(states.last(image, 0)->layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     // no state in this: the first use of next becomes the first use

@@ -4,12 +4,12 @@
 #include <volk.h>
 
 #include <cth/data/hash_map.hpp>
-#include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <ranges>
+#include <tuple>
 #include <utility>
 
 
@@ -68,11 +68,12 @@ struct BufferAccess {
 
 /**
  * resource state tracker of one recording
- * @details one state per (image, mip level), for all layers and aspects
- * @details one state per buffer
+ * @details
+ * - one state per (image, mip level), for all layers and aspects
+ * - one state per buffer
+ * - keeps the handles, the aspect mask and the sharing mode, no reference to the objects
  * @attention not thread safe
- * @attention keeps pointers: the images and buffers do not move
- * @attention call `erase()` before an image or buffer is destroyed
+ * @attention call `erase()` before an image or buffer is destroyed: a new one can get its handle
  */
 class ResourceStates {
 public:
@@ -133,25 +134,50 @@ public:
     /**
      * @return `std::nullopt` -> no access or an `assume()` before it
      */
-    [[nodiscard]] std::optional<ImageState> first(cvk::Image const&, uint32_t mipLevel) const;
+    [[nodiscard]] std::optional<ImageState> first(VkImage, uint32_t mipLevel) const;
 
     /**
      * @return the first use of the mip level has `ImageAccess::discard`
      */
-    [[nodiscard]] bool discards(cvk::Image const&, uint32_t mipLevel) const;
+    [[nodiscard]] bool discards(VkImage, uint32_t mipLevel) const;
 
     /**
      * @return `std::nullopt` -> no access and no `assume()`
      */
-    [[nodiscard]] std::optional<ImageState> last(cvk::Image const&, uint32_t mipLevel) const;
+    [[nodiscard]] std::optional<ImageState> last(VkImage, uint32_t mipLevel) const;
 
     /**
      * @return `std::nullopt` -> no access or an `assume()` before it
      */
-    [[nodiscard]] std::optional<BufferState> first(cvk::BaseBuffer const&) const;
+    [[nodiscard]] std::optional<BufferState> first(VkBuffer) const;
 
     /**
      * @return `std::nullopt` -> no access and no `assume()`
+     */
+    [[nodiscard]] std::optional<BufferState> last(VkBuffer) const;
+
+    /**
+     * @see @ref first(VkImage, uint32_t) const
+     */
+    [[nodiscard]] std::optional<ImageState> first(cvk::Image const&, uint32_t mipLevel) const;
+
+    /**
+     * @see @ref discards(VkImage, uint32_t) const
+     */
+    [[nodiscard]] bool discards(cvk::Image const&, uint32_t mipLevel) const;
+
+    /**
+     * @see @ref last(VkImage, uint32_t) const
+     */
+    [[nodiscard]] std::optional<ImageState> last(cvk::Image const&, uint32_t mipLevel) const;
+
+    /**
+     * @see @ref first(VkBuffer) const
+     */
+    [[nodiscard]] std::optional<BufferState> first(cvk::BaseBuffer const&) const;
+
+    /**
+     * @see @ref last(VkBuffer) const
      */
     [[nodiscard]] std::optional<BufferState> last(cvk::BaseBuffer const&) const;
 
@@ -188,27 +214,33 @@ public:
 
     [[nodiscard]] bool empty() const { return _images.empty() && _buffers.empty(); }
 
+    //TODO review tuples, no new struct: the callers name the parts with a structured binding
     /**
-     * @return view of the mip levels with a state: `std::pair` of the image and the mip level
+     * @return view of the mip levels with a state: `std::tuple` of the image, the mip level, the aspect mask and the
+     *  sharing mode of the image
      */
     [[nodiscard]] auto images() const {
         return _images | std::views::transform([](auto const& entry) {
-            return std::pair<cth::ref_wrapper<cvk::Image const>, uint32_t>{entry.second.image, entry.first.second};
+            auto const& [key, states] = entry;
+            return std::tuple{key.first, key.second, states.aspectMask, states.sharingMode};
         });
     }
 
     /**
-     * @return view of the buffers with a state
+     * @return view of the buffers with a state: `std::pair` of the buffer and its sharing mode
      */
     [[nodiscard]] auto buffers() const {
-        return _buffers | std::views::transform([](auto const& entry) { return entry.second.buffer; });
+        return _buffers | std::views::transform([](auto const& entry) {
+            return std::pair{entry.first, entry.second.sharingMode};
+        });
     }
 
 private:
     using image_key_t = std::pair<VkImage, uint32_t>;
 
     struct image_states {
-        cth::ref_wrapper<cvk::Image const> image;
+        VkImageAspectFlags aspectMask; ///< of the image, the barriers take it
+        VkSharingMode sharingMode; ///< of the image
 
         std::optional<ImageState> firstOpt; ///< `std::nullopt` -> `assume()` before the first access
         ImageState last;
@@ -218,7 +250,7 @@ private:
     };
 
     struct buffer_states {
-        cth::ref_wrapper<cvk::BaseBuffer const> buffer;
+        VkSharingMode sharingMode; ///< of the buffer
 
         std::optional<BufferState> firstOpt; ///< `std::nullopt` -> `assume()` before the first access
         BufferState last;

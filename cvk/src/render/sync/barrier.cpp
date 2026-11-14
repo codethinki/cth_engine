@@ -38,76 +38,51 @@ namespace {
             .dstAccessMask = info.dst.access,
         };
     }
+}
 
-    VkBufferMemoryBarrier2 buffer_barrier(BaseBuffer const& buffer, BufferBarrierInfo const& info) {
-        BaseBuffer::debug_check(buffer);
-        CTH_CRITICAL(
-            info.offset > buffer.size() || (info.size != VK_WHOLE_SIZE && info.size > buffer.size() - info.offset),
-            "range must lie in the buffer"
-        ) {}
+void Barrier::add(Image const& image, ImageInfo const& info) {
+    Image::debug_check(image);
+    CTH_CRITICAL(
+        info.firstMipLevel >= image.mipLevels(),
+        "first mip level must lie in the image ({}), got {}",
+        image.mipLevels(),
+        info.firstMipLevel
+    ) {}
+    CTH_CRITICAL(
+        info.mipLevels != VK_REMAINING_MIP_LEVELS && info.mipLevels > image.mipLevels() - info.firstMipLevel,
+        "mip levels must lie in the image ({}), got {} from {}",
+        image.mipLevels(),
+        info.mipLevels,
+        info.firstMipLevel
+    ) {}
+    CTH_CRITICAL(
+        info.firstArrayLayer >= image.arrayLayers(),
+        "first array layer must lie in the image ({}), got {}",
+        image.arrayLayers(),
+        info.firstArrayLayer
+    ) {}
+    CTH_CRITICAL(
+        info.arrayLayers != VK_REMAINING_ARRAY_LAYERS && info.arrayLayers > image.arrayLayers() - info.firstArrayLayer,
+        "array layers must lie in the image ({}), got {} from {}",
+        image.arrayLayers(),
+        info.arrayLayers,
+        info.firstArrayLayer
+    ) {}
 
-        return VkBufferMemoryBarrier2{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-            .pNext = nullptr,
-            .srcStageMask = info.src.stages,
-            .srcAccessMask = info.src.access,
-            .dstStageMask = info.dst.stages,
-            .dstAccessMask = info.dst.access,
-            .srcQueueFamilyIndex = info.src.queueFamilyIndex,
-            .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
-            .buffer = buffer.get(),
-            .offset = info.offset,
-            .size = info.size,
-        };
-    }
+    add(image.get(), image.aspectMask(), info);
+}
 
-    VkImageMemoryBarrier2 image_barrier(Image const& image, ImageBarrierInfo const& info) {
-        Image::debug_check(image);
-        CTH_CRITICAL(info.mipLevels == 0, "mip levels must not be 0") {}
-        CTH_CRITICAL(info.firstMipLevel >= image.mipLevels(), "first mip level must lie in the image") {}
-        CTH_CRITICAL(
-            info.mipLevels != VK_REMAINING_MIP_LEVELS && info.mipLevels > image.mipLevels() - info.firstMipLevel,
-            "mip levels must lie in the image"
-        ) {}
-        CTH_CRITICAL(info.arrayLayers == 0, "array layers must not be 0") {}
-        CTH_CRITICAL(info.firstArrayLayer >= image.arrayLayers(), "first array layer must lie in the image") {}
-        CTH_CRITICAL(
-            info.arrayLayers != VK_REMAINING_ARRAY_LAYERS
-            && info.arrayLayers > image.arrayLayers() - info.firstArrayLayer,
-            "array layers must lie in the image"
-        ) {}
+void Barrier::add(BaseBuffer const& buffer, BufferInfo const& info) {
+    BaseBuffer::debug_check(buffer);
+    CTH_CRITICAL(
+        info.offset > buffer.size() || (info.size != VK_WHOLE_SIZE && info.size > buffer.size() - info.offset),
+        "range must lie in the buffer ({}), got {} from {}",
+        buffer.size(),
+        info.size,
+        info.offset
+    ) {}
 
-        bool const transfer = info.src.queueFamilyIndex != info.dst.queueFamilyIndex;
-        CTH_CRITICAL(
-            (info.oldLayout != info.newLayout || transfer)
-            && (info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED || info.newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED),
-            "a transition or queue family transfer must not have an undefined or preinitialized new layout, "
-            "got {} -> {}",
-            info.oldLayout,
-            info.newLayout
-        ) {}
-
-        return VkImageMemoryBarrier2{
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-            .pNext = nullptr,
-            .srcStageMask = info.src.stages,
-            .srcAccessMask = info.src.access,
-            .dstStageMask = info.dst.stages,
-            .dstAccessMask = info.dst.access,
-            .oldLayout = info.oldLayout,
-            .newLayout = info.newLayout,
-            .srcQueueFamilyIndex = info.src.queueFamilyIndex,
-            .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
-            .image = image.get(),
-            .subresourceRange = {
-                .aspectMask = info.aspectMask != 0 ? info.aspectMask : image.aspectMask(),
-                .baseMipLevel = info.firstMipLevel,
-                .levelCount = info.mipLevels,
-                .baseArrayLayer = info.firstArrayLayer,
-                .layerCount = info.arrayLayers,
-            },
-        };
-    }
+    add(buffer.get(), info);
 }
 
 void Barrier::debug_check_rendering(
@@ -149,25 +124,25 @@ void Barrier::debug_check_rendering(
     ) {}
 
     // a continuing secondary does not know the attachment images
-    auto const attached = [renderingPtr](Image const& image) {
+    auto const attached = [renderingPtr](VkImage vkImage) {
         if(renderingPtr == nullptr) return false;
-        auto const uses = [&image](RenderingAttachment const& attachment) {
-            return &attachment.view->image() == &image
-                || (attachment.resolveViewPtr != nullptr && &attachment.resolveViewPtr->image() == &image);
+        auto const uses = [vkImage](RenderingAttachment const& attachment) {
+            return attachment.view->image().get() == vkImage
+                || (attachment.resolveViewPtr != nullptr && attachment.resolveViewPtr->image().get() == vkImage);
         };
         return std::ranges::any_of(renderingPtr->colorAttachments, uses)
             || (renderingPtr->depthAttachment.has_value() && uses(*renderingPtr->depthAttachment))
             || (renderingPtr->stencilAttachment.has_value() && uses(*renderingPtr->stencilAttachment));
     };
 
-    for(auto const [barrier, entry] : std::views::zip(imageBarriers, images)) {
+    for(auto const& barrier : imageBarriers) {
         CTH_CRITICAL(barrier.oldLayout != barrier.newLayout, "barriers inside a rendering have no layout transition") {}
         CTH_CRITICAL(
             barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex,
             "barriers inside a rendering have no queue family ownership transfer"
         ) {}
         CTH_CRITICAL(
-            attached(entry.image) && barrier.newLayout != VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
+            attached(barrier.image) && barrier.newLayout != VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR
             && barrier.newLayout != VK_IMAGE_LAYOUT_GENERAL,
             "attachments inside a rendering must be in the rendering local read or general layout, got {}",
             barrier.newLayout
@@ -206,24 +181,8 @@ void Barrier::execute(BaseCmdBuffer const& cmdBuffer) const {
     for(auto const& info : memory)
         memoryBarriers.push_back(memory_barrier(info));
 
-    std::vector<VkBufferMemoryBarrier2> bufferBarriers{};
-    bufferBarriers.reserve(buffers.size());
-    for(auto const& [buffer, info] : buffers)
-        bufferBarriers.push_back(buffer_barrier(buffer, info));
-
-    std::vector<VkImageMemoryBarrier2> imageBarriers{};
-    imageBarriers.reserve(images.size());
-    for(auto const& [image, info] : images)
-        imageBarriers.push_back(image_barrier(image, info));
-
     if(cmdBuffer.insideRendering())
-        debug_check_rendering(
-            cmdBuffer.rendering(),
-            cmdBuffer.renderingViewMask(),
-            memoryBarriers,
-            bufferBarriers,
-            imageBarriers
-        );
+        debug_check_rendering(cmdBuffer.rendering(), cmdBuffer.renderingViewMask(), memoryBarriers, buffers, images);
 
     VkDependencyInfo const dependency{
         .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -231,10 +190,10 @@ void Barrier::execute(BaseCmdBuffer const& cmdBuffer) const {
         .dependencyFlags = flags,
         .memoryBarrierCount = static_cast<uint32_t>(memoryBarriers.size()),
         .pMemoryBarriers = memoryBarriers.data(),
-        .bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size()),
-        .pBufferMemoryBarriers = bufferBarriers.data(),
-        .imageMemoryBarrierCount = static_cast<uint32_t>(imageBarriers.size()),
-        .pImageMemoryBarriers = imageBarriers.data(),
+        .bufferMemoryBarrierCount = static_cast<uint32_t>(buffers.size()),
+        .pBufferMemoryBarriers = buffers.data(),
+        .imageMemoryBarrierCount = static_cast<uint32_t>(images.size()),
+        .pImageMemoryBarriers = images.data(),
     };
     cmdBuffer.core().functions()->vkCmdPipelineBarrier2(cmdBuffer.get(), &dependency);
 }

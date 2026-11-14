@@ -7,7 +7,6 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/ptr/ref_wrapper.hpp>
 
 #include <optional>
 #include <span>
@@ -114,10 +113,12 @@ struct MemoryBarrierInfo {
     BarrierScope dst{};
 };
 
+//TODO review the memory barriers stay infos: they refer to no object, the family check stays in execute()
 /**
  * pipeline barrier
- * @details memory, buffer and image barriers in one `vkCmdPipelineBarrier2()`
- * @attention the images and buffers do not move until `execute()`
+ * @details
+ * - memory, buffer and image barriers in one `vkCmdPipelineBarrier2()`
+ * - the buffer and image barriers are the vulkan structs: they keep no reference to the objects
  */
 struct Barrier {
     using MemoryInfo = MemoryBarrierInfo;
@@ -129,21 +130,11 @@ struct Barrier {
      */
     static constexpr VkPipelineStageFlags2 INFERRED_SHADER_STAGES = VK_PIPELINE_STAGE_2_NONE;
 
-    struct BufferEntry {
-        cth::ref_wrapper<BaseBuffer const> buffer;
-        BufferInfo info;
-    };
-
-    struct ImageEntry {
-        cth::ref_wrapper<Image const> image;
-        ImageInfo info;
-    };
-
     VkDependencyFlags flags = 0; ///< `VK_DEPENDENCY_BY_REGION_BIT` -> the dependency is per framebuffer region
 
     std::vector<MemoryInfo> memory{};
-    std::vector<BufferEntry> buffers{};
-    std::vector<ImageEntry> images{};
+    std::vector<VkBufferMemoryBarrier2> buffers{};
+    std::vector<VkImageMemoryBarrier2> images{};
 
     /**
      * adds a global memory barrier
@@ -154,8 +145,22 @@ struct Barrier {
 
     /**
      * adds an image barrier
+     * @pre the image is created
+     * @pre the mip and layer ranges lie in the image
+     * @pre the preconditions of @ref add(VkImage, VkImageAspectFlags, ImageInfo const&)
      */
-    constexpr void add(Image const& image, ImageInfo const& info) { images.push_back({image, info}); }
+    void add(Image const&, ImageInfo const&);
+
+    //TODO review the handle overloads: the add() of the objects calls them, the jvk tracking has no objects
+    /**
+     * adds an image barrier of the image handle
+     * @details
+     * - no check of the image: the caller knows its mip levels, layers and aspects
+     * - `ImageInfo::aspectMask` is `0` -> the aspect mask of the image
+     * @pre mip levels and layers `> 0`
+     * @pre layout transition or queue family ownership transfer -> new layout not undefined or preinitialized
+     */
+    constexpr void add(VkImage, VkImageAspectFlags aspectMask, ImageInfo const&);
 
     /**
      * adds a layout transition of every layer with the scopes of `layout_transition()`
@@ -174,15 +179,22 @@ struct Barrier {
 
     /**
      * adds a buffer barrier
+     * @pre the buffer is created
+     * @pre the range lies in the buffer
      */
-    constexpr void add(BaseBuffer const& buffer, BufferInfo const& info) { buffers.push_back({buffer, info}); }
+    void add(BaseBuffer const&, BufferInfo const&);
+
+    /**
+     * adds a buffer barrier of the buffer handle
+     * @details no check of the buffer: the caller knows its size
+     */
+    constexpr void add(VkBuffer, BufferInfo const&);
 
     /**
      * records the barriers
      * @pre `BaseCmdBuffer::recording()`
-     * @pre the images and buffers are created and the ranges lie in them
+     * @pre the images and buffers are not destroyed
      * @pre memory barriers have no queue family ownership transfer
-     * @pre layout transition or queue family ownership transfer -> new layout not undefined or preinitialized
      * @pre `BaseCmdBuffer::insideRendering()` -> framebuffer space stages and `VK_DEPENDENCY_BY_REGION_BIT`
      * @pre `BaseCmdBuffer::insideRendering()` -> no layout transition and no queue family ownership transfer
      * @pre `BaseCmdBuffer::insideRendering()` with multiview -> `VK_DEPENDENCY_VIEW_LOCAL_BIT`
@@ -215,6 +227,59 @@ private:
         std::span<VkImageMemoryBarrier2 const>
     ) const;
 };
+}
+
+namespace cvk {
+constexpr void Barrier::add(VkImage vkImage, VkImageAspectFlags aspectMask, ImageInfo const& info) {
+    CTH_CRITICAL(info.mipLevels == 0, "mip levels must not be 0") {}
+    CTH_CRITICAL(info.arrayLayers == 0, "array layers must not be 0") {}
+
+    bool const transfer = info.src.queueFamilyIndex != info.dst.queueFamilyIndex;
+    CTH_CRITICAL(
+        (info.oldLayout != info.newLayout || transfer)
+        && (info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED || info.newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED),
+        "a transition or queue family transfer must not have an undefined or preinitialized new layout, got {} -> {}",
+        info.oldLayout,
+        info.newLayout
+    ) {}
+
+    images.push_back(VkImageMemoryBarrier2{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+        .pNext = nullptr,
+        .srcStageMask = info.src.stages,
+        .srcAccessMask = info.src.access,
+        .dstStageMask = info.dst.stages,
+        .dstAccessMask = info.dst.access,
+        .oldLayout = info.oldLayout,
+        .newLayout = info.newLayout,
+        .srcQueueFamilyIndex = info.src.queueFamilyIndex,
+        .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
+        .image = vkImage,
+        .subresourceRange = {
+            .aspectMask = info.aspectMask != 0 ? info.aspectMask : aspectMask,
+            .baseMipLevel = info.firstMipLevel,
+            .levelCount = info.mipLevels,
+            .baseArrayLayer = info.firstArrayLayer,
+            .layerCount = info.arrayLayers,
+        },
+    });
+}
+
+constexpr void Barrier::add(VkBuffer vkBuffer, BufferInfo const& info) {
+    buffers.push_back(VkBufferMemoryBarrier2{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+        .pNext = nullptr,
+        .srcStageMask = info.src.stages,
+        .srcAccessMask = info.src.access,
+        .dstStageMask = info.dst.stages,
+        .dstAccessMask = info.dst.access,
+        .srcQueueFamilyIndex = info.src.queueFamilyIndex,
+        .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
+        .buffer = vkBuffer,
+        .offset = info.offset,
+        .size = info.size,
+    });
+}
 }
 
 namespace cvk {

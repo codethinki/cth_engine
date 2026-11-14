@@ -514,6 +514,67 @@ JVK_TEST(StageGraph, prologue_transitions_an_unknown_image_from_undefined) {
     EXPECT_TRUE(counts(readback));
 }
 
+JVK_TEST(StageGraph, retained_transient_image_starts_from_undefined) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    Semaphore const gate{core, cvk::create};
+
+    auto const staging = counting_staging(core);
+    Buffer<uint32_t> const readback{core, test::READBACK_CONFIG, VALUES};
+    Image image{core, IMAGE_CONFIG, EXTENT};
+    auto const before = allocations(core);
+
+    auto& stage = next_frame(core, graph).stage(0);
+    stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
+    auto& primary = stage.beginPrimary();
+    image.copy(primary, staging);
+    image.copyTo(primary, readback);
+    primary.use(readback, HOST_READ);
+    // the last use: the job records the transition from undefined after the release
+    stage.retain(std::move(image));
+    stage.submit();
+
+    gate.markSubmitted(1);
+    core.executor().sync_wait(await_submitted(stage));
+    EXPECT_EQ(allocations(core), before);
+
+    host_signal(gate, 1);
+    wait(core, stage);
+    EXPECT_TRUE(counts(readback));
+    EXPECT_TRUE(reaches_allocations(core, before - 1));
+}
+
+JVK_TEST(StageGraph, image_moved_after_the_submit_keeps_its_prologue) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    Semaphore const gate{core, cvk::create};
+
+    auto const staging = counting_staging(core);
+    Buffer<uint32_t> const readback{core, test::READBACK_CONFIG, VALUES};
+    std::optional<Image> firstOpt{std::in_place, core, IMAGE_CONFIG, EXTENT};
+    std::optional<Image> secondOpt{};
+
+    // the job awaits the mark of the gate before its append
+    auto& stage = next_frame(core, graph).stage(0);
+    stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
+    auto& primary = stage.beginPrimary();
+    firstOpt->copy(primary, staging);
+    firstOpt->copyTo(primary, readback);
+    primary.use(readback, HOST_READ);
+    stage.submit();
+
+    // the recorded object is gone before the job records the prologue
+    secondOpt.emplace(std::move(*firstOpt));
+    firstOpt.reset();
+
+    gate.markSubmitted(1);
+    host_signal(gate, 1);
+    wait(core, stage);
+    EXPECT_TRUE(counts(readback));
+}
+
 JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
     test::Context const context{};
     Core core{context.instance, two_families(), {}};

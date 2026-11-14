@@ -31,6 +31,14 @@ struct BufferConfig {
 
     MemoryConfig memory{}; ///< memory of the buffer, `VMA_MEMORY_USAGE_AUTO` picks the memory type from `usage`
 
+    //TODO review one place for the rule: the create info and the jvk tracking read it
+    /**
+     * @return `VK_SHARING_MODE_CONCURRENT` for two or more `queueFamilies`, else `VK_SHARING_MODE_EXCLUSIVE`
+     */
+    [[nodiscard]] constexpr VkSharingMode sharingMode() const {
+        return queueFamilies.size() >= 2 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+    }
+
     /**
      * @param size in bytes
      * @attention `pQueueFamilyIndices` points into `queueFamilies`
@@ -42,7 +50,7 @@ struct BufferConfig {
             .flags = flags,
             .size = size,
             .usage = usage,
-            .sharingMode = queueFamilies.size() >= 2 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+            .sharingMode = sharingMode(),
             .queueFamilyIndexCount = static_cast<uint32_t>(queueFamilies.size()),
             .pQueueFamilyIndices = queueFamilies.data(),
         };

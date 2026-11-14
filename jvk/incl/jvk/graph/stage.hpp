@@ -295,12 +295,11 @@ public:
      */
     void skip();
 
-    //TODO the job records the prologue after the release: a barrier of the prologue for a retained image or buffer
-    // refers to the released object (cvk::Image::debug_check() fails, a null handle in release builds)
     /**
      * keeps the object until the gpu finished the submit or the skip of this frame
      * @details
      * - releases the object at once, the stasis of the stage slot holds its handles
+     * - the recordings keep no reference to the object: the caller can destroy it
      * - an image or a buffer: the job erases its graph state before it destroys it
      * - thread safe
      * @pre `status()` is `UNSUBMITTED`
