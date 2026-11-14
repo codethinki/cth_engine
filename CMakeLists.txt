@@ -28,6 +28,9 @@ add_subdirectory(cvk)
 add_subdirectory(cgfw)
 add_subdirectory(jvk)
 
+# Demos
+add_subdirectory(demo/triangle)
+
 # Tests
 if(JOLLY_ENABLE_TESTS)
     add_subdirectory(tests)
