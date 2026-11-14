@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <string>
 
 
@@ -68,6 +69,18 @@ CGFW_TEST(Window, move_keeps_the_window) {
     EXPECT_EQ(moved.get(), rgfwWindow);
     moved.pollEvents();
     EXPECT_FALSE(moved.shouldClose());
+}
+
+CGFW_TEST(Window, poll_events_returns_without_events) {
+    CGFW_SKIP_WITHOUT_DISPLAY();
+    Window const window{test::window_config(), create};
+
+    // a render loop polls every frame: no wait for an event, the bound is far above a poll
+    auto const start = std::chrono::steady_clock::now();
+    for(int i = 0; i < 100; ++i)
+        window.pollEvents();
+    EXPECT_LT(std::chrono::steady_clock::now() - start, std::chrono::seconds{2});
+    EXPECT_FALSE(window.shouldClose());
 }
 
 CGFW_TEST(Window, move_assignment_destroys_the_old_window) {
@@ -137,6 +150,7 @@ CGFW_TEST(Window, surface_of_an_instance_with_the_extensions) {
 CGFW_TEST(Window, extent_is_the_size_of_the_window) {
     CGFW_SKIP_WITHOUT_DISPLAY();
     Window const window{test::window_config(), create};
+    window.pollEvents();
 
     // the window manager can change the size of the config, a tiling one does
     auto const extent = window.extent();
@@ -149,6 +163,7 @@ CGFW_TEST(Window, extent_callback_of_the_surface_reads_the_window) {
     CGFW_SKIP_WITHOUT_DISPLAY();
     test::InstanceContext const context{};
     Window const window{test::window_config(), create};
+    window.pollEvents();
     auto surface = window.surface(context.instance);
 
     auto const state = surface.release();

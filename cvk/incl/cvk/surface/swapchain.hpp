@@ -16,6 +16,7 @@
 #include <cth/io/log.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
+#include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <optional>
@@ -31,11 +32,11 @@ class Surface;
 
 /**
  * `VkSwapchainKHR` wrapper
- * @details owns its images, their views, a present semaphore and a present fence per image
- * @details the present fences export `constants::OS_FENCE_HANDLE_TYPE`
- * @details retired swapchains: destroyed once their present fences signal
+ * @details
+ * - owns its images, their views, a present semaphore and a present fence per image
+ * - the present fences export `constants::OS_FENCE_HANDLE_TYPE`
+ * - a recreation is a new swapchain, created with the old one, see `create()`
  * @attention not thread safe
- * @see `resize()`, `recreate()`
  */
 class Swapchain {
 public:
@@ -69,7 +70,14 @@ public:
      * constructs and creates
      * @details calls @ref Swapchain(Core const&, Queue const&, Surface const&, Config), `create()`
      */
-    Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config, VkExtent2D extent);
+    Swapchain(
+        Core const&,
+        Queue const& presentQueue,
+        Surface const&,
+        Config,
+        VkExtent2D extent,
+        Swapchain const* oldSwapchainPtr = nullptr
+    );
 
     /**
      * @note calls `optDestroy()`
@@ -92,49 +100,25 @@ public:
     /**
      * picks the format and the present mode of the config, creates the swapchain
      * @param extent of the window, a fixed `currentExtent` of the surface wins
+     * @param oldSwapchainPtr the swapchain that this one replaces, `nullptr` -> none
      * @details the first entries of `Config::formats` and `Config::presentModes` that the surface offers win
+     * @details an old swapchain retires, also on a failure: it presents its acquired images, its acquires fail with
+     *  `VK_ERROR_OUT_OF_DATE_KHR`, see `vkCreateSwapchainKHR()`
      * @pre `Core::created()`, `Surface::created()`
      * @pre the queue can present to the surface
      * @pre the device enables `constants::PRESENT_DEVICE_EXTENSIONS`, a present queue of the core does
      * @pre `extent` width and height > 0
+     * @pre `oldSwapchainPtr` -> another created swapchain of the surface
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
-     * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`
+     * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()` or `vkGetSwapchainImagesKHR()`
      */
-    void create(VkExtent2D extent);
-
-    /**
-     * creates a new swapchain with the old one as `oldSwapchain`, the old one retires
-     * @param extent of the window, a fixed `currentExtent` of the surface wins
-     * @details keeps the format and the present mode, a change needs `recreate()`
-     * @details queries the surface capabilities again
-     * @details unacquires the images that are still acquired
-     * @pre `created()`
-     * @pre `extent` width and height > 0
-     * @pre the surface still supports the format and the present mode of the swapchain
-     * @pre no present semaphore is signaled without its present
-     * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`, destroys the old swapchains and forgets
-     */
-    void resize(VkExtent2D extent);
-
-    /**
-     * applies the config, retires the old swapchain like `resize()`
-     * @param extent of the window, a fixed `currentExtent` of the surface wins
-     * @details picks the format and the present mode of the config again
-     * @pre `created()`
-     * @pre `extent` width and height > 0
-     * @pre no present semaphore is signaled without its present
-     * @note a new format needs new pipelines for the swapchain images
-     * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode, nothing changes
-     * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`, destroys the old swapchains and forgets
-     * @see `create()`
-     */
-    void recreate(VkExtent2D extent, Config);
+    void create(VkExtent2D extent, Swapchain const* oldSwapchainPtr = nullptr);
 
     /**
      * waits for the present fences, destroys the swapchain and forgets
-     * @details destroys the views, present semaphores, present fences and retired swapchains
+     * @details destroys the views, present semaphores and present fences, the swapchain destroys its images
      * @pre `created()`
      * @pre no present semaphore is signaled without its present
      */
@@ -147,7 +131,7 @@ public:
 
     /**
      * waits for the present fences, releases ownership, returns the state and forgets
-     * @details destroys the views, present semaphores, present fences and retired swapchains
+     * @details destroys the views, present semaphores and present fences
      * @pre `created()`
      * @pre no present semaphore is signaled without its present
      */
@@ -157,7 +141,6 @@ public:
      * acquires the next image
      * @param signal signaled when the image is ready
      * @param timeout in nanoseconds
-     * @details destroys the retired swapchains with signaled present fences
      * @pre `created()`
      * @pre `signal` is unsignaled and has no pending operation
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()`
@@ -167,8 +150,8 @@ public:
     /**
      * presents the image once its present semaphore signals
      * @return `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` or `VK_ERROR_OUT_OF_DATE_KHR`
+     * @details waits for the present fence of the last present of the image first
      * @details `VK_ERROR_OUT_OF_DATE_KHR` -> the present still waits for the semaphore
-     * @details destroys the retired swapchains with signaled present fences
      * @pre the image is acquired
      * @pre a submit signals `presentSemaphore()` of the image
      * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
@@ -194,18 +177,33 @@ public:
      */
     [[nodiscard]] static constexpr uint32_t evalImageCount(uint32_t minImageCount, VkSurfaceCapabilitiesKHR const&);
 
-    [[nodiscard]] constexpr bool created() const { return !_generations.empty(); }
-    [[nodiscard]] constexpr VkSwapchainKHR get() const { return created() ? current().handle.get() : VK_NULL_HANDLE; }
-    [[nodiscard]] constexpr Core const& core() const { return *_core; }
+    /**
+     * @return every present fence is signaled: the presentation engine finished the presents
+     * @details reads the fence status, one `vkGetFenceStatus()` per image
+     * @pre `created()`
+     */
+    [[nodiscard]] bool presented() const;
+
+    /**
+     * @return an image is acquired, without its `present()` or `unacquire()`
+     */
+    [[nodiscard]] constexpr bool acquired() const { return std::ranges::contains(_acquired, true); }
+
+    /**
+     * @pre `imageIndex < imageCount()`
+     */
+    [[nodiscard]] constexpr bool acquired(uint32_t imageIndex) const { return _acquired[imageIndex]; }
+
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkSwapchainKHR get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     [[nodiscard]] constexpr VkExtent2D extent() const { return _extent; }
     [[nodiscard]] constexpr VkFormat format() const { return _surfaceFormat.format; }
     [[nodiscard]] constexpr VkColorSpaceKHR colorSpace() const { return _surfaceFormat.colorSpace; }
     [[nodiscard]] constexpr VkPresentModeKHR presentMode() const { return _presentMode; }
-    [[nodiscard]] constexpr uint32_t imageCount() const {
-        return created() ? static_cast<uint32_t>(current().images.size()) : 0;
-    }
+    [[nodiscard]] constexpr uint32_t imageCount() const { return static_cast<uint32_t>(_images.size()); }
 
     /**
      * @return width / height
@@ -215,19 +213,22 @@ public:
         return static_cast<float>(_extent.width) / static_cast<float>(_extent.height);
     }
 
-    [[nodiscard]] constexpr std::span<Image const> images() const {
-        return created() ? std::span<Image const>{current().images} : std::span<Image const>{};
-    }
-    [[nodiscard]] constexpr std::span<ImageView const> views() const {
-        return created() ? std::span<ImageView const>{current().views} : std::span<ImageView const>{};
-    }
+    /**
+     * @pre `imageIndex < imageCount()`
+     */
+    [[nodiscard]] constexpr Image const& image(uint32_t imageIndex) const { return _images[imageIndex].image; }
+
+    /**
+     * @pre `imageIndex < imageCount()`
+     */
+    [[nodiscard]] constexpr ImageView const& view(uint32_t imageIndex) const { return _views[imageIndex]; }
 
     /**
      * @return the semaphore that `present()` of the image waits for, a submit signals it
      * @pre `imageIndex < imageCount()`
      */
     [[nodiscard]] constexpr Semaphore const& presentSemaphore(uint32_t imageIndex) const {
-        return current().presentSemaphores[imageIndex];
+        return _presentSemaphores[imageIndex];
     }
 
     /**
@@ -237,50 +238,47 @@ public:
      * @see `Fence::extractOsHandle()`
      */
     [[nodiscard]] constexpr Fence const& presentFence(uint32_t imageIndex) const {
-        return current().presentFences[imageIndex];
+        return _presentFences[imageIndex].fence;
     }
 
-    /**
-     * @pre `imageIndex < imageCount()`
-     */
-    [[nodiscard]] constexpr bool acquired(uint32_t imageIndex) const { return current().acquired[imageIndex]; }
-
-    /**
-     * @return count of the retired swapchains that wait for their present fences
-     */
-    [[nodiscard]] constexpr size_t retired() const { return created() ? _generations.size() - 1 : 0; }
-
 private:
+    //TODO review element wrappers: = default moves of the swapchain tear down in the member order, the swapchain
+    // destroys its images itself and the present fences must signal before their destruction
     /**
-     * one `VkSwapchainKHR` with its images, views, present semaphores, present fences and acquire states
-     * @details the destructor waits for the present fences and releases the images, the swapchain destroys last
+     * image of the swapchain, the swapchain destroys it
+     * @details the destruction releases the image, it does not destroy it
      */
-    struct Generation {
-        explicit Generation(core_handle<VkSwapchainKHR> swapchain) : handle{std::move(swapchain)} {}
-        ~Generation();
+    struct OwnedImage {
+        explicit OwnedImage(Image image) : image{std::move(image)} {}
+        ~OwnedImage() {
+            if(image.created()) static_cast<void>(image.release());
+        }
 
-        core_handle<VkSwapchainKHR> handle;
-        std::vector<Image> images;
-        std::vector<ImageView> views;
-        std::vector<Semaphore> presentSemaphores;
-        std::vector<Fence> presentFences;
-        std::vector<bool> acquired;
+        Image image;
 
-        Generation(Generation const& other) = delete;
-        Generation(Generation&& other) noexcept = default;
-        Generation& operator=(Generation const& other) = delete;
-        Generation& operator=(Generation&& other) = delete;
+        OwnedImage(OwnedImage const& other) = delete;
+        OwnedImage(OwnedImage&& other) noexcept = default;
+        OwnedImage& operator=(OwnedImage const& other) = delete;
+        OwnedImage& operator=(OwnedImage&& other) noexcept = default;
     };
 
     /**
-     * @pre `created()`
+     * present fence of an image
+     * @details the destruction waits for the present that signals it
      */
-    [[nodiscard]] constexpr Generation& current() { return _generations.back(); }
+    struct PresentFence {
+        explicit PresentFence(Fence fence) : fence{std::move(fence)} {}
+        ~PresentFence() {
+            if(fence.created()) fence.wait();
+        }
 
-    /**
-     * @pre `created()`
-     */
-    [[nodiscard]] constexpr Generation const& current() const { return _generations.back(); }
+        Fence fence;
+
+        PresentFence(PresentFence const& other) = delete;
+        PresentFence(PresentFence&& other) noexcept = default;
+        PresentFence& operator=(PresentFence const& other) = delete;
+        PresentFence& operator=(PresentFence&& other) noexcept = default;
+    };
 
     /**
      * @return the first allowed format and present mode of the config that the surface offers
@@ -289,37 +287,26 @@ private:
     [[nodiscard]] std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> pick(Config const&) const;
 
     /**
-     * creates a swapchain with `_surfaceFormat` and `_presentMode` as the new current generation
-     * @details a failure destroys every generation and forgets
-     */
-    void createSwapchain(VkExtent2D extent, VkSwapchainKHR oldSwapchain);
-
-    /**
-     * gets the images of the current generation, creates their views, present semaphores and present fences
+     * gets the images, creates their views, present semaphores and present fences
+     * @throws cvk::vk_result_exception result of `vkGetSwapchainImagesKHR()` or of a create
      */
     void createImages();
-
-    /**
-     * unacquires the acquired images of the current generation
-     */
-    void unacquireAll();
-
-    /**
-     * destroys the retired generations with signaled present fences
-     */
-    void collectRetired();
 
     void forget();
 
     Queue _presentQueue;
     cth::ref_wrapper<Surface const> _surface;
-    cth::ref_wrapper<Core const> _core;
     Config _config;
 
-    /**
-     * `back()` is the current swapchain, the others are retired, empty -> not created
-     */
-    std::vector<Generation> _generations;
+    // the objects of the images before the handle, in the order of their teardown: = default moves wait for the
+    // presents, release the images, destroy the views and semaphores, then the swapchain
+    std::vector<PresentFence> _presentFences{};
+    std::vector<Semaphore> _presentSemaphores{};
+    std::vector<ImageView> _views{};
+    std::vector<OwnedImage> _images{};
+    std::vector<bool> _acquired{};
+
+    core_handle<VkSwapchainKHR> _handle;
 
     VkExtent2D _extent{};
     VkSurfaceFormatKHR _surfaceFormat{};

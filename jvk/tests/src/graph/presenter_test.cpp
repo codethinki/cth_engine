@@ -6,6 +6,7 @@
 #include "jvk/base/core.hpp"
 #include "jvk/base/queue.hpp"
 #include "jvk/graph/stage_graph.hpp"
+#include "jvk/sync/semaphore.hpp"
 
 #include "cvk/render/sync/barrier.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
@@ -65,6 +66,21 @@ namespace {
 
     cth::co::executor_task<void> await_stage(Stage const& stage) { co_await stage; }
 
+    /**
+     * signals the semaphore from the host, without a mark
+     */
+    void host_signal(Semaphore const& semaphore, uint64_t value) {
+        cvk::Core const& vk = semaphore.core();
+        VkSemaphoreSignalInfo const info{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+            .pNext = nullptr,
+            .semaphore = semaphore.get(),
+            .value = value,
+        };
+        ASSERT_EQ(vk.functions()->vkSignalSemaphore(vk.vkDevice(), &info), VK_SUCCESS);
+    }
+
+
     void wait(Core const& core, Stage const& stage) { core.executor().sync_wait(await_stage(stage)); }
 
     /**
@@ -77,8 +93,8 @@ namespace {
      */
     [[nodiscard]] size_t acquired_images(Presenter const& presenter) {
         size_t acquired = 0;
-        for(uint32_t imageIdx = 0; imageIdx < presenter.swapchain().imageCount(); ++imageIdx)
-            if(presenter.swapchain().acquired(imageIdx)) ++acquired;
+        for(uint32_t imageIdx = 0; imageIdx < presenter.swapchain().current().imageCount(); ++imageIdx)
+            if(presenter.swapchain().current().acquired(imageIdx)) ++acquired;
         return acquired;
     }
 
@@ -87,7 +103,7 @@ namespace {
      */
     cth::co::executor_task<bool> acquired_in_strand(Queue const& queue, Presenter const& presenter, uint32_t imageIdx) {
         co_await queue.executor().schedule();
-        co_return presenter.swapchain().acquired(imageIdx);
+        co_return presenter.swapchain().current().acquired(imageIdx);
     }
 
     /**
@@ -128,6 +144,20 @@ namespace {
     }
 
     /**
+     * acquires and clears the image of the stage, the scopes submit and present
+     * @details the submit job waits for the gate, the present job for the submit: the present stays pending
+     * @return the image
+     */
+    SwapchainImage present_behind_gate(Core const& core, Stage& stage, Presenter& presenter, Semaphore const& gate) {
+        stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
+        auto const image = acquire(core, presenter, stage);
+        EXPECT_TRUE(image);
+        auto const primary = stage.begin();
+        clear(*primary, *image);
+        return *image;
+    }
+
+    /**
      * acquires, clears and presents the image of the stage in the next frame
      * @details only the scopes: `scoped_submit` submits, then `scoped_acquire` presents
      * @details the acquire comes before `Stage::begin()`
@@ -159,7 +189,7 @@ JVK_TEST(Presenter, frame_loop_clears_and_presents) {
     for(size_t i = 0; i < FRAMES; ++i) {
         auto const image = present_frame(core, graph, presenter);
         EXPECT_EQ(image.extent, test::HEADLESS_EXTENT);
-        EXPECT_LT(image.imageIdx, presenter.swapchain().imageCount());
+        EXPECT_LT(image.imageIdx, presenter.swapchain().current().imageCount());
     }
 
     presenter.destroy();
@@ -208,10 +238,79 @@ JVK_TEST(Presenter, new_extent_recreates_the_swapchain) {
 
     windowExtent = VkExtent2D{48, 40};
     EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{48, 40}));
-    EXPECT_EQ(presenter.swapchain().extent(), (VkExtent2D{48, 40}));
+    EXPECT_EQ(presenter.swapchain().current().extent(), (VkExtent2D{48, 40}));
 
     // the next frames present on the new swapchain
     EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{48, 40}));
+}
+
+JVK_TEST(Presenter, acquire_does_not_wait_for_the_present_before) {
+    test::Context const context{};
+    auto surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface)) GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+    Semaphore const gate{core, cvk::create};
+
+    auto& first = next_frame(core, graph).stage(0);
+    present_behind_gate(core, first, presenter, gate);
+
+    // the present of the first frame waits for the gate: two images are acquired
+    auto& second = next_frame(core, graph).stage(0);
+    {
+        auto const image = acquire(core, presenter, second);
+        ASSERT_TRUE(image);
+        EXPECT_EQ(acquired_images(presenter), 2);
+        auto const primary = second.begin();
+        clear(*primary, *image);
+    }
+
+    gate.markSubmitted(1);
+    host_signal(gate, 1);
+    wait(core, second);
+
+    present_frame(core, graph, presenter);
+}
+
+JVK_TEST(Presenter, recreation_with_a_pending_present_presents_through_the_old_swapchain) {
+    test::Context const context{};
+    std::atomic<VkExtent2D> windowExtent{VkExtent2D{32, 32}};
+    auto surface = test::headless_surface(context.instance, [&windowExtent] { return windowExtent.load(); });
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface)) GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+    Semaphore const gate{core, cvk::create};
+
+    auto& first = next_frame(core, graph).stage(0);
+    present_behind_gate(core, first, presenter, gate);
+
+    // the new extent recreates the swapchain, the old one keeps the image of the pending present
+    windowExtent = VkExtent2D{48, 40};
+    auto& second = next_frame(core, graph).stage(0);
+    {
+        auto const image = acquire(core, presenter, second);
+        ASSERT_TRUE(image);
+        EXPECT_EQ(image->extent, (VkExtent2D{48, 40}));
+        EXPECT_EQ(presenter.swapchain().retired(), 1);
+        auto const primary = second.begin();
+        clear(*primary, *image);
+    }
+
+    // the present through the retired swapchain: no validation error
+    gate.markSubmitted(1);
+    host_signal(gate, 1);
+    wait(core, second);
+
+    // a later acquire destroys the retired swapchain once its presents ended, the bound only ends a broken loop
+    for(size_t i = 0; i < 16 && presenter.swapchain().retired() != 0; ++i)
+        present_frame(core, graph, presenter);
+    EXPECT_EQ(presenter.swapchain().retired(), 0);
 }
 
 JVK_TEST(Presenter, unacquire_gives_the_image_back_early) {
@@ -229,12 +328,12 @@ JVK_TEST(Presenter, unacquire_gives_the_image_back_early) {
         auto image = acquire(core, presenter, stage);
         ASSERT_TRUE(image);
         auto const imageIdx = image->imageIdx;
-        EXPECT_TRUE(presenter.swapchain().acquired(imageIdx));
+        EXPECT_TRUE(presenter.swapchain().current().acquired(imageIdx));
 
         // the strand gives the image back
         image.unacquire();
         core.executor().sync_wait(enter_strand(core.queue(0)));
-        EXPECT_FALSE(presenter.swapchain().acquired(imageIdx));
+        EXPECT_FALSE(presenter.swapchain().current().acquired(imageIdx));
 
         // the submit waits for the acquire semaphore
         auto const primary = stage.begin();
@@ -383,7 +482,7 @@ JVK_TEST(Presenter, exception_in_the_recording_submits_and_presents_nothing) {
 
     ASSERT_NE(stagePtr, nullptr);
     EXPECT_EQ(stagePtr->status(), Stage::Status::UNSUBMITTED);
-    EXPECT_TRUE(presenter.swapchain().acquired(imageIdx));
+    EXPECT_TRUE(presenter.swapchain().current().acquired(imageIdx));
 
     // the next frame skips the stage, the next acquire gives the image back first
     auto& stage = next_frame(core, graph).stage(0);

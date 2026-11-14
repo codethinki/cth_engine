@@ -19,6 +19,7 @@
 #include <array>
 #include <chrono>
 #include <limits>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -57,7 +58,7 @@ namespace {
         EXPECT_TRUE(index.has_value()) << "acquire result: " << result;
         if(!index.has_value()) return result;
 
-        auto const& image = swapchain.images()[*index];
+        auto const& image = swapchain.image(*index);
         CmdPool const pool{context.core, test::pool_config(context.core), create};
         PrimaryCmdBuffer cmd{pool, create};
 
@@ -71,7 +72,7 @@ namespace {
             {
                 .colorAttachments = {
                     RenderingAttachment{
-                        .view = swapchain.views()[*index],
+                        .view = swapchain.view(*index),
                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                         .clearValue = {.color = {.float32 = {0.f, 0.f, 1.f, 1.f}}},
                     },
@@ -142,11 +143,10 @@ CVK_TEST(Swapchain, create_and_destroy) {
 
     ASSERT_TRUE(swapchain.created());
     EXPECT_GE(swapchain.imageCount(), capabilities.minImageCount);
-    EXPECT_EQ(swapchain.views().size(), swapchain.imageCount());
     EXPECT_EQ(swapchain.extent().width, Swapchain::evalExtent(EXTENT, capabilities).width);
     auto const offered = context.surface().formats(context.core.physicalDevice());
     EXPECT_TRUE(std::ranges::contains(offered, VkSurfaceFormatKHR{swapchain.format(), swapchain.colorSpace()}));
-    EXPECT_EQ(swapchain.images()[0].aspectMask(), VK_IMAGE_ASPECT_COLOR_BIT);
+    EXPECT_EQ(swapchain.image(0).aspectMask(), VK_IMAGE_ASPECT_COLOR_BIT);
 
     swapchain.destroy();
     EXPECT_FALSE(swapchain.created());
@@ -207,97 +207,75 @@ CVK_TEST(Swapchain, acquire_clear_present) {
     }
 }
 
-CVK_TEST(Swapchain, resize_retires_the_old_swapchain) {
+CVK_TEST(Swapchain, create_with_an_old_swapchain) {
+    test::PresentContext const context{};
+    Swapchain old{context.core, context.queue(), context.surface(), {}, EXTENT};
+    EXPECT_EQ(present_cleared_image(context, old), VK_SUCCESS);
+
+    Swapchain const swapchain{context.core, context.queue(), context.surface(), {}, {32, 32}, &old};
+
+    // the old swapchain stays until its owner destroys it
+    EXPECT_TRUE(old.created());
+    EXPECT_EQ(swapchain.extent().width, 32);
+    EXPECT_NE(swapchain.get(), old.get());
+}
+
+CVK_TEST(Swapchain, old_swapchain_presents_its_acquired_image) {
+    test::PresentContext const context{};
+    Swapchain old{context.core, context.queue(), context.surface(), {}, EXTENT};
+    Semaphore const acquired{context.core, create};
+    auto const [result, index] = old.acquire(acquired);
+    ASSERT_TRUE(index.has_value());
+
+    Swapchain swapchain{context.core, context.queue(), context.surface(), {}, {32, 32}, &old};
+
+    // the present of the retired swapchain: no validation error
+    CmdPool const pool{context.core, test::pool_config(context.core), create};
+    PrimaryCmdBuffer cmd{pool, create};
+    cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    Barrier toPresent{};
+    toPresent.addTransition(old.image(*index), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_UNDEFINED);
+    toPresent.execute(cmd);
+    cmd.end();
+    Fence const fence{context.core, create};
+    context.queue().submit(
+        {
+            .cmdBuffers = {cmd},
+            .waits = {{acquired, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT}},
+            .signals = {old.presentSemaphore(*index)},
+        },
+        &fence
+    );
+    auto const presented = old.present(*index);
+    EXPECT_TRUE(presented == VK_SUCCESS || presented == VK_SUBOPTIMAL_KHR || presented == VK_ERROR_OUT_OF_DATE_KHR)
+        << "present result: " << presented;
+    fence.wait();
+
+    EXPECT_FALSE(old.acquired());
+    old.destroy();
+    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
+}
+
+CVK_TEST(Swapchain, acquired_and_presented) {
     test::PresentContext const context{};
     Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
+    EXPECT_FALSE(swapchain.acquired());
+    EXPECT_TRUE(swapchain.presented());
+
+    Semaphore const acquired{context.core, create};
+    auto const [result, index] = swapchain.acquire(acquired);
+    ASSERT_TRUE(index.has_value());
+    EXPECT_TRUE(swapchain.acquired());
+    swapchain.unacquire(std::array{*index});
+    EXPECT_FALSE(swapchain.acquired());
+    consume(context, acquired);
+
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-
-    swapchain.resize({32, 32});
-
-    EXPECT_EQ(swapchain.retired(), 1);
-    EXPECT_EQ(swapchain.extent().width, 32);
-    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-}
-
-CVK_TEST(Swapchain, resize_keeps_the_format_and_the_present_mode) {
-    test::PresentContext const context{};
-    auto const offered = context.surface().formats(context.core.physicalDevice());
-    if(offered.size() < 2) GTEST_SKIP() << "needs two surface formats";
-
-    Swapchain created{context.core, context.queue(), context.surface(), {.formats = {offered[1]}}, EXTENT};
-    auto const state = created.release();
-    // the config prefers another format -> a resize that picks again changes the format
-    Swapchain swapchain{context.core, context.queue(), context.surface(), {.formats = {offered[0]}}, state};
-
-    swapchain.resize({32, 32});
-
-    EXPECT_EQ(swapchain.format(), offered[1].format);
-    EXPECT_EQ(swapchain.colorSpace(), offered[1].colorSpace);
-    EXPECT_EQ(swapchain.presentMode(), state.presentMode);
-    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-}
-
-CVK_TEST(Swapchain, recreate_applies_the_config) {
-    test::PresentContext const context{};
-    auto const& physicalDevice = context.core.physicalDevice();
-    auto const formats = context.surface().formats(physicalDevice);
-    auto const presentModes = context.surface().presentModes(physicalDevice);
-    if(formats.size() < 2 || presentModes.size() < 2) GTEST_SKIP() << "needs two surface formats and present modes";
-
-    Swapchain::Config const config{.formats = {formats[0]}, .presentModes = {presentModes[0]}};
-    Swapchain swapchain{context.core, context.queue(), context.surface(), config, EXTENT};
-    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-
-    swapchain.recreate({32, 32}, {.formats = {formats[1]}, .presentModes = {presentModes[1]}});
-
-    EXPECT_EQ(swapchain.format(), formats[1].format);
-    EXPECT_EQ(swapchain.colorSpace(), formats[1].colorSpace);
-    EXPECT_EQ(swapchain.presentMode(), presentModes[1]);
-    EXPECT_EQ(swapchain.config().presentModes, std::vector{presentModes[1]});
-    EXPECT_EQ(swapchain.retired(), 1);
-    EXPECT_EQ(swapchain.extent().width, 32);
-    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-}
-
-CVK_TEST(Swapchain, recreate_without_an_offered_format_throws_and_keeps_the_swapchain) {
-    test::PresentContext const context{};
-    Swapchain::Config const config{};
-    Swapchain swapchain{context.core, context.queue(), context.surface(), config, EXTENT};
-    auto const vkSwapchain = swapchain.get();
-    auto const extent = swapchain.extent();
-    auto const format = swapchain.format();
-    auto const colorSpace = swapchain.colorSpace();
-    auto const presentMode = swapchain.presentMode();
-
-    Swapchain::Config const unoffered{.formats = {{VK_FORMAT_R64G64B64A64_SFLOAT, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}}};
-    EXPECT_THROW(swapchain.recreate({32, 32}, unoffered), cvk_exception);
-
-    ASSERT_TRUE(swapchain.created());
-    EXPECT_EQ(swapchain.get(), vkSwapchain);
-    EXPECT_EQ(swapchain.extent(), extent);
-    EXPECT_EQ(swapchain.format(), format);
-    EXPECT_EQ(swapchain.colorSpace(), colorSpace);
-    EXPECT_EQ(swapchain.presentMode(), presentMode);
-    EXPECT_EQ(swapchain.config().formats, config.formats);
-    EXPECT_EQ(swapchain.config().presentModes, config.presentModes);
-    EXPECT_EQ(swapchain.retired(), 0);
-    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-}
-
-CVK_TEST(Swapchain, presents_destroy_the_retired_swapchain_after_its_present_fences_signal) {
-    test::PresentContext const context{};
-    Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
-    EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-    swapchain.resize({32, 32});
-    auto const vkSwapchain = swapchain.get();
-    ASSERT_EQ(swapchain.retired(), 1);
-
+    EXPECT_FALSE(swapchain.acquired());
     // the headless surface completes presents at once, the bound only ends a broken loop
-    for(uint32_t frame = 0; frame < 16 && swapchain.retired() != 0; ++frame)
-        EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-
-    EXPECT_EQ(swapchain.retired(), 0);
-    EXPECT_EQ(swapchain.get(), vkSwapchain);
+    for(uint32_t i = 0; i < 1000 && !swapchain.presented(); ++i)
+        std::this_thread::sleep_for(std::chrono::milliseconds{1});
+    EXPECT_TRUE(swapchain.presented());
 }
 
 CVK_TEST(Swapchain, present_fences_are_exportable) {
@@ -338,17 +316,19 @@ CVK_TEST(Swapchain, unacquire_gives_the_image_back) {
     consume(context, acquired);
 }
 
-CVK_TEST(Swapchain, resize_unacquires_the_acquired_images) {
+CVK_TEST(Swapchain, old_swapchain_unacquires_its_image) {
     test::PresentContext const context{};
-    Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
+    Swapchain old{context.core, context.queue(), context.surface(), {}, EXTENT};
     Semaphore const acquired{context.core, create};
 
-    auto const [result, index] = swapchain.acquire(acquired);
+    auto const [result, index] = old.acquire(acquired);
     ASSERT_TRUE(index.has_value());
 
-    swapchain.resize({32, 32});
+    Swapchain swapchain{context.core, context.queue(), context.surface(), {}, {32, 32}, &old};
+    old.unacquire(std::array{*index});
 
     consume(context, acquired);
+    EXPECT_FALSE(old.acquired());
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }
 
@@ -381,14 +361,12 @@ CVK_TEST(Swapchain, move_assignment_destroys_the_old_swapchain) {
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }
 
-CVK_TEST(Swapchain, move_assignment_over_a_retired_swapchain_with_a_present_in_flight) {
+CVK_TEST(Swapchain, move_assignment_over_a_swapchain_with_a_present_in_flight) {
     test::PresentContext const context{};
     auto const other = test::headless_surface(context.instance);
     Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
-    // no acquire or present after the resize: the retired swapchain stays with its present fence
+    // the move assignment waits for the present fence, then destroys the swapchain
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-    swapchain.resize({32, 32});
-    ASSERT_EQ(swapchain.retired(), 1);
 
     Swapchain moved{context.core, context.queue(), other, {}, EXTENT};
     auto const vkSwapchain = moved.get();
@@ -397,7 +375,6 @@ CVK_TEST(Swapchain, move_assignment_over_a_retired_swapchain_with_a_present_in_f
 
     ASSERT_TRUE(swapchain.created());
     EXPECT_EQ(swapchain.get(), vkSwapchain);
-    EXPECT_EQ(swapchain.retired(), 0);
     EXPECT_EQ(swapchain.extent().width, EXTENT.width);
     EXPECT_FALSE(moved.created());
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);

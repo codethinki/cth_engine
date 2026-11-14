@@ -32,6 +32,7 @@ Presenter::Presenter(Core const& core, Queue const& queue, Config config) :
     _queue{queue},
     _config{std::move(config)},
     _surface{static_cast<cvk::Core const&>(core).instance()},
+    _swapchain{core, queue.vk(), _surface},
     _semaphore{core} {
     Config::debug_check(_config);
 }
@@ -55,7 +56,6 @@ void Presenter::create(cvk::Surface surface) {
         for(uint32_t i = 0; i < _config.framesInFlight; ++i)
             _acquireSemaphores.emplace_back(vkCore, cvk::create);
 
-        _swapchainOpt.emplace(vkCore, _queue->vk(), _surface, _config.swapchain);
         auto const extent = _surface.extent(vkCore.physicalDevice());
         if(extent.width > 0 && extent.height > 0) updateSwapchain(extent, nullptr);
     }
@@ -95,7 +95,7 @@ void Presenter::destroy() {
     _submits.clear();
     _acquireSemaphores.clear();
     _semaphore.optDestroy();
-    _swapchainOpt.reset();
+    _swapchain.optDestroy();
     _surface.destroy();
 
     _acquireSemaphoreIdx = 0;
@@ -111,8 +111,10 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
     debug_check(*this);
     CTH_CRITICAL(stage.status() != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
 
-    // the present jobs before present the image indices of the current swapchain
-    co_await _semaphore.submitted(_semaphore.value());
+    // at most framesInFlight acquired images, the limit of an acquire without a timeout: else it blocks the strand,
+    // the pending presents need the strand to free an image (VUID-vkAcquireNextImageKHR-swapchain-01802)
+    auto const value = _semaphore.value();
+    if(value >= _config.framesInFlight) co_await _semaphore.submitted(value - _config.framesInFlight + 1);
     co_await _queue->executor().schedule();
 
     _error.rethrow();
@@ -120,7 +122,6 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
     if(_imageOpt.has_value()) unacquireImage();
 
     cvk::Core const& vkCore = *_core;
-    auto& swapchain = *_swapchainOpt;
     std::optional<uint32_t> imageIdxOpt = std::nullopt;
     auto const& acquireSemaphore = _acquireSemaphores[_acquireSemaphoreIdx];
 
@@ -129,6 +130,7 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
         if(extent.width == 0 || extent.height == 0)
             co_return scoped_acquire{*this, stage, std::nullopt, _error, uncaughtExceptions};
         updateSwapchain(extent, &stage.graph());
+        auto const& swapchain = _swapchain.current();
 
         // the ended presents free their images
         while(!_presentedImageIndices.empty() && swapchain.presentFence(_presentedImageIndices.front()).signaled())
@@ -139,14 +141,15 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
         }
 
         // an infinite timeout: no image -> out of date, the next round recreates the swapchain
-        imageIdxOpt = swapchain.acquire(acquireSemaphore).imageIndex;
+        imageIdxOpt = _swapchain.acquire(acquireSemaphore).imageIndex;
         if(!imageIdxOpt.has_value()) _outOfDate = true;
     }
 
     auto const imageIdx = *imageIdxOpt;
+    auto const& swapchain = _swapchain.current();
     SwapchainImage const image{
-        .image = swapchain.images()[imageIdx],
-        .view = swapchain.views()[imageIdx],
+        .image = swapchain.image(imageIdx),
+        .view = swapchain.view(imageIdx),
         .imageIdx = imageIdx,
         .extent = swapchain.extent(),
     };
@@ -171,9 +174,10 @@ void Presenter::present(Stage& stage) {
 
     // the counter after the detach: a failed allocation leaves no value that nobody signals
     auto const value = _semaphore.value() + 1;
+    // the swapchain of the image: no recreation happens between the acquire and the present
     _core->executor().detach(
         _jobs,
-        presentJob(stage.queue(), stage.semaphore(), stage.frameNumber(), image, *lastOpt, value)
+        presentJob(stage.queue(), stage.semaphore(), stage.frameNumber(), image, _swapchain.current(), *lastOpt, value)
     );
     static_cast<void>(_semaphore.next());
     _imageOpt.reset();
@@ -203,6 +207,7 @@ cth::co::executor_task<void> Presenter::presentJob(
     Semaphore const& stageSemaphore,
     uint64_t frameNumber,
     SwapchainImage image,
+    cvk::Swapchain& swapchain,
     ImageState lastState,
     uint64_t value
 ) {
@@ -219,6 +224,9 @@ cth::co::executor_task<void> Presenter::presentJob(
     // off the strand: a wait before the signal on one queue would block it, the release needs the submit of the stage,
     // the next acquire() sets the state of the image in the graph after the submit job of the stage appended its states
     co_await stageSemaphore.submitted(frameNumber);
+    // the present jobs submit and present in order, also a failed one: the job before wrote the values of the command
+    // buffers and signals the value before
+    co_await _semaphore.submitted(value - 1);
 
     bool submitted = false;
     try {
@@ -247,7 +255,6 @@ cth::co::executor_task<void> Presenter::presentJob(
             );
 
         // the last submit of the command buffer, a swapchain before a recreation used it too
-        // off the strand: the job before wrote the value, acquire() waits for this job before a recreation
         co_await _semaphore.wait(_submits[image.imageIdx].value);
 
         // no suspension in the strand: the presents follow the order of present()
@@ -261,7 +268,7 @@ cth::co::executor_task<void> Presenter::presentJob(
         queue.vk().submit({
             .cmdBuffers = {submit.cmd},
             .waits = {waits.begin(), waits.end()},
-            .signals = {cvk::SemaphoreSubmitInfo{_swapchainOpt->presentSemaphore(image.imageIdx)}, signal},
+            .signals = {cvk::SemaphoreSubmitInfo{swapchain.presentSemaphore(image.imageIdx)}, signal},
         });
         submit.value = value;
         submitted = true;
@@ -281,8 +288,10 @@ cth::co::executor_task<void> Presenter::presentJob(
 
     if(submitted) {
         try {
-            if(_swapchainOpt->present(image.imageIdx) == VK_ERROR_OUT_OF_DATE_KHR) _outOfDate = true;
-            _presentedImageIndices.push_back(image.imageIdx);
+            // a retired swapchain: its results and indices do not matter for the next acquire()
+            bool const current = &swapchain == &_swapchain.current();
+            if(swapchain.present(image.imageIdx) == VK_ERROR_OUT_OF_DATE_KHR && current) _outOfDate = true;
+            if(current) _presentedImageIndices.push_back(image.imageIdx);
         }
         catch(cvk::vk_result_exception const&) {
             _error.store(std::current_exception());
@@ -294,32 +303,41 @@ cth::co::executor_task<void> Presenter::presentJob(
 }
 
 cth::co::executor_task<void> Presenter::awaitPresentFence(uint32_t imageIdx) const {
-    auto const handle = _swapchainOpt->presentFence(imageIdx).extractOsHandle();
+    auto const handle = _swapchain.current().presentFence(imageIdx).extractOsHandle();
     // posix: no handle -> signaled
     if(!handle) co_return;
     co_await cth::co::this_coro::await_handle(handle.get());
 }
 
 void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
-    auto& swapchain = *_swapchainOpt;
-    if(swapchain.created() && !_outOfDate && swapchain.extent() == extent) return;
+    if(_swapchain.created() && !_outOfDate && _swapchain.current().extent() == extent) return;
 
-    if(swapchain.created()) {
+    if(_swapchain.created()) {
+        auto const& old = _swapchain.current();
         if(graphPtr != nullptr)
-            for(auto const& image : swapchain.images())
-                graphPtr->erase(image);
-        swapchain.resize(extent);
-    } else swapchain.create(extent);
+            for(uint32_t imageIdx = 0; imageIdx < old.imageCount(); ++imageIdx)
+                graphPtr->erase(old.image(imageIdx));
+        _swapchain.recreate(extent);
+    } else _swapchain.create(swapchainConfig(), extent);
     _outOfDate = false;
 
     // the indices of the retired swapchain
     _presentedImageIndices.clear();
-    while(_submits.size() < swapchain.imageCount())
+    while(_submits.size() < _swapchain.current().imageCount())
         _submits.push_back(PresentSubmit{.cmd = PrimaryCmdBuffer{*_core, _queue->vk().familyIndex()}});
 }
 
+Swapchain::Config Presenter::swapchainConfig() const {
+    auto config = _config.swapchain;
+    if(config.minImageCount != 0) return config;
+
+    cvk::Core const& vkCore = *_core;
+    config.minImageCount = _surface.capabilities(vkCore.physicalDevice()).minImageCount + _config.framesInFlight;
+    return config;
+}
+
 void Presenter::unacquireImage() {
-    _swapchainOpt->unacquire(std::array{_imageOpt->imageIdx});
+    _swapchain.current().unacquire(std::array{_imageOpt->imageIdx});
     _imageOpt.reset();
 }
 }

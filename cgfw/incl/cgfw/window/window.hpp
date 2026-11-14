@@ -178,6 +178,7 @@ public:
 
     /**
      * handles the pending events of every window
+     * @details returns at once, no wait for an event: for a render loop, it answers the pings of the compositor
      * @pre `created()`
      */
     void pollEvents() const;

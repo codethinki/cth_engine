@@ -1,5 +1,6 @@
 #pragma once
 #include "jvk/cmd/cmd_buffer.hpp"
+#include "jvk/graph/swapchain.hpp"
 #include "jvk/sync/resource_states.hpp"
 #include "jvk/sync/semaphore.hpp"
 #include "jvk/utility/first_error.hpp"
@@ -59,7 +60,10 @@ struct SwapchainImage {
  */
 struct PresenterConfig {
     /**
+     * @details `cvk::SwapchainConfig::minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`: the
+     *  limit of the acquired images for an acquire without a timeout
      * @pre `cvk::SwapchainConfig::queueFamilies.size() < 2`: the images stay `VK_SHARING_MODE_EXCLUSIVE`
+     * @pre `cvk::SwapchainConfig::minImageCount != 0` -> `>= minImageCount` of the surface + `framesInFlight`
      */
     cvk::Swapchain::Config swapchain{};
 
@@ -77,7 +81,7 @@ struct PresenterConfig {
  * presents to a surface
  * @details
  * - owns the surface and the swapchain
- * - recreates the swapchain in `acquire()`
+ * - recreates the swapchain in `acquire()`, a retired swapchain presents its pending images, see `Swapchain`
  * - acquires, submits and presents in the strand of its queue
  * - one acquired image at a time, in a scope: `scoped_acquire` presents or unacquires it at its end
  * - the present and unacquire jobs run detached, `destroy()` waits for them
@@ -146,9 +150,11 @@ public:
      * - adds the wait for the acquire to the stage: `Stage::await()` with the acquire semaphore and the stages
      * - the state of the image in the graph of the stage: `VK_IMAGE_LAYOUT_UNDEFINED` with the wait stages, see
      *   `StageGraph::assume()`: the first barrier of the image chains with the wait
-     * - waits until the present jobs before it submitted and presented
-     * - `VK_ERROR_OUT_OF_DATE_KHR` of the last present or acquire, or a changed `cvk::Surface::extent()` -> recreates
-     *   the swapchain first, erases the old images in the graph of the stage, see `StageGraph::erase()`
+     * - waits until at most `PresenterConfig::framesInFlight - 1` present jobs are pending: the limit of the
+     *   acquired images, see `PresenterConfig::swapchain`
+     * - `VK_ERROR_OUT_OF_DATE_KHR` of a present or an acquire of the current swapchain, or a changed
+     *   `cvk::Surface::extent()` -> recreates the swapchain first, erases the old images in the graph of the stage,
+     *   see `StageGraph::erase()`, `Swapchain::recreate()`
      * - all images in use -> awaits the oldest present fence first
      * - an acquired image without a present, e.g. after an exception: unacquires it
      * @param stages pipeline stages of the stage that wait for the acquire
@@ -198,11 +204,12 @@ public:
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
     /**
+     * @details created once the surface extent is `> 0`
      * @pre `created()`
      */
-    [[nodiscard]] constexpr cvk::Swapchain const& swapchain() const {
+    [[nodiscard]] constexpr Swapchain const& swapchain() const {
         debug_check(*this);
-        return *_swapchainOpt;
+        return _swapchain;
     }
 
 private:
@@ -221,15 +228,17 @@ private:
     };
 
     //TODO review no submitted_awaiter parameter: the job takes it from the stage semaphore and the frame number
-    //TODO review the image as a parameter: the job reads no swapchain outside of the strand
-    //TODO review the submit mark of the stage always awaited: the next acquire() sets the state of the image in the
-    // graph after the submit job of the stage appended its states
+    //TODO review the image and its swapchain as parameters: the job reads no presenter state outside of the strand
+    //TODO review the submit mark of the present job before awaited: acquire() no longer orders the present jobs
     /**
      * present job of `present()`
      * @details the order:
      * - off the strand: awaits `Semaphore::submitted()` of the stage semaphore with the frame number
      * - stage of another family -> `Queue::release()` of the image on the stage queue
-     * - in the strand of the queue: records the command buffer, submits it through `Queue::vk()`, presents
+     * - off the strand: awaits `Semaphore::submitted()` of `Presenter::_semaphore` with the value before: the present
+     *   jobs submit and present in the order of `present()`
+     * - in the strand of the queue: records the command buffer, submits it through `Queue::vk()`, presents through
+     *   the swapchain of the image, also a retired one
      * - the submit waits for the semaphore of the stage and the release, signals the present semaphore and
      *   `Presenter::_semaphore` with the value
      * - the command buffer: the acquire half of another family, the transition to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
@@ -239,6 +248,7 @@ private:
      * - a failed empty submit: `VK_ERROR_DEVICE_LOST` -> stores the error, else terminates: the waiters would hang
      * - a failed present: stores the error
      * @param image the acquired image
+     * @param swapchain of the image, current at `present()`
      * @param lastState of the image in the stage primary
      * @param value of `Presenter::_semaphore` for the submit
      * @pre the command buffer of the submit belongs to the queue family of the queue
@@ -248,12 +258,13 @@ private:
         Semaphore const& stageSemaphore,
         uint64_t frameNumber,
         SwapchainImage image,
+        cvk::Swapchain& swapchain,
         ImageState lastState,
         uint64_t value
     );
 
     /**
-     * awaits the present fence of the image without a block of the strand
+     * awaits the present fence of the image of the current swapchain without a block of the strand
      * @details exports `cvk::Swapchain::presentFence()`, awaits it with `cth::co::this_coro::await_handle()`
      * @pre runs in the strand of the queue
      * @throws cvk::vk_result_exception result of the export, see `cvk::Fence::extractOsHandle()`
@@ -263,7 +274,9 @@ private:
     /**
      * creates or recreates the swapchain if it is not created, out of date or of another extent
      * @details
+     * - the first creation: the config of `swapchainConfig()`
      * - a recreation erases the old images in the graph first: the new images can reuse their handles
+     * - a recreation forgets the pending presents of `Presenter::_presentedImageIndices`, they are of the old swapchain
      * - grows `Presenter::_submits` to the image count
      * @param extent of the surface, `> 0`
      * @param graphPtr of the acquiring stage, `nullptr` -> no graph
@@ -274,8 +287,13 @@ private:
     void updateSwapchain(VkExtent2D extent, StageGraph* graphPtr);
 
     /**
-     * gives the acquired image back
-     * @pre an acquired image
+     * @return `PresenterConfig::swapchain`, `minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`
+     */
+    [[nodiscard]] Swapchain::Config swapchainConfig() const;
+
+    /**
+     * gives the acquired image back to the current swapchain
+     * @pre an acquired image of the current swapchain
      * @pre runs in the strand of the queue or no job uses the swapchain
      * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
      */
@@ -288,10 +306,7 @@ private:
     // destroyed after the swapchain
     cvk::Surface _surface;
 
-    /**
-     * constructed by `create()`, created once the surface extent is `> 0`
-     */
-    std::optional<cvk::Swapchain> _swapchainOpt = std::nullopt;
+    Swapchain _swapchain; ///< created once the surface extent is `> 0`, used in the strand of the queue
 
     /**
      * ring of `PresenterConfig::framesInFlight`, signaled by the acquires
@@ -304,12 +319,15 @@ private:
 
     std::vector<PresentSubmit> _submits{}; ///< one per swapchain image
 
-    std::deque<uint32_t> _presentedImageIndices{}; ///< the images of the pending presents, the oldest first
+    /**
+     * the images of the pending presents of the current swapchain, the oldest first
+     */
+    std::deque<uint32_t> _presentedImageIndices{};
 
     std::optional<SwapchainImage> _imageOpt = std::nullopt; ///< the acquired image, not presented or unacquired
 
     /**
-     * `VK_ERROR_OUT_OF_DATE_KHR` of a present, the next `acquire()` recreates the swapchain
+     * `VK_ERROR_OUT_OF_DATE_KHR` of a present of the current swapchain, the next `acquire()` recreates the swapchain
      */
     std::atomic<bool> _outOfDate = false;
 
