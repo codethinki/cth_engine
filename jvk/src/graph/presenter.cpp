@@ -336,9 +336,12 @@ Presenter::AcquiredImage::AcquiredImage(
     _uncaughtExceptions{uncaughtExceptions} {}
 
 Presenter::AcquiredImage::~AcquiredImage() {
-    if(!_presenterPtr || !_imageOpt.has_value() || std::uncaught_exceptions() > _uncaughtExceptions) return;
+    if(!_presenterPtr || !_imageOpt.has_value()) return;
 
     auto& stage = *_stage;
+    // an exception after the submit: the frame is complete
+    bool const exception = std::uncaught_exceptions() > _uncaughtExceptions;
+    if(exception && stage.status() != Stage::Status::SUBMITTED) return;
     CTH_CRITICAL(
         stage.status() == Stage::Status::UNSUBMITTED && stage.primary().recording()
             && stage.primary().states().last(_imageOpt->image->get(), 0).has_value(),

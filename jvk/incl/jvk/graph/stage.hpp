@@ -190,7 +190,7 @@ class Stage {
 public:
     using Inheritance = SecondaryCmdBuffer::Inheritance;
 
-    class PrimaryRecording;
+    class Recording;
 
     /**
      * what the stage did in its frame
@@ -209,11 +209,11 @@ public:
     /**
      * begins the primary command buffer of the frame for the scope
      * @details resets the primary at each begin
-     * @return scope of the recording, see `PrimaryRecording`
+     * @return scope of the recording, see `Recording`
      * @pre `status()` is `UNSUBMITTED`
      * @attention not thread safe
      */
-    [[nodiscard]] PrimaryRecording beginPrimary();
+    [[nodiscard]] Recording beginPrimary();
 
     /**
      * primary command buffer of the frame slot
@@ -402,27 +402,26 @@ public:
 }
 
 namespace jvk {
-//TODO review name PrimaryRecording: the recording of the primary, its end submits
 /**
  * begun primary of a stage for the scope
  * @details
  * - normal end: `Stage::submit()` if the stage is `UNSUBMITTED`
- * - exception: nothing, `StageGraph::nextFrame()` skips the stage
+ * - exception: nothing, the next `StageGraph::nextFrame()` skips the stage
  * - a moved-from scope does nothing
  * - a failure of the submit at the end, e.g. an allocation: `StageGraph::nextFrame()` rethrows it
  * - `->` and `*` reach the primary
  * @attention a coroutine destroyed while suspended with the scope alive submits the stage
  */
-class Stage::PrimaryRecording {
+class Stage::Recording {
 public:
     /**
      * @details the uncaught exceptions of the calling thread at the construction tell the exception at the end
      * @pre `Stage::beginPrimary()` began the primary
      */
-    explicit PrimaryRecording(Stage& stage) noexcept :
+    explicit Recording(Stage& stage) noexcept :
         _stagePtr{&stage}, _uncaughtExceptions{std::uncaught_exceptions()} {}
 
-    ~PrimaryRecording();
+    ~Recording();
 
     [[nodiscard]] PrimaryCmdBuffer* operator->() const { return &_stagePtr->primary(); }
     [[nodiscard]] PrimaryCmdBuffer& operator*() const { return _stagePtr->primary(); }
@@ -432,10 +431,10 @@ private:
     int _uncaughtExceptions;
 
 public:
-    PrimaryRecording(PrimaryRecording const& other) = delete;
-    PrimaryRecording(PrimaryRecording&& other) noexcept = default;
-    PrimaryRecording& operator=(PrimaryRecording const& other) = delete;
-    PrimaryRecording& operator=(PrimaryRecording&& other) noexcept = default;
+    Recording(Recording const& other) = delete;
+    Recording(Recording&& other) noexcept = default;
+    Recording& operator=(Recording const& other) = delete;
+    Recording& operator=(Recording&& other) = delete;
 };
 }
 

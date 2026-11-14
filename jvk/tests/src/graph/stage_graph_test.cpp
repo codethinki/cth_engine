@@ -304,7 +304,7 @@ JVK_TEST(StageGraph, skip_lets_the_waiter_go_on) {
     EXPECT_GE(frame.stage(0).semaphore().gpuValue(), frame.number());
 }
 
-JVK_TEST(StageGraph, next_frame_skips_a_forgotten_stage) {
+JVK_TEST(StageGraph, next_frame_skips_a_forgotten_stage_of_the_frame_before) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
     StageGraph graph{
@@ -314,23 +314,20 @@ JVK_TEST(StageGraph, next_frame_skips_a_forgotten_stage) {
 
     // the writer of the first frame gets no submit or skip, its waiter waits
     auto& first = next_frame(core, graph);
-    auto const firstNumber = first.number();
-    auto const& forgottenSemaphore = first.stage(0).semaphore();
-    auto const& waiterSemaphore = first.stage(1).semaphore();
     submit_empty(first.stage(1));
 
+    // the next frame skips it, not the reuse of its slot
     auto& second = next_frame(core, graph);
+    ASSERT_EQ(first.stage(0).status(), Stage::Status::SKIPPED);
+
+    // its waiter and the writer of the next frame go on before the frame after
     submit_empty(second.stage(0));
+    wait(core, first.stage(1));
+    wait(core, second.stage(0));
+    EXPECT_GE(first.stage(0).semaphore().gpuValue(), first.number());
+
     submit_empty(second.stage(1));
-
-    // the slot of the first frame comes back: the forgotten stage is skipped, its waiter goes on
-    auto& third = next_frame(core, graph);
-    EXPECT_GE(forgottenSemaphore.gpuValue(), firstNumber);
-    EXPECT_GE(waiterSemaphore.gpuValue(), firstNumber);
-
-    submit_empty(third.stage(0));
-    submit_empty(third.stage(1));
-    wait(core, third.stage(1));
+    wait(core, second.stage(1));
 }
 
 JVK_TEST(StageGraph, primary_scope_submits_at_its_end) {
@@ -412,11 +409,9 @@ JVK_TEST(StageGraph, skip_discards_a_begun_primary) {
 JVK_TEST(StageGraph, exception_in_the_primary_scope_submits_nothing) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 2}};
 
     auto& stage = next_frame(core, graph).stage(0);
-    auto const& semaphore = stage.semaphore();
-    auto const frameNumber = stage.frameNumber();
     try {
         auto const primary = stage.beginPrimary();
         auto const rendering = primary->rendering({.area = AREA});
@@ -429,11 +424,12 @@ JVK_TEST(StageGraph, exception_in_the_primary_scope_submits_nothing) {
     EXPECT_EQ(stage.primary().rendering(), nullptr);
     EXPECT_TRUE(stage.primary().recording());
 
-    // the next frame of the slot skips the stage
+    // the next frame skips the stage
     auto& next = next_frame(core, graph).stage(0);
-    EXPECT_GE(semaphore.submittedValue(), frameNumber);
+    EXPECT_EQ(stage.status(), Stage::Status::SKIPPED);
     submit_empty(next);
     wait(core, next);
+    wait(core, stage);
 }
 
 JVK_TEST(StageGraph, destruction_after_an_exception_skips_the_unsubmitted_stage) {

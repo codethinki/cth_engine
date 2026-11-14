@@ -136,26 +136,17 @@ StageGraph::~StageGraph() {
 
 cth::co::executor_task<Frame&> StageGraph::nextFrame() {
     auto const number = ++_frameNumber;
-    auto& frameSlot = _frameSlots[(number - _firstFrameNumber) % _config.frameSlots];
+    auto const slotOf = [this](uint64_t frameNumber) -> dev::FrameSlot& {
+        return _frameSlots[(frameNumber - _firstFrameNumber) % _config.frameSlots];
+    };
 
+    // the frame before ends now: its gpu work and its waiters do not wait for the reuse of its slot
+    if(number > _firstFrameNumber) skipUnsubmitted(slotOf(number - 1));
+
+    auto& frameSlot = slotOf(number);
     if(frameSlot.frameOpt.has_value()) {
-        for(auto& stage : frameSlot.stages) {
-            if(stage.status() != Stage::Status::UNSUBMITTED) continue;
-
-            bool const waited = std::ranges::any_of(_config.stages, [&stage](StageConfig const& config) {
-                return std::ranges::any_of(config.waits, [&stage](StageWait const& wait) {
-                    return wait.stageId == stage.id();
-                });
-            });
-            CTH_WARN(
-                waited,
-                "stage {} of frame {} has no submit or skip, nextFrame() skips it, its waiters waited until now",
-                stage.id(),
-                stage.frameNumber()
-            ) {}
-
-            skip(stage);
-        }
+        // a failed skip in an earlier nextFrame() leaves a stage of an older frame unsubmitted
+        skipUnsubmitted(frameSlot);
 
         for(auto const& stage : frameSlot.stages)
             co_await stage.submitted();
@@ -223,15 +214,37 @@ void StageGraph::endPrimary(PrimaryCmdBuffer& primary) {
     primary.optEnd();
 }
 
+void StageGraph::skipUnsubmitted(dev::FrameSlot& frameSlot) {
+    if(!frameSlot.frameOpt.has_value()) return;
+
+    for(auto& stage : frameSlot.stages) {
+        if(stage.status() != Stage::Status::UNSUBMITTED) continue;
+
+        bool const waited = std::ranges::any_of(_config.stages, [&stage](StageConfig const& config) {
+            return std::ranges::any_of(config.waits, [&stage](StageWait const& wait) {
+                return wait.stageId == stage.id();
+            });
+        });
+        CTH_WARN(
+            waited,
+            "stage {} of frame {} has no submit or skip, nextFrame() skips it, its waiters waited until now",
+            stage.id(),
+            stage.frameNumber()
+        ) {}
+
+        skip(stage);
+    }
+}
+
 void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
     auto& stageSlot = *stage._stageSlot;
-    stage._status = targetStatus;
 
+    // copies, the status after the detach: a failed allocation leaves the stage unsubmitted with its waits
     dev::RetainedResources retained{};
     Stasis::pos stasisEnd{};
     {
         std::scoped_lock const lock{stageSlot.stasisMutex};
-        retained = std::move(stage._retained);
+        retained = stage._retained;
         stasisEnd = stageSlot.stasis.end();
     }
 
@@ -240,13 +253,14 @@ void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
         submitJob(
             stageSlot,
             stage._frameNumber,
-            std::move(stage._extraWaits),
-            std::move(stage._extraBinaryWaits),
+            stage._extraWaits,
+            stage._extraBinaryWaits,
             std::move(retained),
             stasisEnd,
             targetStatus
         )
     );
+    stage._status = targetStatus;
 }
 
 cth::co::executor_task<void> StageGraph::submitJob(

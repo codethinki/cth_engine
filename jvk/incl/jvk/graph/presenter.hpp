@@ -336,7 +336,8 @@ namespace jvk {
  * acquired swapchain image of a stage for the scope
  * @details
  * - normal end, by `Stage::status()`: `SUBMITTED` -> presents, `SKIPPED` or `UNSUBMITTED` -> unacquires in a job
- * - exception: nothing, the next `Presenter::acquire()` or `Presenter::destroy()` unacquires the image
+ * - exception, by `Stage::status()`: `SUBMITTED` -> presents, the frame is complete, else nothing: the next
+ *   `Presenter::acquire()` or `Presenter::destroy()` unacquires the image
  * - no image or a moved-from scope: nothing
  * - a failure at the end, e.g. an allocation: the next `Presenter::acquire()` rethrows it
  * - `->` and `*` reach the image
@@ -404,7 +405,7 @@ public:
     AcquiredImage(AcquiredImage const& other) = delete;
     AcquiredImage(AcquiredImage&& other) noexcept = default;
     AcquiredImage& operator=(AcquiredImage const& other) = delete;
-    AcquiredImage& operator=(AcquiredImage&& other) noexcept = default;
+    AcquiredImage& operator=(AcquiredImage&& other) = delete;
 
     static constexpr void debug_check(AcquiredImage const&);
 };

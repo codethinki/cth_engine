@@ -16,9 +16,11 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -28,6 +30,8 @@ namespace {
     using enum cvk::QueueFamilyProperties;
 
     constexpr VkPipelineStageFlags2 ATTACHMENT_OUTPUT = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    constexpr auto TIMEOUT = std::chrono::seconds{5};
 
     /**
      * creates a core with the queues that present to the surface
@@ -76,6 +80,31 @@ namespace {
         for(uint32_t imageIdx = 0; imageIdx < presenter.swapchain().imageCount(); ++imageIdx)
             if(presenter.swapchain().acquired(imageIdx)) ++acquired;
         return acquired;
+    }
+
+    /**
+     * reads the acquire state of the image in the strand of the presenter queue
+     */
+    cth::co::executor_task<bool> acquired_in_strand(Queue const& queue, Presenter const& presenter, uint32_t imageIdx) {
+        co_await queue.executor().schedule();
+        co_return presenter.swapchain().acquired(imageIdx);
+    }
+
+    /**
+     * @return the image is no longer acquired before the timeout, e.g. presented
+     */
+    [[nodiscard]] bool reaches_unacquired(
+        Core const& core,
+        Queue const& queue,
+        Presenter const& presenter,
+        uint32_t imageIdx
+    ) {
+        auto const deadline = std::chrono::steady_clock::now() + TIMEOUT;
+        while(core.executor().sync_wait(acquired_in_strand(queue, presenter, imageIdx))) {
+            if(std::chrono::steady_clock::now() > deadline) return false;
+            std::this_thread::sleep_for(std::chrono::milliseconds{1});
+        }
+        return true;
     }
 
     /**
@@ -330,7 +359,7 @@ JVK_TEST(Presenter, exception_in_the_recording_submits_and_presents_nothing) {
     if(!create_present_core(coreOpt, context, surface)) GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 2}};
     Presenter presenter{core, core.queue(0), {}, std::move(surface)};
 
     Stage const* stagePtr = nullptr;
@@ -353,12 +382,10 @@ JVK_TEST(Presenter, exception_in_the_recording_submits_and_presents_nothing) {
     ASSERT_NE(stagePtr, nullptr);
     EXPECT_EQ(stagePtr->status(), Stage::Status::UNSUBMITTED);
     EXPECT_TRUE(presenter.swapchain().acquired(imageIdx));
-    auto const& semaphore = stagePtr->semaphore();
-    auto const frameNumber = stagePtr->frameNumber();
 
-    // the next frame of the slot skips the stage, the next acquire gives the image back first
+    // the next frame skips the stage, the next acquire gives the image back first
     auto& stage = next_frame(core, graph).stage(0);
-    EXPECT_GE(semaphore.submittedValue(), frameNumber);
+    EXPECT_EQ(stagePtr->status(), Stage::Status::SKIPPED);
     {
         auto const image = acquire(core, presenter, stage);
         ASSERT_TRUE(image);
@@ -366,6 +393,39 @@ JVK_TEST(Presenter, exception_in_the_recording_submits_and_presents_nothing) {
         auto const primary = stage.beginPrimary();
         clear(*primary, *image);
     }
+
+    present_frame(core, graph, presenter);
+}
+
+JVK_TEST(Presenter, exception_after_the_submit_presents_the_image) {
+    test::Context const context{};
+    auto surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface)) GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+
+    auto& stage = next_frame(core, graph).stage(0);
+    std::optional<uint32_t> imageIdxOpt = std::nullopt;
+    try {
+        auto const image = acquire(core, presenter, stage);
+        auto const primary = stage.beginPrimary();
+        if(image) {
+            imageIdxOpt = image->imageIdx;
+            clear(*primary, *image);
+        }
+        stage.submit();
+        throw test_exception{};
+    }
+    catch(test_exception const&) {}
+    ASSERT_TRUE(imageIdxOpt.has_value());
+    EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
+
+    // the frame is complete: the image scope presents the image
+    EXPECT_TRUE(reaches_unacquired(core, core.queue(0), presenter, *imageIdxOpt));
+    wait(core, stage);
 
     present_frame(core, graph, presenter);
 }

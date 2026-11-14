@@ -77,11 +77,11 @@ public:
     //TODO review awaits Stage::submitted() of the old frame: the gpu can finish before the graph job marks the submit
     /**
      * constructs the frame and its stages in the next slot
-     * @details the old frame of the slot:
-     * - a stage without `Stage::submit()` or `Stage::skip()`: skips it
-     * - a stage that waited for such a skip: warns
-     * - awaits `Stage::submitted()` of its stages, then each stage: the gpu finished it
+     * @details the frame before: skips its stages without `Stage::submit()` or `Stage::skip()`, warns for a waited one
+     * @details the old frame of the slot: awaits `Stage::submitted()` of its stages, then each stage: the gpu finished
+     *  it
      * @return the frame of the slot
+     * @pre no stage of the frame before records or submits: `nextFrame()` ends the frame
      * @throws cvk::vk_result_exception the first error of a submit job
      * @attention not thread safe
      */
@@ -168,11 +168,23 @@ private:
     //TODO review name
     using semaphore_waits_t = std::vector<cvk::SemaphoreSubmitInfo>;
 
-    //TODO review one helper for submit() and skip(): they differ in the status only
     /**
-     * sets the status of the stage, detaches the submit job
-     * @details takes `Stasis::end()` of the stage slot and the retained resources of the stage under
-     *  `StageSlot::stasisMutex`
+     * skips the stages of the frame in the slot without `Stage::submit()` or `Stage::skip()`
+     * @details a skipped stage that other stages wait for: warns
+     * @details no frame in the slot -> nothing
+     */
+    void skipUnsubmitted(dev::FrameSlot&);
+
+    //TODO review one helper for submit() and skip(): they differ in the status only
+    //TODO review copies of the waits and the retained resources: the parameters of the job are lost on a failed
+    // allocation of its frame
+    /**
+     * detaches the submit job, then sets the status of the stage
+     * @details
+     * - copies `Stasis::end()` of the stage slot and the retained resources of the stage under
+     *   `StageSlot::stasisMutex`
+     * - copies the extra waits of the stage
+     * - a failed detach: the stage stays `UNSUBMITTED` with its waits
      * @param targetStatus `SUBMITTED` or `SKIPPED`
      */
     void detachJob(Stage&, Stage::Status targetStatus);

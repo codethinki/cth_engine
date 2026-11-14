@@ -80,7 +80,7 @@ public:
     scoped_rendering(scoped_rendering const& other) = delete;
     scoped_rendering(scoped_rendering&& other) noexcept = default;
     scoped_rendering& operator=(scoped_rendering const& other) = delete;
-    scoped_rendering& operator=(scoped_rendering&& other) noexcept = default;
+    scoped_rendering& operator=(scoped_rendering&& other) = delete;
 };
 
 /**
