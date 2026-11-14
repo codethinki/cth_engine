@@ -5,6 +5,7 @@
 
 #include "jvk/base/stasis.hpp"
 #include "jvk/sync/resource_states.hpp"
+#include "jvk/utility/first_error.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/render/sync/barrier.hpp"
@@ -63,8 +64,12 @@ public:
 
     /**
      * waits until the gpu finished the submits of every slot, destroys the slots
-     * @details waits for the end of every submit job first
-     * @pre every frame submitted or skipped its stages
+     * @details
+     * - skips the unsubmitted stages first, e.g. after an exception in their recording: their waiters go on
+     * - the skip of an unsubmitted stage drops its binary waits: their semaphores, e.g. the acquire semaphores of a
+     *   `Presenter`, can be destroyed before the graph
+     * - waits for the end of every submit job
+     * - a failed skip or wait does not stop the destruction
      * @attention blocks the calling thread: a worker of the core must be free for the jobs
      */
     ~StageGraph();
@@ -98,9 +103,8 @@ public:
      * @pre the stage is of this graph
      * @pre `Stage::beginPrimary()` in this frame
      * @pre `Stage::status()` is `UNSUBMITTED`
-     * @pre the primary has no open rendering
      * @pre the primary and its executed secondaries belong to the queue family of `Stage::queue()`
-     * @note ends the primary
+     * @note ends the rendering and the primary
      */
     void submit(Stage&);
 
@@ -112,11 +116,21 @@ public:
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
      * @details after the gpu finished the empty submit: destroys the retained objects
+     * @details a begun primary: ends its rendering and the primary, discards the recording
      * @pre the stage is of this graph
-     * @pre no `Stage::beginPrimary()` in this frame
      * @pre `Stage::status()` is `UNSUBMITTED`
      */
     void skip(Stage&);
+
+    /**
+     * sets the state of the image after all submits, without a barrier
+     * @details
+     * - the first use of the next submit starts from the state
+     * - thread safe
+     * @pre the jobs of the submits before that use the image appended their states: they are marked
+     * @see `ResourceStates::assume()`
+     */
+    void assume(cvk::Image const&, ImageState const& state);
 
     /**
      * removes the state and the last queue of the image
@@ -179,7 +193,7 @@ private:
      * - `SubmitInfo::next()`, then `Semaphore::markSubmitted()` of the slot with the frame number
      * - after the gpu finished: erases the states of the retained resources, then `Stasis::clear()` to `stasisEnd`
      * @details the errors:
-     * - a failed submit: stores the error, see `storeError()`, then skips
+     * - a failed submit: stores the error, see `dev::first_error`, then skips
      * - a failed skip: `VK_ERROR_DEVICE_LOST` -> stores the error, else terminates: the waiters would hang
      * - a failed gpu wait: stores the error, keeps the retained objects for the destruction of the graph
      * @param targetStatus the status the job reaches: `SUBMITTED` or `SKIPPED`
@@ -234,15 +248,9 @@ private:
     void eraseStates(VkBuffer);
 
     /**
-     * stores the first error of a job for `nextFrame()`
+     * ends an open rendering and the primary
      */
-    void storeError(std::exception_ptr) noexcept;
-
-    //TODO review the error stays: every nextFrame() rethrows it, the errors of the jobs are fatal
-    /**
-     * rethrows the first error of a job
-     */
-    void rethrowError();
+    static void endPrimary(PrimaryCmdBuffer&);
 
     cth::ref_wrapper<Core> _core;
     Config _config;
@@ -263,9 +271,11 @@ private:
 
     last_queue_map_t<VkBuffer> _bufferQueues{}; ///< last queue per buffer, for the queue family ownership transfers
 
-    std::mutex _errorMutex{};
-
-    std::exception_ptr _errorPtr = nullptr; ///< the first error of a submit job, `nextFrame()` rethrows it
+    //TODO review the error stays: every nextFrame() rethrows it, the errors of the jobs are fatal
+    /**
+     * the first error of a submit job or a scope of a stage, `nextFrame()` rethrows it
+     */
+    dev::first_error _error{};
 
     cth::co::simple_counting_scope _jobs{}; ///< the running submit jobs, `~StageGraph()` waits for them
 

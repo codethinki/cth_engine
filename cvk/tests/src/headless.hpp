@@ -18,10 +18,19 @@ namespace cvk::test {
 [[nodiscard]] std::vector<std::string> headless_extensions();
 
 /**
+ * window extent of `headless_surface()` without an own callback
+ */
+inline constexpr VkExtent2D HEADLESS_EXTENT{64, 64};
+
+/**
  * creates a headless surface
+ * @param extentCallback for its undefined `currentExtent`
  * @pre the instance enables `headless_extensions()`
  */
-[[nodiscard]] Surface headless_surface(Instance const&);
+[[nodiscard]] Surface headless_surface(
+    Instance const&,
+    Surface::extent_callback_t extentCallback = [] { return HEADLESS_EXTENT; }
+);
 
 /**
  * `pick_physical_device()` with `constants::BASE_DEVICE_FEATURES`

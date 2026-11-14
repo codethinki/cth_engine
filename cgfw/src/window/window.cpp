@@ -9,6 +9,7 @@
 
 #include <cth/os/osdef.hpp>
 
+#include <algorithm>
 #include <span>
 
 
@@ -92,7 +93,19 @@ cvk::Surface Window::surface(cvk::Instance const& instance) const {
         result
     ) {}
 
-    return cvk::Surface{instance, cvk::Surface::State{vkSurface}};
+    return cvk::Surface{
+        instance,
+        cvk::Surface::State{.vkSurface = vkSurface, .extentCallback = [this] { return extent(); }},
+    };
+}
+
+VkExtent2D Window::extent() const {
+    debug_check(*this);
+
+    i32 width = 0;
+    i32 height = 0;
+    RGFW_window_getSize(_handle.get(), &width, &height);
+    return VkExtent2D{static_cast<uint32_t>(std::max(width, 0)), static_cast<uint32_t>(std::max(height, 0))};
 }
 
 void Window::pollEvents() const {

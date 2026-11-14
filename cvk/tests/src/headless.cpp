@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <ranges>
+#include <utility>
 
 
 namespace cvk::test {
@@ -18,7 +19,7 @@ std::vector<std::string> headless_extensions() {
     return extensions;
 }
 
-Surface headless_surface(Instance const& instance) {
+Surface headless_surface(Instance const& instance, Surface::extent_callback_t extentCallback) {
     VkHeadlessSurfaceCreateInfoEXT const createInfo{
         .sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT,
         .pNext = nullptr,
@@ -29,7 +30,7 @@ Surface headless_surface(Instance const& instance) {
     auto const result = vkCreateHeadlessSurfaceEXT(instance.get(), &createInfo, nullptr, &vkSurface);
     CTH_STABLE_THROW(result != VK_SUCCESS, "failed to create headless surface") {}
 
-    return Surface{instance, Surface::State{vkSurface}};
+    return Surface{instance, Surface::State{.vkSurface = vkSurface, .extentCallback = std::move(extentCallback)}};
 }
 
 PhysicalDevicePick pick(

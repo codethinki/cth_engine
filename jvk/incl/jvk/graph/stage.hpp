@@ -3,6 +3,7 @@
 #include "jvk/base/stasis.hpp"
 #include "jvk/cmd/cmd_buffer.hpp"
 #include "jvk/sync/semaphore.hpp"
+#include "jvk/utility/first_error.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/data/buffer/base_buffer.hpp"
@@ -11,11 +12,13 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
+#include <cth/ptr/move_ptr.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <mutex>
 #include <optional>
 #include <span>
@@ -119,9 +122,18 @@ struct StageSlot {
      * @pre `StageGraph::firstFrameNumber()` is set
      * @throws cvk::vk_result_exception result of a create of the semaphore or the command buffers
      */
-    StageSlot(StageGraph& graph, size_t stageId, size_t slot, Queue const& queue, size_t secondaries);
+    StageSlot(
+        StageGraph& graph,
+        first_error& error,
+        size_t stageId,
+        size_t slot,
+        Queue const& queue,
+        size_t secondaries
+    );
 
     cth::ref_wrapper<StageGraph> graph;
+
+    cth::ref_wrapper<first_error> error; ///< the first error of the graph, the scopes of the stages store into it
 
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
@@ -178,6 +190,8 @@ class Stage {
 public:
     using Inheritance = SecondaryCmdBuffer::Inheritance;
 
+    class PrimaryRecording;
+
     /**
      * what the stage did in its frame
      */
@@ -193,13 +207,13 @@ public:
     Stage(dev::StageSlot& stageSlot, uint64_t frameNumber);
 
     /**
-     * begins the primary command buffer of the frame
+     * begins the primary command buffer of the frame for the scope
      * @details resets the primary at each begin
-     * @return the primary
+     * @return scope of the recording, see `PrimaryRecording`
      * @pre `status()` is `UNSUBMITTED`
      * @attention not thread safe
      */
-    PrimaryCmdBuffer& beginPrimary();
+    [[nodiscard]] PrimaryRecording beginPrimary();
 
     /**
      * primary command buffer of the frame slot
@@ -344,6 +358,7 @@ public:
     }
 
     [[nodiscard]] constexpr Status status() const { return _status; }
+    [[nodiscard]] constexpr StageGraph& graph() const { return *_stageSlot->graph; }
     [[nodiscard]] constexpr size_t id() const { return _stageSlot->stageId; }
     [[nodiscard]] constexpr size_t slot() const { return _stageSlot->slot; }
     [[nodiscard]] constexpr Queue const& queue() const { return *_stageSlot->queue; }
@@ -383,6 +398,44 @@ public:
     Stage(Stage&& other) noexcept = default;
     Stage& operator=(Stage const& other) = delete;
     Stage& operator=(Stage&& other) noexcept = default;
+};
+}
+
+namespace jvk {
+//TODO review name PrimaryRecording: the recording of the primary, its end submits
+/**
+ * begun primary of a stage for the scope
+ * @details
+ * - normal end: `Stage::submit()` if the stage is `UNSUBMITTED`
+ * - exception: nothing, `StageGraph::nextFrame()` skips the stage
+ * - a moved-from scope does nothing
+ * - a failure of the submit at the end, e.g. an allocation: `StageGraph::nextFrame()` rethrows it
+ * - `->` and `*` reach the primary
+ * @attention a coroutine destroyed while suspended with the scope alive submits the stage
+ */
+class Stage::PrimaryRecording {
+public:
+    /**
+     * @details the uncaught exceptions of the calling thread at the construction tell the exception at the end
+     * @pre `Stage::beginPrimary()` began the primary
+     */
+    explicit PrimaryRecording(Stage& stage) noexcept :
+        _stagePtr{&stage}, _uncaughtExceptions{std::uncaught_exceptions()} {}
+
+    ~PrimaryRecording();
+
+    [[nodiscard]] PrimaryCmdBuffer* operator->() const { return &_stagePtr->primary(); }
+    [[nodiscard]] PrimaryCmdBuffer& operator*() const { return _stagePtr->primary(); }
+
+private:
+    cth::move_ptr<Stage> _stagePtr;
+    int _uncaughtExceptions;
+
+public:
+    PrimaryRecording(PrimaryRecording const& other) = delete;
+    PrimaryRecording(PrimaryRecording&& other) noexcept = default;
+    PrimaryRecording& operator=(PrimaryRecording const& other) = delete;
+    PrimaryRecording& operator=(PrimaryRecording&& other) noexcept = default;
 };
 }
 

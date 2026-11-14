@@ -2,7 +2,9 @@
 
 #include "jvk/base/core.hpp"
 #include "jvk/base/queue.hpp"
+#include "jvk/sync/family_transfer.hpp"
 #include "jvk/utility/exception.hpp"
+#include "jvk/utility/first_error.hpp"
 
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/data/img/image.hpp"
@@ -50,34 +52,6 @@ namespace {
         };
     }
 
-    /**
-     * half of a queue family ownership transfer, transitions the layout of the last use to the first use
-     * @param src scope in the family of the last queue
-     * @param dst scope in the family of the queue
-     */
-    [[nodiscard]] constexpr cvk::ImageBarrierInfo image_transfer(
-        cvk::BarrierScope const& src,
-        cvk::BarrierScope const& dst,
-        ImageState const& last,
-        ImageState const& first,
-        uint32_t mipLevel
-    ) {
-        return cvk::ImageBarrierInfo{
-            .src = src,
-            .dst = dst,
-            .newLayout = first.layout,
-            .oldLayout = last.layout,
-            .firstMipLevel = mipLevel,
-            .mipLevels = 1,
-        };
-    }
-
-    /**
-     * src of an acquire half: waits for the release wait of the submit, `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`
-     */
-    [[nodiscard]] constexpr cvk::BarrierScope acquire_src(cvk::queue_family_index_t lastFamily) {
-        return cvk::BarrierScope{.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, .queueFamilyIndex = lastFamily};
-    }
 }
 
 StageGraph::StageGraph(Core& core, Config config) :
@@ -96,6 +70,7 @@ StageGraph::StageGraph(Core& core, Config config) :
         for(size_t stageId = 0; stageId < stages.size(); ++stageId)
             frameSlot.stageSlots.emplace_back(
                 *this,
+                _error,
                 stageId,
                 slot,
                 core.queue(stages[stageId].queueIdx),
@@ -124,14 +99,20 @@ StageGraph::StageGraph(Core& core, Config config) :
 }
 
 StageGraph::~StageGraph() {
-    for(auto const& frameSlot : _frameSlots)
-        for(auto const& stage : frameSlot.stages)
-            CTH_CRITICAL(
-                stage.status() == Stage::Status::UNSUBMITTED,
-                "every stage must be submitted or skipped, got stage {} of frame {}",
-                stage.id(),
-                stage.frameNumber()
-            ) {}
+    // the waiters of an unsubmitted stage would hang in _jobs.wait(), e.g. after an exception in the recording
+    for(auto& frameSlot : _frameSlots)
+        for(auto& stage : frameSlot.stages) {
+            if(stage.status() != Stage::Status::UNSUBMITTED) continue;
+            //TODO review the binary waits dropped: a presenter is destroyed before the graph, its present submits wait
+            // for the semaphores of the graph, the acquire semaphore of an unpresented image is destroyed already
+            stage._extraBinaryWaits.clear();
+            try {
+                skip(stage);
+            }
+            catch(std::exception const& e) {
+                JVK_STABLE_ERR(true, "failed to skip stage {} in ~StageGraph(), got {}", stage.id(), e.what()) {}
+            }
+        }
 
     _jobs.wait();
 
@@ -180,13 +161,13 @@ cth::co::executor_task<Frame&> StageGraph::nextFrame() {
             co_await stage.submitted();
 
         // before the gpu wait: the error of a job comes first, a wait after a device loss fails too
-        rethrowError();
+        _error.rethrow();
 
         for(auto const& stage : frameSlot.stages)
             co_await stage;
     }
 
-    rethrowError();
+    _error.rethrow();
 
     frameSlot.frameOpt.reset();
     frameSlot.stages.clear();
@@ -201,9 +182,8 @@ void StageGraph::submit(Stage& stage) {
     auto& stageSlot = *stage._stageSlot;
     CTH_CRITICAL(&*stageSlot.graph != this, "the stage must be of this graph") {}
     CTH_CRITICAL(stage._status != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
-    CTH_CRITICAL(stageSlot.primary.rendering() != nullptr, "the primary must have no open rendering") {}
 
-    stageSlot.primary.optEnd();
+    endPrimary(stageSlot.primary);
     detachJob(stage, Stage::Status::SUBMITTED);
 }
 
@@ -211,9 +191,17 @@ void StageGraph::skip(Stage& stage) {
     auto& stageSlot = *stage._stageSlot;
     CTH_CRITICAL(&*stageSlot.graph != this, "the stage must be of this graph") {}
     CTH_CRITICAL(stage._status != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
-    CTH_CRITICAL(stageSlot.primary.recording(), "a skipped stage must not begin its primary") {}
 
+    // the recording of a begun primary is discarded, the next begin resets it
+    endPrimary(stageSlot.primary);
     detachJob(stage, Stage::Status::SKIPPED);
+}
+
+void StageGraph::assume(cvk::Image const& image, ImageState const& state) {
+    cvk::Image::debug_check(image);
+
+    std::scoped_lock const lock{_statesMutex};
+    _states.assume(image, state);
 }
 
 void StageGraph::erase(cvk::Image const& image) {
@@ -228,6 +216,11 @@ void StageGraph::erase(cvk::BaseBuffer const& buffer) {
 
     std::scoped_lock const lock{_statesMutex};
     eraseStates(buffer.get());
+}
+
+void StageGraph::endPrimary(PrimaryCmdBuffer& primary) {
+    if(primary.rendering() != nullptr) primary.endRendering();
+    primary.optEnd();
 }
 
 void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
@@ -297,22 +290,14 @@ cth::co::executor_task<void> StageGraph::submitJob(
             submitted = true;
         }
         catch(...) {
-            storeError(std::current_exception());
+            _error.store(std::current_exception());
         }
     }
 
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
     if(!submitted) {
         co_await queue.executor().schedule();
-        try {
-            info.skip(queue, extraWaits, extraBinaryWaits);
-        }
-        catch(cvk::vk_result_exception const& e) {
-            // a hang otherwise: terminate
-            if(e.vkResult() != VK_ERROR_DEVICE_LOST) throw;
-            // the waits end on their own, nextFrame() rethrows
-            storeError(std::current_exception());
-        }
+        dev::fallback_submit([&] { info.skip(queue, extraWaits, extraBinaryWaits); }, _error);
     }
 
     stageSlot.submitInfo.next(_config.frameSlots);
@@ -325,10 +310,10 @@ cth::co::executor_task<void> StageGraph::submitJob(
         reached = true;
     }
     catch(cth::except::coro_exception const&) {
-        storeError(std::current_exception());
+        _error.store(std::current_exception());
     }
     catch(cvk::vk_result_exception const&) {
-        storeError(std::current_exception());
+        _error.store(std::current_exception());
     }
     // the gpu can still use the retained objects, the destruction of the graph destroys them
     if(!reached) co_return;
@@ -386,25 +371,9 @@ void StageGraph::append(
         releases[lastQueuePtr].add(
             vkImage,
             aspectMask,
-            image_transfer(
-                {lastOpt->scope.stages, lastOpt->scope.access, lastFamily},
-                {.queueFamilyIndex = family},
-                *lastOpt,
-                *firstOpt,
-                mipLevel
-            )
+            dev::release_half(*lastOpt, *firstOpt, lastFamily, family, mipLevel)
         );
-        prologue.add(
-            vkImage,
-            aspectMask,
-            image_transfer(
-                acquire_src(lastFamily),
-                {firstOpt->scope.stages, firstOpt->scope.access, family},
-                *lastOpt,
-                *firstOpt,
-                mipLevel
-            )
-        );
+        prologue.add(vkImage, aspectMask, dev::acquire_half(*lastOpt, *firstOpt, lastFamily, family, mipLevel));
     }
 
     for(auto const& [vkBuffer, sharingMode] : recording.buffers()) {
@@ -419,20 +388,8 @@ void StageGraph::append(
         _states.erase(vkBuffer);
 
         auto const lastFamily = lastQueuePtr->vk().familyIndex();
-        releases[lastQueuePtr].add(
-            vkBuffer,
-            cvk::BufferBarrierInfo::QueueTransition(
-                {.queueFamilyIndex = family},
-                {lastOpt->scope.stages, lastOpt->scope.access, lastFamily}
-            )
-        );
-        prologue.add(
-            vkBuffer,
-            cvk::BufferBarrierInfo::QueueTransition(
-                {firstOpt->scope.stages, firstOpt->scope.access, family},
-                acquire_src(lastFamily)
-            )
-        );
+        releases[lastQueuePtr].add(vkBuffer, dev::release_half(*lastOpt, lastFamily, family));
+        prologue.add(vkBuffer, dev::acquire_half(*firstOpt, lastFamily, family));
     }
 
     _states.append(recording, prologue);
@@ -461,15 +418,5 @@ void StageGraph::eraseStates(VkImage vkImage, uint32_t mipLevels) {
 void StageGraph::eraseStates(VkBuffer vkBuffer) {
     _states.erase(vkBuffer);
     _bufferQueues.erase(vkBuffer);
-}
-
-void StageGraph::rethrowError() {
-    std::scoped_lock const lock{_errorMutex};
-    if(_errorPtr) std::rethrow_exception(_errorPtr);
-}
-
-void StageGraph::storeError(std::exception_ptr errorPtr) noexcept {
-    std::scoped_lock const lock{_errorMutex};
-    if(!_errorPtr) _errorPtr = std::move(errorPtr);
 }
 }

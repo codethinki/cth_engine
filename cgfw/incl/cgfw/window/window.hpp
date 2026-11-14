@@ -160,11 +160,21 @@ public:
 
     /**
      * creates a surface of the window
+     * @details the extent callback of the surface reads `extent()`, see `cvk::Surface::State::extentCallback`
      * @pre `created()`
      * @pre the instance enables `instance_extensions()`
+     * @pre the window outlives the surface and does not move
      * @throws cgfw::cgfw_exception reason: `RGFW_window_createSurface_Vulkan()` failed, the message has the `VkResult`
      */
     [[nodiscard]] cvk::Surface surface(cvk::Instance const&) const;
+
+    //TODO review the size of RGFW: our fork keeps the buffer scale of Wayland at 1, the size is in buffer pixels
+    //TODO the buffer scale of Wayland (HiDPI): the surface stays at scale 1, a scaled output upscales the window
+    /**
+     * @return current size of the framebuffer in pixels
+     * @pre `created()`
+     */
+    [[nodiscard]] VkExtent2D extent() const;
 
     /**
      * handles the pending events of every window

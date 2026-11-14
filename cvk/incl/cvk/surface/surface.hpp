@@ -8,6 +8,7 @@
 #include <cth/io/log.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
+#include <functional>
 #include <vector>
 
 
@@ -22,6 +23,11 @@ class PhysicalDevice;
 class Surface {
 public:
     struct State;
+
+    /**
+     * gives the extent of the window of the surface in framebuffer pixels
+     */
+    using extent_callback_t = std::function<VkExtent2D()>;
 
     /**
      * base constructor
@@ -88,6 +94,21 @@ public:
      */
     [[nodiscard]] std::vector<VkSurfaceFormatKHR> formats(PhysicalDevice const&) const;
 
+    //TODO review a 0 of the callback stays 0, no clamp: a minimized window has no image
+    /**
+     * @return extent of the swapchain images for the surface
+     * @details
+     * - `currentExtent` of the capabilities
+     * - an undefined `currentExtent` (Wayland, headless): `State::extentCallback`, clamped to `minImageExtent` and
+     *   `maxImageExtent`
+     * - a width or height `0` of the callback stays `0`: no image
+     * @pre `created()`
+     * @pre an undefined `currentExtent` -> the state has an extent callback
+     * @throws cvk::vk_result_exception result of `vkGetPhysicalDeviceSurfaceCapabilitiesKHR()`
+     * @see `Swapchain::evalExtent()`
+     */
+    [[nodiscard]] VkExtent2D extent(PhysicalDevice const&) const;
+
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkSurfaceKHR get() const { return _handle.get(); }
 
@@ -96,6 +117,7 @@ private:
 
     cth::ref_wrapper<Instance const> _instance;
     instance_handle<VkSurfaceKHR> _handle{nullptr};
+    extent_callback_t _extentCallback{}; ///< see `State::extentCallback`
 
 public:
     Surface(Surface const& other) = delete;
@@ -111,6 +133,8 @@ public:
 namespace cvk {
 struct Surface::State {
     vk_not_null<VkSurfaceKHR> vkSurface;
+
+    extent_callback_t extentCallback{}; ///< for an undefined `currentExtent` (Wayland, headless)
 };
 }
 

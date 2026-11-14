@@ -2,8 +2,12 @@
 
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/surface/swapchain.hpp"
 #include "cvk/utility/enumerate.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
+
+#include <limits>
+#include <utility>
 
 
 namespace cvk {
@@ -19,6 +23,7 @@ void Surface::wrap(State const& state) {
     optDestroy();
 
     _handle.reset(state.vkSurface.get(), _instance->get());
+    _extentCallback = state.extentCallback;
 }
 
 void Surface::destroy() {
@@ -31,7 +36,7 @@ void Surface::destroy() {
 
 Surface::State Surface::release() {
     debug_check(*this);
-    State const state{_handle.release()};
+    State state{.vkSurface = _handle.release(), .extentCallback = std::move(_extentCallback)};
 
     forget();
     return state;
@@ -83,6 +88,16 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physicalDev
     return capabilities;
 }
 
+VkExtent2D Surface::extent(PhysicalDevice const& physicalDevice) const {
+    auto const capabilities = this->capabilities(physicalDevice);
+    if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) return capabilities.currentExtent;
+
+    CTH_CRITICAL(!_extentCallback, "a surface without a fixed extent needs an extent callback") {}
+    auto const extent = _extentCallback();
+    if(extent.width == 0 || extent.height == 0) return VkExtent2D{};
+    return Swapchain::evalExtent(extent, capabilities);
+}
+
 void destroy(vk_not_null<VkInstance> vkInstance, VkSurfaceKHR vkSurface) {
     CTH_WARN(vkSurface == VK_NULL_HANDLE, "vkSurface invalid (VK_NULL_HANDLE)") {}
 
@@ -91,5 +106,5 @@ void destroy(vk_not_null<VkInstance> vkInstance, VkSurfaceKHR vkSurface) {
     log::msg<except::LOG>("destroyed surface");
 }
 
-void Surface::forget() {}
+void Surface::forget() { _extentCallback = {}; }
 }

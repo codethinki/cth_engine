@@ -9,6 +9,7 @@
 
 #include <array>
 #include <cstddef>
+#include <utility>
 
 
 namespace cvk {
@@ -31,6 +32,13 @@ namespace {
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     };
+
+    /**
+     * rendering without attachments
+     */
+    constexpr VkRect2D AREA{.offset = {0, 0}, .extent = EXTENT};
+
+    struct test_exception {};
 
     /**
      * the clear color of `clear_red()` as a `VK_FORMAT_R8G8B8A8_UNORM` pixel
@@ -238,6 +246,51 @@ CVK_TEST(Rendering, local_read_inside_the_rendering) {
         barrier.execute(cmd);
 
         cmd.endRendering();
+    });
+}
+
+CVK_TEST(Rendering, scope_ends_the_rendering_at_its_end) {
+    test::Context const context{};
+
+    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
+        {
+            auto const rendering = cmd.rendering({.area = AREA});
+            EXPECT_NE(cmd.rendering(), nullptr);
+        }
+        EXPECT_EQ(cmd.rendering(), nullptr);
+
+        // an exception ends it too
+        try {
+            auto const rendering = cmd.rendering({.area = AREA});
+            throw test_exception{};
+        }
+        catch(test_exception const&) {}
+        EXPECT_EQ(cmd.rendering(), nullptr);
+    });
+}
+
+CVK_TEST(Rendering, scope_ends_an_ended_rendering_not_again) {
+    test::Context const context{};
+
+    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
+        {
+            auto rendering = cmd.rendering({.area = AREA});
+            rendering.end();
+            EXPECT_EQ(cmd.rendering(), nullptr);
+        }
+
+        // ended by the command buffer: the rendering is not open at the end
+        {
+            auto const rendering = cmd.rendering({.area = AREA});
+            cmd.endRendering();
+        }
+
+        // the moved-from scope does nothing
+        {
+            auto rendering = cmd.rendering({.area = AREA});
+            auto const moved = std::move(rendering);
+        }
+        EXPECT_EQ(cmd.rendering(), nullptr);
     });
 }
 }

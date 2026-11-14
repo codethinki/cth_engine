@@ -150,6 +150,18 @@ public:
     void endRendering();
 
     /**
+     * begins the dynamic rendering for the scope
+     * @details calls `beginRendering()`, the scope calls `endRendering()`
+     * @return scope, ends the rendering at its end
+     * @pre the preconditions of `beginRendering()`
+     * @see `cvk::scoped_rendering`
+     */
+    [[nodiscard]] cvk::scoped_rendering<BasicCmdBuffer> rendering(cvk::RenderingInfo const& info) {
+        beginRendering(info);
+        return cvk::scoped_rendering<BasicCmdBuffer>{*this};
+    }
+
+    /**
      * binds the buffer to the vertex input binding
      * @details tracks the read of the buffer at the bind: write the buffer before the bind
      * @pre the preconditions of `cvk::BaseCmdBuffer::bindVertexBuffer()` and `use()`
@@ -214,9 +226,21 @@ public:
     void setViewport(VkViewport const& viewport) const { _cmdBuffer.setViewport(viewport); }
 
     /**
+     * @see `cvk::BaseCmdBuffer::setViewport()`
+     */
+    void setViewport(VkExtent2D extent, float minDepth = 0.f, float maxDepth = 1.f) const {
+        _cmdBuffer.setViewport(extent, minDepth, maxDepth);
+    }
+
+    /**
      * @see `cvk::BaseCmdBuffer::setScissor()`
      */
     void setScissor(VkRect2D const& scissor) const { _cmdBuffer.setScissor(scissor); }
+
+    /**
+     * @see `cvk::BaseCmdBuffer::setScissor()`
+     */
+    void setScissor(VkExtent2D extent) const { _cmdBuffer.setScissor(extent); }
 
     /**
      * @see @ref cvk::BaseCmdBuffer::bindPipeline(cvk::GraphicsPipeline const&)

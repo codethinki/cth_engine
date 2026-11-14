@@ -8,6 +8,7 @@
 
 #include <cth/io/log.hpp>
 
+#include <exception>
 #include <span>
 #include <utility>
 #include <vector>
@@ -53,8 +54,16 @@ void SubmitInfo::skip(
     queue.vk().submit({.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}});
 }
 
-StageSlot::StageSlot(StageGraph& graph, size_t stageId, size_t slot, Queue const& queue, size_t secondaries) :
+StageSlot::StageSlot(
+    StageGraph& graph,
+    first_error& error,
+    size_t stageId,
+    size_t slot,
+    Queue const& queue,
+    size_t secondaries
+) :
     graph{graph},
+    error{error},
     stageId{stageId},
     slot{slot},
     queue{queue},
@@ -76,12 +85,11 @@ StageSlot::StageSlot(StageGraph& graph, size_t stageId, size_t slot, Queue const
 namespace jvk {
 Stage::Stage(dev::StageSlot& stageSlot, uint64_t frameNumber) : _stageSlot{stageSlot}, _frameNumber{frameNumber} {}
 
-PrimaryCmdBuffer& Stage::beginPrimary() {
+Stage::PrimaryRecording Stage::beginPrimary() {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
 
-    auto& primary = _stageSlot->primary;
-    primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    return primary;
+    _stageSlot->primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    return PrimaryRecording{*this};
 }
 
 SecondaryCmdBuffer& Stage::beginSecondary(size_t secondaryIdx, std::optional<Inheritance> const& inheritanceOpt) {
@@ -119,4 +127,17 @@ void Stage::await(cvk::Semaphore const& binary, VkPipelineStageFlags2 stages) {
 void Stage::submit() { _stageSlot->graph->submit(*this); }
 
 void Stage::skip() { _stageSlot->graph->skip(*this); }
+
+Stage::PrimaryRecording::~PrimaryRecording() {
+    // an exception: nextFrame() skips the stage
+    if(!_stagePtr || std::uncaught_exceptions() > _uncaughtExceptions) return;
+    if(_stagePtr->status() != Status::UNSUBMITTED) return;
+
+    try {
+        _stagePtr->submit();
+    }
+    catch(...) {
+        _stagePtr->_stageSlot->error->store(std::current_exception());
+    }
+}
 }

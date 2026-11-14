@@ -97,10 +97,19 @@ void submit_and_wait(Context const&, cvk::PrimaryCmdBuffer const&);
 [[nodiscard]] std::vector<std::string> headless_extensions();
 
 /**
+ * window extent of `headless_surface()` without an own callback
+ */
+inline constexpr VkExtent2D HEADLESS_EXTENT{64, 64};
+
+/**
+ * @param extentCallback for the undefined `currentExtent` of the surface
  * @return a headless surface of the instance
  * @pre the instance has `headless_extensions()`
  */
-[[nodiscard]] cvk::Surface headless_surface(cvk::Instance const&);
+[[nodiscard]] cvk::Surface headless_surface(
+    cvk::Instance const&,
+    cvk::Surface::extent_callback_t extentCallback = [] { return HEADLESS_EXTENT; }
+);
 
 /**
  * destroys the shared contexts, fails on their validation errors

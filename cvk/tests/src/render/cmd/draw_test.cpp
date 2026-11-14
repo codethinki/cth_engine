@@ -11,6 +11,7 @@
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -25,6 +26,27 @@ namespace {
 
     constexpr VkExtent2D EXTENT{16, 16};
     constexpr std::array COLOR_FORMATS{VK_FORMAT_R8G8B8A8_UNORM};
+
+    /**
+     * the clear color of `expect_filled()`
+     */
+    constexpr std::array<unsigned char, 4> BLACK_PIXEL{0, 0, 0, 255};
+
+    /**
+     * @return the pixels inside the extent from offset `0` are green, the others black
+     */
+    [[nodiscard]] bool filled_from_origin(BaseBuffer const& readback, VkExtent2D filled) {
+        auto const pixels = readback.map();
+        readback.invalidate();
+        auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
+        for(uint32_t y = 0; y < EXTENT.height; ++y)
+            for(uint32_t x = 0; x < EXTENT.width; ++x) {
+                auto const& expected = x < filled.width && y < filled.height ? test::GREEN_PIXEL : BLACK_PIXEL;
+                auto const pixel = pixels.span().subspan((size_t{y} * EXTENT.width + x) * 4, 4);
+                if(!std::ranges::equal(pixel, expected, {}, asByte)) return false;
+            }
+        return true;
+    }
 
     /**
      * pipeline that fills the triangle with the push constant color
@@ -50,10 +72,11 @@ namespace {
     };
 
     /**
-     * clears an attachment to black, draws with `draw()` and expects every pixel green
+     * clears an attachment to black, draws with `draw()` and expects the pixels in the extent green
+     * @param filled from offset `0`, the other pixels stay black
      */
     template<class Draw>
-    void expect_filled(test::Context const& context, Fill const& fill, Draw draw) {
+    void expect_filled(test::Context const& context, Fill const& fill, Draw draw, VkExtent2D filled = EXTENT) {
         Image const image{
             context.core,
             {
@@ -103,7 +126,7 @@ namespace {
             test::host_read_barrier(context, cmd);
         });
 
-        EXPECT_TRUE(test::every_pixel_is(readback, test::GREEN_PIXEL));
+        EXPECT_TRUE(filled_from_origin(readback, filled));
     }
 }
 
@@ -119,6 +142,40 @@ CVK_TEST(Draw, draw) {
     Fill const fill{context.core};
 
     expect_filled(context, fill, [](PrimaryCmdBuffer const& cmd) { cmd.draw(3); });
+}
+
+CVK_TEST(Draw, viewport_of_an_extent_starts_at_offset_0) {
+    static constexpr VkExtent2D LEFT_HALF{EXTENT.width / 2, EXTENT.height};
+    test::Context const context{};
+    Fill const fill{context.core};
+
+    expect_filled(
+        context,
+        fill,
+        [](PrimaryCmdBuffer const& cmd) {
+            cmd.setViewport(LEFT_HALF);
+            cmd.setScissor(EXTENT);
+            cmd.draw(3);
+        },
+        LEFT_HALF
+    );
+}
+
+CVK_TEST(Draw, scissor_of_an_extent_starts_at_offset_0) {
+    static constexpr VkExtent2D TOP_HALF{EXTENT.width, EXTENT.height / 2};
+    test::Context const context{};
+    Fill const fill{context.core};
+
+    expect_filled(
+        context,
+        fill,
+        [](PrimaryCmdBuffer const& cmd) {
+            cmd.setViewport(EXTENT);
+            cmd.setScissor(TOP_HALF);
+            cmd.draw(3);
+        },
+        TOP_HALF
+    );
 }
 
 CVK_TEST(Draw, draw_indexed) {

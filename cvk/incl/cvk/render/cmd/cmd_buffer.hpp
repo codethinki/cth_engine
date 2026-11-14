@@ -47,6 +47,43 @@ template<class T>
 concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copyable<T> && !std::is_pointer_v<T>);
 
 /**
+ * dynamic rendering of a command buffer for the scope
+ * @details
+ * - `rendering()` of the command buffer begins it
+ * - normal end and exception: ends the rendering if it is still open
+ * - a moved-from scope does nothing
+ * @tparam CmdBuffer with `rendering()` and `endRendering()`: `BaseCmdBuffer` or a jvk command buffer
+ * @attention a coroutine destroyed while suspended with the scope alive ends the rendering
+ */
+template<class CmdBuffer>
+class scoped_rendering {
+public:
+    /**
+     * @param cmdBuffer that began the rendering
+     */
+    explicit constexpr scoped_rendering(CmdBuffer& cmdBuffer) noexcept : _cmdBufferPtr{&cmdBuffer} {}
+
+    ~scoped_rendering() {
+        if(_cmdBufferPtr && _cmdBufferPtr->rendering() != nullptr) _cmdBufferPtr->endRendering();
+    }
+
+    /**
+     * ends the rendering now, the destructor then does nothing
+     * @pre the rendering is open
+     */
+    void end() { _cmdBufferPtr.release()->endRendering(); }
+
+private:
+    move_ptr<CmdBuffer> _cmdBufferPtr;
+
+public:
+    scoped_rendering(scoped_rendering const& other) = delete;
+    scoped_rendering(scoped_rendering&& other) noexcept = default;
+    scoped_rendering& operator=(scoped_rendering const& other) = delete;
+    scoped_rendering& operator=(scoped_rendering&& other) noexcept = default;
+};
+
+/**
  * `VkCommandBuffer` wrapper
  * @details allocated from its pool
  * @details base of `PrimaryCmdBuffer` and `SecondaryCmdBuffer`
@@ -136,6 +173,17 @@ public:
     void endRendering();
 
     /**
+     * begins a dynamic rendering for the scope
+     * @details calls `beginRendering()`
+     * @return scope, ends the rendering at its end
+     * @pre the preconditions of `beginRendering()`
+     */
+    [[nodiscard]] scoped_rendering<BaseCmdBuffer> rendering(RenderingInfo const& info) {
+        beginRendering(info);
+        return scoped_rendering<BaseCmdBuffer>{*this};
+    }
+
+    /**
      * maps the attachments of the rendering to the fragment shader outputs and input attachments
      * @pre `rendering()`
      * @pre `AttachmentMapping::debug_check()` passes for the color attachments of the rendering
@@ -150,10 +198,31 @@ public:
     void setViewport(VkViewport const&) const;
 
     /**
+     * sets viewport 0 to the extent at offset 0
+     * @pre `recording()`
+     */
+    void setViewport(VkExtent2D extent, float minDepth = 0.f, float maxDepth = 1.f) const {
+        setViewport(VkViewport{
+            .x = 0.f,
+            .y = 0.f,
+            .width = static_cast<float>(extent.width),
+            .height = static_cast<float>(extent.height),
+            .minDepth = minDepth,
+            .maxDepth = maxDepth,
+        });
+    }
+
+    /**
      * sets scissor 0
      * @pre `recording()`
      */
     void setScissor(VkRect2D const&) const;
+
+    /**
+     * sets scissor 0 to the extent at offset 0
+     * @pre `recording()`
+     */
+    void setScissor(VkExtent2D extent) const { setScissor(VkRect2D{.offset = {0, 0}, .extent = extent}); }
 
     /**
      * binds the pipeline to the graphics bind point

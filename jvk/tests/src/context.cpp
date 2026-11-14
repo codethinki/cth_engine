@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <optional>
 #include <ranges>
+#include <utility>
 
 
 namespace jvk::test {
@@ -74,7 +75,7 @@ std::vector<std::string> headless_extensions() {
     return extensions;
 }
 
-cvk::Surface headless_surface(cvk::Instance const& instance) {
+cvk::Surface headless_surface(cvk::Instance const& instance, cvk::Surface::extent_callback_t extentCallback) {
     VkHeadlessSurfaceCreateInfoEXT const createInfo{
         .sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT,
         .pNext = nullptr,
@@ -85,7 +86,10 @@ cvk::Surface headless_surface(cvk::Instance const& instance) {
     auto const result = vkCreateHeadlessSurfaceEXT(instance.get(), &createInfo, nullptr, &vkSurface);
     CTH_STABLE_THROW(result != VK_SUCCESS, "failed to create headless surface") {}
 
-    return cvk::Surface{instance, cvk::Surface::State{vkSurface}};
+    return cvk::Surface{
+        instance,
+        cvk::Surface::State{.vkSurface = vkSurface, .extentCallback = std::move(extentCallback)},
+    };
 }
 
 Context::ValidationCheck::ValidationCheck() { errors = 0; }

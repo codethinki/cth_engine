@@ -3,6 +3,7 @@
 
 #include "cgfw/window/window.hpp"
 
+#include "cvk/base/instance.hpp"
 #include "cvk/surface/surface.hpp"
 
 #include <cth/os/osdef.hpp>
@@ -131,6 +132,32 @@ CGFW_TEST(Window, surface_of_an_instance_with_the_extensions) {
     auto const surface = window.surface(context.instance);
 
     EXPECT_TRUE(surface.created());
+}
+
+CGFW_TEST(Window, extent_is_the_size_of_the_window) {
+    CGFW_SKIP_WITHOUT_DISPLAY();
+    Window const window{test::window_config(), create};
+
+    // the window manager can change the size of the config, a tiling one does
+    auto const extent = window.extent();
+
+    EXPECT_GT(extent.width, 0);
+    EXPECT_GT(extent.height, 0);
+}
+
+CGFW_TEST(Window, extent_callback_of_the_surface_reads_the_window) {
+    CGFW_SKIP_WITHOUT_DISPLAY();
+    test::InstanceContext const context{};
+    Window const window{test::window_config(), create};
+    auto surface = window.surface(context.instance);
+
+    auto const state = surface.release();
+    ASSERT_TRUE(static_cast<bool>(state.extentCallback));
+    auto const extent = state.extentCallback();
+    EXPECT_EQ(extent.width, window.extent().width);
+    EXPECT_EQ(extent.height, window.extent().height);
+
+    cvk::destroy(context.instance.get(), state.vkSurface.get());
 }
 
 CGFW_TEST(instance_extensions, contain_the_surface_extensions) {

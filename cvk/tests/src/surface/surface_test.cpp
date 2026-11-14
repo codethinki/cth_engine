@@ -9,6 +9,8 @@
 #include "cvk/utility/vk_overloads.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <limits>
 #include <vector>
 
 
@@ -76,6 +78,52 @@ CVK_TEST(Surface, capabilities) {
     auto const capabilities = context.surface().capabilities(context.core.physicalDevice());
 
     EXPECT_GE(capabilities.minImageCount, 1);
+}
+
+CVK_TEST(Surface, extent_comes_from_the_callback_for_an_undefined_current_extent) {
+    test::PresentContext const context{};
+    auto const& physicalDevice = context.core.physicalDevice();
+    auto const capabilities = context.surface().capabilities(physicalDevice);
+    if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+        GTEST_SKIP() << "the surface has a fixed extent";
+
+    EXPECT_EQ(context.surface().extent(physicalDevice), test::HEADLESS_EXTENT);
+}
+
+CVK_TEST(Surface, extent_of_the_callback_is_clamped_to_the_surface) {
+    test::PresentContext const context{};
+    auto const& physicalDevice = context.core.physicalDevice();
+    static constexpr uint32_t TOO_LARGE_SIDE = std::numeric_limits<uint32_t>::max() - 1;
+    static constexpr VkExtent2D TOO_LARGE{TOO_LARGE_SIDE, TOO_LARGE_SIDE};
+    auto const surface = test::headless_surface(context.instance, [] { return TOO_LARGE; });
+    auto const capabilities = surface.capabilities(physicalDevice);
+    if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+        GTEST_SKIP() << "the surface has a fixed extent";
+
+    EXPECT_EQ(surface.extent(physicalDevice), capabilities.maxImageExtent);
+}
+
+CVK_TEST(Surface, extent_0_of_the_callback_stays_0) {
+    test::PresentContext const context{};
+    auto const& physicalDevice = context.core.physicalDevice();
+    auto const surface = test::headless_surface(context.instance, [] { return VkExtent2D{0, 32}; });
+    if(surface.capabilities(physicalDevice).currentExtent.width != std::numeric_limits<uint32_t>::max())
+        GTEST_SKIP() << "the surface has a fixed extent";
+
+    EXPECT_EQ(surface.extent(physicalDevice), (VkExtent2D{0, 0}));
+}
+
+CVK_TEST(Surface, release_and_wrap_keep_the_extent_callback) {
+    test::PresentContext const context{};
+    auto const& physicalDevice = context.core.physicalDevice();
+    static constexpr VkExtent2D EXTENT{24, 16};
+    auto surface = test::headless_surface(context.instance, [] { return EXTENT; });
+    if(surface.capabilities(physicalDevice).currentExtent.width != std::numeric_limits<uint32_t>::max())
+        GTEST_SKIP() << "the surface has a fixed extent";
+
+    Surface const wrapped{context.instance, surface.release()};
+
+    EXPECT_EQ(wrapped.extent(physicalDevice), EXTENT);
 }
 
 CVK_TEST(Surface, move_assignment_destroys_the_old_surface) {
