@@ -310,10 +310,14 @@ std::optional<BufferState> ResourceStates::last(BaseBuffer const& buffer) const 
 
 void ResourceStates::erase(Image const& image) {
     for(uint32_t level = 0; level < image.mipLevels(); ++level)
-        _images.erase(image_key_t{image.get(), level});
+        erase(image.get(), level);
 }
 
-void ResourceStates::erase(BaseBuffer const& buffer) { _buffers.erase(buffer.get()); }
+void ResourceStates::erase(BaseBuffer const& buffer) { erase(buffer.get()); }
+
+void ResourceStates::erase(VkImage vkImage, uint32_t mipLevel) { _images.erase(image_key_t{vkImage, mipLevel}); }
+
+void ResourceStates::erase(VkBuffer vkBuffer) { _buffers.erase(vkBuffer); }
 
 bool ResourceStates::contains(Image const& image) const {
     for(uint32_t level = 0; level < image.mipLevels(); ++level)

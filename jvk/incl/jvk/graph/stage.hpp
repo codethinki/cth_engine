@@ -5,15 +5,20 @@
 #include "jvk/sync/semaphore.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
+#include "cvk/data/buffer/base_buffer.hpp"
+#include "cvk/data/img/image.hpp"
 
 #include <volk.h>
 
+#include <cth/io/log.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -39,23 +44,44 @@ namespace jvk::dev {
 struct SubmitInfo {
     std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{}; ///< `StageSlot::prologue`, `StageSlot::primary`
 
+    //TODO review no queueWaits: the submit job awaits the marks of every wait, its append follows the dependency order
     /**
      * one per `StageConfig::waits`: `StageSlot::semaphore` of the waited stage slot
      * @details the waited stage slot: stage `StageWait::stageId`, `StageWait::frameOffset` frame slots before
-     * @details the waits for a stage on the same `Queue` come first, `SubmitInfo::queueWaits` of them
      * @details value: a frame number, `< StageGraph::firstFrameNumber()` -> a frame before the first frame, reached
      *  from the start
      */
     std::vector<SemaphoreSubmitInfo> waits{};
 
-    //TODO review the waits on the same queue first, counted by queueWaits: like the legacy timeline waits first
-    /**
-     * the first `queueWaits` waits wait for a stage on the same `Queue`
-     * @details the submit job awaits their `Semaphore::submitted()` before its submit
-     */
-    size_t queueWaits = 0;
-
     SemaphoreSubmitInfo signal; ///< `StageSlot::semaphore` with the frame number
+
+    /**
+     * submits the command buffers on the queue
+     * @details waits for `SubmitInfo::waits` and the extra waits, signals `SubmitInfo::signal`
+     * @param queue of the stage slot
+     * @param extraWaits the jvk waits of the stage and of the releases
+     * @param extraBinaryWaits the binary waits of the stage
+     * @pre runs in the strand of the queue
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
+     * @see `skip()`
+     */
+    void submit(
+        Queue const& queue,
+        std::span<SemaphoreSubmitInfo const> extraWaits,
+        std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
+    ) const;
+
+    /**
+     * submits the waits and the signal without the command buffers
+     * @details the parameters of `submit()`
+     * @pre runs in the strand of the queue
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
+     */
+    void skip(
+        Queue const& queue,
+        std::span<SemaphoreSubmitInfo const> extraWaits,
+        std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
+    ) const;
 
     /**
      * advances every wait and signal value to the next frame of the slot
@@ -63,6 +89,15 @@ struct SubmitInfo {
      * @param frameSlots `StageGraphConfig::frameSlots`, the values rise by it
      */
     constexpr void next(size_t frameSlots);
+};
+
+/**
+ * the images and buffers of `Stage::retain()` in one frame
+ * @details the submit job erases their graph states before it destroys them, see `StageGraph::erase()`
+ */
+struct RetainedResources {
+    std::vector<std::pair<VkImage, uint32_t>> images{}; ///< the handle and the mip levels of each image
+    std::vector<VkBuffer> buffers{};
 };
 
 //TODO review a constructor, no aggregate: `SubmitInfo::signal` and `SubmitInfo::cmdBuffers` refer to members, the
@@ -112,9 +147,16 @@ struct StageSlot {
 
     std::vector<SecondaryCmdBuffer> secondaries{}; ///< `StageConfig::secondaries` of them
 
+    /**
+     * locks `StageSlot::stasis` and the retained resources of the stage, see `Stage::retain()`
+     */
     std::mutex stasisMutex{};
 
-    Stasis stasis; ///< destroyed when `StageSlot::semaphore` reaches the frame number of the next submit or skip
+    /**
+     * the objects of `Stage::retain()`
+     * @details the job of a frame destroys them up to the `Stasis::end()` of its submit or skip
+     */
+    Stasis stasis;
 
 public:
     StageSlot(StageSlot const& other) = delete;
@@ -253,15 +295,28 @@ public:
      */
     void skip();
 
+    //TODO the job records the prologue after the release: a barrier of the prologue for a retained image or buffer
+    // refers to the released object (cvk::Image::debug_check() fails, a null handle in release builds)
     /**
      * keeps the object until the gpu finished the submit or the skip of this frame
-     * @details thread safe
+     * @details
+     * - releases the object at once, the stasis of the stage slot holds its handles
+     * - an image or a buffer: the job erases its graph state before it destroys it
+     * - thread safe
      * @pre `status()` is `UNSUBMITTED`
      * @pre its users on other queues finish before this submit: this submit waits for them
+     * @pre the submit of this frame is its last use
      */
     template<class T>
     requires(!std::is_lvalue_reference_v<T>) && requires(T& object) { object.release().decompose(); }
-    void retain(T&& object);
+    void retain(T&& object) {
+        CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
+
+        std::scoped_lock const lock{_stageSlot->stasisMutex};
+        if constexpr(std::derived_from<T, cvk::Image>) _retained.images.emplace_back(object.get(), object.mipLevels());
+        else if constexpr(std::derived_from<T, cvk::BaseBuffer>) _retained.buffers.push_back(object.get());
+        _stageSlot->stasis.add(object.release());
+    }
 
     /**
      * waits until the gpu finished the submit or the skip of this frame: `co_await stage`
@@ -321,6 +376,8 @@ private:
      * the waits of @ref await(cvk::Semaphore const&, VkPipelineStageFlags2)
      */
     std::vector<cvk::SemaphoreSubmitInfo> _extraBinaryWaits{};
+
+    dev::RetainedResources _retained{}; ///< the images and buffers of `retain()`, under `StageSlot::stasisMutex`
 
 public:
     Stage(Stage const& other) = delete;

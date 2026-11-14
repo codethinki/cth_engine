@@ -242,7 +242,7 @@ inline void Semaphore::debug_check(Semaphore const& semaphore) {
 - `release()` exists so that an owner can use an object it must not destroy (for example swapchain images).
 - The state is non-owning: the raw handles, the contexts that do not come from the core and the data. A dropped state leaks.
 - `wrap(State)` takes the context from the core of the object.
-- Pool children: the state holds the pool, `wrap(State)` has a `CTH_CRITICAL` if it is not the pool of the object.
+- Pooled handles: the state holds the pool, `wrap(State)` has a `CTH_CRITICAL` if it is not the pool of the object.
 - Create constructor: the base constructor parameters, then the `create()` parameters. `create()` without required parameters -> `create_t` first: `Fence(core, create_t, flags = 0)`.
 
 ### Errors

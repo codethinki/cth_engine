@@ -3,14 +3,56 @@
 #include "jvk/base/core.hpp"
 #include "jvk/graph/stage_graph.hpp"
 
+#include "cvk/base/queue/queue.hpp"
 #include "cvk/render/sync/semaphore.hpp"
 
 #include <cth/io/log.hpp>
 
+#include <span>
 #include <utility>
+#include <vector>
 
 
 namespace jvk::dev {
+namespace {
+    /**
+     * the waits of the submit info, then the extra waits
+     */
+    [[nodiscard]] std::vector<cvk::SemaphoreSubmitInfo> all_waits(
+        SubmitInfo const& info,
+        std::span<SemaphoreSubmitInfo const> extraWaits,
+        std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
+    ) {
+        std::vector<cvk::SemaphoreSubmitInfo> waits{};
+        waits.reserve(info.waits.size() + extraWaits.size() + extraBinaryWaits.size());
+        waits.append_range(info.waits);
+        waits.append_range(extraWaits);
+        waits.append_range(extraBinaryWaits);
+        return waits;
+    }
+}
+
+void SubmitInfo::submit(
+    Queue const& queue,
+    std::span<SemaphoreSubmitInfo const> extraWaits,
+    std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
+) const {
+    cvk::SubmitInfo submitInfo{.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}};
+    submitInfo.cmdBuffers.reserve(cmdBuffers.size());
+    for(PrimaryCmdBuffer const& cmdBuffer : cmdBuffers)
+        submitInfo.cmdBuffers.emplace_back(cmdBuffer);
+
+    queue.vk().submit(submitInfo);
+}
+
+void SubmitInfo::skip(
+    Queue const& queue,
+    std::span<SemaphoreSubmitInfo const> extraWaits,
+    std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
+) const {
+    queue.vk().submit({.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}});
+}
+
 StageSlot::StageSlot(StageGraph& graph, size_t stageId, size_t slot, Queue const& queue, size_t secondaries) :
     graph{graph},
     stageId{stageId},

@@ -23,7 +23,9 @@ class Core;
 namespace jvk {
 /**
  * raw device handles to destroy
- * @details destroys the pool children first, the rest in the order of `add()`
+ * @details
+ * - destroys the pooled handles first, the rest in the order of `add()`
+ * - `clear()` with a position of `end()`: destroys the handles before it, keeps the later ones
  * @attention not thread safe
  */
 class Stasis {
@@ -44,10 +46,19 @@ public:
         VkSwapchainKHR,
         VmaAllocation>;
 
-    using pool_child_t = std::variant<
+    using pooled_t = std::variant<
         std::tuple<VkCommandPool, VkCommandBuffer>,
         //TODO review pools without VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT and pool resets
         std::tuple<VkDescriptorPool, VkDescriptorSet>>;
+
+    /**
+     * stable position in the added handles
+     * @details counts every handle added since the construction, a `clear()` does not move it
+     */
+    struct pos {
+        size_t handles;
+        size_t pooledHandles;
+    };
 
     /**
      * takes the device table and the allocator of the core
@@ -68,14 +79,32 @@ public:
     void add(State&& state);
 
     /**
+     * destroys the handles added before the position, keeps the capacity
+     * @details order independent: a later position includes the earlier ones
+     * @pre `pos` comes from `end()` of this stasis
+     * @pre the gpu does not use the handles before the position
+     */
+    void clear(pos const&);
+
+    /**
      * destroys the handles, keeps the capacity
      * @pre the gpu does not use the handles
      */
-    void clear();
+    void clear() { clear(end()); }
 
-    [[nodiscard]] constexpr size_t size() const { return _handles.size() + _poolChildren.size(); }
+    /**
+     * @return position after the last `add()`
+     */
+    [[nodiscard]] constexpr pos end() const {
+        return pos{
+            .handles = _clearedHandles + _handles.size(),
+            .pooledHandles = _clearedPooledHandles + _pooledHandles.size(),
+        };
+    }
 
-    [[nodiscard]] constexpr bool empty() const { return _handles.empty() && _poolChildren.empty(); }
+    [[nodiscard]] constexpr size_t size() const { return _handles.size() + _pooledHandles.size(); }
+
+    [[nodiscard]] constexpr bool empty() const { return _handles.empty() && _pooledHandles.empty(); }
 
     [[nodiscard]] constexpr cvk::DeviceTable table() const { return _table; }
     [[nodiscard]] constexpr VmaAllocator allocator() const { return _vmaAllocator; }
@@ -88,7 +117,10 @@ private:
     VmaAllocator _vmaAllocator;
 
     std::vector<handle_t> _handles{};
-    std::vector<pool_child_t> _poolChildren{};
+    std::vector<pooled_t> _pooledHandles{};
+
+    size_t _clearedHandles = 0; ///< handles destroyed by `clear()`, the position of `_handles.front()`
+    size_t _clearedPooledHandles = 0; ///< pooled handles destroyed by `clear()`, the position of the first one
 
 public:
     Stasis(Stasis const& other) = delete;
@@ -96,7 +128,8 @@ public:
     Stasis& operator=(Stasis const& other) = delete;
 
     /**
-     * destroys the handles of this, then takes the handles and contexts of other
+     * destroys the handles of this, then takes the handles, the positions and the contexts of other
+     * @details the positions of `end()` before the assignment do not apply after it
      */
     Stasis& operator=(Stasis&& other) noexcept;
 };
@@ -127,8 +160,8 @@ template<class Grave>
 void Stasis::push(Grave grave) {
     if constexpr(dev::is_optional<Grave>) {
         if(grave.has_value()) push(*grave);
-    } else if constexpr(dev::alternative_of<Grave, pool_child_t>) {
-        _poolChildren.emplace_back(grave);
+    } else if constexpr(dev::alternative_of<Grave, pooled_t>) {
+        _pooledHandles.emplace_back(grave);
     } else {
         static_assert(dev::alternative_of<Grave, handle_t>, "the stasis has no alternative for the handle");
         _handles.emplace_back(grave);

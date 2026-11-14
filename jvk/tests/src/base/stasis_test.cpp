@@ -53,7 +53,7 @@ JVK_TEST(Stasis, clear_destroys_every_handle) {
     cvk::CmdPool pool{context.core, {.queueFamilyIndex = test::queue_family(context)}, cvk::create};
     cvk::PrimaryCmdBuffer primary{pool, cvk::create};
 
-    // the pool before its command buffer: the pool children are destroyed first
+    // the pool before its command buffer: the pooled handles are destroyed first
     stasis.add(primary.release());
     stasis.add(pool.release());
     stasis.add(semaphore.release());
@@ -88,6 +88,64 @@ JVK_TEST(Stasis, destructor_destroys_the_handles) {
 
     Stasis stasis{context.core};
     stasis.add(semaphore.release());
+}
+
+JVK_TEST(Stasis, clear_to_a_position_keeps_the_later_handles) {
+    test::Context const context{};
+    Stasis stasis{context.core};
+    cvk::Semaphore first{context.core, cvk::create};
+    cvk::Semaphore second{context.core, cvk::create};
+
+    stasis.add(first.release());
+    auto const position = stasis.end();
+    stasis.add(second.release());
+
+    stasis.clear(position);
+    EXPECT_EQ(stasis.size(), 1);
+
+    stasis.clear(stasis.end());
+    EXPECT_TRUE(stasis.empty());
+}
+
+JVK_TEST(Stasis, clear_to_an_earlier_position_destroys_nothing) {
+    test::Context const context{};
+    Stasis stasis{context.core};
+    cvk::Semaphore first{context.core, cvk::create};
+    cvk::Semaphore second{context.core, cvk::create};
+
+    auto const early = stasis.end();
+    stasis.add(first.release());
+    auto const late = stasis.end();
+    stasis.add(second.release());
+
+    // a later position includes the earlier ones
+    stasis.clear(late);
+    stasis.clear(early);
+    EXPECT_EQ(stasis.size(), 1);
+}
+
+JVK_TEST(Stasis, positions_count_the_pooled_handles_apart) {
+    test::Context const context{};
+    Stasis stasis{context.core};
+    cvk::Semaphore semaphore{context.core, cvk::create};
+    cvk::CmdPool pool{context.core, {.queueFamilyIndex = test::queue_family(context)}, cvk::create};
+    cvk::PrimaryCmdBuffer primary{pool, cvk::create};
+
+    stasis.add(semaphore.release());
+    auto const position = stasis.end();
+    EXPECT_EQ(position.handles, 1);
+    EXPECT_EQ(position.pooledHandles, 0);
+
+    stasis.add(primary.release());
+    stasis.add(pool.release());
+    stasis.clear(position);
+    EXPECT_EQ(stasis.size(), 2);
+
+    // a clear does not move the positions
+    stasis.clear();
+    EXPECT_TRUE(stasis.empty());
+    EXPECT_EQ(stasis.end().handles, 2);
+    EXPECT_EQ(stasis.end().pooledHandles, 1);
 }
 
 JVK_TEST(Stasis, move_assignment_destroys_the_old_handles) {

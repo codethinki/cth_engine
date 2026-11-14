@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <ranges>
 #include <utility>
 
 
@@ -157,6 +158,18 @@ public:
     void erase(cvk::Image const&);
     void erase(cvk::BaseBuffer const&);
 
+    /**
+     * erases the state of the mip level
+     * @details also for an image whose object released its handle
+     */
+    void erase(VkImage, uint32_t mipLevel);
+
+    /**
+     * erases the state of the buffer
+     * @details also for a buffer whose object released its handle
+     */
+    void erase(VkBuffer);
+
     void clear() {
         _images.clear();
         _buffers.clear();
@@ -174,6 +187,22 @@ public:
     [[nodiscard]] size_t size() const { return _images.size() + _buffers.size(); }
 
     [[nodiscard]] bool empty() const { return _images.empty() && _buffers.empty(); }
+
+    /**
+     * @return view of the mip levels with a state: `std::pair` of the image and the mip level
+     */
+    [[nodiscard]] auto images() const {
+        return _images | std::views::transform([](auto const& entry) {
+            return std::pair<cth::ref_wrapper<cvk::Image const>, uint32_t>{entry.second.image, entry.first.second};
+        });
+    }
+
+    /**
+     * @return view of the buffers with a state
+     */
+    [[nodiscard]] auto buffers() const {
+        return _buffers | std::views::transform([](auto const& entry) { return entry.second.buffer; });
+    }
 
 private:
     using image_key_t = std::pair<VkImage, uint32_t>;

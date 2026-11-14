@@ -5,15 +5,24 @@
 
 #include "jvk/base/queue.hpp"
 #include "jvk/data/buffer.hpp"
+#include "jvk/data/image.hpp"
 
+#include "cvk/base/allocator.hpp"
 #include "cvk/base/queue/submit_info.hpp"
+#include "cvk/render/sync/barrier.hpp"
 #include "cvk/render/sync/semaphore.hpp"
+
+#include <volk.h>
+#include <vk_mem_alloc.h>
 
 #include <cth/coro/tasks/executor_task.hpp>
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
+#include <optional>
+#include <semaphore>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -25,8 +34,21 @@ namespace {
 
     constexpr size_t VALUES = 64;
 
+    constexpr auto TIMEOUT = std::chrono::seconds{5};
+
     constexpr cvk::BaseBuffer::Config DEVICE_CONFIG{
         .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    };
+
+    /**
+     * one pixel per value
+     */
+    constexpr VkExtent2D EXTENT{8, 8};
+
+    constexpr cvk::Image::Config IMAGE_CONFIG{
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .format = VK_FORMAT_R8G8B8A8_UNORM,
+        .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
     };
 
     constexpr BufferAccess HOST_READ{VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
@@ -40,6 +62,51 @@ namespace {
         auto config = test::Context::CONFIG;
         config.vk.queueProperties = {GRAPHICS, GRAPHICS};
         return config;
+    }
+
+    /**
+     * a graphics queue and a compute queue, on two families where the device has them
+     */
+    Core::Config two_families() {
+        auto config = test::Context::CONFIG;
+        config.vk.queueProperties = {GRAPHICS, COMPUTE};
+        return config;
+    }
+
+    /**
+     * @return number of the vma allocations of the core
+     */
+    [[nodiscard]] uint32_t allocations(Core const& core) {
+        cvk::Core const& vk = core;
+        VmaTotalStatistics statistics{};
+        vmaCalculateStatistics(vk.allocator().get(), &statistics);
+        return statistics.total.statistics.allocationCount;
+    }
+
+    /**
+     * @return the number of vma allocations reached the count before the timeout
+     */
+    [[nodiscard]] bool reaches_allocations(Core const& core, uint32_t count) {
+        auto const deadline = std::chrono::steady_clock::now() + TIMEOUT;
+        while(allocations(core) != count) {
+            if(std::chrono::steady_clock::now() > deadline) return false;
+            std::this_thread::sleep_for(std::chrono::milliseconds{1});
+        }
+        return true;
+    }
+
+    /**
+     * signals the semaphore from the host, without a mark
+     */
+    void host_signal(Semaphore const& semaphore, uint64_t value) {
+        cvk::Core const& vk = semaphore.core();
+        VkSemaphoreSignalInfo const info{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+            .pNext = nullptr,
+            .semaphore = semaphore.get(),
+            .value = value,
+        };
+        ASSERT_EQ(vk.functions()->vkSignalSemaphore(vk.vkDevice(), &info), VK_SUCCESS);
     }
 
     [[nodiscard]] Buffer<uint32_t> counting_staging(Core const& core) {
@@ -61,6 +128,13 @@ namespace {
     Frame& next_frame(Core const& core, StageGraph& graph) { return core.executor().sync_wait(graph.nextFrame()); }
 
     cth::co::executor_task<void> await_stage(Stage const& stage) { co_await stage; }
+
+    cth::co::executor_task<void> await_submitted(Stage const& stage) { co_await stage.submitted(); }
+
+    /**
+     * enters the strand of the queue: the jobs posted to it before ended
+     */
+    cth::co::executor_task<void> enter_strand(Queue const& queue) { co_await queue.executor().schedule(); }
 
     /**
      * blocks until the gpu finished the stage
@@ -330,5 +404,192 @@ JVK_TEST(StageGraph, secondaries_record_on_several_threads) {
     wait(core, stage);
     for(auto const& readback : readbacks)
         EXPECT_TRUE(counts(readback));
+}
+
+JVK_TEST(StageGraph, retain_lives_until_the_gpu_finished_the_submit) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    Semaphore const gate{core, cvk::create};
+
+    auto const staging = counting_staging(core);
+    Buffer<uint32_t> buffer{core, DEVICE_CONFIG, VALUES};
+    auto const before = allocations(core);
+
+    auto& stage = next_frame(core, graph).stage(0);
+    // the gpu waits for the gate
+    stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
+    auto& primary = stage.beginPrimary();
+    buffer.copy(primary, staging);
+    stage.retain(std::move(buffer));
+    stage.submit();
+
+    gate.markSubmitted(1);
+    core.executor().sync_wait(await_submitted(stage));
+    EXPECT_EQ(allocations(core), before);
+
+    host_signal(gate, 1);
+    wait(core, stage);
+    EXPECT_TRUE(reaches_allocations(core, before - 1));
+}
+
+JVK_TEST(StageGraph, retain_of_the_next_frame_survives_the_job_of_the_frame_before) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
+    Semaphore const gate{core, cvk::create};
+    auto const& queue = core.queue(0);
+
+    Buffer<uint32_t> first{core, DEVICE_CONFIG, VALUES};
+    Buffer<uint32_t> second{core, DEVICE_CONFIG, VALUES};
+    auto const before = allocations(core);
+
+    auto& stage = next_frame(core, graph).stage(0);
+    stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
+    stage.retain(std::move(first));
+    submit_empty(stage);
+    gate.markSubmitted(1);
+    core.executor().sync_wait(await_submitted(stage));
+
+    // the job waits for the gpu: its resume comes behind this strand job
+    std::binary_semaphore blocking{0};
+    std::binary_semaphore unblock{0};
+    queue.executor().context().post([&blocking, &unblock] {
+        blocking.release();
+        unblock.acquire();
+    });
+    ASSERT_TRUE(blocking.try_acquire_for(TIMEOUT));
+    host_signal(gate, 1);
+
+    // the same slot: the gpu finished the frame before, its job did not destroy the retained objects yet
+    auto& next = next_frame(core, graph).stage(0);
+    next.retain(std::move(second));
+    unblock.release();
+
+    // the job of the frame before destroys its own retained buffer only
+    EXPECT_TRUE(reaches_allocations(core, before - 1));
+    core.executor().sync_wait(enter_strand(queue));
+    EXPECT_EQ(allocations(core), before - 1);
+
+    submit_empty(next);
+    wait(core, next);
+    EXPECT_TRUE(reaches_allocations(core, before - 2));
+}
+
+JVK_TEST(StageGraph, skip_destroys_the_retained_objects_after_its_signal) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+
+    Buffer<uint32_t> buffer{core, DEVICE_CONFIG, VALUES};
+    auto const before = allocations(core);
+
+    auto& stage = next_frame(core, graph).stage(0);
+    stage.retain(std::move(buffer));
+    stage.skip();
+
+    wait(core, stage);
+    EXPECT_GE(stage.semaphore().gpuValue(), stage.frameNumber());
+    EXPECT_TRUE(reaches_allocations(core, before - 1));
+}
+
+JVK_TEST(StageGraph, prologue_transitions_an_unknown_image_from_undefined) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+
+    auto const staging = counting_staging(core);
+    Image const image{core, IMAGE_CONFIG, EXTENT};
+    Buffer<uint32_t> const readback{core, test::READBACK_CONFIG, VALUES};
+
+    // no assume(): the first use needs the transition, the validation layers report a wrong layout
+    auto& stage = next_frame(core, graph).stage(0);
+    auto& primary = stage.beginPrimary();
+    image.copy(primary, staging);
+    image.copyTo(primary, readback);
+    primary.use(readback, HOST_READ);
+    stage.submit();
+
+    wait(core, stage);
+    EXPECT_TRUE(counts(readback));
+}
+
+JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
+    test::Context const context{};
+    Core core{context.instance, two_families(), {}};
+    if(core.queue(0).vk().familyIndex() == core.queue(1).vk().familyIndex())
+        GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}, {.queueIdx = 1, .waits = {TRANSFER_WAIT_ON_0}}}}};
+
+    auto const staging = counting_staging(core);
+    Image const image{core, IMAGE_CONFIG, EXTENT};
+    Buffer<uint32_t> const buffer{core, DEVICE_CONFIG, VALUES};
+    Buffer<uint32_t> const imageReadback{core, test::READBACK_CONFIG, VALUES};
+    Buffer<uint32_t> const bufferReadback{core, test::READBACK_CONFIG, VALUES};
+
+    auto& frame = next_frame(core, graph);
+    auto& writer = frame.stage(0);
+    auto& reader = frame.stage(1);
+
+    // the reader submits first: its job appends after the writer, the writer queue releases both
+    auto& readerPrimary = reader.beginPrimary();
+    image.copyTo(readerPrimary, imageReadback);
+    bufferReadback.copy(readerPrimary, buffer);
+    readerPrimary.use(imageReadback, HOST_READ, bufferReadback, HOST_READ);
+    reader.submit();
+
+    auto& writerPrimary = writer.beginPrimary();
+    image.copy(writerPrimary, staging);
+    buffer.copy(writerPrimary, staging);
+    writer.submit();
+
+    wait(core, reader);
+    EXPECT_TRUE(counts(imageReadback));
+    EXPECT_TRUE(counts(bufferReadback));
+
+    // one release on the writer queue for both: the next release gets the second value of its counter
+    auto const& writerQueue = core.queue(0);
+    auto const next = core.executor().sync_wait(writerQueue.release(cvk::Barrier{}));
+    EXPECT_EQ(next.value, 2);
+    writerQueue.waitIdle();
+}
+
+JVK_TEST(StageGraph, erase_removes_the_state_and_the_last_queue_of_an_image) {
+    test::Context const context{};
+    Core core{context.instance, two_families(), {}};
+    auto const& firstQueue = core.queue(0);
+    if(firstQueue.vk().familyIndex() == core.queue(1).vk().familyIndex())
+        GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}, {.queueIdx = 1}}}};
+
+    // one staging buffer per family: a shared one would need a release too
+    auto const firstStaging = counting_staging(core);
+    auto const secondStaging = counting_staging(core);
+    Image const image{core, IMAGE_CONFIG, EXTENT};
+    Buffer<uint32_t> const readback{core, test::READBACK_CONFIG, VALUES};
+
+    auto& first = next_frame(core, graph);
+    image.copy(first.stage(0).beginPrimary(), firstStaging);
+    first.stage(0).submit();
+    first.stage(1).skip();
+    wait(core, first.stage(0));
+
+    graph.erase(image);
+
+    // the graph does not know the image: the other family starts from undefined, no release on the first queue
+    auto& second = next_frame(core, graph);
+    second.stage(0).skip();
+    auto& primary = second.stage(1).beginPrimary();
+    image.copy(primary, secondStaging);
+    image.copyTo(primary, readback);
+    primary.use(readback, HOST_READ);
+    second.stage(1).submit();
+
+    wait(core, second.stage(1));
+    EXPECT_TRUE(counts(readback));
+
+    auto const next = core.executor().sync_wait(firstQueue.release(cvk::Barrier{}));
+    EXPECT_EQ(next.value, 1);
+    firstQueue.waitIdle();
 }
 }

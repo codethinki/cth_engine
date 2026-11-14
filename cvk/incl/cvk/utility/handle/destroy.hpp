@@ -49,7 +49,7 @@ void destroy(DeviceTable, VkShaderModule);
 void destroy(DeviceTable, VkPipeline);
 void destroy(DeviceTable, VkCommandPool);
 
-// pool children
+// pooled handles
 void destroy(DeviceTable, VkCommandPool, VkCommandBuffer);
 
 /**

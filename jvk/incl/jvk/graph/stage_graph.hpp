@@ -3,6 +3,7 @@
 #include "stage.hpp"
 #include "stage_graph_config.hpp"
 
+#include "jvk/base/stasis.hpp"
 #include "jvk/sync/resource_states.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
@@ -24,6 +25,11 @@
 #include <vector>
 
 
+namespace cvk {
+class BaseBuffer;
+class Image;
+}
+
 namespace jvk {
 class Core;
 class Queue;
@@ -39,6 +45,7 @@ namespace jvk {
  * - the stages of a frame record at the same time, on any thread
  * - the submits of a stage follow the frame order
  * - the resource states after all submits resolve the first uses of each submit in its prologue
+ * - a resource of another queue family: the last queue releases it, the prologue acquires it
  */
 class StageGraph {
 public:
@@ -80,10 +87,13 @@ public:
      * @details
      * - sets the status of the stage to `SUBMITTED`
      * - thread safe for different stages
-     * - returns at once, the strand of the queue submits after the waited stages on the same queue submitted
+     * - returns at once, the strand of the queue submits after the waited stages submitted
      * - resolves the first uses of the primary against the resource states after all submits
+     * - an unknown image: the prologue transitions it from `VK_IMAGE_LAYOUT_UNDEFINED`
+     * - an `EXCLUSIVE` resource of another queue family: `Queue::release()` on its last queue, the prologue acquires it
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
+     * - an error: skips, `nextFrame()` rethrows the error
      * - after the gpu finished: destroys the retained objects
      * @pre the stage is of this graph
      * @pre `Stage::beginPrimary()` in this frame
@@ -97,7 +107,7 @@ public:
     /**
      * submits no work for the stage in this frame
      * @details sets the status of the stage to `SKIPPED`, thread safe for different stages
-     * @details returns at once, the strand of the queue submits after the waited stages on the same queue submitted
+     * @details returns at once, the strand of the queue submits after the waited stages submitted
      * @details empty submit on the queue of the stage:
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
@@ -107,6 +117,23 @@ public:
      * @pre `Stage::status()` is `UNSUBMITTED`
      */
     void skip(Stage&);
+
+    /**
+     * removes the state and the last queue of the image
+     * @details
+     * - call it before the image is destroyed: a new image can get its handle
+     * - `Stage::retain()` does it for the retained images
+     * - thread safe
+     * @pre the gpu finished the last submit that uses the image
+     */
+    void erase(cvk::Image const&);
+
+    /**
+     * removes the state and the last queue of the buffer
+     * @details the details of @ref erase(cvk::Image const&)
+     * @pre the gpu finished the last submit that uses the buffer
+     */
+    void erase(cvk::BaseBuffer const&);
 
     /**
      * @return number of the first frame: `1 +` the largest `StageWait::frameOffset` of the config
@@ -127,25 +154,36 @@ private:
     //TODO review name
     using semaphore_waits_t = std::vector<cvk::SemaphoreSubmitInfo>;
 
+    //TODO review one helper for submit() and skip(): they differ in the status only
+    /**
+     * sets the status of the stage, detaches the submit job
+     * @details takes `Stasis::end()` of the stage slot and the retained resources of the stage under
+     *  `StageSlot::stasisMutex`
+     * @param targetStatus `SUBMITTED` or `SKIPPED`
+     */
+    void detachJob(Stage&, Stage::Status targetStatus);
+
     //TODO review no marks as parameters: the job awaits Semaphore::submitted() of the slots, they live as long as
     // the graph
     //TODO review next() before the mark: the job of the next frame of the slot awaits the mark, it reads the values
+    //TODO review the gpu wait and the destruction in the strand of the queue: no extra post, the destruction is short
     /**
      * submit job of `submit()` and `skip()`
-     * @details
-     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before, of the first
-     *   `SubmitInfo::queueWaits` waits of `StageSlot::submitInfo` and of every jvk extra wait
-     * - the jvk extra waits: always awaited, the graph does not know the queue that signals them
+     * @details the order:
+     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before, of the waits of
+     *   `StageSlot::submitInfo` and of every jvk extra wait: the appends follow the dependency order
      * - the binary extra waits: no await on the cpu
-     * - under `StageGraph::_statesMutex`: `append()` of the states of the primary
-     * - release halves: `release()` on the last queues, the submit waits for the returned values
-     * - the prologue records the acquire halves and the barriers of the first uses
-     * - in the strand of the queue: submits `StageSlot::submitInfo` with the extra waits of the stage and the release
-     *   waits, `SubmitInfo::next()`, then `Semaphore::markSubmitted()` of the slot with the frame number
-     * - after the gpu finished: clears the stasis
-     * - an error -> stores it, see `storeError()`, then `SubmitInfo::next()` and the mark
-     * @details the status: `SUBMITTED` -> with `SubmitInfo::cmdBuffers`, `SKIPPED` -> the same waits and signal,
-     *  no command buffers
+     * - `SUBMITTED`: `append()` of the states of the primary under `StageGraph::_statesMutex`, `release()` of the
+     *   release halves, in the strand: records the prologue, `SubmitInfo::submit()` with the release waits
+     * - `SKIPPED` or a failed submit: in the strand, `SubmitInfo::skip()`
+     * - `SubmitInfo::next()`, then `Semaphore::markSubmitted()` of the slot with the frame number
+     * - after the gpu finished: erases the states of the retained resources, then `Stasis::clear()` to `stasisEnd`
+     * @details the errors:
+     * - a failed submit: stores the error, see `storeError()`, then skips
+     * - a failed skip: `VK_ERROR_DEVICE_LOST` -> stores the error, else terminates: the waiters would hang
+     * - a failed gpu wait: stores the error, keeps the retained objects for the destruction of the graph
+     * @param targetStatus the status the job reaches: `SUBMITTED` or `SKIPPED`
+     * @param stasisEnd `Stasis::end()` of the stage slot at the submit or the skip
      * @see `Stage::submitted()`
      */
     [[nodiscard]] cth::co::executor_task<void> submitJob(
@@ -153,11 +191,20 @@ private:
         uint64_t frameNumber,
         std::vector<SemaphoreSubmitInfo> extraWaits,
         semaphore_waits_t extraBinaryWaits,
-        Stage::Status
+        dev::RetainedResources retained,
+        Stasis::pos stasisEnd,
+        Stage::Status targetStatus
     );
 
     /**
      * appends the states of a submit on the queue to the resource states after all submits
+     * @details the first use of a mip level or a buffer after the last state:
+     * - unknown image: from `VK_IMAGE_LAYOUT_UNDEFINED`
+     * - unknown buffer: no barrier
+     * - the same queue family, or `VK_SHARING_MODE_CONCURRENT`: the barrier of `ResourceStates::append()`
+     * - another queue family, `EXCLUSIVE`, contents needed: release half for the last queue, acquire half
+     * - another queue family, discard or `VK_IMAGE_LAYOUT_UNDEFINED`: from `VK_IMAGE_LAYOUT_UNDEFINED`, no transfer
+     * - an `assume()` before the first use: no barrier
      * @details sets the queue as the last queue of the resources
      * @param[out] prologue gets the barriers for the first uses of the submit, the acquire halves included
      * @param[out] releases gets the release halves per last queue of another family
@@ -165,13 +212,26 @@ private:
      */
     void append(ResourceStates const& recording, Queue const& queue, cvk::Barrier& prologue, release_map_t& releases);
 
+    //TODO review jvk waits: they join the jvk extra waits of the stage
     /**
      * releases the resources on their last queues
      * @param releases the release halves per last queue, from `append()`
      * @return the waits for the releases
      * @see `Queue::release()`
      */
-    [[nodiscard]] cth::co::executor_task<semaphore_waits_t> release(release_map_t releases);
+    [[nodiscard]] cth::co::executor_task<std::vector<SemaphoreSubmitInfo>> release(release_map_t releases);
+
+    /**
+     * removes the states and the last queues of the mip levels
+     * @pre the caller holds `StageGraph::_statesMutex`
+     */
+    void eraseStates(VkImage, uint32_t mipLevels);
+
+    /**
+     * removes the state and the last queue of the buffer
+     * @pre the caller holds `StageGraph::_statesMutex`
+     */
+    void eraseStates(VkBuffer);
 
     /**
      * stores the first error of a job for `nextFrame()`
