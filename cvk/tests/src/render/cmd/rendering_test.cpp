@@ -67,7 +67,7 @@ CVK_TEST(Rendering, clear_a_color_attachment) {
         transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
         transition.execute(cmd);
 
-        cmd.beginRendering({.colorAttachments = {clear_red(view)}});
+        auto const rendering = cmd.beginRendering({.colorAttachments = {clear_red(view)}});
         cmd.endRendering();
 
         Barrier barrier{};
@@ -103,7 +103,7 @@ CVK_TEST(Rendering, clear_every_layer) {
         transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
         transition.execute(cmd);
 
-        cmd.beginRendering({.colorAttachments = {clear_red(view)}, .layerCount = 2});
+        auto const rendering = cmd.beginRendering({.colorAttachments = {clear_red(view)}, .layerCount = 2});
         cmd.endRendering();
 
         Barrier toTransfer{};
@@ -127,14 +127,14 @@ CVK_TEST(Rendering, tracks_the_current_rendering) {
         transition.execute(cmd);
         EXPECT_EQ(cmd.rendering(), nullptr);
 
-        cmd.beginRendering({.colorAttachments = {clear_red(view)}});
-        auto const* rendering = cmd.rendering();
-        ASSERT_NE(rendering, nullptr);
-        ASSERT_EQ(rendering->colorAttachments.size(), 1);
-        EXPECT_EQ(&rendering->colorAttachments[0].view.get(), &view);
-        ASSERT_TRUE(rendering->area.has_value());
-        EXPECT_EQ(rendering->area->extent.width, EXTENT.width);
-        EXPECT_EQ(rendering->area->extent.height, EXTENT.height);
+        auto const rendering = cmd.beginRendering({.colorAttachments = {clear_red(view)}});
+        auto const* renderingPtr = cmd.rendering();
+        ASSERT_NE(renderingPtr, nullptr);
+        ASSERT_EQ(renderingPtr->colorAttachments.size(), 1);
+        EXPECT_EQ(&renderingPtr->colorAttachments[0].view.get(), &view);
+        ASSERT_TRUE(renderingPtr->area.has_value());
+        EXPECT_EQ(renderingPtr->area->extent.width, EXTENT.width);
+        EXPECT_EQ(renderingPtr->area->extent.height, EXTENT.height);
 
         auto const inheritance = cmd.inheritance();
         ASSERT_EQ(inheritance.colorFormats.size(), 1);
@@ -155,7 +155,7 @@ CVK_TEST(Rendering, clear_a_depth_attachment) {
         transition.addTransition(image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
         transition.execute(cmd);
 
-        cmd.beginRendering(
+        auto const rendering = cmd.beginRendering(
             {
                 .depthAttachment = RenderingAttachment{
                     .view = view,
@@ -181,7 +181,7 @@ CVK_TEST(Rendering, depth_attachment_in_the_default_layout) {
         transition.addTransition(image, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
         transition.execute(cmd);
 
-        cmd.beginRendering(
+        auto const rendering = cmd.beginRendering(
             {
                 .depthAttachment = RenderingAttachment{
                     .view = view,
@@ -206,7 +206,7 @@ CVK_TEST(Rendering, secondary_inherits_the_rendering) {
         Barrier transition{};
         transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
         transition.execute(cmd);
-        cmd.beginRendering(
+        auto const rendering = cmd.beginRendering(
             {.colorAttachments = {clear_red(view)}, .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT}
         );
 
@@ -230,7 +230,9 @@ CVK_TEST(Rendering, local_read_inside_the_rendering) {
         transition.addTransition(image, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_LAYOUT_UNDEFINED);
         transition.execute(cmd);
 
-        cmd.beginRendering({.colorAttachments = {clear_red(view, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)}});
+        auto const rendering = cmd.beginRendering(
+            {.colorAttachments = {clear_red(view, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)}}
+        );
         cmd.setAttachmentMapping({.locations = {0}, .colorInputIndices = {0}});
 
         Barrier barrier{VK_DEPENDENCY_BY_REGION_BIT};
@@ -254,14 +256,14 @@ CVK_TEST(Rendering, scope_ends_the_rendering_at_its_end) {
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         {
-            auto const rendering = cmd.rendering({.area = AREA});
+            auto const rendering = cmd.beginRendering({.area = AREA});
             EXPECT_NE(cmd.rendering(), nullptr);
         }
         EXPECT_EQ(cmd.rendering(), nullptr);
 
         // an exception ends it too
         try {
-            auto const rendering = cmd.rendering({.area = AREA});
+            auto const rendering = cmd.beginRendering({.area = AREA});
             throw test_exception{};
         }
         catch(test_exception const&) {}
@@ -269,28 +271,36 @@ CVK_TEST(Rendering, scope_ends_the_rendering_at_its_end) {
     });
 }
 
-CVK_TEST(Rendering, scope_ends_an_ended_rendering_not_again) {
+CVK_TEST(Rendering, scope_does_nothing_after_an_end_a_move_or_a_release) {
     test::Context const context{};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         {
-            auto rendering = cmd.rendering({.area = AREA});
+            auto rendering = cmd.beginRendering({.area = AREA});
             rendering.end();
             EXPECT_EQ(cmd.rendering(), nullptr);
         }
 
         // ended by the command buffer: the rendering is not open at the end
         {
-            auto const rendering = cmd.rendering({.area = AREA});
+            auto const rendering = cmd.beginRendering({.area = AREA});
             cmd.endRendering();
         }
 
         // the moved-from scope does nothing
         {
-            auto rendering = cmd.rendering({.area = AREA});
+            auto rendering = cmd.beginRendering({.area = AREA});
             auto const moved = std::move(rendering);
         }
         EXPECT_EQ(cmd.rendering(), nullptr);
+
+        // a released scope leaves the end to the caller
+        {
+            auto rendering = cmd.beginRendering({.area = AREA});
+            rendering.release();
+        }
+        EXPECT_NE(cmd.rendering(), nullptr);
+        cmd.endRendering();
     });
 }
 }

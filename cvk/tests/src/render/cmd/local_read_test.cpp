@@ -222,7 +222,7 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
         attachments.toRendering(cmd);
 
         // the begin sets the mapping of the first draw, the bind of the second pipeline its own
-        cmd.beginRendering(attachments.renderingInfo(0, write_first()));
+        auto const rendering = cmd.beginRendering(attachments.renderingInfo(0, write_first()));
         EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
 
         draws.drawWrite(cmd);
@@ -273,7 +273,9 @@ CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
         attachments.toRendering(cmd);
-        cmd.beginRendering(attachments.renderingInfo(VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT));
+        auto const rendering = cmd.beginRendering(
+            attachments.renderingInfo(VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT)
+        );
         EXPECT_EQ(cmd.rendering()->attachmentMapping, AttachmentMapping{});
 
         cmd.setAttachmentMapping(write_first());

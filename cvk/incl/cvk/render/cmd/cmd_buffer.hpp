@@ -49,9 +49,10 @@ concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copy
 /**
  * dynamic rendering of a command buffer for the scope
  * @details
- * - `rendering()` of the command buffer begins it
+ * - `beginRendering()` of the command buffer returns it
  * - normal end and exception: ends the rendering if it is still open
- * - a moved-from scope does nothing
+ * - an explicit `endRendering()` of the command buffer: the end does nothing
+ * - a moved-from or released scope does nothing
  * @tparam CmdBuffer with `rendering()` and `endRendering()`: `BaseCmdBuffer` or a jvk command buffer
  * @attention a coroutine destroyed while suspended with the scope alive ends the rendering
  */
@@ -72,6 +73,12 @@ public:
      * @pre the rendering is open
      */
     void end() { _cmdBufferPtr.release()->endRendering(); }
+
+    /**
+     * gives the end of the rendering to the caller, the destructor then does nothing
+     * @details like `std::experimental::scope_exit::release()`
+     */
+    void release() noexcept { static_cast<void>(_cmdBufferPtr.release()); }
 
 private:
     move_ptr<CmdBuffer> _cmdBufferPtr;
@@ -163,25 +170,15 @@ public:
      * @pre color attachments have color formats, the depth and stencil attachments depth and stencil formats
      * @pre `AttachmentMapping::debug_check()` passes for the color attachments
      * @post `rendering()` is the info with the area
+     * @return scope, ends the rendering at its end, see `scoped_rendering`
      */
-    void beginRendering(RenderingInfo const&);
+    [[nodiscard]] scoped_rendering<BaseCmdBuffer> beginRendering(RenderingInfo const&);
 
     /**
      * ends the dynamic rendering
      * @pre `rendering()`
      */
     void endRendering();
-
-    /**
-     * begins a dynamic rendering for the scope
-     * @details calls `beginRendering()`
-     * @return scope, ends the rendering at its end
-     * @pre the preconditions of `beginRendering()`
-     */
-    [[nodiscard]] scoped_rendering<BaseCmdBuffer> rendering(RenderingInfo const& info) {
-        beginRendering(info);
-        return scoped_rendering<BaseCmdBuffer>{*this};
-    }
 
     /**
      * maps the attachments of the rendering to the fragment shader outputs and input attachments

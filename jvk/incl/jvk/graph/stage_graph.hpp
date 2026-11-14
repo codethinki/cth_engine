@@ -101,7 +101,7 @@ public:
      * - an error: skips, `nextFrame()` rethrows the error
      * - after the gpu finished: destroys the retained objects
      * @pre the stage is of this graph
-     * @pre `Stage::beginPrimary()` in this frame
+     * @pre `Stage::begin()` in this frame
      * @pre `Stage::status()` is `UNSUBMITTED`
      * @pre the primary and its executed secondaries belong to the queue family of `Stage::queue()`
      * @note ends the rendering and the primary
@@ -176,15 +176,13 @@ private:
     void skipUnsubmitted(dev::FrameSlot&);
 
     //TODO review one helper for submit() and skip(): they differ in the status only
-    //TODO review copies of the waits and the retained resources: the parameters of the job are lost on a failed
-    // allocation of its frame
     /**
      * detaches the submit job, then sets the status of the stage
      * @details
-     * - copies `Stasis::end()` of the stage slot and the retained resources of the stage under
+     * - takes `Stasis::end()` of the stage slot and the retained resources of the stage under
      *   `StageSlot::stasisMutex`
-     * - copies the extra waits of the stage
-     * - a failed detach: the stage stays `UNSUBMITTED` with its waits
+     * - a failed allocation: the stage stays `UNSUBMITTED` without its waits and retained resources, the exception
+     *   destroys the graph
      * @param targetStatus `SUBMITTED` or `SKIPPED`
      */
     void detachJob(Stage&, Stage::Status targetStatus);

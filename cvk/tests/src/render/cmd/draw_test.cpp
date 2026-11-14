@@ -93,7 +93,7 @@ namespace {
             Barrier transition{};
             transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
             transition.execute(cmd);
-            cmd.beginRendering(
+            auto const rendering = cmd.beginRendering(
                 {
                     .colorAttachments = {
                         RenderingAttachment{

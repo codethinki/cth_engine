@@ -199,13 +199,15 @@ void BasicCmdBuffer<Cvk>::assume(cvk::BaseBuffer const& buffer, BufferState cons
 }
 
 template<class Cvk>
-void BasicCmdBuffer<Cvk>::beginRendering(cvk::RenderingInfo const& info) {
+cvk::scoped_rendering<BasicCmdBuffer<Cvk>> BasicCmdBuffer<Cvk>::beginRendering(cvk::RenderingInfo const& info) {
     cvk::Barrier barrier{};
     for(auto const& [image, access] : attachment_accesses(info))
         _states.access(*image, access, barrier);
 
     record(barrier);
-    _cmdBuffer.beginRendering(info);
+    // the jvk scope ends the rendering through endRendering(), the tracking needs it
+    _cmdBuffer.beginRendering(info).release();
+    return cvk::scoped_rendering<BasicCmdBuffer>{*this};
 }
 
 template<class Cvk>

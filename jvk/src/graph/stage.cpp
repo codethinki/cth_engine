@@ -85,11 +85,11 @@ StageSlot::StageSlot(
 namespace jvk {
 Stage::Stage(dev::StageSlot& stageSlot, uint64_t frameNumber) : _stageSlot{stageSlot}, _frameNumber{frameNumber} {}
 
-Stage::Recording Stage::beginPrimary() {
+scoped_submit Stage::begin() {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
 
     _stageSlot->primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    return Recording{*this};
+    return scoped_submit{*this, _stageSlot->error};
 }
 
 SecondaryCmdBuffer& Stage::beginSecondary(size_t secondaryIdx, std::optional<Inheritance> const& inheritanceOpt) {
@@ -128,16 +128,16 @@ void Stage::submit() { _stageSlot->graph->submit(*this); }
 
 void Stage::skip() { _stageSlot->graph->skip(*this); }
 
-Stage::Recording::~Recording() {
+scoped_submit::~scoped_submit() {
     // an exception: the next nextFrame() skips the stage
     if(!_stagePtr || std::uncaught_exceptions() > _uncaughtExceptions) return;
-    if(_stagePtr->status() != Status::UNSUBMITTED) return;
+    if(_stagePtr->status() != Stage::Status::UNSUBMITTED) return;
 
     try {
         _stagePtr->submit();
     }
     catch(...) {
-        _stagePtr->_stageSlot->error->store(std::current_exception());
+        _error->store(std::current_exception());
     }
 }
 }

@@ -33,6 +33,7 @@ class Semaphore;
 
 namespace jvk {
 class StageGraph;
+class scoped_submit;
 }
 
 namespace jvk::dev {
@@ -190,8 +191,6 @@ class Stage {
 public:
     using Inheritance = SecondaryCmdBuffer::Inheritance;
 
-    class Recording;
-
     /**
      * what the stage did in its frame
      */
@@ -209,16 +208,16 @@ public:
     /**
      * begins the primary command buffer of the frame for the scope
      * @details resets the primary at each begin
-     * @return scope of the recording, see `Recording`
+     * @return scope of the primary, submits at its end, see `scoped_submit`
      * @pre `status()` is `UNSUBMITTED`
      * @attention not thread safe
      */
-    [[nodiscard]] Recording beginPrimary();
+    [[nodiscard]] scoped_submit begin();
 
     /**
      * primary command buffer of the frame slot
      * @details not begun
-     * @see `beginPrimary()`
+     * @see `begin()`
      */
     [[nodiscard]] PrimaryCmdBuffer& primary() { return _stageSlot->primary; }
 
@@ -403,8 +402,9 @@ public:
 
 namespace jvk {
 /**
- * begun primary of a stage for the scope
+ * begun primary of a stage for the scope, submits at its end
  * @details
+ * - `Stage::begin()` returns it
  * - normal end: `Stage::submit()` if the stage is `UNSUBMITTED`
  * - exception: nothing, the next `StageGraph::nextFrame()` skips the stage
  * - a moved-from scope does nothing
@@ -412,29 +412,34 @@ namespace jvk {
  * - `->` and `*` reach the primary
  * @attention a coroutine destroyed while suspended with the scope alive submits the stage
  */
-class Stage::Recording {
+class scoped_submit {
 public:
+    //TODO review the first error as a parameter: scoped_submit is no nested class, Stage::begin() hands it the error
+    // of the graph from its stage slot
     /**
      * @details the uncaught exceptions of the calling thread at the construction tell the exception at the end
-     * @pre `Stage::beginPrimary()` began the primary
+     * @param stage with the begun primary
+     * @param error the first error of the graph, gets a failure of the submit at the end
+     * @pre `Stage::begin()` began the primary
      */
-    explicit Recording(Stage& stage) noexcept :
-        _stagePtr{&stage}, _uncaughtExceptions{std::uncaught_exceptions()} {}
+    scoped_submit(Stage& stage, dev::first_error& error) noexcept :
+        _stagePtr{&stage}, _error{error}, _uncaughtExceptions{std::uncaught_exceptions()} {}
 
-    ~Recording();
+    ~scoped_submit();
 
     [[nodiscard]] PrimaryCmdBuffer* operator->() const { return &_stagePtr->primary(); }
     [[nodiscard]] PrimaryCmdBuffer& operator*() const { return _stagePtr->primary(); }
 
 private:
     cth::move_ptr<Stage> _stagePtr;
+    cth::ref_wrapper<dev::first_error> _error; ///< the first error of the graph
     int _uncaughtExceptions;
 
 public:
-    Recording(Recording const& other) = delete;
-    Recording(Recording&& other) noexcept = default;
-    Recording& operator=(Recording const& other) = delete;
-    Recording& operator=(Recording&& other) = delete;
+    scoped_submit(scoped_submit const& other) = delete;
+    scoped_submit(scoped_submit&& other) noexcept = default;
+    scoped_submit& operator=(scoped_submit const& other) = delete;
+    scoped_submit& operator=(scoped_submit&& other) = delete;
 };
 }
 

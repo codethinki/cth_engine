@@ -285,7 +285,7 @@ JVK_TEST(CmdBuffer, begin_rendering_records_the_attachments) {
 
     primary.begin();
     primary.assume(image, UNDEFINED);
-    primary.beginRendering({
+    auto const rendering = primary.beginRendering({
         .colorAttachments = {
             cvk::RenderingAttachment{
                 .view = view,
@@ -323,7 +323,7 @@ JVK_TEST(CmdBuffer, use_inside_a_rendering_records_a_local_read_barrier) {
 
     primary.begin();
     primary.assume(localRead.image, UNDEFINED);
-    primary.beginRendering(localRead.renderingInfo());
+    auto const rendering = primary.beginRendering(localRead.renderingInfo());
     // a write of the attachment, then a read through the input attachment: by region barrier, no layout change
     primary.use(localRead.image, LOCAL_INPUT_READ);
     EXPECT_EQ(primary.states().last(localRead.image, 0)->scope.access, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT);
@@ -349,7 +349,7 @@ JVK_TEST(CmdBuffer, copy_after_a_rendering_with_a_local_read) {
 
     primary.begin();
     primary.assume(localRead.image, UNDEFINED);
-    primary.beginRendering(localRead.renderingInfo());
+    auto const rendering = primary.beginRendering(localRead.renderingInfo());
     primary.use(localRead.image, LOCAL_INPUT_READ);
     primary.endRendering();
 
@@ -376,7 +376,9 @@ JVK_TEST(CmdBuffer, continuing_secondary_records_a_local_read_barrier) {
 
     primary.begin();
     primary.assume(localRead.image, UNDEFINED);
-    primary.beginRendering(localRead.renderingInfo(VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT));
+    auto const rendering = primary.beginRendering(
+        localRead.renderingInfo(VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT)
+    );
 
     secondary.begin(primary.inheritance());
     EXPECT_TRUE(secondary.insideRendering());

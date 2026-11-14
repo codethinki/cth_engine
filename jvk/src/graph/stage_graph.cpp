@@ -239,12 +239,12 @@ void StageGraph::skipUnsubmitted(dev::FrameSlot& frameSlot) {
 void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
     auto& stageSlot = *stage._stageSlot;
 
-    // copies, the status after the detach: a failed allocation leaves the stage unsubmitted with its waits
+    // the status after the detach: a failed allocation leaves the stage unsubmitted, the moved data is lost
     dev::RetainedResources retained{};
     Stasis::pos stasisEnd{};
     {
         std::scoped_lock const lock{stageSlot.stasisMutex};
-        retained = stage._retained;
+        retained = std::move(stage._retained);
         stasisEnd = stageSlot.stasis.end();
     }
 
@@ -253,8 +253,8 @@ void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
         submitJob(
             stageSlot,
             stage._frameNumber,
-            stage._extraWaits,
-            stage._extraBinaryWaits,
+            std::move(stage._extraWaits),
+            std::move(stage._extraBinaryWaits),
             std::move(retained),
             stasisEnd,
             targetStatus

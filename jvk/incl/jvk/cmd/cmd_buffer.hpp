@@ -139,8 +139,9 @@ public:
      *  loses its contents, also outside the view and the render area
      * @pre the preconditions of `cvk::BaseCmdBuffer::beginRendering()`
      * @pre the depth and the stencil attachment of one image have the same layout
+     * @return scope, calls `endRendering()` at its end, see `cvk::scoped_rendering`
      */
-    void beginRendering(cvk::RenderingInfo const&);
+    [[nodiscard]] cvk::scoped_rendering<BasicCmdBuffer> beginRendering(cvk::RenderingInfo const&);
 
     /**
      * ends the dynamic rendering
@@ -148,18 +149,6 @@ public:
      * @pre the preconditions of `cvk::BaseCmdBuffer::endRendering()`
      */
     void endRendering();
-
-    /**
-     * begins the dynamic rendering for the scope
-     * @details calls `beginRendering()`, the scope calls `endRendering()`
-     * @return scope, ends the rendering at its end
-     * @pre the preconditions of `beginRendering()`
-     * @see `cvk::scoped_rendering`
-     */
-    [[nodiscard]] cvk::scoped_rendering<BasicCmdBuffer> rendering(cvk::RenderingInfo const& info) {
-        beginRendering(info);
-        return cvk::scoped_rendering<BasicCmdBuffer>{*this};
-    }
 
     /**
      * binds the buffer to the vertex input binding

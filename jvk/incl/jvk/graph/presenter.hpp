@@ -35,6 +35,7 @@ class Core;
 class Queue;
 class Stage;
 class StageGraph;
+class scoped_acquire;
 }
 
 namespace jvk {
@@ -42,7 +43,7 @@ namespace jvk {
  * acquired swapchain image
  * @details
  * - tracked like every image: the commands that use it record its accesses
- * - valid until the end of its scope, see `Presenter::AcquiredImage`
+ * - valid until the end of its scope, see `scoped_acquire`
  */
 struct SwapchainImage {
     cth::ref_wrapper<cvk::Image const> image;
@@ -78,7 +79,7 @@ struct PresenterConfig {
  * - owns the surface and the swapchain
  * - recreates the swapchain in `acquire()`
  * - acquires, submits and presents in the strand of its queue
- * - one acquired image at a time, in a scope: `AcquiredImage` presents or unacquires it at its end
+ * - one acquired image at a time, in a scope: `scoped_acquire` presents or unacquires it at its end
  * - the present and unacquire jobs run detached, `destroy()` waits for them
  * @attention not thread safe
  */
@@ -127,7 +128,7 @@ public:
      * - a failed wait does not stop the destruction
      * @pre `created()`
      * @pre no `acquire()` is pending
-     * @pre every `AcquiredImage` ended
+     * @pre every `scoped_acquire` ended
      * @pre the graph of the presented stages lives: the present jobs wait for its semaphores
      * @pre a stage that waits for an acquire without a present: finished on the gpu, or unsubmitted until
      *  `~StageGraph()`
@@ -138,9 +139,6 @@ public:
      * if `created()` -> calls `destroy()`
      */
     void optDestroy() { if(created()) destroy(); }
-
-    //TODO review a nested class: it reaches the present job and the unacquire of the presenter, no friend
-    class AcquiredImage;
 
     /**
      * acquires the next swapchain image for the stage
@@ -154,10 +152,10 @@ public:
      * - all images in use -> awaits the oldest present fence first
      * - an acquired image without a present, e.g. after an exception: unacquires it
      * @param stages pipeline stages of the stage that wait for the acquire
-     * @return scope of the image, see `AcquiredImage`, no image -> surface extent `0`, no wait
+     * @return scope of the image, see `scoped_acquire`, no image -> surface extent `0`, no wait
      * @pre `created()`
      * @pre `Stage::status()` is `UNSUBMITTED`
-     * @pre the `AcquiredImage` of the last acquire ended, presented or unacquired
+     * @pre the `scoped_acquire` of the last acquire ended, presented or unacquired
      * @pre an acquired image without a present: no submit uses it
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
@@ -166,10 +164,48 @@ public:
      *  presentation engine can hold an image after its present fence
      * @see `Stage::await()`
      */
-    [[nodiscard]] cth::co::executor_task<AcquiredImage> acquire(
+    [[nodiscard]] cth::co::executor_task<scoped_acquire> acquire(
         Stage&,
         VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
     );
+
+    //TODO review public: scoped_acquire is no nested class, it reaches the presenter through present(), unacquire()
+    // and detachUnacquire(), the first error comes into its constructor
+    /**
+     * presents the acquired image after the submitted stage
+     * @details
+     * - returns at once, a job presents after the submit of the stage reached `vkQueueSubmit2()`
+     * - transitions the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` from its last state in the stage primary
+     * - a stage of another queue family: the job releases the image on the stage queue, the images stay
+     *   `VK_SHARING_MODE_EXCLUSIVE`
+     * - `VK_ERROR_OUT_OF_DATE_KHR` -> the next `acquire()` recreates the swapchain
+     * - a failure of the job: the next `acquire()` rethrows it
+     * @pre an acquired image without a present or unacquire
+     * @pre `Stage::status()` is `SUBMITTED`
+     * @pre the stage recording uses the image
+     * @pre the stage is the last use of the image in the frame or waits for the other uses
+     * @see `scoped_acquire`
+     */
+    void present(Stage&);
+
+    /**
+     * gives the acquired image back without a present, in the strand of the queue
+     * @pre an acquired image without a present or unacquire
+     * @pre no submit uses the image
+     * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
+     * @see `scoped_acquire`
+     */
+    [[nodiscard]] cth::co::executor_task<void> unacquire();
+
+    /**
+     * gives the acquired image back without a present, in a job in the strand of the queue
+     * @details
+     * - returns at once, the job runs before the next `acquire()`
+     * - a failure of the job: the next `acquire()` rethrows it
+     * @pre the preconditions of `unacquire()`
+     * @see `scoped_acquire`
+     */
+    void detachUnacquire();
 
     [[nodiscard]] constexpr bool created() const { return _surface.created(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
@@ -197,39 +233,12 @@ private:
         uint64_t value = 0;
     };
 
-    /**
-     * presents the image of the submitted stage in a job
-     * @details the value of `Presenter::_semaphore` advances after the detach: a failed allocation leaves it
-     * @param stage the recording uses the image
-     * @param image acquired by `acquire()`
-     * @pre `Stage::status()` is `SUBMITTED`
-     * @see `presentJob()`
-     */
-    void present(Stage& stage, SwapchainImage const& image);
-
-    /**
-     * gives the acquired image back in the strand of the queue
-     * @pre an acquired image
-     * @pre no submit uses the image
-     * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
-     */
-    [[nodiscard]] cth::co::executor_task<void> unacquire();
-
-    /**
-     * gives the acquired image back in a job in the strand of the queue
-     * @details
-     * - the job runs before the next `acquire()`
-     * - a failure: stores the error, the next `acquire()` rethrows it
-     * @pre the preconditions of `unacquire()`
-     */
-    void detachUnacquire();
-
     //TODO review no submitted_awaiter parameter: the job takes it from the stage semaphore and the frame number
     //TODO review the image as a parameter: the job reads no swapchain outside of the strand
     //TODO review the submit mark of the stage always awaited: the next acquire() sets the state of the image in the
     // graph after the submit job of the stage appended its states
     /**
-     * present job of @ref present(Stage&, SwapchainImage const&)
+     * present job of `present()`
      * @details the order:
      * - off the strand: awaits `Semaphore::submitted()` of the stage semaphore with the frame number
      * - stage of another family -> `Queue::release()` of the image on the stage queue
@@ -333,19 +342,20 @@ public:
 
 namespace jvk {
 /**
- * acquired swapchain image of a stage for the scope
+ * acquired swapchain image of a stage for the scope, presents or unacquires it at its end
  * @details
- * - normal end, by `Stage::status()`: `SUBMITTED` -> presents, `SKIPPED` or `UNSUBMITTED` -> unacquires in a job
+ * - `Presenter::acquire()` returns it
+ * - normal end, by `Stage::status()`: `SUBMITTED` -> `Presenter::present()`, `SKIPPED` or `UNSUBMITTED` ->
+ *   `Presenter::detachUnacquire()`
  * - exception, by `Stage::status()`: `SUBMITTED` -> presents, the frame is complete, else nothing: the next
  *   `Presenter::acquire()` or `Presenter::destroy()` unacquires the image
  * - no image or a moved-from scope: nothing
  * - a failure at the end, e.g. an allocation: the next `Presenter::acquire()` rethrows it
  * - `->` and `*` reach the image
- * - declare it before the primary scope of the stage: the primary scope ends first and submits, see
- *   `Stage::beginPrimary()`
+ * - declare it before the `scoped_submit` of the stage: the `scoped_submit` ends first and submits
  * @attention a coroutine destroyed while suspended with the scope alive presents or unacquires the image
  */
-class Presenter::AcquiredImage {
+class scoped_acquire {
 public:
     //TODO review the uncaught exceptions as a parameter: acquire() reads them on the calling thread before it moves
     // onto the strand, the scope is constructed in the strand
@@ -353,17 +363,19 @@ public:
      * @param presenter of the image
      * @param stage of the acquire
      * @param imageOpt `std::nullopt` -> no image
+     * @param error the first error of the presenter, gets a failure at the end
      * @param uncaughtExceptions of the calling thread at the start of `Presenter::acquire()`, tell the exception at
      *  the end
      */
-    AcquiredImage(
+    scoped_acquire(
         Presenter& presenter,
         Stage& stage,
         std::optional<SwapchainImage> imageOpt,
+        dev::first_error& error,
         int uncaughtExceptions
     ) noexcept;
 
-    ~AcquiredImage();
+    ~scoped_acquire();
 
     /**
      * presents the image now, the end of the scope does nothing
@@ -371,6 +383,7 @@ public:
      * @pre an image
      * @pre `Stage::status()` is not `SKIPPED`
      * @pre the recording of the stage uses the image
+     * @see `Presenter::present()`
      */
     void present();
 
@@ -380,6 +393,7 @@ public:
      * @pre an image
      * @pre no submit uses the image
      * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
+     * @see `Presenter::unacquire()`
      */
     [[nodiscard]] cth::co::executor_task<void> unacquire();
 
@@ -399,15 +413,16 @@ private:
     cth::move_ptr<Presenter> _presenterPtr; ///< `nullptr` -> the end does nothing
     cth::ref_wrapper<Stage> _stage;
     std::optional<SwapchainImage> _imageOpt;
+    cth::ref_wrapper<dev::first_error> _error; ///< the first error of the presenter
     int _uncaughtExceptions; ///< of the calling thread at the start of `Presenter::acquire()`
 
 public:
-    AcquiredImage(AcquiredImage const& other) = delete;
-    AcquiredImage(AcquiredImage&& other) noexcept = default;
-    AcquiredImage& operator=(AcquiredImage const& other) = delete;
-    AcquiredImage& operator=(AcquiredImage&& other) = delete;
+    scoped_acquire(scoped_acquire const& other) = delete;
+    scoped_acquire(scoped_acquire&& other) noexcept = default;
+    scoped_acquire& operator=(scoped_acquire const& other) = delete;
+    scoped_acquire& operator=(scoped_acquire&& other) = delete;
 
-    static constexpr void debug_check(AcquiredImage const&);
+    static constexpr void debug_check(scoped_acquire const&);
 };
 }
 
@@ -425,7 +440,7 @@ constexpr void Presenter::debug_check(Presenter const& presenter) {
     CTH_CRITICAL(!presenter.created(), "presenter must be created") {}
 }
 
-constexpr void Presenter::AcquiredImage::debug_check(AcquiredImage const& image) {
+constexpr void scoped_acquire::debug_check(scoped_acquire const& image) {
     CTH_CRITICAL(!image._presenterPtr, "the scope must hold the image, got a moved-from or ended scope") {}
     CTH_CRITICAL(!image._imageOpt.has_value(), "the scope must hold an image, got none") {}
 }

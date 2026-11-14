@@ -151,7 +151,7 @@ namespace {
     /**
      * submits an empty primary at the end of the scope
      */
-    void submit_empty(Stage& stage) { auto const primary = stage.beginPrimary(); }
+    void submit_empty(Stage& stage) { auto const primary = stage.begin(); }
 
     /**
      * submits inside the strand of the queue
@@ -223,13 +223,13 @@ JVK_TEST(StageGraph, chain_on_one_queue_submitted_in_reverse) {
 
     // the reader submits first, from another thread: its job waits for the mark of the writer
     std::jthread{[&] {
-        auto const primary = reader.beginPrimary();
+        auto const primary = reader.begin();
         readback.copy(*primary, buffer);
         primary->use(readback, HOST_READ);
         reader.submit();
     }}.join();
 
-    auto const primary = writer.beginPrimary();
+    auto const primary = writer.begin();
     buffer.copy(*primary, staging);
     writer.submit();
 
@@ -252,12 +252,12 @@ JVK_TEST(StageGraph, chain_on_two_queues) {
     auto& reader = frame.stage(1);
 
     // another queue: the reader submits at once, the gpu waits
-    auto const readerPrimary = reader.beginPrimary();
+    auto const readerPrimary = reader.begin();
     readback.copy(*readerPrimary, buffer);
     readerPrimary->use(readback, HOST_READ);
     reader.submit();
 
-    auto const writerPrimary = writer.beginPrimary();
+    auto const writerPrimary = writer.begin();
     buffer.copy(*writerPrimary, staging);
     writer.submit();
 
@@ -330,7 +330,7 @@ JVK_TEST(StageGraph, next_frame_skips_a_forgotten_stage_of_the_frame_before) {
     wait(core, second.stage(1));
 }
 
-JVK_TEST(StageGraph, primary_scope_submits_at_its_end) {
+JVK_TEST(StageGraph, scoped_submit_submits_at_its_end) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
@@ -341,7 +341,7 @@ JVK_TEST(StageGraph, primary_scope_submits_at_its_end) {
 
     auto& stage = next_frame(core, graph).stage(0);
     {
-        auto const primary = stage.beginPrimary();
+        auto const primary = stage.begin();
         buffer.copy(*primary, staging);
         readback.copy(*primary, buffer);
         primary->use(readback, HOST_READ);
@@ -353,7 +353,7 @@ JVK_TEST(StageGraph, primary_scope_submits_at_its_end) {
     EXPECT_TRUE(counts(readback));
 }
 
-JVK_TEST(StageGraph, moved_primary_scope_submits_once) {
+JVK_TEST(StageGraph, moved_scoped_submit_submits_once) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
@@ -361,7 +361,7 @@ JVK_TEST(StageGraph, moved_primary_scope_submits_once) {
     auto& stage = next_frame(core, graph).stage(0);
     {
         // the moved-from scope ends last: a second submit fails its check
-        auto primary = stage.beginPrimary();
+        auto primary = stage.begin();
         auto const moved = std::move(primary);
     }
     EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
@@ -374,8 +374,8 @@ JVK_TEST(StageGraph, submit_ends_an_open_rendering) {
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
     auto& stage = next_frame(core, graph).stage(0);
-    auto const primary = stage.beginPrimary();
-    auto const rendering = primary->rendering({.area = AREA});
+    auto const primary = stage.begin();
+    auto const rendering = primary->beginRendering({.area = AREA});
     stage.submit();
     EXPECT_EQ(primary->rendering(), nullptr);
     EXPECT_FALSE(primary->recording());
@@ -390,8 +390,8 @@ JVK_TEST(StageGraph, skip_discards_a_begun_primary) {
 
     auto& stage = next_frame(core, graph).stage(0);
     {
-        auto const primary = stage.beginPrimary();
-        auto const rendering = primary->rendering({.area = AREA});
+        auto const primary = stage.begin();
+        auto const rendering = primary->beginRendering({.area = AREA});
         stage.skip();
         EXPECT_EQ(stage.status(), Stage::Status::SKIPPED);
         EXPECT_EQ(primary->rendering(), nullptr);
@@ -406,21 +406,21 @@ JVK_TEST(StageGraph, skip_discards_a_begun_primary) {
     wait(core, next);
 }
 
-JVK_TEST(StageGraph, exception_in_the_primary_scope_submits_nothing) {
+JVK_TEST(StageGraph, exception_in_scoped_submit_submits_nothing) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 2}};
 
     auto& stage = next_frame(core, graph).stage(0);
     try {
-        auto const primary = stage.beginPrimary();
-        auto const rendering = primary->rendering({.area = AREA});
+        auto const primary = stage.begin();
+        auto const rendering = primary->beginRendering({.area = AREA});
         throw test_exception{};
     }
     catch(test_exception const&) {}
 
     EXPECT_EQ(stage.status(), Stage::Status::UNSUBMITTED);
-    // the rendering scope ends the rendering on both paths
+    // the scoped_rendering ends the rendering on both paths
     EXPECT_EQ(stage.primary().rendering(), nullptr);
     EXPECT_TRUE(stage.primary().recording());
 
@@ -441,7 +441,7 @@ JVK_TEST(StageGraph, destruction_after_an_exception_skips_the_unsubmitted_stage)
         StageGraph graph{core, {.stages = {{.queueIdx = 0}, {.queueIdx = 0, .waits = {TRANSFER_WAIT_ON_0}}}}};
         auto& frame = next_frame(core, graph);
         submit_empty(frame.stage(1));
-        auto const primary = frame.stage(0).beginPrimary();
+        auto const primary = frame.stage(0).begin();
         throw test_exception{};
     };
     EXPECT_THROW(run(), test_exception);
@@ -513,7 +513,7 @@ JVK_TEST(StageGraph, secondaries_record_on_several_threads) {
             });
     }
 
-    auto const primary = stage.beginPrimary();
+    auto const primary = stage.begin();
     primary->execute({stage.secondary(0), stage.secondary(1), stage.secondary(2), stage.secondary(3)});
     for(auto const& readback : readbacks)
         primary->use(readback, HOST_READ);
@@ -537,7 +537,7 @@ JVK_TEST(StageGraph, retain_lives_until_the_gpu_finished_the_submit) {
     auto& stage = next_frame(core, graph).stage(0);
     // the gpu waits for the gate
     stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
-    auto const primary = stage.beginPrimary();
+    auto const primary = stage.begin();
     buffer.copy(*primary, staging);
     stage.retain(std::move(buffer));
     stage.submit();
@@ -622,7 +622,7 @@ JVK_TEST(StageGraph, prologue_transitions_an_unknown_image_from_undefined) {
 
     // no assume(): the first use needs the transition, the validation layers report a wrong layout
     auto& stage = next_frame(core, graph).stage(0);
-    auto const primary = stage.beginPrimary();
+    auto const primary = stage.begin();
     image.copy(*primary, staging);
     image.copyTo(*primary, readback);
     primary->use(readback, HOST_READ);
@@ -645,7 +645,7 @@ JVK_TEST(StageGraph, retained_transient_image_starts_from_undefined) {
 
     auto& stage = next_frame(core, graph).stage(0);
     stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
-    auto const primary = stage.beginPrimary();
+    auto const primary = stage.begin();
     image.copy(*primary, staging);
     image.copyTo(*primary, readback);
     primary->use(readback, HOST_READ);
@@ -677,7 +677,7 @@ JVK_TEST(StageGraph, image_moved_after_the_submit_keeps_its_prologue) {
     // the job awaits the mark of the gate before its append
     auto& stage = next_frame(core, graph).stage(0);
     stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
-    auto const primary = stage.beginPrimary();
+    auto const primary = stage.begin();
     firstOpt->copy(*primary, staging);
     firstOpt->copyTo(*primary, readback);
     primary->use(readback, HOST_READ);
@@ -711,13 +711,13 @@ JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
     auto& reader = frame.stage(1);
 
     // the reader submits first: its job appends after the writer, the writer queue releases both
-    auto const readerPrimary = reader.beginPrimary();
+    auto const readerPrimary = reader.begin();
     image.copyTo(*readerPrimary, imageReadback);
     bufferReadback.copy(*readerPrimary, buffer);
     readerPrimary->use(imageReadback, HOST_READ, bufferReadback, HOST_READ);
     reader.submit();
 
-    auto const writerPrimary = writer.beginPrimary();
+    auto const writerPrimary = writer.begin();
     image.copy(*writerPrimary, staging);
     buffer.copy(*writerPrimary, staging);
     writer.submit();
@@ -748,7 +748,7 @@ JVK_TEST(StageGraph, erase_removes_the_state_and_the_last_queue_of_an_image) {
     Buffer<uint32_t> const readback{core, test::READBACK_CONFIG, VALUES};
 
     auto& first = next_frame(core, graph);
-    auto const firstPrimary = first.stage(0).beginPrimary();
+    auto const firstPrimary = first.stage(0).begin();
     image.copy(*firstPrimary, firstStaging);
     first.stage(0).submit();
     first.stage(1).skip();
@@ -759,7 +759,7 @@ JVK_TEST(StageGraph, erase_removes_the_state_and_the_last_queue_of_an_image) {
     // the graph does not know the image: the other family starts from undefined, no release on the first queue
     auto& second = next_frame(core, graph);
     second.stage(0).skip();
-    auto const primary = second.stage(1).beginPrimary();
+    auto const primary = second.stage(1).begin();
     image.copy(*primary, secondStaging);
     image.copyTo(*primary, readback);
     primary->use(readback, HOST_READ);

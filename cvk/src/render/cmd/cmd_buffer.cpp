@@ -177,7 +177,7 @@ void BaseCmdBuffer::reset(VkCommandBufferResetFlags flags) {
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to reset command buffer") {}
 }
 
-void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
+scoped_rendering<BaseCmdBuffer> BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
     debug_check(*this);
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
     CTH_CRITICAL(rendering() != nullptr, "command buffer must be outside of a rendering") {}
@@ -291,20 +291,22 @@ void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
     // secondaries do not inherit dynamic state
     bool const inlineContents = (info.flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) == 0
         || (info.flags & VK_RENDERING_CONTENTS_INLINE_BIT_KHR) != 0;
-    if(!inlineContents) return;
+    if(inlineContents) {
+        auto const& area = renderingInfo.renderArea;
+        setViewport(
+            VkViewport{
+                .x = static_cast<float>(area.offset.x),
+                .y = static_cast<float>(area.offset.y),
+                .width = static_cast<float>(area.extent.width),
+                .height = static_cast<float>(area.extent.height),
+                .minDepth = 0.f,
+                .maxDepth = 1.f,
+            }
+        );
+        setScissor(area);
+    }
 
-    auto const& area = renderingInfo.renderArea;
-    setViewport(
-        VkViewport{
-            .x = static_cast<float>(area.offset.x),
-            .y = static_cast<float>(area.offset.y),
-            .width = static_cast<float>(area.extent.width),
-            .height = static_cast<float>(area.extent.height),
-            .minDepth = 0.f,
-            .maxDepth = 1.f,
-        }
-    );
-    setScissor(area);
+    return scoped_rendering<BaseCmdBuffer>{*this};
 }
 
 void BaseCmdBuffer::endRendering() {
