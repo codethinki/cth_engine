@@ -127,6 +127,12 @@ public:
 
     [[nodiscard]] constexpr size_t elements() const { return size() / sizeof(T); }
 
+    /**
+     * @return gpu address of the first element
+     * @pre the preconditions of `BaseBuffer::address()`
+     */
+    [[nodiscard]] constexpr device_ptr<T> address() const { return device_ptr<T>{BaseBuffer::address().get()}; }
+
 private:
     /**
      * @param count (`VK_WHOLE_SIZE` => `VK_WHOLE_SIZE`)

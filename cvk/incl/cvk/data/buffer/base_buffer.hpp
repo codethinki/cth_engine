@@ -1,5 +1,6 @@
 #pragma once
 #include "buffer_config.hpp"
+#include "device_ptr.hpp"
 
 #include "cvk/base/device_table.hpp"
 #include "cvk/data/memory/memory.hpp"
@@ -69,6 +70,7 @@ public:
     /**
      * wraps the state
      * @details `std::nullopt` `State::memory` -> no own memory, `destroy()` only destroys the buffer
+     * @details the usage has `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT` -> queries `address()`
      * @pre `Core::created()`
      * @pre the buffer is bound to its memory
      * @pre the buffer was created with the usage of the config
@@ -79,6 +81,7 @@ public:
 
     /**
      * creates the buffer and its memory
+     * @details the usage has `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT` -> queries `address()`
      * @param size in bytes
      * @pre `Core::created()`
      * @post `created()`
@@ -174,8 +177,20 @@ public:
         return _memoryOpt.has_value() && _memoryOpt->created() ? &*_memoryOpt : nullptr;
     }
 
+    /**
+     * @return gpu address of the buffer, the creation or the wrap queried it
+     * @pre `created()`
+     * @pre the usage has `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT`
+     */
+    [[nodiscard]] constexpr device_ptr<std::byte> address() const;
+
 private:
     void forget();
+
+    /**
+     * @return `vkGetBufferDeviceAddress()`, `0` -> the usage has no `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT`
+     */
+    [[nodiscard]] VkDeviceAddress queryAddress() const;
 
     /**
      * @pre `memory() != nullptr`
@@ -187,6 +202,7 @@ private:
     std::optional<Memory> _memoryOpt = std::nullopt;
     Config _config;
     size_t _size = 0;
+    VkDeviceAddress _address = 0; ///< `0` -> the usage has no `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT`
 
 public:
     BaseBuffer(BaseBuffer const& other) = delete;
@@ -218,6 +234,16 @@ namespace cvk {
 constexpr Memory const& BaseBuffer::ownMemory() const {
     CTH_CRITICAL(memory() == nullptr, "the buffer must own its memory") {}
     return *_memoryOpt;
+}
+
+constexpr device_ptr<std::byte> BaseBuffer::address() const {
+    debug_check(*this);
+    CTH_CRITICAL(
+        (_config.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) == 0,
+        "the usage must have VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, got {}",
+        _config.usage
+    ) {}
+    return device_ptr<std::byte>{_address};
 }
 
 constexpr void BaseBuffer::debug_check(BaseBuffer const& buffer) {

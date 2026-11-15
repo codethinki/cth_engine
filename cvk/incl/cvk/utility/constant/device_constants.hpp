@@ -16,6 +16,7 @@ namespace cvk::constants {
  * - the descriptor indexing features that `descriptorIndexing` guarantees
  * - `descriptorBindingVariableDescriptorCount`
  * @details `dynamicRenderingLocalRead`: local reads in a dynamic rendering
+ * @details `bufferDeviceAddress`: Vulkan 1.3 requires it, see `BaseBuffer::address()`
  */
 inline constexpr DeviceFeatures BASE_DEVICE_FEATURES{
     .samplerAnisotropy = true,
@@ -37,6 +38,7 @@ inline constexpr DeviceFeatures BASE_DEVICE_FEATURES{
     .descriptorBindingVariableDescriptorCount = true,
     .runtimeDescriptorArray = true,
     .timelineSemaphore = true,
+    .bufferDeviceAddress = true,
     .synchronization2 = true,
     .dynamicRendering = true,
     .dynamicRenderingLocalRead = true,

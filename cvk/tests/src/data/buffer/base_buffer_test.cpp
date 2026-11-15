@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <utility>
 
 
 namespace cvk {
@@ -21,6 +22,22 @@ namespace {
      * gpu only buffer
      */
     constexpr BaseBuffer::Config DEVICE_CONFIG{.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT};
+
+    /**
+     * gpu only buffer with a device address
+     */
+    constexpr BaseBuffer::Config ADDRESS_CONFIG{
+        .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+    };
+
+    [[nodiscard]] VkDeviceAddress device_address(Core const& core, VkBuffer vkBuffer) {
+        VkBufferDeviceAddressInfo const info{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+            .pNext = nullptr,
+            .buffer = vkBuffer,
+        };
+        return core.functions()->vkGetBufferDeviceAddress(core.vkDevice(), &info);
+    }
 }
 
 CVK_TEST(BaseBuffer, config_create_info) {
@@ -223,6 +240,36 @@ CVK_TEST(BaseBuffer, move_assignment_destroys_the_old_buffer) {
     EXPECT_NE(buffer.memory(), nullptr);
     EXPECT_FALSE(other.created());
     EXPECT_EQ(other.memory(), nullptr);
+}
+
+CVK_TEST(BaseBuffer, address_is_the_device_address) {
+    test::Context const context{};
+    BaseBuffer const buffer{context.core, ADDRESS_CONFIG, SIZE};
+
+    EXPECT_NE(buffer.address().get(), 0);
+    EXPECT_EQ(buffer.address().get(), device_address(context.core, buffer.get()));
+}
+
+CVK_TEST(BaseBuffer, wrap_keeps_the_address) {
+    test::Context const context{};
+    BaseBuffer buffer{context.core, ADDRESS_CONFIG, SIZE};
+    auto const address = buffer.address();
+
+    BaseBuffer const wrapped{context.core, ADDRESS_CONFIG, buffer.release()};
+    EXPECT_EQ(wrapped.address(), address);
+}
+
+CVK_TEST(BaseBuffer, moves_keep_the_address) {
+    test::Context const context{};
+    BaseBuffer buffer{context.core, ADDRESS_CONFIG, SIZE};
+    auto const address = buffer.address();
+
+    BaseBuffer moved{std::move(buffer)};
+    EXPECT_EQ(moved.address(), address);
+
+    BaseBuffer assigned{context.core, ADDRESS_CONFIG, SIZE};
+    assigned = std::move(moved);
+    EXPECT_EQ(assigned.address(), address);
 }
 
 CVK_TEST(BaseBuffer, decompose_returns_the_buffer_then_its_memory) {

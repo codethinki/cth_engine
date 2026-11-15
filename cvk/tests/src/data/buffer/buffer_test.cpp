@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <string>
 
 
@@ -53,6 +54,21 @@ CVK_TEST(Buffer, elements_must_be_trivially_copyable) {
 }
 
 CVK_TEST(Buffer, adds_no_members) { static_assert(sizeof(Buffer<Vertex>) == sizeof(BaseBuffer)); }
+
+CVK_TEST(Buffer, address_steps_in_elements) {
+    test::Context const context{};
+    Buffer<Vertex> const buffer{
+        context.core,
+        {.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT},
+        COUNT,
+    };
+    BaseBuffer const& base = buffer;
+
+    auto const first = base.address().get();
+    EXPECT_EQ(buffer.address().get(), first);
+    for(std::ptrdiff_t i = 0; i < static_cast<std::ptrdiff_t>(COUNT); ++i)
+        EXPECT_EQ((buffer.address() + i).get(), first + static_cast<VkDeviceAddress>(i) * sizeof(Vertex));
+}
 
 CVK_TEST(Buffer, create_counts_elements) {
     test::Context const context{};

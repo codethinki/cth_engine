@@ -60,12 +60,12 @@ CVK_TEST(Allocator, move_assignment_destroys_the_old_allocator) {
 
 CVK_TEST(Allocator, flags_follow_the_enabled_features) {
     auto config = test::Context::CONFIG;
-    config.features.bufferDeviceAddress = true;
+    config.features.maintenance4 = true;
     test::Context const context{config};
 
     auto const flags = Allocator::flags(context.core.device());
 
-    EXPECT_NE(flags & VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, 0u);
+    EXPECT_NE(flags & VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT, 0u);
 }
 
 CVK_TEST(Allocator, no_flags_without_the_features) {
@@ -73,6 +73,14 @@ CVK_TEST(Allocator, no_flags_without_the_features) {
 
     auto const flags = Allocator::flags(context.core.device());
 
-    EXPECT_EQ(flags & VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, 0u);
+    EXPECT_EQ(flags & VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT, 0u);
+}
+
+CVK_TEST(Allocator, base_features_give_the_device_address_flag) {
+    test::Context const context{};
+
+    auto const flags = Allocator::flags(context.core.device());
+
+    EXPECT_NE(flags & VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, 0u);
 }
 }

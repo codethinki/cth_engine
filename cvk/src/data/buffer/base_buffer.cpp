@@ -28,6 +28,7 @@ void BaseBuffer::wrap(State const& state) {
     _handle.reset(state.vkBuffer.get(), core());
     if(state.memory.has_value()) _memoryOpt.emplace(core(), _config.memory, *state.memory);
     _size = state.size;
+    _address = queryAddress();
 }
 
 void BaseBuffer::create(size_t size) {
@@ -57,6 +58,7 @@ void BaseBuffer::create(size_t size) {
     _handle.reset(vkBuffer, core());
     _memoryOpt.emplace(core(), _config.memory, Memory::State{vmaAllocation});
     _size = size;
+    _address = queryAddress();
 }
 
 void BaseBuffer::destroy() {
@@ -165,5 +167,17 @@ void destroy(DeviceTable table, VkBuffer vkBuffer) {
 void BaseBuffer::forget() {
     _memoryOpt.reset();
     _size = 0;
+    _address = 0;
+}
+
+VkDeviceAddress BaseBuffer::queryAddress() const {
+    if((_config.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) == 0) return 0;
+
+    VkBufferDeviceAddressInfo const info{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+        .pNext = nullptr,
+        .buffer = get(),
+    };
+    return core().functions()->vkGetBufferDeviceAddress(core().vkDevice(), &info);
 }
 }
