@@ -11,9 +11,12 @@
 
 
 namespace jvk {
-Queues::Queues(Core const& core, cth::co::scheduler const& workers) {
+Queues::Queues(Core const& core, cth::co::scheduler const& workers, size_t queueWorkers) {
     cvk::Core const& vk = core;
     cvk::Core::debug_check(vk);
+
+    if(queueWorkers > 0) _schedulerOpt.emplace(cth::co::autostart, queueWorkers);
+    cth::co::scheduler const& scheduler = _schedulerOpt.has_value() ? *_schedulerOpt : workers;
 
     auto const indices = vk.queueIndices();
     _queueIndices.reserve(indices.size());
@@ -26,7 +29,7 @@ Queues::Queues(Core const& core, cth::co::scheduler const& workers) {
         }
 
         _queueIndices.push_back(_queues.size());
-        _queues.emplace_back(core, vk.queue(queueIdx), workers);
+        _queues.emplace_back(core, vk.queue(queueIdx), scheduler);
     }
 }
 

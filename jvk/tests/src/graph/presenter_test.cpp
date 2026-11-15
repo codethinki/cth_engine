@@ -44,10 +44,12 @@ namespace {
         std::optional<Core>& coreOpt,
         test::Context const& context,
         cvk::Surface const& surface,
-        std::vector<cvk::QueueFamilyProperties> queueProperties = {GRAPHICS | PRESENT}
+        std::vector<cvk::QueueFamilyProperties> queueProperties = {GRAPHICS | PRESENT},
+        size_t queueWorkers = 0
     ) {
         auto config = test::Context::CONFIG;
         config.vk.queueProperties = std::move(queueProperties);
+        config.queueWorkers = queueWorkers;
         try {
             coreOpt.emplace(context.instance, std::move(config), std::array{cth::ref_wrapper{surface}});
         }
@@ -195,6 +197,22 @@ JVK_TEST(Presenter, frame_loop_clears_and_presents) {
 
     presenter.destroy();
     EXPECT_FALSE(presenter.created());
+}
+
+JVK_TEST(Presenter, frame_loop_with_a_queue_scheduler_presents) {
+    constexpr size_t FRAMES = 6;
+    test::Context const context{};
+    auto surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface, {GRAPHICS | PRESENT}, 2))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+
+    for(size_t i = 0; i < FRAMES; ++i)
+        EXPECT_EQ(present_frame(core, graph, presenter).extent, test::HEADLESS_EXTENT);
 }
 
 JVK_TEST(Presenter, extent_0_gives_no_image_until_the_extent_is_larger) {

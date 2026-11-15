@@ -63,7 +63,6 @@ struct PresenterConfig {
      * @details `cvk::SwapchainConfig::minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`: an
      *  image for each frame in flight beside the images of the presentation engine
      * @pre `cvk::SwapchainConfig::queueFamilies.size() < 2`: the images stay `VK_SHARING_MODE_EXCLUSIVE`
-     * @pre `cvk::SwapchainConfig::minImageCount != 0` -> `>= minImageCount` of the surface + `framesInFlight`
      */
     cvk::Swapchain::Config swapchain{};
 
@@ -81,7 +80,7 @@ struct PresenterConfig {
  * presents to a surface
  * @details
  * - owns the surface and the swapchain
- * - recreates the swapchain in `acquire()`, a retired swapchain presents its pending images, see `Swapchain`
+ * - recreates the swapchain in `acquire()`, a retired swapchain stays until its presents ended, see `Swapchain`
  * - acquires, submits and presents in the strand of its queue
  * - one acquired image at a time, in a scope: `scoped_acquire` presents or unacquires it at its end
  * - the present and unacquire jobs run detached, `destroy()` waits for them
@@ -167,8 +166,8 @@ public:
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
      * @throws cvk::vk_result_exception the first error of a present job or a scope
      * @attention `vkAcquireNextImageKHR()` can block (FIFO: the vsync throttle, the presentation engine holds the
-     *  images after their present fences): it occupies the worker that runs it, the calling thread if the strand was
-     *  free
+     *  images after their present fences): it occupies a thread of the scheduler of the strand, the calling thread if
+     *  the strand was free and the caller runs a job of that scheduler
      * @see `Stage::await()`
      */
     [[nodiscard]] cth::co::executor_task<scoped_acquire> acquire(
@@ -229,7 +228,7 @@ private:
     };
 
     //TODO review no submitted_awaiter parameter: the job takes it from the stage semaphore and the frame number
-    //TODO review the image and its swapchain as parameters: the job reads no presenter state outside of the strand
+    //TODO review the image as a parameter: the job reads no presenter state outside of the strand
     //TODO review the submit mark of the present job before awaited: acquire() no longer orders the present jobs
     /**
      * present job of `present()`
@@ -239,7 +238,7 @@ private:
      * - off the strand: awaits `Semaphore::submitted()` of `Presenter::_semaphore` with the value before: the present
      *   jobs submit and present in the order of `present()`
      * - in the strand of the queue: records the command buffer, submits it through `Queue::vk()`, presents through
-     *   the swapchain of the image, also a retired one
+     *   the current swapchain: a recreation only happens in `acquire()`, after the last present
      * - the submit waits for the semaphore of the stage and the release, signals the present semaphore and
      *   `Presenter::_semaphore` with the value
      * - the command buffer: the acquire half of another family, the transition to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
@@ -249,7 +248,6 @@ private:
      * - a failed empty submit: `VK_ERROR_DEVICE_LOST` -> stores the error, else terminates: the waiters would hang
      * - a failed present: stores the error
      * @param image the acquired image
-     * @param swapchain of the image, current at `present()`
      * @param lastState of the image in the stage primary
      * @param value of `Presenter::_semaphore` for the submit
      * @pre the command buffer of the submit belongs to the queue family of the queue
@@ -259,7 +257,6 @@ private:
         Semaphore const& stageSemaphore,
         uint64_t frameNumber,
         SwapchainImage image,
-        cvk::Swapchain& swapchain,
         ImageState lastState,
         uint64_t value
     );

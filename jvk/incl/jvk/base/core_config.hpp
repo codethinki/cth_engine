@@ -18,8 +18,16 @@ struct CoreConfig {
     /**
      * threads of the worker scheduler, `0` -> `std::thread::hardware_concurrency()`
      * @details `std::thread::hardware_concurrency()` is `0` -> one thread
-     * @details the strands of the queues run on the workers
+     * @details `queueWorkers` `0` -> the strands of the queues run on the workers too
      */
     size_t workers = 0;
+
+    /**
+     * threads of an own scheduler for the strands of the queues, `0` -> the strands run on the workers
+     * @details `0`: a free strand runs a submit, an acquire or a present inline on the calling worker, a warm thread
+     * @details `> 0`: the submits and the blocking calls (FIFO acquire, `Queue::waitIdle()`) run apart from the
+     *  worker load, every entry from a worker posts
+     */
+    size_t queueWorkers = 0;
 };
 }

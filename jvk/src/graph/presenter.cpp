@@ -175,10 +175,9 @@ void Presenter::present(Stage& stage) {
 
     // the counter after the detach: a failed allocation leaves no value that nobody signals
     auto const value = _semaphore.value() + 1;
-    // the swapchain of the image: no recreation happens between the acquire and the present
     _core->executor().detach(
         _jobs,
-        presentJob(stage.queue(), stage.semaphore(), stage.frameNumber(), image, _swapchain.current(), *lastOpt, value)
+        presentJob(stage.queue(), stage.semaphore(), stage.frameNumber(), image, *lastOpt, value)
     );
     static_cast<void>(_semaphore.next());
     _imageOpt.reset();
@@ -208,7 +207,6 @@ cth::co::executor_task<void> Presenter::presentJob(
     Semaphore const& stageSemaphore,
     uint64_t frameNumber,
     SwapchainImage image,
-    cvk::Swapchain& swapchain,
     ImageState lastState,
     uint64_t value
 ) {
@@ -269,7 +267,7 @@ cth::co::executor_task<void> Presenter::presentJob(
         queue.vk().submit({
             .cmdBuffers = {submit.cmd},
             .waits = {waits.begin(), waits.end()},
-            .signals = {cvk::SemaphoreSubmitInfo{swapchain.presentSemaphore(image.imageIdx)}, signal},
+            .signals = {cvk::SemaphoreSubmitInfo{_swapchain.current().presentSemaphore(image.imageIdx)}, signal},
         });
         submit.value = value;
         submitted = true;
@@ -289,10 +287,10 @@ cth::co::executor_task<void> Presenter::presentJob(
 
     if(submitted) {
         try {
-            // a retired swapchain: its results and indices do not matter for the next acquire()
-            bool const current = &swapchain == &_swapchain.current();
-            if(swapchain.present(image.imageIdx) == VK_ERROR_OUT_OF_DATE_KHR && current) _outOfDate = true;
-            if(current) _presentedImageIndices.push_back(image.imageIdx);
+            // the swapchain of the image is the current one: a recreation only happens in acquire(), after the last
+            // present called vkQueuePresentKHR()
+            if(_swapchain.current().present(image.imageIdx) == VK_ERROR_OUT_OF_DATE_KHR) _outOfDate = true;
+            _presentedImageIndices.push_back(image.imageIdx);
         }
         catch(cvk::vk_result_exception const&) {
             _error.store(std::current_exception());

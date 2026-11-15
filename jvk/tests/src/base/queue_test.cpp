@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <numeric>
 #include <thread>
+#include <utility>
 #include <vector>
 
 
@@ -74,6 +75,24 @@ namespace {
     constexpr BufferAccess HOST_READ{VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
     constexpr cvk::BarrierScope TRANSFER_WRITE{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
     constexpr cvk::BarrierScope TRANSFER_READ{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
+
+    /**
+     * the test config with an own scheduler for the strands of the queues
+     */
+    Core::Config queue_workers() {
+        auto config = test::Context::CONFIG;
+        config.queueWorkers = 2;
+        return config;
+    }
+
+    /**
+     * enters the strand of the queue
+     * @return the strand owns the thread, the workers of the core own the thread
+     */
+    cth::co::executor_task<std::pair<bool, bool>> strand_thread(Core const& core, Queue const& queue) {
+        co_await queue.executor().schedule();
+        co_return std::pair{queue.executor().context().owns_thread(), core.executor().context().owns_thread()};
+    }
 
     /**
      * a graphics queue and a compute queue, on two families where the device has them
@@ -146,6 +165,24 @@ JVK_TEST(Queue, jobs_of_two_coroutines_never_overlap) {
 
     EXPECT_EQ(jobs.outsideStrand.load(), 0);
     EXPECT_EQ(jobs.maxRunning.load(), 1);
+}
+
+JVK_TEST(Queue, strand_runs_on_the_workers_by_default) {
+    test::Context const context{};
+
+    auto const [inStrand, onWorker] =
+        context.core.executor().sync_wait(strand_thread(context.core, context.core.queue(0)));
+    EXPECT_TRUE(inStrand);
+    EXPECT_TRUE(onWorker);
+}
+
+JVK_TEST(Queue, strand_runs_on_the_queue_scheduler_with_queue_workers) {
+    test::Context const context{};
+    Core const core{context.instance, queue_workers(), {}};
+
+    auto const [inStrand, onWorker] = core.executor().sync_wait(strand_thread(core, core.queue(0)));
+    EXPECT_TRUE(inStrand);
+    EXPECT_FALSE(onWorker);
 }
 
 JVK_TEST(Queue, wait_idle_waits_for_the_submits) {
