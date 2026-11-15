@@ -34,7 +34,8 @@ namespace {
     }
 }
 
-cvk::SubmitInfo SubmitInfo::vkSubmit(
+void SubmitInfo::submit(
+    Queue const& queue,
     std::span<SemaphoreSubmitInfo const> extraWaits,
     std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits,
     bool prologue
@@ -44,14 +45,16 @@ cvk::SubmitInfo SubmitInfo::vkSubmit(
     // the prologue comes first
     for(PrimaryCmdBuffer const& cmdBuffer : cmdBuffers | std::views::drop(prologue ? 0 : 1))
         submitInfo.cmdBuffers.emplace_back(cmdBuffer);
-    return submitInfo;
+
+    queue.vk().submit(submitInfo);
 }
 
-cvk::SubmitInfo SubmitInfo::vkSkip(
+void SubmitInfo::skip(
+    Queue const& queue,
     std::span<SemaphoreSubmitInfo const> extraWaits,
     std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
 ) const {
-    return cvk::SubmitInfo{.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}};
+    queue.vk().submit({.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}});
 }
 
 StageSlot::StageSlot(

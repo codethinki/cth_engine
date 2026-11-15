@@ -59,26 +59,32 @@ struct SubmitInfo {
 
     SemaphoreSubmitInfo signal; ///< `StageSlot::semaphore` with the frame number
 
-    //TODO review the cvk submits as results: the job builds them off the strand, only `vkQueueSubmit2()` runs in it
     /**
-     * the cvk submit of the command buffers
+     * submits the command buffers on the queue
      * @details waits for `SubmitInfo::waits` and the extra waits, signals `SubmitInfo::signal`
+     * @param queue of the stage slot
      * @param extraWaits the jvk waits of the stage and of the releases
      * @param extraBinaryWaits the binary waits of the stage
      * @param prologue `false` -> without `StageSlot::prologue`: the prologue is empty
-     * @see `vkSkip()`
+     * @pre runs in the strand of the queue
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
+     * @see `skip()`
      */
-    [[nodiscard]] cvk::SubmitInfo vkSubmit(
+    void submit(
+        Queue const& queue,
         std::span<SemaphoreSubmitInfo const> extraWaits,
         std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits,
         bool prologue
     ) const;
 
     /**
-     * the cvk submit of the waits and the signal without the command buffers
-     * @details the parameters of `vkSubmit()`
+     * submits the waits and the signal without the command buffers
+     * @details the parameters of `submit()`
+     * @pre runs in the strand of the queue
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      */
-    [[nodiscard]] cvk::SubmitInfo vkSkip(
+    void skip(
+        Queue const& queue,
         std::span<SemaphoreSubmitInfo const> extraWaits,
         std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
     ) const;

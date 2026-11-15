@@ -191,7 +191,6 @@ private:
     //TODO review no marks as parameters: the job awaits Semaphore::submitted() of the slots, they live as long as
     // the graph
     //TODO review next() before the mark: the job of the next frame of the slot awaits the mark, it reads the values
-    //TODO review the gpu wait and the destruction in the strand of the queue: no extra post, the destruction is short
     /**
      * submit job of `submit()` and `skip()`
      * @details the order:
@@ -200,10 +199,11 @@ private:
      * - the binary extra waits: no await on the cpu
      * - `SUBMITTED`: `append()` of the states of the primary under `StageGraph::_statesMutex`, `release()` of the
      *   release halves, records the prologue, an empty prologue: no record, the submit without it
-     * - in the strand: the submit of `SubmitInfo::vkSubmit()` with the release waits
-     * - `SKIPPED` or a failed submit: in the strand, the submit of `SubmitInfo::vkSkip()`
-     * - `SubmitInfo::next()`, then `Semaphore::markSubmitted()` of the slot with the frame number
-     * - after the gpu finished: erases the states of the retained resources, then `Stasis::clear()` to `stasisEnd`
+     * - in the strand: `SubmitInfo::submit()` with the release waits
+     * - `SKIPPED` or a failed submit: in the strand, `SubmitInfo::skip()`
+     * - in the strand: `SubmitInfo::next()`, then `Semaphore::markSubmitted()` of the slot with the frame number
+     * - on the workers of the core: after the gpu finished, erases the states of the retained resources, then
+     *   `Stasis::clear()` to `stasisEnd`
      * @details the errors:
      * - a failed submit: stores the error, see `dev::first_error`, then skips
      * - a failed skip: `VK_ERROR_DEVICE_LOST` -> stores the error, else terminates: the waiters would hang

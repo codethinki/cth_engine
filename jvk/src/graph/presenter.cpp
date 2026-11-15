@@ -251,15 +251,14 @@ cth::co::executor_task<void> Presenter::presentJob(
         submit.cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         barrier.execute(submit.cmd);
         submit.cmd.end();
-        cvk::SubmitInfo const info{
-            .cmdBuffers = {submit.cmd},
-            .waits = {waits.begin(), waits.end()},
-            .signals = {cvk::SemaphoreSubmitInfo{_swapchain.current().presentSemaphore(image.imageIdx)}, signal},
-        };
 
         // in the strand the submit and the present, no suspension: the presents follow the order of present()
         co_await queue.executor().schedule();
-        queue.vk().submit(info);
+        queue.vk().submit({
+            .cmdBuffers = {submit.cmd},
+            .waits = {waits.begin(), waits.end()},
+            .signals = {cvk::SemaphoreSubmitInfo{_swapchain.current().presentSemaphore(image.imageIdx)}, signal},
+        });
         submit.value = value;
         submitted = true;
     }
@@ -269,9 +268,11 @@ cth::co::executor_task<void> Presenter::presentJob(
 
     // a failed submit: the timeline signal for the waits on the presenter, the present semaphore stays unsignaled
     if(!submitted) {
-        cvk::SubmitInfo const info{.waits = {waits.begin(), waits.end()}, .signals = {signal}};
         co_await queue.executor().schedule();
-        dev::fallback_submit([&] { queue.vk().submit(info); }, _error);
+        dev::fallback_submit(
+            [&] { queue.vk().submit({.waits = {waits.begin(), waits.end()}, .signals = {signal}}); },
+            _error
+        );
     }
 
     if(submitted) {

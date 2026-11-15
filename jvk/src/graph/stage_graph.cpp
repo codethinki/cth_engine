@@ -297,10 +297,9 @@ cth::co::executor_task<void> StageGraph::submitJob(
                 prologue.execute(stageSlot.prologue);
                 stageSlot.prologue.end();
             }
-            auto const submit = info.vkSubmit(extraWaits, extraBinaryWaits, withPrologue);
 
             co_await queue.executor().schedule();
-            queue.vk().submit(submit);
+            info.submit(queue, extraWaits, extraBinaryWaits, withPrologue);
             submitted = true;
         }
         catch(...) {
@@ -310,13 +309,16 @@ cth::co::executor_task<void> StageGraph::submitJob(
 
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
     if(!submitted) {
-        auto const skip = info.vkSkip(extraWaits, extraBinaryWaits);
         co_await queue.executor().schedule();
-        dev::fallback_submit([&] { queue.vk().submit(skip); }, _error);
+        dev::fallback_submit([&] { info.skip(queue, extraWaits, extraBinaryWaits); }, _error);
     }
 
     stageSlot.submitInfo.next(_config.frameSlots);
     stageSlot.semaphore.markSubmitted(frameNumber);
+
+    // back on the workers: the cleanup destroys retained objects, the strand stays free for the next submits, one post
+    // per stage and frame, off the critical path
+    co_await core().executor().schedule();
 
     // the job never touches the stage: nextFrame() destroys the stages after the gpu wait
     bool reached = false;
