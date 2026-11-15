@@ -5,9 +5,12 @@
 
 #include "jvk/base/core.hpp"
 #include "jvk/base/queue.hpp"
+#include "jvk/data/image.hpp"
 #include "jvk/graph/stage_graph.hpp"
 #include "jvk/sync/semaphore.hpp"
 
+#include "cvk/base/physical_device.hpp"
+#include "cvk/data/img/image_view.hpp"
 #include "cvk/render/sync/barrier.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 #include "cvk/utility/vk_overloads.hpp"
@@ -155,6 +158,71 @@ namespace {
         return *image;
     }
 
+    constexpr VkSampleCountFlagBits MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
+
+    [[nodiscard]] bool supports_msaa(Core const& core) {
+        cvk::Core const& vk = core;
+        return (vk.physicalDevice().limits().framebufferColorSampleCounts & MSAA_SAMPLES) != 0;
+    }
+
+    /**
+     * multisampled color image of the frames and its view, the rendering resolves it into the swapchain image
+     */
+    struct MsaaTarget {
+        MsaaTarget(Core const& core, VkFormat format, VkExtent2D extent) :
+            image{
+                core,
+                {
+                    .format = format,
+                    .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+                    .samples = MSAA_SAMPLES,
+                },
+                extent
+            },
+            view{image, {}, cvk::create} {}
+
+        Image image;
+        cvk::ImageView view;
+    };
+
+    /**
+     * acquires the image of the next frame, clears the multisampled target and resolves it into the image
+     * @details only the scopes: `scoped_submit` submits, then `scoped_acquire` presents
+     * @details a new extent: the stage retains the old target, then a new one
+     * @param[out] msaaOpt the target of the frames
+     * @return the image
+     */
+    SwapchainImage present_msaa_frame(
+        Core const& core,
+        StageGraph& graph,
+        Presenter& presenter,
+        std::optional<MsaaTarget>& msaaOpt
+    ) {
+        auto& stage = next_frame(core, graph).stage(0);
+        auto const image = acquire(core, presenter, stage);
+        EXPECT_TRUE(image);
+        if(!msaaOpt.has_value() || msaaOpt->image.extent() != image->extent) {
+            if(msaaOpt.has_value()) {
+                stage.retain(std::move(msaaOpt->view));
+                stage.retain(std::move(msaaOpt->image));
+            }
+            msaaOpt.emplace(core, presenter.swapchain().current().format(), image->extent);
+        }
+
+        auto const primary = stage.begin();
+        auto const rendering = primary->beginRendering({
+            .colorAttachments = {{
+                .view = msaaOpt->view,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .clearValue = {.color = {{0.f, 0.5f, 1.f, 1.f}}},
+                .resolveViewPtr = &*image->view,
+                .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
+            }},
+        });
+        return *image;
+    }
+
     /**
      * acquires, clears and presents the image of the stage in the next frame
      * @details only the scopes: `scoped_submit` submits, then `scoped_acquire` presents
@@ -256,6 +324,50 @@ JVK_TEST(Presenter, new_extent_recreates_the_swapchain) {
 
     // the next frames present on the new swapchain
     EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{48, 40}));
+}
+
+JVK_TEST(Presenter, multisampled_frames_resolve_into_the_image_and_present) {
+    constexpr size_t FRAMES = 4;
+    test::Context const context{};
+    auto surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface)) GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    if(!supports_msaa(core)) GTEST_SKIP() << "no 4x msaa for color attachments";
+
+    // before the graph: the target lives until the gpu finished the frames
+    std::optional<MsaaTarget> msaaOpt{};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+
+    // the resolve writes the image, the present transition starts from the resolve state
+    for(size_t i = 0; i < FRAMES; ++i)
+        EXPECT_EQ(present_msaa_frame(core, graph, presenter, msaaOpt).extent, test::HEADLESS_EXTENT);
+}
+
+JVK_TEST(Presenter, recreation_retains_the_multisampled_target_of_the_old_extent) {
+    test::Context const context{};
+    std::atomic<VkExtent2D> windowExtent{VkExtent2D{32, 32}};
+    auto surface = test::headless_surface(context.instance, [&windowExtent] { return windowExtent.load(); });
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface)) GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    if(!supports_msaa(core)) GTEST_SKIP() << "no 4x msaa for color attachments";
+
+    std::optional<MsaaTarget> msaaOpt{};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+
+    EXPECT_EQ(present_msaa_frame(core, graph, presenter, msaaOpt).extent, (VkExtent2D{32, 32}));
+
+    // the new extent recreates the swapchain, the frame retains the old target
+    windowExtent = VkExtent2D{48, 40};
+    EXPECT_EQ(present_msaa_frame(core, graph, presenter, msaaOpt).extent, (VkExtent2D{48, 40}));
+    EXPECT_EQ(msaaOpt->image.extent(), (VkExtent2D{48, 40}));
+
+    // the graph destroys the old target after the gpu finished its frame
+    for(size_t i = 0; i < 3; ++i)
+        EXPECT_EQ(present_msaa_frame(core, graph, presenter, msaaOpt).extent, (VkExtent2D{48, 40}));
 }
 
 JVK_TEST(Presenter, acquire_waits_for_the_present_before) {
