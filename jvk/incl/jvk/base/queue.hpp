@@ -80,6 +80,11 @@ public:
     [[nodiscard]] constexpr cth::co::executor executor() const { return cth::co::executor{_strand}; }
 
     /**
+     * @return the scheduler of the strand, for work of the queue outside the strand
+     */
+    [[nodiscard]] constexpr cth::co::scheduler const& scheduler() const { return *_scheduler; }
+
+    /**
      * @attention not serialized: use it inside the strand
      */
     [[nodiscard]] constexpr cvk::Queue const& vk() const { return *_queue; }
@@ -112,6 +117,7 @@ private:
 
     cth::ref_wrapper<Core const> _core;
     cth::ref_wrapper<cvk::Queue const> _queue;
+    cth::ref_wrapper<cth::co::scheduler const> _scheduler;
     cth::co::strand _strand;
 
     mutable std::deque<ReleaseCmd> _releaseCmds{}; ///< used in the strand only

@@ -77,11 +77,11 @@ namespace {
     constexpr cvk::BarrierScope TRANSFER_READ{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
 
     /**
-     * the test config with an own scheduler for the strands of the queues
+     * the test config with driver threads for the strands of the queues
      */
-    Core::Config queue_workers() {
+    Core::Config driver_threads() {
         auto config = test::Context::CONFIG;
-        config.queueWorkers = 2;
+        config.driverThreads = 2;
         return config;
     }
 
@@ -176,9 +176,9 @@ JVK_TEST(Queue, strand_runs_on_the_workers_by_default) {
     EXPECT_TRUE(onWorker);
 }
 
-JVK_TEST(Queue, strand_runs_on_the_queue_scheduler_with_queue_workers) {
+JVK_TEST(Queue, strand_runs_on_the_driver_threads) {
     test::Context const context{};
-    Core const core{context.instance, queue_workers(), {}};
+    Core const core{context.instance, driver_threads(), {}};
 
     auto const [inStrand, onWorker] = core.executor().sync_wait(strand_thread(core, core.queue(0)));
     EXPECT_TRUE(inStrand);

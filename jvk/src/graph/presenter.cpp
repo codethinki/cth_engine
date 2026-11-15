@@ -16,7 +16,8 @@
 #include "cvk/utility/vk_overloads.hpp"
 
 #include <cth/coro/exception.hpp>
-#include <cth/coro/this_coro.hpp>
+#include <cth/coro/executor.hpp>
+#include <cth/coro/scheduler.hpp>
 
 #include <array>
 #include <exception>
@@ -101,7 +102,6 @@ void Presenter::destroy() {
     _surface.destroy();
 
     _acquireSemaphoreIdx = 0;
-    _presentedImageIndices.clear();
     _outOfDate = false;
     _error.clear();
 }
@@ -121,15 +121,17 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
     ) {}
     if(_error) _error.rethrow();
 
-    // after the last present: the acquire and the present share the swapchain in the strand, a blocking acquire before
-    // the last present delays that present by one refresh (FIFO), the order of a plain loop: present N, then acquire
-    // N + 1
+    // after the last present: the acquire and the present share the swapchain, a blocking acquire before the last
+    // present delays that present by one refresh (FIFO), the order of a plain loop: present N, then acquire N + 1
     auto const value = _semaphore.value();
     if(value > 0) co_await _semaphore.submitted(value);
     // an image without a present: the stage waits for its acquire semaphore, the unacquire waits until the gpu
     // finished the submit or the skip of the stage (VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786)
     if(_acquiredOpt.has_value()) co_await _acquiredOpt->stageSemaphore->wait(_acquiredOpt->frameNumber);
-    co_await _queue->executor().schedule();
+    // on the scheduler of the queue, outside the strand: only the vkQueue*() calls need the strand, the swapchain uses
+    // are ordered without it: present job N marks after vkQueuePresentKHR(), acquire() N + 1 waits for that mark,
+    // present() N + 1 comes after acquire() N + 1 returned
+    co_await cth::co::executor{_queue->scheduler()}.schedule();
 
     // an image without a present, e.g. after an exception or a skip
     if(_acquiredOpt.has_value()) unacquireImage();
@@ -143,15 +145,6 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
         if(extent.width == 0 || extent.height == 0)
             co_return scoped_acquire{*this, stage, std::nullopt, _error, uncaughtExceptions};
         updateSwapchain(extent, &stage.graph());
-        auto const& swapchain = _swapchain.current();
-
-        // the ended presents free their images
-        while(!_presentedImageIndices.empty() && swapchain.presentFence(_presentedImageIndices.front()).signaled())
-            _presentedImageIndices.pop_front();
-        if(_presentedImageIndices.size() >= swapchain.imageCount()) {
-            co_await awaitPresentFence(_presentedImageIndices.front());
-            _presentedImageIndices.pop_front();
-        }
 
         // an infinite timeout: no image -> out of date, the next round recreates the swapchain
         imageIdxOpt = _swapchain.acquire(acquireSemaphore).imageIndex;
@@ -253,19 +246,20 @@ cth::co::executor_task<void> Presenter::presentJob(
         // the last submit of the command buffer, a swapchain before a recreation used it too
         co_await _semaphore.wait(_submits[image.imageIdx].value);
 
-        // no suspension in the strand: the presents follow the order of present()
-        co_await queue.executor().schedule();
-
+        // off the strand: the present jobs run one at a time, the mark of the job before orders them
         auto& submit = _submits[image.imageIdx];
         submit.cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         barrier.execute(submit.cmd);
         submit.cmd.end();
-
-        queue.vk().submit({
+        cvk::SubmitInfo const info{
             .cmdBuffers = {submit.cmd},
             .waits = {waits.begin(), waits.end()},
             .signals = {cvk::SemaphoreSubmitInfo{_swapchain.current().presentSemaphore(image.imageIdx)}, signal},
-        });
+        };
+
+        // in the strand the submit and the present, no suspension: the presents follow the order of present()
+        co_await queue.executor().schedule();
+        queue.vk().submit(info);
         submit.value = value;
         submitted = true;
     }
@@ -275,11 +269,9 @@ cth::co::executor_task<void> Presenter::presentJob(
 
     // a failed submit: the timeline signal for the waits on the presenter, the present semaphore stays unsignaled
     if(!submitted) {
+        cvk::SubmitInfo const info{.waits = {waits.begin(), waits.end()}, .signals = {signal}};
         co_await queue.executor().schedule();
-        dev::fallback_submit(
-            [&] { queue.vk().submit({.waits = {waits.begin(), waits.end()}, .signals = {signal}}); },
-            _error
-        );
+        dev::fallback_submit([&] { queue.vk().submit(info); }, _error);
     }
 
     if(submitted) {
@@ -287,7 +279,6 @@ cth::co::executor_task<void> Presenter::presentJob(
             // the swapchain of the image is the current one: a recreation only happens in acquire(), after the last
             // present called vkQueuePresentKHR()
             if(_swapchain.current().present(image.imageIdx) == VK_ERROR_OUT_OF_DATE_KHR) _outOfDate = true;
-            _presentedImageIndices.push_back(image.imageIdx);
         }
         catch(cvk::vk_result_exception const&) {
             _error.store(std::current_exception());
@@ -296,13 +287,6 @@ cth::co::executor_task<void> Presenter::presentJob(
 
     // after the present: the next acquire() awaits it
     _semaphore.markSubmitted(value);
-}
-
-cth::co::executor_task<void> Presenter::awaitPresentFence(uint32_t imageIdx) const {
-    auto const handle = _swapchain.current().presentFence(imageIdx).extractOsHandle();
-    // posix: no handle -> signaled
-    if(!handle) co_return;
-    co_await cth::co::this_coro::await_handle(handle.get());
 }
 
 void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
@@ -317,8 +301,6 @@ void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
     } else _swapchain.create(swapchainConfig(), extent);
     _outOfDate = false;
 
-    // the indices of the retired swapchain
-    _presentedImageIndices.clear();
     while(_submits.size() < _swapchain.current().imageCount())
         _submits.push_back(PresentSubmit{.cmd = PrimaryCmdBuffer{*_core, _queue->vk().familyIndex()}});
 }

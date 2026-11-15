@@ -9,6 +9,7 @@
 #include <cth/io/log.hpp>
 
 #include <exception>
+#include <ranges>
 #include <span>
 #include <utility>
 #include <vector>
@@ -33,25 +34,24 @@ namespace {
     }
 }
 
-void SubmitInfo::submit(
-    Queue const& queue,
+cvk::SubmitInfo SubmitInfo::vkSubmit(
     std::span<SemaphoreSubmitInfo const> extraWaits,
-    std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
+    std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits,
+    bool prologue
 ) const {
     cvk::SubmitInfo submitInfo{.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}};
     submitInfo.cmdBuffers.reserve(cmdBuffers.size());
-    for(PrimaryCmdBuffer const& cmdBuffer : cmdBuffers)
+    // the prologue comes first
+    for(PrimaryCmdBuffer const& cmdBuffer : cmdBuffers | std::views::drop(prologue ? 0 : 1))
         submitInfo.cmdBuffers.emplace_back(cmdBuffer);
-
-    queue.vk().submit(submitInfo);
+    return submitInfo;
 }
 
-void SubmitInfo::skip(
-    Queue const& queue,
+cvk::SubmitInfo SubmitInfo::vkSkip(
     std::span<SemaphoreSubmitInfo const> extraWaits,
     std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
 ) const {
-    queue.vk().submit({.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}});
+    return cvk::SubmitInfo{.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}};
 }
 
 StageSlot::StageSlot(

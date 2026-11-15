@@ -199,8 +199,9 @@ private:
      *   `StageSlot::submitInfo` and of every jvk extra wait: the appends follow the dependency order
      * - the binary extra waits: no await on the cpu
      * - `SUBMITTED`: `append()` of the states of the primary under `StageGraph::_statesMutex`, `release()` of the
-     *   release halves, in the strand: records the prologue, `SubmitInfo::submit()` with the release waits
-     * - `SKIPPED` or a failed submit: in the strand, `SubmitInfo::skip()`
+     *   release halves, records the prologue, an empty prologue: no record, the submit without it
+     * - in the strand: the submit of `SubmitInfo::vkSubmit()` with the release waits
+     * - `SKIPPED` or a failed submit: in the strand, the submit of `SubmitInfo::vkSkip()`
      * - `SubmitInfo::next()`, then `Semaphore::markSubmitted()` of the slot with the frame number
      * - after the gpu finished: erases the states of the retained resources, then `Stasis::clear()` to `stasisEnd`
      * @details the errors:

@@ -11,12 +11,12 @@
 
 
 namespace jvk {
-Queues::Queues(Core const& core, cth::co::scheduler const& workers, size_t queueWorkers) {
+Queues::Queues(Core const& core, cth::co::scheduler const& workers, size_t driverThreads) {
     cvk::Core const& vk = core;
     cvk::Core::debug_check(vk);
 
-    if(queueWorkers > 0) _schedulerOpt.emplace(cth::co::autostart, queueWorkers);
-    cth::co::scheduler const& scheduler = _schedulerOpt.has_value() ? *_schedulerOpt : workers;
+    if(driverThreads > 0) _driverSchedulerOpt.emplace(cth::co::autostart, driverThreads);
+    cth::co::scheduler const& scheduler = _driverSchedulerOpt.has_value() ? *_driverSchedulerOpt : workers;
 
     auto const indices = vk.queueIndices();
     _queueIndices.reserve(indices.size());

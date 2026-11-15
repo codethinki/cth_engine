@@ -18,16 +18,14 @@ struct CoreConfig {
     /**
      * threads of the worker scheduler, `0` -> `std::thread::hardware_concurrency()`
      * @details `std::thread::hardware_concurrency()` is `0` -> one thread
-     * @details `queueWorkers` `0` -> the strands of the queues run on the workers too
+     * @details `driverThreads` `0` -> the workers call the driver too
      */
     size_t workers = 0;
 
     /**
-     * threads of an own scheduler for the strands of the queues, `0` -> the strands run on the workers
-     * @details `0`: a free strand runs a submit, an acquire or a present inline on the calling worker, a warm thread
-     * @details `> 0`: the submits and the blocking calls (FIFO acquire, `Queue::waitIdle()`) run apart from the
-     *  worker load, every entry from a worker posts
+     * threads for the vulkan driver calls, `0` -> the workers
+     * @details recommended `>= 2`: a blocking acquire holds one
      */
-    size_t queueWorkers = 0;
+    size_t driverThreads = 0;
 };
 }

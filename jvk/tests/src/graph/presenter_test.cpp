@@ -45,11 +45,11 @@ namespace {
         test::Context const& context,
         cvk::Surface const& surface,
         std::vector<cvk::QueueFamilyProperties> queueProperties = {GRAPHICS | PRESENT},
-        size_t queueWorkers = 0
+        size_t driverThreads = 0
     ) {
         auto config = test::Context::CONFIG;
         config.vk.queueProperties = std::move(queueProperties);
-        config.queueWorkers = queueWorkers;
+        config.driverThreads = driverThreads;
         try {
             coreOpt.emplace(context.instance, std::move(config), std::array{cth::ref_wrapper{surface}});
         }
@@ -194,7 +194,7 @@ JVK_TEST(Presenter, frame_loop_clears_and_presents) {
     EXPECT_FALSE(presenter.created());
 }
 
-JVK_TEST(Presenter, frame_loop_with_a_queue_scheduler_presents) {
+JVK_TEST(Presenter, frame_loop_with_driver_threads_presents) {
     constexpr size_t FRAMES = 6;
     test::Context const context{};
     auto surface = test::headless_surface(context.instance);

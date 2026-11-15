@@ -123,7 +123,7 @@ JVK_TEST(Core, base_constructor_does_not_create) {
     EXPECT_FALSE(core.created());
     EXPECT_FALSE(static_cast<cvk::Core const&>(core).created());
     EXPECT_EQ(core.config().workers, test::Context::CONFIG.workers);
-    EXPECT_EQ(core.config().queueWorkers, test::Context::CONFIG.queueWorkers);
+    EXPECT_EQ(core.config().driverThreads, test::Context::CONFIG.driverThreads);
 }
 
 JVK_TEST(Core, create_and_destroy) {

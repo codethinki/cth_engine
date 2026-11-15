@@ -20,7 +20,6 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <deque>
 #include <exception>
 #include <optional>
 #include <vector>
@@ -81,7 +80,9 @@ struct PresenterConfig {
  * @details
  * - owns the surface and the swapchain
  * - recreates the swapchain in `acquire()`, a retired swapchain stays until its presents ended, see `Swapchain`
- * - acquires, submits and presents in the strand of its queue
+ * - submits and presents in the strand of its queue, acquires outside the strand on `Queue::scheduler()`
+ * - `Presenter::_semaphore` orders the uses of the swapchain: a present job marks after `vkQueuePresentKHR()`, the
+ *   next `acquire()` waits for that mark
  * - one acquired image at a time, in a scope: `scoped_acquire` presents it at its end
  * - an image without a present: the next `acquire()` or `destroy()` unacquires it, `acquire()` after the gpu finished
  *   its stage
@@ -153,11 +154,11 @@ public:
      * - the state of the image in the graph of the stage: `VK_IMAGE_LAYOUT_UNDEFINED` with the wait stages, see
      *   `StageGraph::assume()`: the first barrier of the image chains with the wait
      * - waits until the last present job called `vkQueuePresentKHR()`: the acquire and the present share the
-     *   swapchain in the strand, a blocking acquire before that present delays it by one refresh (FIFO)
+     *   swapchain, a blocking acquire before that present delays it by one refresh (FIFO)
+     * - runs on `Queue::scheduler()`, outside the strand
      * - `VK_ERROR_OUT_OF_DATE_KHR` of a present or an acquire of the current swapchain, or a changed
      *   `cvk::Surface::extent()` -> recreates the swapchain first, erases the old images in the graph of the stage,
      *   see `StageGraph::erase()`, `Swapchain::recreate()`
-     * - all images in use -> awaits the oldest present fence first
      * - an acquired image without a present, e.g. after an exception or a skip: waits until the gpu finished the
      *   submit or the skip of its stage, then unacquires it
      * @param stages pipeline stages of the stage that wait for the acquire
@@ -170,9 +171,8 @@ public:
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
      * @throws cvk::vk_result_exception the first error of a present job or a scope, stored before the call: an error
      *  of the last present job during the waits -> the next `acquire()` rethrows it
-     * @attention `vkAcquireNextImageKHR()` can block (FIFO: the vsync throttle, the presentation engine holds the
-     *  images after their present fences): it occupies a thread of the scheduler of the strand, the calling thread if
-     *  the strand was free and the caller runs a job of that scheduler
+     * @attention `vkAcquireNextImageKHR()` can block (FIFO: the vsync throttle): it occupies a driver thread,
+     *  `CoreConfig::driverThreads` `0` -> the calling worker
      * @see `Stage::await()`
      */
     [[nodiscard]] cth::co::executor_task<scoped_acquire> acquire(
@@ -245,8 +245,9 @@ private:
      * - stage of another family -> `Queue::release()` of the image on the stage queue
      * - off the strand: awaits `Semaphore::submitted()` of `Presenter::_semaphore` with the value before: the present
      *   jobs submit and present in the order of `present()`
-     * - in the strand of the queue: records the command buffer, submits it through `Queue::vk()`, presents through
-     *   the current swapchain: a recreation only happens in `acquire()`, after the last present
+     * - off the strand: records the command buffer, the present jobs run one at a time
+     * - in the strand of the queue: submits through `Queue::vk()`, presents through the current swapchain: a
+     *   recreation only happens in `acquire()`, after the last present
      * - the submit waits for the semaphore of the stage and the release, signals the present semaphore and
      *   `Presenter::_semaphore` with the value
      * - the command buffer: the acquire half of another family, the transition to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
@@ -270,23 +271,14 @@ private:
     );
 
     /**
-     * awaits the present fence of the image of the current swapchain without a block of the strand
-     * @details exports `cvk::Swapchain::presentFence()`, awaits it with `cth::co::this_coro::await_handle()`
-     * @pre runs in the strand of the queue
-     * @throws cvk::vk_result_exception result of the export, see `cvk::Fence::extractOsHandle()`
-     */
-    [[nodiscard]] cth::co::executor_task<void> awaitPresentFence(uint32_t imageIdx) const;
-
-    /**
      * creates or recreates the swapchain if it is not created, out of date or of another extent
      * @details
      * - the first creation: the config of `swapchainConfig()`
      * - a recreation erases the old images in the graph first: the new images can reuse their handles
-     * - a recreation forgets the pending presents of `Presenter::_presentedImageIndices`, they are of the old swapchain
      * - grows `Presenter::_submits` to the image count
      * @param extent of the surface, `> 0`
      * @param graphPtr of the acquiring stage, `nullptr` -> no graph
-     * @pre runs in the strand of the queue
+     * @pre no present job uses the swapchain: `create()`, or `acquire()` after the mark of the last present
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`
      */
@@ -300,7 +292,7 @@ private:
     /**
      * gives the acquired image back to the current swapchain
      * @pre an acquired image of the current swapchain
-     * @pre runs in the strand of the queue or no job uses the swapchain
+     * @pre no present job uses the swapchain: `acquire()` after the mark of the last present, or `destroy()`
      * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
      */
     void unacquireImage();
@@ -312,7 +304,7 @@ private:
     // destroyed after the swapchain
     cvk::Surface _surface;
 
-    Swapchain _swapchain; ///< created once the surface extent is `> 0`, used in the strand of the queue
+    Swapchain _swapchain; ///< created once the surface extent is `> 0`, `Presenter::_semaphore` orders its uses
 
     /**
      * ring of `PresenterConfig::framesInFlight`, signaled by the acquires
@@ -324,11 +316,6 @@ private:
     Semaphore _semaphore; ///< signaled by the present submits, each submit signals the next value
 
     std::vector<PresentSubmit> _submits{}; ///< one per swapchain image
-
-    /**
-     * the images of the pending presents of the current swapchain, the oldest first
-     */
-    std::deque<uint32_t> _presentedImageIndices{};
 
     std::optional<AcquiredImage> _acquiredOpt = std::nullopt; ///< the acquired image without a present
 
@@ -368,7 +355,7 @@ namespace jvk {
 class scoped_acquire {
 public:
     //TODO review the uncaught exceptions as a parameter: acquire() reads them on the calling thread before it moves
-    // onto the strand, the scope is constructed in the strand
+    // onto `Queue::scheduler()`, the scope is constructed there
     /**
      * @param presenter of the image
      * @param stage of the acquire

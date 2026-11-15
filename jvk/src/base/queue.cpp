@@ -10,7 +10,7 @@
 
 namespace jvk {
 Queue::Queue(Core const& core, cvk::Queue const& queue, cth::co::scheduler const& queueScheduler) :
-    _core{core}, _queue{queue}, _strand{queueScheduler}, _released{core, cvk::create} {
+    _core{core}, _queue{queue}, _scheduler{queueScheduler}, _strand{queueScheduler}, _released{core, cvk::create} {
     cvk::Queue::debug_check(queue);
 }
 
@@ -24,6 +24,7 @@ void Queue::waitIdle() const {
 }
 
 cth::co::executor_task<SemaphoreSubmitInfo> Queue::release(cvk::Barrier barriers) const {
+    // all in the strand: it serializes the release command buffers, the counter values follow the submit order
     co_await executor().schedule();
 
     auto& releaseCmd = freeReleaseCmd();

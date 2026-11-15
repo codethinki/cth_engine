@@ -290,13 +290,17 @@ cth::co::executor_task<void> StageGraph::submitJob(
             }
             if(!releases.empty()) extraWaits.append_range(co_await release(std::move(releases)));
 
+            // off the strand: the prologue belongs to the job of the slot, an empty one stays out of the submit
+            bool const withPrologue = !prologue.empty();
+            if(withPrologue) {
+                stageSlot.prologue.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+                prologue.execute(stageSlot.prologue);
+                stageSlot.prologue.end();
+            }
+            auto const submit = info.vkSubmit(extraWaits, extraBinaryWaits, withPrologue);
+
             co_await queue.executor().schedule();
-
-            stageSlot.prologue.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-            if(!prologue.empty()) prologue.execute(stageSlot.prologue);
-            stageSlot.prologue.end();
-
-            info.submit(queue, extraWaits, extraBinaryWaits);
+            queue.vk().submit(submit);
             submitted = true;
         }
         catch(...) {
@@ -306,8 +310,9 @@ cth::co::executor_task<void> StageGraph::submitJob(
 
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
     if(!submitted) {
+        auto const skip = info.vkSkip(extraWaits, extraBinaryWaits);
         co_await queue.executor().schedule();
-        dev::fallback_submit([&] { info.skip(queue, extraWaits, extraBinaryWaits); }, _error);
+        dev::fallback_submit([&] { queue.vk().submit(skip); }, _error);
     }
 
     stageSlot.submitInfo.next(_config.frameSlots);

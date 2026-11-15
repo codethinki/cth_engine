@@ -137,7 +137,7 @@ private:
     // destroyed after the queues, before the workers and the cvk core: it posts to the workers
     TimelineReactor _reactor;
     //TODO review stays a std::optional: Queues owns no vulkan object, the device owns the queues, its construction
-    // needs the created cvk core and starts its scheduler for `queueWorkers > 0`
+    // needs the created cvk core and starts the driver threads
     // destroyed before the reactor, the workers and the cvk core
     std::optional<Queues> _queuesOpt{};
 
