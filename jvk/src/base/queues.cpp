@@ -4,7 +4,6 @@
 
 #include "cvk/base/core.hpp"
 
-#include <cth/data/hash_map.hpp>
 #include <cth/io/log.hpp>
 
 #include <algorithm>
@@ -12,21 +11,7 @@
 
 
 namespace jvk {
-namespace {
-    /**
-     * @return number of distinct vulkan queues of the core
-     * @pre `cvk::Core::created()`
-     */
-    [[nodiscard]] size_t vulkan_queue_count(cvk::Core const& core) {
-        cvk::Core::debug_check(core);
-
-        auto const indices = core.queueIndices();
-        return cth::dt::flat_hash_set<size_t>{indices.begin(), indices.end()}.size();
-    }
-}
-
-Queues::Queues(Core const& core, size_t workers) :
-    _scheduler{cth::co::autostart, workers == 0 ? vulkan_queue_count(core) : workers} {
+Queues::Queues(Core const& core, cth::co::scheduler const& workers) {
     cvk::Core const& vk = core;
     cvk::Core::debug_check(vk);
 
@@ -41,7 +26,7 @@ Queues::Queues(Core const& core, size_t workers) :
         }
 
         _queueIndices.push_back(_queues.size());
-        _queues.emplace_back(core, vk.queue(queueIdx), _scheduler);
+        _queues.emplace_back(core, vk.queue(queueIdx), workers);
     }
 }
 

@@ -13,7 +13,6 @@ namespace jvk::test {
 Core::Config const Context::CONFIG{
     .vk = {.queueProperties = {std::from_range, QUEUES}},
     .workers = 2,
-    .queueWorkers = 2,
 };
 
 namespace {

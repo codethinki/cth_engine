@@ -1,7 +1,7 @@
 #pragma once
 #include "queue.hpp"
 
-#include <cth/coro/scheduler.hpp>
+#include <cth/coro/utility/fwd.hpp>
 
 #include <cstddef>
 #include <deque>
@@ -20,19 +20,20 @@ namespace jvk {
 /**
  * serialized queues of a core
  * @details
- * - run on an own scheduler
+ * - their strands run on the workers of the core
  * - the indices of one vulkan queue share one `Queue`
  * - a `Queue` keeps its address
  */
 class Queues {
 public:
+    //TODO review the scheduler as a parameter like in TimelineReactor, no accessor of the workers on Core
     /**
-     * constructs the queues of the core and starts their scheduler
-     * @param workers threads of the scheduler, `0` -> one per vulkan queue
+     * constructs the queues of the core
+     * @param workers scheduler of the strands of the queues, the core passes its workers
      * @pre the cvk core and the reactor of the core are created
      * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the release counters
      */
-    Queues(Core const&, size_t workers);
+    Queues(Core const&, cth::co::scheduler const& workers);
 
     /**
      * @param queueIdx index of the queue in `cvk::CoreConfig::queueProperties`
@@ -42,8 +43,6 @@ public:
     [[nodiscard]] Queue const& queue(size_t queueIdx) const;
 
 private:
-    cth::co::scheduler _scheduler;
-    // destroyed before the scheduler: their strands run on it
     std::deque<Queue> _queues{};
 
     std::vector<size_t> _queueIndices{}; ///< index in `_queues` per index of `cvk::CoreConfig::queueProperties`

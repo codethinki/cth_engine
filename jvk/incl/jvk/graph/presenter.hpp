@@ -60,8 +60,8 @@ struct SwapchainImage {
  */
 struct PresenterConfig {
     /**
-     * @details `cvk::SwapchainConfig::minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`: the
-     *  limit of the acquired images for an acquire without a timeout
+     * @details `cvk::SwapchainConfig::minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`: an
+     *  image for each frame in flight beside the images of the presentation engine
      * @pre `cvk::SwapchainConfig::queueFamilies.size() < 2`: the images stay `VK_SHARING_MODE_EXCLUSIVE`
      * @pre `cvk::SwapchainConfig::minImageCount != 0` -> `>= minImageCount` of the surface + `framesInFlight`
      */
@@ -150,8 +150,8 @@ public:
      * - adds the wait for the acquire to the stage: `Stage::await()` with the acquire semaphore and the stages
      * - the state of the image in the graph of the stage: `VK_IMAGE_LAYOUT_UNDEFINED` with the wait stages, see
      *   `StageGraph::assume()`: the first barrier of the image chains with the wait
-     * - waits until at most `PresenterConfig::framesInFlight - 1` present jobs are pending: the limit of the
-     *   acquired images, see `PresenterConfig::swapchain`
+     * - waits until the last present job called `vkQueuePresentKHR()`: the acquire and the present share the
+     *   swapchain in the strand, a blocking acquire before that present delays it by one refresh (FIFO)
      * - `VK_ERROR_OUT_OF_DATE_KHR` of a present or an acquire of the current swapchain, or a changed
      *   `cvk::Surface::extent()` -> recreates the swapchain first, erases the old images in the graph of the stage,
      *   see `StageGraph::erase()`, `Swapchain::recreate()`
@@ -166,8 +166,9 @@ public:
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
      * @throws cvk::vk_result_exception the first error of a present job or a scope
-     * @attention the strand of the queue can block in `vkAcquireNextImageKHR()` while no image is free: the
-     *  presentation engine can hold an image after its present fence
+     * @attention `vkAcquireNextImageKHR()` can block (FIFO: the vsync throttle, the presentation engine holds the
+     *  images after their present fences): it occupies the worker that runs it, the calling thread if the strand was
+     *  free
      * @see `Stage::await()`
      */
     [[nodiscard]] cth::co::executor_task<scoped_acquire> acquire(

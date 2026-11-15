@@ -47,6 +47,7 @@ public:
     /**
      * blocks until the queue finished its work
      * @attention deadlocks when called from a job of the strand
+     * @attention occupies a worker of the scheduler until the queue is idle, up to several ms
      * @throws cvk::vk_result_exception result of `vkQueueWaitIdle()`
      */
     void waitIdle() const;

@@ -43,7 +43,7 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
     try {
         _workers.start();
         _reactor.create();
-        _queuesOpt.emplace(*this, _config.queueWorkers);
+        _queuesOpt.emplace(*this, _workers);
     }
     catch(...) {
         _reactor.optDestroy();

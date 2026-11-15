@@ -111,10 +111,11 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
     debug_check(*this);
     CTH_CRITICAL(stage.status() != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
 
-    // at most framesInFlight acquired images, the limit of an acquire without a timeout: else it blocks the strand,
-    // the pending presents need the strand to free an image (VUID-vkAcquireNextImageKHR-swapchain-01802)
+    // after the last present: the acquire and the present share the swapchain in the strand, a blocking acquire before
+    // the last present delays that present by one refresh (FIFO), the order of a plain loop: present N, then acquire
+    // N + 1
     auto const value = _semaphore.value();
-    if(value >= _config.framesInFlight) co_await _semaphore.submitted(value - _config.framesInFlight + 1);
+    if(value > 0) co_await _semaphore.submitted(value);
     co_await _queue->executor().schedule();
 
     _error.rethrow();

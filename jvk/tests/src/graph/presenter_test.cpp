@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <semaphore>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -244,7 +245,7 @@ JVK_TEST(Presenter, new_extent_recreates_the_swapchain) {
     EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{48, 40}));
 }
 
-JVK_TEST(Presenter, acquire_does_not_wait_for_the_present_before) {
+JVK_TEST(Presenter, acquire_waits_for_the_present_before) {
     test::Context const context{};
     auto surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
@@ -258,24 +259,35 @@ JVK_TEST(Presenter, acquire_does_not_wait_for_the_present_before) {
     auto& first = next_frame(core, graph).stage(0);
     present_behind_gate(core, first, presenter, gate);
 
-    // the present of the first frame waits for the gate: two images are acquired
+    // the present of the first frame waits for the mark of the gate, the next acquire for the present
     auto& second = next_frame(core, graph).stage(0);
-    {
+    std::binary_semaphore acquiredSignal{0};
+    size_t acquiredImages = 0;
+    std::jthread frame{[&] {
         auto const image = acquire(core, presenter, second);
-        ASSERT_TRUE(image);
-        EXPECT_EQ(acquired_images(presenter), 2);
+        acquiredImages = acquired_images(presenter);
+        acquiredSignal.release();
+        EXPECT_TRUE(image);
         auto const primary = second.begin();
-        clear(*primary, *image);
-    }
+        if(image) clear(*primary, *image);
+    }};
 
-    gate.markSubmitted(1);
+    EXPECT_FALSE(acquiredSignal.try_acquire_for(std::chrono::milliseconds{50}));
+
+    // the signal before the mark: the present waits for no signal that is not submitted
     host_signal(gate, 1);
+    gate.markSubmitted(1);
+    EXPECT_TRUE(acquiredSignal.try_acquire_for(TIMEOUT));
+    frame.join();
+    // the first image is presented
+    EXPECT_EQ(acquiredImages, 1);
+
     wait(core, second);
 
     present_frame(core, graph, presenter);
 }
 
-JVK_TEST(Presenter, recreation_with_a_pending_present_presents_through_the_old_swapchain) {
+JVK_TEST(Presenter, recreation_retires_the_old_swapchain_until_its_presents_ended) {
     test::Context const context{};
     std::atomic<VkExtent2D> windowExtent{VkExtent2D{32, 32}};
     auto surface = test::headless_surface(context.instance, [&windowExtent] { return windowExtent.load(); });
@@ -285,27 +297,13 @@ JVK_TEST(Presenter, recreation_with_a_pending_present_presents_through_the_old_s
 
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-    Semaphore const gate{core, cvk::create};
 
-    auto& first = next_frame(core, graph).stage(0);
-    present_behind_gate(core, first, presenter, gate);
+    EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{32, 32}));
 
-    // the new extent recreates the swapchain, the old one keeps the image of the pending present
+    // the new extent recreates the swapchain, the old one stays until its presents ended
     windowExtent = VkExtent2D{48, 40};
-    auto& second = next_frame(core, graph).stage(0);
-    {
-        auto const image = acquire(core, presenter, second);
-        ASSERT_TRUE(image);
-        EXPECT_EQ(image->extent, (VkExtent2D{48, 40}));
-        EXPECT_EQ(presenter.swapchain().retired(), 1);
-        auto const primary = second.begin();
-        clear(*primary, *image);
-    }
-
-    // the present through the retired swapchain: no validation error
-    gate.markSubmitted(1);
-    host_signal(gate, 1);
-    wait(core, second);
+    EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{48, 40}));
+    EXPECT_LE(presenter.swapchain().retired(), 1);
 
     // a later acquire destroys the retired swapchain once its presents ended, the bound only ends a broken loop
     for(size_t i = 0; i < 16 && presenter.swapchain().retired() != 0; ++i)

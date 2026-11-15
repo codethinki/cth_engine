@@ -18,9 +18,8 @@ struct CoreConfig {
     /**
      * threads of the worker scheduler, `0` -> `std::thread::hardware_concurrency()`
      * @details `std::thread::hardware_concurrency()` is `0` -> one thread
+     * @details the strands of the queues run on the workers
      */
     size_t workers = 0;
-
-    size_t queueWorkers = 0; ///< threads of the queue scheduler, `0` -> one per vulkan queue
 };
 }
