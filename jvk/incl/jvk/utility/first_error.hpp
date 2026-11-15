@@ -1,6 +1,7 @@
 #pragma once
 #include "cvk/utility/vk_exceptions.hpp"
 
+#include <cth/io/log.hpp>
 #include <volk.h>
 
 #include <concepts>
@@ -13,6 +14,8 @@ namespace jvk::dev {
 /**
  * the first error of the jobs and the scopes of an owner, the owner rethrows it
  * @details thread safe
+ * @details `store()` keeps only the first error, the owner calls `clear()` only in its `destroy()`: a check with
+ *  `operator bool()` and the `rethrow()` after it do not race
  */
 class first_error {
 public:
@@ -33,11 +36,21 @@ public:
     }
 
     /**
-     * rethrows the first error, no error -> nothing
+     * rethrows the first error
+     * @pre an error is stored
      */
     void rethrow() const {
         std::scoped_lock const lock{_mutex};
-        if(_errorPtr) std::rethrow_exception(_errorPtr);
+        CTH_CRITICAL(!_errorPtr, "rethrow() needs a stored error") {}
+        std::rethrow_exception(_errorPtr);
+    }
+
+    /**
+     * @return an error is stored
+     */
+    [[nodiscard]] explicit operator bool() const {
+        std::scoped_lock const lock{_mutex};
+        return static_cast<bool>(_errorPtr);
     }
 
 private:

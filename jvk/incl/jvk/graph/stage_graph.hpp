@@ -82,7 +82,8 @@ public:
      *  it
      * @return the frame of the slot
      * @pre no stage of the frame before records or submits: `nextFrame()` ends the frame
-     * @throws cvk::vk_result_exception the first error of a submit job
+     * @throws cvk::vk_result_exception the first error of a submit job or a scope, stored before the call: an error
+     *  during the waits -> the next `nextFrame()` rethrows it
      * @attention not thread safe
      */
     [[nodiscard]] cth::co::executor_task<Frame&> nextFrame();

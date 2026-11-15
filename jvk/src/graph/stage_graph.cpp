@@ -135,6 +135,8 @@ StageGraph::~StageGraph() {
 }
 
 cth::co::executor_task<Frame&> StageGraph::nextFrame() {
+    if(_error) _error.rethrow();
+
     auto const number = ++_frameNumber;
     auto const slotOf = [this](uint64_t frameNumber) -> dev::FrameSlot& {
         return _frameSlots[(frameNumber - _firstFrameNumber) % _config.frameSlots];
@@ -150,15 +152,9 @@ cth::co::executor_task<Frame&> StageGraph::nextFrame() {
 
         for(auto const& stage : frameSlot.stages)
             co_await stage.submitted();
-
-        // before the gpu wait: the error of a job comes first, a wait after a device loss fails too
-        _error.rethrow();
-
         for(auto const& stage : frameSlot.stages)
             co_await stage;
     }
-
-    _error.rethrow();
 
     frameSlot.frameOpt.reset();
     frameSlot.stages.clear();

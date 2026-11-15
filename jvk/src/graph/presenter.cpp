@@ -70,17 +70,6 @@ void Presenter::destroy() {
 
     _jobs.wait();
 
-    // no job runs, no acquire is pending: nothing else uses the swapchain
-    if(_imageOpt.has_value()) {
-        try {
-            unacquireImage();
-        }
-        catch(cvk::vk_result_exception const& e) {
-            JVK_STABLE_ERR(true, "failed to unacquire the swapchain image in destroy(), got {}", e.vkResult()) {}
-            _imageOpt.reset();
-        }
-    }
-
     // a failed wait leaves the gpu work, the destruction goes on
     if(_semaphore.created()) {
         try {
@@ -89,6 +78,19 @@ void Presenter::destroy() {
         }
         catch(cvk::vk_result_exception const& e) {
             JVK_STABLE_ERR(true, "failed to wait for the present submits in destroy(), got {}", e.vkResult()) {}
+        }
+    }
+
+    //TODO review after the wait for the present submits: the earlier frames that used the image ended on the gpu
+    // (VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786), the stage of the image is under the @pre
+    // no job runs, no acquire is pending: nothing else uses the swapchain
+    if(_acquiredOpt.has_value()) {
+        try {
+            unacquireImage();
+        }
+        catch(cvk::vk_result_exception const& e) {
+            JVK_STABLE_ERR(true, "failed to unacquire the swapchain image in destroy(), got {}", e.vkResult()) {}
+            _acquiredOpt.reset();
         }
     }
 
@@ -110,17 +112,27 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
 
     debug_check(*this);
     CTH_CRITICAL(stage.status() != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
+    // the wait for the stage of the first image would never end
+    CTH_CRITICAL(
+        _acquiredOpt.has_value() && _acquiredOpt->frameNumber == stage.frameNumber()
+            && _acquiredOpt->stageSemaphore->submittedValue() < _acquiredOpt->frameNumber,
+        "a second acquire in frame {}: submit or skip the stage of the first image first",
+        stage.frameNumber()
+    ) {}
+    if(_error) _error.rethrow();
 
     // after the last present: the acquire and the present share the swapchain in the strand, a blocking acquire before
     // the last present delays that present by one refresh (FIFO), the order of a plain loop: present N, then acquire
     // N + 1
     auto const value = _semaphore.value();
     if(value > 0) co_await _semaphore.submitted(value);
+    // an image without a present: the stage waits for its acquire semaphore, the unacquire waits until the gpu
+    // finished the submit or the skip of the stage (VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786)
+    if(_acquiredOpt.has_value()) co_await _acquiredOpt->stageSemaphore->wait(_acquiredOpt->frameNumber);
     co_await _queue->executor().schedule();
 
-    _error.rethrow();
-    // an image without a present, e.g. after an exception
-    if(_imageOpt.has_value()) unacquireImage();
+    // an image without a present, e.g. after an exception or a skip
+    if(_acquiredOpt.has_value()) unacquireImage();
 
     cvk::Core const& vkCore = *_core;
     std::optional<uint32_t> imageIdxOpt = std::nullopt;
@@ -155,7 +167,11 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
         .extent = swapchain.extent(),
     };
     _acquireSemaphoreIdx = (_acquireSemaphoreIdx + 1) % _config.framesInFlight;
-    _imageOpt = image;
+    _acquiredOpt = AcquiredImage{
+        .image = image,
+        .stageSemaphore = stage.semaphore(),
+        .frameNumber = stage.frameNumber(),
+    };
 
     // the first barrier of the image chains with the wait for the acquire
     stage.await(acquireSemaphore, stages);
@@ -166,10 +182,10 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
 
 void Presenter::present(Stage& stage) {
     debug_check(*this);
-    CTH_CRITICAL(!_imageOpt.has_value(), "the presenter must have an acquired image") {}
+    CTH_CRITICAL(!_acquiredOpt.has_value(), "the presenter must have an acquired image") {}
     CTH_CRITICAL(stage.status() != Stage::Status::SUBMITTED, "the stage must be submitted") {}
 
-    auto const image = *_imageOpt;
+    auto const image = _acquiredOpt->image;
     auto const lastOpt = stage.primary().states().last(image.image->get(), 0);
     CTH_CRITICAL(!lastOpt.has_value(), "the stage recording must use the swapchain image {}", image.imageIdx) {}
 
@@ -180,26 +196,7 @@ void Presenter::present(Stage& stage) {
         presentJob(stage.queue(), stage.semaphore(), stage.frameNumber(), image, *lastOpt, value)
     );
     static_cast<void>(_semaphore.next());
-    _imageOpt.reset();
-}
-
-void Presenter::unacquire() {
-    debug_check(*this);
-    CTH_CRITICAL(!_imageOpt.has_value(), "the presenter must have an acquired image") {}
-
-    // detached onto the strand: the strand runs it before the next acquire()
-    _queue->executor().detach(
-        _jobs,
-        [](Presenter& presenter) -> cth::co::executor_task<void> {
-            try {
-                presenter.unacquireImage();
-            }
-            catch(cvk::vk_result_exception const&) {
-                presenter._error.store(std::current_exception());
-            }
-            co_return;
-        }(*this)
-    );
+    _acquiredOpt.reset();
 }
 
 cth::co::executor_task<void> Presenter::presentJob(
@@ -336,8 +333,8 @@ Swapchain::Config Presenter::swapchainConfig() const {
 }
 
 void Presenter::unacquireImage() {
-    _swapchain.current().unacquire(std::array{_imageOpt->imageIdx});
-    _imageOpt.reset();
+    _swapchain.current().unacquire(std::array{_acquiredOpt->image.imageIdx});
+    _acquiredOpt.reset();
 }
 }
 
@@ -369,10 +366,12 @@ scoped_acquire::~scoped_acquire() {
         _imageOpt->imageIdx
     ) {}
 
+    // skipped or unsubmitted: the next acquire() or destroy() unacquires the image
+    if(stage.status() != Stage::Status::SUBMITTED) return;
+
     // a destructor does not throw: the next acquire() rethrows
     try {
-        if(stage.status() == Stage::Status::SUBMITTED) _presenterPtr->present(stage);
-        else _presenterPtr->unacquire();
+        _presenterPtr->present(stage);
     }
     catch(...) {
         _error->store(std::current_exception());
@@ -389,6 +388,7 @@ void scoped_acquire::present() {
 
 void scoped_acquire::unacquire() {
     debug_check(*this);
-    _presenterPtr.release()->unacquire();
+    // the next acquire() or destroy() unacquires the image
+    static_cast<void>(_presenterPtr.release());
 }
 }

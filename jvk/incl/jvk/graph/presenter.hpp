@@ -82,8 +82,10 @@ struct PresenterConfig {
  * - owns the surface and the swapchain
  * - recreates the swapchain in `acquire()`, a retired swapchain stays until its presents ended, see `Swapchain`
  * - acquires, submits and presents in the strand of its queue
- * - one acquired image at a time, in a scope: `scoped_acquire` presents or unacquires it at its end
- * - the present and unacquire jobs run detached, `destroy()` waits for them
+ * - one acquired image at a time, in a scope: `scoped_acquire` presents it at its end
+ * - an image without a present: the next `acquire()` or `destroy()` unacquires it, `acquire()` after the gpu finished
+ *   its stage
+ * - the present jobs run detached, `destroy()` waits for them
  * @attention not thread safe
  */
 class Presenter {
@@ -125,14 +127,15 @@ public:
     /**
      * waits for the present jobs, destroys and forgets
      * @details
-     * - waits for the present and unacquire jobs, then unacquires an image without a present, e.g. after an exception
-     * - waits until the gpu finished the present submits
+     * - waits for the present jobs, then until the gpu finished the present submits
+     * - then unacquires an image without a present, e.g. after an exception: the earlier frames that used it ended
      * - destroys the command buffers, the semaphores, the swapchain, then the surface
      * - a failed wait does not stop the destruction
      * @pre `created()`
      * @pre no `acquire()` is pending
      * @pre every `scoped_acquire` ended
-     * @pre the graph of the presented stages lives: the present jobs wait for its semaphores
+     * @pre the graph of the presented stages and of the stage of an image without a present lives: the present jobs
+     *  wait for its semaphores
      * @pre a stage that waits for an acquire without a present: finished on the gpu, or unsubmitted until
      *  `~StageGraph()`
      */
@@ -155,16 +158,18 @@ public:
      *   `cvk::Surface::extent()` -> recreates the swapchain first, erases the old images in the graph of the stage,
      *   see `StageGraph::erase()`, `Swapchain::recreate()`
      * - all images in use -> awaits the oldest present fence first
-     * - an acquired image without a present, e.g. after an exception: unacquires it
+     * - an acquired image without a present, e.g. after an exception or a skip: waits until the gpu finished the
+     *   submit or the skip of its stage, then unacquires it
      * @param stages pipeline stages of the stage that wait for the acquire
      * @return scope of the image, see `scoped_acquire`, no image -> surface extent `0`, no wait
      * @pre `created()`
      * @pre `Stage::status()` is `UNSUBMITTED`
-     * @pre the `scoped_acquire` of the last acquire ended, presented or unacquired
-     * @pre an acquired image without a present: no submit uses it
+     * @pre the `scoped_acquire` of the last acquire ended
+     * @pre an acquired image without a present of this frame: its stage is submitted or skipped
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
-     * @throws cvk::vk_result_exception the first error of a present job or a scope
+     * @throws cvk::vk_result_exception the first error of a present job or a scope, stored before the call: an error
+     *  of the last present job during the waits -> the next `acquire()` rethrows it
      * @attention `vkAcquireNextImageKHR()` can block (FIFO: the vsync throttle, the presentation engine holds the
      *  images after their present fences): it occupies a thread of the scheduler of the strand, the calling thread if
      *  the strand was free and the caller runs a job of that scheduler
@@ -184,21 +189,13 @@ public:
      *   `VK_SHARING_MODE_EXCLUSIVE`
      * - `VK_ERROR_OUT_OF_DATE_KHR` -> the next `acquire()` recreates the swapchain
      * - a failure of the job: the next `acquire()` rethrows it
-     * @pre an acquired image without a present or unacquire
+     * @pre an acquired image without a present
      * @pre `Stage::status()` is `SUBMITTED`
      * @pre the stage recording uses the image
      * @pre the stage is the last use of the image in the frame or waits for the other uses
      * @see `scoped_acquire`
      */
     void present(Stage&);
-
-    /**
-     * gives the acquired image back without a present
-     * @details returns at once: the strand of the queue gives it back before the next `acquire()`
-     * @pre an acquired image, not presented
-     * @pre no submit uses the image
-     */
-    void unacquire();
 
     [[nodiscard]] constexpr bool created() const { return _surface.created(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
@@ -225,6 +222,17 @@ private:
          * value of `Presenter::_semaphore` for the last submit of `PresentSubmit::cmd`, free once reached
          */
         uint64_t value = 0;
+    };
+
+    /**
+     * acquired image without a present
+     * @details its stage waits for the acquire semaphore on the gpu: the unacquire waits until the gpu finished the
+     *  submit or the skip of the stage
+     */
+    struct AcquiredImage {
+        SwapchainImage image;
+        cth::ref_wrapper<Semaphore const> stageSemaphore; ///< `Stage::semaphore()` of the stage of the acquire
+        uint64_t frameNumber; ///< `Stage::frameNumber()`, the value of `stageSemaphore` to wait for
     };
 
     //TODO review no submitted_awaiter parameter: the job takes it from the stage semaphore and the frame number
@@ -322,7 +330,7 @@ private:
      */
     std::deque<uint32_t> _presentedImageIndices{};
 
-    std::optional<SwapchainImage> _imageOpt = std::nullopt; ///< the acquired image, not presented or unacquired
+    std::optional<AcquiredImage> _acquiredOpt = std::nullopt; ///< the acquired image without a present
 
     /**
      * `VK_ERROR_OUT_OF_DATE_KHR` of a present of the current swapchain, the next `acquire()` recreates the swapchain
@@ -331,7 +339,7 @@ private:
 
     dev::first_error _error{}; ///< the first error of a job or a scope, `acquire()` rethrows it
 
-    cth::co::simple_counting_scope _jobs{}; ///< the running present and unacquire jobs, `destroy()` waits for them
+    cth::co::simple_counting_scope _jobs{}; ///< the running present jobs, `destroy()` waits for them
 
 public:
     Presenter(Presenter const& other) = delete;
@@ -345,18 +353,17 @@ public:
 
 namespace jvk {
 /**
- * acquired swapchain image of a stage for the scope, presents or unacquires it at its end
+ * acquired swapchain image of a stage for the scope, presents it at its end
  * @details
  * - `Presenter::acquire()` returns it
- * - normal end, by `Stage::status()`: `SUBMITTED` -> `Presenter::present()`, `SKIPPED` or `UNSUBMITTED` ->
- *   `Presenter::unacquire()`
- * - exception, by `Stage::status()`: `SUBMITTED` -> presents, the frame is complete, else nothing: the next
- *   `Presenter::acquire()` or `Presenter::destroy()` unacquires the image
+ * - end, by `Stage::status()`: `SUBMITTED` -> `Presenter::present()`, also after an exception: the frame is complete
+ * - end, by `Stage::status()`: `SKIPPED` or `UNSUBMITTED` -> nothing, the next `Presenter::acquire()` or
+ *   `Presenter::destroy()` unacquires the image
  * - no image or a moved-from scope: nothing
  * - a failure at the end, e.g. an allocation: the next `Presenter::acquire()` rethrows it
  * - `->` and `*` reach the image
  * - declare it before the `scoped_submit` of the stage: the `scoped_submit` ends first and submits
- * @attention a coroutine destroyed while suspended with the scope alive presents or unacquires the image
+ * @attention a coroutine destroyed while suspended with the scope alive presents the image of a submitted stage
  */
 class scoped_acquire {
 public:
@@ -391,10 +398,10 @@ public:
     void present();
 
     /**
-     * gives the image back without a present, the end of the scope does nothing
+     * ends the scope without a present, the end of the scope does nothing
+     * @details the next `Presenter::acquire()` or `Presenter::destroy()` unacquires the image
      * @pre an image
-     * @pre no submit uses the image
-     * @see `Presenter::unacquire()`
+     * @see `Presenter::acquire()`
      */
     void unacquire();
 

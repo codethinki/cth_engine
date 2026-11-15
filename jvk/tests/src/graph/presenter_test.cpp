@@ -87,11 +87,6 @@ namespace {
     void wait(Core const& core, Stage const& stage) { core.executor().sync_wait(await_stage(stage)); }
 
     /**
-     * enters the strand of the queue: the jobs posted to it before ended
-     */
-    cth::co::executor_task<void> enter_strand(Queue const& queue) { co_await queue.executor().schedule(); }
-
-    /**
      * @return number of the acquired images of the swapchain
      */
     [[nodiscard]] size_t acquired_images(Presenter const& presenter) {
@@ -329,7 +324,7 @@ JVK_TEST(Presenter, recreation_retires_the_old_swapchain_until_its_presents_ende
     EXPECT_EQ(presenter.swapchain().retired(), 0);
 }
 
-JVK_TEST(Presenter, unacquire_gives_the_image_back_early) {
+JVK_TEST(Presenter, scope_unacquire_leaves_the_image_to_the_next_acquire) {
     test::Context const context{};
     auto surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
@@ -343,25 +338,28 @@ JVK_TEST(Presenter, unacquire_gives_the_image_back_early) {
     {
         auto image = acquire(core, presenter, stage);
         ASSERT_TRUE(image);
-        auto const imageIdx = image->imageIdx;
-        EXPECT_TRUE(presenter.swapchain().current().acquired(imageIdx));
-
-        // the strand gives the image back
         image.unacquire();
-        core.executor().sync_wait(enter_strand(core.queue(0)));
-        EXPECT_FALSE(presenter.swapchain().current().acquired(imageIdx));
 
         // the submit waits for the acquire semaphore
         auto const primary = stage.begin();
     }
-    // the scoped_acquire did nothing at its end
-    wait(core, stage);
-    EXPECT_EQ(acquired_images(presenter), 0);
+    // the scoped_acquire did nothing at its end, the image stays acquired
+    EXPECT_EQ(acquired_images(presenter), 1);
+
+    // the next acquire waits for the stage on the gpu and gives the image back first
+    auto& next = next_frame(core, graph).stage(0);
+    {
+        auto const image = acquire(core, presenter, next);
+        ASSERT_TRUE(image);
+        EXPECT_EQ(acquired_images(presenter), 1);
+        auto const primary = next.begin();
+        clear(*primary, *image);
+    }
 
     present_frame(core, graph, presenter);
 }
 
-JVK_TEST(Presenter, image_scope_unacquires_the_image_of_a_skipped_stage) {
+JVK_TEST(Presenter, next_acquire_after_a_skipped_stage_unacquires_the_image) {
     test::Context const context{};
     auto surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
@@ -379,17 +377,26 @@ JVK_TEST(Presenter, image_scope_unacquires_the_image_of_a_skipped_stage) {
         ASSERT_TRUE(image);
         clear(*primary, *image);
 
-        // the skip discards the recording and consumes the acquire semaphore
+        // the skip discards the recording and waits for the acquire semaphore
         stage.skip();
     }
-    wait(core, stage);
-    core.executor().sync_wait(enter_strand(core.queue(0)));
-    EXPECT_EQ(acquired_images(presenter), 0);
+    EXPECT_EQ(stage.status(), Stage::Status::SKIPPED);
+    EXPECT_EQ(acquired_images(presenter), 1);
+
+    // at once: the acquire waits for the skip on the gpu before the unacquire, no validation error
+    auto& next = next_frame(core, graph).stage(0);
+    {
+        auto const image = acquire(core, presenter, next);
+        ASSERT_TRUE(image);
+        EXPECT_EQ(acquired_images(presenter), 1);
+        auto const primary = next.begin();
+        clear(*primary, *image);
+    }
 
     present_frame(core, graph, presenter);
 }
 
-JVK_TEST(Presenter, image_scope_ending_before_the_submit_unacquires_the_image) {
+JVK_TEST(Presenter, image_scope_ending_before_the_submit_leaves_the_image_to_the_next_acquire) {
     test::Context const context{};
     auto surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
@@ -404,14 +411,22 @@ JVK_TEST(Presenter, image_scope_ending_before_the_submit_unacquires_the_image) {
         auto const image = acquire(core, presenter, stage);
         ASSERT_TRUE(image);
     }
-    core.executor().sync_wait(enter_strand(core.queue(0)));
-    EXPECT_EQ(acquired_images(presenter), 0);
+    EXPECT_EQ(acquired_images(presenter), 1);
 
     // the submit waits for the acquire semaphore, nothing uses the image
     {
         auto const primary = stage.begin();
     }
-    wait(core, stage);
+
+    // the next acquire waits for the submit on the gpu and gives the image back first
+    auto& next = next_frame(core, graph).stage(0);
+    {
+        auto const image = acquire(core, presenter, next);
+        ASSERT_TRUE(image);
+        EXPECT_EQ(acquired_images(presenter), 1);
+        auto const primary = next.begin();
+        clear(*primary, *image);
+    }
 
     present_frame(core, graph, presenter);
 }
