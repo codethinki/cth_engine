@@ -35,6 +35,7 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
 
     auto config = _config.vk;
     if(config.queueSets.empty()) config.queueSets = queue_sets(config.queueProperties);
+    config.features.merge(constants::DEVICE_FEATURES);
 
     _core.create(surfaces, config);
 
@@ -44,8 +45,12 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
         _workers.start();
         _reactor.create();
         _queuesOpt.emplace(*this, _workers, _config.driverThreads);
+        if(_config.heaps.createsResourceHeap()) _resourceHeapOpt.emplace(_core, _config.heaps.resources);
+        if(_config.heaps.createsSamplerHeap()) _samplerHeapOpt.emplace(_core, _config.heaps.samplers);
     }
     catch(...) {
+        _resourceHeapOpt.reset();
+        _queuesOpt.reset();
         _reactor.optDestroy();
         _workers.await_stop();
         _core.destroy();
@@ -81,6 +86,8 @@ void Core::destroy() {
     }
 
     _queuesOpt.reset();
+    _samplerHeapOpt.reset();
+    _resourceHeapOpt.reset();
     _reactor.destroy();
     _workers.await_stop();
     _core.destroy();
@@ -89,5 +96,17 @@ void Core::destroy() {
 Queue const& Core::queue(size_t queueIdx) const {
     debug_check(*this);
     return _queuesOpt->queue(queueIdx);
+}
+
+ResourceHeap const& Core::resourceHeap() const {
+    debug_check(*this);
+    CTH_CRITICAL(!_resourceHeapOpt.has_value(), "the core must have a resource heap, see HeapsConfig") {}
+    return *_resourceHeapOpt;
+}
+
+SamplerHeap const& Core::samplerHeap() const {
+    debug_check(*this);
+    CTH_CRITICAL(!_samplerHeapOpt.has_value(), "the core must have a sampler heap, see HeapsConfig") {}
+    return *_samplerHeapOpt;
 }
 } // namespace jvk

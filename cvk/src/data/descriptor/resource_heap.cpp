@@ -58,7 +58,7 @@ void ResourceHeap::destroy() {
     forget();
 }
 
-void ResourceHeap::write(uint32_t idx, SampledImageDescriptor const& descriptor) const {
+void ResourceHeap::write(uint32_t idx, SampledImageDescriptor const& descriptor) {
     debug_check(*this);
     CTH_CRITICAL(
         idx >= _config.sampledImages,
@@ -69,7 +69,7 @@ void ResourceHeap::write(uint32_t idx, SampledImageDescriptor const& descriptor)
     dev::write_descriptor(_buffer, offset<SampledImageDescriptor>() + idx * _stride, _stride, descriptor);
 }
 
-void ResourceHeap::write(uint32_t idx, StorageImageDescriptor const& descriptor) const {
+void ResourceHeap::write(uint32_t idx, StorageImageDescriptor const& descriptor) {
     debug_check(*this);
     CTH_CRITICAL(
         idx >= _config.storageImages,
@@ -80,7 +80,7 @@ void ResourceHeap::write(uint32_t idx, StorageImageDescriptor const& descriptor)
     dev::write_descriptor(_buffer, offset<StorageImageDescriptor>() + idx * _stride, _stride, descriptor);
 }
 
-void ResourceHeap::write(uint32_t idx, InputAttachmentDescriptor const& descriptor) const {
+void ResourceHeap::write(uint32_t idx, InputAttachmentDescriptor const& descriptor) {
     debug_check(*this);
     CTH_CRITICAL(
         idx >= _config.inputAttachments,

@@ -16,6 +16,7 @@
 
 
 namespace cvk {
+class Core;
 class ResourceHeap;
 class SamplerHeap;
 
@@ -101,6 +102,66 @@ template<descriptor T>
                 .heapArrayStride = static_cast<uint32_t>(stride),
                 .pEmbeddedSampler = nullptr,
                 .samplerHeapOffset = 0,
+                .samplerHeapArrayStride = 0,
+            },
+        },
+    };
+}
+
+/**
+ * checks the push offset of an index for the device
+ * @details `pushOffset + 4 <= maxPushDataSize`
+ */
+void debug_check_push_offset(Core const&, uint32_t pushOffset);
+
+/**
+ * maps a shader variable of `T` at the set and binding onto the cell at an index in the push data
+ * @details the cell at `offset + index * stride`, `index`: the `uint32_t` at `pushOffset` in the push data
+ * @details an array: element `i` -> `i` cells after it
+ * @param set of the shader variable
+ * @param binding of the shader variable
+ * @param offset of the first cell in bytes
+ * @param stride of the cells in bytes
+ * @param pushOffset of the index in the push data, in bytes
+ * @pre `offset` and `stride` fit into 32 bits
+ * @pre `pushOffset` is a multiple of 4
+ */
+template<descriptor T>
+[[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT heap_push_mapping(
+    uint32_t set,
+    uint32_t binding,
+    size_t offset,
+    size_t stride,
+    uint32_t pushOffset
+) {
+    constexpr auto MAX = std::numeric_limits<uint32_t>::max();
+    CTH_CRITICAL(
+        offset > MAX || stride > MAX,
+        "offset and stride must fit into 32 bits, got {}, {}",
+        offset,
+        stride
+    ) {}
+    CTH_CRITICAL(pushOffset % 4 != 0, "the push offset must be a multiple of 4, got {}", pushOffset) {}
+
+    return VkDescriptorSetAndBindingMappingEXT{
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
+        .pNext = nullptr,
+        .descriptorSet = set,
+        .firstBinding = binding,
+        .bindingCount = 1,
+        .resourceMask = resource_mask<T>,
+        .source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_PUSH_INDEX_EXT,
+        .sourceData = {
+            .pushIndex = {
+                .heapOffset = static_cast<uint32_t>(offset),
+                .pushOffset = pushOffset,
+                .heapIndexStride = static_cast<uint32_t>(stride),
+                .heapArrayStride = static_cast<uint32_t>(stride),
+                .pEmbeddedSampler = nullptr,
+                .useCombinedImageSamplerIndex = VK_FALSE,
+                .samplerHeapOffset = 0,
+                .samplerPushOffset = 0,
+                .samplerHeapIndexStride = 0,
                 .samplerHeapArrayStride = 0,
             },
         },

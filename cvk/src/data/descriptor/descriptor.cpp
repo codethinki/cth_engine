@@ -64,6 +64,15 @@ namespace {
     }
 }
 
+void debug_check_push_offset([[maybe_unused]] Core const& core, [[maybe_unused]] uint32_t pushOffset) {
+    CTH_CRITICAL(
+        pushOffset + 4 > core.physicalDevice().descriptorHeapProperties().maxPushDataSize,
+        "the push index must lie in maxPushDataSize, got {} + 4 of {}",
+        pushOffset,
+        core.physicalDevice().descriptorHeapProperties().maxPushDataSize
+    ) {}
+}
+
 void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, SampledImageDescriptor const& descriptor) {
     auto const& [image, view, layout] = descriptor;
     write_image(heap, offset, size, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, *image, view, layout);

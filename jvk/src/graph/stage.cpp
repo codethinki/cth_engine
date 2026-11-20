@@ -4,6 +4,8 @@
 #include "jvk/graph/stage_graph.hpp"
 
 #include "cvk/base/queue/queue.hpp"
+#include "cvk/data/descriptor/resource_heap.hpp"
+#include "cvk/data/descriptor/sampler_heap.hpp"
 #include "cvk/render/sync/semaphore.hpp"
 
 #include <cth/io/log.hpp>
@@ -17,6 +19,23 @@
 
 namespace jvk::dev {
 namespace {
+    /**
+     * @return the heaps of the core, none on a family without graphics and compute
+     */
+    [[nodiscard]] cvk::HeapInheritance stage_heaps(Core const& core, Queue const& queue) {
+        cvk::Core const& vk = core;
+        auto const* familyPtr = vk.physicalDevice().queueFamily(queue.vk().familyIndex());
+        bool const binds = familyPtr != nullptr
+            && (familyPtr->vkProperties.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) != 0;
+        if(!binds) return {};
+
+        auto const& heaps = core.config().heaps;
+        return cvk::HeapInheritance{
+            .resourceHeapPtr = heaps.createsResourceHeap() ? &core.resourceHeap().vk() : nullptr,
+            .samplerHeapPtr = heaps.createsSamplerHeap() ? &core.samplerHeap().vk() : nullptr,
+        };
+    }
+
     /**
      * the waits of the submit info, then the extra waits
      */
@@ -70,6 +89,7 @@ StageSlot::StageSlot(
     stageId{stageId},
     slot{slot},
     queue{queue},
+    heaps{stage_heaps(graph.core(), queue)},
     semaphore{graph.core(), cvk::create, graph.firstFrameNumber() - 1},
     submitInfo{.signal = {.semaphore = semaphore, .value = graph.firstFrameNumber() + slot}},
     previous{*this},
@@ -92,13 +112,19 @@ scoped_submit Stage::begin() {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
 
     _stageSlot->primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+    cvk::PrimaryCmdBuffer const& vk = _stageSlot->primary;
+    auto const [resourceHeapPtr, samplerHeapPtr] = _stageSlot->heaps;
+    if(resourceHeapPtr != nullptr) vk.bind(*resourceHeapPtr);
+    if(samplerHeapPtr != nullptr) vk.bind(*samplerHeapPtr);
+
     return scoped_submit{*this, _stageSlot->error};
 }
 
 SecondaryCmdBuffer& Stage::beginSecondary(size_t secondaryIdx, std::optional<Inheritance> const& inheritanceOpt) {
     auto& secondary = this->secondary(secondaryIdx);
-    if(inheritanceOpt.has_value()) secondary.begin(*inheritanceOpt);
-    else secondary.begin();
+    if(inheritanceOpt.has_value()) secondary.begin(*inheritanceOpt, 0, _stageSlot->heaps);
+    else secondary.begin(0, _stageSlot->heaps);
     return secondary;
 }
 

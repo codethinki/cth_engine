@@ -46,7 +46,7 @@ void SamplerHeap::destroy() {
     forget();
 }
 
-void SamplerHeap::write(uint32_t idx, SamplerConfig const& sampler) const {
+void SamplerHeap::write(uint32_t idx, SamplerConfig const& sampler) {
     debug_check(*this);
     CTH_CRITICAL(idx >= _config.samplers, "index must lie in the samplers, got {} of {}", idx, _config.samplers) {}
     dev::write_descriptor(_buffer, idx * _stride, _stride, sampler);

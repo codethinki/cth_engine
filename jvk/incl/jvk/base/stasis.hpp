@@ -1,4 +1,7 @@
 #pragma once
+#include "jvk/data/resource_heap.hpp"
+#include "jvk/data/sampler_heap.hpp"
+
 #include "cvk/base/device_table.hpp"
 
 #include <volk.h>
@@ -26,6 +29,7 @@ namespace jvk {
  * @details
  * - destroys the pooled handles first, the rest in the order of `add()`
  * - `clear()` with a position of `end()`: destroys the handles before it, keeps the later ones
+ * - heap cells: `clear()` erases them, see `ResourceHeap::Cell`, `SamplerHeap::Cell`
  * @attention not thread safe
  */
 class Stasis {
@@ -40,7 +44,11 @@ public:
         VkPipeline,
         VkCommandPool,
         VkSwapchainKHR,
-        VmaAllocation>;
+        VmaAllocation,
+        ResourceHeap::Cell<cvk::SampledImageDescriptor>,
+        ResourceHeap::Cell<cvk::StorageImageDescriptor>,
+        ResourceHeap::Cell<cvk::InputAttachmentDescriptor>,
+        SamplerHeap::Cell>;
 
     using pooled_t = std::variant<std::tuple<VkCommandPool, VkCommandBuffer>>;
 

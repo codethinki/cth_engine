@@ -1,4 +1,5 @@
 #pragma once
+#include "jvk/data/resource_heap.hpp"
 #include "jvk/sync/resource_states.hpp"
 
 #include "cvk/base/queue/queue_family.hpp"
@@ -138,6 +139,36 @@ public:
      * @see `cvk::Barrier::execute()`
      */
     void use(cvk::BaseBuffer const&, BufferAccess const&);
+
+    /**
+     * tracks a shader read of the sampled image
+     * @details `VK_ACCESS_2_SHADER_SAMPLED_READ_BIT` in the layout of the handle
+     * @details on the subresource range of its view
+     * @param stages that read the image
+     * @pre the preconditions of @ref use(cvk::Image const&, ImageAccess const&)
+     */
+    void use(SampledImage const&, VkPipelineStageFlags2 stages);
+
+    /**
+     * tracks a shader access of the storage image
+     * @details in the layout of the handle, on the subresource range of its view
+     * @param stages that access the image
+     * @param access of the stages
+     * @pre the preconditions of @ref use(cvk::Image const&, ImageAccess const&)
+     */
+    void use(
+        StorageImage const&,
+        VkPipelineStageFlags2 stages,
+        VkAccessFlags2 access = VK_ACCESS_2_SHADER_STORAGE_READ_BIT | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+    );
+
+    /**
+     * tracks the read of the input attachment in the fragment shader
+     * @details `VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT` in the layout of the handle
+     * @details on the subresource range of its view
+     * @pre the preconditions of @ref use(cvk::Image const&, ImageAccess const&)
+     */
+    void use(InputAttachment const&);
 
     /**
      * tracks the accesses of several resources
@@ -497,18 +528,21 @@ public:
      * begins the recording outside of a rendering
      * @details resets the pool and the resource states
      * @param usage `VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT` -> several pending primaries execute it
+     * @param heaps that the secondary inherits, see `cvk::SecondaryCmdBuffer::begin()`
      * @pre no pending primary executes it
      * @throws cvk::vk_result_exception result of `vkResetCommandPool()` or `vkBeginCommandBuffer()`
      */
-    void begin(VkCommandBufferUsageFlags usage = 0);
+    void begin(VkCommandBufferUsageFlags usage = 0, cvk::HeapInheritance const& heaps = {});
 
     /**
      * begins the recording inside the rendering of a primary
      * @details resets the pool and the resource states
-     * @pre the preconditions of @ref begin(VkCommandBufferUsageFlags)
+     * @param usage see @ref begin(VkCommandBufferUsageFlags, cvk::HeapInheritance const&)
+     * @param heaps that the secondary inherits, see `cvk::SecondaryCmdBuffer::begin()`
+     * @pre the preconditions of @ref begin(VkCommandBufferUsageFlags, cvk::HeapInheritance const&)
      * @throws cvk::vk_result_exception result of `vkResetCommandPool()` or `vkBeginCommandBuffer()`
      */
-    void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0);
+    void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0, cvk::HeapInheritance const& heaps = {});
 
     /**
      * @see `cvk::SecondaryCmdBuffer::inheritedRendering()`

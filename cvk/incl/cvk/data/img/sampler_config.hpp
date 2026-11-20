@@ -1,6 +1,11 @@
 #pragma once
 #include <volk.h>
 
+#include <cth/hash/hash_general.hpp>
+#include <cth/meta/concepts.hpp>
+
+#include <cstddef>
+#include <functional>
 #include <optional>
 
 
@@ -30,6 +35,8 @@ struct SamplerConfig {
     VkBorderColor borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
     VkBool32 unnormalizedCoordinates = VK_FALSE;
 
+    [[nodiscard]] constexpr bool operator==(SamplerConfig const&) const = default;
+
     [[nodiscard]] constexpr VkSamplerCreateInfo createInfo() const {
         return VkSamplerCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -54,3 +61,28 @@ struct SamplerConfig {
     }
 };
 }
+
+namespace cvk::dev {
+/**
+ * @return hash of the members, equal configs hash equal
+ */
+[[nodiscard]] inline size_t hash(SamplerConfig const& config) noexcept {
+    return cth::hash::combine(
+        config.magFilter,
+        config.minFilter,
+        config.mipmapMode,
+        config.addressModeU,
+        config.addressModeV,
+        config.addressModeW,
+        config.mipLodBias,
+        config.minLod,
+        config.maxLod,
+        config.maxAnisotropy,
+        config.compareOp,
+        config.borderColor,
+        config.unnormalizedCoordinates
+    );
+}
+}
+
+CTH_HASH_OVERLOAD(cvk::SamplerConfig, cvk::dev::hash)

@@ -65,15 +65,32 @@ CVK_TEST(DescriptorHeap, descriptor_types) {
     static_assert(!descriptor_of<SamplerConfig, ResourceHeap>);
 }
 
+namespace {
+    template<class Heap>
+    concept writes_through_a_span = requires(Heap& heap) { heap.sampledImages(); };
+
+    template<class Heap>
+    concept writes_directly = requires(Heap& heap, SampledImageDescriptor const& descriptor) {
+        heap.write(0, descriptor);
+    };
+}
+
 CVK_TEST(DescriptorHeap, a_span_views_the_heap_of_its_type) {
     using sampled_span = DescriptorSpan<SampledImageDescriptor>;
     using sampler_span = DescriptorSpan<SamplerConfig>;
 
-    static_assert(std::is_constructible_v<sampled_span, ResourceHeap const&>);
-    static_assert(!std::is_constructible_v<sampled_span, SamplerHeap const&>);
-    static_assert(!std::is_convertible_v<ResourceHeap const&, sampled_span>);
-    static_assert(std::is_constructible_v<sampler_span, SamplerHeap const&>);
-    static_assert(!std::is_constructible_v<sampler_span, ResourceHeap const&>);
+    static_assert(std::is_constructible_v<sampled_span, ResourceHeap&>);
+    static_assert(!std::is_constructible_v<sampled_span, SamplerHeap&>);
+    static_assert(!std::is_convertible_v<ResourceHeap&, sampled_span>);
+    static_assert(std::is_constructible_v<sampler_span, SamplerHeap&>);
+    static_assert(!std::is_constructible_v<sampler_span, ResourceHeap&>);
+
+    // a const heap writes nothing
+    static_assert(!std::is_constructible_v<sampled_span, ResourceHeap const&>);
+    static_assert(!writes_through_a_span<ResourceHeap const>);
+    static_assert(writes_through_a_span<ResourceHeap>);
+    static_assert(!writes_directly<ResourceHeap const>);
+    static_assert(writes_directly<ResourceHeap>);
 }
 
 CVK_TEST(DescriptorHeap, references_are_write_only) {
@@ -87,7 +104,7 @@ CVK_TEST(DescriptorHeap, references_are_write_only) {
 CVK_TEST(ResourceHeap, base_constructor_does_not_create) {
     test::Context const context{};
 
-    ResourceHeap const heap{context.core, {.sampledImages = 1}};
+    ResourceHeap heap{context.core, {.sampledImages = 1}};
 
     EXPECT_FALSE(heap.created());
     EXPECT_EQ(&heap.core(), &context.core);
@@ -98,7 +115,7 @@ CVK_TEST(ResourceHeap, create_lays_out_the_areas_and_the_reserved_range) {
     auto const& properties = heap_properties(context.core);
     auto const stride = image_stride(context.core);
 
-    ResourceHeap const heap{context.core, {.sampledImages = 3, .storageImages = 2, .inputAttachments = 1}, create};
+    ResourceHeap heap{context.core, {.sampledImages = 3, .storageImages = 2, .inputAttachments = 1}, create};
     ASSERT_TRUE(heap.created());
 
     EXPECT_EQ(heap.sampledImages().size(), 3);
@@ -151,7 +168,7 @@ CVK_TEST(SamplerHeap, create_lays_out_the_samplers_and_the_reserved_range) {
     auto const& properties = heap_properties(context.core);
     auto const stride = align(properties.samplerDescriptorSize, properties.samplerDescriptorAlignment);
 
-    SamplerHeap const heap{context.core, {.samplers = 5}, create};
+    SamplerHeap heap{context.core, {.samplers = 5}, create};
     ASSERT_TRUE(heap.created());
     EXPECT_EQ(heap.samplers().size(), 5);
 
@@ -173,7 +190,7 @@ CVK_TEST(SamplerHeap, a_heap_above_the_device_limit_throws) {
 CVK_TEST(DescriptorSpan, mapping_points_at_the_area_of_the_span) {
     test::Context const context{};
     auto const stride = image_stride(context.core);
-    ResourceHeap const heap{context.core, {.sampledImages = 3, .storageImages = 2, .inputAttachments = 1}, create};
+    ResourceHeap heap{context.core, {.sampledImages = 3, .storageImages = 2, .inputAttachments = 1}, create};
 
     auto const sampled = heap.sampledImages().mapping(1, 4);
     EXPECT_EQ(sampled.sType, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT);
@@ -202,7 +219,7 @@ CVK_TEST(DescriptorSpan, mapping_points_at_the_area_of_the_span) {
 CVK_TEST(DescriptorSpan, sampler_mapping) {
     test::Context const context{};
     auto const& properties = heap_properties(context.core);
-    SamplerHeap const heap{context.core, {.samplers = 2}, create};
+    SamplerHeap heap{context.core, {.samplers = 2}, create};
 
     auto const mapping = heap.samplers().mapping(0, 1);
 
@@ -216,8 +233,8 @@ CVK_TEST(DescriptorSpan, sampler_mapping) {
 
 CVK_TEST(DescriptorSpan, writes_every_descriptor_type) {
     test::Context const context{};
-    ResourceHeap const resources{context.core, {.sampledImages = 2, .storageImages = 2, .inputAttachments = 2}, create};
-    SamplerHeap const samplers{context.core, {.samplers = 2}, create};
+    ResourceHeap resources{context.core, {.sampledImages = 2, .storageImages = 2, .inputAttachments = 2}, create};
+    SamplerHeap samplers{context.core, {.samplers = 2}, create};
     auto const sampled = pixel(context.core, VK_IMAGE_USAGE_SAMPLED_BIT);
     auto const storage = pixel(context.core, VK_IMAGE_USAGE_STORAGE_BIT);
     auto const input = pixel(context.core, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT);
@@ -240,8 +257,8 @@ CVK_TEST(DescriptorSpan, writes_every_descriptor_type) {
 
 CVK_TEST(DescriptorSpan, mapping_is_the_mapping_of_the_heap) {
     test::Context const context{};
-    ResourceHeap const resources{context.core, {.sampledImages = 2, .storageImages = 1}, create};
-    SamplerHeap const samplers{context.core, {.samplers = 1}, create};
+    ResourceHeap resources{context.core, {.sampledImages = 2, .storageImages = 1}, create};
+    SamplerHeap samplers{context.core, {.samplers = 1}, create};
 
     auto const span = resources.storageImages().mapping(0, 3);
     auto const heap = resources.mapping<StorageImageDescriptor>(0, 3);
@@ -261,7 +278,7 @@ CVK_TEST(DescriptorSpan, index_out_of_the_span_crashes) {
     // the child runs the test again: the parent has device threads
     GTEST_FLAG_SET(death_test_style, "threadsafe");
     test::Context const context{};
-    SamplerHeap const heap{context.core, {.samplers = 2}, create};
+    SamplerHeap heap{context.core, {.samplers = 2}, create};
 
     ASSERT_DEATH([[maybe_unused]] auto const cell = heap.samplers()[2], ".*");
 }
@@ -376,7 +393,7 @@ namespace {
 
 CVK_TEST(DescriptorHeap, compute_samples_a_texture_and_stores_into_an_image_from_the_heaps) {
     test::Context const context{};
-    HeapCompute const compute{context.core};
+    HeapCompute compute{context.core};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer const& cmd) {
         compute.prepare(cmd);
@@ -391,7 +408,7 @@ CVK_TEST(DescriptorHeap, compute_samples_a_texture_and_stores_into_an_image_from
 
 CVK_TEST(DescriptorHeap, secondary_inherits_the_heaps_of_the_primary) {
     test::Context const context{};
-    HeapCompute const compute{context.core};
+    HeapCompute compute{context.core};
     CmdPool const pool{context.core, test::pool_config(context.core), create};
     SecondaryCmdBuffer secondary{pool, create};
 

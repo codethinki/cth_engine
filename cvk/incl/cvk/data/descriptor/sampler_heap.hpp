@@ -86,7 +86,7 @@ public:
      * @throws cvk::vk_result_exception result of `vkWriteSamplerDescriptorsEXT()`
      * @throws cvk::vk_result_exception result of `vmaFlushAllocation()`
      */
-    void write(uint32_t idx, SamplerConfig const&) const;
+    void write(uint32_t idx, SamplerConfig const&);
 
     /**
      * maps a shader array of samplers at the set and binding onto the samplers
@@ -100,9 +100,30 @@ public:
     [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT mapping(uint32_t set, uint32_t binding) const;
 
     /**
+     * maps a shader variable of samplers at the set and binding onto the sampler at an index in the push data
+     * @details the index: the `uint32_t` at `pushOffset` in the push data of the draw or dispatch
+     * @details an array: element `i` -> `i` samplers after it
+     * @tparam Descriptor `SamplerConfig`
+     * @param set of the shader variable
+     * @param binding of the shader variable
+     * @param pushOffset of the index in the push data, in bytes
+     * @return mapping for the `descriptorMappings` of `GraphicsPipelineConfig` and `ComputePipelineConfig`
+     * @pre `created()`
+     * @pre `pushOffset` is a multiple of 4, `pushOffset + 4 <= maxPushDataSize`
+     * @see `DescriptorSpan::pushMapping()`
+     */
+    template<descriptor_of<SamplerHeap> Descriptor>
+    [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT pushMapping(
+        uint32_t set,
+        uint32_t binding,
+        uint32_t pushOffset
+    ) const;
+
+    /**
+     * @return the samplers, for the writes
      * @pre `created()`
      */
-    [[nodiscard]] constexpr DescriptorSpan<SamplerConfig> samplers() const;
+    [[nodiscard]] constexpr DescriptorSpan<SamplerConfig> samplers();
 
     /**
      * @return the whole heap with its reserved range
@@ -140,7 +161,18 @@ constexpr VkDescriptorSetAndBindingMappingEXT SamplerHeap::mapping(uint32_t set,
     return dev::heap_mapping<Descriptor>(set, binding, 0, _stride);
 }
 
-constexpr DescriptorSpan<SamplerConfig> SamplerHeap::samplers() const {
+template<descriptor_of<SamplerHeap> Descriptor>
+constexpr VkDescriptorSetAndBindingMappingEXT SamplerHeap::pushMapping(
+    uint32_t set,
+    uint32_t binding,
+    uint32_t pushOffset
+) const {
+    debug_check(*this);
+    dev::debug_check_push_offset(core(), pushOffset);
+    return dev::heap_push_mapping<Descriptor>(set, binding, 0, _stride, pushOffset);
+}
+
+constexpr DescriptorSpan<SamplerConfig> SamplerHeap::samplers() {
     debug_check(*this);
     return DescriptorSpan<SamplerConfig>{*this};
 }

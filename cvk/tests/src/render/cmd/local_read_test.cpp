@@ -122,7 +122,14 @@ namespace {
     }
 
     /**
-     * write: push data color -> attachment 0, read: attachment 0 -> attachment 1
+     * the cell of the input attachment in `Draws::pushedHeap`, the cells before it stay empty
+     */
+    constexpr uint32_t PUSHED_IDX = 2;
+
+    /**
+     * write: push data color -> attachment 0
+     * @details read: attachment 0 -> attachment 1, from cell 0 of `heap`
+     * @details pushed read: attachment 0 -> attachment 1, from the cell at the pushed index of `pushedHeap`
      */
     struct Draws {
         Draws(Core const& core, Image const& first) :
@@ -130,15 +137,27 @@ namespace {
             color{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
             localRead{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::LOCAL_READ_FRAG},
             heap{core, {.inputAttachments = 1}, create},
+            pushedHeap{core, {.inputAttachments = PUSHED_IDX + 1}, create},
             write{core, fullscreen(vertex, color, write_first()), create},
             read{
                 core,
                 fullscreen(vertex, localRead, copy_first_to_second(), {heap.inputAttachments().mapping(0, 0)}),
                 create
             },
+            pushedRead{
+                core,
+                fullscreen(
+                    vertex,
+                    localRead,
+                    copy_first_to_second(),
+                    {pushedHeap.inputAttachments().pushMapping(0, 0, 0)}
+                ),
+                create
+            },
             vertices{core, test::host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
             // input attachment: VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR from the descriptor type
             heap.inputAttachments()[0] = InputAttachmentDescriptor{first};
+            pushedHeap.inputAttachments()[PUSHED_IDX] = InputAttachmentDescriptor{first};
             vertices.write(test::FULLSCREEN);
         }
 
@@ -157,10 +176,70 @@ namespace {
         Shader color;
         Shader localRead;
         ResourceHeap heap;
+        ResourceHeap pushedHeap;
         GraphicsPipeline write;
         GraphicsPipeline read;
+        GraphicsPipeline pushedRead;
         Buffer<Vec3> vertices;
     };
+
+    /**
+     * draws the write and a read of the draws in one rendering and expects attachment 1 green
+     * @param bindRead binds the read pipeline and its heap, pushes its data
+     */
+    template<class BindRead>
+    void expect_local_read(
+        test::Context const& context,
+        Attachments const& attachments,
+        Draws const& draws,
+        BindRead bindRead
+    ) {
+        BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
+
+        test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
+            attachments.toRendering(cmd);
+
+            // the begin sets the mapping of the first draw, the bind of the second pipeline its own
+            cmd.beginRendering(attachments.renderingInfo(0, write_first()));
+            EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
+
+            draws.drawWrite(cmd);
+
+            Barrier toInput{VK_DEPENDENCY_BY_REGION_BIT};
+            toInput.add(
+                attachments.first,
+                {
+                    .src = COLOR_WRITE,
+                    .dst = INPUT_READ,
+                    .newLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                    .oldLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                }
+            );
+            toInput.execute(cmd);
+
+            bindRead(cmd);
+            EXPECT_EQ(cmd.rendering()->attachmentMapping, copy_first_to_second());
+            cmd.draw(3);
+            cmd.endRendering();
+
+            Barrier toTransfer{};
+            toTransfer.add(
+                attachments.second,
+                ImageBarrierInfo::LayoutTransition(
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT},
+                    COLOR_WRITE
+                )
+            );
+            toTransfer.execute(cmd);
+
+            test::copy_to_buffer(context, cmd, attachments.second, readback, 0, 0);
+            test::host_read_barrier(context, cmd);
+        });
+
+        EXPECT_TRUE(test::every_pixel_is(readback, test::GREEN_PIXEL));
+    }
 }
 
 CVK_TEST(AttachmentMapping, empty_maps_to_the_default) {
@@ -207,52 +286,23 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
     test::Context const context{};
     Attachments const attachments{context.core};
     Draws const draws{context.core, attachments.first};
-    BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        attachments.toRendering(cmd);
-
-        // the begin sets the mapping of the first draw, the bind of the second pipeline its own
-        cmd.beginRendering(attachments.renderingInfo(0, write_first()));
-        EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
-
-        draws.drawWrite(cmd);
-
-        Barrier toInput{VK_DEPENDENCY_BY_REGION_BIT};
-        toInput.add(
-            attachments.first,
-            {
-                .src = COLOR_WRITE,
-                .dst = INPUT_READ,
-                .newLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-                .oldLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-            }
-        );
-        toInput.execute(cmd);
-
+    expect_local_read(context, attachments, draws, [&](PrimaryCmdBuffer& cmd) {
         cmd.bind(draws.read);
-        EXPECT_EQ(cmd.rendering()->attachmentMapping, copy_first_to_second());
         cmd.bind(draws.heap);
-        cmd.draw(3);
-        cmd.endRendering();
-
-        Barrier toTransfer{};
-        toTransfer.add(
-            attachments.second,
-            ImageBarrierInfo::LayoutTransition(
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT},
-                COLOR_WRITE
-            )
-        );
-        toTransfer.execute(cmd);
-
-        test::copy_to_buffer(context, cmd, attachments.second, readback, 0, 0);
-        test::host_read_barrier(context, cmd);
     });
+}
 
-    EXPECT_TRUE(test::every_pixel_is(readback, test::GREEN_PIXEL));
+CVK_TEST(LocalRead, draw_reads_the_attachment_at_the_pushed_index) {
+    test::Context const context{};
+    Attachments const attachments{context.core};
+    Draws const draws{context.core, attachments.first};
+
+    expect_local_read(context, attachments, draws, [&](PrimaryCmdBuffer& cmd) {
+        cmd.bind(draws.pushedRead);
+        cmd.bind(draws.pushedHeap);
+        cmd.pushData(PUSHED_IDX);
+    });
 }
 
 CVK_TEST(LocalRead, secondary_inherits_the_mapping) {

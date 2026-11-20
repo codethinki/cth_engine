@@ -16,6 +16,7 @@ namespace cvk {
  * @details
  * - non-owning view of the heap, the heap owns the memory and the layout
  * - write-only, the driver encodes the cells
+ * - only of a non-const heap: a const heap writes no descriptor, its `mapping()` and `config()` stay
  * @tparam Descriptor type of the descriptors
  * @see `ResourceHeap`, `SamplerHeap`
  */
@@ -29,7 +30,7 @@ public:
      * @see `ResourceHeap::sampledImages()`, `ResourceHeap::storageImages()`, `ResourceHeap::inputAttachments()`,
      *  `SamplerHeap::samplers()`
      */
-    constexpr explicit DescriptorSpan(heap_of_t<Descriptor> const& heap) : _heap{heap} {}
+    constexpr explicit DescriptorSpan(heap_of_t<Descriptor>& heap) : _heap{heap} {}
 
     /**
      * @return write-only reference to the cell
@@ -50,8 +51,24 @@ public:
      */
     [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT mapping(uint32_t set, uint32_t binding) const;
 
+    /**
+     * maps a shader variable of `Descriptor` at the set and binding onto the cell at an index in the push data
+     * @details the index: the `uint32_t` at `pushOffset` in the push data of the draw or dispatch
+     * @details an array: element `i` -> `i` cells after it
+     * @param set of the shader variable
+     * @param binding of the shader variable
+     * @param pushOffset of the index in the push data, in bytes
+     * @return mapping for the `descriptorMappings` of `GraphicsPipelineConfig` and `ComputePipelineConfig`
+     * @see `ResourceHeap::pushMapping()`, `SamplerHeap::pushMapping()`
+     */
+    [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT pushMapping(
+        uint32_t set,
+        uint32_t binding,
+        uint32_t pushOffset
+    ) const;
+
 private:
-    cth::ref_wrapper<heap_of_t<Descriptor> const> _heap;
+    cth::ref_wrapper<heap_of_t<Descriptor>> _heap;
 };
 
 /**
@@ -111,6 +128,15 @@ constexpr VkDescriptorSetAndBindingMappingEXT DescriptorSpan<Descriptor>::mappin
     uint32_t binding
 ) const {
     return _heap->template mapping<Descriptor>(set, binding);
+}
+
+template<descriptor Descriptor>
+constexpr VkDescriptorSetAndBindingMappingEXT DescriptorSpan<Descriptor>::pushMapping(
+    uint32_t set,
+    uint32_t binding,
+    uint32_t pushOffset
+) const {
+    return _heap->template pushMapping<Descriptor>(set, binding, pushOffset);
 }
 
 template<descriptor Descriptor>

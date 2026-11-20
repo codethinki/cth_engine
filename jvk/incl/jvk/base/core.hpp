@@ -2,6 +2,8 @@
 #include "core_config.hpp"
 #include "queues.hpp"
 
+#include "jvk/data/resource_heap.hpp"
+#include "jvk/data/sampler_heap.hpp"
 #include "jvk/sync/timeline_reactor.hpp"
 
 #include "cvk/base/core.hpp"
@@ -26,7 +28,7 @@ class Surface;
 namespace jvk {
 /**
  * jvk core
- * @details owns the cvk core, the workers, the timeline reactor and the serialized queues
+ * @details owns the cvk core, the workers, the timeline reactor, the serialized queues and the descriptor heaps
  * @details the indices of one vulkan queue share one `Queue`
  */
 class Core {
@@ -61,7 +63,9 @@ public:
     ~Core();
 
     /**
-     * creates the cvk core, the workers, the reactor and the queues
+     * creates the cvk core, the workers, the reactor, the queues and the heaps
+     * @details the features: `Config::vk` and `constants::DEVICE_FEATURES`
+     * @details the heaps: `Config::heaps`, a heap whose counts are all `0` -> no heap
      * @param surfaces the present queues present to every surface
      * @pre `cvk::Instance::created()`
      * @post `created()`
@@ -71,6 +75,7 @@ public:
      * @throws cvk::vk_result_exception result of `vkCreateDevice()`
      * @throws cvk::vk_result_exception result of `vmaCreateAllocator()`
      * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the reactor
+     * @throws cvk::cvk_exception the exceptions of the heap creations
      * @see `cvk::Core::create()`
      */
     void create(std::span<cth::ref_wrapper<cvk::Surface const> const> surfaces);
@@ -82,11 +87,12 @@ public:
     void create(std::initializer_list<cth::ref_wrapper<cvk::Surface const>> surfaces) { create(std::span{surfaces}); }
 
     /**
-     * destroys the queues, the reactor, the workers and the cvk core
+     * destroys the queues, the heaps, the reactor, the workers and the cvk core
      * @details waits until every queue is idle first
      * @details a failed wait does not stop the destruction
      * @pre `created()`
      * @pre the calling thread runs no job of the core
+     * @pre no handle of the heaps is left, the stage graphs of the core are destroyed
      */
     void destroy();
 
@@ -122,6 +128,20 @@ public:
     }
 
     /**
+     * @return the heap of the images, places the descriptors
+     * @pre `created()`
+     * @pre `HeapsConfig::createsResourceHeap()` of `Config::heaps`
+     */
+    [[nodiscard]] ResourceHeap const& resourceHeap() const;
+
+    /**
+     * @return the heap of the samplers, places the descriptors
+     * @pre `created()`
+     * @pre `HeapsConfig::createsSamplerHeap()` of `Config::heaps`
+     */
+    [[nodiscard]] SamplerHeap const& samplerHeap() const;
+
+    /**
      * the cvk core
      * @attention `cvk::Core::queue()` returns the queue without its strand
      */
@@ -140,6 +160,10 @@ private:
     // needs the created cvk core and starts the driver threads
     // destroyed before the reactor, the workers and the cvk core
     std::optional<Queues> _queuesOpt{};
+    //TODO review std::optional like the queues: the heaps need the created cvk core, no heap without counts
+    // destroyed before the cvk core
+    std::optional<ResourceHeap> _resourceHeapOpt{};
+    std::optional<SamplerHeap> _samplerHeapOpt{};
 
 public:
     Core(Core const& other) = delete;

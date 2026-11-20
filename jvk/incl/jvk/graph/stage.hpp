@@ -144,6 +144,12 @@ struct StageSlot {
     cth::ref_wrapper<Queue const> queue;
 
     /**
+     * the heaps of the core that the stage binds and that its secondaries inherit
+     * @details `nullptr` -> the core has no such heap, or the family of the queue has no graphics and no compute
+     */
+    cvk::HeapInheritance heaps;
+
+    /**
      * signaled by the submit or the skip of each frame of the slot
      * @details value: the frame number, rises by `StageGraphConfig::frameSlots` per signal
      * @details initial value: `StageGraph::firstFrameNumber() - 1`
@@ -210,6 +216,7 @@ public:
     /**
      * begins the primary command buffer of the frame for the scope
      * @details resets the primary at each begin
+     * @details binds the heaps of the core, see `StageSlot::heaps`
      * @return scope of the primary, submits at its end, see `scoped_submit`
      * @pre `status()` is `UNSUBMITTED`
      * @attention not thread safe
@@ -226,6 +233,7 @@ public:
     //TODO review std::optional instead of a default inheritance {}: an empty inheritance continues a rendering
     /**
      * begins the secondary command buffer of the frame slot
+     * @details inherits the heaps of the primary, see `StageSlot::heaps`
      * @param inheritanceOpt `std::nullopt` -> for use outside of a rendering
      * @return the secondary
      * @pre the preconditions of `secondary()`

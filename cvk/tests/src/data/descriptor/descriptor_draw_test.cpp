@@ -159,8 +159,8 @@ namespace {
         auto const textureLayout = layout != VK_IMAGE_LAYOUT_MAX_ENUM ? layout
             : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-        ResourceHeap const resources{context.core, {.sampledImages = afterRecording ? 64u : 1u}, create};
-        SamplerHeap const samplers{context.core, {.samplers = 1}, create};
+        ResourceHeap resources{context.core, {.sampledImages = afterRecording ? 64u : 1u}, create};
+        SamplerHeap samplers{context.core, {.samplers = 1}, create};
         Fill const fill{
             context.core,
             afterRecording ? std::span<uint32_t const>{test::shaders::BINDLESS_FRAG}

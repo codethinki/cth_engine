@@ -1,0 +1,29 @@
+// the jvk heaps, generated from jvk/config/heaps.glsl.in, the values come from jvk/CMakeLists.txt
+// - index the arrays with the `heap_idx` of the jvk handles, from the push data
+// - the dimensions of one type alias one binding
+// - input attachments are not here: declare a `subpassInput` and map it with `jvk::ResourceHeap::pushMapping()`
+#ifndef JVK_HEAPS_GLSL
+#define JVK_HEAPS_GLSL
+
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_shader_image_load_formatted : require
+
+#define JVK_HEAP_SET @JVK_HEAP_SET@
+#define JVK_HEAP_SAMPLED_IMAGE_BINDING @JVK_HEAP_SAMPLED_IMAGE_BINDING@
+#define JVK_HEAP_STORAGE_IMAGE_BINDING @JVK_HEAP_STORAGE_IMAGE_BINDING@
+#define JVK_HEAP_SAMPLER_BINDING @JVK_HEAP_SAMPLER_BINDING@
+
+layout(set = JVK_HEAP_SET, binding = JVK_HEAP_SAMPLED_IMAGE_BINDING) uniform texture2D jvk_textures2D[];
+layout(set = JVK_HEAP_SET, binding = JVK_HEAP_SAMPLED_IMAGE_BINDING) uniform texture2DArray jvk_textures2DArray[];
+layout(set = JVK_HEAP_SET, binding = JVK_HEAP_SAMPLED_IMAGE_BINDING) uniform texture3D jvk_textures3D[];
+layout(set = JVK_HEAP_SET, binding = JVK_HEAP_SAMPLED_IMAGE_BINDING) uniform textureCube jvk_texturesCube[];
+layout(set = JVK_HEAP_SET, binding = JVK_HEAP_SAMPLED_IMAGE_BINDING) uniform textureCubeArray jvk_texturesCubeArray[];
+
+// without a format qualifier: jvk enables shaderStorageImageReadWithoutFormat and shaderStorageImageWriteWithoutFormat
+layout(set = JVK_HEAP_SET, binding = JVK_HEAP_STORAGE_IMAGE_BINDING) uniform image2D jvk_images2D[];
+layout(set = JVK_HEAP_SET, binding = JVK_HEAP_STORAGE_IMAGE_BINDING) uniform image2DArray jvk_images2DArray[];
+layout(set = JVK_HEAP_SET, binding = JVK_HEAP_STORAGE_IMAGE_BINDING) uniform image3D jvk_images3D[];
+
+layout(set = JVK_HEAP_SET, binding = JVK_HEAP_SAMPLER_BINDING) uniform sampler jvk_samplers[];
+
+#endif

@@ -50,7 +50,8 @@ void Stasis::clear(pos const& position) {
     for(auto const& handle : _handles | std::views::take(handles))
         std::visit(
             [this]<class Handle>(Handle grave) {
-                if constexpr(requires { cvk::destroy(_table, grave); }) cvk::destroy(_table, grave);
+                if constexpr(requires { grave.erase(); }) grave.erase();
+                else if constexpr(requires { cvk::destroy(_table, grave); }) cvk::destroy(_table, grave);
                 else cvk::destroy(_vmaAllocator, grave);
             },
             handle

@@ -89,23 +89,23 @@ public:
      * @throws cvk::vk_result_exception result of `vkWriteResourceDescriptorsEXT()`
      * @throws cvk::vk_result_exception result of `vmaFlushAllocation()`
      */
-    void write(uint32_t idx, SampledImageDescriptor const&) const;
+    void write(uint32_t idx, SampledImageDescriptor const&);
 
     /**
      * encodes the descriptor into storage image `idx`, then flushes its cell
      * @pre `idx < Config::storageImages`
-     * @pre the other preconditions of @ref write(uint32_t, SampledImageDescriptor const&) const
-     * @throws cvk::vk_result_exception the exceptions of @ref write(uint32_t, SampledImageDescriptor const&) const
+     * @pre the other preconditions of @ref write(uint32_t, SampledImageDescriptor const&)
+     * @throws cvk::vk_result_exception the exceptions of @ref write(uint32_t, SampledImageDescriptor const&)
      */
-    void write(uint32_t idx, StorageImageDescriptor const&) const;
+    void write(uint32_t idx, StorageImageDescriptor const&);
 
     /**
      * encodes the descriptor into input attachment `idx`, then flushes its cell
      * @pre `idx < Config::inputAttachments`
-     * @pre the other preconditions of @ref write(uint32_t, SampledImageDescriptor const&) const
-     * @throws cvk::vk_result_exception the exceptions of @ref write(uint32_t, SampledImageDescriptor const&) const
+     * @pre the other preconditions of @ref write(uint32_t, SampledImageDescriptor const&)
+     * @throws cvk::vk_result_exception the exceptions of @ref write(uint32_t, SampledImageDescriptor const&)
      */
-    void write(uint32_t idx, InputAttachmentDescriptor const&) const;
+    void write(uint32_t idx, InputAttachmentDescriptor const&);
 
     /**
      * maps a shader array of `Descriptor` at the set and binding onto the descriptors of its type
@@ -118,19 +118,41 @@ public:
     [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT mapping(uint32_t set, uint32_t binding) const;
 
     /**
+     * maps a shader variable of `Descriptor` at the set and binding onto the descriptor at an index in the push data
+     * @details the index: the `uint32_t` at `pushOffset` in the push data of the draw or dispatch
+     * @details an array: element `i` -> `i` descriptors after it
+     * @param set of the shader variable
+     * @param binding of the shader variable
+     * @param pushOffset of the index in the push data, in bytes
+     * @return mapping for the `descriptorMappings` of `GraphicsPipelineConfig` and `ComputePipelineConfig`
      * @pre `created()`
+     * @pre `pushOffset` is a multiple of 4, `pushOffset + 4 <= maxPushDataSize`
+     * @see `DescriptorSpan::pushMapping()`
      */
-    [[nodiscard]] constexpr DescriptorSpan<SampledImageDescriptor> sampledImages() const;
+    template<descriptor_of<ResourceHeap> Descriptor>
+    [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT pushMapping(
+        uint32_t set,
+        uint32_t binding,
+        uint32_t pushOffset
+    ) const;
 
     /**
+     * @return the descriptors of the type, for the writes
      * @pre `created()`
      */
-    [[nodiscard]] constexpr DescriptorSpan<StorageImageDescriptor> storageImages() const;
+    [[nodiscard]] constexpr DescriptorSpan<SampledImageDescriptor> sampledImages();
 
     /**
+     * @return the descriptors of the type, for the writes
      * @pre `created()`
      */
-    [[nodiscard]] constexpr DescriptorSpan<InputAttachmentDescriptor> inputAttachments() const;
+    [[nodiscard]] constexpr DescriptorSpan<StorageImageDescriptor> storageImages();
+
+    /**
+     * @return the descriptors of the type, for the writes
+     * @pre `created()`
+     */
+    [[nodiscard]] constexpr DescriptorSpan<InputAttachmentDescriptor> inputAttachments();
 
     /**
      * @return the whole heap with its reserved range
@@ -174,17 +196,28 @@ constexpr VkDescriptorSetAndBindingMappingEXT ResourceHeap::mapping(uint32_t set
     return dev::heap_mapping<Descriptor>(set, binding, offset<Descriptor>(), _stride);
 }
 
-constexpr DescriptorSpan<SampledImageDescriptor> ResourceHeap::sampledImages() const {
+template<descriptor_of<ResourceHeap> Descriptor>
+constexpr VkDescriptorSetAndBindingMappingEXT ResourceHeap::pushMapping(
+    uint32_t set,
+    uint32_t binding,
+    uint32_t pushOffset
+) const {
+    debug_check(*this);
+    dev::debug_check_push_offset(core(), pushOffset);
+    return dev::heap_push_mapping<Descriptor>(set, binding, offset<Descriptor>(), _stride, pushOffset);
+}
+
+constexpr DescriptorSpan<SampledImageDescriptor> ResourceHeap::sampledImages() {
     debug_check(*this);
     return DescriptorSpan<SampledImageDescriptor>{*this};
 }
 
-constexpr DescriptorSpan<StorageImageDescriptor> ResourceHeap::storageImages() const {
+constexpr DescriptorSpan<StorageImageDescriptor> ResourceHeap::storageImages() {
     debug_check(*this);
     return DescriptorSpan<StorageImageDescriptor>{*this};
 }
 
-constexpr DescriptorSpan<InputAttachmentDescriptor> ResourceHeap::inputAttachments() const {
+constexpr DescriptorSpan<InputAttachmentDescriptor> ResourceHeap::inputAttachments() {
     debug_check(*this);
     return DescriptorSpan<InputAttachmentDescriptor>{*this};
 }

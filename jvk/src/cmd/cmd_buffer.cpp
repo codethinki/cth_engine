@@ -17,6 +17,24 @@
 
 namespace jvk::dev {
 namespace {
+    /**
+     * @return the shader access of the image of the handle, in its layout, on the subresource range of its view
+     */
+    template<class Handle>
+    [[nodiscard]] constexpr ImageAccess shader_access(
+        Handle const& handle,
+        VkPipelineStageFlags2 stages,
+        VkAccessFlags2 access
+    ) {
+        return ImageAccess{
+            .layout = handle.layout(),
+            .stages = stages,
+            .access = access,
+            .firstMipLevel = handle.range().baseMipLevel,
+            .mipLevels = handle.range().levelCount,
+        };
+    }
+
     [[nodiscard]] constexpr bool discards(VkAttachmentLoadOp loadOp) {
         return loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR || loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     }
@@ -182,6 +200,24 @@ void BasicCmdBuffer<Cvk>::use(cvk::BaseBuffer const& buffer, BufferAccess const&
 }
 
 template<class Cvk>
+void BasicCmdBuffer<Cvk>::use(SampledImage const& handle, VkPipelineStageFlags2 stages) {
+    use(handle.image(), shader_access(handle, stages, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT));
+}
+
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::use(StorageImage const& handle, VkPipelineStageFlags2 stages, VkAccessFlags2 access) {
+    use(handle.image(), shader_access(handle, stages, access));
+}
+
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::use(InputAttachment const& handle) {
+    use(
+        handle.image(),
+        shader_access(handle, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT)
+    );
+}
+
+template<class Cvk>
 void BasicCmdBuffer<Cvk>::assume(
     cvk::Image const& image,
     ImageState const& state,
@@ -324,13 +360,17 @@ void PrimaryCmdBuffer::execute(SecondaryCmdBuffer& secondary) {
 SecondaryCmdBuffer::SecondaryCmdBuffer(cvk::Core const& core, cvk::queue_family_index_t queueFamilyIndex) :
     BasicCmdBuffer{core, queueFamilyIndex} {}
 
-void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
+void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage, cvk::HeapInheritance const& heaps) {
     reset();
-    _cmdBuffer.begin(usage);
+    _cmdBuffer.begin(usage, heaps);
 }
 
-void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUsageFlags usage) {
+void SecondaryCmdBuffer::begin(
+    Inheritance const& inheritance,
+    VkCommandBufferUsageFlags usage,
+    cvk::HeapInheritance const& heaps
+) {
     reset();
-    _cmdBuffer.begin(inheritance, usage);
+    _cmdBuffer.begin(inheritance, usage, heaps);
 }
 }
