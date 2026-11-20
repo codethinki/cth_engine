@@ -192,7 +192,8 @@ cth::os::unique_native_handle Fence::extractOsHandle() const {
     try {
         if(exported)
             copy.reset(cth::os::duplicate_handle(exported.get()));
-    } catch(cth::except::os_exception const& e) { throw cvk::cvk_exception{e}; }
+    }
+    catch(cth::except::os_exception const& e) { throw cvk::cvk_exception{e}; }
 
     VkImportFenceFdInfoKHR const importInfo{
         .sType = VK_STRUCTURE_TYPE_IMPORT_FENCE_FD_INFO_KHR,

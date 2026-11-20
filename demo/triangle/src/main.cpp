@@ -191,7 +191,8 @@ void run() {
 }
 
 int main() {
-    try { run(); } catch(std::exception const& e) {
+    try { run(); }
+    catch(std::exception const& e) {
         std::println(stderr, "triangle failed: {}", e.what());
         return 1;
     }

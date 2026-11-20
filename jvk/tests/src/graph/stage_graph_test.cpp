@@ -371,7 +371,8 @@ JVK_TEST(StageGraph, scoped_submit_submits_at_its_end) {
     Buffer<uint32_t> const buffer{core, DEVICE_CONFIG, VALUES};
     Buffer<uint32_t> const readback{core, test::READBACK_CONFIG, VALUES};
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         auto const primary = stage.begin();
         buffer.copy(*primary, staging);
         readback.copy(*primary, buffer);
@@ -389,7 +390,8 @@ JVK_TEST(StageGraph, moved_scoped_submit_submits_once) {
     Core core{context.instance, test::Context::CONFIG, {}};
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         // the moved-from scope ends last: a second submit fails its check
         auto primary = stage.begin();
         auto const moved = std::move(primary);
@@ -418,7 +420,8 @@ JVK_TEST(StageGraph, skip_discards_a_begun_primary) {
     Core core{context.instance, test::Context::CONFIG, {}};
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         auto const primary = stage.begin();
         auto const rendering = primary->beginRendering({.area = AREA});
         stage.skip();
@@ -445,7 +448,8 @@ JVK_TEST(StageGraph, exception_in_scoped_submit_submits_nothing) {
         auto const primary = stage.begin();
         auto const rendering = primary->beginRendering({.area = AREA});
         throw test_exception{};
-    } catch(test_exception const&) {}
+    }
+    catch(test_exception const&) {}
 
     EXPECT_EQ(stage.status(), Stage::Status::UNSUBMITTED);
     // the scoped_rendering ends the rendering on both paths
@@ -535,7 +539,9 @@ JVK_TEST(StageGraph, secondaries_record_on_several_threads) {
         readbacks.emplace_back(core, test::READBACK_CONFIG, VALUES);
 
     auto& frame = next_frame(core, graph);
-    auto& stage = frame.stage(0); {
+    auto& stage = frame.stage(0);
+
+    {
         std::vector<std::jthread> threads{};
         for(size_t i = 0; i < SECONDARIES; ++i)
             threads.emplace_back(

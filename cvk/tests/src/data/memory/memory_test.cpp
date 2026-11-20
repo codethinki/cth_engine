@@ -84,7 +84,9 @@ CVK_TEST(Memory, properties_have_the_required_flags) {
 
 CVK_TEST(Memory, map_write_and_read) {
     test::Context const context{};
-    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS}; {
+    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
+
+    {
         auto const written = memory.map();
         ASSERT_EQ(written.size(), memory.size());
         std::ranges::fill(written, std::byte{'x'});
@@ -125,7 +127,8 @@ CVK_TEST(Memory, the_mapping_unmaps) {
     test::Context const context{};
     Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
 
-    EXPECT_TRUE(memory.mapped().empty()); {
+    EXPECT_TRUE(memory.mapped().empty());
+    {
         auto const mapping = memory.map();
         EXPECT_EQ(memory.mapped().data(), mapping.data());
         EXPECT_EQ(memory.mapped().size(), memory.size());
@@ -135,7 +138,9 @@ CVK_TEST(Memory, the_mapping_unmaps) {
 
 CVK_TEST(Memory, a_moved_mapping_unmaps_once) {
     test::Context const context{};
-    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS}; {
+    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
+
+    {
         auto mapping = memory.map();
         Mapping<std::byte> const moved{std::move(mapping)};
         EXPECT_FALSE(memory.mapped().empty());
@@ -145,7 +150,9 @@ CVK_TEST(Memory, a_moved_mapping_unmaps_once) {
 
 CVK_TEST(Memory, mapping_as_elements) {
     test::Context const context{};
-    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS}; {
+    Memory const memory{context.core, HOST_CONFIG, REQUIREMENTS};
+
+    {
         auto bytes = memory.map({.offset = 0, .size = 64});
         auto const* data = bytes.data();
         auto const elements = std::move(bytes).as<uint32_t>();

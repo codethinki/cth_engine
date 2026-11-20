@@ -451,7 +451,9 @@ CVK_TEST(Image, wrap_without_memory_destroys_only_the_image) {
 
     // another owner frees the memory, after the image, like the swapchain
     Memory const memory{context.core, TEXTURE_CONFIG.memory, *state.memory};
-    state.memory = std::nullopt; {
+    state.memory = std::nullopt;
+
+    {
         Image const wrapped{context.core, TEXTURE_CONFIG, state};
         EXPECT_EQ(wrapped.memory(), nullptr);
     }

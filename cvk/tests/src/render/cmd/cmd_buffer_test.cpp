@@ -222,7 +222,8 @@ CVK_TEST(CmdBuffer, secondary_reports_the_inherited_view_mask) {
     auto config = test::Context::CONFIG;
     config.features.multiview = true;
     std::optional<test::Context> context{};
-    try { context.emplace(config); } catch(cvk_exception const&) {
+    try { context.emplace(config); }
+    catch(cvk_exception const&) {
         GTEST_SKIP() << "needs multiview";
     }
 

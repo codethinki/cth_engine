@@ -461,7 +461,8 @@ void run() {
 }
 
 int main() {
-    try { run(); } catch(std::exception const& e) {
+    try { run(); }
+    catch(std::exception const& e) {
         std::println(stderr, "cube failed: {}", e.what());
         return 1;
     }

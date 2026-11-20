@@ -143,7 +143,8 @@ JVK_TEST(ResourceHeap, the_destructor_of_a_handle_returns_the_cell) {
     EXPECT_NE(first.idx(), second.idx());
     EXPECT_EQ(&first.image(), &texture);
 
-    auto const firstIdx = first.idx(); {
+    auto const firstIdx = first.idx();
+    {
         auto const gone = std::move(first);
     }
     auto const third = heap.insert(cvk::SampledImageDescriptor{texture});
@@ -176,7 +177,8 @@ JVK_TEST(ResourceHeap, a_retained_cell_comes_back_after_the_gpu_finished) {
     auto& stage = next_frame(core, graph).stage(0);
     stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
     auto handle = heap.insert(descriptor);
-    auto const idx = handle.idx(); {
+    auto const idx = handle.idx();
+    {
         auto const primary = stage.begin();
         stage.retain(std::move(handle));
     }
@@ -235,7 +237,8 @@ JVK_TEST(SamplerHeap, a_retained_sampler_keeps_its_cell_until_the_gpu_finished) 
     cvk::SamplerConfig const nearest{.magFilter = VK_FILTER_NEAREST};
 
     auto& stage = next_frame(core, graph).stage(0);
-    stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1); {
+    stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
+    {
         auto const primary = stage.begin();
         stage.retain(heap.insert(cvk::SamplerConfig{}));
     }
@@ -255,7 +258,8 @@ JVK_TEST(SamplerHeap, a_retained_sampler_keeps_its_cell_until_the_gpu_finished) 
         try {
             [[maybe_unused]] auto const sampler = heap.insert(nearest);
             inserted = true;
-        } catch(jvk_exception const&) { std::this_thread::sleep_for(std::chrono::milliseconds{1}); }
+        }
+        catch(jvk_exception const&) { std::this_thread::sleep_for(std::chrono::milliseconds{1}); }
     }
     EXPECT_TRUE(inserted);
 }
@@ -377,7 +381,8 @@ JVK_TEST(StageGraph, a_frame_samples_a_texture_and_stores_into_an_image_through_
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     HeapCopy const copy{core};
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         // the begin binds the heaps of the core
         auto const primary = stage.begin();
         copy.upload(*primary);
@@ -395,7 +400,8 @@ JVK_TEST(StageGraph, a_secondary_inherits_the_heaps) {
     StageGraph graph{core, {.stages = {{.queueIdx = 0, .secondaries = 1}}}};
     HeapCopy const copy{core};
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         auto const primary = stage.begin();
         copy.upload(*primary);
         auto& secondary = stage.beginSecondary(0);
@@ -416,7 +422,8 @@ JVK_TEST(StageGraph, a_core_without_heaps_binds_none) {
     EXPECT_FALSE(core.config().heaps.createsResourceHeap());
     EXPECT_FALSE(core.config().heaps.createsSamplerHeap());
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         auto const primary = stage.begin();
     }
     wait(core, stage);

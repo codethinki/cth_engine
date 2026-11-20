@@ -158,8 +158,10 @@ JVK_TEST(Core, create_with_a_surface) {
     std::optional<Core> core{};
     try {
         core.emplace(context.instance, std::move(config), std::array{cth::ref_wrapper{surface}});
-    } catch(
-        cvk::cvk_exception const&) { GTEST_SKIP() << "no device presents to a headless surface"; }
+    }
+    catch(cvk::cvk_exception const&) {
+        GTEST_SKIP() << "no device presents to a headless surface";
+    }
     cvk::Core const& vk = *core;
 
     ASSERT_TRUE(core->created());
@@ -174,7 +176,8 @@ JVK_TEST(Core, create_with_a_braced_surface_list) {
     config.vk.queueProperties = {GRAPHICS | PRESENT};
     Core core{context.instance, std::move(config)};
 
-    try { core.create({surface}); } catch(cvk::cvk_exception const&) {
+    try { core.create({surface}); }
+    catch(cvk::cvk_exception const&) {
         GTEST_SKIP() << "no device presents to a headless surface";
     }
 
@@ -213,9 +216,8 @@ JVK_TEST(Core, reactor_waits_after_a_new_create) {
 JVK_TEST(Core, enables_the_extensions_of_the_config) {
     test::Context const context{};
     std::optional<Core> core{};
-    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); } catch(
-        cvk::cvk_exception
-        const&) { GTEST_SKIP() << "no os fence extension"; }
+    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); }
+    catch(cvk::cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
     cvk::Core const& vk = *core;
 
     auto const extensions = vk.device().extensions();
@@ -271,9 +273,8 @@ JVK_TEST(Core, executor_runs_on_the_workers) {
 JVK_TEST(Core, worker_resumes_after_the_gpu_signals_the_fence_of_a_strand_submit) {
     test::Context const context{};
     std::optional<Core> core{};
-    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); } catch(
-        cvk::cvk_exception
-        const&) { GTEST_SKIP() << "no os fence extension"; }
+    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); }
+    catch(cvk::cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
     if(!os_fence_exportable(*core))
         GTEST_SKIP() << "os fence handle type not exportable";
 

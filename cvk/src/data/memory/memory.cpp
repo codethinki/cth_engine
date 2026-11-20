@@ -121,7 +121,8 @@ void Memory::write(std::span<std::byte const> data, size_t offset) const {
         return;
 
     // not vmaCopyMemoryToAllocation(): it flushes after the unmap, non coherent memory must be mapped to flush
-    VkResult result = VK_SUCCESS; {
+    VkResult result = VK_SUCCESS;
+    {
         auto const mapping = map({.offset = offset, .size = data.size()});
         std::ranges::copy(data, mapping.begin());
         result = vmaFlushAllocation(allocator(), get(), offset, data.size());

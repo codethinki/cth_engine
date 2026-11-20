@@ -139,7 +139,8 @@ void Instance::create() {
     try {
         if(messenger)
             _debugMessengerOpt.emplace(*this, *messenger, cvk::create);
-    } catch(...) {
+    }
+    catch(...) {
         destroy();
         throw;
     }

@@ -32,14 +32,17 @@ void TimelineReactor::create() {
 
     try {
         _thread = std::jthread{[this](std::stop_token stop) { run(std::move(stop)); }};
-    } catch(...) {
+    }
+    catch(...) {
         _wake.destroy();
         throw;
     }
 }
 
 void TimelineReactor::destroy() {
-    CTH_CRITICAL(!created(), "reactor must be created") {} {
+    CTH_CRITICAL(!created(), "reactor must be created") {}
+
+    {
         std::scoped_lock const lock{_mutex};
         CTH_CRITICAL(
             !_waiters.empty(),
@@ -50,7 +53,8 @@ void TimelineReactor::destroy() {
         _thread.request_stop();
 
         // a failed wait ended the thread already, the wake does not matter then
-        try { wake(); } catch(cvk::vk_result_exception const& e) {
+        try { wake(); }
+        catch(cvk::vk_result_exception const& e) {
             JVK_STABLE_ERR(
                 !_error,
                 "failed to wake the reactor in destroy(), got {}",
@@ -71,7 +75,8 @@ void TimelineReactor::await(VkSemaphore vkSemaphore, uint64_t value, await_func 
     CTH_CRITICAL(!created(), "reactor must be created") {}
     CTH_CRITICAL(vkSemaphore == VK_NULL_HANDLE, "the semaphore must not be VK_NULL_HANDLE") {}
 
-    std::error_code error{}; {
+    std::error_code error{};
+    {
         std::scoped_lock const lock{_mutex};
 
         if(!_error) {
@@ -134,7 +139,9 @@ void TimelineReactor::run(std::stop_token stop) {
             table.device(),
             &info,
             std::numeric_limits<uint64_t>::max()
-        ); {
+        );
+
+        {
             std::scoped_lock const lock{_mutex};
 
             for(auto it = _waiters.begin(); result == VK_SUCCESS && it != _waiters.end();) {

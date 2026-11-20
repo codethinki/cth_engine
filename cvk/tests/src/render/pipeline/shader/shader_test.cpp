@@ -114,30 +114,15 @@ CVK_TEST(Shader, create_from_file) {
 
 CVK_TEST(Shader, load_rejects_bad_files) {
     auto const missing = temp_dir() / "cvk_test_missing.spv";
-    EXPECT_THROW(
-        [[maybe_unused]]
-
-        auto const spv = Shader::load(missing),
-        cvk_exception
-    );
+    EXPECT_THROW([[maybe_unused]] auto const spv = Shader::load(missing), cvk_exception);
 
     constexpr std::array<char, 5> notWords{1, 2, 3, 4, 5};
     auto const odd = write_temp("cvk_test_odd.spv", notWords);
-    EXPECT_THROW(
-        [[maybe_unused]]
-
-        auto const spv = Shader::load(odd),
-        cvk_exception
-    );
+    EXPECT_THROW([[maybe_unused]] auto const spv = Shader::load(odd), cvk_exception);
     std::filesystem::remove(odd);
 
     auto const empty = write_temp("cvk_test_empty.spv", {});
-    EXPECT_THROW(
-        [[maybe_unused]]
-
-        auto const spv = Shader::load(empty),
-        cvk_exception
-    );
+    EXPECT_THROW([[maybe_unused]] auto const spv = Shader::load(empty), cvk_exception);
     std::filesystem::remove(empty);
 }
 

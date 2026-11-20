@@ -41,7 +41,8 @@ namespace {
                 std::move(config),
                 std::array{cth::ref_wrapper{surface}}
             );
-        } catch(cvk::cvk_exception const&) { return false; }
+        }
+        catch(cvk::cvk_exception const&) { return false; }
         return true;
     }
 

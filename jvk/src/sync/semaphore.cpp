@@ -52,7 +52,9 @@ void Semaphore::create(uint64_t initialValue) {
 
 void Semaphore::destroy() {
     debug_check(*this);
-    CTH_CRITICAL(core().reactor().pending(get()), "no wait() must be pending") {} {
+    CTH_CRITICAL(core().reactor().pending(get()), "no wait() must be pending") {}
+
+    {
         std::scoped_lock const lock{_submittedPtr->mutex};
         CTH_CRITICAL(!_submittedPtr->waiters.empty(), "no submitted() must be pending") {}
         _submittedPtr->value = 0;
@@ -63,7 +65,9 @@ void Semaphore::destroy() {
 
 Semaphore::State Semaphore::release() {
     debug_check(*this);
-    CTH_CRITICAL(core().reactor().pending(get()), "no wait() must be pending") {} {
+    CTH_CRITICAL(core().reactor().pending(get()), "no wait() must be pending") {}
+
+    {
         std::scoped_lock const lock{_submittedPtr->mutex};
         CTH_CRITICAL(!_submittedPtr->waiters.empty(), "no submitted() must be pending") {}
         _submittedPtr->value = 0;
@@ -75,7 +79,8 @@ Semaphore::State Semaphore::release() {
 void Semaphore::markSubmitted(uint64_t value) const {
     debug_check(*this);
 
-    std::vector<await_func> reached{}; {
+    std::vector<await_func> reached{};
+    {
         std::scoped_lock const lock{_submittedPtr->mutex};
         CTH_CRITICAL(
             value <= _submittedPtr->value,
@@ -102,7 +107,9 @@ void Semaphore::markSubmitted(uint64_t value) const {
 }
 
 void Semaphore::awaitSubmitted(uint64_t value, await_func cb) const {
-    debug_check(*this); {
+    debug_check(*this);
+
+    {
         std::scoped_lock const lock{_submittedPtr->mutex};
         if(value > _submittedPtr->value) {
             _submittedPtr->waiters.push_back(SubmittedWaiter{value, std::move(cb)});

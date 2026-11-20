@@ -106,7 +106,8 @@ void Swapchain::create(VkExtent2D extent, Swapchain const* oldSwapchainPtr) {
     _surfaceFormat = surfaceFormat;
     _presentMode = presentMode;
 
-    try { createImages(); } catch(...) {
+    try { createImages(); }
+    catch(...) {
         destroy();
         throw;
     }

@@ -15,8 +15,10 @@ CVK_TEST(Cvk, is_not_copyable_or_movable) {
 
 CVK_TEST(Cvk, nested_objects_keep_the_loader) {
     // the test environment holds a Cvk, the count never reaches 0 here
-    ASSERT_TRUE(Cvk::initialized()); {
-        Cvk const outer{}; {
+    ASSERT_TRUE(Cvk::initialized());
+    {
+        Cvk const outer{};
+        {
             Cvk const inner{};
             EXPECT_TRUE(Cvk::initialized());
         }

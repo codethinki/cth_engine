@@ -138,7 +138,8 @@ CVK_TEST(Fence, move_assignment_destroys_the_old_fence) {
 
 CVK_TEST(Fence, extract_os_handle_of_a_pending_fence_keeps_the_signal) {
     std::optional<test::Context> context{};
-    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) {
+    try { context.emplace(os_fence_config()); }
+    catch(cvk_exception const&) {
         GTEST_SKIP() << "no os fence extension";
     }
     if(!os_fence_exportable(context->core))
@@ -165,7 +166,8 @@ CVK_TEST(Fence, extract_os_handle_of_a_pending_fence_keeps_the_signal) {
 
 CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence_keeps_it_signaled) {
     std::optional<test::Context> context{};
-    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) {
+    try { context.emplace(os_fence_config()); }
+    catch(cvk_exception const&) {
         GTEST_SKIP() << "no os fence extension";
     }
     if(!os_fence_exportable(context->core))
@@ -190,7 +192,8 @@ CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence_keeps_it_signaled) {
 
 CVK_TEST(Fence, reset_after_extract_os_handle_unsignals_the_fence) {
     std::optional<test::Context> context{};
-    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) {
+    try { context.emplace(os_fence_config()); }
+    catch(cvk_exception const&) {
         GTEST_SKIP() << "no os fence extension";
     }
     if(!os_fence_exportable(context->core))

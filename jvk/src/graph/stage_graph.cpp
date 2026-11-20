@@ -114,7 +114,8 @@ StageGraph::~StageGraph() {
             //TODO review the binary waits dropped: a presenter is destroyed before the graph, its present submits wait
             // for the semaphores of the graph, the acquire semaphore of an unpresented image is destroyed already
             stage._extraBinaryWaits.clear();
-            try { skip(stage); } catch(std::exception const& e) {
+            try { skip(stage); }
+            catch(std::exception const& e) {
                 JVK_STABLE_ERR(
                     true,
                     "failed to skip stage {} in ~StageGraph(), got {}",
@@ -132,7 +133,8 @@ StageGraph::~StageGraph() {
             try {
                 cvk::TimelineSemaphore const& semaphore = stageSlot.semaphore;
                 semaphore.wait(stageSlot.semaphore.submittedValue());
-            } catch(cvk::vk_result_exception const& e) {
+            }
+            catch(cvk::vk_result_exception const& e) {
                 JVK_STABLE_ERR(
                     true,
                     "failed to wait for stage {} in ~StageGraph(), got {}",
@@ -255,7 +257,8 @@ void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
 
     // the status after the detach: a failed allocation leaves the stage unsubmitted, the moved data is lost
     dev::RetainedResources retained{};
-    Stasis::pos stasisEnd{}; {
+    Stasis::pos stasisEnd{};
+    {
         std::scoped_lock const lock{stageSlot.stasisMutex};
         retained = std::move(stage._retained);
         stasisEnd = stageSlot.stasis.end();
@@ -300,7 +303,8 @@ cth::co::executor_task<void> StageGraph::submitJob(
     if(targetStatus == Stage::Status::SUBMITTED) {
         try {
             cvk::Barrier prologue{};
-            release_map_t releases{}; {
+            release_map_t releases{};
+            {
                 std::scoped_lock const lock{_statesMutex};
                 append(stageSlot.primary.states(), queue, prologue, releases);
             }
@@ -318,7 +322,8 @@ cth::co::executor_task<void> StageGraph::submitJob(
             co_await queue.executor().schedule();
             info.submit(queue, extraWaits, extraBinaryWaits, withPrologue);
             submitted = true;
-        } catch(...) { _error.store(std::current_exception()); }
+        }
+        catch(...) { _error.store(std::current_exception()); }
     }
 
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
@@ -339,11 +344,14 @@ cth::co::executor_task<void> StageGraph::submitJob(
     try {
         co_await stageSlot.semaphore.wait(frameNumber);
         reached = true;
-    } catch(cth::except::coro_exception const&) { _error.store(std::current_exception()); } catch(
-        cvk::vk_result_exception const&) { _error.store(std::current_exception()); }
+    }
+    catch(cth::except::coro_exception const&) { _error.store(std::current_exception()); }
+    catch(cvk::vk_result_exception const&) { _error.store(std::current_exception()); }
     // the gpu can still use the retained objects, the destruction of the graph destroys them
     if(!reached)
-        co_return; {
+        co_return;
+
+    {
         std::scoped_lock const lock{_statesMutex};
         for(auto const& [vkImage, mipLevels] : retained.images)
             eraseStates(vkImage, mipLevels);

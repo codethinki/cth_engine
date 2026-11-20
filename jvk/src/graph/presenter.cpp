@@ -56,7 +56,8 @@ void Presenter::create(cvk::Surface surface) {
         auto const extent = _surface.extent(vkCore.physicalDevice());
         if(extent.width > 0 && extent.height > 0)
             updateSwapchain(extent, nullptr);
-    } catch(...) {
+    }
+    catch(...) {
         destroy();
         throw;
     }
@@ -72,7 +73,8 @@ void Presenter::destroy() {
         try {
             cvk::TimelineSemaphore const& semaphore = _semaphore;
             semaphore.wait(_semaphore.value());
-        } catch(cvk::vk_result_exception const& e) {
+        }
+        catch(cvk::vk_result_exception const& e) {
             JVK_STABLE_ERR(
                 true,
                 "failed to wait for the present submits in destroy(), got {}",
@@ -85,7 +87,8 @@ void Presenter::destroy() {
     // (VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786), the stage of the image is under the @pre
     // no job runs, no acquire is pending: nothing else uses the swapchain
     if(_acquiredOpt.has_value()) {
-        try { unacquireImage(); } catch(cvk::vk_result_exception const& e) {
+        try { unacquireImage(); }
+        catch(cvk::vk_result_exception const& e) {
             JVK_STABLE_ERR(
                 true,
                 "failed to unacquire the swapchain image in destroy(), got {}",
@@ -283,7 +286,8 @@ cth::co::executor_task<void> Presenter::presentJob(
         );
         submit.value = value;
         submitted = true;
-    } catch(...) { _error.store(std::current_exception()); }
+    }
+    catch(...) { _error.store(std::current_exception()); }
 
     // a failed submit: the timeline signal for the waits on the presenter, the present semaphore stays unsignaled
     if(!submitted) {
@@ -302,7 +306,8 @@ cth::co::executor_task<void> Presenter::presentJob(
             // present called vkQueuePresentKHR()
             if(_swapchain.current().present(image.imageIdx) == VK_ERROR_OUT_OF_DATE_KHR)
                 _outOfDate = true;
-        } catch(cvk::vk_result_exception const&) { _error.store(std::current_exception()); }
+        }
+        catch(cvk::vk_result_exception const&) { _error.store(std::current_exception()); }
     }
 
     // after the present: the next acquire() awaits it
@@ -381,7 +386,8 @@ scoped_acquire::~scoped_acquire() {
         return;
 
     // a destructor does not throw: the next acquire() rethrows
-    try { _presenterPtr->present(stage); } catch(...) { _error->store(std::current_exception()); }
+    try { _presenterPtr->present(stage); }
+    catch(...) { _error->store(std::current_exception()); }
 }
 
 void scoped_acquire::present() {

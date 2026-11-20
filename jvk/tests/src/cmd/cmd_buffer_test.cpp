@@ -341,7 +341,8 @@ JVK_TEST(CmdBuffer, rendering_scope_ends_the_rendering_at_its_end) {
     test::Context const context{};
     PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
 
-    primary.begin(); {
+    primary.begin();
+    {
         auto const rendering = primary.beginRendering({.area = AREA});
         EXPECT_NE(primary.rendering(), nullptr);
     }
@@ -351,7 +352,8 @@ JVK_TEST(CmdBuffer, rendering_scope_ends_the_rendering_at_its_end) {
     try {
         auto const rendering = primary.beginRendering({.area = AREA});
         throw test_exception{};
-    } catch(test_exception const&) {}
+    }
+    catch(test_exception const&) {}
     EXPECT_EQ(primary.rendering(), nullptr);
     primary.end();
 
@@ -363,7 +365,8 @@ JVK_TEST(CmdBuffer, rendering_scope_does_nothing_after_an_end_or_a_move) {
     PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
 
     // a second end fails its check
-    primary.begin(); {
+    primary.begin();
+    {
         auto rendering = primary.beginRendering({.area = AREA});
         rendering.end();
         EXPECT_EQ(primary.rendering(), nullptr);

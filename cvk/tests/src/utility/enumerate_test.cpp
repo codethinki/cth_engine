@@ -124,7 +124,8 @@ CVK_TEST(enumerate, incomplete_in_every_attempt_throws) {
             &calls
         );
         ADD_FAILURE() << "no throw";
-    } catch(vk_result_exception const& exception) {
+    }
+    catch(vk_result_exception const& exception) {
         EXPECT_EQ(exception.vkResult(), VK_INCOMPLETE);
     }
     EXPECT_EQ(calls, 2 * dev::MAX_QUERY_ATTEMPTS);
@@ -151,7 +152,8 @@ CVK_TEST(enumerate, error_throws_the_result) {
                 &calls
             );
             ADD_FAILURE() << "no throw at call " << failingCall;
-        } catch(vk_result_exception const& exception) {
+        }
+        catch(vk_result_exception const& exception) {
             EXPECT_EQ(exception.vkResult(), VK_ERROR_OUT_OF_HOST_MEMORY);
         }
         EXPECT_EQ(calls, failingCall + 1);

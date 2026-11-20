@@ -57,7 +57,8 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
             _resourceHeapOpt.emplace(_core, _config.heaps.resources);
         if(_config.heaps.createsSamplerHeap())
             _samplerHeapOpt.emplace(_core, _config.heaps.samplers);
-    } catch(...) {
+    }
+    catch(...) {
         _resourceHeapOpt.reset();
         _queuesOpt.reset();
         _reactor.optDestroy();
@@ -80,21 +81,24 @@ void Core::destroy() {
             continue;
 
         // a failed wait does not stop the teardown, vulkan destroys do not fail, also after a device loss
-        try { queue(qIdx).waitIdle(); } catch(cvk::vk_result_exception const& e) {
+        try { queue(qIdx).waitIdle(); }
+        catch(cvk::vk_result_exception const& e) {
             JVK_STABLE_ERR(
                 true,
                 "failed to wait for queue {} in destroy(), got {}",
                 qIdx,
                 e.vkResult()
             ) {}
-        } catch(std::exception const& e) {
+        }
+        catch(std::exception const& e) {
             JVK_STABLE_ERR(
                 true,
                 "failed to wait for queue {} in destroy(), got {}",
                 qIdx,
                 e.what()
             ) {}
-        } catch(...) {
+        }
+        catch(...) {
             JVK_STABLE_ERR(
                 true,
                 "failed to wait for queue {} in destroy(), got an unknown exception",

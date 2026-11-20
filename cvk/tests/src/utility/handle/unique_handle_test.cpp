@@ -286,7 +286,9 @@ CVK_TEST(unique_handle, custom_deleter) {
     ASSERT_EQ(
         table->vkCreateCommandPool(table.device(), &poolInfo, nullptr, &vkPool),
         VK_SUCCESS
-    ); {
+    );
+
+    {
         unique_handle<VkCommandBuffer, pool_deleter> handle{context.core, vkPool};
         EXPECT_EQ(&handle.core(), &context.core);
         EXPECT_EQ(handle.deleter().pool, vkPool);
@@ -312,7 +314,8 @@ CVK_TEST(unique_handle, custom_deleter) {
 }
 
 CVK_TEST(unique_handle, non_pointer_handle) {
-    pair_deleter::destroyed = 0; {
+    pair_deleter::destroyed = 0;
+    {
         unique_handle<pair_handle, pair_deleter> handle{};
         EXPECT_FALSE(handle);
 

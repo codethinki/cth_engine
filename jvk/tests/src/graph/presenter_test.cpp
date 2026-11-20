@@ -60,7 +60,8 @@ namespace {
                 std::move(config),
                 std::array{cth::ref_wrapper{surface}}
             );
-        } catch(cvk::cvk_exception const&) { return false; }
+        }
+        catch(cvk::cvk_exception const&) { return false; }
         return true;
     }
 
@@ -321,7 +322,8 @@ JVK_TEST(Presenter, extent_0_gives_no_image_until_the_extent_is_larger) {
     EXPECT_FALSE(presenter.swapchain().created());
 
     // no image, no wait: the stage submits without the image, the scoped_acquire does nothing
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         auto const image = acquire(core, presenter, stage);
         EXPECT_FALSE(image);
         auto const primary = stage.begin();
@@ -498,7 +500,8 @@ JVK_TEST(Presenter, scope_unacquire_leaves_the_image_to_the_next_acquire) {
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Presenter presenter{core, core.queue(0), {}, std::move(surface)};
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         auto image = acquire(core, presenter, stage);
         ASSERT_TRUE(image);
         image.unacquire();
@@ -510,7 +513,8 @@ JVK_TEST(Presenter, scope_unacquire_leaves_the_image_to_the_next_acquire) {
     EXPECT_EQ(acquired_images(presenter), 1);
 
     // the next acquire waits for the stage on the gpu and gives the image back first
-    auto& next = next_frame(core, graph).stage(0); {
+    auto& next = next_frame(core, graph).stage(0);
+    {
         auto const image = acquire(core, presenter, next);
         ASSERT_TRUE(image);
         EXPECT_EQ(acquired_images(presenter), 1);
@@ -533,7 +537,8 @@ JVK_TEST(Presenter, next_acquire_after_a_skipped_stage_unacquires_the_image) {
     Presenter presenter{core, core.queue(0), {}, std::move(surface)};
 
     // Stage::begin() before the acquire works too
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         auto const primary = stage.begin();
         auto const image = acquire(core, presenter, stage);
         ASSERT_TRUE(image);
@@ -546,7 +551,8 @@ JVK_TEST(Presenter, next_acquire_after_a_skipped_stage_unacquires_the_image) {
     EXPECT_EQ(acquired_images(presenter), 1);
 
     // at once: the acquire waits for the skip on the gpu before the unacquire, no validation error
-    auto& next = next_frame(core, graph).stage(0); {
+    auto& next = next_frame(core, graph).stage(0);
+    {
         auto const image = acquire(core, presenter, next);
         ASSERT_TRUE(image);
         EXPECT_EQ(acquired_images(presenter), 1);
@@ -568,7 +574,8 @@ JVK_TEST(Presenter, image_scope_ending_before_the_submit_leaves_the_image_to_the
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Presenter presenter{core, core.queue(0), {}, std::move(surface)};
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         auto const image = acquire(core, presenter, stage);
         ASSERT_TRUE(image);
     }
@@ -580,7 +587,8 @@ JVK_TEST(Presenter, image_scope_ending_before_the_submit_leaves_the_image_to_the
     }
 
     // the next acquire waits for the submit on the gpu and gives the image back first
-    auto& next = next_frame(core, graph).stage(0); {
+    auto& next = next_frame(core, graph).stage(0);
+    {
         auto const image = acquire(core, presenter, next);
         ASSERT_TRUE(image);
         EXPECT_EQ(acquired_images(presenter), 1);
@@ -602,7 +610,8 @@ JVK_TEST(Presenter, present_inside_the_rendering_scope_submits_and_presents_once
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Presenter presenter{core, core.queue(0), {}, std::move(surface)};
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         auto image = acquire(core, presenter, stage);
         ASSERT_TRUE(image);
         auto const primary = stage.begin();
@@ -629,7 +638,8 @@ JVK_TEST(Presenter, moved_scopes_act_once) {
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Presenter presenter{core, core.queue(0), {}, std::move(surface)};
 
-    auto& stage = next_frame(core, graph).stage(0); {
+    auto& stage = next_frame(core, graph).stage(0);
+    {
         // the moved-from scopes end after the moved ones: a second submit or present fails
         auto image = acquire(core, presenter, stage);
         auto const movedImage = std::move(image);
@@ -669,7 +679,8 @@ JVK_TEST(Presenter, exception_in_the_recording_submits_and_presents_nothing) {
                 throw test_exception{};
             }
         }
-    } catch(test_exception const&) {}
+    }
+    catch(test_exception const&) {}
 
     ASSERT_NE(stagePtr, nullptr);
     EXPECT_EQ(stagePtr->status(), Stage::Status::UNSUBMITTED);
@@ -677,7 +688,8 @@ JVK_TEST(Presenter, exception_in_the_recording_submits_and_presents_nothing) {
 
     // the next frame skips the stage, the next acquire gives the image back first
     auto& stage = next_frame(core, graph).stage(0);
-    EXPECT_EQ(stagePtr->status(), Stage::Status::SKIPPED); {
+    EXPECT_EQ(stagePtr->status(), Stage::Status::SKIPPED);
+    {
         auto const image = acquire(core, presenter, stage);
         ASSERT_TRUE(image);
         EXPECT_EQ(acquired_images(presenter), 1);
@@ -710,7 +722,8 @@ JVK_TEST(Presenter, exception_after_the_submit_presents_the_image) {
         }
         stage.submit();
         throw test_exception{};
-    } catch(test_exception const&) {}
+    }
+    catch(test_exception const&) {}
     ASSERT_TRUE(imageIdxOpt.has_value());
     EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
 

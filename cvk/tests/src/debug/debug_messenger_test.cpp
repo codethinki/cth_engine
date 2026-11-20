@@ -18,9 +18,6 @@ namespace {
         VkDebugUtilsMessageTypeFlagsEXT,
         VkDebugUtilsMessengerCallbackDataEXT const* callbackData,
         void*
-
-
-    
     ) {
         if(callbackData->pMessage == TEST_MESSAGE)
             ++received;
@@ -84,9 +81,6 @@ CVK_TEST(DebugMessenger, accepts_a_lambda) {
         VkDebugUtilsMessageTypeFlagsEXT,
         VkDebugUtilsMessengerCallbackDataEXT const* callbackData,
         void*
-
-
-    
     ) -> VkBool32 {
         if(callbackData->pMessage == TEST_MESSAGE)
             ++received;

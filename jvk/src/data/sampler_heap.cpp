@@ -40,7 +40,8 @@ auto SamplerHeap::insert(cvk::SamplerConfig const& config) const -> Sampler {
     try {
         _vk.write(*idxOpt, config);
         _indices.emplace(config, *idxOpt);
-    } catch(...) {
+    }
+    catch(...) {
         _cells.erase(*idxOpt);
         throw;
     }

@@ -179,6 +179,7 @@ scoped_submit::~scoped_submit() {
     if(_stagePtr->status() != Stage::Status::UNSUBMITTED)
         return;
 
-    try { _stagePtr->submit(); } catch(...) { _error->store(std::current_exception()); }
+    try { _stagePtr->submit(); }
+    catch(...) { _error->store(std::current_exception()); }
 }
 }

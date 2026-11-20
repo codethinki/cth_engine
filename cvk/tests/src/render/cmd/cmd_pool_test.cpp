@@ -55,7 +55,9 @@ CVK_TEST(CmdPool, create_and_destroy) {
 
 CVK_TEST(CmdPool, counts_its_command_buffers) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context.core), create}; {
+    CmdPool const pool{context.core, pool_config(context.core), create};
+
+    {
         PrimaryCmdBuffer primary{pool, create};
         SecondaryCmdBuffer const secondary{pool, create};
         EXPECT_FALSE(pool.unused());

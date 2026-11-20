@@ -247,7 +247,9 @@ CVK_TEST(BaseBuffer, wrap_without_memory_destroys_only_the_buffer) {
 
     // another owner frees the memory, after the buffer
     Memory const memory{context.core, DEVICE_CONFIG.memory, *state.memory};
-    state.memory = std::nullopt; {
+    state.memory = std::nullopt;
+
+    {
         BaseBuffer const wrapped{context.core, DEVICE_CONFIG, state};
         EXPECT_EQ(wrapped.memory(), nullptr);
         EXPECT_EQ(wrapped.size(), SIZE);

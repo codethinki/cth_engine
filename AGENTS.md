@@ -70,6 +70,7 @@ The CLion code style of the project (`.idea/codeStyles/Project.xml`) is the refe
 - 4 spaces, no tabs, 100 columns.
 - Attached braces: `class X {`, `void f() {`, `if(x) {`.
 - The statement of an `if`, `for` or `while` without braces goes on its own line.
+- `catch` starts a new line. A simple `try` or `catch` block stays on one line: `try { x(); }`.
 - A wrapped binary expression starts the next line with the operator: `&& next`.
 - Break a long condition by hand before `&&` and `||`. The formatter keeps the break, its own wrap can split
   a member access.

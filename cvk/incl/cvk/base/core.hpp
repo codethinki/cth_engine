@@ -219,9 +219,6 @@ private:
         std::span<cth::ref_wrapper<Surface const> const> surfaces,
         Config const&,
         device_requirements const&
-
-
-    
     ) const;
 
     [[nodiscard]] static queue_set_relations createQueueSetRelations(

@@ -68,7 +68,8 @@ private:
  */
 template<std::invocable Submit>
 void fallback_submit(Submit&& submit, first_error& error) {
-    try { std::forward<Submit>(submit)(); } catch(cvk::vk_result_exception const& e) {
+    try { std::forward<Submit>(submit)(); }
+    catch(cvk::vk_result_exception const& e) {
         if(e.vkResult() != VK_ERROR_DEVICE_LOST)
             throw;
         error.store(std::current_exception());

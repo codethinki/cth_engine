@@ -188,8 +188,6 @@ public:
     [[nodiscard]] static constexpr uint32_t evalImageCount(
         uint32_t minImageCount,
         VkSurfaceCapabilitiesKHR const&
-
-    
     );
 
     /**

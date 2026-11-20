@@ -77,7 +77,8 @@ auto ResourceHeap::insertImage(Descriptor const& descriptor) const -> ImageHandl
         free.size()
     ) {}
 
-    try { _vk.write(*idxOpt, descriptor); } catch(...) {
+    try { _vk.write(*idxOpt, descriptor); }
+    catch(...) {
         free.erase(*idxOpt);
         throw;
     }
