@@ -20,9 +20,10 @@ namespace {
         | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT
         | VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-    [[nodiscard]] constexpr bool framebuffer_space(VkPipelineStageFlags2 srcStages, VkPipelineStageFlags2 dstStages) {
-        return ((srcStages | dstStages) & ~FRAMEBUFFER_STAGES) == 0;
-    }
+    [[nodiscard]] constexpr bool framebuffer_space(
+        VkPipelineStageFlags2 srcStages,
+        VkPipelineStageFlags2 dstStages
+    ) { return ((srcStages | dstStages) & ~FRAMEBUFFER_STAGES) == 0; }
 
     VkMemoryBarrier2 memory_barrier(MemoryBarrierInfo const& info) {
         bool const transfer = info.src.queueFamilyIndex != VK_QUEUE_FAMILY_IGNORED
@@ -49,7 +50,8 @@ void Barrier::add(Image const& image, ImageInfo const& info) {
         info.firstMipLevel
     ) {}
     CTH_CRITICAL(
-        info.mipLevels != VK_REMAINING_MIP_LEVELS && info.mipLevels > image.mipLevels() - info.firstMipLevel,
+        info.mipLevels != VK_REMAINING_MIP_LEVELS &&
+        info.mipLevels > image.mipLevels() - info.firstMipLevel,
         "mip levels must lie in the image ({}), got {} from {}",
         image.mipLevels(),
         info.mipLevels,
@@ -62,7 +64,8 @@ void Barrier::add(Image const& image, ImageInfo const& info) {
         info.firstArrayLayer
     ) {}
     CTH_CRITICAL(
-        info.arrayLayers != VK_REMAINING_ARRAY_LAYERS && info.arrayLayers > image.arrayLayers() - info.firstArrayLayer,
+        info.arrayLayers != VK_REMAINING_ARRAY_LAYERS &&
+        info.arrayLayers > image.arrayLayers() - info.firstArrayLayer,
         "array layers must lie in the image ({}), got {} from {}",
         image.arrayLayers(),
         info.arrayLayers,
@@ -75,7 +78,8 @@ void Barrier::add(Image const& image, ImageInfo const& info) {
 void Barrier::add(BaseBuffer const& buffer, BufferInfo const& info) {
     BaseBuffer::debug_check(buffer);
     CTH_CRITICAL(
-        info.offset > buffer.size() || (info.size != VK_WHOLE_SIZE && info.size > buffer.size() - info.offset),
+        info.offset > buffer.size() ||
+        (info.size != VK_WHOLE_SIZE && info.size > buffer.size() - info.offset),
         "range must lie in the buffer ({}), got {} from {}",
         buffer.size(),
         info.size,
@@ -106,7 +110,10 @@ void Barrier::debug_check_rendering(
     for(auto const& barrier : imageBarriers)
         check(barrier.srcStageMask, barrier.dstStageMask);
 
-    CTH_CRITICAL(!framebufferSpace, "barriers inside a rendering must only use framebuffer space stages") {}
+    CTH_CRITICAL(
+        !framebufferSpace,
+        "barriers inside a rendering must only use framebuffer space stages"
+    ) {}
     CTH_CRITICAL(
         srcStages && (flags & VK_DEPENDENCY_BY_REGION_BIT) == 0,
         "barriers inside a rendering need VK_DEPENDENCY_BY_REGION_BIT"
@@ -125,18 +132,23 @@ void Barrier::debug_check_rendering(
 
     // a continuing secondary does not know the attachment images
     auto const attached = [renderingPtr](VkImage vkImage) {
-        if(renderingPtr == nullptr) return false;
+        if(renderingPtr == nullptr)
+            return false;
         auto const uses = [vkImage](RenderingAttachment const& attachment) {
-            return attachment.view->image().get() == vkImage
-                || (attachment.resolveViewPtr != nullptr && attachment.resolveViewPtr->image().get() == vkImage);
+            return attachment.view->image().get() == vkImage ||
+                (attachment.resolveViewPtr != nullptr &&
+                    attachment.resolveViewPtr->image().get() == vkImage);
         };
-        return std::ranges::any_of(renderingPtr->colorAttachments, uses)
-            || (renderingPtr->depthAttachment.has_value() && uses(*renderingPtr->depthAttachment))
-            || (renderingPtr->stencilAttachment.has_value() && uses(*renderingPtr->stencilAttachment));
+        return std::ranges::any_of(renderingPtr->colorAttachments, uses) ||
+            (renderingPtr->depthAttachment.has_value() && uses(*renderingPtr->depthAttachment)) ||
+            (renderingPtr->stencilAttachment.has_value() && uses(*renderingPtr->stencilAttachment));
     };
 
     for(auto const& barrier : imageBarriers) {
-        CTH_CRITICAL(barrier.oldLayout != barrier.newLayout, "barriers inside a rendering have no layout transition") {}
+        CTH_CRITICAL(
+            barrier.oldLayout != barrier.newLayout,
+            "barriers inside a rendering have no layout transition"
+        ) {}
         CTH_CRITICAL(
             barrier.srcQueueFamilyIndex != barrier.dstQueueFamilyIndex,
             "barriers inside a rendering have no queue family ownership transfer"
@@ -158,7 +170,12 @@ void Barrier::addTransition(
     uint32_t firstMipLevel,
     uint32_t mipLevels
 ) {
-    auto const transition = layout_transition(newLayout, oldLayout, image.aspectMask(), shaderStages);
+    auto const transition = layout_transition(
+        newLayout,
+        oldLayout,
+        image.aspectMask(),
+        shaderStages
+    );
     CTH_CRITICAL(
         !transition.has_value(),
         "layout transition {} -> {} has no scope for a layout, use add() with scopes",
@@ -168,7 +185,14 @@ void Barrier::addTransition(
 
     add(
         image,
-        ImageInfo::LayoutTransition(newLayout, oldLayout, transition->dst, transition->src, firstMipLevel, mipLevels)
+        ImageInfo::LayoutTransition(
+            newLayout,
+            oldLayout,
+            transition->dst,
+            transition->src,
+            firstMipLevel,
+            mipLevels
+        )
     );
 }
 
@@ -182,7 +206,13 @@ void Barrier::execute(BaseCmdBuffer const& cmdBuffer) const {
         memoryBarriers.push_back(memory_barrier(info));
 
     if(cmdBuffer.insideRendering())
-        debug_check_rendering(cmdBuffer.rendering(), cmdBuffer.renderingViewMask(), memoryBarriers, buffers, images);
+        debug_check_rendering(
+            cmdBuffer.rendering(),
+            cmdBuffer.renderingViewMask(),
+            memoryBarriers,
+            buffers,
+            images
+        );
 
     VkDependencyInfo const dependency{
         .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,

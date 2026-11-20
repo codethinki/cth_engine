@@ -26,8 +26,10 @@ namespace {
         cvk::Core const& vk = core;
         auto const* familyPtr = vk.physicalDevice().queueFamily(queue.vk().familyIndex());
         bool const binds = familyPtr != nullptr
-            && (familyPtr->vkProperties.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)) != 0;
-        if(!binds) return {};
+            && (familyPtr->vkProperties.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+            != 0;
+        if(!binds)
+            return {};
 
         auto const& heaps = core.config().heaps;
         return cvk::HeapInheritance{
@@ -59,7 +61,10 @@ void SubmitInfo::submit(
     std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits,
     bool prologue
 ) const {
-    cvk::SubmitInfo submitInfo{.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}};
+    cvk::SubmitInfo submitInfo{
+        .waits = all_waits(*this, extraWaits, extraBinaryWaits),
+        .signals = {signal}
+    };
     submitInfo.cmdBuffers.reserve(cmdBuffers.size());
     // the prologue comes first
     for(PrimaryCmdBuffer const& cmdBuffer : cmdBuffers | std::views::drop(prologue ? 0 : 1))
@@ -73,7 +78,9 @@ void SubmitInfo::skip(
     std::span<SemaphoreSubmitInfo const> extraWaits,
     std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
 ) const {
-    queue.vk().submit({.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}});
+    queue.vk().submit(
+        {.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}}
+    );
 }
 
 StageSlot::StageSlot(
@@ -106,7 +113,8 @@ StageSlot::StageSlot(
 
 
 namespace jvk {
-Stage::Stage(dev::StageSlot& stageSlot, uint64_t frameNumber) : _stageSlot{stageSlot}, _frameNumber{frameNumber} {}
+Stage::Stage(dev::StageSlot& stageSlot, uint64_t frameNumber) : _stageSlot{stageSlot},
+    _frameNumber{frameNumber} {}
 
 scoped_submit Stage::begin() {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
@@ -115,16 +123,23 @@ scoped_submit Stage::begin() {
 
     cvk::PrimaryCmdBuffer const& vk = _stageSlot->primary;
     auto const [resourceHeapPtr, samplerHeapPtr] = _stageSlot->heaps;
-    if(resourceHeapPtr != nullptr) vk.bind(*resourceHeapPtr);
-    if(samplerHeapPtr != nullptr) vk.bind(*samplerHeapPtr);
+    if(resourceHeapPtr != nullptr)
+        vk.bind(*resourceHeapPtr);
+    if(samplerHeapPtr != nullptr)
+        vk.bind(*samplerHeapPtr);
 
     return scoped_submit{*this, _stageSlot->error};
 }
 
-SecondaryCmdBuffer& Stage::beginSecondary(size_t secondaryIdx, std::optional<Inheritance> const& inheritanceOpt) {
+SecondaryCmdBuffer& Stage::beginSecondary(
+    size_t secondaryIdx,
+    std::optional<Inheritance> const& inheritanceOpt
+) {
     auto& secondary = this->secondary(secondaryIdx);
-    if(inheritanceOpt.has_value()) secondary.begin(*inheritanceOpt, 0, _stageSlot->heaps);
-    else secondary.begin(0, _stageSlot->heaps);
+    if(inheritanceOpt.has_value())
+        secondary.begin(*inheritanceOpt, 0, _stageSlot->heaps);
+    else
+        secondary.begin(0, _stageSlot->heaps);
     return secondary;
 }
 
@@ -159,14 +174,11 @@ void Stage::skip() { _stageSlot->graph->skip(*this); }
 
 scoped_submit::~scoped_submit() {
     // an exception: the next nextFrame() skips the stage
-    if(!_stagePtr || std::uncaught_exceptions() > _uncaughtExceptions) return;
-    if(_stagePtr->status() != Stage::Status::UNSUBMITTED) return;
+    if(!_stagePtr || std::uncaught_exceptions() > _uncaughtExceptions)
+        return;
+    if(_stagePtr->status() != Stage::Status::UNSUBMITTED)
+        return;
 
-    try {
-        _stagePtr->submit();
-    }
-    catch(...) {
-        _error->store(std::current_exception());
-    }
+    try { _stagePtr->submit(); } catch(...) { _error->store(std::current_exception()); }
 }
 }

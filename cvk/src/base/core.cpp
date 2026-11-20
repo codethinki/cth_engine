@@ -24,7 +24,8 @@ namespace {
     [[nodiscard]] std::string uuid_string(device_uuid_t const& uuid) {
         std::string result{};
         for(auto const [index, byte] : std::views::enumerate(uuid)) {
-            if(index == 4 || index == 6 || index == 8 || index == 10) result += '-';
+            if(index == 4 || index == 6 || index == 8 || index == 10)
+                result += '-';
             result += std::format("{:02x}", byte);
         }
         return result;
@@ -33,7 +34,11 @@ namespace {
 
 Core::Core(Instance const& instance) : _instance{instance} {}
 
-Core::Core(Instance const& instance, span<cth::ref_wrapper<Surface const> const> surfaces, Config const& config) :
+Core::Core(
+    Instance const& instance,
+    span<cth::ref_wrapper<Surface const> const> surfaces,
+    Config const& config
+) :
     Core{instance} { create(surfaces, config); }
 
 Core::Core(Instance const& instance, State state) : Core{instance} { wrap(std::move(state)); }
@@ -68,11 +73,14 @@ void Core::wrap(State state) {
     _physicalDevicePtr = state.physicalDevice.release_val();
     _devicePtr = state.device.release_val();
     _allocatorPtr = std::move(state.allocator);
-    if(_allocatorPtr == nullptr) _allocatorPtr = std::make_unique<Allocator>(*_devicePtr, cvk::create);
+    if(_allocatorPtr == nullptr)
+        _allocatorPtr = std::make_unique<Allocator>(*_devicePtr, cvk::create);
     _queueSetIdxOpt = state.queueSetIndex;
 
-    if(state.queueIndices.empty()) _queueIndices.assign_range(std::views::iota(0uz, _devicePtr->queues().size()));
-    else _queueIndices = std::move(state.queueIndices);
+    if(state.queueIndices.empty())
+        _queueIndices.assign_range(std::views::iota(0uz, _devicePtr->queues().size()));
+    else
+        _queueIndices = std::move(state.queueIndices);
 }
 
 void Core::create(span<cth::ref_wrapper<Surface const> const> surfaces, Config const& config) {
@@ -123,7 +131,10 @@ Core::State Core::release() {
 
 size_t Core::queueSetIndex() const {
     debug_check(*this);
-    CTH_CRITICAL(!_queueSetIdxOpt.has_value(), "queue set index has no value, the config had no queue sets") {}
+    CTH_CRITICAL(
+        !_queueSetIdxOpt.has_value(),
+        "queue set index has no value, the config had no queue sets"
+    ) {}
     return *_queueSetIdxOpt;
 }
 
@@ -161,18 +172,25 @@ void Core::forget() {
 }
 
 auto Core::requirements(Config const& config) -> device_requirements {
-    device_requirements required{.features = constants::BASE_DEVICE_FEATURES, .extensions = config.extensions};
+    device_requirements required{
+        .features = constants::BASE_DEVICE_FEATURES,
+        .extensions = config.extensions
+    };
     required.features.merge(config.features);
 
     bool const present = std::ranges::any_of(
         config.queueProperties,
-        [](QueueFamilyProperties properties) { return contains(properties, QueueFamilyProperties::PRESENT); }
+        [](QueueFamilyProperties properties) {
+            return contains(properties, QueueFamilyProperties::PRESENT);
+        }
     );
-    if(!present) return required;
+    if(!present)
+        return required;
 
     required.features.merge(constants::PRESENT_DEVICE_FEATURES);
     for(auto const extension : constants::PRESENT_DEVICE_EXTENSIONS)
-        if(!std::ranges::contains(required.extensions, extension)) required.extensions.emplace_back(extension);
+        if(!std::ranges::contains(required.extensions, extension))
+            required.extensions.emplace_back(extension);
 
     return required;
 }
@@ -183,7 +201,12 @@ auto Core::pickPhysicalDevice(
     device_requirements const& required
 ) const -> device_pick {
     if(config.queueSets.empty()) {
-        auto pick = tryPickPhysicalDevice(surfaces, config, required, queue_set_t{config.queueProperties.size()});
+        auto pick = tryPickPhysicalDevice(
+            surfaces,
+            config,
+            required,
+            queue_set_t{config.queueProperties.size()}
+        );
         CVK_STABLE_THROW(
             !pick && config.device.has_value(),
             "physical device {} is missing or does not support the queues",
@@ -195,7 +218,8 @@ auto Core::pickPhysicalDevice(
 
     for(auto const& [setIndex, queueSet] : std::views::enumerate(config.queueSets)) {
         auto pick = tryPickPhysicalDevice(surfaces, config, required, queueSet);
-        if(!pick) continue;
+        if(!pick)
+            continue;
 
         pick->queueSetIndex = static_cast<size_t>(setIndex);
         return *std::move(pick);
@@ -240,9 +264,15 @@ auto Core::tryPickPhysicalDevice(
     device_requirements const& required,
     queue_set_t const& queueSet
 ) const -> std::optional<device_pick> {
-    CTH_CRITICAL(queueSet.size() != config.queueProperties.size(), "queue set must span all queues") {}
+    CTH_CRITICAL(
+        queueSet.size() != config.queueProperties.size(),
+        "queue set must span all queues"
+    ) {}
 
-    auto [uniqueQueues, queueToUniqueQueue] = createQueueSetRelations(queueSet, config.queueProperties);
+    auto [uniqueQueues, queueToUniqueQueue] = createQueueSetRelations(
+        queueSet,
+        config.queueProperties
+    );
 
     auto result = pick_physical_device(
         *_instance,
@@ -252,7 +282,8 @@ auto Core::tryPickPhysicalDevice(
         required.extensions,
         config.device
     );
-    if(!result) return std::nullopt;
+    if(!result)
+        return std::nullopt;
 
     return device_pick{
         .physicalDevice = std::make_unique<PhysicalDevice>(std::move(result->device)),

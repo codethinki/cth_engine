@@ -40,7 +40,8 @@ struct ImageAccess {
 
     uint32_t firstMipLevel = 0;
 
-    uint32_t mipLevels = VK_REMAINING_MIP_LEVELS; ///< (`VK_REMAINING_MIP_LEVELS` => to the last mip level)
+    uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
+    ///< (`VK_REMAINING_MIP_LEVELS` => to the last mip level)
 
     //TODO review
     /**
@@ -220,19 +221,21 @@ public:
      *  sharing mode of the image
      */
     [[nodiscard]] auto images() const {
-        return _images | std::views::transform([](auto const& entry) {
-            auto const& [key, states] = entry;
-            return std::tuple{key.first, key.second, states.aspectMask, states.sharingMode};
-        });
+        return _images | std::views::transform(
+            [](auto const& entry) {
+                auto const& [key, states] = entry;
+                return std::tuple{key.first, key.second, states.aspectMask, states.sharingMode};
+            }
+        );
     }
 
     /**
      * @return view of the buffers with a state: `std::pair` of the buffer and its sharing mode
      */
     [[nodiscard]] auto buffers() const {
-        return _buffers | std::views::transform([](auto const& entry) {
-            return std::pair{entry.first, entry.second.sharingMode};
-        });
+        return _buffers | std::views::transform(
+            [](auto const& entry) { return std::pair{entry.first, entry.second.sharingMode}; }
+        );
     }
 
 private:
@@ -242,7 +245,8 @@ private:
         VkImageAspectFlags aspectMask; ///< of the image, the barriers take it
         VkSharingMode sharingMode; ///< of the image
 
-        std::optional<ImageState> firstOpt; ///< `std::nullopt` -> `assume()` before the first access
+        std::optional<ImageState> firstOpt;
+        ///< `std::nullopt` -> `assume()` before the first access
         ImageState last;
         bool discard = false;
 
@@ -252,7 +256,8 @@ private:
     struct buffer_states {
         VkSharingMode sharingMode; ///< of the buffer
 
-        std::optional<BufferState> firstOpt; ///< `std::nullopt` -> `assume()` before the first access
+        std::optional<BufferState> firstOpt;
+        ///< `std::nullopt` -> `assume()` before the first access
         BufferState last;
 
         bool barrier = false; ///< a barrier or `assume()` after the first use: `firstOpt` is final

@@ -24,7 +24,9 @@ namespace {
     };
 
     template<class State>
-    concept addable = requires(Stasis& stasis, State&& state) { stasis.add(std::forward<State>(state)); };
+    concept addable = requires(Stasis& stasis, State&& state) {
+        stasis.add(std::forward<State>(state));
+    };
 }
 
 JVK_TEST(Stasis, takes_rvalue_states_only) {

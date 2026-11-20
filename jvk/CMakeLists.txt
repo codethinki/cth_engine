@@ -36,6 +36,6 @@ target_link_libraries(
 )
 
 # tests
-if(JOLLY_ENABLE_TESTS)
+if (JOLLY_ENABLE_TESTS)
     add_subdirectory(tests)
-endif()
+endif ()

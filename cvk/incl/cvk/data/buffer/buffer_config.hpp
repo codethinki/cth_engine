@@ -29,7 +29,8 @@ struct BufferConfig {
      */
     std::vector<queue_family_index_t> queueFamilies{};
 
-    MemoryConfig memory{}; ///< memory of the buffer, `VMA_MEMORY_USAGE_AUTO` picks the memory type from `usage`
+    MemoryConfig memory{};
+    ///< memory of the buffer, `VMA_MEMORY_USAGE_AUTO` picks the memory type from `usage`
 
     //TODO review one place for the rule: the create info and the jvk tracking read it
     /**
@@ -66,6 +67,9 @@ constexpr void BufferConfig::debug_check(BufferConfig const& config) {
 
     auto families = config.queueFamilies;
     std::ranges::sort(families);
-    CTH_CRITICAL(std::ranges::adjacent_find(families) != families.end(), "queue families must be unique") {}
+    CTH_CRITICAL(
+        std::ranges::adjacent_find(families) != families.end(),
+        "queue families must be unique"
+    ) {}
 }
 }

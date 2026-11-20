@@ -5,14 +5,21 @@
 
 
 namespace cvk {
-ImageView::ImageView(Image const& image, Config const& config) : _handle{image.core()}, _image{image},
+ImageView::ImageView(Image const& image, Config const& config) : _handle{image.core()},
+    _image{image},
     _config{config} {}
 
-ImageView::ImageView(Image const& image, Config const& config, State const& state) : ImageView{image, config} {
-    wrap(state);
-}
+ImageView::ImageView(
+    Image const& image,
+    Config const& config,
+    State const& state
+) : ImageView{image, config} { wrap(state); }
 
-ImageView::ImageView(Image const& image, Config const& config, create_t) : ImageView{image, config} { create(); }
+ImageView::ImageView(
+    Image const& image,
+    Config const& config,
+    create_t
+) : ImageView{image, config} { create(); }
 
 void ImageView::wrap(State const& state) {
     optDestroy();
@@ -28,7 +35,12 @@ void ImageView::create() {
     auto const info = _config.createInfo(*_image);
 
     VkImageView ptr = VK_NULL_HANDLE;
-    auto const result = core().functions()->vkCreateImageView(core().vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreateImageView(
+        core().vkDevice(),
+        &info,
+        nullptr,
+        &ptr
+    );
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create image view") {
         forget();

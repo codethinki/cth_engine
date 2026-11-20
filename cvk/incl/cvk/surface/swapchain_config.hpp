@@ -30,7 +30,8 @@ struct SwapchainConfig {
      */
     std::vector<VkPresentModeKHR> presentModes{VK_PRESENT_MODE_FIFO_KHR};
 
-    uint32_t minImageCount = 0; ///< `0` -> `minImageCount` of the surface + 1, clamped to the limits of the surface
+    uint32_t minImageCount = 0;
+    ///< `0` -> `minImageCount` of the surface + 1, clamped to the limits of the surface
 
     /**
      * @pre `!= 0`
@@ -69,7 +70,9 @@ struct SwapchainConfig {
             .imageExtent = extent,
             .imageArrayLayers = 1,
             .imageUsage = usage,
-            .imageSharingMode = queueFamilies.size() >= 2 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
+            .imageSharingMode = queueFamilies.size() >= 2
+            ? VK_SHARING_MODE_CONCURRENT
+            : VK_SHARING_MODE_EXCLUSIVE,
             .queueFamilyIndexCount = static_cast<uint32_t>(queueFamilies.size()),
             .pQueueFamilyIndices = queueFamilies.data(),
             .preTransform = transform,
@@ -90,6 +93,9 @@ constexpr void SwapchainConfig::debug_check(SwapchainConfig const& config) {
 
     auto families = config.queueFamilies;
     std::ranges::sort(families);
-    CTH_CRITICAL(std::ranges::adjacent_find(families) != families.end(), "queue families must be unique") {}
+    CTH_CRITICAL(
+        std::ranges::adjacent_find(families) != families.end(),
+        "queue families must be unique"
+    ) {}
 }
 }

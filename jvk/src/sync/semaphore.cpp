@@ -22,7 +22,9 @@ void semaphore_awaiter::awaitReactor(await_func cb) const {
 bool submitted_awaiter::await_ready() const { return _semaphore->submittedValue() >= _value; }
 
 
-Semaphore::Semaphore(Core const& core) : _core{core}, _semaphore{core}, _submittedPtr{std::make_unique<Submitted>()} {}
+Semaphore::Semaphore(Core const& core) : _core{core},
+    _semaphore{core},
+    _submittedPtr{std::make_unique<Submitted>()} {}
 
 Semaphore::Semaphore(Core const& core, State const& state) : Semaphore{core} { wrap(state); }
 
@@ -50,9 +52,7 @@ void Semaphore::create(uint64_t initialValue) {
 
 void Semaphore::destroy() {
     debug_check(*this);
-    CTH_CRITICAL(core().reactor().pending(get()), "no wait() must be pending") {}
-
-    {
+    CTH_CRITICAL(core().reactor().pending(get()), "no wait() must be pending") {} {
         std::scoped_lock const lock{_submittedPtr->mutex};
         CTH_CRITICAL(!_submittedPtr->waiters.empty(), "no submitted() must be pending") {}
         _submittedPtr->value = 0;
@@ -63,9 +63,7 @@ void Semaphore::destroy() {
 
 Semaphore::State Semaphore::release() {
     debug_check(*this);
-    CTH_CRITICAL(core().reactor().pending(get()), "no wait() must be pending") {}
-
-    {
+    CTH_CRITICAL(core().reactor().pending(get()), "no wait() must be pending") {} {
         std::scoped_lock const lock{_submittedPtr->mutex};
         CTH_CRITICAL(!_submittedPtr->waiters.empty(), "no submitted() must be pending") {}
         _submittedPtr->value = 0;
@@ -77,8 +75,7 @@ Semaphore::State Semaphore::release() {
 void Semaphore::markSubmitted(uint64_t value) const {
     debug_check(*this);
 
-    std::vector<await_func> reached{};
-    {
+    std::vector<await_func> reached{}; {
         std::scoped_lock const lock{_submittedPtr->mutex};
         CTH_CRITICAL(
             value <= _submittedPtr->value,
@@ -90,9 +87,10 @@ void Semaphore::markSubmitted(uint64_t value) const {
         _submittedPtr->value = value;
 
         auto& waiters = _submittedPtr->waiters;
-        auto const marked = std::ranges::partition(waiters, [value](SubmittedWaiter const& waiter) {
-            return waiter.value > value;
-        });
+        auto const marked = std::ranges::partition(
+            waiters,
+            [value](SubmittedWaiter const& waiter) { return waiter.value > value; }
+        );
         for(auto& waiter : marked)
             reached.push_back(std::move(waiter.cb));
         waiters.erase(marked.begin(), marked.end());
@@ -104,9 +102,7 @@ void Semaphore::markSubmitted(uint64_t value) const {
 }
 
 void Semaphore::awaitSubmitted(uint64_t value, await_func cb) const {
-    debug_check(*this);
-
-    {
+    debug_check(*this); {
         std::scoped_lock const lock{_submittedPtr->mutex};
         if(value > _submittedPtr->value) {
             _submittedPtr->waiters.push_back(SubmittedWaiter{value, std::move(cb)});

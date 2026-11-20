@@ -87,7 +87,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership of the image and its memory, returns the state and forgets
@@ -216,7 +219,9 @@ public:
 [[nodiscard]] constexpr VkExtent2D mip_extent(VkExtent2D extent, uint32_t mipLevel) {
     // a shift by the bit count or more is undefined
     auto const shrink = [mipLevel](uint32_t size) {
-        return mipLevel < std::numeric_limits<uint32_t>::digits ? std::max(size >> mipLevel, 1u) : 1u;
+        return mipLevel < std::numeric_limits<uint32_t>::digits
+            ? std::max(size >> mipLevel, 1u)
+            : 1u;
     };
     return VkExtent2D{shrink(extent.width), shrink(extent.height)};
 }
@@ -226,14 +231,18 @@ namespace cvk {
 struct Image::State {
     vk_not_null<VkImage> vkImage;
     VkExtent2D extent;
-    std::optional<Memory::State> memory = std::nullopt; ///< `std::nullopt` -> the image does not own its memory
+    std::optional<Memory::State> memory = std::nullopt;
+    ///< `std::nullopt` -> the image does not own its memory
 
     /**
      * the raw handles to destroy, in destruction order
      * @return the image, then its own memory, `std::nullopt` -> no own memory
      */
     [[nodiscard]] constexpr std::tuple<VkImage, std::optional<VmaAllocation>> decompose() && {
-        return {vkImage.get(), memory.transform([](Memory::State const& state) { return state.vmaAllocation.get(); })};
+        return {
+            vkImage.get(),
+            memory.transform([](Memory::State const& state) { return state.vmaAllocation.get(); })
+        };
     }
 };
 }

@@ -29,9 +29,15 @@ namespace {
      * shader of the values shader
      */
     struct Values {
-        explicit Values(Core const& core) : shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::shaders::VALUES_COMP} {}
+        explicit Values(Core const& core) : shader{
+            core,
+            VK_SHADER_STAGE_COMPUTE_BIT,
+            test::shaders::VALUES_COMP
+        } {}
 
-        [[nodiscard]] ComputePipeline::Config config() const { return {.stage = shader.stageInfo()}; }
+        [[nodiscard]] ComputePipeline::Config config() const {
+            return {.stage = shader.stageInfo()};
+        }
 
         Shader shader;
     };
@@ -45,18 +51,21 @@ namespace {
         ComputePipeline const pipeline{context.core, values.config(), create};
         Buffer<uint32_t> const output{context.core, OUTPUT_CONFIG, VALUES};
 
-        test::record_and_submit(context, [&](PrimaryCmdBuffer const& cmd) {
-            cmd.bind(pipeline);
-            cmd.pushData(output.address());
-            dispatch(cmd);
+        test::record_and_submit(
+            context,
+            [&](PrimaryCmdBuffer const& cmd) {
+                cmd.bind(pipeline);
+                cmd.pushData(output.address());
+                dispatch(cmd);
 
-            Barrier toHost{};
-            toHost.add(
-                {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT},
-                {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT}
-            );
-            toHost.execute(cmd);
-        });
+                Barrier toHost{};
+                toHost.add(
+                    {VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT},
+                    {VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT}
+                );
+                toHost.execute(cmd);
+            }
+        );
 
         auto const mapped = output.map();
         output.invalidate();

@@ -20,7 +20,9 @@ namespace {
     using test::Context;
     using test::QUEUES;
 
-    constexpr std::array PRESENT_QUEUES{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
+    constexpr std::array PRESENT_QUEUES{
+        QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT
+    };
 
     std::vector<std::string> const UNKNOWN_EXTENSION{"VK_CVK_extension_that_does_not_exist"};
 }
@@ -28,7 +30,12 @@ namespace {
 CVK_TEST(PhysicalDevice, pick_finds_the_queues) {
     Context const context{};
 
-    auto const pick = pick_physical_device(context.instance, {}, QUEUES, constants::BASE_DEVICE_FEATURES);
+    auto const pick = pick_physical_device(
+        context.instance,
+        {},
+        QUEUES,
+        constants::BASE_DEVICE_FEATURES
+    );
 
     ASSERT_TRUE(pick.has_value());
     auto const& [device, familyIndices] = *pick;
@@ -62,7 +69,9 @@ CVK_TEST(PhysicalDevice, missing_names_the_extensions) {
 CVK_TEST(PhysicalDevice, pick_with_a_missing_extension_finds_nothing) {
     Context const context{};
 
-    EXPECT_FALSE(pick_physical_device(context.instance, {}, QUEUES, {}, UNKNOWN_EXTENSION).has_value());
+    EXPECT_FALSE(
+        pick_physical_device(context.instance, {}, QUEUES, {}, UNKNOWN_EXTENSION).has_value()
+    );
 }
 
 CVK_TEST(PhysicalDevice, pick_present_without_surfaces_finds_nothing) {
@@ -74,7 +83,11 @@ CVK_TEST(PhysicalDevice, pick_present_without_surfaces_finds_nothing) {
 CVK_TEST(PhysicalDevice, pick_present_finds_a_family_of_the_surface) {
     test::PresentContext const context{};
 
-    auto const [device, familyIndices] = test::pick(context.instance, PRESENT_QUEUES, {context.surface()});
+    auto const [device, familyIndices] = test::pick(
+        context.instance,
+        PRESENT_QUEUES,
+        {context.surface()}
+    );
 
     EXPECT_TRUE(device.features().swapchainMaintenance1);
     ASSERT_EQ(familyIndices.size(), 1);
@@ -134,8 +147,12 @@ CVK_TEST(PhysicalDevice, uuid_is_the_device_uuid) {
 CVK_TEST(PhysicalDevice, type_rank_prefers_discrete_integrated_virtual_cpu_other) {
     constexpr auto rank = dev::device_type_rank;
     static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) == 0);
-    static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) < rank(VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU));
-    static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) < rank(VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU));
+    static_assert(
+        rank(VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) < rank(VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+    );
+    static_assert(
+        rank(VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) < rank(VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU)
+    );
     static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU) < rank(VK_PHYSICAL_DEVICE_TYPE_CPU));
     static_assert(rank(VK_PHYSICAL_DEVICE_TYPE_CPU) < rank(VK_PHYSICAL_DEVICE_TYPE_OTHER));
 }

@@ -43,9 +43,15 @@ CVK_TEST(Surface, formats_are_every_offered_format) {
     auto const vkSurface = context.surface().get();
 
     uint32_t count = 0;
-    ASSERT_EQ(vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, vkSurface, &count, nullptr), VK_SUCCESS);
+    ASSERT_EQ(
+        vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, vkSurface, &count, nullptr),
+        VK_SUCCESS
+    );
     std::vector<VkSurfaceFormatKHR> offered(count);
-    ASSERT_EQ(vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, vkSurface, &count, offered.data()), VK_SUCCESS);
+    ASSERT_EQ(
+        vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, vkSurface, &count, offered.data()),
+        VK_SUCCESS
+    );
 
     auto const formats = context.surface().formats(context.core.physicalDevice());
 
@@ -59,10 +65,14 @@ CVK_TEST(Surface, present_modes_are_every_offered_present_mode) {
     auto const vkSurface = context.surface().get();
 
     uint32_t count = 0;
-    ASSERT_EQ(vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, vkSurface, &count, nullptr), VK_SUCCESS);
+    ASSERT_EQ(
+        vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, vkSurface, &count, nullptr),
+        VK_SUCCESS
+    );
     std::vector<VkPresentModeKHR> offered(count);
     ASSERT_EQ(
-        vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, vkSurface, &count, offered.data()),
+        vkGetPhysicalDeviceSurfacePresentModesKHR(vkPhysicalDevice, vkSurface, &count, offered.data(
+        )),
         VK_SUCCESS
     );
 
@@ -107,7 +117,8 @@ CVK_TEST(Surface, extent_0_of_the_callback_stays_0) {
     test::PresentContext const context{};
     auto const& physicalDevice = context.core.physicalDevice();
     auto const surface = test::headless_surface(context.instance, [] { return VkExtent2D{0, 32}; });
-    if(surface.capabilities(physicalDevice).currentExtent.width != std::numeric_limits<uint32_t>::max())
+    if(surface.capabilities(physicalDevice).currentExtent.width != std::numeric_limits<
+        uint32_t>::max())
         GTEST_SKIP() << "the surface has a fixed extent";
 
     EXPECT_EQ(surface.extent(physicalDevice), (VkExtent2D{0, 0}));
@@ -118,7 +129,8 @@ CVK_TEST(Surface, release_and_wrap_keep_the_extent_callback) {
     auto const& physicalDevice = context.core.physicalDevice();
     static constexpr VkExtent2D EXTENT{24, 16};
     auto surface = test::headless_surface(context.instance, [] { return EXTENT; });
-    if(surface.capabilities(physicalDevice).currentExtent.width != std::numeric_limits<uint32_t>::max())
+    if(surface.capabilities(physicalDevice).currentExtent.width != std::numeric_limits<
+        uint32_t>::max())
         GTEST_SKIP() << "the surface has a fixed extent";
 
     Surface const wrapped{context.instance, surface.release()};
@@ -127,7 +139,8 @@ CVK_TEST(Surface, release_and_wrap_keep_the_extent_callback) {
 }
 
 CVK_TEST(Surface, move_assignment_destroys_the_old_surface) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
+    if constexpr(!constants::ENABLE_VALIDATION_LAYERS)
+        GTEST_SKIP() << "needs the validation layers";
 
     test::InstanceContext const context{test::headless_extensions()};
     auto surface = test::headless_surface(context.instance);

@@ -44,12 +44,14 @@ CVK_TEST(device_ptr, arithmetic_steps_in_elements) {
     static_assert((3 + ptr).get() == ADDRESS + 3 * sizeof(Vertex));
     static_assert((ptr - 2).get() == ADDRESS - 2 * sizeof(Vertex));
     static_assert((ptr + -2).get() == ADDRESS - 2 * sizeof(Vertex));
-    static_assert([] {
-        device_ptr<Vertex> moving{ADDRESS};
-        moving += 5;
-        moving -= 2;
-        return moving.get() == ADDRESS + 3 * sizeof(Vertex);
-    }());
+    static_assert(
+        [] {
+            device_ptr<Vertex> moving{ADDRESS};
+            moving += 5;
+            moving -= 2;
+            return moving.get() == ADDRESS + 3 * sizeof(Vertex);
+        }()
+    );
     static_assert(device_ptr<std::byte>{ADDRESS} + 3 == device_ptr<std::byte>{ADDRESS + 3});
 }
 

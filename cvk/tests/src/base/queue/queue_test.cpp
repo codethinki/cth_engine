@@ -48,7 +48,11 @@ CVK_TEST(Queue, raw_submit_signals_the_fence) {
     test::Context const context{};
     auto const table = context.core.deviceTable();
 
-    VkFenceCreateInfo const fenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .pNext = nullptr, .flags = 0};
+    VkFenceCreateInfo const fenceInfo{
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0
+    };
     VkFence fence = VK_NULL_HANDLE;
     ASSERT_EQ(table->vkCreateFence(table.device(), &fenceInfo, nullptr, &fence), VK_SUCCESS);
 

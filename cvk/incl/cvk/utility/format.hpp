@@ -65,4 +65,8 @@ CTH_FORMAT_CLASS(
     [](VkSurfaceFormatKHR const& f) { return std::tie(f.format, f.colorSpace); }
 );
 
-CTH_FORMAT_CLASS(VkExtent2D, "{}, {}", [](VkExtent2D const& e) { return std::tie(e.width, e.height); });
+CTH_FORMAT_CLASS(
+    VkExtent2D,
+    "{}, {}",
+    [](VkExtent2D const& e) { return std::tie(e.width, e.height); }
+);

@@ -18,7 +18,9 @@ namespace dev {
      * `cvk::destroy()` with a `DeviceTable` and a `Handle` exists
      */
     template<class Handle>
-    concept device_destroyable = requires(DeviceTable table, Handle handle) { cvk::destroy(table, handle); };
+    concept device_destroyable = requires(DeviceTable table, Handle handle) {
+        cvk::destroy(table, handle);
+    };
 
     /**
      * `cvk::destroy()` with a `VmaAllocator` and a `Handle` exists
@@ -41,8 +43,10 @@ public:
 
     template<class Handle> requires dev::device_destroyable<Handle> || dev::vma_destroyable<Handle>
     constexpr void operator()(Handle handle) const {
-        if constexpr(dev::device_destroyable<Handle>) cvk::destroy(_core->deviceTable(), handle);
-        else cvk::destroy(_core->allocator().get(), handle);
+        if constexpr(dev::device_destroyable<Handle>)
+            cvk::destroy(_core->deviceTable(), handle);
+        else
+            cvk::destroy(_core->allocator().get(), handle);
     }
 
     [[nodiscard]] constexpr Core const& core() const { return *_core; }

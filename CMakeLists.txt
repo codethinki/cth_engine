@@ -12,16 +12,16 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 # lld links much faster than the default linker
 find_program(LLD_LINKER ld.lld)
-if(LLD_LINKER AND NOT MSVC)
+if (LLD_LINKER AND NOT MSVC)
     set(CMAKE_LINKER_TYPE LLD)
-endif()
+endif ()
 
 include(lib/cmake/cth.cmake)
 include(lib/cmake/rgfw.cmake)
 
-if(JOLLY_ENABLE_TESTS)
+if (JOLLY_ENABLE_TESTS)
     enable_testing()
-endif()
+endif ()
 
 # Add subprojects
 add_subdirectory(cvk)
@@ -33,6 +33,6 @@ add_subdirectory(demo/triangle)
 add_subdirectory(demo/cube)
 
 # Tests
-if(JOLLY_ENABLE_TESTS)
+if (JOLLY_ENABLE_TESTS)
     add_subdirectory(tests)
-endif()
+endif ()

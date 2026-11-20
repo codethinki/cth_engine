@@ -63,7 +63,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * calls the callback on a worker once the semaphore reaches the value
@@ -124,7 +127,8 @@ private:
 
     cth::ref_wrapper<cth::co::scheduler const> _workers;
 
-    mutable cvk::TimelineSemaphore _wake; ///< the thread waits for it next to the semaphores with waiters
+    mutable cvk::TimelineSemaphore _wake;
+    ///< the thread waits for it next to the semaphores with waiters
 
     mutable std::mutex _mutex{};
 

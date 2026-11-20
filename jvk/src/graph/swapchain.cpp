@@ -9,8 +9,14 @@
 
 
 namespace jvk {
-Swapchain::Swapchain(cvk::Core const& core, cvk::Queue const& presentQueue, cvk::Surface const& surface) :
-    _core{core}, _presentQueue{presentQueue}, _surface{surface} {}
+Swapchain::Swapchain(
+    cvk::Core const& core,
+    cvk::Queue const& presentQueue,
+    cvk::Surface const& surface
+) :
+    _core{core},
+    _presentQueue{presentQueue},
+    _surface{surface} {}
 
 void Swapchain::create(Config config, VkExtent2D extent) {
     optDestroy();

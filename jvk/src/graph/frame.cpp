@@ -8,7 +8,12 @@ Frame::Frame(dev::FrameSlot& frameSlot, uint64_t number) : _frameSlot{frameSlot}
 
 Stage& Frame::stage(size_t stageId) {
     auto& stages = _frameSlot->stages;
-    CTH_CRITICAL(stageId >= stages.size(), "stage id must be < {}, got {}", stages.size(), stageId) {}
+    CTH_CRITICAL(
+        stageId >= stages.size(),
+        "stage id must be < {}, got {}",
+        stages.size(),
+        stageId
+    ) {}
     return stages[stageId];
 }
 }

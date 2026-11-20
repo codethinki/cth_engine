@@ -75,8 +75,9 @@ public:
      * takes the raw handles of the state
      * @pre the gpu does not use the handles after the next `clear()`
      */
-    template<class State>
-    requires(!std::is_lvalue_reference_v<State>) && requires(State&& state) { std::move(state).decompose(); }
+    template<class State> requires(!std::is_lvalue_reference_v<State>) && requires(State&& state) {
+        std::move(state).decompose();
+    }
     void add(State&& state);
 
     /**
@@ -105,7 +106,9 @@ public:
 
     [[nodiscard]] constexpr size_t size() const { return _handles.size() + _pooledHandles.size(); }
 
-    [[nodiscard]] constexpr bool empty() const { return _handles.empty() && _pooledHandles.empty(); }
+    [[nodiscard]] constexpr bool empty() const {
+        return _handles.empty() && _pooledHandles.empty();
+    }
 
     [[nodiscard]] constexpr cvk::DeviceTable table() const { return _table; }
     [[nodiscard]] constexpr VmaAllocator allocator() const { return _vmaAllocator; }
@@ -120,8 +123,10 @@ private:
     std::vector<handle_t> _handles{};
     std::vector<pooled_t> _pooledHandles{};
 
-    size_t _clearedHandles = 0; ///< handles destroyed by `clear()`, the position of `_handles.front()`
-    size_t _clearedPooledHandles = 0; ///< pooled handles destroyed by `clear()`, the position of the first one
+    size_t _clearedHandles = 0;
+    ///< handles destroyed by `clear()`, the position of `_handles.front()`
+    size_t _clearedPooledHandles = 0;
+    ///< pooled handles destroyed by `clear()`, the position of the first one
 
 public:
     Stasis(Stasis const& other) = delete;
@@ -151,8 +156,9 @@ constexpr bool is_optional<std::optional<T>> = true;
 }
 
 namespace jvk {
-template<class State>
-requires(!std::is_lvalue_reference_v<State>) && requires(State&& state) { std::move(state).decompose(); }
+template<class State> requires(!std::is_lvalue_reference_v<State>) && requires(State&& state) {
+    std::move(state).decompose();
+}
 void Stasis::add(State&& state) {
     std::apply([this](auto... graves) { (push(graves), ...); }, std::move(state).decompose());
 }
@@ -160,11 +166,14 @@ void Stasis::add(State&& state) {
 template<class Grave>
 void Stasis::push(Grave grave) {
     if constexpr(dev::is_optional<Grave>) {
-        if(grave.has_value()) push(*grave);
-    } else if constexpr(dev::alternative_of<Grave, pooled_t>) {
-        _pooledHandles.emplace_back(grave);
-    } else {
-        static_assert(dev::alternative_of<Grave, handle_t>, "the stasis has no alternative for the handle");
+        if(grave.has_value())
+            push(*grave);
+    } else if constexpr(dev::alternative_of<Grave,
+        pooled_t>) { _pooledHandles.emplace_back(grave); } else {
+        static_assert(
+            dev::alternative_of<Grave, handle_t>,
+            "the stasis has no alternative for the handle"
+        );
         _handles.emplace_back(grave);
     }
 }

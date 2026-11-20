@@ -39,7 +39,12 @@ public:
      * constructs and creates
      * @details calls @ref Fence(Core const&), `create()`
      */
-    explicit Fence(Core const&, create_t, VkFenceCreateFlags flags = 0, VkExternalFenceHandleTypeFlags exportTypes = 0);
+    explicit Fence(
+        Core const&,
+        create_t,
+        VkFenceCreateFlags flags = 0,
+        VkExternalFenceHandleTypeFlags exportTypes = 0
+    );
 
     /**
      * @note calls `optDestroy()`
@@ -76,7 +81,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership, returns the state and forgets
@@ -150,7 +158,9 @@ public:
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkFence get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
-    [[nodiscard]] constexpr VkExternalFenceHandleTypeFlags exportTypes() const { return _exportTypes; }
+    [[nodiscard]] constexpr VkExternalFenceHandleTypeFlags exportTypes() const {
+        return _exportTypes;
+    }
 
 private:
     void forget();
@@ -171,7 +181,8 @@ public:
 namespace cvk {
 struct Fence::State {
     vk_not_null<VkFence> vkFence;
-    VkExternalFenceHandleTypeFlags exportTypes = 0; ///< handle types the fence was created to export
+    VkExternalFenceHandleTypeFlags exportTypes = 0;
+    ///< handle types the fence was created to export
 
     /**
      * the raw handles to destroy, in destruction order

@@ -180,7 +180,9 @@ struct ResourceHeap::Cell {
 };
 
 template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
-void ResourceHeap::cell_eraser<Descriptor>::operator()(ResourceHeap const* heap) const { heap->erase<Descriptor>(idx); }
+void ResourceHeap::cell_eraser<Descriptor>::operator()(ResourceHeap const* heap) const {
+    heap->erase<Descriptor>(idx);
+}
 
 /**
  * owning handle of a cell of the heap
@@ -204,9 +206,12 @@ public:
      * @details input attachment: `VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR`
      */
     static constexpr VkImageLayout LAYOUT = [] {
-        if constexpr(std::same_as<Descriptor, cvk::SampledImageDescriptor>) return VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
-        else if constexpr(std::same_as<Descriptor, cvk::StorageImageDescriptor>) return VK_IMAGE_LAYOUT_GENERAL;
-        else return VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR;
+        if constexpr(std::same_as<Descriptor, cvk::SampledImageDescriptor>)
+            return VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+        else if constexpr(std::same_as<Descriptor, cvk::StorageImageDescriptor>)
+            return VK_IMAGE_LAYOUT_GENERAL;
+        else
+            return VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR;
     }();
 
     /**

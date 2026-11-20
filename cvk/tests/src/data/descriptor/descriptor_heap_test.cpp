@@ -24,9 +24,9 @@
 
 namespace cvk {
 namespace {
-    [[nodiscard]] VkPhysicalDeviceDescriptorHeapPropertiesEXT const& heap_properties(Core const& core) {
-        return core.physicalDevice().descriptorHeapProperties();
-    }
+    [[nodiscard]] VkPhysicalDeviceDescriptorHeapPropertiesEXT const& heap_properties(
+        Core const& core
+    ) { return core.physicalDevice().descriptorHeapProperties(); }
 
     [[nodiscard]] constexpr size_t align(size_t value, size_t alignment) {
         return (value + alignment - 1) / alignment * alignment;
@@ -115,7 +115,11 @@ CVK_TEST(ResourceHeap, create_lays_out_the_areas_and_the_reserved_range) {
     auto const& properties = heap_properties(context.core);
     auto const stride = image_stride(context.core);
 
-    ResourceHeap heap{context.core, {.sampledImages = 3, .storageImages = 2, .inputAttachments = 1}, create};
+    ResourceHeap heap{
+        context.core,
+        {.sampledImages = 3, .storageImages = 2, .inputAttachments = 1},
+        create
+    };
     ASSERT_TRUE(heap.created());
 
     EXPECT_EQ(heap.sampledImages().size(), 3);
@@ -123,7 +127,10 @@ CVK_TEST(ResourceHeap, create_lays_out_the_areas_and_the_reserved_range) {
     EXPECT_EQ(heap.inputAttachments().size(), 1);
 
     auto const info = heap.bindInfo();
-    auto const reservedAlignment = std::max(properties.bufferDescriptorAlignment, properties.imageDescriptorAlignment);
+    auto const reservedAlignment = std::max(
+        properties.bufferDescriptorAlignment,
+        properties.imageDescriptorAlignment
+    );
     EXPECT_EQ(info.heapRange.address % properties.resourceHeapAlignment, 0);
     EXPECT_EQ(info.reservedRangeOffset, align(6 * stride, reservedAlignment));
     EXPECT_EQ(info.reservedRangeSize, properties.minResourceHeapReservedRange);
@@ -166,7 +173,10 @@ CVK_TEST(ResourceHeap, move_assignment_destroys_the_old_heap) {
 CVK_TEST(SamplerHeap, create_lays_out_the_samplers_and_the_reserved_range) {
     test::Context const context{};
     auto const& properties = heap_properties(context.core);
-    auto const stride = align(properties.samplerDescriptorSize, properties.samplerDescriptorAlignment);
+    auto const stride = align(
+        properties.samplerDescriptorSize,
+        properties.samplerDescriptorAlignment
+    );
 
     SamplerHeap heap{context.core, {.samplers = 5}, create};
     ASSERT_TRUE(heap.created());
@@ -190,7 +200,11 @@ CVK_TEST(SamplerHeap, a_heap_above_the_device_limit_throws) {
 CVK_TEST(DescriptorSpan, mapping_points_at_the_area_of_the_span) {
     test::Context const context{};
     auto const stride = image_stride(context.core);
-    ResourceHeap heap{context.core, {.sampledImages = 3, .storageImages = 2, .inputAttachments = 1}, create};
+    ResourceHeap heap{
+        context.core,
+        {.sampledImages = 3, .storageImages = 2, .inputAttachments = 1},
+        create
+    };
 
     auto const sampled = heap.sampledImages().mapping(1, 4);
     EXPECT_EQ(sampled.sType, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT);
@@ -233,11 +247,18 @@ CVK_TEST(DescriptorSpan, sampler_mapping) {
 
 CVK_TEST(DescriptorSpan, writes_every_descriptor_type) {
     test::Context const context{};
-    ResourceHeap resources{context.core, {.sampledImages = 2, .storageImages = 2, .inputAttachments = 2}, create};
+    ResourceHeap resources{
+        context.core,
+        {.sampledImages = 2, .storageImages = 2, .inputAttachments = 2},
+        create
+    };
     SamplerHeap samplers{context.core, {.samplers = 2}, create};
     auto const sampled = pixel(context.core, VK_IMAGE_USAGE_SAMPLED_BIT);
     auto const storage = pixel(context.core, VK_IMAGE_USAGE_STORAGE_BIT);
-    auto const input = pixel(context.core, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT);
+    auto const input = pixel(
+        context.core,
+        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+    );
 
     // the last cell of every span
     resources.sampledImages()[1] = SampledImageDescriptor{sampled};
@@ -246,7 +267,10 @@ CVK_TEST(DescriptorSpan, writes_every_descriptor_type) {
     samplers.samplers()[1] = SamplerConfig{.magFilter = VK_FILTER_NEAREST, .maxAnisotropy = 0.f};
 
     // a cell takes a new descriptor
-    resources.sampledImages()[1] = SampledImageDescriptor{.image = sampled, .layout = VK_IMAGE_LAYOUT_GENERAL};
+    resources.sampledImages()[1] = SampledImageDescriptor{
+        .image = sampled,
+        .layout = VK_IMAGE_LAYOUT_GENERAL
+    };
 
     // the heap writes without a span
     resources.write(0, SampledImageDescriptor{sampled});
@@ -265,7 +289,10 @@ CVK_TEST(DescriptorSpan, mapping_is_the_mapping_of_the_heap) {
     EXPECT_EQ(span.firstBinding, heap.firstBinding);
     EXPECT_EQ(span.resourceMask, heap.resourceMask);
     EXPECT_EQ(span.sourceData.constantOffset.heapOffset, heap.sourceData.constantOffset.heapOffset);
-    EXPECT_EQ(span.sourceData.constantOffset.heapArrayStride, heap.sourceData.constantOffset.heapArrayStride);
+    EXPECT_EQ(
+        span.sourceData.constantOffset.heapArrayStride,
+        heap.sourceData.constantOffset.heapArrayStride
+    );
 
     EXPECT_EQ(
         samplers.samplers().mapping(0, 1).sourceData.constantOffset.heapArrayStride,
@@ -280,7 +307,11 @@ CVK_TEST(DescriptorSpan, index_out_of_the_span_crashes) {
     test::Context const context{};
     SamplerHeap heap{context.core, {.samplers = 2}, create};
 
-    ASSERT_DEATH([[maybe_unused]] auto const cell = heap.samplers()[2], ".*");
+    ASSERT_DEATH(
+        [[maybe_unused]]
+        auto const cell = heap.samplers()[2],
+        ".*"
+    );
 }
 #endif
 
@@ -294,7 +325,11 @@ namespace {
         static constexpr uint32_t SAMPLER_IDX = 2;
         static constexpr uint32_t IMAGE_IDX = 1;
 
-        explicit HeapCompute(Core const& core) : resources{core, {.sampledImages = 4, .storageImages = 2}, create},
+        explicit HeapCompute(Core const& core) : resources{
+                core,
+                {.sampledImages = 4, .storageImages = 2},
+                create
+            },
             samplers{core, {.samplers = 3}, create},
             texture{pixel(core, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)},
             image{pixel(core, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)},
@@ -324,7 +359,11 @@ namespace {
          */
         void prepare(BaseCmdBuffer const& cmd) const {
             Barrier toTransfer{};
-            toTransfer.addTransition(texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+            toTransfer.addTransition(
+                texture,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
             toTransfer.execute(cmd);
             texture.copy(cmd, staging);
 
@@ -395,13 +434,16 @@ CVK_TEST(DescriptorHeap, compute_samples_a_texture_and_stores_into_an_image_from
     test::Context const context{};
     HeapCompute compute{context.core};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& cmd) {
-        compute.prepare(cmd);
-        cmd.bind(compute.resources);
-        cmd.bind(compute.samplers);
-        compute.dispatch(cmd);
-        compute.read(context, cmd);
-    });
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& cmd) {
+            compute.prepare(cmd);
+            cmd.bind(compute.resources);
+            cmd.bind(compute.samplers);
+            compute.dispatch(cmd);
+            compute.read(context, cmd);
+        }
+    );
 
     EXPECT_TRUE(test::every_pixel_is(compute.readback, test::GREEN_PIXEL));
 }
@@ -419,13 +461,16 @@ CVK_TEST(DescriptorHeap, secondary_inherits_the_heaps_of_the_primary) {
     compute.dispatch(secondary);
     secondary.end();
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& cmd) {
-        compute.prepare(cmd);
-        cmd.bind(compute.resources);
-        cmd.bind(compute.samplers);
-        cmd.execute(secondary);
-        compute.read(context, cmd);
-    });
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& cmd) {
+            compute.prepare(cmd);
+            cmd.bind(compute.resources);
+            cmd.bind(compute.samplers);
+            cmd.execute(secondary);
+            compute.read(context, cmd);
+        }
+    );
 
     EXPECT_TRUE(test::every_pixel_is(compute.readback, test::GREEN_PIXEL));
 }

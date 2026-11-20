@@ -37,7 +37,10 @@ namespace {
      */
     constexpr std::array<unsigned char, 4> RED_PIXEL{255, 0, 0, 255};
 
-    RenderingAttachment clear_red(ImageView const& view, VkImageLayout layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL) {
+    RenderingAttachment clear_red(
+        ImageView const& view,
+        VkImageLayout layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL
+    ) {
         return RenderingAttachment{
             .view = view,
             .layout = layout,
@@ -52,31 +55,42 @@ CVK_TEST(Rendering, clear_a_color_attachment) {
     test::Context const context{};
     Image const image{context.core, COLOR_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
-    BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
+    BaseBuffer const readback{
+        context.core,
+        test::READBACK_CONFIG,
+        size_t{EXTENT.width} * EXTENT.height * 4
+    };
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        Barrier transition{};
-        transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        transition.execute(cmd);
-
-        cmd.beginRendering({.colorAttachments = {clear_red(view)}});
-        cmd.endRendering();
-
-        Barrier barrier{};
-        barrier.add(
-            image,
-            ImageBarrierInfo::LayoutTransition(
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer& cmd) {
+            Barrier transition{};
+            transition.addTransition(
+                image,
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT},
-                COLOR_WRITE
-            )
-        );
-        barrier.execute(cmd);
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            transition.execute(cmd);
 
-        test::copy_to_buffer(context, cmd, image, readback, 0, 0);
-        test::host_read_barrier(context, cmd);
-    });
+            cmd.beginRendering({.colorAttachments = {clear_red(view)}});
+            cmd.endRendering();
+
+            Barrier barrier{};
+            barrier.add(
+                image,
+                ImageBarrierInfo::LayoutTransition(
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT},
+                    COLOR_WRITE
+                )
+            );
+            barrier.execute(cmd);
+
+            test::copy_to_buffer(context, cmd, image, readback, 0, 0);
+            test::host_read_barrier(context, cmd);
+        }
+    );
 
     EXPECT_TRUE(test::every_pixel_is(readback, RED_PIXEL));
 }
@@ -90,20 +104,31 @@ CVK_TEST(Rendering, clear_every_layer) {
     size_t const layerSize = size_t{EXTENT.width} * EXTENT.height * 4;
     BaseBuffer const readback{context.core, test::READBACK_CONFIG, 2 * layerSize};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        Barrier transition{};
-        transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        transition.execute(cmd);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer& cmd) {
+            Barrier transition{};
+            transition.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            transition.execute(cmd);
 
-        cmd.beginRendering({.colorAttachments = {clear_red(view)}, .layerCount = 2});
-        cmd.endRendering();
+            cmd.beginRendering({.colorAttachments = {clear_red(view)}, .layerCount = 2});
+            cmd.endRendering();
 
-        Barrier toTransfer{};
-        toTransfer.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-        toTransfer.execute(cmd);
-        image.copyTo(cmd, readback);
-        test::host_read_barrier(context, cmd);
-    });
+            Barrier toTransfer{};
+            toTransfer.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+            );
+            toTransfer.execute(cmd);
+            image.copyTo(cmd, readback);
+            test::host_read_barrier(context, cmd);
+        }
+    );
 
     EXPECT_TRUE(test::every_pixel_is(readback, RED_PIXEL));
 }
@@ -113,78 +138,107 @@ CVK_TEST(Rendering, tracks_the_current_rendering) {
     Image const image{context.core, COLOR_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        Barrier transition{};
-        transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        transition.execute(cmd);
-        EXPECT_EQ(cmd.rendering(), nullptr);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer& cmd) {
+            Barrier transition{};
+            transition.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            transition.execute(cmd);
+            EXPECT_EQ(cmd.rendering(), nullptr);
 
-        cmd.beginRendering({.colorAttachments = {clear_red(view)}});
-        auto const* rendering = cmd.rendering();
-        ASSERT_NE(rendering, nullptr);
-        ASSERT_EQ(rendering->colorAttachments.size(), 1);
-        EXPECT_EQ(&rendering->colorAttachments[0].view.get(), &view);
-        ASSERT_TRUE(rendering->area.has_value());
-        EXPECT_EQ(rendering->area->extent.width, EXTENT.width);
-        EXPECT_EQ(rendering->area->extent.height, EXTENT.height);
+            cmd.beginRendering({.colorAttachments = {clear_red(view)}});
+            auto const* rendering = cmd.rendering();
+            ASSERT_NE(rendering, nullptr);
+            ASSERT_EQ(rendering->colorAttachments.size(), 1);
+            EXPECT_EQ(&rendering->colorAttachments[0].view.get(), &view);
+            ASSERT_TRUE(rendering->area.has_value());
+            EXPECT_EQ(rendering->area->extent.width, EXTENT.width);
+            EXPECT_EQ(rendering->area->extent.height, EXTENT.height);
 
-        auto const inheritance = cmd.inheritance();
-        ASSERT_EQ(inheritance.colorFormats.size(), 1);
-        EXPECT_EQ(inheritance.colorFormats[0], COLOR_CONFIG.format);
+            auto const inheritance = cmd.inheritance();
+            ASSERT_EQ(inheritance.colorFormats.size(), 1);
+            EXPECT_EQ(inheritance.colorFormats[0], COLOR_CONFIG.format);
 
-        cmd.endRendering();
-        EXPECT_EQ(cmd.rendering(), nullptr);
-    });
+            cmd.endRendering();
+            EXPECT_EQ(cmd.rendering(), nullptr);
+        }
+    );
 }
 
 CVK_TEST(Rendering, clear_a_depth_attachment) {
     test::Context const context{};
-    Image const image{context.core, Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT), EXTENT};
+    Image const image{
+        context.core,
+        Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT),
+        EXTENT
+    };
     ImageView const view{image, {}, create};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        Barrier transition{};
-        transition.addTransition(image, VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        transition.execute(cmd);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer& cmd) {
+            Barrier transition{};
+            transition.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            transition.execute(cmd);
 
-        cmd.beginRendering(
-            {
-                .depthAttachment = RenderingAttachment{
-                    .view = view,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                    .clearValue = {.depthStencil = {1.f, 0}},
-                },
-            }
-        );
-        EXPECT_EQ(cmd.inheritance().depthFormat, VK_FORMAT_D16_UNORM);
-        cmd.endRendering();
-    });
+            cmd.beginRendering(
+                {
+                    .depthAttachment = RenderingAttachment{
+                        .view = view,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                        .clearValue = {.depthStencil = {1.f, 0}},
+                    },
+                }
+            );
+            EXPECT_EQ(cmd.inheritance().depthFormat, VK_FORMAT_D16_UNORM);
+            cmd.endRendering();
+        }
+    );
 }
 
 CVK_TEST(Rendering, depth_attachment_in_the_default_layout) {
     test::Context const context{};
-    Image const image{context.core, Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT), EXTENT};
+    Image const image{
+        context.core,
+        Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT),
+        EXTENT
+    };
     ImageView const view{image, {}, create};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        // the aspect of the image decides the scopes of VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL
-        Barrier transition{};
-        transition.addTransition(image, VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        transition.execute(cmd);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer& cmd) {
+            // the aspect of the image decides the scopes of VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL
+            Barrier transition{};
+            transition.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            transition.execute(cmd);
 
-        cmd.beginRendering(
-            {
-                .depthAttachment = RenderingAttachment{
-                    .view = view,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                    .clearValue = {.depthStencil = {1.f, 0}},
-                },
-            }
-        );
-        cmd.endRendering();
-    });
+            cmd.beginRendering(
+                {
+                    .depthAttachment = RenderingAttachment{
+                        .view = view,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                        .clearValue = {.depthStencil = {1.f, 0}},
+                    },
+                }
+            );
+            cmd.endRendering();
+        }
+    );
 }
 
 CVK_TEST(Rendering, secondary_inherits_the_rendering) {
@@ -194,22 +248,32 @@ CVK_TEST(Rendering, secondary_inherits_the_rendering) {
     CmdPool const pool{context.core, test::pool_config(context.core), create};
     SecondaryCmdBuffer secondary{pool, create};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        Barrier transition{};
-        transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        transition.execute(cmd);
-        cmd.beginRendering(
-            {.colorAttachments = {clear_red(view)}, .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT}
-        );
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer& cmd) {
+            Barrier transition{};
+            transition.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            transition.execute(cmd);
+            cmd.beginRendering(
+                {
+                    .colorAttachments = {clear_red(view)},
+                    .flags = VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT
+                }
+            );
 
-        secondary.begin(cmd.inheritance(), VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        EXPECT_TRUE(secondary.recording());
-        EXPECT_EQ(secondary.rendering(), nullptr);
-        secondary.end();
+            secondary.begin(cmd.inheritance(), VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+            EXPECT_TRUE(secondary.recording());
+            EXPECT_EQ(secondary.rendering(), nullptr);
+            secondary.end();
 
-        cmd.execute(secondary);
-        cmd.endRendering();
-    });
+            cmd.execute(secondary);
+            cmd.endRendering();
+        }
+    );
 }
 
 CVK_TEST(Rendering, local_read_inside_the_rendering) {
@@ -217,27 +281,39 @@ CVK_TEST(Rendering, local_read_inside_the_rendering) {
     Image const image{context.core, LOCAL_READ_CONFIG, EXTENT};
     ImageView const view{image, {}, create};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        Barrier transition{};
-        transition.addTransition(image, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_LAYOUT_UNDEFINED);
-        transition.execute(cmd);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer& cmd) {
+            Barrier transition{};
+            transition.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            transition.execute(cmd);
 
-        cmd.beginRendering({.colorAttachments = {clear_red(view, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)}});
-        cmd.setAttachmentMapping({.locations = {0}, .colorInputIndices = {0}});
+            cmd.beginRendering(
+                {.colorAttachments = {clear_red(view, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR)}}
+            );
+            cmd.setAttachmentMapping({.locations = {0}, .colorInputIndices = {0}});
 
-        Barrier barrier{VK_DEPENDENCY_BY_REGION_BIT};
-        barrier.add(
-            image,
-            {
-                .src = COLOR_WRITE,
-                .dst = {VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT},
-                .newLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-                .oldLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-            }
-        );
-        barrier.execute(cmd);
+            Barrier barrier{VK_DEPENDENCY_BY_REGION_BIT};
+            barrier.add(
+                image,
+                {
+                    .src = COLOR_WRITE,
+                    .dst = {
+                        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                        VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT
+                    },
+                    .newLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                    .oldLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                }
+            );
+            barrier.execute(cmd);
 
-        cmd.endRendering();
-    });
+            cmd.endRendering();
+        }
+    );
 }
 }

@@ -10,12 +10,15 @@
 namespace cvk {
 Memory::Memory(Core const& core, Config const& config) : _handle{core}, _config{config} {}
 
-Memory::Memory(Core const& core, Config const& config, State const& state) : Memory{core, config} { wrap(state); }
+Memory::Memory(Core const& core, Config const& config, State const& state) : Memory{core, config} {
+    wrap(state);
+}
 
-Memory::Memory(Core const& core, Config const& config, VkMemoryRequirements const& requirements) : Memory{
-    core,
-    config
-} { create(requirements); }
+Memory::Memory(Core const& core, Config const& config, VkMemoryRequirements const& requirements) :
+    Memory{
+        core,
+        config
+    } { create(requirements); }
 
 void Memory::wrap(State const& state) {
     Core::debug_check(core());
@@ -27,7 +30,10 @@ void Memory::wrap(State const& state) {
 
 void Memory::create(VkMemoryRequirements const& requirements) {
     Core::debug_check(core());
-    CTH_CRITICAL(_config.autoUsage(), "VMA_MEMORY_USAGE_AUTO* needs a buffer or an image, use the flags") {}
+    CTH_CRITICAL(
+        _config.autoUsage(),
+        "VMA_MEMORY_USAGE_AUTO* needs a buffer or an image, use the flags"
+    ) {}
 
     optDestroy();
 
@@ -62,7 +68,10 @@ Memory::State Memory::release() {
 
 Mapping<std::byte> Memory::map(Range range) const {
     debug_check(*this);
-    CTH_CRITICAL((properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == 0, "memory must be host visible") {}
+    CTH_CRITICAL(
+        (properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == 0,
+        "memory must be host visible"
+    ) {}
 
     size_t const memorySize = size();
     CTH_CRITICAL(range.offset > memorySize, "offset must lie in the memory") {}
@@ -99,14 +108,20 @@ void Memory::invalidate(Range range) const {
 
 void Memory::write(std::span<std::byte const> data, size_t offset) const {
     debug_check(*this);
-    CTH_CRITICAL((properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == 0, "memory must be host visible") {}
-    CTH_CRITICAL(offset > size() || data.size() > size() - offset, "range must lie in the memory") {}
+    CTH_CRITICAL(
+        (properties() & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) == 0,
+        "memory must be host visible"
+    ) {}
+    CTH_CRITICAL(
+        offset > size() || data.size() > size() - offset,
+        "range must lie in the memory"
+    ) {}
 
-    if(data.empty()) return;
+    if(data.empty())
+        return;
 
     // not vmaCopyMemoryToAllocation(): it flushes after the unmap, non coherent memory must be mapped to flush
-    VkResult result = VK_SUCCESS;
-    {
+    VkResult result = VK_SUCCESS; {
         auto const mapping = map({.offset = offset, .size = data.size()});
         std::ranges::copy(data, mapping.begin());
         result = vmaFlushAllocation(allocator(), get(), offset, data.size());
@@ -131,7 +146,8 @@ VmaAllocationInfo Memory::info() const {
 
 std::span<std::byte> Memory::mapped() const {
     auto const allocationInfo = info();
-    if(allocationInfo.pMappedData == nullptr) return {};
+    if(allocationInfo.pMappedData == nullptr)
+        return {};
 
     return {static_cast<std::byte*>(allocationInfo.pMappedData), allocationInfo.size};
 }

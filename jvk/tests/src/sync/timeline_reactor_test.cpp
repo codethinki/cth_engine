@@ -36,12 +36,20 @@ namespace {
      * registers a callback with the reactor of the core
      * @return result of the callback
      */
-    [[nodiscard]] std::future<CallbackResult> await_value(Core const& core, VkSemaphore vkSemaphore, uint64_t value) {
+    [[nodiscard]] std::future<CallbackResult> await_value(
+        Core const& core,
+        VkSemaphore vkSemaphore,
+        uint64_t value
+    ) {
         std::promise<CallbackResult> promise{};
         auto future = promise.get_future();
-        core.reactor().await(vkSemaphore, value, [&core, promise = std::move(promise)](std::error_code error) mutable {
-            promise.set_value({error, core.executor().context().owns_thread()});
-        });
+        core.reactor().await(
+            vkSemaphore,
+            value,
+            [&core, promise = std::move(promise)](std::error_code error) mutable {
+                promise.set_value({error, core.executor().context().owns_thread()});
+            }
+        );
         return future;
     }
 

@@ -31,28 +31,42 @@ namespace {
 
 Stasis::Stasis(cvk::Core const& core) : Stasis{core.deviceTable(), core.allocator().get()} {}
 
-Stasis::Stasis(cvk::DeviceTable table, VmaAllocator vmaAllocator) : _table{table}, _vmaAllocator{vmaAllocator} {}
+Stasis::Stasis(cvk::DeviceTable table, VmaAllocator vmaAllocator) : _table{table},
+    _vmaAllocator{vmaAllocator} {}
 
 void Stasis::clear(pos const& position) {
-    auto const pooled = count_before(position.pooledHandles, _clearedPooledHandles, _pooledHandles.size());
+    auto const pooled = count_before(
+        position.pooledHandles,
+        _clearedPooledHandles,
+        _pooledHandles.size()
+    );
     auto const handles = count_before(position.handles, _clearedHandles, _handles.size());
 
     for(auto const& pooledHandle : _pooledHandles | std::views::take(pooled))
         std::visit(
             [this](auto const& grave) {
-                std::apply([this](auto... vkHandles) { cvk::destroy(_table, vkHandles...); }, grave);
+                std::apply(
+                    [this](auto... vkHandles) { cvk::destroy(_table, vkHandles...); },
+                    grave
+                );
             },
             pooledHandle
         );
-    _pooledHandles.erase(_pooledHandles.begin(), _pooledHandles.begin() + static_cast<ptrdiff_t>(pooled));
+    _pooledHandles.erase(
+        _pooledHandles.begin(),
+        _pooledHandles.begin() + static_cast<ptrdiff_t>(pooled)
+    );
     _clearedPooledHandles += pooled;
 
     for(auto const& handle : _handles | std::views::take(handles))
         std::visit(
             [this]<class Handle>(Handle grave) {
-                if constexpr(requires { grave.erase(); }) grave.erase();
-                else if constexpr(requires { cvk::destroy(_table, grave); }) cvk::destroy(_table, grave);
-                else cvk::destroy(_vmaAllocator, grave);
+                if constexpr(requires { grave.erase(); })
+                    grave.erase();
+                else if constexpr(requires { cvk::destroy(_table, grave); })
+                    cvk::destroy(_table, grave);
+                else
+                    cvk::destroy(_vmaAllocator, grave);
             },
             handle
         );

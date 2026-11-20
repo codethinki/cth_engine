@@ -22,10 +22,13 @@ Fence::Fence(Core const& core) : _handle{core} {}
 
 Fence::Fence(Core const& core, State const& state) : Fence{core} { wrap(state); }
 
-Fence::Fence(Core const& core, create_t, VkFenceCreateFlags flags, VkExternalFenceHandleTypeFlags exportTypes) :
-    Fence{core} {
-    create(flags, exportTypes);
-}
+Fence::Fence(
+    Core const& core,
+    create_t,
+    VkFenceCreateFlags flags,
+    VkExternalFenceHandleTypeFlags exportTypes
+) :
+    Fence{core} { create(flags, exportTypes); }
 
 void Fence::wrap(State const& state) {
     Core::debug_check(core());
@@ -107,18 +110,31 @@ VkResult Fence::wait(uint64_t timeout) const {
     debug_check(*this);
 
     auto const vkFence = _handle.get();
-    auto const result = core().functions()->vkWaitForFences(core().vkDevice(), 1, &vkFence, VK_TRUE, timeout);
+    auto const result = core().functions()->vkWaitForFences(
+        core().vkDevice(),
+        1,
+        &vkFence,
+        VK_TRUE,
+        timeout
+    );
 
-    CVK_RESULT_STABLE_THROW(result != VK_SUCCESS && result != VK_TIMEOUT, result, "failed to wait for fence") {}
+    CVK_RESULT_STABLE_THROW(
+        result != VK_SUCCESS && result != VK_TIMEOUT,
+        result,
+        "failed to wait for fence"
+    ) {}
 
     return result;
 }
 
-void Fence::wait() const { [[maybe_unused]] auto const result = wait(std::numeric_limits<uint64_t>::max()); }
+void Fence::wait() const {
+    [[maybe_unused]] auto const result = wait(std::numeric_limits<uint64_t>::max());
+}
 
 VkResult Fence::waitReset(uint64_t timeout) const {
     auto const result = wait(timeout);
-    if(result == VK_TIMEOUT) return result;
+    if(result == VK_TIMEOUT)
+        return result;
 
     reset();
     return result;
@@ -174,10 +190,9 @@ cth::os::unique_native_handle Fence::extractOsHandle() const {
     // exported -1: already signaled, the import of -1 signals the fence too
     cth::os::unique_native_handle copy{};
     try {
-        if(exported) copy.reset(cth::os::duplicate_handle(exported.get()));
-    } catch(cth::except::os_exception const& e) {
-        throw cvk::cvk_exception{e};
-    }
+        if(exported)
+            copy.reset(cth::os::duplicate_handle(exported.get()));
+    } catch(cth::except::os_exception const& e) { throw cvk::cvk_exception{e}; }
 
     VkImportFenceFdInfoKHR const importInfo{
         .sType = VK_STRUCTURE_TYPE_IMPORT_FENCE_FD_INFO_KHR,
@@ -187,10 +202,15 @@ cth::os::unique_native_handle Fence::extractOsHandle() const {
         .handleType = constants::OS_FENCE_HANDLE_TYPE,
         .fd = copy.get(),
     };
-    auto const importResult = core().functions()->vkImportFenceFdKHR(core().vkDevice(), &importInfo);
+    auto const importResult =
+        core().functions()->vkImportFenceFdKHR(core().vkDevice(), &importInfo);
 
     // a failed import keeps the copy, its unique handle closes it
-    CVK_RESULT_STABLE_THROW(importResult != VK_SUCCESS, importResult, "failed to import the copy of the fence") {}
+    CVK_RESULT_STABLE_THROW(
+        importResult != VK_SUCCESS,
+        importResult,
+        "failed to import the copy of the fence"
+    ) {}
 
     // the import owns the copy now
     [[maybe_unused]] auto const imported = copy.release();

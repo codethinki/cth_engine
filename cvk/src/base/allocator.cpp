@@ -88,10 +88,16 @@ VmaAllocatorCreateFlags Allocator::flags(Device const& device) {
     auto const& features = device.features();
 
     VmaAllocatorCreateFlags flags = 0;
-    if(features.bufferDeviceAddress) flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-    if(features.maintenance4) flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
-    if(features.maintenance5) flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT;
-    if(std::ranges::contains(device.extensions(), std::string_view{VK_EXT_MEMORY_BUDGET_EXTENSION_NAME}))
+    if(features.bufferDeviceAddress)
+        flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    if(features.maintenance4)
+        flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
+    if(features.maintenance5)
+        flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT;
+    if(std::ranges::contains(
+        device.extensions(),
+        std::string_view{VK_EXT_MEMORY_BUDGET_EXTENSION_NAME}
+    ))
         flags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
 
     return flags;

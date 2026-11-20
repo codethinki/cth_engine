@@ -56,7 +56,9 @@ constexpr void CoreConfig::debug_check(CoreConfig const& config) {
     CTH_CRITICAL(
         std::ranges::any_of(
             config.queueSets,
-            [queues = config.queueProperties.size()](queue_set_t const& set) { return set.size() != queues; }
+            [queues = config.queueProperties.size()](queue_set_t const& set) {
+                return set.size() != queues;
+            }
         ),
         "sets must span all queues"
     ) {}

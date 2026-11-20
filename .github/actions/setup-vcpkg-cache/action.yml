@@ -8,7 +8,7 @@ inputs:
 
 runs:
   using: "composite"
-  steps: 
+  steps:
     # --- WINDOWS: (dotnet nuget) ---
     - name: setup vcpkg nuget source
       if: runner.os == 'Windows'

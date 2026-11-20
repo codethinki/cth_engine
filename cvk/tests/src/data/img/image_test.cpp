@@ -80,24 +80,36 @@ CVK_TEST(Image, format_aspects) {
     static_assert(format_aspects(VK_FORMAT_D32_SFLOAT) == VK_IMAGE_ASPECT_DEPTH_BIT);
     static_assert(format_aspects(VK_FORMAT_S8_UINT) == VK_IMAGE_ASPECT_STENCIL_BIT);
     static_assert(
-        format_aspects(VK_FORMAT_D24_UNORM_S8_UINT) == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
+        format_aspects(VK_FORMAT_D24_UNORM_S8_UINT) == (VK_IMAGE_ASPECT_DEPTH_BIT |
+            VK_IMAGE_ASPECT_STENCIL_BIT)
     );
 }
 
 CVK_TEST(Image, config_aspect_mask_fits_the_format) {
-    static_assert([] {
-        Image::Config const config{.format = VK_FORMAT_D24_UNORM_S8_UINT, .usage = VK_IMAGE_USAGE_SAMPLED_BIT};
-        Image::Config::debug_check(config);
-        return true;
-    }());
-    constexpr auto depthBuffer = Image::Config::DepthBuffer(VK_FORMAT_D24_UNORM_S8_UINT, VK_SAMPLE_COUNT_1_BIT);
+    static_assert(
+        [] {
+            Image::Config const config{
+                .format = VK_FORMAT_D24_UNORM_S8_UINT,
+                .usage = VK_IMAGE_USAGE_SAMPLED_BIT
+            };
+            Image::Config::debug_check(config);
+            return true;
+        }()
+    );
+    constexpr auto depthBuffer = Image::Config::DepthBuffer(
+        VK_FORMAT_D24_UNORM_S8_UINT,
+        VK_SAMPLE_COUNT_1_BIT
+    );
     static_assert((Image::Config::debug_check(depthBuffer), true));
 }
 
 CVK_TEST(Image, aspect_mask_comes_from_the_format) {
     test::Context const context{};
 
-    Image const color{context.core, {.format = VK_FORMAT_R8G8B8A8_UNORM, .usage = VK_IMAGE_USAGE_SAMPLED_BIT}};
+    Image const color{
+        context.core,
+        {.format = VK_FORMAT_R8G8B8A8_UNORM, .usage = VK_IMAGE_USAGE_SAMPLED_BIT}
+    };
     Image const depth{
         context.core,
         {.format = VK_FORMAT_D16_UNORM, .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT}
@@ -111,7 +123,10 @@ CVK_TEST(Image, config_create_info) {
     constexpr auto info = TEXTURE_CONFIG.createInfo(EXTENT);
 
     static_assert(info.imageType == VK_IMAGE_TYPE_2D);
-    static_assert(info.extent.width == EXTENT.width && info.extent.height == EXTENT.height && info.extent.depth == 1);
+    static_assert(
+        info.extent.width == EXTENT.width && info.extent.height == EXTENT.height &&
+        info.extent.depth == 1
+    );
     static_assert(info.mipLevels == 7);
     static_assert(info.arrayLayers == 1);
     static_assert(info.sharingMode == VK_SHARING_MODE_EXCLUSIVE);
@@ -119,12 +134,15 @@ CVK_TEST(Image, config_create_info) {
 }
 
 CVK_TEST(Image, config_queue_families_are_concurrent) {
-    static_assert([] {
-        auto config = TEXTURE_CONFIG;
-        config.queueFamilies = {0, 1};
-        auto const info = config.createInfo(EXTENT);
-        return info.sharingMode == VK_SHARING_MODE_CONCURRENT && info.queueFamilyIndexCount == 2;
-    }());
+    static_assert(
+        [] {
+            auto config = TEXTURE_CONFIG;
+            config.queueFamilies = {0, 1};
+            auto const info = config.createInfo(EXTENT);
+            return info.sharingMode == VK_SHARING_MODE_CONCURRENT &&
+                info.queueFamilyIndexCount == 2;
+        }()
+    );
 }
 
 CVK_TEST(Image, config_depth_buffer) {
@@ -141,7 +159,10 @@ CVK_TEST(Image, config_cube_map) {
     static_assert(config.arrayLayers == 6);
     static_assert((config.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0);
     static_assert((config.usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) != 0);
-    static_assert((Image::Config::CubeMap(VK_FORMAT_R8G8B8A8_UNORM).usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) == 0);
+    static_assert(
+        (Image::Config::CubeMap(VK_FORMAT_R8G8B8A8_UNORM).usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+        == 0
+    );
     static_assert(config.createInfo({8, 8}).arrayLayers == 6);
     static_assert((Image::Config::debug_check(config), true));
 }
@@ -175,7 +196,11 @@ CVK_TEST(Image, create_and_destroy) {
 CVK_TEST(Image, create_depth_buffer) {
     test::Context const context{};
 
-    Image const image{context.core, Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT), EXTENT};
+    Image const image{
+        context.core,
+        Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT),
+        EXTENT
+    };
 
     EXPECT_TRUE(image.created());
     EXPECT_EQ(image.aspectMask(), VK_IMAGE_ASPECT_DEPTH_BIT);
@@ -195,21 +220,32 @@ CVK_TEST(Image, copy_from_a_buffer_into_two_mip_levels) {
         pixels[i] = static_cast<std::byte>(i % 251);
     staging.write(pixels);
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        Barrier toDst{};
-        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        toDst.execute(primary);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            Barrier toDst{};
+            toDst.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            toDst.execute(primary);
 
-        image.copy(primary, staging, 0, 0);
-        image.copy(primary, staging, mip0, 1);
+            image.copy(primary, staging, 0, 0);
+            image.copy(primary, staging, mip0, 1);
 
-        Barrier toSrc{};
-        toSrc.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        toSrc.execute(primary);
-        test::copy_to_buffer(context, primary, image, readback, 0, 0);
-        test::copy_to_buffer(context, primary, image, readback, mip0, 1);
-        test::host_read_barrier(context, primary);
-    });
+            Barrier toSrc{};
+            toSrc.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+            );
+            toSrc.execute(primary);
+            test::copy_to_buffer(context, primary, image, readback, 0, 0);
+            test::copy_to_buffer(context, primary, image, readback, mip0, 1);
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map({.size = pixels.size()});
     readback.invalidate();
@@ -230,21 +266,32 @@ CVK_TEST(Image, copy_two_mip_levels_to_a_buffer) {
         pixels[i] = static_cast<std::byte>(i % 251);
     staging.write(pixels);
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        Barrier toDst{};
-        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        toDst.execute(primary);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            Barrier toDst{};
+            toDst.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            toDst.execute(primary);
 
-        image.copy(primary, staging, 0, 0);
-        image.copy(primary, staging, mip0, 1);
+            image.copy(primary, staging, 0, 0);
+            image.copy(primary, staging, mip0, 1);
 
-        Barrier toSrc{};
-        toSrc.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        toSrc.execute(primary);
-        image.copyTo(primary, readback, 0, 0);
-        readback.copy(primary, image, mip0, 1);
-        test::host_read_barrier(context, primary);
-    });
+            Barrier toSrc{};
+            toSrc.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+            );
+            toSrc.execute(primary);
+            image.copyTo(primary, readback, 0, 0);
+            readback.copy(primary, image, mip0, 1);
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map({.size = pixels.size()});
     readback.invalidate();
@@ -265,18 +312,29 @@ CVK_TEST(Image, typed_buffer_copies_a_mip_level_in_elements) {
         texels[i] = static_cast<uint32_t>(i * 2654435761u);
     staging.write(std::as_bytes(std::span{texels}));
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        Barrier toDst{};
-        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        toDst.execute(primary);
-        image.copy(primary, staging, 0, 1);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            Barrier toDst{};
+            toDst.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            toDst.execute(primary);
+            image.copy(primary, staging, 0, 1);
 
-        Barrier toSrc{};
-        toSrc.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        toSrc.execute(primary);
-        readback.copy(primary, image, 1, 1);
-        test::host_read_barrier(context, primary);
-    });
+            Barrier toSrc{};
+            toSrc.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+            );
+            toSrc.execute(primary);
+            readback.copy(primary, image, 1, 1);
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map({.offset = 1});
     readback.invalidate();
@@ -297,19 +355,26 @@ CVK_TEST(Image, blit_mip_levels_fills_the_mip_chain) {
     size_t const level2 = size_t{EXTENT.width >> 2} * (EXTENT.height >> 2);
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, level2 + 1};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        Barrier toDst{};
-        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        toDst.execute(primary);
-        image.copy(primary, staging);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            Barrier toDst{};
+            toDst.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            toDst.execute(primary);
+            image.copy(primary, staging);
 
-        image.blitMipLevels(primary);
+            image.blitMipLevels(primary);
 
-        // every level is in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-        readback.copy(primary, image, 0, 2);
-        readback.copy(primary, image, level2, last);
-        test::host_read_barrier(context, primary);
-    });
+            // every level is in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+            readback.copy(primary, image, 0, 2);
+            readback.copy(primary, image, level2, last);
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map();
     readback.invalidate();
@@ -336,18 +401,25 @@ CVK_TEST(Image, cube_map_copies_and_blits_every_face) {
     staging.write(std::as_bytes(std::span{texels}));
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, 6};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        Barrier toDst{};
-        toDst.addTransition(image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-        toDst.execute(primary);
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            Barrier toDst{};
+            toDst.addTransition(
+                image,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            toDst.execute(primary);
 
-        image.copy(primary, staging);
-        image.blitMipLevels(primary);
+            image.copy(primary, staging);
+            image.blitMipLevels(primary);
 
-        // the last level has one texel per face
-        image.copyTo(primary, readback, 0, image.mipLevels() - 1);
-        test::host_read_barrier(context, primary);
-    });
+            // the last level has one texel per face
+            image.copyTo(primary, readback, 0, image.mipLevels() - 1);
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map();
     readback.invalidate();
@@ -379,9 +451,7 @@ CVK_TEST(Image, wrap_without_memory_destroys_only_the_image) {
 
     // another owner frees the memory, after the image, like the swapchain
     Memory const memory{context.core, TEXTURE_CONFIG.memory, *state.memory};
-    state.memory = std::nullopt;
-
-    {
+    state.memory = std::nullopt; {
         Image const wrapped{context.core, TEXTURE_CONFIG, state};
         EXPECT_EQ(wrapped.memory(), nullptr);
     }

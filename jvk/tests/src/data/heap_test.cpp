@@ -50,19 +50,27 @@ namespace {
     [[nodiscard]] Core::Config small_heaps(uint32_t sampledImages, uint32_t samplers) {
         auto config = test::Context::CONFIG;
         config.heaps = {
-            .resources = {.sampledImages = sampledImages, .storageImages = 0, .inputAttachments = 0},
+            .resources = {
+                .sampledImages = sampledImages,
+                .storageImages = 0,
+                .inputAttachments = 0
+            },
             .samplers = {.samplers = samplers},
         };
         return config;
     }
 
-    Frame& next_frame(Core const& core, StageGraph& graph) { return core.executor().sync_wait(graph.nextFrame()); }
+    Frame& next_frame(Core const& core, StageGraph& graph) {
+        return core.executor().sync_wait(graph.nextFrame());
+    }
 
     cth::co::executor_task<void> await_stage(Stage const& stage) { co_await stage; }
 
     cth::co::executor_task<void> await_submitted(Stage const& stage) { co_await stage.submitted(); }
 
-    void wait(Core const& core, Stage const& stage) { core.executor().sync_wait(await_stage(stage)); }
+    void wait(Core const& core, Stage const& stage) {
+        core.executor().sync_wait(await_stage(stage));
+    }
 
     /**
      * signals the semaphore from the host, without a mark
@@ -88,7 +96,8 @@ namespace {
     ) {
         auto const deadline = std::chrono::steady_clock::now() + TIMEOUT;
         while(heap.insert(descriptor).idx() != idx) {
-            if(std::chrono::steady_clock::now() > deadline) return false;
+            if(std::chrono::steady_clock::now() > deadline)
+                return false;
             std::this_thread::sleep_for(std::chrono::milliseconds{1});
         }
         return true;
@@ -98,7 +107,8 @@ namespace {
         auto const mapping = readback.map();
         readback.invalidate();
         for(size_t i = 0; i < GREEN_PIXEL.size(); ++i)
-            if(std::to_integer<unsigned char>(mapping.span()[i]) != GREEN_PIXEL[i]) return false;
+            if(std::to_integer<unsigned char>(mapping.span()[i]) != GREEN_PIXEL[i])
+                return false;
         return true;
     }
 }
@@ -133,8 +143,7 @@ JVK_TEST(ResourceHeap, the_destructor_of_a_handle_returns_the_cell) {
     EXPECT_NE(first.idx(), second.idx());
     EXPECT_EQ(&first.image(), &texture);
 
-    auto const firstIdx = first.idx();
-    {
+    auto const firstIdx = first.idx(); {
         auto const gone = std::move(first);
     }
     auto const third = heap.insert(cvk::SampledImageDescriptor{texture});
@@ -149,7 +158,8 @@ JVK_TEST(ResourceHeap, a_full_area_throws) {
     auto const only = core.resourceHeap().insert(cvk::SampledImageDescriptor{texture});
 
     EXPECT_THROW(
-        [[maybe_unused]] auto const full = core.resourceHeap().insert(cvk::SampledImageDescriptor{texture}),
+        [[maybe_unused]]
+        auto const full = core.resourceHeap().insert(cvk::SampledImageDescriptor{texture}),
         jvk_exception
     );
 }
@@ -166,8 +176,7 @@ JVK_TEST(ResourceHeap, a_retained_cell_comes_back_after_the_gpu_finished) {
     auto& stage = next_frame(core, graph).stage(0);
     stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
     auto handle = heap.insert(descriptor);
-    auto const idx = handle.idx();
-    {
+    auto const idx = handle.idx(); {
         auto const primary = stage.begin();
         stage.retain(std::move(handle));
     }
@@ -206,7 +215,11 @@ JVK_TEST(SamplerHeap, the_cell_lives_until_the_last_handle) {
 
     first.reset();
     // the copy keeps the only cell
-    EXPECT_THROW([[maybe_unused]] auto const full = heap.insert(nearest), jvk_exception);
+    EXPECT_THROW(
+        [[maybe_unused]]
+        auto const full = heap.insert(nearest),
+        jvk_exception
+    );
 
     copy.reset();
     auto const other = heap.insert(nearest);
@@ -222,14 +235,17 @@ JVK_TEST(SamplerHeap, a_retained_sampler_keeps_its_cell_until_the_gpu_finished) 
     cvk::SamplerConfig const nearest{.magFilter = VK_FILTER_NEAREST};
 
     auto& stage = next_frame(core, graph).stage(0);
-    stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
-    {
+    stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1); {
         auto const primary = stage.begin();
         stage.retain(heap.insert(cvk::SamplerConfig{}));
     }
     gate.markSubmitted(1);
     core.executor().sync_wait(await_submitted(stage));
-    EXPECT_THROW([[maybe_unused]] auto const full = heap.insert(nearest), jvk_exception);
+    EXPECT_THROW(
+        [[maybe_unused]]
+        auto const full = heap.insert(nearest),
+        jvk_exception
+    );
 
     host_signal(gate, 1);
     wait(core, stage);
@@ -239,10 +255,7 @@ JVK_TEST(SamplerHeap, a_retained_sampler_keeps_its_cell_until_the_gpu_finished) 
         try {
             [[maybe_unused]] auto const sampler = heap.insert(nearest);
             inserted = true;
-        }
-        catch(jvk_exception const&) {
-            std::this_thread::sleep_for(std::chrono::milliseconds{1});
-        }
+        } catch(jvk_exception const&) { std::this_thread::sleep_for(std::chrono::milliseconds{1}); }
     }
     EXPECT_TRUE(inserted);
 }
@@ -254,13 +267,16 @@ JVK_TEST(CmdBuffer, use_of_a_handle_tracks_the_layout_of_its_type_on_the_mip_lev
         context.core,
         {
             .format = VK_FORMAT_R8G8B8A8_UNORM,
-            .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+            .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
+            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
             | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .mipLevels = 3,
         },
         VkExtent2D{4, 4}
     };
-    auto const view = [](uint32_t mipLevel) { return cvk::ImageViewConfig{.baseMipLevel = mipLevel, .mipLevels = 1}; };
+    auto const view = [](uint32_t mipLevel) {
+        return cvk::ImageViewConfig{.baseMipLevel = mipLevel, .mipLevels = 1};
+    };
     auto const sampled = heap.insert(cvk::SampledImageDescriptor{.image = image, .view = view(0)});
     auto const storage = heap.insert(cvk::StorageImageDescriptor{.image = image, .view = view(1)});
     auto const input = heap.insert(cvk::InputAttachmentDescriptor{.image = image, .view = view(2)});
@@ -268,7 +284,11 @@ JVK_TEST(CmdBuffer, use_of_a_handle_tracks_the_layout_of_its_type_on_the_mip_lev
     PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
     primary.begin();
     primary.use(sampled, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
-    primary.use(storage, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
+    primary.use(
+        storage,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+    );
     primary.use(input);
 
     auto const& states = primary.states();
@@ -295,11 +315,15 @@ namespace {
             storage{core.resourceHeap().insert(cvk::StorageImageDescriptor{target})},
             sampler{core.samplerHeap().insert(cvk::SamplerConfig{})},
             shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::shaders::HEAP_COPY_COMP},
-            pipeline{core, {.stage = shader.stageInfo(), .descriptorMappings = mappings(core)}, cvk::create} {
-            staging.write(GREEN_PIXEL);
-        }
+            pipeline{
+                core,
+                {.stage = shader.stageInfo(), .descriptorMappings = mappings(core)},
+                cvk::create
+            } { staging.write(GREEN_PIXEL); }
 
-        [[nodiscard]] static std::vector<VkDescriptorSetAndBindingMappingEXT> mappings(Core const& core) {
+        [[nodiscard]] static std::vector<VkDescriptorSetAndBindingMappingEXT> mappings(
+            Core const& core
+        ) {
             auto mappings = core.resourceHeap().mappings();
             mappings.append_range(core.samplerHeap().mappings());
             return mappings;
@@ -317,7 +341,11 @@ namespace {
         template<class CmdBuffer>
         void dispatch(CmdBuffer& cmd) const {
             cmd.use(sampled, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);
-            cmd.use(storage, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
+            cmd.use(
+                storage,
+                VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+            );
             cmd.bind(pipeline);
             cmd.pushData(std::array{sampled.idx().get(), sampler.idx().get(), storage.idx().get()});
             cmd.dispatch(1);
@@ -349,8 +377,7 @@ JVK_TEST(StageGraph, a_frame_samples_a_texture_and_stores_into_an_image_through_
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     HeapCopy const copy{core};
 
-    auto& stage = next_frame(core, graph).stage(0);
-    {
+    auto& stage = next_frame(core, graph).stage(0); {
         // the begin binds the heaps of the core
         auto const primary = stage.begin();
         copy.upload(*primary);
@@ -368,8 +395,7 @@ JVK_TEST(StageGraph, a_secondary_inherits_the_heaps) {
     StageGraph graph{core, {.stages = {{.queueIdx = 0, .secondaries = 1}}}};
     HeapCopy const copy{core};
 
-    auto& stage = next_frame(core, graph).stage(0);
-    {
+    auto& stage = next_frame(core, graph).stage(0); {
         auto const primary = stage.begin();
         copy.upload(*primary);
         auto& secondary = stage.beginSecondary(0);
@@ -390,8 +416,7 @@ JVK_TEST(StageGraph, a_core_without_heaps_binds_none) {
     EXPECT_FALSE(core.config().heaps.createsResourceHeap());
     EXPECT_FALSE(core.config().heaps.createsSamplerHeap());
 
-    auto& stage = next_frame(core, graph).stage(0);
-    {
+    auto& stage = next_frame(core, graph).stage(0); {
         auto const primary = stage.begin();
     }
     wait(core, stage);

@@ -25,7 +25,9 @@ concept index_element = std::same_as<T, uint16_t> || std::same_as<T, uint32_t>;
  * `VkIndexType` of `T`
  */
 template<index_element T>
-constexpr VkIndexType index_type = std::same_as<T, uint16_t> ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+constexpr VkIndexType index_type = std::same_as<T, uint16_t>
+    ? VK_INDEX_TYPE_UINT16
+    : VK_INDEX_TYPE_UINT32;
 
 /**
  * typed buffer
@@ -45,13 +47,17 @@ public:
      * constructs and wraps
      * @details calls @ref Buffer(Core const&, Config const&), `wrap()`
      */
-    Buffer(Core const& core, Config const& config, State const& state) : Buffer{core, config} { wrap(state); }
+    Buffer(Core const& core, Config const& config, State const& state) : Buffer{core, config} {
+        wrap(state);
+    }
 
     /**
      * constructs and creates
      * @details calls @ref Buffer(Core const&, Config const&), `create()`
      */
-    Buffer(Core const& core, Config const& config, size_t count) : Buffer{core, config} { create(count); }
+    Buffer(Core const& core, Config const& config, size_t count) : Buffer{core, config} {
+        create(count);
+    }
 
     /**
      * wraps the state
@@ -73,7 +79,9 @@ public:
      * @param range in elements
      * @return the mapped elements, the destructor unmaps
      */
-    [[nodiscard]] Mapping<T> map(Range range = {}) const { return BaseBuffer::map(bytes(range)).template as<T>(); }
+    [[nodiscard]] Mapping<T> map(Range range = {}) const {
+        return BaseBuffer::map(bytes(range)).template as<T>();
+    }
 
     /**
      * makes host writes visible to the device
@@ -121,9 +129,7 @@ public:
         size_t dstOffset = 0,
         uint32_t mipLevel = 0,
         VkImageLayout layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-    ) const {
-        BaseBuffer::copy(cmdBuffer, src, dstOffset * sizeof(T), mipLevel, layout);
-    }
+    ) const { BaseBuffer::copy(cmdBuffer, src, dstOffset * sizeof(T), mipLevel, layout); }
 
     [[nodiscard]] constexpr size_t elements() const { return size() / sizeof(T); }
 
@@ -131,7 +137,11 @@ public:
      * @return gpu address of the first element
      * @pre the preconditions of `BaseBuffer::address()`
      */
-    [[nodiscard]] constexpr device_ptr<T> address() const { return device_ptr<T>{BaseBuffer::address().get()}; }
+    [[nodiscard]] constexpr device_ptr<T> address() const {
+        return device_ptr<T>{
+            BaseBuffer::address().get()
+        };
+    }
 
 private:
     /**

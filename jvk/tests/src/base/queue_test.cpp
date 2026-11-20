@@ -40,16 +40,22 @@ namespace {
      * enters the strand and leaves it to the workers, each round
      * @param[out] jobs
      */
-    cth::co::executor_task<void> enter_rounds(Core const& core, Queue const& queue, StrandJobs& jobs) {
+    cth::co::executor_task<void> enter_rounds(
+        Core const& core,
+        Queue const& queue,
+        StrandJobs& jobs
+    ) {
         for(size_t round = 0; round < ROUNDS; ++round) {
             co_await queue.executor().schedule();
 
-            if(!queue.executor().context().owns_thread()) ++jobs.outsideStrand;
+            if(!queue.executor().context().owns_thread())
+                ++jobs.outsideStrand;
             auto const now = jobs.running.fetch_add(1) + 1;
             auto max = jobs.maxRunning.load();
             while(max < now && !jobs.maxRunning.compare_exchange_weak(max, now)) {}
 
-            std::this_thread::sleep_for(std::chrono::microseconds{20}); // widens the window for an overlap
+            std::this_thread::sleep_for(std::chrono::microseconds{20});
+            // widens the window for an overlap
             jobs.running.fetch_sub(1);
 
             co_await core.executor().schedule();
@@ -73,8 +79,14 @@ namespace {
 
     constexpr ImageState UNDEFINED{.layout = VK_IMAGE_LAYOUT_UNDEFINED, .scope = {}};
     constexpr BufferAccess HOST_READ{VK_PIPELINE_STAGE_2_HOST_BIT, VK_ACCESS_2_HOST_READ_BIT};
-    constexpr cvk::BarrierScope TRANSFER_WRITE{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
-    constexpr cvk::BarrierScope TRANSFER_READ{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
+    constexpr cvk::BarrierScope TRANSFER_WRITE{
+        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        VK_ACCESS_2_TRANSFER_WRITE_BIT
+    };
+    constexpr cvk::BarrierScope TRANSFER_READ{
+        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        VK_ACCESS_2_TRANSFER_READ_BIT
+    };
 
     /**
      * the test config with driver threads for the strands of the queues
@@ -89,9 +101,15 @@ namespace {
      * enters the strand of the queue
      * @return the strand owns the thread, the workers of the core own the thread
      */
-    cth::co::executor_task<std::pair<bool, bool>> strand_thread(Core const& core, Queue const& queue) {
+    cth::co::executor_task<std::pair<bool, bool>> strand_thread(
+        Core const& core,
+        Queue const& queue
+    ) {
         co_await queue.executor().schedule();
-        co_return std::pair{queue.executor().context().owns_thread(), core.executor().context().owns_thread()};
+        co_return std::pair{
+            queue.executor().context().owns_thread(),
+            core.executor().context().owns_thread()
+        };
     }
 
     /**
@@ -121,7 +139,8 @@ namespace {
         auto const mapping = readback.map();
         readback.invalidate();
         for(size_t i = 0; i < PIXELS; ++i)
-            if(mapping[i] != i) return false;
+            if(mapping[i] != i)
+                return false;
         return true;
     }
 
@@ -134,13 +153,22 @@ namespace {
         VkImageLayout oldLayout,
         VkImageLayout newLayout
     ) {
-        return cvk::ImageBarrierInfo{.src = src, .dst = dst, .newLayout = newLayout, .oldLayout = oldLayout};
+        return cvk::ImageBarrierInfo{
+            .src = src,
+            .dst = dst,
+            .newLayout = newLayout,
+            .oldLayout = oldLayout
+        };
     }
 
     /**
      * submits inside the strand
      */
-    cth::co::executor_task<void> submit(Queue const& queue, cvk::SubmitInfo info, cvk::Fence const* fencePtr) {
+    cth::co::executor_task<void> submit(
+        Queue const& queue,
+        cvk::SubmitInfo info,
+        cvk::Fence const* fencePtr
+    ) {
         co_await queue.executor().schedule();
         queue.vk().submit(info, fencePtr);
     }
@@ -148,7 +176,10 @@ namespace {
     /**
      * submits inside the strand: signals the semaphore
      */
-    cth::co::executor_task<void> signal(Queue const& queue, cvk::TimelineSemaphore const& semaphore) {
+    cth::co::executor_task<void> signal(
+        Queue const& queue,
+        cvk::TimelineSemaphore const& semaphore
+    ) {
         co_await queue.executor().schedule();
         queue.vk().submit({.signals = {cvk::SemaphoreSubmitInfo{semaphore}}});
     }
@@ -159,7 +190,9 @@ JVK_TEST(Queue, jobs_of_two_coroutines_never_overlap) {
     auto const& queue = context.core.queue(0);
     StrandJobs jobs{};
 
-    std::jthread other{[&] { context.core.executor().sync_wait(enter_rounds(context.core, queue, jobs)); }};
+    std::jthread other{
+        [&] { context.core.executor().sync_wait(enter_rounds(context.core, queue, jobs)); }
+    };
     context.core.executor().sync_wait(enter_rounds(context.core, queue, jobs));
     other.join();
 
@@ -203,7 +236,8 @@ JVK_TEST(Queue, release_transfers_an_image_to_another_family) {
     auto const& receiver = core.queue(1);
     auto const ownerFamily = owner.vk().familyIndex();
     auto const receiverFamily = receiver.vk().familyIndex();
-    if(ownerFamily == receiverFamily) GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
+    if(ownerFamily == receiverFamily)
+        GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
 
     Image const image{core, IMAGE_CONFIG, EXTENT};
     auto const staging = counting_staging(core);
@@ -247,14 +281,19 @@ JVK_TEST(Queue, release_transfers_an_image_to_another_family) {
     acquire.execute(read);
     read.assume(
         image,
-        {.layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, .scope = {TRANSFER_READ.stages, TRANSFER_READ.access}}
+        {
+            .layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            .scope = {TRANSFER_READ.stages, TRANSFER_READ.access}
+        }
     );
     image.copyTo(read, readback);
     read.use(readback, HOST_READ);
     read.end();
 
     cvk::Fence const fence{core, cvk::create};
-    core.executor().sync_wait(submit(receiver, {.cmdBuffers = {read}, .waits = {released}}, &fence));
+    core.executor().sync_wait(
+        submit(receiver, {.cmdBuffers = {read}, .waits = {released}}, &fence)
+    );
     fence.wait();
 
     EXPECT_TRUE(counts(readback));
@@ -268,7 +307,8 @@ JVK_TEST(Queue, several_releases_in_a_row) {
     auto const& receiver = core.queue(1);
     auto const ownerFamily = owner.vk().familyIndex();
     auto const receiverFamily = receiver.vk().familyIndex();
-    if(ownerFamily == receiverFamily) GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
+    if(ownerFamily == receiverFamily)
+        GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
 
     auto const staging = counting_staging(core);
     std::vector<Buffer<uint32_t>> buffers{};
@@ -324,7 +364,9 @@ JVK_TEST(Queue, several_releases_in_a_row) {
     read.end();
 
     cvk::Fence const fence{core, cvk::create};
-    core.executor().sync_wait(submit(receiver, {.cmdBuffers = {read}, .waits = {released.back()}}, &fence));
+    core.executor().sync_wait(
+        submit(receiver, {.cmdBuffers = {read}, .waits = {released.back()}}, &fence)
+    );
     fence.wait();
 
     for(auto const& readback : readbacks)

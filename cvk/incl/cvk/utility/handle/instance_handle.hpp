@@ -25,7 +25,9 @@ public:
      */
     constexpr explicit instance_deleter(std::nullptr_t) {}
 
-    constexpr explicit instance_deleter(vk_not_null<VkInstance> vkInstance) : _vkInstance{vkInstance.get()} {}
+    constexpr explicit instance_deleter(vk_not_null<VkInstance> vkInstance) : _vkInstance{
+        vkInstance.get()
+    } {}
 
     /**
      * @pre the deleter has a context

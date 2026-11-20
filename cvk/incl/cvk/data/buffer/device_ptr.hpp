@@ -33,15 +33,22 @@ public:
         return *this;
     }
 
-    [[nodiscard]] friend constexpr device_ptr operator+(device_ptr ptr, std::ptrdiff_t count) { return ptr += count; }
-    [[nodiscard]] friend constexpr device_ptr operator+(std::ptrdiff_t count, device_ptr ptr) { return ptr += count; }
-    [[nodiscard]] friend constexpr device_ptr operator-(device_ptr ptr, std::ptrdiff_t count) { return ptr -= count; }
+    [[nodiscard]] friend constexpr device_ptr operator+(device_ptr ptr, std::ptrdiff_t count) {
+        return ptr += count;
+    }
+    [[nodiscard]] friend constexpr device_ptr operator+(std::ptrdiff_t count, device_ptr ptr) {
+        return ptr += count;
+    }
+    [[nodiscard]] friend constexpr device_ptr operator-(device_ptr ptr, std::ptrdiff_t count) {
+        return ptr -= count;
+    }
 
     /**
      * @return distance in elements
      */
     [[nodiscard]] friend constexpr std::ptrdiff_t operator-(device_ptr a, device_ptr b) {
-        return static_cast<std::ptrdiff_t>(a._address - b._address) / static_cast<std::ptrdiff_t>(sizeof(T));
+        return static_cast<std::ptrdiff_t>(a._address - b._address) / static_cast<std::ptrdiff_t>(
+            sizeof(T));
     }
 
     [[nodiscard]] constexpr bool operator==(device_ptr const& other) const = default;
@@ -51,6 +58,12 @@ private:
     VkDeviceAddress _address = 0;
 };
 
-static_assert(sizeof(device_ptr<std::byte>) == 8, "a device_ptr must be 8 bytes: a GLSL buffer_reference member");
-static_assert(std::is_trivially_copyable_v<device_ptr<std::byte>>, "a device_ptr must fit into push data");
+static_assert(
+    sizeof(device_ptr<std::byte>) == 8,
+    "a device_ptr must be 8 bytes: a GLSL buffer_reference member"
+);
+static_assert(
+    std::is_trivially_copyable_v<device_ptr<std::byte>>,
+    "a device_ptr must fit into push data"
+);
 }

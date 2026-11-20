@@ -78,10 +78,15 @@ public:
         VkFilter filter = VK_FILTER_LINEAR
     ) const {
         CTH_CRITICAL(firstMipLevel == 0, "first mip level must be > 0, got {}", firstMipLevel) {}
-        auto const levels = mipLevels == VK_REMAINING_MIP_LEVELS ? this->mipLevels() - firstMipLevel : mipLevels;
+        auto const levels = mipLevels == VK_REMAINING_MIP_LEVELS
+            ? this->mipLevels() - firstMipLevel
+            : mipLevels;
 
         auto const write = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-        cmd.use(*this, mipAccess(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, write, firstMipLevel - 1, levels + 1));
+        cmd.use(
+            *this,
+            mipAccess(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, write, firstMipLevel - 1, levels + 1)
+        );
         // cvk leaves the levels in VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
         cvk::Image::blitMipLevels(cmd, firstMipLevel, mipLevels, filter);
         cmd.assume(

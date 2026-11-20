@@ -13,7 +13,8 @@ std::vector<std::string_view> DeviceFeatures::missing(DeviceFeatures const& requ
 
     std::vector<std::string_view> names{};
     for(size_t i = 0; i < dev::FEATURE_COUNT; ++i)
-        if(needed[i] && !available[i]) names.push_back(NAMES[i]);
+        if(needed[i] && !available[i])
+            names.push_back(NAMES[i]);
 
     return names;
 }

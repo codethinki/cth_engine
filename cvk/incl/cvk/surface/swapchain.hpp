@@ -52,7 +52,8 @@ public:
          */
         VkResult result;
 
-        std::optional<uint32_t> imageIndex; ///< `std::nullopt` -> no image acquired, the semaphore stays unsignaled
+        std::optional<uint32_t> imageIndex;
+        ///< `std::nullopt` -> no image acquired, the semaphore stays unsignaled
     };
 
     /**
@@ -127,7 +128,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * waits for the present fences, releases ownership, returns the state and forgets
@@ -145,7 +149,10 @@ public:
      * @pre `signal` is unsignaled and has no pending operation
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()`
      */
-    [[nodiscard]] Acquired acquire(Semaphore const& signal, uint64_t timeout = std::numeric_limits<uint64_t>::max());
+    [[nodiscard]] Acquired acquire(
+        Semaphore const& signal,
+        uint64_t timeout = std::numeric_limits<uint64_t>::max()
+    );
 
     /**
      * presents the image once its present semaphore signals
@@ -169,13 +176,21 @@ public:
     /**
      * @return the extent clamped to the limits of the surface, a fixed `currentExtent` wins
      */
-    [[nodiscard]] static constexpr VkExtent2D evalExtent(VkExtent2D extent, VkSurfaceCapabilitiesKHR const&);
+    [[nodiscard]] static constexpr VkExtent2D evalExtent(
+        VkExtent2D extent,
+        VkSurfaceCapabilitiesKHR const&
+    );
 
     /**
      * @param minImageCount `0` -> `minImageCount` of the surface + 1
      * @return the count clamped to the limits of the surface (`maxImageCount` `0` => no limit)
      */
-    [[nodiscard]] static constexpr uint32_t evalImageCount(uint32_t minImageCount, VkSurfaceCapabilitiesKHR const&);
+    [[nodiscard]] static constexpr uint32_t evalImageCount(
+        uint32_t minImageCount,
+        VkSurfaceCapabilitiesKHR const&
+
+    
+    );
 
     /**
      * @return every present fence is signaled: the presentation engine finished the presents
@@ -192,7 +207,9 @@ public:
     /**
      * @pre `imageIndex < imageCount()`
      */
-    [[nodiscard]] constexpr bool acquired(uint32_t imageIndex) const { return _acquired[imageIndex]; }
+    [[nodiscard]] constexpr bool acquired(uint32_t imageIndex) const {
+        return _acquired[imageIndex];
+    }
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkSwapchainKHR get() const { return _handle.get(); }
@@ -203,7 +220,9 @@ public:
     [[nodiscard]] constexpr VkFormat format() const { return _surfaceFormat.format; }
     [[nodiscard]] constexpr VkColorSpaceKHR colorSpace() const { return _surfaceFormat.colorSpace; }
     [[nodiscard]] constexpr VkPresentModeKHR presentMode() const { return _presentMode; }
-    [[nodiscard]] constexpr uint32_t imageCount() const { return static_cast<uint32_t>(_images.size()); }
+    [[nodiscard]] constexpr uint32_t imageCount() const {
+        return static_cast<uint32_t>(_images.size());
+    }
 
     /**
      * @return width / height
@@ -216,12 +235,16 @@ public:
     /**
      * @pre `imageIndex < imageCount()`
      */
-    [[nodiscard]] constexpr Image const& image(uint32_t imageIndex) const { return _images[imageIndex].image; }
+    [[nodiscard]] constexpr Image const& image(uint32_t imageIndex) const {
+        return _images[imageIndex].image;
+    }
 
     /**
      * @pre `imageIndex < imageCount()`
      */
-    [[nodiscard]] constexpr ImageView const& view(uint32_t imageIndex) const { return _views[imageIndex]; }
+    [[nodiscard]] constexpr ImageView const& view(uint32_t imageIndex) const {
+        return _views[imageIndex];
+    }
 
     /**
      * @return the semaphore that `present()` of the image waits for, a submit signals it
@@ -251,7 +274,8 @@ private:
     struct OwnedImage {
         explicit OwnedImage(Image image) : image{std::move(image)} {}
         ~OwnedImage() {
-            if(image.created()) static_cast<void>(image.release());
+            if(image.created())
+                static_cast<void>(image.release());
         }
 
         Image image;
@@ -269,7 +293,8 @@ private:
     struct PresentFence {
         explicit PresentFence(Fence fence) : fence{std::move(fence)} {}
         ~PresentFence() {
-            if(fence.created()) fence.wait();
+            if(fence.created())
+                fence.wait();
         }
 
         Fence fence;
@@ -332,21 +357,38 @@ struct Swapchain::State {
     /**
      * the raw handles to destroy, in destruction order
      */
-    [[nodiscard]] constexpr std::tuple<VkSwapchainKHR> decompose() && { return {vkSwapchain.get()}; }
+    [[nodiscard]] constexpr std::tuple<VkSwapchainKHR> decompose() && {
+        return {vkSwapchain.get()};
+    }
 };
 }
 
 namespace cvk {
-constexpr VkExtent2D Swapchain::evalExtent(VkExtent2D extent, VkSurfaceCapabilitiesKHR const& capabilities) {
-    if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) return capabilities.currentExtent;
+constexpr VkExtent2D Swapchain::evalExtent(
+    VkExtent2D extent,
+    VkSurfaceCapabilitiesKHR const& capabilities
+) {
+    if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+        return capabilities.currentExtent;
 
     return VkExtent2D{
-        std::clamp(extent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
-        std::clamp(extent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height),
+        std::clamp(
+            extent.width,
+            capabilities.minImageExtent.width,
+            capabilities.maxImageExtent.width
+        ),
+        std::clamp(
+            extent.height,
+            capabilities.minImageExtent.height,
+            capabilities.maxImageExtent.height
+        ),
     };
 }
 
-constexpr uint32_t Swapchain::evalImageCount(uint32_t minImageCount, VkSurfaceCapabilitiesKHR const& capabilities) {
+constexpr uint32_t Swapchain::evalImageCount(
+    uint32_t minImageCount,
+    VkSurfaceCapabilitiesKHR const& capabilities
+) {
     uint32_t const count = std::max(
         minImageCount != 0 ? minImageCount : capabilities.minImageCount + 1,
         capabilities.minImageCount

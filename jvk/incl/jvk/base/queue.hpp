@@ -77,7 +77,9 @@ public:
     /**
      * @return executor of the strand
      */
-    [[nodiscard]] constexpr cth::co::executor executor() const { return cth::co::executor{_strand}; }
+    [[nodiscard]] constexpr cth::co::executor executor() const {
+        return cth::co::executor{_strand};
+    }
 
     /**
      * @return the scheduler of the strand, for work of the queue outside the strand

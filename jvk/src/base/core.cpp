@@ -19,11 +19,18 @@ namespace jvk {
 using std::span;
 
 Core::Core(cvk::Instance const& instance, Config config) :
-    _config{std::move(config)}, _core{instance},
-    _workers{_config.workers == 0 ? std::max(std::thread::hardware_concurrency(), 1u) : _config.workers},
+    _config{std::move(config)},
+    _core{instance},
+    _workers{
+        _config.workers == 0 ? std::max(std::thread::hardware_concurrency(), 1u) : _config.workers
+    },
     _reactor{_core, _workers} {}
 
-Core::Core(cvk::Instance const& instance, Config config, span<cth::ref_wrapper<cvk::Surface const> const> surfaces) :
+Core::Core(
+    cvk::Instance const& instance,
+    Config config,
+    span<cth::ref_wrapper<cvk::Surface const> const> surfaces
+) :
     Core{instance, std::move(config)} { create(surfaces); }
 
 Core::~Core() { optDestroy(); }
@@ -34,7 +41,8 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
     optDestroy();
 
     auto config = _config.vk;
-    if(config.queueSets.empty()) config.queueSets = queue_sets(config.queueProperties);
+    if(config.queueSets.empty())
+        config.queueSets = queue_sets(config.queueProperties);
     config.features.merge(constants::DEVICE_FEATURES);
 
     _core.create(surfaces, config);
@@ -45,10 +53,11 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
         _workers.start();
         _reactor.create();
         _queuesOpt.emplace(*this, _workers, _config.driverThreads);
-        if(_config.heaps.createsResourceHeap()) _resourceHeapOpt.emplace(_core, _config.heaps.resources);
-        if(_config.heaps.createsSamplerHeap()) _samplerHeapOpt.emplace(_core, _config.heaps.samplers);
-    }
-    catch(...) {
+        if(_config.heaps.createsResourceHeap())
+            _resourceHeapOpt.emplace(_core, _config.heaps.resources);
+        if(_config.heaps.createsSamplerHeap())
+            _samplerHeapOpt.emplace(_core, _config.heaps.samplers);
+    } catch(...) {
         _resourceHeapOpt.reset();
         _queuesOpt.reset();
         _reactor.optDestroy();
@@ -71,17 +80,26 @@ void Core::destroy() {
             continue;
 
         // a failed wait does not stop the teardown, vulkan destroys do not fail, also after a device loss
-        try {
-            queue(qIdx).waitIdle();
-        }
-        catch(cvk::vk_result_exception const& e) {
-            JVK_STABLE_ERR(true, "failed to wait for queue {} in destroy(), got {}", qIdx, e.vkResult()) {}
-        }
-        catch(std::exception const& e) {
-            JVK_STABLE_ERR(true, "failed to wait for queue {} in destroy(), got {}", qIdx, e.what()) {}
-        }
-        catch(...) {
-            JVK_STABLE_ERR(true, "failed to wait for queue {} in destroy(), got an unknown exception", qIdx) {}
+        try { queue(qIdx).waitIdle(); } catch(cvk::vk_result_exception const& e) {
+            JVK_STABLE_ERR(
+                true,
+                "failed to wait for queue {} in destroy(), got {}",
+                qIdx,
+                e.vkResult()
+            ) {}
+        } catch(std::exception const& e) {
+            JVK_STABLE_ERR(
+                true,
+                "failed to wait for queue {} in destroy(), got {}",
+                qIdx,
+                e.what()
+            ) {}
+        } catch(...) {
+            JVK_STABLE_ERR(
+                true,
+                "failed to wait for queue {} in destroy(), got an unknown exception",
+                qIdx
+            ) {}
         }
     }
 
@@ -100,13 +118,19 @@ Queue const& Core::queue(size_t queueIdx) const {
 
 ResourceHeap const& Core::resourceHeap() const {
     debug_check(*this);
-    CTH_CRITICAL(!_resourceHeapOpt.has_value(), "the core must have a resource heap, see HeapsConfig") {}
+    CTH_CRITICAL(
+        !_resourceHeapOpt.has_value(),
+        "the core must have a resource heap, see HeapsConfig"
+    ) {}
     return *_resourceHeapOpt;
 }
 
 SamplerHeap const& Core::samplerHeap() const {
     debug_check(*this);
-    CTH_CRITICAL(!_samplerHeapOpt.has_value(), "the core must have a sampler heap, see HeapsConfig") {}
+    CTH_CRITICAL(
+        !_samplerHeapOpt.has_value(),
+        "the core must have a sampler heap, see HeapsConfig"
+    ) {}
     return *_samplerHeapOpt;
 }
 } // namespace jvk

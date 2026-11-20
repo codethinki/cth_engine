@@ -67,7 +67,10 @@ CVK_TEST(Buffer, address_steps_in_elements) {
     auto const first = base.address().get();
     EXPECT_EQ(buffer.address().get(), first);
     for(std::ptrdiff_t i = 0; i < static_cast<std::ptrdiff_t>(COUNT); ++i)
-        EXPECT_EQ((buffer.address() + i).get(), first + static_cast<VkDeviceAddress>(i) * sizeof(Vertex));
+        EXPECT_EQ(
+        (buffer.address() + i).get(),
+        first + static_cast<VkDeviceAddress>(i) * sizeof(Vertex)
+    );
 }
 
 CVK_TEST(Buffer, create_counts_elements) {
@@ -114,10 +117,17 @@ CVK_TEST(Buffer, copy_elements) {
     Buffer<Vertex> const readback{context.core, READBACK_CONFIG, COUNT};
     staging.write(TRIANGLE, 1);
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        readback.copy(primary, staging, {.srcOffset = 1, .dstOffset = 4, .size = TRIANGLE.size()});
-        test::host_read_barrier(context, primary);
-    });
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            readback.copy(
+                primary,
+                staging,
+                {.srcOffset = 1, .dstOffset = 4, .size = TRIANGLE.size()}
+            );
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map({.offset = 4, .size = TRIANGLE.size()});
     readback.invalidate();
@@ -130,10 +140,13 @@ CVK_TEST(Buffer, copy_the_whole_source_to_an_element) {
     Buffer<Vertex> const readback{context.core, READBACK_CONFIG, COUNT};
     staging.write(TRIANGLE);
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        readback.copy(primary, staging, {.dstOffset = 5});
-        test::host_read_barrier(context, primary);
-    });
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            readback.copy(primary, staging, {.dstOffset = 5});
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map({.offset = 5, .size = TRIANGLE.size()});
     readback.invalidate();

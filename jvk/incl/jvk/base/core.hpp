@@ -45,7 +45,11 @@ public:
      * constructs and creates
      * @details calls @ref Core(cvk::Instance const&, Config), `create()`
      */
-    Core(cvk::Instance const&, Config, std::span<cth::ref_wrapper<cvk::Surface const> const> surfaces);
+    Core(
+        cvk::Instance const&,
+        Config,
+        std::span<cth::ref_wrapper<cvk::Surface const> const> surfaces
+    );
 
     /**
      * constructs and creates with the surfaces of a braced list
@@ -84,7 +88,9 @@ public:
      * creates with the surfaces of a braced list
      * @see @ref create(std::span<cth::ref_wrapper<cvk::Surface const> const>)
      */
-    void create(std::initializer_list<cth::ref_wrapper<cvk::Surface const>> surfaces) { create(std::span{surfaces}); }
+    void create(std::initializer_list<cth::ref_wrapper<cvk::Surface const>> surfaces) {
+        create(std::span{surfaces});
+    }
 
     /**
      * destroys the queues, the heaps, the reactor, the workers and the cvk core
@@ -99,7 +105,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * @param queueIdx index of the queue in `cvk::CoreConfig::queueProperties`

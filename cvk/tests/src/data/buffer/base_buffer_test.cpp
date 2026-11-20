@@ -47,36 +47,52 @@ CVK_TEST(BaseBuffer, config_create_info) {
     static_assert(info.usage == VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
     static_assert(info.flags == 0);
     static_assert(info.sharingMode == VK_SHARING_MODE_EXCLUSIVE);
-    static_assert(info.queueFamilyIndexCount == 0 && info.pQueueFamilyIndices == STAGING_CONFIG.queueFamilies.data());
+    static_assert(
+        info.queueFamilyIndexCount == 0 &&
+        info.pQueueFamilyIndices == STAGING_CONFIG.queueFamilies.data()
+    );
     static_assert(STAGING_CONFIG.memory.autoUsage());
 }
 
 CVK_TEST(BaseBuffer, config_one_queue_family_is_exclusive) {
-    static_assert([] {
-        BaseBuffer::Config config{.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .queueFamilies = {2}};
-        auto const info = config.createInfo(SIZE);
-        return info.sharingMode == VK_SHARING_MODE_EXCLUSIVE && info.queueFamilyIndexCount == 1;
-    }());
+    static_assert(
+        [] {
+            BaseBuffer::Config config{
+                .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                .queueFamilies = {2}
+            };
+            auto const info = config.createInfo(SIZE);
+            return info.sharingMode == VK_SHARING_MODE_EXCLUSIVE && info.queueFamilyIndexCount == 1;
+        }()
+    );
 }
 
 CVK_TEST(BaseBuffer, config_queue_families_are_concurrent) {
-    static_assert([] {
-        BaseBuffer::Config config{
-            .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            .flags = VK_BUFFER_CREATE_PROTECTED_BIT,
-            .queueFamilies = {0, 2},
-        };
-        auto const info = config.createInfo(SIZE);
-        return info.sharingMode == VK_SHARING_MODE_CONCURRENT && info.queueFamilyIndexCount == 2
-            && info.pQueueFamilyIndices == config.queueFamilies.data() && info.flags == VK_BUFFER_CREATE_PROTECTED_BIT;
-    }());
+    static_assert(
+        [] {
+            BaseBuffer::Config config{
+                .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                .flags = VK_BUFFER_CREATE_PROTECTED_BIT,
+                .queueFamilies = {0, 2},
+            };
+            auto const info = config.createInfo(SIZE);
+            return info.sharingMode == VK_SHARING_MODE_CONCURRENT &&
+                info.queueFamilyIndexCount == 2 &&
+                info.pQueueFamilyIndices == config.queueFamilies.data() &&
+                info.flags == VK_BUFFER_CREATE_PROTECTED_BIT;
+        }()
+    );
 }
 
 CVK_TEST(BaseBuffer, config_debug_check_is_constexpr) {
-    static_assert([] {
-        BaseBuffer::Config::debug_check({.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .queueFamilies = {1, 0}});
-        return true;
-    }());
+    static_assert(
+        [] {
+            BaseBuffer::Config::debug_check(
+                {.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT, .queueFamilies = {1, 0}}
+            );
+            return true;
+        }()
+    );
 }
 
 CVK_TEST(BaseBuffer, base_constructor_does_not_create) {
@@ -107,7 +123,8 @@ CVK_TEST(BaseBuffer, create_and_destroy) {
 CVK_TEST(BaseBuffer, create_concurrent) {
     test::Context const context{};
     auto const familyCount = context.core.physicalDevice().queueFamilies().size();
-    if(familyCount < 2) GTEST_SKIP() << "needs 2 queue families";
+    if(familyCount < 2)
+        GTEST_SKIP() << "needs 2 queue families";
 
     auto config = DEVICE_CONFIG;
     config.queueFamilies = {0, 1};
@@ -146,10 +163,17 @@ CVK_TEST(BaseBuffer, copy_a_range) {
     std::ranges::fill(data, std::byte{'c'});
     staging.write(data, 16);
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        readback.copy(primary, staging, {.srcOffset = 16, .dstOffset = 32, .size = data.size()});
-        test::host_read_barrier(context, primary);
-    });
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            readback.copy(
+                primary,
+                staging,
+                {.srcOffset = 16, .dstOffset = 32, .size = data.size()}
+            );
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map({.offset = 32, .size = data.size()});
     readback.invalidate();
@@ -164,10 +188,13 @@ CVK_TEST(BaseBuffer, copy_whole_size_fits_both_buffers) {
     std::ranges::fill(data, std::byte{'w'});
     staging.write(data);
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        readback.copy(primary, staging);
-        test::host_read_barrier(context, primary);
-    });
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            readback.copy(primary, staging);
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map();
     readback.invalidate();
@@ -182,10 +209,13 @@ CVK_TEST(BaseBuffer, copy_the_whole_source_to_an_offset) {
     std::ranges::fill(data, std::byte{'s'});
     staging.write(data);
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer const& primary) {
-        readback.copy(primary, staging, {.dstOffset = 8});
-        test::host_read_barrier(context, primary);
-    });
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer const& primary) {
+            readback.copy(primary, staging, {.dstOffset = 8});
+            test::host_read_barrier(context, primary);
+        }
+    );
 
     auto const mapped = readback.map({.offset = 8, .size = data.size()});
     readback.invalidate();
@@ -217,9 +247,7 @@ CVK_TEST(BaseBuffer, wrap_without_memory_destroys_only_the_buffer) {
 
     // another owner frees the memory, after the buffer
     Memory const memory{context.core, DEVICE_CONFIG.memory, *state.memory};
-    state.memory = std::nullopt;
-
-    {
+    state.memory = std::nullopt; {
         BaseBuffer const wrapped{context.core, DEVICE_CONFIG, state};
         EXPECT_EQ(wrapped.memory(), nullptr);
         EXPECT_EQ(wrapped.size(), SIZE);

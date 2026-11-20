@@ -29,7 +29,9 @@ namespace cvk {
 namespace {
     using test::Context;
 
-    Core::Config const TWO_QUEUES{.queueProperties = {QueueFamilyProperties::GRAPHICS, QueueFamilyProperties::COMPUTE}};
+    Core::Config const TWO_QUEUES{
+        .queueProperties = {QueueFamilyProperties::GRAPHICS, QueueFamilyProperties::COMPUTE}
+    };
 
     /**
      * every queue in one group
@@ -77,7 +79,12 @@ CVK_TEST(Core, create_without_queue_sets) {
 CVK_TEST(Core, create_one_queue_per_entry) {
     Context const context{};
 
-    if(!pick_physical_device(context.instance, {}, TWO_QUEUES.queueProperties, constants::BASE_DEVICE_FEATURES))
+    if(!pick_physical_device(
+        context.instance,
+        {},
+        TWO_QUEUES.queueProperties,
+        constants::BASE_DEVICE_FEATURES
+    ))
         GTEST_SKIP() << "needs a device with two queues";
 
     Core const core{context.instance, {}, TWO_QUEUES};
@@ -142,7 +149,8 @@ CVK_TEST(Core, device_uuid_picks_exactly_this_device) {
     for(auto const& device : enumerate_physical_devices(context.instance)) {
         bool const suitable = device.missing(constants::BASE_DEVICE_FEATURES).empty()
             && !device.queueFamilyIndices(config.queueProperties).empty();
-        if(!suitable) continue;
+        if(!suitable)
+            continue;
 
         config.device = device.uuid();
         Core const core{context.instance, {}, config};
@@ -157,14 +165,19 @@ CVK_TEST(Core, missing_device_uuid_throws) {
     device_uuid_t unknown{};
     unknown.fill(0xFF);
 
-    Core::Config const withoutSets{.queueProperties = Context::CONFIG.queueProperties, .device = unknown};
+    Core::Config const withoutSets{
+        .queueProperties = Context::CONFIG.queueProperties,
+        .device = unknown
+    };
     Core::Config const withSets{
         .queueProperties = Context::CONFIG.queueProperties,
         .queueSets = {Core::queue_set_t{1}},
         .device = unknown,
     };
 
-    auto const construct = [&](Core::Config const& config) { Core const core{context.instance, {}, config}; };
+    auto const construct = [&](Core::Config const& config) {
+        Core const core{context.instance, {}, config};
+    };
 
     EXPECT_THROW(construct(withoutSets), cvk_exception);
     EXPECT_THROW(construct(withSets), cvk_exception);
@@ -236,11 +249,14 @@ CVK_TEST(Core, present_queue_with_headless_surface) {
 
     ASSERT_TRUE(core.created());
     EXPECT_TRUE(core.queue(0).canPresent());
-    EXPECT_TRUE(context.surface().supportsFamily(core.physicalDevice(), core.queue(0).familyIndex()));
+    EXPECT_TRUE(
+        context.surface().supportsFamily(core.physicalDevice(), core.queue(0).familyIndex())
+    );
 }
 
 CVK_TEST(Core, move_assignment_destroys_the_old_core) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
+    if constexpr(!constants::ENABLE_VALIDATION_LAYERS)
+        GTEST_SKIP() << "needs the validation layers";
 
     test::InstanceContext const context{};
 

@@ -49,7 +49,8 @@ struct AttachmentMapping {
      * @pre `debug_check()` passes for `colorAttachments`
      * @attention `pColorAttachmentLocations` points into `locations`
      */
-    [[nodiscard]] constexpr VkRenderingAttachmentLocationInfoKHR locationInfo(uint32_t colorAttachments) const {
+    [[nodiscard]] constexpr VkRenderingAttachmentLocationInfoKHR
+    locationInfo(uint32_t colorAttachments) const {
         return VkRenderingAttachmentLocationInfoKHR{
             .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO_KHR,
             .pNext = nullptr,
@@ -63,14 +64,20 @@ struct AttachmentMapping {
      * @pre `debug_check()` passes for `colorAttachments`
      * @attention the pointers point into this mapping
      */
-    [[nodiscard]] constexpr VkRenderingInputAttachmentIndexInfoKHR inputIndexInfo(uint32_t colorAttachments) const {
+    [[nodiscard]] constexpr VkRenderingInputAttachmentIndexInfoKHR inputIndexInfo(
+        uint32_t colorAttachments
+    ) const {
         return VkRenderingInputAttachmentIndexInfoKHR{
             .sType = VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO_KHR,
             .pNext = nullptr,
             .colorAttachmentCount = colorAttachments,
-            .pColorAttachmentInputIndices = colorInputIndices.empty() ? nullptr : colorInputIndices.data(),
+            .pColorAttachmentInputIndices = colorInputIndices.empty()
+            ? nullptr
+            : colorInputIndices.data(),
             .pDepthInputAttachmentIndex = depthInputIndex.has_value() ? &*depthInputIndex : nullptr,
-            .pStencilInputAttachmentIndex = stencilInputIndex.has_value() ? &*stencilInputIndex : nullptr,
+            .pStencilInputAttachmentIndex = stencilInputIndex.has_value()
+            ? &*stencilInputIndex
+            : nullptr,
         };
     }
 
@@ -160,7 +167,8 @@ struct RenderingInfo {
     std::optional<RenderingAttachment> depthAttachment = std::nullopt;
     std::optional<RenderingAttachment> stencilAttachment = std::nullopt;
 
-    std::optional<VkRect2D> area = std::nullopt; ///< `std::nullopt` -> the extent that fits every attachment
+    std::optional<VkRect2D> area = std::nullopt;
+    ///< `std::nullopt` -> the extent that fits every attachment
 
     /**
      * layers that the rendering writes, `viewMask != 0` -> ignored
@@ -191,17 +199,25 @@ constexpr bool AttachmentMapping::operator==(AttachmentMapping const& other) con
     auto const same = [](std::vector<uint32_t> const& left, std::vector<uint32_t> const& right) {
         // the default maps attachment i to i
         auto const identity = [](std::vector<uint32_t> const& indices) {
-            return std::ranges::equal(indices, std::views::iota(uint32_t{0}, static_cast<uint32_t>(indices.size())));
+            return std::ranges::equal(
+                indices,
+                std::views::iota(uint32_t{0}, static_cast<uint32_t>(indices.size()))
+            );
         };
-        if(left.empty()) return identity(right);
-        if(right.empty()) return identity(left);
+        if(left.empty())
+            return identity(right);
+        if(right.empty())
+            return identity(left);
         return left == right;
     };
     return same(locations, other.locations) && same(colorInputIndices, other.colorInputIndices)
         && depthInputIndex == other.depthInputIndex && stencilInputIndex == other.stencilInputIndex;
 }
 
-constexpr void AttachmentMapping::debug_check(AttachmentMapping const& mapping, size_t colorAttachments) {
+constexpr void AttachmentMapping::debug_check(
+    AttachmentMapping const& mapping,
+    size_t colorAttachments
+) {
     CTH_CRITICAL(
         !mapping.locations.empty() && mapping.locations.size() != colorAttachments,
         "one location per color attachment, got {} for {}",

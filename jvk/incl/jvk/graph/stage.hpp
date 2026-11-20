@@ -46,7 +46,8 @@ namespace jvk::dev {
  * - a skip submits the waits and the signal without the command buffers
  */
 struct SubmitInfo {
-    std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{}; ///< `StageSlot::prologue`, `StageSlot::primary`
+    std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{};
+    ///< `StageSlot::prologue`, `StageSlot::primary`
 
     //TODO review no queueWaits: the submit job awaits the marks of every wait, its append follows the dependency order
     /**
@@ -102,7 +103,8 @@ struct SubmitInfo {
  * @details the submit job erases their graph states before it destroys them, see `StageGraph::erase()`
  */
 struct RetainedResources {
-    std::vector<std::pair<VkImage, uint32_t>> images{}; ///< the handle and the mip levels of each image
+    std::vector<std::pair<VkImage, uint32_t>> images{};
+    ///< the handle and the mip levels of each image
     std::vector<VkBuffer> buffers{};
 };
 
@@ -136,7 +138,8 @@ struct StageSlot {
 
     cth::ref_wrapper<StageGraph> graph;
 
-    cth::ref_wrapper<first_error> error; ///< the first error of the graph, the scopes of the stages store into it
+    cth::ref_wrapper<first_error> error;
+    ///< the first error of the graph, the scopes of the stages store into it
 
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
@@ -158,9 +161,11 @@ struct StageSlot {
 
     //TODO review a member of the stage slot: it refers to StageSlot::semaphore, StageSlot::prologue,
     // StageSlot::primary and the semaphores of the waited stage slots, they live as long as the graph
-    SubmitInfo submitInfo; ///< the waits and the signal of the next submit or skip, see `SubmitInfo::next()`
+    SubmitInfo submitInfo;
+    ///< the waits and the signal of the next submit or skip, see `SubmitInfo::next()`
 
-    cth::ref_wrapper<StageSlot const> previous; ///< the stage in the frame slot before, submits first
+    cth::ref_wrapper<StageSlot const> previous;
+    ///< the stage in the frame slot before, submits first
 
     PrimaryCmdBuffer prologue; ///< barriers for the first uses of the primary, submitted before it
 
@@ -288,7 +293,10 @@ public:
     /**
      * a jvk semaphore needs a value: `await(semaphore, stages, value)`
      */
-    void await(Semaphore const&, VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT) = delete;
+    void await(
+        Semaphore const&,
+        VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
+    ) = delete;
 
     /**
      * adds a wait on a binary semaphore to the submit of this frame
@@ -300,7 +308,10 @@ public:
      * @pre the semaphore lives until the gpu finished the submit
      * @attention not thread safe
      */
-    void await(cvk::Semaphore const& binary, VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
+    void await(
+        cvk::Semaphore const& binary,
+        VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
+    );
 
     /**
      * submits the primary of the frame
@@ -327,14 +338,17 @@ public:
      * @pre its users on other queues finish before this submit: this submit waits for them
      * @pre the submit of this frame is its last use
      */
-    template<class T>
-    requires(!std::is_lvalue_reference_v<T>) && requires(T& object) { object.release().decompose(); }
+    template<class T> requires(!std::is_lvalue_reference_v<T>) && requires(T& object) {
+        object.release().decompose();
+    }
     void retain(T&& object) {
         CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
 
         std::scoped_lock const lock{_stageSlot->stasisMutex};
-        if constexpr(std::derived_from<T, cvk::Image>) _retained.images.emplace_back(object.get(), object.mipLevels());
-        else if constexpr(std::derived_from<T, cvk::BaseBuffer>) _retained.buffers.push_back(object.get());
+        if constexpr(std::derived_from<T, cvk::Image>)
+            _retained.images.emplace_back(object.get(), object.mipLevels());
+        else if constexpr(std::derived_from<T, cvk::BaseBuffer>)
+            _retained.buffers.push_back(object.get());
         _stageSlot->stasis.add(object.release());
     }
 
@@ -391,14 +405,16 @@ private:
     Status _status = Status::UNSUBMITTED;
 
     //TODO review names: the extra waits per kind, the jvk ones keep the jvk semaphore
-    std::vector<SemaphoreSubmitInfo> _extraWaits{}; ///< the waits of @ref await(SemaphoreSubmitInfo const&)
+    std::vector<SemaphoreSubmitInfo> _extraWaits{};
+    ///< the waits of @ref await(SemaphoreSubmitInfo const&)
 
     /**
      * the waits of @ref await(cvk::Semaphore const&, VkPipelineStageFlags2)
      */
     std::vector<cvk::SemaphoreSubmitInfo> _extraBinaryWaits{};
 
-    dev::RetainedResources _retained{}; ///< the images and buffers of `retain()`, under `StageSlot::stasisMutex`
+    dev::RetainedResources _retained{};
+    ///< the images and buffers of `retain()`, under `StageSlot::stasisMutex`
 
 public:
     Stage(Stage const& other) = delete;
@@ -431,7 +447,9 @@ public:
      * @pre `Stage::begin()` began the primary
      */
     scoped_submit(Stage& stage, dev::first_error& error) noexcept :
-        _stagePtr{&stage}, _error{error}, _uncaughtExceptions{std::uncaught_exceptions()} {}
+        _stagePtr{&stage},
+        _error{error},
+        _uncaughtExceptions{std::uncaught_exceptions()} {}
 
     ~scoped_submit();
 

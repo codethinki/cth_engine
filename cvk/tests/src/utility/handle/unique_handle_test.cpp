@@ -21,9 +21,18 @@
 namespace cvk {
 namespace {
     VkFence create_vk_fence(Core const& core) {
-        VkFenceCreateInfo const info{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .pNext = nullptr, .flags = 0};
+        VkFenceCreateInfo const info{
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0
+        };
         VkFence vkFence = VK_NULL_HANDLE;
-        [[maybe_unused]] auto const result = core.functions()->vkCreateFence(core.vkDevice(), &info, nullptr, &vkFence);
+        [[maybe_unused]] auto const result = core.functions()->vkCreateFence(
+            core.vkDevice(),
+            &info,
+            nullptr,
+            &vkFence
+        );
         return vkFence;
     }
 
@@ -33,7 +42,9 @@ namespace {
     struct pool_deleter : core_deleter {
         pool_deleter(Core const& core, VkCommandPool vkPool) : core_deleter{core}, pool{vkPool} {}
 
-        void operator()(VkCommandBuffer vkBuffer) const { cvk::destroy(core().deviceTable(), pool, vkBuffer); }
+        void operator()(VkCommandBuffer vkBuffer) const {
+            cvk::destroy(core().deviceTable(), pool, vkBuffer);
+        }
 
         VkCommandPool pool;
     };
@@ -53,7 +64,9 @@ namespace {
         explicit operator bool() const { return first != nullptr; }
 
         friend bool operator==(pair_handle const&, pair_handle const&) = default;
-        friend bool operator==(pair_handle const& handle, std::nullptr_t) { return handle.first == nullptr; }
+        friend bool operator==(pair_handle const& handle, std::nullptr_t) {
+            return handle.first == nullptr;
+        }
     };
 
     /**
@@ -107,7 +120,9 @@ namespace {
     };
 
     template<class H>
-    concept deleter_assignable = requires(H& handle, typename H::deleter_t deleter) { handle.deleter() = deleter; };
+    concept deleter_assignable = requires(H& handle, typename H::deleter_t deleter) {
+        handle.deleter() = deleter;
+    };
 }
 
 CVK_TEST(unique_handle, the_handle_names_the_type) {
@@ -115,7 +130,9 @@ CVK_TEST(unique_handle, the_handle_names_the_type) {
     static_assert(std::same_as<core_handle<VmaAllocation>::handle_t, VmaAllocation>);
     static_assert(std::same_as<instance_handle<VkSurfaceKHR>::handle_t, VkSurfaceKHR>);
     static_assert(std::same_as<decltype(std::declval<Fence const&>().get()), VkFence>);
-    static_assert(std::same_as<decltype(std::declval<TimelineSemaphore const&>().get()), VkSemaphore>);
+    static_assert(
+        std::same_as<decltype(std::declval<TimelineSemaphore const&>().get()), VkSemaphore>
+    );
 }
 
 CVK_TEST(unique_handle, core_deleter_picks_the_context) {
@@ -162,8 +179,12 @@ CVK_TEST(unique_handle, constexpr) {
 CVK_TEST(unique_handle, size) {
     static_assert(sizeof(unique_handle<VkInstance, handle_deleter>) == sizeof(VkInstance));
     static_assert(sizeof(core_handle<VkFence>) == sizeof(Core const*) + sizeof(VkFence));
-    static_assert(sizeof(core_handle<VmaAllocation>) == sizeof(Core const*) + sizeof(VmaAllocation));
-    static_assert(sizeof(instance_handle<VkSurfaceKHR>) == sizeof(VkInstance) + sizeof(VkSurfaceKHR));
+    static_assert(
+        sizeof(core_handle<VmaAllocation>) == sizeof(Core const*) + sizeof(VmaAllocation)
+    );
+    static_assert(
+        sizeof(instance_handle<VkSurfaceKHR>) == sizeof(VkInstance) + sizeof(VkSurfaceKHR)
+    );
 }
 
 CVK_TEST(unique_handle, core_deleter) {
@@ -209,7 +230,8 @@ CVK_TEST(unique_handle, release_keeps_the_handle) {
 }
 
 CVK_TEST(unique_handle, instance_deleter) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
+    if constexpr(!constants::ENABLE_VALIDATION_LAYERS)
+        GTEST_SKIP() << "needs the validation layers";
 
     test::InstanceContext const context{test::headless_extensions()};
     auto surface = test::headless_surface(context.instance);
@@ -261,9 +283,10 @@ CVK_TEST(unique_handle, custom_deleter) {
         .queueFamilyIndex = context.core.queue(0).familyIndex(),
     };
     VkCommandPool vkPool = VK_NULL_HANDLE;
-    ASSERT_EQ(table->vkCreateCommandPool(table.device(), &poolInfo, nullptr, &vkPool), VK_SUCCESS);
-
-    {
+    ASSERT_EQ(
+        table->vkCreateCommandPool(table.device(), &poolInfo, nullptr, &vkPool),
+        VK_SUCCESS
+    ); {
         unique_handle<VkCommandBuffer, pool_deleter> handle{context.core, vkPool};
         EXPECT_EQ(&handle.core(), &context.core);
         EXPECT_EQ(handle.deleter().pool, vkPool);
@@ -276,7 +299,10 @@ CVK_TEST(unique_handle, custom_deleter) {
             .commandBufferCount = 1,
         };
         VkCommandBuffer vkBuffer = VK_NULL_HANDLE;
-        ASSERT_EQ(table->vkAllocateCommandBuffers(table.device(), &allocInfo, &vkBuffer), VK_SUCCESS);
+        ASSERT_EQ(
+            table->vkAllocateCommandBuffers(table.device(), &allocInfo, &vkBuffer),
+            VK_SUCCESS
+        );
 
         handle.reset(vkBuffer, context.core, vkPool);
         EXPECT_EQ(handle.get(), vkBuffer);
@@ -286,8 +312,7 @@ CVK_TEST(unique_handle, custom_deleter) {
 }
 
 CVK_TEST(unique_handle, non_pointer_handle) {
-    pair_deleter::destroyed = 0;
-    {
+    pair_deleter::destroyed = 0; {
         unique_handle<pair_handle, pair_deleter> handle{};
         EXPECT_FALSE(handle);
 

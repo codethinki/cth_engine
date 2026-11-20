@@ -12,7 +12,11 @@ namespace {
     /**
      * @return the mapped cell of the heap
      */
-    [[nodiscard]] VkHostAddressRangeEXT host_cell(BaseBuffer const& heap, size_t offset, size_t size) {
+    [[nodiscard]] VkHostAddressRangeEXT host_cell(
+        BaseBuffer const& heap,
+        size_t offset,
+        size_t size
+    ) {
         auto const mapped = heap.memory()->mapped();
         CTH_CRITICAL(mapped.empty(), "the heap memory must be mapped") {}
         CTH_CRITICAL(
@@ -57,14 +61,26 @@ namespace {
         auto const cell = host_cell(heap, offset, size);
 
         auto const& core = heap.core();
-        auto const result = core.functions()->vkWriteResourceDescriptorsEXT(core.vkDevice(), 1, &info, &cell);
-        CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to write the image descriptor") {}
+        auto const result = core.functions()->vkWriteResourceDescriptorsEXT(
+            core.vkDevice(),
+            1,
+            &info,
+            &cell
+        );
+        CVK_RESULT_STABLE_THROW(
+            result != VK_SUCCESS,
+            result,
+            "failed to write the image descriptor"
+        ) {}
 
         heap.flush({.offset = offset, .size = size});
     }
 }
 
-void debug_check_push_offset([[maybe_unused]] Core const& core, [[maybe_unused]] uint32_t pushOffset) {
+void debug_check_push_offset(
+    [[maybe_unused]] Core const& core,
+    [[maybe_unused]] uint32_t pushOffset
+) {
     CTH_CRITICAL(
         pushOffset + 4 > core.physicalDevice().descriptorHeapProperties().maxPushDataSize,
         "the push index must lie in maxPushDataSize, got {} + 4 of {}",
@@ -73,22 +89,42 @@ void debug_check_push_offset([[maybe_unused]] Core const& core, [[maybe_unused]]
     ) {}
 }
 
-void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, SampledImageDescriptor const& descriptor) {
+void write_descriptor(
+    BaseBuffer const& heap,
+    size_t offset,
+    size_t size,
+    SampledImageDescriptor const& descriptor
+) {
     auto const& [image, view, layout] = descriptor;
     write_image(heap, offset, size, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, *image, view, layout);
 }
 
-void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, StorageImageDescriptor const& descriptor) {
+void write_descriptor(
+    BaseBuffer const& heap,
+    size_t offset,
+    size_t size,
+    StorageImageDescriptor const& descriptor
+) {
     auto const& [image, view, layout] = descriptor;
     write_image(heap, offset, size, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, *image, view, layout);
 }
 
-void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, InputAttachmentDescriptor const& descriptor) {
+void write_descriptor(
+    BaseBuffer const& heap,
+    size_t offset,
+    size_t size,
+    InputAttachmentDescriptor const& descriptor
+) {
     auto const& [image, view, layout] = descriptor;
     write_image(heap, offset, size, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, *image, view, layout);
 }
 
-void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, SamplerConfig const& sampler) {
+void write_descriptor(
+    BaseBuffer const& heap,
+    size_t offset,
+    size_t size,
+    SamplerConfig const& sampler
+) {
     BaseBuffer::debug_check(heap);
 
     auto const& core = heap.core();
@@ -104,8 +140,17 @@ void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, Sample
     info.maxAnisotropy = std::min(info.maxAnisotropy, limit);
     auto const cell = host_cell(heap, offset, size);
 
-    auto const result = core.functions()->vkWriteSamplerDescriptorsEXT(core.vkDevice(), 1, &info, &cell);
-    CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to write the sampler descriptor") {}
+    auto const result = core.functions()->vkWriteSamplerDescriptorsEXT(
+        core.vkDevice(),
+        1,
+        &info,
+        &cell
+    );
+    CVK_RESULT_STABLE_THROW(
+        result != VK_SUCCESS,
+        result,
+        "failed to write the sampler descriptor"
+    ) {}
 
     heap.flush({.offset = offset, .size = size});
 }

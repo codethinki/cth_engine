@@ -31,7 +31,10 @@ struct handle_deleter {
 template<class Handle, class Deleter>
 class unique_handle {
     using ptr_t = std::unique_ptr<std::remove_pointer_t<Handle>, Deleter>;
-    static_assert(std::same_as<typename ptr_t::pointer, Handle>, "Handle must be a pointer or Deleter::pointer");
+    static_assert(
+        std::same_as<typename ptr_t::pointer, Handle>,
+        "Handle must be a pointer or Deleter::pointer"
+    );
 
 public:
     using handle_t = Handle;
@@ -42,7 +45,10 @@ public:
      * @param context to construct the deleter
      */
     template<class... Args> requires std::constructible_from<Deleter, Args...>
-    constexpr explicit unique_handle(Args&&... context) : _ptr{Handle{}, Deleter{std::forward<Args>(context)...}} {}
+    constexpr explicit unique_handle(Args&&... context) : _ptr{
+        Handle{},
+        Deleter{std::forward<Args>(context)...}
+    } {}
 
     /**
      * owns `handle`
@@ -76,23 +82,25 @@ public:
     [[nodiscard]] constexpr Handle release() noexcept { return _ptr.release(); }
 
     [[nodiscard]] constexpr Handle get() const noexcept { return _ptr.get(); }
-    [[nodiscard]] constexpr explicit operator bool() const noexcept { return static_cast<bool>(_ptr); }
+    [[nodiscard]] constexpr explicit operator bool() const noexcept {
+        return static_cast<bool>(_ptr);
+    }
 
     [[nodiscard]] constexpr Deleter const& deleter() const noexcept { return _ptr.get_deleter(); }
 
     /**
      * @pre the deleter has `core()`
      */
-    [[nodiscard]] constexpr decltype(auto) core() const requires requires(Deleter const& d) { d.core(); } {
-        return deleter().core();
-    }
+    [[nodiscard]] constexpr decltype(auto) core() const requires requires(Deleter const& d) {
+        d.core();
+    } { return deleter().core(); }
 
     /**
      * @pre the deleter has `vkInstance()`
      */
-    [[nodiscard]] constexpr VkInstance vkInstance() const requires requires(Deleter const& d) { d.vkInstance(); } {
-        return deleter().vkInstance();
-    }
+    [[nodiscard]] constexpr VkInstance vkInstance() const requires requires(Deleter const& d) {
+        d.vkInstance();
+    } { return deleter().vkInstance(); }
 
 private:
     ptr_t _ptr;

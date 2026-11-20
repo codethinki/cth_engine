@@ -147,5 +147,7 @@ struct TimelineSemaphore::State {
 }
 
 namespace cvk {
-constexpr void TimelineSemaphore::debug_check(TimelineSemaphore const& semaphore) { Semaphore::debug_check(semaphore); }
+constexpr void TimelineSemaphore::debug_check(TimelineSemaphore const& semaphore) {
+    Semaphore::debug_check(semaphore);
+}
 }

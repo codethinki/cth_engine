@@ -44,7 +44,9 @@ concept push_constant_range = std::ranges::contiguous_range<T const&>
  * `cvk::push_constant_range` or trivially copyable value that is no pointer
  */
 template<class T>
-concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copyable<T> && !std::is_pointer_v<T>);
+concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copyable<T> && !
+    std::is_pointer_v<
+        T>);
 
 /**
  * `VkCommandBuffer` wrapper
@@ -85,7 +87,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership, returns the state and forgets
@@ -103,7 +108,10 @@ public:
     /**
      * if `recording()` -> calls `end()`
      */
-    void optEnd() { if(recording()) end(); }
+    void optEnd() {
+        if(recording())
+            end();
+    }
 
     /**
      * resets the command buffer to the initial state
@@ -154,14 +162,16 @@ public:
      * @pre `recording()`
      */
     void setViewport(VkExtent2D extent, float minDepth = 0.f, float maxDepth = 1.f) const {
-        setViewport(VkViewport{
-            .x = 0.f,
-            .y = 0.f,
-            .width = static_cast<float>(extent.width),
-            .height = static_cast<float>(extent.height),
-            .minDepth = minDepth,
-            .maxDepth = maxDepth,
-        });
+        setViewport(
+            VkViewport{
+                .x = 0.f,
+                .y = 0.f,
+                .width = static_cast<float>(extent.width),
+                .height = static_cast<float>(extent.height),
+                .minDepth = minDepth,
+                .maxDepth = maxDepth,
+            }
+        );
     }
 
     /**
@@ -174,7 +184,9 @@ public:
      * sets scissor 0 to the extent at offset 0
      * @pre `recording()`
      */
-    void setScissor(VkExtent2D extent) const { setScissor(VkRect2D{.offset = {0, 0}, .extent = extent}); }
+    void setScissor(VkExtent2D extent) const {
+        setScissor(VkRect2D{.offset = {0, 0}, .extent = extent});
+    }
 
     /**
      * binds the pipeline to the graphics bind point
@@ -215,8 +227,10 @@ public:
      */
     template<push_constant_data T>
     void pushData(T const& data, uint32_t offset = 0) const {
-        if constexpr(push_constant_range<T>) pushDataBytes(std::as_bytes(std::span{data}), offset);
-        else pushDataBytes(std::as_bytes(std::span{&data, 1}), offset);
+        if constexpr(push_constant_range<T>)
+            pushDataBytes(std::as_bytes(std::span{data}), offset);
+        else
+            pushDataBytes(std::as_bytes(std::span{&data, 1}), offset);
     }
 
     /**
@@ -273,7 +287,9 @@ public:
      * @see `bindIndices()`
      */
     template<index_element T>
-    void bindIndexBuffer(Buffer<T> const& buffer, size_t offset = 0) const { bindIndices(buffer, offset); }
+    void bindIndexBuffer(Buffer<T> const& buffer, size_t offset = 0) const {
+        bindIndices(buffer, offset);
+    }
 
     /**
      * deleted: the index type of a typed buffer comes from `T`
@@ -524,7 +540,9 @@ public:
     /**
      * records the secondary command buffers of a braced list
      */
-    void execute(std::initializer_list<cth::ref_wrapper<SecondaryCmdBuffer const>> secondaries) const;
+    void execute(
+        std::initializer_list<cth::ref_wrapper<SecondaryCmdBuffer const>> secondaries
+    ) const;
 
     /**
      * records the secondary command buffer
@@ -610,21 +628,31 @@ public:
      * @post `recording()`
      * @throws cvk::vk_result_exception result of `vkBeginCommandBuffer()`
      */
-    void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0, HeapInheritance const& heaps = {});
+    void begin(
+        Inheritance const&,
+        VkCommandBufferUsageFlags usage = 0,
+        HeapInheritance const& heaps = {}
+    );
 
     /**
      * @return what the secondary inherits from the rendering it continues
      * @return `nullptr` -> continues no rendering
      */
     [[nodiscard]] constexpr Inheritance const* inheritedRendering() const {
-        return recording() && _inheritedRenderingOpt.has_value() ? &*_inheritedRenderingOpt : nullptr;
+        return recording() && _inheritedRenderingOpt.has_value()
+            ? &*_inheritedRenderingOpt
+            : nullptr;
     }
 
 private:
     /**
      * begins the recording with the inheritance info, chains the inherited heaps in front of its `pNext`
      */
-    void beginInherited(VkCommandBufferInheritanceInfo, VkCommandBufferUsageFlags usage, HeapInheritance const& heaps);
+    void beginInherited(
+        VkCommandBufferInheritanceInfo,
+        VkCommandBufferUsageFlags usage,
+        HeapInheritance const& heaps
+    );
 
     std::optional<Inheritance> _inheritedRenderingOpt = std::nullopt;
 };

@@ -21,7 +21,8 @@ public:
      * takes over one map of the memory, `Memory::map()` constructs it
      * @pre the range lies in the mapped memory
      */
-    constexpr Mapping(Memory const& memory, std::span<T> range) : _memoryPtr{&memory}, _range{range} {}
+    constexpr Mapping(Memory const& memory, std::span<T> range) : _memoryPtr{&memory},
+        _range{range} {}
 
     /**
      * unmaps the memory once

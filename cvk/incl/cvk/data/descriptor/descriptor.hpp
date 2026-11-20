@@ -59,9 +59,13 @@ namespace cvk::dev {
  */
 template<descriptor T>
 inline constexpr VkSpirvResourceTypeFlagsEXT resource_mask = [] {
-    if constexpr(std::same_as<T, SampledImageDescriptor>) return VK_SPIRV_RESOURCE_TYPE_SAMPLED_IMAGE_BIT_EXT;
-    else if constexpr(std::same_as<T, SamplerConfig>) return VK_SPIRV_RESOURCE_TYPE_SAMPLER_BIT_EXT;
-    else return VK_SPIRV_RESOURCE_TYPE_READ_ONLY_IMAGE_BIT_EXT | VK_SPIRV_RESOURCE_TYPE_READ_WRITE_IMAGE_BIT_EXT;
+    if constexpr(std::same_as<T, SampledImageDescriptor>)
+        return VK_SPIRV_RESOURCE_TYPE_SAMPLED_IMAGE_BIT_EXT;
+    else if constexpr(std::same_as<T, SamplerConfig>)
+        return VK_SPIRV_RESOURCE_TYPE_SAMPLER_BIT_EXT;
+    else
+        return VK_SPIRV_RESOURCE_TYPE_READ_ONLY_IMAGE_BIT_EXT |
+            VK_SPIRV_RESOURCE_TYPE_READ_WRITE_IMAGE_BIT_EXT;
 }();
 
 /**
@@ -141,7 +145,11 @@ template<descriptor T>
         offset,
         stride
     ) {}
-    CTH_CRITICAL(pushOffset % 4 != 0, "the push offset must be a multiple of 4, got {}", pushOffset) {}
+    CTH_CRITICAL(
+        pushOffset % 4 != 0,
+        "the push offset must be a multiple of 4, got {}",
+        pushOffset
+    ) {}
 
     return VkDescriptorSetAndBindingMappingEXT{
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
@@ -177,17 +185,32 @@ template<descriptor T>
  * @throws cvk::vk_result_exception result of `vkWriteResourceDescriptorsEXT()`
  * @throws cvk::vk_result_exception result of `vmaFlushAllocation()`
  */
-void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, SampledImageDescriptor const&);
+void write_descriptor(
+    BaseBuffer const& heap,
+    size_t offset,
+    size_t size,
+    SampledImageDescriptor const&
+);
 
 /**
  * @see @ref write_descriptor(BaseBuffer const&, size_t, size_t, SampledImageDescriptor const&)
  */
-void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, StorageImageDescriptor const&);
+void write_descriptor(
+    BaseBuffer const& heap,
+    size_t offset,
+    size_t size,
+    StorageImageDescriptor const&
+);
 
 /**
  * @see @ref write_descriptor(BaseBuffer const&, size_t, size_t, SampledImageDescriptor const&)
  */
-void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, InputAttachmentDescriptor const&);
+void write_descriptor(
+    BaseBuffer const& heap,
+    size_t offset,
+    size_t size,
+    InputAttachmentDescriptor const&
+);
 
 /**
  * encodes the sampler into the cell of the heap, then flushes the cell

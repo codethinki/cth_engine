@@ -114,7 +114,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership of the instance and the messenger, returns the state and forgets
@@ -197,8 +200,10 @@ struct Instance::State {
 
 namespace cvk {
 constexpr std::optional<DebugMessenger::Config> Instance::messengerConfig() const {
-    if constexpr(constants::ENABLE_VALIDATION_LAYERS) return _config.debugMessenger.value_or(DebugMessenger::Config{});
-    else return _config.debugMessenger;
+    if constexpr(constants::ENABLE_VALIDATION_LAYERS)
+        return _config.debugMessenger.value_or(DebugMessenger::Config{});
+    else
+        return _config.debugMessenger;
 }
 }
 

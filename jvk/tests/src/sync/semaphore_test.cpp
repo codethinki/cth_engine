@@ -36,13 +36,19 @@ namespace {
     }
 
     void gpu_signal(Core const& core, Semaphore const& semaphore, uint64_t value) {
-        core.executor().sync_wait(gpu_signal(core.queue(0), {.semaphore = semaphore, .value = value}));
+        core.executor().sync_wait(
+            gpu_signal(core.queue(0), {.semaphore = semaphore, .value = value})
+        );
     }
 
     /**
      * @return the coroutine resumed on a worker
      */
-    cth::co::executor_task<bool> await_gpu(Core const& core, Semaphore const& semaphore, uint64_t value) {
+    cth::co::executor_task<bool> await_gpu(
+        Core const& core,
+        Semaphore const& semaphore,
+        uint64_t value
+    ) {
         co_await semaphore.wait(value);
         co_return core.executor().context().owns_thread();
     }
@@ -50,7 +56,11 @@ namespace {
     /**
      * @return the coroutine resumed on a worker
      */
-    cth::co::executor_task<bool> await_submitted(Core const& core, Semaphore const& semaphore, uint64_t value) {
+    cth::co::executor_task<bool> await_submitted(
+        Core const& core,
+        Semaphore const& semaphore,
+        uint64_t value
+    ) {
         co_await semaphore.submitted(value);
         co_return core.executor().context().owns_thread();
     }
@@ -60,21 +70,30 @@ namespace {
      */
     template<class Task>
     [[nodiscard]] std::future<bool> start(Core const& core, Task task) {
-        return std::async(std::launch::async, [&core, task = std::move(task)]() mutable {
-            return core.executor().sync_wait(std::move(task));
-        });
+        return std::async(
+            std::launch::async,
+            [&core, task = std::move(task)]() mutable {
+                return core.executor().sync_wait(std::move(task));
+            }
+        );
     }
 
     /**
      * registers a callback for the submitted value
      * @return the callback ran
      */
-    [[nodiscard]] std::future<std::error_code> await_mark(Semaphore const& semaphore, uint64_t value) {
+    [[nodiscard]] std::future<std::error_code> await_mark(
+        Semaphore const& semaphore,
+        uint64_t value
+    ) {
         std::promise<std::error_code> promise{};
         auto future = promise.get_future();
-        semaphore.awaitSubmitted(value, [promise = std::move(promise)](std::error_code error) mutable {
-            promise.set_value(error);
-        });
+        semaphore.awaitSubmitted(
+            value,
+            [promise = std::move(promise)](std::error_code error) mutable {
+                promise.set_value(error);
+            }
+        );
         return future;
     }
 
@@ -94,8 +113,10 @@ namespace {
     [[nodiscard]] bool await_registration(Core const& core, Semaphore const& semaphore) {
         auto const end = std::chrono::steady_clock::now() + REACHED_TIMEOUT;
         while(!core.reactor().pending(semaphore.get()))
-            if(std::chrono::steady_clock::now() > end) return false;
-            else std::this_thread::sleep_for(1ms);
+            if(std::chrono::steady_clock::now() > end)
+                return false;
+            else
+                std::this_thread::sleep_for(1ms);
         return true;
     }
 }
@@ -166,7 +187,11 @@ JVK_TEST(Semaphore, converts_to_a_cvk_semaphore_submit_info) {
     cvk::TimelineSemaphore const& vk = semaphore;
 
     cvk::SemaphoreSubmitInfo const info{semaphore, VK_PIPELINE_STAGE_2_TRANSFER_BIT, 3};
-    cvk::SemaphoreSubmitInfo const converted = SemaphoreSubmitInfo{semaphore, VK_PIPELINE_STAGE_2_COPY_BIT, 4};
+    cvk::SemaphoreSubmitInfo const converted = SemaphoreSubmitInfo{
+        semaphore,
+        VK_PIPELINE_STAGE_2_COPY_BIT,
+        4
+    };
 
     using timeline_t = cth::ref_wrapper<cvk::TimelineSemaphore const>;
     ASSERT_TRUE(std::holds_alternative<timeline_t>(info.semaphore));

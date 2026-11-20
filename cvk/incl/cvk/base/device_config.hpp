@@ -14,8 +14,10 @@ namespace cvk {
 struct DeviceConfig {
     std::vector<queue_family_index_t> queueFamilyIndices; ///< family index of every queue to create
 
-    DeviceFeatures features{}; ///< features to enable, a `true` bit of an extension struct enables its extension
+    DeviceFeatures features{};
+    ///< features to enable, a `true` bit of an extension struct enables its extension
 
-    std::vector<std::string> extensions{}; ///< extensions to enable, besides the extensions of the features
+    std::vector<std::string> extensions{};
+    ///< extensions to enable, besides the extensions of the features
 };
 }

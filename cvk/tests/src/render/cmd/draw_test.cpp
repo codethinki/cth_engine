@@ -40,9 +40,12 @@ namespace {
         auto const asByte = [](std::byte b) { return std::to_integer<unsigned char>(b); };
         for(uint32_t y = 0; y < EXTENT.height; ++y)
             for(uint32_t x = 0; x < EXTENT.width; ++x) {
-                auto const& expected = x < filled.width && y < filled.height ? test::GREEN_PIXEL : BLACK_PIXEL;
+                auto const& expected = x < filled.width && y < filled.height
+                    ? test::GREEN_PIXEL
+                    : BLACK_PIXEL;
                 auto const pixel = pixels.span().subspan((size_t{y} * EXTENT.width + x) * 4, 4);
-                if(!std::ranges::equal(pixel, expected, {}, asByte)) return false;
+                if(!std::ranges::equal(pixel, expected, {}, asByte))
+                    return false;
             }
         return true;
     }
@@ -51,12 +54,18 @@ namespace {
      * pipeline that fills the triangle with the push data color
      */
     struct Fill {
-        explicit Fill(Core const& core) : vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
+        explicit Fill(Core const& core) : vertex{
+                core,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                test::shaders::FILL_VERT
+            },
             fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
             pipeline{core, test::fullscreen_config(vertex, fragment, COLOR_FORMATS), create},
-            vertices{core, host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
-            vertices.write(test::FULLSCREEN);
-        }
+            vertices{
+                core,
+                host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
+                test::FULLSCREEN.size()
+            } { vertices.write(test::FULLSCREEN); }
 
         Shader vertex;
         Shader fragment;
@@ -69,7 +78,12 @@ namespace {
      * @param filled from offset `0`, the other pixels stay black
      */
     template<class Draw>
-    void expect_filled(test::Context const& context, Fill const& fill, Draw draw, VkExtent2D filled = EXTENT) {
+    void expect_filled(
+        test::Context const& context,
+        Fill const& fill,
+        Draw draw,
+        VkExtent2D filled = EXTENT
+    ) {
         Image const image{
             context.core,
             {
@@ -80,44 +94,55 @@ namespace {
             EXTENT
         };
         ImageView const view{image, {}, create};
-        BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
+        BaseBuffer const readback{
+            context.core,
+            test::READBACK_CONFIG,
+            size_t{EXTENT.width} * EXTENT.height * 4
+        };
 
-        test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-            Barrier transition{};
-            transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
-            transition.execute(cmd);
-            cmd.beginRendering(
-                {
-                    .colorAttachments = {
-                        RenderingAttachment{
-                            .view = view,
-                            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                            .clearValue = {.color = {.float32 = {0.f, 0.f, 0.f, 1.f}}},
+        test::record_and_submit(
+            context,
+            [&](PrimaryCmdBuffer& cmd) {
+                Barrier transition{};
+                transition.addTransition(
+                    image,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_UNDEFINED
+                );
+                transition.execute(cmd);
+                cmd.beginRendering(
+                    {
+                        .colorAttachments = {
+                            RenderingAttachment{
+                                .view = view,
+                                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                .clearValue = {.color = {.float32 = {0.f, 0.f, 0.f, 1.f}}},
+                            },
                         },
-                    },
-                }
-            );
+                    }
+                );
 
-            cmd.bind(fill.pipeline);
-            cmd.bindVertices(0, fill.vertices);
-            // a span pushes its elements, not itself
-            cmd.pushData(std::span<float const>{GREEN});
-            draw(cmd);
+                cmd.bind(fill.pipeline);
+                cmd.bindVertices(0, fill.vertices);
+                // a span pushes its elements, not itself
+                cmd.pushData(std::span<float const>{GREEN});
+                draw(cmd);
 
-            cmd.endRendering();
+                cmd.endRendering();
 
-            Barrier barrier{};
-            barrier.addTransition(
-                image,
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-            );
-            barrier.execute(cmd);
+                Barrier barrier{};
+                barrier.addTransition(
+                    image,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+                );
+                barrier.execute(cmd);
 
-            test::copy_to_buffer(context, cmd, image, readback, 0, 0);
-            test::host_read_barrier(context, cmd);
-        });
+                test::copy_to_buffer(context, cmd, image, readback, 0, 0);
+                test::host_read_barrier(context, cmd);
+            }
+        );
 
         EXPECT_TRUE(filled_from_origin(readback, filled));
     }
@@ -177,28 +202,44 @@ CVK_TEST(Draw, draw_indexed) {
     Buffer<uint16_t> indices{context.core, host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), 3};
     indices.write(std::array<uint16_t, 3>{0, 1, 2});
 
-    expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) {
-        cmd.bindIndices(indices);
-        cmd.drawIndexed(3);
-    });
+    expect_filled(
+        context,
+        fill,
+        [&](PrimaryCmdBuffer const& cmd) {
+            cmd.bindIndices(indices);
+            cmd.drawIndexed(3);
+        }
+    );
 }
 
 CVK_TEST(Draw, vulkan_names_bind_the_buffers) {
     constexpr std::array<uint16_t, 3> INDICES{0, 1, 2};
     test::Context const context{};
     Fill const fill{context.core};
-    Buffer<uint16_t> indices{context.core, host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), INDICES.size()};
+    Buffer<uint16_t> indices{
+        context.core,
+        host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
+        INDICES.size()
+    };
     indices.write(INDICES);
-    BaseBuffer const untyped{context.core, host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), sizeof(INDICES)};
+    BaseBuffer const untyped{
+        context.core,
+        host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
+        sizeof(INDICES)
+    };
     untyped.write(std::as_bytes(std::span{INDICES}));
 
-    expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) {
-        cmd.bindVertexBuffer(0, fill.vertices);
-        cmd.bindIndexBuffer(untyped, VK_INDEX_TYPE_UINT16);
-        cmd.drawIndexed(3);
-        cmd.bindIndexBuffer(indices);
-        cmd.drawIndexed(3);
-    });
+    expect_filled(
+        context,
+        fill,
+        [&](PrimaryCmdBuffer const& cmd) {
+            cmd.bindVertexBuffer(0, fill.vertices);
+            cmd.bindIndexBuffer(untyped, VK_INDEX_TYPE_UINT16);
+            cmd.drawIndexed(3);
+            cmd.bindIndexBuffer(indices);
+            cmd.drawIndexed(3);
+        }
+    );
 }
 
 namespace {
@@ -208,9 +249,12 @@ namespace {
     };
 
     template<class Indices>
-    concept binds_with_an_index_type_by_the_vulkan_name = requires(BaseCmdBuffer const& cmd, Indices const& indices) {
-        cmd.bindIndexBuffer(indices, VK_INDEX_TYPE_UINT16);
-    };
+    concept binds_with_an_index_type_by_the_vulkan_name = requires(
+        BaseCmdBuffer const& cmd,
+        Indices const& indices
+    ) {
+            cmd.bindIndexBuffer(indices, VK_INDEX_TYPE_UINT16);
+        };
 }
 
 CVK_TEST(Draw, a_typed_index_buffer_takes_no_index_type) {
@@ -229,7 +273,14 @@ CVK_TEST(Draw, draw_indirect) {
         1
     };
     commands.write(
-        std::array{VkDrawIndirectCommand{.vertexCount = 3, .instanceCount = 1, .firstVertex = 0, .firstInstance = 0}}
+        std::array{
+            VkDrawIndirectCommand{
+                .vertexCount = 3,
+                .instanceCount = 1,
+                .firstVertex = 0,
+                .firstInstance = 0
+            }
+        }
     );
 
     expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) { cmd.drawIndirect(commands); });
@@ -257,9 +308,13 @@ CVK_TEST(Draw, draw_indexed_indirect) {
         }
     );
 
-    expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) {
-        cmd.bindIndices(indices);
-        cmd.drawIndexedIndirect(commands);
-    });
+    expect_filled(
+        context,
+        fill,
+        [&](PrimaryCmdBuffer const& cmd) {
+            cmd.bindIndices(indices);
+            cmd.drawIndexedIndirect(commands);
+        }
+    );
 }
 }

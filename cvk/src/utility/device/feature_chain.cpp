@@ -20,7 +20,8 @@ namespace {
 
         constexpr size_t count = feature_struct<feature_t>::COUNT;
 
-        auto* const begin = reinterpret_cast<byte_t*>(&features) + feature_struct<feature_t>::OFFSET;
+        auto* const begin = reinterpret_cast<byte_t*>(&features) + feature_struct<
+            feature_t>::OFFSET;
         return std::span<bool_t, count>{reinterpret_cast<bool_t*>(begin), count};
     }
 
@@ -34,7 +35,8 @@ FeatureChain::FeatureChain(span<std::string const> extensions) :
     _structs{empty_structs(std::type_identity<feature_structs_t>{})} {
     [&]<size_t... Is>(std::index_sequence<Is...>) {
         ((_linked[Is] = [&] {
-            constexpr auto name = feature_struct<std::tuple_element_t<Is, feature_structs_t>>::EXTENSION;
+            constexpr auto name = feature_struct<std::tuple_element_t<Is,
+                feature_structs_t>>::EXTENSION;
             return name.empty() || std::ranges::contains(extensions, name);
         }()), ...);
     }(std::make_index_sequence<FEATURE_STRUCTS>{});
@@ -50,7 +52,9 @@ FeatureChain::FeatureChain(DeviceFeatures const& features, span<std::string cons
         [&]<class... Ts>(Ts&... structs) {
             ([&] {
                 for(auto const [index, flag] : std::views::enumerate(flags(structs)))
-                    flag = bits[feature_offset<Ts> + static_cast<size_t>(index)] ? VK_TRUE : VK_FALSE;
+                    flag = bits[feature_offset<Ts> + static_cast<size_t>(index)]
+                        ? VK_TRUE
+                        : VK_FALSE;
             }(), ...);
         },
         _structs
@@ -83,12 +87,16 @@ void FeatureChain::link() {
             auto& features = std::get<index>(_structs);
 
             features.pNext = _linked[index] ? next : nullptr;
-            if(_linked[index]) next = &features;
+            if(_linked[index])
+                next = &features;
         }(), ...);
     }(std::make_index_sequence<FEATURE_STRUCTS>{});
 }
 
-DeviceFeatures query_features(vk_not_null<VkPhysicalDevice> vkDevice, span<std::string const> extensions) {
+DeviceFeatures query_features(
+    vk_not_null<VkPhysicalDevice> vkDevice,
+    span<std::string const> extensions
+) {
     FeatureChain chain{extensions};
     vkGetPhysicalDeviceFeatures2(vkDevice.get(), chain.get());
     return chain.features();

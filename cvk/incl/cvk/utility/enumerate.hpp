@@ -19,7 +19,9 @@ struct enumerate_element {};
 
 template<class Result, class... Params>
 struct enumerate_element<Result (*)(Params...)> {
-    using type = std::remove_pointer_t<std::tuple_element_t<sizeof...(Params) - 1, std::tuple<Params...>>>;
+    using type = std::remove_pointer_t<std::tuple_element_t<sizeof...(Params) - 1, std::tuple<Params
+            ...>>
+    >;
 };
 
 template<class Fn>
@@ -61,9 +63,15 @@ template<class Fn, class... Args>
         VkResult result = VK_INCOMPLETE;
         for(uint32_t i = 0; i < MAX_QUERY_ATTEMPTS && result == VK_INCOMPLETE; ++i) {
             auto const countResult = fn(args..., &count, nullptr);
-            CVK_RESULT_STABLE_THROW(countResult != VK_SUCCESS, countResult, "failed to query {}", what) {}
+            CVK_RESULT_STABLE_THROW(
+                countResult != VK_SUCCESS,
+                countResult,
+                "failed to query {}",
+                what
+            ) {}
             // data() of an empty vector can be nullptr, a second count call could return a new count
-            if(count == 0) return {};
+            if(count == 0)
+                return {};
 
             elements.resize(count);
             result = fn(args..., &count, elements.data());

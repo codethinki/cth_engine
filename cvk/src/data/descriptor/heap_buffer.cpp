@@ -5,13 +5,25 @@
 
 
 namespace cvk::dev {
-void create_heap_buffer(BaseBuffer& buffer, size_t size, size_t alignment, size_t maxSize, std::string_view heap) {
+void create_heap_buffer(
+    BaseBuffer& buffer,
+    size_t size,
+    size_t alignment,
+    size_t maxSize,
+    std::string_view heap
+) {
     Core::debug_check(buffer.core());
     CTH_CRITICAL(size == 0, "{} heap size must not be 0", heap) {}
 
     buffer.optDestroy();
 
-    CVK_STABLE_THROW(size > maxSize, "{} heap size exceeds the device limit, got {} of {}", heap, size, maxSize) {}
+    CVK_STABLE_THROW(
+        size > maxSize,
+        "{} heap size exceeds the device limit, got {} of {}",
+        heap,
+        size,
+        maxSize
+    ) {}
 
     auto config = HEAP_BUFFER_CONFIG;
     config.memory.minAlignment = alignment;
@@ -24,7 +36,11 @@ void create_heap_buffer(BaseBuffer& buffer, size_t size, size_t alignment, size_
     ) {}
 }
 
-VkBindHeapInfoEXT heap_bind_info(BaseBuffer const& buffer, size_t reservedOffset, size_t reservedSize) {
+VkBindHeapInfoEXT heap_bind_info(
+    BaseBuffer const& buffer,
+    size_t reservedOffset,
+    size_t reservedSize
+) {
     BaseBuffer::debug_check(buffer);
 
     return VkBindHeapInfoEXT{

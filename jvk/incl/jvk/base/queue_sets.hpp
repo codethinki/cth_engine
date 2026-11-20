@@ -24,7 +24,9 @@ namespace jvk {
  * @return the sets, each set spans all queues
  * @pre `!queues.empty()`
  */
-[[nodiscard]] std::vector<cvk::Core::queue_set_t> queue_sets(std::span<cvk::QueueFamilyProperties const>);
+[[nodiscard]] std::vector<cvk::Core::queue_set_t> queue_sets(
+    std::span<cvk::QueueFamilyProperties const>
+);
 }
 
 namespace jvk::dev {
@@ -40,7 +42,8 @@ namespace jvk::dev {
 
     auto result = cvk::QueueFamilyProperties::NONE;
     for(size_t i = 0; i < queues.size(); ++i)
-        if(set.find(i) == root) result |= queues[i];
+        if(set.find(i) == root)
+            result |= queues[i];
     return result;
 }
 
@@ -59,8 +62,10 @@ void merge_groups(
     for(size_t i = queues.size() - 1; i > 0; --i)
         for(size_t j = i; j-- > 0;) {
             auto const& set = sets.back();
-            if(set.find(j) == set.find(i)) continue;
-            if(!match(group_properties(set, queues, j), group_properties(set, queues, i))) continue;
+            if(set.find(j) == set.find(i))
+                continue;
+            if(!match(group_properties(set, queues, j), group_properties(set, queues, i)))
+                continue;
 
             auto next = set;
             next.merge(j, i);
@@ -71,7 +76,9 @@ void merge_groups(
 }
 
 namespace jvk {
-inline std::vector<cvk::Core::queue_set_t> queue_sets(std::span<cvk::QueueFamilyProperties const> queues) {
+inline std::vector<cvk::Core::queue_set_t> queue_sets(
+    std::span<cvk::QueueFamilyProperties const> queues
+) {
     CTH_CRITICAL(queues.empty(), "at least one queue is required") {}
 
     std::vector<cvk::Core::queue_set_t> sets{};

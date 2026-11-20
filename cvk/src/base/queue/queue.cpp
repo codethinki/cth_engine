@@ -15,7 +15,11 @@ namespace cvk {
 using std::span;
 
 namespace {
-    VkSemaphoreSubmitInfo vk_semaphore_info(VkSemaphore vkSemaphore, uint64_t value, VkPipelineStageFlags2 stages) {
+    VkSemaphoreSubmitInfo vk_semaphore_info(
+        VkSemaphore vkSemaphore,
+        uint64_t value,
+        VkPipelineStageFlags2 stages
+    ) {
         return VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .pNext = nullptr,
@@ -36,7 +40,9 @@ namespace {
                 T::debug_check(semaphore);
 
                 if constexpr(std::same_as<T, TimelineSemaphore>) {
-                    auto const value = info.value.has_value() ? *info.value : resolve(semaphore.get());
+                    auto const value = info.value.has_value()
+                        ? *info.value
+                        : resolve(semaphore.get());
                     return vk_semaphore_info(semaphore.get().get(), value, info.stages);
                 } else {
                     CTH_CRITICAL(info.value.has_value(), "binary semaphores have no value") {}
@@ -48,7 +54,8 @@ namespace {
     }
 }
 
-Queue::Queue(QueueFamilyProperties familyProperties, State const& state) : _familyProperties{familyProperties},
+Queue::Queue(QueueFamilyProperties familyProperties, State const& state) : _familyProperties
+    {familyProperties},
     _functionsPtr{&state.functions.get()},
     _handle{state.vkQueue.get()},
     _familyIndex{state.familyIndex},
@@ -56,7 +63,8 @@ Queue::Queue(QueueFamilyProperties familyProperties, State const& state) : _fami
 
 void Queue::submit(span<SubmitInfo const> infos, Fence const* fencePtr) const {
     debug_check(*this);
-    if(fencePtr != nullptr) Fence::debug_check(*fencePtr);
+    if(fencePtr != nullptr)
+        Fence::debug_check(*fencePtr);
 
     size_t cmdBufferCount = 0;
     size_t semaphoreCount = 0;

@@ -16,9 +16,11 @@ namespace jvk {
 struct StageWait {
     size_t stageId; ///< id of the waited stage, see `StageGraphConfig::stages`
 
-    VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT; ///< stages of the waiting submit that wait
+    VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    ///< stages of the waiting submit that wait
 
-    uint32_t frameOffset = 0; ///< frames before the current frame (`0` => the same frame, `1` => the previous frame)
+    uint32_t frameOffset = 0;
+    ///< frames before the current frame (`0` => the same frame, `1` => the previous frame)
 };
 
 /**
@@ -74,13 +76,15 @@ constexpr void StageGraphConfig::debug_check(StageGraphConfig const& config) {
                 wait.stageId,
                 stageCount
             ) {}
-            if(wait.frameOffset == 0) ++waitCounts[stageId];
+            if(wait.frameOffset == 0)
+                ++waitCounts[stageId];
         }
 
     // removes the stages without open waits until none is left, a rest is a cycle
     std::vector<size_t> ready{};
     for(size_t stageId = 0; stageId < stageCount; ++stageId)
-        if(waitCounts[stageId] == 0) ready.push_back(stageId);
+        if(waitCounts[stageId] == 0)
+            ready.push_back(stageId);
 
     size_t removed = 0;
     while(!ready.empty()) {

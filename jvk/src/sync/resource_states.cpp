@@ -38,15 +38,25 @@ namespace {
     /**
      * the stages and accesses of both scopes
      */
-    [[nodiscard]] constexpr BarrierScope merge(BarrierScope const& scope, BarrierScope const& other) {
-        return BarrierScope{scope.stages | other.stages, scope.access | other.access, scope.queueFamilyIndex};
+    [[nodiscard]] constexpr BarrierScope
+    merge(BarrierScope const& scope, BarrierScope const& other) {
+        return BarrierScope{
+            scope.stages | other.stages,
+            scope.access | other.access,
+            scope.queueFamilyIndex
+        };
     }
 
     /**
      * @return the access after the state needs a barrier
      */
-    [[nodiscard]] constexpr bool needs_barrier(ImageState const& last, ImageState const& next, bool discard) {
-        return discard || last.layout != next.layout || writes(last.scope.access) || writes(next.scope.access);
+    [[nodiscard]] constexpr bool needs_barrier(
+        ImageState const& last,
+        ImageState const& next,
+        bool discard
+    ) {
+        return discard || last.layout != next.layout || writes(last.scope.access) ||
+            writes(next.scope.access);
     }
 
     [[nodiscard]] constexpr bool needs_barrier(BufferState const& last, BufferState const& next) {
@@ -56,7 +66,11 @@ namespace {
     /**
      * @return the mip level count, `VK_REMAINING_MIP_LEVELS` resolved
      */
-    [[nodiscard]] uint32_t mip_count(Image const& image, uint32_t firstMipLevel, uint32_t mipLevels) {
+    [[nodiscard]] uint32_t mip_count(
+        Image const& image,
+        uint32_t firstMipLevel,
+        uint32_t mipLevels
+    ) {
         Image::debug_check(image);
         CTH_CRITICAL(
             firstMipLevel >= image.mipLevels(),
@@ -65,7 +79,9 @@ namespace {
             firstMipLevel
         ) {}
 
-        uint32_t const count = mipLevels == VK_REMAINING_MIP_LEVELS ? image.mipLevels() - firstMipLevel : mipLevels;
+        uint32_t const count = mipLevels == VK_REMAINING_MIP_LEVELS
+            ? image.mipLevels() - firstMipLevel
+            : mipLevels;
         CTH_CRITICAL(
             count == 0 || count > image.mipLevels() - firstMipLevel,
             "mip levels must lie in the image ({}), got {} from {}",
@@ -79,17 +95,23 @@ namespace {
     /**
      * @return the barriers differ in the mip levels only, `next` starts after the levels of `last`
      */
-    [[nodiscard]] constexpr bool next_mip_levels(VkImageMemoryBarrier2 const& last, VkImageMemoryBarrier2 const& next) {
+    [[nodiscard]] constexpr bool next_mip_levels(
+        VkImageMemoryBarrier2 const& last,
+        VkImageMemoryBarrier2 const& next
+    ) {
         auto const& lastRange = last.subresourceRange;
         auto const& nextRange = next.subresourceRange;
-        return last.image == next.image && last.oldLayout == next.oldLayout && last.newLayout == next.newLayout
-            && last.srcStageMask == next.srcStageMask && last.srcAccessMask == next.srcAccessMask
-            && last.dstStageMask == next.dstStageMask && last.dstAccessMask == next.dstAccessMask
-            && last.srcQueueFamilyIndex == next.srcQueueFamilyIndex
-            && last.dstQueueFamilyIndex == next.dstQueueFamilyIndex && lastRange.aspectMask == nextRange.aspectMask
-            && lastRange.baseArrayLayer == nextRange.baseArrayLayer && lastRange.layerCount == nextRange.layerCount
-            && lastRange.levelCount != VK_REMAINING_MIP_LEVELS
-            && lastRange.baseMipLevel + lastRange.levelCount == nextRange.baseMipLevel;
+        return last.image == next.image && last.oldLayout == next.oldLayout &&
+            last.newLayout == next.newLayout &&
+            last.srcStageMask == next.srcStageMask && last.srcAccessMask == next.srcAccessMask &&
+            last.dstStageMask == next.dstStageMask && last.dstAccessMask == next.dstAccessMask &&
+            last.srcQueueFamilyIndex == next.srcQueueFamilyIndex &&
+            last.dstQueueFamilyIndex == next.dstQueueFamilyIndex &&
+            lastRange.aspectMask == nextRange.aspectMask &&
+            lastRange.baseArrayLayer == nextRange.baseArrayLayer &&
+            lastRange.layerCount == nextRange.layerCount &&
+            lastRange.levelCount != VK_REMAINING_MIP_LEVELS &&
+            lastRange.baseMipLevel + lastRange.levelCount == nextRange.baseMipLevel;
     }
 
     /**
@@ -105,8 +127,10 @@ namespace {
         barrier.add(vkImage, aspectMask, info);
 
         auto& images = barrier.images;
-        if(images.size() < 2 || !next_mip_levels(images[images.size() - 2], images.back())) return;
-        images[images.size() - 2].subresourceRange.levelCount += images.back().subresourceRange.levelCount;
+        if(images.size() < 2 || !next_mip_levels(images[images.size() - 2], images.back()))
+            return;
+        images[images.size() - 2].subresourceRange.levelCount +=
+            images.back().subresourceRange.levelCount;
         images.pop_back();
     }
 
@@ -145,7 +169,8 @@ void ResourceStates::access(Image const& image, ImageAccess const& access, cvk::
                 .discard = access.discard,
             }
         );
-        if(inserted) continue;
+        if(inserted)
+            continue;
 
         auto& states = it->second;
         if(needs_barrier(states.last, next, access.discard)) {
@@ -167,7 +192,11 @@ void ResourceStates::access(Image const& image, ImageAccess const& access, cvk::
     }
 }
 
-void ResourceStates::access(BaseBuffer const& buffer, BufferAccess const& access, cvk::Barrier& barrier) {
+void ResourceStates::access(
+    BaseBuffer const& buffer,
+    BufferAccess const& access,
+    cvk::Barrier& barrier
+) {
     BaseBuffer::debug_check(buffer);
     BufferState const next{.scope = BarrierScope{.stages = access.stages, .access = access.access}};
 
@@ -175,11 +204,15 @@ void ResourceStates::access(BaseBuffer const& buffer, BufferAccess const& access
         buffer.get(),
         buffer_states{.sharingMode = buffer.config().sharingMode(), .firstOpt = next, .last = next}
     );
-    if(inserted) return;
+    if(inserted)
+        return;
 
     auto& states = it->second;
     if(needs_barrier(states.last, next)) {
-        barrier.add(buffer, cvk::BufferBarrierInfo{.src = src_scope(states.last.scope), .dst = next.scope});
+        barrier.add(
+            buffer,
+            cvk::BufferBarrierInfo{.src = src_scope(states.last.scope), .dst = next.scope}
+        );
         states.last = next;
         states.barrier = true;
         return;
@@ -190,7 +223,12 @@ void ResourceStates::access(BaseBuffer const& buffer, BufferAccess const& access
         states.firstOpt->scope = merge(states.firstOpt->scope, next.scope);
 }
 
-void ResourceStates::assume(Image const& image, ImageState const& state, uint32_t firstMipLevel, uint32_t mipLevels) {
+void ResourceStates::assume(
+    Image const& image,
+    ImageState const& state,
+    uint32_t firstMipLevel,
+    uint32_t mipLevels
+) {
     auto const count = mip_count(image, firstMipLevel, mipLevels);
 
     for(uint32_t level = firstMipLevel; level < firstMipLevel + count; ++level) {
@@ -204,7 +242,8 @@ void ResourceStates::assume(Image const& image, ImageState const& state, uint32_
                 .barrier = true,
             }
         );
-        if(inserted) continue;
+        if(inserted)
+            continue;
 
         auto& states = it->second;
         states.last = state;
@@ -224,19 +263,26 @@ void ResourceStates::assume(BaseBuffer const& buffer, BufferState const& state) 
             .barrier = true,
         }
     );
-    if(inserted) return;
+    if(inserted)
+        return;
 
     auto& states = it->second;
     states.last = state;
     states.barrier = true;
 }
 
-void ResourceStates::extend(Image const& image, BarrierScope const& scope, uint32_t firstMipLevel, uint32_t mipLevels) {
+void ResourceStates::extend(
+    Image const& image,
+    BarrierScope const& scope,
+    uint32_t firstMipLevel,
+    uint32_t mipLevels
+) {
     auto const count = mip_count(image, firstMipLevel, mipLevels);
 
     for(uint32_t level = firstMipLevel; level < firstMipLevel + count; ++level) {
         auto const it = _images.find(image_key_t{image.get(), level});
-        if(it == _images.end()) continue;
+        if(it == _images.end())
+            continue;
 
         auto& states = it->second;
         states.last.scope = merge(states.last.scope, scope);
@@ -248,7 +294,8 @@ void ResourceStates::extend(Image const& image, BarrierScope const& scope, uint3
 void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
     for(auto const& [key, nextStates] : next._images) {
         auto const [it, inserted] = _images.try_emplace(key, nextStates);
-        if(inserted) continue;
+        if(inserted)
+            continue;
 
         auto& states = it->second;
 
@@ -274,14 +321,16 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
         // read after read in the same layout
         if(!states.barrier && states.firstOpt.has_value())
             states.firstOpt->scope = merge(states.firstOpt->scope, nextStates.firstOpt->scope);
-        states.last = nextStates.barrier ? nextStates.last
+        states.last = nextStates.barrier
+            ? nextStates.last
             : ImageState{states.last.layout, merge(states.last.scope, nextStates.last.scope)};
         states.barrier |= nextStates.barrier;
     }
 
     for(auto const& [key, nextStates] : next._buffers) {
         auto const [it, inserted] = _buffers.try_emplace(key, nextStates);
-        if(inserted) continue;
+        if(inserted)
+            continue;
 
         auto& states = it->second;
 
@@ -294,7 +343,10 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
         if(needs_barrier(states.last, *nextStates.firstOpt)) {
             barrier.add(
                 key,
-                cvk::BufferBarrierInfo{.src = src_scope(states.last.scope), .dst = nextStates.firstOpt->scope}
+                cvk::BufferBarrierInfo{
+                    .src = src_scope(states.last.scope),
+                    .dst = nextStates.firstOpt->scope
+                }
             );
             states.last = nextStates.last;
             states.barrier = true;
@@ -303,7 +355,8 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
 
         if(!states.barrier && states.firstOpt.has_value())
             states.firstOpt->scope = merge(states.firstOpt->scope, nextStates.firstOpt->scope);
-        states.last = nextStates.barrier ? nextStates.last
+        states.last = nextStates.barrier
+            ? nextStates.last
             : BufferState{merge(states.last.scope, nextStates.last.scope)};
         states.barrier |= nextStates.barrier;
     }
@@ -338,15 +391,21 @@ std::optional<ImageState> ResourceStates::first(Image const& image, uint32_t mip
     return first(image.get(), mipLevel);
 }
 
-bool ResourceStates::discards(Image const& image, uint32_t mipLevel) const { return discards(image.get(), mipLevel); }
+bool ResourceStates::discards(Image const& image, uint32_t mipLevel) const {
+    return discards(image.get(), mipLevel);
+}
 
 std::optional<ImageState> ResourceStates::last(Image const& image, uint32_t mipLevel) const {
     return last(image.get(), mipLevel);
 }
 
-std::optional<BufferState> ResourceStates::first(BaseBuffer const& buffer) const { return first(buffer.get()); }
+std::optional<BufferState> ResourceStates::first(BaseBuffer const& buffer) const {
+    return first(buffer.get());
+}
 
-std::optional<BufferState> ResourceStates::last(BaseBuffer const& buffer) const { return last(buffer.get()); }
+std::optional<BufferState> ResourceStates::last(BaseBuffer const& buffer) const {
+    return last(buffer.get());
+}
 
 void ResourceStates::erase(Image const& image) {
     for(uint32_t level = 0; level < image.mipLevels(); ++level)
@@ -355,15 +414,20 @@ void ResourceStates::erase(Image const& image) {
 
 void ResourceStates::erase(BaseBuffer const& buffer) { erase(buffer.get()); }
 
-void ResourceStates::erase(VkImage vkImage, uint32_t mipLevel) { _images.erase(image_key_t{vkImage, mipLevel}); }
+void ResourceStates::erase(VkImage vkImage, uint32_t mipLevel) {
+    _images.erase(image_key_t{vkImage, mipLevel});
+}
 
 void ResourceStates::erase(VkBuffer vkBuffer) { _buffers.erase(vkBuffer); }
 
 bool ResourceStates::contains(Image const& image) const {
     for(uint32_t level = 0; level < image.mipLevels(); ++level)
-        if(_images.contains(image_key_t{image.get(), level})) return true;
+        if(_images.contains(image_key_t{image.get(), level}))
+            return true;
     return false;
 }
 
-bool ResourceStates::contains(BaseBuffer const& buffer) const { return _buffers.contains(buffer.get()); }
+bool ResourceStates::contains(BaseBuffer const& buffer) const {
+    return _buffers.contains(buffer.get());
+}
 }

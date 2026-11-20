@@ -84,7 +84,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership, returns the state and forgets
@@ -197,20 +200,26 @@ struct Memory::State {
     /**
      * the raw handles to destroy, in destruction order
      */
-    [[nodiscard]] constexpr std::tuple<VmaAllocation> decompose() && { return {vmaAllocation.get()}; }
+    [[nodiscard]] constexpr std::tuple<VmaAllocation> decompose() && {
+        return {vmaAllocation.get()};
+    }
 };
 }
 
 namespace cvk {
 template<class T>
 Mapping<T>::~Mapping() {
-    if(_memoryPtr != nullptr) _memoryPtr->unmap();
+    if(_memoryPtr != nullptr)
+        _memoryPtr->unmap();
 }
 
 template<class T>
 template<class U> requires std::same_as<T, std::byte>
 Mapping<U> Mapping<T>::as() && {
-    CTH_CRITICAL(_range.size() % sizeof(U) != 0, "the size must be a multiple of the element size") {}
+    CTH_CRITICAL(
+        _range.size() % sizeof(U) != 0,
+        "the size must be a multiple of the element size"
+    ) {}
 
     size_t const count = _range.size() / sizeof(U);
     auto const& memory = *_memoryPtr.release();

@@ -42,7 +42,9 @@ namespace {
      * @return the device has `constants::OS_FENCE_FEATURES`
      */
     bool os_fence_exportable(Core const& core) {
-        auto const features = core.physicalDevice().externalFenceFeatures(constants::OS_FENCE_HANDLE_TYPE);
+        auto const features = core.physicalDevice().externalFenceFeatures(
+            constants::OS_FENCE_HANDLE_TYPE
+        );
         return (features & constants::OS_FENCE_FEATURES) == constants::OS_FENCE_FEATURES;
     }
 
@@ -136,8 +138,11 @@ CVK_TEST(Fence, move_assignment_destroys_the_old_fence) {
 
 CVK_TEST(Fence, extract_os_handle_of_a_pending_fence_keeps_the_signal) {
     std::optional<test::Context> context{};
-    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
-    if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
+    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) {
+        GTEST_SKIP() << "no os fence extension";
+    }
+    if(!os_fence_exportable(context->core))
+        GTEST_SKIP() << "os fence handle type not exportable";
 
     Fence const fence{context->core, create, 0, constants::OS_FENCE_HANDLE_TYPE};
     EXPECT_EQ(fence.exportTypes(), constants::OS_FENCE_HANDLE_TYPE);
@@ -146,7 +151,11 @@ CVK_TEST(Fence, extract_os_handle_of_a_pending_fence_keeps_the_signal) {
     queue.rawSubmit(EMPTY_SUBMIT, fence.get());
 
     auto const handle = fence.extractOsHandle();
-    if(handle) EXPECT_EQ(cth::os::wait(handle.get(), std::chrono::seconds{5}), cth::os::wait_result::WAITED);
+    if(handle)
+        EXPECT_EQ(
+        cth::os::wait(handle.get(), std::chrono::seconds{5}),
+        cth::os::wait_result::WAITED
+    );
 
     EXPECT_EQ(fence.wait(FIVE_SECONDS), VK_SUCCESS);
     EXPECT_TRUE(fence.signaled());
@@ -156,10 +165,18 @@ CVK_TEST(Fence, extract_os_handle_of_a_pending_fence_keeps_the_signal) {
 
 CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence_keeps_it_signaled) {
     std::optional<test::Context> context{};
-    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
-    if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
+    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) {
+        GTEST_SKIP() << "no os fence extension";
+    }
+    if(!os_fence_exportable(context->core))
+        GTEST_SKIP() << "os fence handle type not exportable";
 
-    Fence const fence{context->core, create, VK_FENCE_CREATE_SIGNALED_BIT, constants::OS_FENCE_HANDLE_TYPE};
+    Fence const fence{
+        context->core,
+        create,
+        VK_FENCE_CREATE_SIGNALED_BIT,
+        constants::OS_FENCE_HANDLE_TYPE
+    };
 
     // one export: the validation layers (1.4.363) do not track the state of an imported payload,
     // a second export reports VUID-VkFenceGetFdInfoKHR-handleType-01454
@@ -173,10 +190,18 @@ CVK_TEST(Fence, extract_os_handle_of_a_signaled_fence_keeps_it_signaled) {
 
 CVK_TEST(Fence, reset_after_extract_os_handle_unsignals_the_fence) {
     std::optional<test::Context> context{};
-    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) { GTEST_SKIP() << "no os fence extension"; }
-    if(!os_fence_exportable(context->core)) GTEST_SKIP() << "os fence handle type not exportable";
+    try { context.emplace(os_fence_config()); } catch(cvk_exception const&) {
+        GTEST_SKIP() << "no os fence extension";
+    }
+    if(!os_fence_exportable(context->core))
+        GTEST_SKIP() << "os fence handle type not exportable";
 
-    Fence const fence{context->core, create, VK_FENCE_CREATE_SIGNALED_BIT, constants::OS_FENCE_HANDLE_TYPE};
+    Fence const fence{
+        context->core,
+        create,
+        VK_FENCE_CREATE_SIGNALED_BIT,
+        constants::OS_FENCE_HANDLE_TYPE
+    };
     auto const handle = fence.extractOsHandle();
 
     fence.reset();
@@ -193,7 +218,8 @@ CVK_TEST(Fence, reset_after_extract_os_handle_unsignals_the_fence) {
 
 CVK_TEST(Fence, release_and_wrap_keep_the_export_types) {
     test::Context const context{};
-    if(!os_fence_exportable(context.core)) GTEST_SKIP() << "os fence handle type not exportable";
+    if(!os_fence_exportable(context.core))
+        GTEST_SKIP() << "os fence handle type not exportable";
     Fence fence{context.core, create, 0, constants::OS_FENCE_HANDLE_TYPE};
 
     auto const state = fence.release();

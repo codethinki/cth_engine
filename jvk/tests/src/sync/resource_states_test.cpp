@@ -48,10 +48,20 @@ namespace {
         .access = VK_ACCESS_2_TRANSFER_WRITE_BIT,
     };
 
-    constexpr BufferAccess SHADER_READ{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_READ_BIT};
-    constexpr BufferAccess SHADER_WRITE{VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT};
+    constexpr BufferAccess SHADER_READ{
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+    };
+    constexpr BufferAccess SHADER_WRITE{
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+    };
 
-    [[nodiscard]] constexpr ImageAccess with_mips(ImageAccess access, uint32_t firstMipLevel, uint32_t mipLevels) {
+    [[nodiscard]] constexpr ImageAccess with_mips(
+        ImageAccess access,
+        uint32_t firstMipLevel,
+        uint32_t mipLevels
+    ) {
         access.firstMipLevel = firstMipLevel;
         access.mipLevels = mipLevels;
         return access;
@@ -121,7 +131,8 @@ JVK_TEST(ResourceStates, read_after_read_needs_no_barrier) {
     states.access(image, COMPUTE_READ, barrier);
 
     EXPECT_TRUE(barrier.empty());
-    constexpr auto stages = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    constexpr auto stages = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
     EXPECT_EQ(states.last(image, 0)->scope.stages, stages);
     // the first use spans the accesses until the first barrier
     EXPECT_EQ(states.first(image, 0)->scope.stages, stages);
@@ -217,7 +228,10 @@ JVK_TEST(ResourceStates, assume_the_remaining_mip_levels) {
 
     EXPECT_EQ(states.last(image, 1)->layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     EXPECT_EQ(states.last(image, 2)->layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    EXPECT_EQ(states.last(image, image.mipLevels() - 1)->layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    EXPECT_EQ(
+        states.last(image, image.mipLevels() - 1)->layout,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
 }
 
 JVK_TEST(ResourceStates, assume_keeps_the_first_use) {
@@ -271,7 +285,10 @@ JVK_TEST(ResourceStates, assume_a_buffer) {
     ResourceStates states{};
     cvk::Barrier barrier{};
 
-    states.assume(buffer, BufferState{.scope = {.stages = SHADER_WRITE.stages, .access = SHADER_WRITE.access}});
+    states.assume(
+        buffer,
+        BufferState{.scope = {.stages = SHADER_WRITE.stages, .access = SHADER_WRITE.access}}
+    );
     states.access(buffer, SHADER_READ, barrier);
 
     EXPECT_FALSE(states.first(buffer).has_value());

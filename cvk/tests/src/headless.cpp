@@ -27,10 +27,18 @@ Surface headless_surface(Instance const& instance, Surface::extent_callback_t ex
     };
 
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
-    auto const result = vkCreateHeadlessSurfaceEXT(instance.get(), &createInfo, nullptr, &vkSurface);
+    auto const result = vkCreateHeadlessSurfaceEXT(
+        instance.get(),
+        &createInfo,
+        nullptr,
+        &vkSurface
+    );
     CTH_STABLE_THROW(result != VK_SUCCESS, "failed to create headless surface") {}
 
-    return Surface{instance, Surface::State{.vkSurface = vkSurface, .extentCallback = std::move(extentCallback)}};
+    return Surface{
+        instance,
+        Surface::State{.vkSurface = vkSurface, .extentCallback = std::move(extentCallback)}
+    };
 }
 
 PhysicalDevicePick pick(
@@ -43,7 +51,9 @@ PhysicalDevicePick pick(
 
     bool const present = std::ranges::any_of(
         queueProperties,
-        [](QueueFamilyProperties properties) { return contains(properties, QueueFamilyProperties::PRESENT); }
+        [](QueueFamilyProperties properties) {
+            return contains(properties, QueueFamilyProperties::PRESENT);
+        }
     );
     if(present) {
         features.merge(constants::PRESENT_DEVICE_FEATURES);
@@ -51,6 +61,12 @@ PhysicalDevicePick pick(
             extensions.emplace_back(extension);
     }
 
-    return pick_physical_device(instance, std::span{surfaces}, queueProperties, features, extensions).value();
+    return pick_physical_device(
+        instance,
+        std::span{surfaces},
+        queueProperties,
+        features,
+        extensions
+    ).value();
 }
 }

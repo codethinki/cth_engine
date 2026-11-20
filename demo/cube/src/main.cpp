@@ -57,14 +57,18 @@ constexpr VkExtent2D WINDOW_EXTENT{800, 600};
 /**
  * format of the swapchain and the pipeline, fixed: the pipeline is declared before the presenter, see `run()`
  */
-constexpr VkSurfaceFormatKHR SURFACE_FORMAT{VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+constexpr VkSurfaceFormatKHR SURFACE_FORMAT{
+    VK_FORMAT_B8G8R8A8_SRGB,
+    VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+};
 constexpr VkFormat DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT;
 constexpr VkSampleCountFlagBits MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
 
 constexpr size_t QUEUE_IDX = 0; ///< the graphics queue that presents
 constexpr size_t CUBE_STAGE_ID = 0;
 
-constexpr auto IDLE_WAIT = std::chrono::milliseconds{16}; ///< after a frame without an image, e.g. minimized
+constexpr auto IDLE_WAIT = std::chrono::milliseconds{16};
+///< after a frame without an image, e.g. minimized
 
 constexpr float SPEED = 1.f; ///< radians per second
 glm::vec3 const AXIS = glm::normalize(glm::vec3{0.3f, 1.f, 0.2f});
@@ -106,16 +110,23 @@ static_assert(sizeof(Draw) <= 256, "the push data of the draw must fit into maxP
  */
 std::array<Vertex, 24> cube_vertices() {
     // normal, then u and v of the face with u x v = normal
-    constexpr std::array<std::array<glm::vec3, 3>, 6> FACES{{
-        {glm::vec3{1, 0, 0}, glm::vec3{0, 0, -1}, glm::vec3{0, 1, 0}},
-        {glm::vec3{-1, 0, 0}, glm::vec3{0, 0, 1}, glm::vec3{0, 1, 0}},
-        {glm::vec3{0, 1, 0}, glm::vec3{1, 0, 0}, glm::vec3{0, 0, -1}},
-        {glm::vec3{0, -1, 0}, glm::vec3{1, 0, 0}, glm::vec3{0, 0, 1}},
-        {glm::vec3{0, 0, 1}, glm::vec3{1, 0, 0}, glm::vec3{0, 1, 0}},
-        {glm::vec3{0, 0, -1}, glm::vec3{-1, 0, 0}, glm::vec3{0, 1, 0}},
-    }};
+    constexpr std::array<std::array<glm::vec3, 3>, 6> FACES{
+        {
+            {glm::vec3{1, 0, 0}, glm::vec3{0, 0, -1}, glm::vec3{0, 1, 0}},
+            {glm::vec3{-1, 0, 0}, glm::vec3{0, 0, 1}, glm::vec3{0, 1, 0}},
+            {glm::vec3{0, 1, 0}, glm::vec3{1, 0, 0}, glm::vec3{0, 0, -1}},
+            {glm::vec3{0, -1, 0}, glm::vec3{1, 0, 0}, glm::vec3{0, 0, 1}},
+            {glm::vec3{0, 0, 1}, glm::vec3{1, 0, 0}, glm::vec3{0, 1, 0}},
+            {glm::vec3{0, 0, -1}, glm::vec3{-1, 0, 0}, glm::vec3{0, 1, 0}},
+        }
+    };
     // corners in u and v, the texture coordinates go down in v
-    constexpr std::array<glm::vec2, 4> CORNERS{glm::vec2{-1, -1}, glm::vec2{1, -1}, glm::vec2{1, 1}, glm::vec2{-1, 1}};
+    constexpr std::array<glm::vec2, 4> CORNERS{
+        glm::vec2{-1, -1},
+        glm::vec2{1, -1},
+        glm::vec2{1, 1},
+        glm::vec2{-1, 1}
+    };
 
     std::array<Vertex, 24> vertices{};
     for(size_t faceIdx = 0; faceIdx < FACES.size(); ++faceIdx) {
@@ -154,7 +165,8 @@ std::vector<uint8_t> checkerboard() {
     for(uint32_t y = 0; y < TEXTURE_SIZE; ++y)
         for(uint32_t x = 0; x < TEXTURE_SIZE; ++x) {
             bool const light = (x / CHECKER_SIZE + y / CHECKER_SIZE) % 2 == 0;
-            std::array<uint8_t, 4> const color = light ? std::array<uint8_t, 4>{240, 200, 80, 255}
+            std::array<uint8_t, 4> const color = light
+                ? std::array<uint8_t, 4>{240, 200, 80, 255}
                 : std::array<uint8_t, 4>{40, 70, 140, 255};
             std::ranges::copy(color, pixels.begin() + (size_t{y} * TEXTURE_SIZE + x) * 4);
         }
@@ -170,7 +182,8 @@ struct Targets {
             core,
             {
                 .format = SURFACE_FORMAT.format,
-                .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+                .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
                 .samples = MSAA_SAMPLES,
                 .memory = {.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             },
@@ -180,7 +193,8 @@ struct Targets {
             core,
             {
                 .format = DEPTH_FORMAT,
-                .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+                .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
                 .samples = MSAA_SAMPLES,
                 .memory = {.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             },
@@ -284,7 +298,10 @@ cth::co::executor_task<void> draw_frames(
         window.pollEvents();
         auto& stage = (co_await graph.nextFrame()).stage(CUBE_STAGE_ID);
 
-        auto const image = co_await presenter.acquire(stage, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+        auto const image = co_await presenter.acquire(
+            stage,
+            VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
+        );
         // extent 0: no image, the next nextFrame() skips the stage
         if(!image) {
             co_await cth::co::this_coro::wait(IDLE_WAIT);
@@ -309,7 +326,11 @@ cth::co::executor_task<void> draw_frames(
 
         auto const extent = image->extent;
         auto const model = glm::mat4_cast(rotation);
-        auto const view = glm::lookAt(glm::vec3{0.f, 0.f, 3.f}, glm::vec3{0.f}, glm::vec3{0.f, 1.f, 0.f});
+        auto const view = glm::lookAt(
+            glm::vec3{0.f, 0.f, 3.f},
+            glm::vec3{0.f},
+            glm::vec3{0.f, 1.f, 0.f}
+        );
         auto projection = glm::perspective(
             glm::radians(60.f),
             static_cast<float>(extent.width) / static_cast<float>(extent.height),
@@ -333,26 +354,36 @@ cth::co::executor_task<void> draw_frames(
             uploaded = true;
         }
         submit->use(cube.sampled, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
-        submit->use(cube.vertices, {VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_READ_BIT});
+        submit->use(
+            cube.vertices,
+            {VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_READ_BIT}
+        );
         // before the rendering: no barrier inside it, the bind inside it then needs none
-        submit->use(cube.indices, {VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
+        submit->use(
+            cube.indices,
+            {VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT}
+        );
 
-        auto const rendering = submit->beginRendering({
-            .colorAttachments = {{
-                .view = targetsOpt->colorView,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                .clearValue = {.color = {.float32 = {0.02f, 0.02f, 0.03f, 1.f}}},
-                .resolveViewPtr = &*image->view,
-                .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
-            }},
-            .depthAttachment = cvk::RenderingAttachment{
-                .view = targetsOpt->depthView,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                .clearValue = {.depthStencil = {.depth = 1.f, .stencil = 0}},
-            },
-        });
+        auto const rendering = submit->beginRendering(
+            {
+                .colorAttachments = {
+                    {
+                        .view = targetsOpt->colorView,
+                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                        .clearValue = {.color = {.float32 = {0.02f, 0.02f, 0.03f, 1.f}}},
+                        .resolveViewPtr = &*image->view,
+                        .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
+                    }
+                },
+                .depthAttachment = cvk::RenderingAttachment{
+                    .view = targetsOpt->depthView,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .clearValue = {.depthStencil = {.depth = 1.f, .stencil = 0}},
+                },
+            }
+        );
         submit->bind(pipeline);
         submit->setViewport(extent);
         submit->setScissor(extent);
@@ -375,8 +406,12 @@ void run() {
     // the surface extensions of the window and the instance extensions of a present queue
     auto extensions = cgfw::instance_extensions();
     for(auto const extension : cvk::constants::PRESENT_INSTANCE_EXTENSIONS)
-        if(!std::ranges::contains(extensions, extension)) extensions.emplace_back(extension);
-    cvk::Instance const instance{{.appName = "cube", .extensions = std::move(extensions)}, cvk::create};
+        if(!std::ranges::contains(extensions, extension))
+            extensions.emplace_back(extension);
+    cvk::Instance const instance{
+        {.appName = "cube", .extensions = std::move(extensions)},
+        cvk::create
+    };
 
     // the core picks a queue that presents to the surface, the presenter takes the surface
     // scalar block layout: the vertices and the push data of cube.glsl
@@ -388,14 +423,20 @@ void run() {
     };
     cvk::Core const& vk = core;
     auto const& limits = vk.physicalDevice().limits();
-    if((limits.framebufferColorSampleCounts & limits.framebufferDepthSampleCounts & MSAA_SAMPLES) == 0)
-        throw std::runtime_error{std::format("the device offers no {}x msaa for color and depth", +MSAA_SAMPLES)};
+    if((limits.framebufferColorSampleCounts & limits.framebufferDepthSampleCounts & MSAA_SAMPLES) ==
+        0)
+        throw std::runtime_error{
+            std::format("the device offers no {}x msaa for color and depth", +MSAA_SAMPLES)
+        };
 
     Cube const cube{core};
 
     cvk::Shader const vertex{core, VK_SHADER_STAGE_VERTEX_BIT, SHADER_DIR / "cube.vert.spv"};
     cvk::Shader const fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, SHADER_DIR / "cube.frag.spv"};
-    cvk::GraphicsPipeline::Config pipelineConfig{.colorFormats = {SURFACE_FORMAT.format}, .depthFormat = DEPTH_FORMAT};
+    cvk::GraphicsPipeline::Config pipelineConfig{
+        .colorFormats = {SURFACE_FORMAT.format},
+        .depthFormat = DEPTH_FORMAT
+    };
     pipelineConfig.multisample.rasterizationSamples = MSAA_SAMPLES;
     // counter-clockwise seen from outside, the flipped y of the projection keeps the orientation on the screen
     pipelineConfig.rasterization.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
@@ -413,15 +454,14 @@ void run() {
         std::move(surface),
     };
 
-    core.executor().sync_wait(draw_frames(window, core, graph, presenter, pipeline, cube, targetsOpt));
+    core.executor().sync_wait(
+        draw_frames(window, core, graph, presenter, pipeline, cube, targetsOpt)
+    );
 }
 }
 
 int main() {
-    try {
-        run();
-    }
-    catch(std::exception const& e) {
+    try { run(); } catch(std::exception const& e) {
         std::println(stderr, "cube failed: {}", e.what());
         return 1;
     }

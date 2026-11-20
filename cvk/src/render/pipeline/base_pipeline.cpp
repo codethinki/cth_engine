@@ -5,7 +5,8 @@
 
 
 namespace cvk {
-BasePipeline::BasePipeline(Core const& core, VkPipelineBindPoint bindPoint) : _handle{core}, _bindPoint{bindPoint} {}
+BasePipeline::BasePipeline(Core const& core, VkPipelineBindPoint bindPoint) : _handle{core},
+    _bindPoint{bindPoint} {}
 
 void BasePipeline::wrap(State const& state) {
     optDestroy();
@@ -86,7 +87,8 @@ BasePipeline::MappedStages BasePipeline::mapStages(
     std::span<VkDescriptorSetAndBindingMappingEXT const> mappings
 ) {
     MappedStages mapped{.mappingInfos = {}, .stages = {std::from_range, stages}};
-    if(mappings.empty()) return mapped;
+    if(mappings.empty())
+        return mapped;
 
     mapped.mappingInfos.reserve(stages.size());
     for(auto& stage : mapped.stages) {

@@ -25,6 +25,8 @@ namespace {
         std::optional<Cvk> _cvk{};
     };
 
-    [[maybe_unused]] testing::Environment* const ENVIRONMENT = testing::AddGlobalTestEnvironment(new Environment{});
+    [[maybe_unused]] testing::Environment* const ENVIRONMENT = testing::AddGlobalTestEnvironment(
+        new Environment{}
+    );
 }
 }

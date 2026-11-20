@@ -74,7 +74,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * encodes the sampler into sampler `idx`, then flushes its cell
@@ -97,7 +100,10 @@ public:
      * @see `DescriptorSpan::mapping()`
      */
     template<descriptor_of<SamplerHeap> Descriptor>
-    [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT mapping(uint32_t set, uint32_t binding) const;
+    [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT mapping(
+        uint32_t set,
+        uint32_t binding
+    ) const;
 
     /**
      * maps a shader variable of samplers at the set and binding onto the sampler at an index in the push data
@@ -156,7 +162,10 @@ public:
 
 namespace cvk {
 template<descriptor_of<SamplerHeap> Descriptor>
-constexpr VkDescriptorSetAndBindingMappingEXT SamplerHeap::mapping(uint32_t set, uint32_t binding) const {
+constexpr VkDescriptorSetAndBindingMappingEXT SamplerHeap::mapping(
+    uint32_t set,
+    uint32_t binding
+) const {
     debug_check(*this);
     return dev::heap_mapping<Descriptor>(set, binding, 0, _stride);
 }

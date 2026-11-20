@@ -14,11 +14,16 @@ BaseBuffer::BaseBuffer(Core const& core, Config const& config) : _handle{core}, 
     Config::debug_check(config);
 }
 
-BaseBuffer::BaseBuffer(Core const& core, Config const& config, State const& state) : BaseBuffer{core, config} {
-    wrap(state);
-}
+BaseBuffer::BaseBuffer(
+    Core const& core,
+    Config const& config,
+    State const& state
+) : BaseBuffer{core, config} { wrap(state); }
 
-BaseBuffer::BaseBuffer(Core const& core, Config const& config, size_t size) : BaseBuffer{core, config} { create(size); }
+BaseBuffer::BaseBuffer(Core const& core, Config const& config, size_t size) : BaseBuffer{
+    core,
+    config
+} { create(size); }
 
 void BaseBuffer::wrap(State const& state) {
     Core::debug_check(core());
@@ -26,7 +31,8 @@ void BaseBuffer::wrap(State const& state) {
     optDestroy();
 
     _handle.reset(state.vkBuffer.get(), core());
-    if(state.memory.has_value()) _memoryOpt.emplace(core(), _config.memory, *state.memory);
+    if(state.memory.has_value())
+        _memoryOpt.emplace(core(), _config.memory, *state.memory);
     _size = state.size;
     _address = queryAddress();
 }
@@ -74,13 +80,18 @@ BaseBuffer::State BaseBuffer::release() {
     debug_check(*this);
 
     State state{.vkBuffer = _handle.release(), .size = _size, .memory = std::nullopt};
-    if(_memoryOpt.has_value()) state.memory = _memoryOpt->release();
+    if(_memoryOpt.has_value())
+        state.memory = _memoryOpt->release();
 
     forget();
     return state;
 }
 
-void BaseBuffer::copy(BaseCmdBuffer const& cmdBuffer, BaseBuffer const& src, BufferCopy region) const {
+void BaseBuffer::copy(
+    BaseCmdBuffer const& cmdBuffer,
+    BaseBuffer const& src,
+    BufferCopy region
+) const {
     auto const [srcOffset, dstOffset, size] = region;
 
     debug_check(*this);
@@ -96,7 +107,9 @@ void BaseBuffer::copy(BaseCmdBuffer const& cmdBuffer, BaseBuffer const& src, Buf
     ) {}
     CTH_CRITICAL(srcOffset > src._size || dstOffset > _size, "offsets must lie in the buffers") {}
 
-    size_t const copySize = size == VK_WHOLE_SIZE ? std::min(src._size - srcOffset, _size - dstOffset) : size;
+    size_t const copySize = size == VK_WHOLE_SIZE
+        ? std::min(src._size - srcOffset, _size - dstOffset)
+        : size;
 
     CTH_CRITICAL(copySize == 0, "copy size must not be 0") {}
     CTH_CRITICAL(
@@ -134,9 +147,7 @@ void BaseBuffer::copy(
     size_t dstOffset,
     uint32_t mipLevel,
     VkImageLayout layout
-) const {
-    src.copyTo(cmdBuffer, *this, dstOffset, mipLevel, layout);
-}
+) const { src.copyTo(cmdBuffer, *this, dstOffset, mipLevel, layout); }
 
 Mapping<std::byte> BaseBuffer::map(Range range) const {
     debug_check(*this);
@@ -171,7 +182,8 @@ void BaseBuffer::forget() {
 }
 
 VkDeviceAddress BaseBuffer::queryAddress() const {
-    if((_config.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) == 0) return 0;
+    if((_config.usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) == 0)
+        return 0;
 
     VkBufferDeviceAddressInfo const info{
         .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,

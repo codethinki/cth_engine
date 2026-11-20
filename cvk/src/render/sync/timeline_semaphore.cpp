@@ -10,13 +10,15 @@
 namespace cvk {
 TimelineSemaphore::TimelineSemaphore(Core const& core) : Semaphore{core} {}
 
-TimelineSemaphore::TimelineSemaphore(Core const& core, State const& state) : TimelineSemaphore{core} {
-    wrap(state);
-}
+TimelineSemaphore::TimelineSemaphore(
+    Core const& core,
+    State const& state
+) : TimelineSemaphore{core} { wrap(state); }
 
-TimelineSemaphore::TimelineSemaphore(Core const& core, create_t, uint64_t initialValue) : TimelineSemaphore{core} {
-    create(initialValue);
-}
+TimelineSemaphore::TimelineSemaphore(Core const& core, create_t, uint64_t initialValue) :
+    TimelineSemaphore{
+        core
+    } { create(initialValue); }
 
 void TimelineSemaphore::wrap(State const& state) {
     Semaphore::wrap(Semaphore::State{state.vkSemaphore});
@@ -98,7 +100,11 @@ uint64_t TimelineSemaphore::gpuValue() const {
     uint64_t value = 0;
     auto const result = table->vkGetSemaphoreCounterValue(table.device(), get(), &value);
 
-    CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to get semaphore counter value") {}
+    CVK_RESULT_STABLE_THROW(
+        result != VK_SUCCESS,
+        result,
+        "failed to get semaphore counter value"
+    ) {}
 
     return value;
 }

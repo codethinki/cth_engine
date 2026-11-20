@@ -9,15 +9,15 @@
 
 
 namespace cvk {
-DebugMessenger::DebugMessenger(Instance const& instance, Config config) : _config{std::move(config)},
-    _instance{instance} {
-    Config::debug_check(_config);
-}
+DebugMessenger::DebugMessenger(Instance const& instance, Config config) : _config
+    {std::move(config)},
+    _instance{instance} { Config::debug_check(_config); }
 
-DebugMessenger::DebugMessenger(Instance const& instance, Config config, State const& state) : DebugMessenger{
-    instance,
-    std::move(config)
-} { wrap(state); }
+DebugMessenger::DebugMessenger(Instance const& instance, Config config, State const& state) :
+    DebugMessenger{
+        instance,
+        std::move(config)
+    } { wrap(state); }
 
 DebugMessenger::DebugMessenger(Instance const& instance, Config config, create_t) : DebugMessenger{
     instance,
@@ -40,7 +40,12 @@ void DebugMessenger::create() {
     auto const info = _config.createInfo();
 
     VkDebugUtilsMessengerEXT ptr = VK_NULL_HANDLE;
-    auto const createResult = vkCreateDebugUtilsMessengerEXT(_instance->get(), &info, nullptr, &ptr);
+    auto const createResult = vkCreateDebugUtilsMessengerEXT(
+        _instance->get(),
+        &info,
+        nullptr,
+        &ptr
+    );
 
     CTH_STABLE_ERR(createResult != VK_SUCCESS, "failed to set up debug messenger") {
         forget();
@@ -139,7 +144,8 @@ VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
     auto const severity = dev::to_severity(messageSeverity);
 
     auto type = dev::to_msg(messageType);
-    if(type.empty()) type = "UNKNOWN";
+    if(type.empty())
+        type = "UNKNOWN";
 
     std::vector<dev::component_info> objects{};
     objects.reserve(callbackData->objectCount);

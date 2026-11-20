@@ -19,16 +19,20 @@ namespace cvk {
 using test::pool_config;
 
 CVK_TEST(CmdBuffer, inheritance_rendering_info) {
-    static_assert([] {
-        SecondaryCmdBuffer::Inheritance inheritance{
-            .colorFormats = {VK_FORMAT_B8G8R8A8_UNORM},
-            .depthFormat = VK_FORMAT_D16_UNORM,
-            .samples = VK_SAMPLE_COUNT_4_BIT,
-        };
-        auto const info = inheritance.renderingInfo();
-        return info.colorAttachmentCount == 1 && info.pColorAttachmentFormats == inheritance.colorFormats.data()
-            && info.depthAttachmentFormat == VK_FORMAT_D16_UNORM && info.rasterizationSamples == VK_SAMPLE_COUNT_4_BIT;
-    }());
+    static_assert(
+        [] {
+            SecondaryCmdBuffer::Inheritance inheritance{
+                .colorFormats = {VK_FORMAT_B8G8R8A8_UNORM},
+                .depthFormat = VK_FORMAT_D16_UNORM,
+                .samples = VK_SAMPLE_COUNT_4_BIT,
+            };
+            auto const info = inheritance.renderingInfo();
+            return info.colorAttachmentCount == 1 &&
+                info.pColorAttachmentFormats == inheritance.colorFormats.data() &&
+                info.depthAttachmentFormat == VK_FORMAT_D16_UNORM &&
+                info.rasterizationSamples == VK_SAMPLE_COUNT_4_BIT;
+        }()
+    );
 }
 
 CVK_TEST(CmdBuffer, push_constant_data) {
@@ -139,7 +143,10 @@ CVK_TEST(CmdBuffer, execute_secondaries) {
         secondary.end();
     }
 
-    std::vector<cth::ref_wrapper<SecondaryCmdBuffer const>> const refs{secondaries.begin(), secondaries.end()};
+    std::vector<cth::ref_wrapper<SecondaryCmdBuffer const>> const refs{
+        secondaries.begin(),
+        secondaries.end()
+    };
 
     PrimaryCmdBuffer primary{pool, create};
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -215,12 +222,19 @@ CVK_TEST(CmdBuffer, secondary_reports_the_inherited_view_mask) {
     auto config = test::Context::CONFIG;
     config.features.multiview = true;
     std::optional<test::Context> context{};
-    try { context.emplace(config); } catch(cvk_exception const&) { GTEST_SKIP() << "needs multiview"; }
+    try { context.emplace(config); } catch(cvk_exception const&) {
+        GTEST_SKIP() << "needs multiview";
+    }
 
     CmdPool const pool{context->core, pool_config(context->core), create};
     SecondaryCmdBuffer secondary{pool, create};
 
-    secondary.begin(SecondaryCmdBuffer::Inheritance{.colorFormats = {VK_FORMAT_R8G8B8A8_UNORM}, .viewMask = 0b11});
+    secondary.begin(
+        SecondaryCmdBuffer::Inheritance{
+            .colorFormats = {VK_FORMAT_R8G8B8A8_UNORM},
+            .viewMask = 0b11
+        }
+    );
     EXPECT_EQ(secondary.renderingViewMask(), 0b11);
     secondary.end();
 }
@@ -244,17 +258,23 @@ CVK_TEST(CmdBuffer, primary_is_inside_its_rendering) {
     EXPECT_FALSE(primary.insideRendering());
 
     Barrier transition{};
-    transition.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+    transition.addTransition(
+        image,
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        VK_IMAGE_LAYOUT_UNDEFINED
+    );
     transition.execute(primary);
-    primary.beginRendering({
-        .colorAttachments = {
-            RenderingAttachment{
-                .view = view,
-                .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+    primary.beginRendering(
+        {
+            .colorAttachments = {
+                RenderingAttachment{
+                    .view = view,
+                    .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                },
             },
-        },
-    });
+        }
+    );
     EXPECT_TRUE(primary.insideRendering());
     EXPECT_EQ(primary.renderingViewMask(), 0);
 

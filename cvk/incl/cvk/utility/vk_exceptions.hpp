@@ -28,8 +28,9 @@ public:
         std::move(trace)
     } {}
 
-    explicit cvk_exception(cth::except::default_exception defaultException)
-        : default_exception{std::move(defaultException)} { prepend(PREFIX); }
+    explicit cvk_exception(cth::except::default_exception defaultException) : default_exception{
+        std::move(defaultException)
+    } { prepend(PREFIX); }
 };
 
 /**
@@ -58,10 +59,14 @@ public:
         std::string_view msg,
         std::source_location sourceLocation = {},
         std::stacktrace stacktrace = {}
-    ) : vk_result_exception{msg, SEVERITY, std::move(sourceLocation), std::move(stacktrace)} { add(result); }
+    ) : vk_result_exception{msg, SEVERITY, std::move(sourceLocation), std::move(stacktrace)} {
+        add(result);
+    }
 
-    vk_result_exception(VkResult result, cth::except::default_exception defaultException)
-        : cvk_exception{std::move(defaultException)} { add(result); }
+    vk_result_exception(VkResult result, cth::except::default_exception defaultException) :
+        cvk_exception{
+            std::move(defaultException)
+        } { add(result); }
 
     using cvk_exception::add;
 

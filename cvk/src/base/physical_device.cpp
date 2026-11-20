@@ -30,9 +30,11 @@ namespace {
 
         return {
             std::from_range,
-            properties | std::views::transform([](VkExtensionProperties const& extension) {
-                return string{extension.extensionName};
-            })
+            properties | std::views::transform(
+                [](VkExtensionProperties const& extension) {
+                    return string{extension.extensionName};
+                }
+            )
         };
     }
 
@@ -53,7 +55,10 @@ namespace {
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT,
             .pNext = nullptr,
         };
-        bool const heaps = std::ranges::contains(extensions, std::string_view{VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME});
+        bool const heaps = std::ranges::contains(
+            extensions,
+            std::string_view{VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME}
+        );
 
         VkPhysicalDeviceIDProperties idProperties{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES,
@@ -75,7 +80,9 @@ namespace {
         return result;
     }
 
-    [[nodiscard]] VkPhysicalDeviceMemoryProperties query_memory_properties(vk_not_null<VkPhysicalDevice> vkDevice) {
+    [[nodiscard]] VkPhysicalDeviceMemoryProperties query_memory_properties(
+        vk_not_null<VkPhysicalDevice> vkDevice
+    ) {
         VkPhysicalDeviceMemoryProperties properties{};
         vkGetPhysicalDeviceMemoryProperties(vkDevice.get(), &properties);
         return properties;
@@ -102,8 +109,17 @@ namespace {
 
             for(Surface const& surface : surfaces) {
                 VkBool32 support = VK_FALSE;
-                auto const result = vkGetPhysicalDeviceSurfaceSupportKHR(vkDevice.get(), i, surface.get(), &support);
-                CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "device-surface support query failed") {}
+                auto const result = vkGetPhysicalDeviceSurfaceSupportKHR(
+                    vkDevice.get(),
+                    i,
+                    surface.get(),
+                    &support
+                );
+                CVK_RESULT_STABLE_THROW(
+                    result != VK_SUCCESS,
+                    result,
+                    "device-surface support query failed"
+                ) {}
 
                 presentSupport = presentSupport && support == VK_TRUE;
             }
@@ -114,7 +130,9 @@ namespace {
         return queueFamilies;
     }
 
-    [[nodiscard]] VkSampleCountFlagBits max_sample_count(VkPhysicalDeviceProperties const& properties) {
+    [[nodiscard]] VkSampleCountFlagBits max_sample_count(
+        VkPhysicalDeviceProperties const& properties
+    ) {
         VkSampleCountFlags const supportedSamples = properties.limits.framebufferColorSampleCounts
             & properties.limits.framebufferDepthSampleCounts;
 
@@ -152,7 +170,10 @@ PhysicalDevice::PhysicalDevice(
     _maxSampleCount = max_sample_count(_properties);
 }
 
-vector<string> PhysicalDevice::missing(DeviceFeatures const& features, span<string const> extensions) const {
+vector<string> PhysicalDevice::missing(
+    DeviceFeatures const& features,
+    span<string const> extensions
+) const {
     debug_check(*this);
 
     vector<string> missing{};
@@ -160,7 +181,10 @@ vector<string> PhysicalDevice::missing(DeviceFeatures const& features, span<stri
         missing.emplace_back(name);
 
     auto const add = [&](std::string_view extension) {
-        if(!std::ranges::contains(_extensions, extension) && !std::ranges::contains(missing, extension))
+        if(!std::ranges::contains(_extensions, extension) && !std::ranges::contains(
+            missing,
+            extension
+        ))
             missing.emplace_back(extension);
     };
     for(auto const& extension : extensions)
@@ -205,7 +229,8 @@ auto PhysicalDevice::findSupportedFormat(
         VkFormatProperties props{};
         vkGetPhysicalDeviceFormatProperties(_handle.get(), format, &props);
 
-        if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+        if(tiling == VK_IMAGE_TILING_OPTIMAL &&
+            (props.optimalTilingFeatures & features) == features)
             return format;
         if(tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
             return format;
@@ -223,7 +248,9 @@ QueueFamily const* PhysicalDevice::queueFamily(queue_family_index_t familyIdx) c
     return &*it;
 }
 
-VkExternalFenceFeatureFlags PhysicalDevice::externalFenceFeatures(VkExternalFenceHandleTypeFlagBits handleType) const {
+VkExternalFenceFeatureFlags PhysicalDevice::externalFenceFeatures(
+    VkExternalFenceHandleTypeFlagBits handleType
+) const {
     debug_check(*this);
 
     VkPhysicalDeviceExternalFenceInfo const info{
@@ -231,7 +258,10 @@ VkExternalFenceFeatureFlags PhysicalDevice::externalFenceFeatures(VkExternalFenc
         .pNext = nullptr,
         .handleType = handleType,
     };
-    VkExternalFenceProperties properties{.sType = VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES, .pNext = nullptr};
+    VkExternalFenceProperties properties{
+        .sType = VK_STRUCTURE_TYPE_EXTERNAL_FENCE_PROPERTIES,
+        .pNext = nullptr
+    };
     vkGetPhysicalDeviceExternalFenceProperties(_handle.get(), &info, &properties);
 
     return properties.externalFenceFeatures;
@@ -243,13 +273,17 @@ vector<PhysicalDevice> enumerate_physical_devices(
 ) {
     Instance::debug_check(instance);
 
-    auto const vkDevices = dev::enumerate("physical devices", vkEnumeratePhysicalDevices, instance.get());
+    auto const vkDevices = dev::enumerate(
+        "physical devices",
+        vkEnumeratePhysicalDevices,
+        instance.get()
+    );
 
     return {
         std::from_range,
-        vkDevices | std::views::transform([surfaces](VkPhysicalDevice vkDevice) {
-            return PhysicalDevice{vkDevice, surfaces};
-        })
+        vkDevices | std::views::transform(
+            [surfaces](VkPhysicalDevice vkDevice) { return PhysicalDevice{vkDevice, surfaces}; }
+        )
     };
 }
 
@@ -265,11 +299,14 @@ std::optional<PhysicalDevicePick> pick_physical_device(
 
     bool const present = std::ranges::any_of(
         queueProperties,
-        [](QueueFamilyProperties properties) { return contains(properties, QueueFamilyProperties::PRESENT); }
+        [](QueueFamilyProperties properties) {
+            return contains(properties, QueueFamilyProperties::PRESENT);
+        }
     );
 
     for(auto& device : enumerate_physical_devices(instance, surfaces)) {
-        if(uuidOpt.has_value() && device.uuid() != *uuidOpt) continue;
+        if(uuidOpt.has_value() && device.uuid() != *uuidOpt)
+            continue;
 
         auto const missing = device.missing(features, extensions);
         auto indices = device.queueFamilyIndices(queueProperties);
@@ -281,21 +318,32 @@ std::optional<PhysicalDevicePick> pick_physical_device(
 
         if(missing.empty() && !indices.empty() && osFences) {
             auto const rank = dev::device_type_rank(device.properties().deviceType);
-            if(!bestOpt.has_value() || rank < dev::device_type_rank(bestOpt->device.properties().deviceType))
+            if(!bestOpt.has_value() || rank < dev::device_type_rank(
+                bestOpt->device.properties().deviceType
+            ))
                 bestOpt = PhysicalDevicePick{std::move(device), std::move(indices)};
             continue;
         }
 
         cth::dt::string_joiner reasons{", "};
-        if(indices.empty()) reasons += "queue families";
-        if(!osFences) reasons += "os fence features";
+        if(indices.empty())
+            reasons += "queue families";
+        if(!osFences)
+            reasons += "os fence features";
         for(auto const& name : missing)
             reasons += name;
-        log::msg<except::LOG>("physical device {} misses: {}", device.properties().deviceName, std::string{reasons});
+        log::msg<except::LOG>(
+            "physical device {} misses: {}",
+            device.properties().deviceName,
+            std::string{reasons}
+        );
     }
 
     if(bestOpt.has_value())
-        log::msg<except::INFO>("chosen physical device: {}", bestOpt->device.properties().deviceName);
+        log::msg<except::INFO>(
+            "chosen physical device: {}",
+            bestOpt->device.properties().deviceName
+        );
     return bestOpt;
 }
 }

@@ -76,7 +76,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership, returns the state and forgets
@@ -93,7 +96,9 @@ public:
     /**
      * @return the subresource range of the view in the image
      */
-    [[nodiscard]] constexpr VkImageSubresourceRange range() const { return _config.range(_image->aspectMask()); }
+    [[nodiscard]] constexpr VkImageSubresourceRange range() const {
+        return _config.range(_image->aspectMask());
+    }
 
     /**
      * @return the layers of the view
@@ -104,7 +109,9 @@ public:
      * @return `Config::viewType`, `VK_IMAGE_VIEW_TYPE_MAX_ENUM` -> inferred
      * @see `ImageViewConfig::resolvedViewType()`
      */
-    [[nodiscard]] constexpr VkImageViewType viewType() const { return _config.resolvedViewType(*_image); }
+    [[nodiscard]] constexpr VkImageViewType viewType() const {
+        return _config.resolvedViewType(*_image);
+    }
 
 private:
     void forget();

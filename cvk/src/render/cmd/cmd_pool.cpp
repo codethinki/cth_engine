@@ -7,9 +7,15 @@
 namespace cvk {
 CmdPool::CmdPool(Core const& core, Config const& config) : _handle{core}, _config{config} {}
 
-CmdPool::CmdPool(Core const& core, Config const& config, State const& state) : CmdPool{core, config} { wrap(state); }
+CmdPool::CmdPool(
+    Core const& core,
+    Config const& config,
+    State const& state
+) : CmdPool{core, config} { wrap(state); }
 
-CmdPool::CmdPool(Core const& core, Config const& config, create_t) : CmdPool{core, config} { create(); }
+CmdPool::CmdPool(Core const& core, Config const& config, create_t) : CmdPool{core, config} {
+    create();
+}
 
 void CmdPool::wrap(State const& state) {
     Core::debug_check(core());
@@ -21,14 +27,22 @@ void CmdPool::wrap(State const& state) {
 
 void CmdPool::create() {
     Core::debug_check(core());
-    CTH_CRITICAL(_config.queueFamilyIndex == VK_QUEUE_FAMILY_IGNORED, "the config needs a queue family") {}
+    CTH_CRITICAL(
+        _config.queueFamilyIndex == VK_QUEUE_FAMILY_IGNORED,
+        "the config needs a queue family"
+    ) {}
 
     optDestroy();
 
     auto const info = _config.createInfo();
 
     VkCommandPool ptr = VK_NULL_HANDLE;
-    auto const result = core().functions()->vkCreateCommandPool(core().vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreateCommandPool(
+        core().vkDevice(),
+        &info,
+        nullptr,
+        &ptr
+    );
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create command pool") {
         forget();
@@ -40,7 +54,11 @@ void CmdPool::create() {
 
 void CmdPool::destroy() {
     debug_check(*this);
-    CTH_CRITICAL(!unused(), "command buffers of the pool must be destroyed first, got {}", _buffers) {}
+    CTH_CRITICAL(
+        !unused(),
+        "command buffers of the pool must be destroyed first, got {}",
+        _buffers
+    ) {}
 
     _handle.reset();
 
@@ -49,7 +67,11 @@ void CmdPool::destroy() {
 
 CmdPool::State CmdPool::release() {
     debug_check(*this);
-    CTH_CRITICAL(!unused(), "command buffers of the pool must be destroyed first, got {}", _buffers) {}
+    CTH_CRITICAL(
+        !unused(),
+        "command buffers of the pool must be destroyed first, got {}",
+        _buffers
+    ) {}
 
     State const state{_handle.release()};
     forget();

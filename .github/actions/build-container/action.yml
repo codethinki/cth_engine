@@ -12,7 +12,7 @@ inputs:
     default: 'cache'
 
 outputs:
-  container-image-adress: 
+  container-image-adress:
     description: Address of container image
     value: ${{ steps.set-image.outputs.image }}
 

@@ -81,20 +81,25 @@ public:
     /**
      * @return the external fence features of the handle type
      */
-    [[nodiscard]] VkExternalFenceFeatureFlags externalFenceFeatures(VkExternalFenceHandleTypeFlagBits) const;
+    [[nodiscard]] VkExternalFenceFeatureFlags externalFenceFeatures(
+        VkExternalFenceHandleTypeFlagBits
+    ) const;
 
     [[nodiscard]] constexpr VkPhysicalDevice get() const { return _handle.get(); }
     [[nodiscard]] constexpr std::span<std::string const> extensions() const { return _extensions; }
     [[nodiscard]] constexpr DeviceFeatures const& features() const { return _features; }
-    [[nodiscard]] constexpr VkPhysicalDeviceProperties const& properties() const { return _properties; }
-    [[nodiscard]] constexpr VkPhysicalDeviceLimits const& limits() const { return _properties.limits; }
+    [[nodiscard]] constexpr VkPhysicalDeviceProperties const& properties() const {
+        return _properties;
+    }
+    [[nodiscard]] constexpr VkPhysicalDeviceLimits const& limits() const {
+        return _properties.limits;
+    }
 
     /**
      * @return the descriptor heap properties, no `VK_EXT_descriptor_heap` -> zeros
      */
-    [[nodiscard]] constexpr VkPhysicalDeviceDescriptorHeapPropertiesEXT const& descriptorHeapProperties() const {
-        return _descriptorHeapProperties;
-    }
+    [[nodiscard]] constexpr VkPhysicalDeviceDescriptorHeapPropertiesEXT const&
+    descriptorHeapProperties() const { return _descriptorHeapProperties; }
 
     /**
      * @return `deviceUUID` of `VkPhysicalDeviceIDProperties`, the same across instances and processes
@@ -104,7 +109,9 @@ public:
         return _memoryProperties;
     }
     [[nodiscard]] constexpr VkSampleCountFlagBits maxSampleCount() const { return _maxSampleCount; }
-    [[nodiscard]] constexpr std::span<QueueFamily const> queueFamilies() const { return _queueFamilies; }
+    [[nodiscard]] constexpr std::span<QueueFamily const> queueFamilies() const {
+        return _queueFamilies;
+    }
 
 private:
     move_ptr<VkPhysicalDevice_T> _handle;
@@ -153,9 +160,7 @@ struct PhysicalDevicePick {
 [[nodiscard]] inline std::vector<PhysicalDevice> enumerate_physical_devices(
     Instance const& instance,
     std::initializer_list<cth::ref_wrapper<Surface const>> surfaces
-) {
-    return enumerate_physical_devices(instance, std::span{surfaces});
-}
+) { return enumerate_physical_devices(instance, std::span{surfaces}); }
 
 /**
  * picks the best physical device with the features, the extensions and the queues
@@ -190,7 +195,14 @@ struct PhysicalDevicePick {
     std::span<std::string const> extensions = {},
     std::optional<device_uuid_t> const& uuidOpt = std::nullopt
 ) {
-    return pick_physical_device(instance, std::span{surfaces}, queueProperties, features, extensions, uuidOpt);
+    return pick_physical_device(
+        instance,
+        std::span{surfaces},
+        queueProperties,
+        features,
+        extensions,
+        uuidOpt
+    );
 }
 }
 

@@ -64,7 +64,8 @@ namespace {
      */
     VkResult always_incomplete(uint32_t* calls, uint32_t* count, int* data) {
         ++*calls;
-        if(data != nullptr) return VK_INCOMPLETE;
+        if(data != nullptr)
+            return VK_INCOMPLETE;
 
         *count = 1;
         return VK_SUCCESS;
@@ -77,7 +78,8 @@ namespace {
      * @return `VK_ERROR_OUT_OF_HOST_MEMORY` at the call with the index `failingCall`
      */
     VkResult failing(uint32_t failingCall, uint32_t* calls, uint32_t* count, int* data) {
-        if((*calls)++ == failingCall) return VK_ERROR_OUT_OF_HOST_MEMORY;
+        if((*calls)++ == failingCall)
+            return VK_ERROR_OUT_OF_HOST_MEMORY;
         return query(ELEMENTS, count, data);
     }
 
@@ -87,13 +89,19 @@ namespace {
      * @param[out] data
      */
     void void_query(uint32_t elementCount, uint32_t* count, int* data) {
-        [[maybe_unused]] auto const result = query(std::span{ELEMENTS}.first(elementCount), count, data);
+        [[maybe_unused]] auto const result = query(
+            std::span{ELEMENTS}.first(elementCount),
+            count,
+            data
+        );
     }
 }
 
 CVK_TEST(enumerate, element_type_is_the_pointee_of_the_last_parameter) {
     static_assert(std::same_as<dev::enumerate_element_t<decltype(&void_query)>, int>);
-    static_assert(std::same_as<dev::enumerate_element_t<PFN_vkEnumeratePhysicalDevices>, VkPhysicalDevice>);
+    static_assert(
+        std::same_as<dev::enumerate_element_t<PFN_vkEnumeratePhysicalDevices>, VkPhysicalDevice>
+    );
     static_assert(std::same_as<dev::enumerate_element_t<PFN_vkGetSwapchainImagesKHR>, VkImage>);
 }
 
@@ -110,7 +118,11 @@ CVK_TEST(enumerate, incomplete_in_every_attempt_throws) {
     uint32_t calls = 0;
 
     try {
-        [[maybe_unused]] auto const elements = dev::enumerate("fake elements", always_incomplete, &calls);
+        [[maybe_unused]] auto const elements = dev::enumerate(
+            "fake elements",
+            always_incomplete,
+            &calls
+        );
         ADD_FAILURE() << "no throw";
     } catch(vk_result_exception const& exception) {
         EXPECT_EQ(exception.vkResult(), VK_INCOMPLETE);
@@ -132,7 +144,12 @@ CVK_TEST(enumerate, error_throws_the_result) {
     for(uint32_t const failingCall : {0u, 1u}) {
         uint32_t calls = 0;
         try {
-            [[maybe_unused]] auto const elements = dev::enumerate("fake elements", failing, failingCall, &calls);
+            [[maybe_unused]] auto const elements = dev::enumerate(
+                "fake elements",
+                failing,
+                failingCall,
+                &calls
+            );
             ADD_FAILURE() << "no throw at call " << failingCall;
         } catch(vk_result_exception const& exception) {
             EXPECT_EQ(exception.vkResult(), VK_ERROR_OUT_OF_HOST_MEMORY);

@@ -62,7 +62,8 @@ CVK_TEST(Device, create_retrieves_the_queues) {
     Context const context{};
 
     auto const result = pick_physical_device(context.instance, {}, THREE_QUEUES, {});
-    if(!result) GTEST_SKIP() << "needs a device with three queues";
+    if(!result)
+        GTEST_SKIP() << "needs a device with three queues";
     auto const& [physicalDevice, familyIndices] = *result;
 
     Device const device{context.instance, physicalDevice, Device::Config{familyIndices}};
@@ -71,7 +72,11 @@ CVK_TEST(Device, create_retrieves_the_queues) {
     ASSERT_EQ(device.queues().size(), THREE_QUEUES.size());
 
     std::map<queue_family_index_t, uint32_t> queueIndices{};
-    for(auto const& [queue, familyIndex, properties] : std::views::zip(device.queues(), familyIndices, THREE_QUEUES)) {
+    for(auto const& [queue, familyIndex, properties] : std::views::zip(
+            device.queues(),
+            familyIndices,
+            THREE_QUEUES
+        )) {
         ASSERT_NE(queue.get(), VK_NULL_HANDLE);
         EXPECT_EQ(queue.familyIndex(), familyIndex);
         EXPECT_EQ(queue.index(), queueIndices[familyIndex]++);
@@ -87,10 +92,18 @@ CVK_TEST(Device, queues_of_one_family_get_increasing_indices) {
     auto const [physicalDevice, _] = test::pick(context.instance, QUEUES);
 
     auto const families = physicalDevice.queueFamilies();
-    auto const family = std::ranges::find_if(families, [](auto const& f) { return f.vkProperties.queueCount >= 2; });
-    if(family == families.end()) GTEST_SKIP() << "needs a queue family with two queues";
+    auto const family = std::ranges::find_if(
+        families,
+        [](auto const& f) { return f.vkProperties.queueCount >= 2; }
+    );
+    if(family == families.end())
+        GTEST_SKIP() << "needs a queue family with two queues";
 
-    Device const device{context.instance, physicalDevice, Device::Config{{family->index, family->index}}};
+    Device const device{
+        context.instance,
+        physicalDevice,
+        Device::Config{{family->index, family->index}}
+    };
 
     ASSERT_EQ(device.queues().size(), 2);
     EXPECT_EQ(device.queues()[0].index(), 0);
@@ -173,7 +186,11 @@ CVK_TEST(Device, present_enables_swapchain_maintenance1) {
     test::PresentContext const context{};
     std::array const queues{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::PRESENT};
 
-    auto const [physicalDevice, familyIndices] = test::pick(context.instance, queues, {context.surface()});
+    auto const [physicalDevice, familyIndices] = test::pick(
+        context.instance,
+        queues,
+        {context.surface()}
+    );
 
     Device const device{
         context.instance,
@@ -198,7 +215,8 @@ CVK_TEST(Device, present_enables_swapchain_maintenance1) {
 }
 
 CVK_TEST(Device, move_assignment_destroys_the_old_device) {
-    if constexpr(!constants::ENABLE_VALIDATION_LAYERS) GTEST_SKIP() << "needs the validation layers";
+    if constexpr(!constants::ENABLE_VALIDATION_LAYERS)
+        GTEST_SKIP() << "needs the validation layers";
 
     test::InstanceContext const context{};
     auto const [physicalDevice, familyIndices] = test::pick(context.instance, QUEUES);

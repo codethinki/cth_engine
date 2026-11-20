@@ -85,11 +85,12 @@ namespace {
             .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
             .format = VK_FORMAT_R8G8B8A8_UNORM,
             .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
-                | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         };
 
         explicit LocalRead(test::Context const& context) :
-            image{context.core, CONFIG, EXTENT}, view{image, {}, cvk::create} {}
+            image{context.core, CONFIG, EXTENT},
+            view{image, {}, cvk::create} {}
 
         [[nodiscard]] cvk::RenderingInfo renderingInfo(VkRenderingFlags flags = 0) const {
             return cvk::RenderingInfo{
@@ -117,7 +118,8 @@ namespace {
         auto const mapping = readback.map();
         readback.invalidate();
         for(size_t i = 0; i < PIXELS; ++i)
-            if(mapping[i] != i) return false;
+            if(mapping[i] != i)
+                return false;
         return true;
     }
 }
@@ -132,7 +134,9 @@ JVK_TEST(CmdBuffer, use_takes_pairs_of_resources_and_accesses) {
     using BaseBuffer = cvk::BaseBuffer;
 
     static_assert(access_pairs<cvk::Image, ImageAccess, BaseBuffer, BufferAccess>);
-    static_assert(access_pairs<Image const&, ImageAccess, Buffer<uint32_t>, BufferAccess, Image, ImageAccess>);
+    static_assert(
+        access_pairs<Image const&, ImageAccess, Buffer<uint32_t>, BufferAccess, Image, ImageAccess>
+    );
     static_assert(!access_pairs<cvk::Image, BufferAccess, BaseBuffer, BufferAccess>);
     static_assert(!access_pairs<BaseBuffer, BufferAccess, BaseBuffer>);
     static_assert(!access_pairs<cvk::Image, ImageAccess>);
@@ -159,12 +163,21 @@ JVK_TEST(CmdBuffer, use_of_several_resources_records_their_barriers) {
         .stages = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
         .access = VK_ACCESS_2_TRANSFER_READ_BIT,
     };
-    constexpr BufferAccess TRANSFER_READ{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT};
-    constexpr BufferAccess TRANSFER_WRITE{VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT};
+    constexpr BufferAccess TRANSFER_READ{
+        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        VK_ACCESS_2_TRANSFER_READ_BIT
+    };
+    constexpr BufferAccess TRANSFER_WRITE{
+        VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+        VK_ACCESS_2_TRANSFER_WRITE_BIT
+    };
 
     primary.begin();
     primary.assume(image, UNDEFINED);
-    primary.assume(readback, BufferState{.scope = {.stages = HOST_READ.stages, .access = HOST_READ.access}});
+    primary.assume(
+        readback,
+        BufferState{.scope = {.stages = HOST_READ.stages, .access = HOST_READ.access}}
+    );
 
     // the untracked cvk commands rely on the barriers of the use
     primary.use(image, TRANSFER_DST, staging, TRANSFER_READ);
@@ -292,17 +305,19 @@ JVK_TEST(CmdBuffer, begin_rendering_records_the_attachments) {
 
     primary.begin();
     primary.assume(image, UNDEFINED);
-    auto const rendering = primary.beginRendering({
-        .colorAttachments = {
-            cvk::RenderingAttachment{
-                .view = view,
-                .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue = {.color = {.float32 = {1.f, 0.f, 0.f, 1.f}}},
+    auto const rendering = primary.beginRendering(
+        {
+            .colorAttachments = {
+                cvk::RenderingAttachment{
+                    .view = view,
+                    .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                    .clearValue = {.color = {.float32 = {1.f, 0.f, 0.f, 1.f}}},
+                },
             },
-        },
-    });
+        }
+    );
     primary.endRendering();
 
     auto const last = primary.states().last(image, 0);
@@ -326,8 +341,7 @@ JVK_TEST(CmdBuffer, rendering_scope_ends_the_rendering_at_its_end) {
     test::Context const context{};
     PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
 
-    primary.begin();
-    {
+    primary.begin(); {
         auto const rendering = primary.beginRendering({.area = AREA});
         EXPECT_NE(primary.rendering(), nullptr);
     }
@@ -337,8 +351,7 @@ JVK_TEST(CmdBuffer, rendering_scope_ends_the_rendering_at_its_end) {
     try {
         auto const rendering = primary.beginRendering({.area = AREA});
         throw test_exception{};
-    }
-    catch(test_exception const&) {}
+    } catch(test_exception const&) {}
     EXPECT_EQ(primary.rendering(), nullptr);
     primary.end();
 
@@ -350,8 +363,7 @@ JVK_TEST(CmdBuffer, rendering_scope_does_nothing_after_an_end_or_a_move) {
     PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
 
     // a second end fails its check
-    primary.begin();
-    {
+    primary.begin(); {
         auto rendering = primary.beginRendering({.area = AREA});
         rendering.end();
         EXPECT_EQ(primary.rendering(), nullptr);
@@ -376,7 +388,8 @@ JVK_TEST(CmdBuffer, rendering_scope_does_nothing_after_an_end_or_a_move) {
 
 JVK_TEST(CmdBuffer, use_inside_a_rendering_records_a_local_read_barrier) {
     test::Context const context{};
-    if(!local_read_supported(context)) GTEST_SKIP() << "needs dynamicRenderingLocalRead";
+    if(!local_read_supported(context))
+        GTEST_SKIP() << "needs dynamicRenderingLocalRead";
     LocalRead const localRead{context};
     PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
 
@@ -385,14 +398,20 @@ JVK_TEST(CmdBuffer, use_inside_a_rendering_records_a_local_read_barrier) {
     auto const rendering = primary.beginRendering(localRead.renderingInfo());
     // a write of the attachment, then a read through the input attachment: by region barrier, no layout change
     primary.use(localRead.image, LOCAL_INPUT_READ);
-    EXPECT_EQ(primary.states().last(localRead.image, 0)->scope.access, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT);
+    EXPECT_EQ(
+        primary.states().last(localRead.image, 0)->scope.access,
+        VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT
+    );
     primary.endRendering();
 
     // the end adds the store of the attachment
     auto const last = primary.states().last(localRead.image, 0);
     ASSERT_TRUE(last.has_value());
     EXPECT_EQ(last->layout, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR);
-    EXPECT_EQ(last->scope.access, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
+    EXPECT_EQ(
+        last->scope.access,
+        VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+    );
     primary.end();
 
     test::submit_and_wait(context, primary);
@@ -400,7 +419,8 @@ JVK_TEST(CmdBuffer, use_inside_a_rendering_records_a_local_read_barrier) {
 
 JVK_TEST(CmdBuffer, copy_after_a_rendering_with_a_local_read) {
     test::Context const context{};
-    if(!local_read_supported(context)) GTEST_SKIP() << "needs dynamicRenderingLocalRead";
+    if(!local_read_supported(context))
+        GTEST_SKIP() << "needs dynamicRenderingLocalRead";
     LocalRead const localRead{context};
     auto const staging = counting_staging(context);
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
@@ -427,7 +447,8 @@ JVK_TEST(CmdBuffer, copy_after_a_rendering_with_a_local_read) {
 
 JVK_TEST(CmdBuffer, continuing_secondary_records_a_local_read_barrier) {
     test::Context const context{};
-    if(!local_read_supported(context)) GTEST_SKIP() << "needs dynamicRenderingLocalRead";
+    if(!local_read_supported(context))
+        GTEST_SKIP() << "needs dynamicRenderingLocalRead";
     LocalRead const localRead{context};
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
     PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
@@ -446,7 +467,10 @@ JVK_TEST(CmdBuffer, continuing_secondary_records_a_local_read_barrier) {
         localRead.image,
         {
             .layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-            .scope = {VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT},
+            .scope = {
+                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+            },
         }
     );
     secondary.use(localRead.image, LOCAL_INPUT_READ);

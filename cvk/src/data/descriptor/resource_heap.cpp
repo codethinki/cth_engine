@@ -10,12 +10,14 @@
 
 
 namespace cvk {
-ResourceHeap::ResourceHeap(Core const& core, Config const& config) : _buffer{core, dev::HEAP_BUFFER_CONFIG},
+ResourceHeap::ResourceHeap(Core const& core, Config const& config) : _buffer
+    {core, dev::HEAP_BUFFER_CONFIG},
     _config{config} {}
 
-ResourceHeap::ResourceHeap(Core const& core, Config const& config, create_t) : ResourceHeap{core, config} {
-    create();
-}
+ResourceHeap::ResourceHeap(Core const& core, Config const& config, create_t) : ResourceHeap{
+    core,
+    config
+} { create(); }
 
 void ResourceHeap::create() {
     Core::debug_check(core());
@@ -29,7 +31,10 @@ void ResourceHeap::create() {
 
     auto const& properties = core().physicalDevice().descriptorHeapProperties();
 
-    auto const stride = cth::num::align_to(properties.imageDescriptorSize, properties.imageDescriptorAlignment);
+    auto const stride = cth::num::align_to(
+        properties.imageDescriptorSize,
+        properties.imageDescriptorAlignment
+    );
     size_t const descriptors = size_t{sampledImages} + storageImages + inputAttachments;
     auto const reservedOffset = cth::num::align_to(
         descriptors * stride,
@@ -66,7 +71,12 @@ void ResourceHeap::write(uint32_t idx, SampledImageDescriptor const& descriptor)
         idx,
         _config.sampledImages
     ) {}
-    dev::write_descriptor(_buffer, offset<SampledImageDescriptor>() + idx * _stride, _stride, descriptor);
+    dev::write_descriptor(
+        _buffer,
+        offset<SampledImageDescriptor>() + idx * _stride,
+        _stride,
+        descriptor
+    );
 }
 
 void ResourceHeap::write(uint32_t idx, StorageImageDescriptor const& descriptor) {
@@ -77,7 +87,12 @@ void ResourceHeap::write(uint32_t idx, StorageImageDescriptor const& descriptor)
         idx,
         _config.storageImages
     ) {}
-    dev::write_descriptor(_buffer, offset<StorageImageDescriptor>() + idx * _stride, _stride, descriptor);
+    dev::write_descriptor(
+        _buffer,
+        offset<StorageImageDescriptor>() + idx * _stride,
+        _stride,
+        descriptor
+    );
 }
 
 void ResourceHeap::write(uint32_t idx, InputAttachmentDescriptor const& descriptor) {
@@ -88,7 +103,12 @@ void ResourceHeap::write(uint32_t idx, InputAttachmentDescriptor const& descript
         idx,
         _config.inputAttachments
     ) {}
-    dev::write_descriptor(_buffer, offset<InputAttachmentDescriptor>() + idx * _stride, _stride, descriptor);
+    dev::write_descriptor(
+        _buffer,
+        offset<InputAttachmentDescriptor>() + idx * _stride,
+        _stride,
+        descriptor
+    );
 }
 
 VkBindHeapInfoEXT ResourceHeap::bindInfo() const {

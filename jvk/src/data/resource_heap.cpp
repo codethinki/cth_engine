@@ -35,14 +35,20 @@ auto ResourceHeap::insert(cvk::StorageImageDescriptor const& descriptor) const -
     return insertImage(descriptor);
 }
 
-auto ResourceHeap::insert(cvk::InputAttachmentDescriptor const& descriptor) const -> InputAttachment {
-    return insertImage(descriptor);
-}
+auto ResourceHeap::insert(
+    cvk::InputAttachmentDescriptor const& descriptor
+) const -> InputAttachment { return insertImage(descriptor); }
 
 std::vector<VkDescriptorSetAndBindingMappingEXT> ResourceHeap::mappings() const {
     return {
-        _vk.mapping<cvk::SampledImageDescriptor>(constants::HEAP_SET, constants::HEAP_SAMPLED_IMAGE_BINDING),
-        _vk.mapping<cvk::StorageImageDescriptor>(constants::HEAP_SET, constants::HEAP_STORAGE_IMAGE_BINDING),
+        _vk.mapping<cvk::SampledImageDescriptor>(
+            constants::HEAP_SET,
+            constants::HEAP_SAMPLED_IMAGE_BINDING
+        ),
+        _vk.mapping<cvk::StorageImageDescriptor>(
+            constants::HEAP_SET,
+            constants::HEAP_STORAGE_IMAGE_BINDING
+        ),
     };
 }
 
@@ -50,9 +56,7 @@ VkDescriptorSetAndBindingMappingEXT ResourceHeap::pushMapping(
     uint32_t set,
     uint32_t binding,
     uint32_t pushOffset
-) const {
-    return _vk.pushMapping<cvk::InputAttachmentDescriptor>(set, binding, pushOffset);
-}
+) const { return _vk.pushMapping<cvk::InputAttachmentDescriptor>(set, binding, pushOffset); }
 
 template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
 auto ResourceHeap::insertImage(Descriptor const& descriptor) const -> ImageHandle<Descriptor> {
@@ -67,12 +71,13 @@ auto ResourceHeap::insertImage(Descriptor const& descriptor) const -> ImageHandl
 
     auto& free = freeList<Descriptor>();
     auto const idxOpt = free.insert();
-    JVK_STABLE_THROW(!idxOpt.has_value(), "every cell of the type is in use, got {} cells", free.size()) {}
+    JVK_STABLE_THROW(
+        !idxOpt.has_value(),
+        "every cell of the type is in use, got {} cells",
+        free.size()
+    ) {}
 
-    try {
-        _vk.write(*idxOpt, descriptor);
-    }
-    catch(...) {
+    try { _vk.write(*idxOpt, descriptor); } catch(...) {
         free.erase(*idxOpt);
         throw;
     }
@@ -87,9 +92,12 @@ void ResourceHeap::erase(uint32_t idx) const {
 
 template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
 dev::free_list& ResourceHeap::freeList() const {
-    if constexpr(std::same_as<Descriptor, cvk::SampledImageDescriptor>) return _sampledImages;
-    else if constexpr(std::same_as<Descriptor, cvk::StorageImageDescriptor>) return _storageImages;
-    else return _inputAttachments;
+    if constexpr(std::same_as<Descriptor, cvk::SampledImageDescriptor>)
+        return _sampledImages;
+    else if constexpr(std::same_as<Descriptor, cvk::StorageImageDescriptor>)
+        return _storageImages;
+    else
+        return _inputAttachments;
 }
 
 template void ResourceHeap::erase<cvk::SampledImageDescriptor>(uint32_t) const;

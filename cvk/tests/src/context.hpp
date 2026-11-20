@@ -26,13 +26,18 @@ namespace cvk::test {
 /**
  * one queue, some devices have one queue only
  */
-inline constexpr std::array QUEUES{QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::COMPUTE};
+inline constexpr std::array QUEUES{
+    QueueFamilyProperties::GRAPHICS | QueueFamilyProperties::COMPUTE
+};
 
 /**
  * buffer the cpu writes once
  */
 [[nodiscard]] constexpr BaseBuffer::Config host_written(VkBufferUsageFlags usage) {
-    return {.usage = usage, .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT}};
+    return {
+        .usage = usage,
+        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT}
+    };
 }
 
 /**
@@ -58,7 +63,11 @@ struct Vec3 {
 /**
  * one triangle that covers the whole viewport
  */
-inline constexpr std::array<Vec3, 3> FULLSCREEN{Vec3{-1.f, -1.f, 0.f}, Vec3{3.f, -1.f, 0.f}, Vec3{-1.f, 3.f, 0.f}};
+inline constexpr std::array<Vec3, 3> FULLSCREEN{
+    Vec3{-1.f, -1.f, 0.f},
+    Vec3{3.f, -1.f, 0.f},
+    Vec3{-1.f, 3.f, 0.f}
+};
 
 /**
  * color of the fill draws

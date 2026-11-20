@@ -89,7 +89,11 @@ CVK_TEST(ImageView, create_on_a_mip_range) {
 
 CVK_TEST(ImageView, depth_view_takes_the_aspect_of_the_image) {
     test::Context const context{};
-    Image const image{context.core, Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT), EXTENT};
+    Image const image{
+        context.core,
+        Image::Config::DepthBuffer(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT),
+        EXTENT
+    };
 
     ImageView const view{image, {}, create};
 

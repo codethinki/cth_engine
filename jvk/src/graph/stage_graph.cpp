@@ -41,7 +41,10 @@ namespace {
      * transition of the first use from `VK_IMAGE_LAYOUT_UNDEFINED`, no queue family ownership transfer
      * @details `src` waits for the stages of the first use, no access: like `cvk::layout_transition()`
      */
-    [[nodiscard]] constexpr cvk::ImageBarrierInfo from_undefined(ImageState const& first, uint32_t mipLevel) {
+    [[nodiscard]] constexpr cvk::ImageBarrierInfo from_undefined(
+        ImageState const& first,
+        uint32_t mipLevel
+    ) {
         return cvk::ImageBarrierInfo{
             .src = {.stages = first.scope.stages},
             .dst = first.scope,
@@ -82,18 +85,22 @@ StageGraph::StageGraph(Core& core, Config config) :
     for(size_t slot = 0; slot < frameSlots; ++slot)
         for(size_t stageId = 0; stageId < stages.size(); ++stageId) {
             auto& stageSlot = _frameSlots[slot].stageSlots[stageId];
-            stageSlot.previous = _frameSlots[(slot + frameSlots - 1) % frameSlots].stageSlots[stageId];
+            stageSlot.previous =
+                _frameSlots[(slot + frameSlots - 1) % frameSlots].stageSlots[stageId];
 
             for(auto const& wait : stages[stageId].waits) {
-                auto const waitedSlot = (slot + frameSlots - wait.frameOffset % frameSlots) % frameSlots;
+                auto const waitedSlot =
+                    (slot + frameSlots - wait.frameOffset % frameSlots) % frameSlots;
                 auto const& waited = _frameSlots[waitedSlot].stageSlots[wait.stageId];
 
                 // the first frame of the slot waits for the frame frameOffset frames before it
-                stageSlot.submitInfo.waits.push_back(SemaphoreSubmitInfo{
-                    .semaphore = waited.semaphore,
-                    .stages = wait.stages,
-                    .value = _firstFrameNumber + slot - wait.frameOffset,
-                });
+                stageSlot.submitInfo.waits.push_back(
+                    SemaphoreSubmitInfo{
+                        .semaphore = waited.semaphore,
+                        .stages = wait.stages,
+                        .value = _firstFrameNumber + slot - wait.frameOffset,
+                    }
+                );
             }
         }
 }
@@ -102,15 +109,18 @@ StageGraph::~StageGraph() {
     // the waiters of an unsubmitted stage would hang in _jobs.wait(), e.g. after an exception in the recording
     for(auto& frameSlot : _frameSlots)
         for(auto& stage : frameSlot.stages) {
-            if(stage.status() != Stage::Status::UNSUBMITTED) continue;
+            if(stage.status() != Stage::Status::UNSUBMITTED)
+                continue;
             //TODO review the binary waits dropped: a presenter is destroyed before the graph, its present submits wait
             // for the semaphores of the graph, the acquire semaphore of an unpresented image is destroyed already
             stage._extraBinaryWaits.clear();
-            try {
-                skip(stage);
-            }
-            catch(std::exception const& e) {
-                JVK_STABLE_ERR(true, "failed to skip stage {} in ~StageGraph(), got {}", stage.id(), e.what()) {}
+            try { skip(stage); } catch(std::exception const& e) {
+                JVK_STABLE_ERR(
+                    true,
+                    "failed to skip stage {} in ~StageGraph(), got {}",
+                    stage.id(),
+                    e.what()
+                ) {}
             }
         }
 
@@ -122,8 +132,7 @@ StageGraph::~StageGraph() {
             try {
                 cvk::TimelineSemaphore const& semaphore = stageSlot.semaphore;
                 semaphore.wait(stageSlot.semaphore.submittedValue());
-            }
-            catch(cvk::vk_result_exception const& e) {
+            } catch(cvk::vk_result_exception const& e) {
                 JVK_STABLE_ERR(
                     true,
                     "failed to wait for stage {} in ~StageGraph(), got {}",
@@ -135,7 +144,8 @@ StageGraph::~StageGraph() {
 }
 
 cth::co::executor_task<Frame&> StageGraph::nextFrame() {
-    if(_error) _error.rethrow();
+    if(_error)
+        _error.rethrow();
 
     auto const number = ++_frameNumber;
     auto const slotOf = [this](uint64_t frameNumber) -> dev::FrameSlot& {
@@ -143,7 +153,8 @@ cth::co::executor_task<Frame&> StageGraph::nextFrame() {
     };
 
     // the frame before ends now: its gpu work and its waiters do not wait for the reuse of its slot
-    if(number > _firstFrameNumber) skipUnsubmitted(slotOf(number - 1));
+    if(number > _firstFrameNumber)
+        skipUnsubmitted(slotOf(number - 1));
 
     auto& frameSlot = slotOf(number);
     if(frameSlot.frameOpt.has_value()) {
@@ -206,21 +217,28 @@ void StageGraph::erase(cvk::BaseBuffer const& buffer) {
 }
 
 void StageGraph::endPrimary(PrimaryCmdBuffer& primary) {
-    if(primary.rendering() != nullptr) primary.endRendering();
+    if(primary.rendering() != nullptr)
+        primary.endRendering();
     primary.optEnd();
 }
 
 void StageGraph::skipUnsubmitted(dev::FrameSlot& frameSlot) {
-    if(!frameSlot.frameOpt.has_value()) return;
+    if(!frameSlot.frameOpt.has_value())
+        return;
 
     for(auto& stage : frameSlot.stages) {
-        if(stage.status() != Stage::Status::UNSUBMITTED) continue;
+        if(stage.status() != Stage::Status::UNSUBMITTED)
+            continue;
 
-        bool const waited = std::ranges::any_of(_config.stages, [&stage](StageConfig const& config) {
-            return std::ranges::any_of(config.waits, [&stage](StageWait const& wait) {
-                return wait.stageId == stage.id();
-            });
-        });
+        bool const waited = std::ranges::any_of(
+            _config.stages,
+            [&stage](StageConfig const& config) {
+                return std::ranges::any_of(
+                    config.waits,
+                    [&stage](StageWait const& wait) { return wait.stageId == stage.id(); }
+                );
+            }
+        );
         CTH_WARN(
             waited,
             "stage {} of frame {} has no submit or skip, nextFrame() skips it, its waiters waited until now",
@@ -237,8 +255,7 @@ void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
 
     // the status after the detach: a failed allocation leaves the stage unsubmitted, the moved data is lost
     dev::RetainedResources retained{};
-    Stasis::pos stasisEnd{};
-    {
+    Stasis::pos stasisEnd{}; {
         std::scoped_lock const lock{stageSlot.stasisMutex};
         retained = std::move(stage._retained);
         stasisEnd = stageSlot.stasis.end();
@@ -283,12 +300,12 @@ cth::co::executor_task<void> StageGraph::submitJob(
     if(targetStatus == Stage::Status::SUBMITTED) {
         try {
             cvk::Barrier prologue{};
-            release_map_t releases{};
-            {
+            release_map_t releases{}; {
                 std::scoped_lock const lock{_statesMutex};
                 append(stageSlot.primary.states(), queue, prologue, releases);
             }
-            if(!releases.empty()) extraWaits.append_range(co_await release(std::move(releases)));
+            if(!releases.empty())
+                extraWaits.append_range(co_await release(std::move(releases)));
 
             // off the strand: the prologue belongs to the job of the slot, an empty one stays out of the submit
             bool const withPrologue = !prologue.empty();
@@ -301,10 +318,7 @@ cth::co::executor_task<void> StageGraph::submitJob(
             co_await queue.executor().schedule();
             info.submit(queue, extraWaits, extraBinaryWaits, withPrologue);
             submitted = true;
-        }
-        catch(...) {
-            _error.store(std::current_exception());
-        }
+        } catch(...) { _error.store(std::current_exception()); }
     }
 
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
@@ -325,17 +339,11 @@ cth::co::executor_task<void> StageGraph::submitJob(
     try {
         co_await stageSlot.semaphore.wait(frameNumber);
         reached = true;
-    }
-    catch(cth::except::coro_exception const&) {
-        _error.store(std::current_exception());
-    }
-    catch(cvk::vk_result_exception const&) {
-        _error.store(std::current_exception());
-    }
+    } catch(cth::except::coro_exception const&) { _error.store(std::current_exception()); } catch(
+        cvk::vk_result_exception const&) { _error.store(std::current_exception()); }
     // the gpu can still use the retained objects, the destruction of the graph destroys them
-    if(!reached) co_return;
-
-    {
+    if(!reached)
+        co_return; {
         std::scoped_lock const lock{_statesMutex};
         for(auto const& [vkImage, mipLevels] : retained.images)
             eraseStates(vkImage, mipLevels);
@@ -356,16 +364,19 @@ void StageGraph::append(
     auto const family = queue.vk().familyIndex();
 
     // the last queue if it has another family, nullptr -> no last queue or the same family
-    auto const otherFamilyQueue = [family](auto const& lastQueues, auto const& key) -> Queue const* {
+    auto const otherFamilyQueue = [family
+        ](auto const& lastQueues, auto const& key) -> Queue const* {
         auto const it = lastQueues.find(key);
-        if(it == lastQueues.end() || it->second->vk().familyIndex() == family) return nullptr;
+        if(it == lastQueues.end() || it->second->vk().familyIndex() == family)
+            return nullptr;
         return &it->second.get();
     };
 
     for(auto const& [vkImage, mipLevel, aspectMask, sharingMode] : recording.images()) {
         auto const firstOpt = recording.first(vkImage, mipLevel);
         // an assume() before the first use: ResourceStates::append() takes the state
-        if(!firstOpt.has_value()) continue;
+        if(!firstOpt.has_value())
+            continue;
 
         auto const lastOpt = _states.last(vkImage, mipLevel);
         if(!lastOpt.has_value()) {
@@ -374,7 +385,8 @@ void StageGraph::append(
         }
 
         auto const* lastQueuePtr = otherFamilyQueue(_imageQueues, image_mip_t{vkImage, mipLevel});
-        if(lastQueuePtr == nullptr || sharingMode != VK_SHARING_MODE_EXCLUSIVE) continue;
+        if(lastQueuePtr == nullptr || sharingMode != VK_SHARING_MODE_EXCLUSIVE)
+            continue;
 
         // ResourceStates::append() inserts the state of the recording without a barrier
         _states.erase(vkImage, mipLevel);
@@ -390,17 +402,23 @@ void StageGraph::append(
             aspectMask,
             dev::release_half(*lastOpt, *firstOpt, lastFamily, family, mipLevel)
         );
-        prologue.add(vkImage, aspectMask, dev::acquire_half(*lastOpt, *firstOpt, lastFamily, family, mipLevel));
+        prologue.add(
+            vkImage,
+            aspectMask,
+            dev::acquire_half(*lastOpt, *firstOpt, lastFamily, family, mipLevel)
+        );
     }
 
     for(auto const& [vkBuffer, sharingMode] : recording.buffers()) {
         auto const firstOpt = recording.first(vkBuffer);
         auto const lastOpt = _states.last(vkBuffer);
         // unknown buffer: no barrier
-        if(!firstOpt.has_value() || !lastOpt.has_value()) continue;
+        if(!firstOpt.has_value() || !lastOpt.has_value())
+            continue;
 
         auto const* lastQueuePtr = otherFamilyQueue(_bufferQueues, vkBuffer);
-        if(lastQueuePtr == nullptr || sharingMode != VK_SHARING_MODE_EXCLUSIVE) continue;
+        if(lastQueuePtr == nullptr || sharingMode != VK_SHARING_MODE_EXCLUSIVE)
+            continue;
 
         _states.erase(vkBuffer);
 
@@ -412,7 +430,10 @@ void StageGraph::append(
     _states.append(recording, prologue);
 
     for(auto const& [vkImage, mipLevel, aspectMask, sharingMode] : recording.images())
-        _imageQueues.insert_or_assign(image_mip_t{vkImage, mipLevel}, cth::ref_wrapper<Queue const>{queue});
+        _imageQueues.insert_or_assign(
+            image_mip_t{vkImage, mipLevel},
+            cth::ref_wrapper<Queue const>{queue}
+        );
     for(auto const& [vkBuffer, sharingMode] : recording.buffers())
         _bufferQueues.insert_or_assign(vkBuffer, cth::ref_wrapper<Queue const>{queue});
 }

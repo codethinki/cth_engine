@@ -17,13 +17,15 @@ namespace cvk {
 using std::span;
 using std::vector;
 
-Device::Device(Instance const& instance, PhysicalDevice const& physicalDevice) : _instance{instance},
+Device::Device(Instance const& instance, PhysicalDevice const& physicalDevice) : _instance
+    {instance},
     _physicalDevice{physicalDevice} {}
 
-Device::Device(Instance const& instance, PhysicalDevice const& physicalDevice, State state) : Device{
-    instance,
-    physicalDevice
-} { wrap(std::move(state)); }
+Device::Device(Instance const& instance, PhysicalDevice const& physicalDevice, State state) : Device
+    {
+        instance,
+        physicalDevice
+    } { wrap(std::move(state)); }
 
 Device::Device(
     Instance const& instance,
@@ -61,7 +63,8 @@ void Device::create(Config const& config) {
     _features = config.features;
     _extensions = config.extensions;
     for(auto const extension : dev::extensions_of(config.features))
-        if(!std::ranges::contains(_extensions, extension)) _extensions.emplace_back(extension);
+        if(!std::ranges::contains(_extensions, extension))
+            _extensions.emplace_back(extension);
 
     auto const& familyIndices = config.queueFamilyIndices;
     auto const queueCounts = calcQueueFamiliesQueueCounts(familyIndices);
@@ -84,7 +87,10 @@ Device::State Device::release() {
     State state{
         .vkDevice = _handle.release(),
         .functionTable = std::move(_functionTablePtr),
-        .queueFamilyIndices = {std::from_range, _queues | std::views::transform(&Queue::familyIndex)},
+        .queueFamilyIndices = {
+            std::from_range,
+            _queues | std::views::transform(&Queue::familyIndex)
+        },
         .features = _features,
         .extensions = std::move(_extensions),
     };
@@ -102,7 +108,10 @@ void Device::waitIdle() const {
 void destroy(VkDevice vkDevice) {
     CTH_WARN(vkDevice == VK_NULL_HANDLE, "vkDevice invalid (VK_NULL_HANDLE)") {}
 
-    auto const destroyDevice = reinterpret_cast<PFN_vkDestroyDevice>(vkGetDeviceProcAddr(vkDevice, "vkDestroyDevice"));
+    auto const destroyDevice = reinterpret_cast<PFN_vkDestroyDevice>(vkGetDeviceProcAddr(
+        vkDevice,
+        "vkDestroyDevice"
+    ));
     destroyDevice(vkDevice, nullptr);
 
     log::msg<except::LOG>("destroyed device");
@@ -113,7 +122,8 @@ void Device::forget() {
     _features = {};
     _extensions.clear();
 
-    if(_functionTablePtr == nullptr) _functionTablePtr = std::make_unique<VolkDeviceTable>();
+    if(_functionTablePtr == nullptr)
+        _functionTablePtr = std::make_unique<VolkDeviceTable>();
     std::memset(_functionTablePtr.get(), 0, sizeof(VolkDeviceTable));
 }
 
@@ -146,8 +156,10 @@ void Device::createLogicalDevice(span<uint32_t const> queueFamiliesQueueCounts) 
     vector<vector<float>> queuePriorities{};
     queuePriorities.reserve(queueFamiliesQueueCounts.size());
 
-    for(auto const [queueFamily, queueCount] : std::views::zip(std::views::iota(0u), queueFamiliesQueueCounts)) {
-        if(queueCount == 0) continue;
+    for(auto const [queueFamily, queueCount] :
+        std::views::zip(std::views::iota(0u), queueFamiliesQueueCounts)) {
+        if(queueCount == 0)
+            continue;
 
         queuePriorities.emplace_back(queueCount, 1.0f);
 
@@ -189,7 +201,9 @@ void Device::createLogicalDevice(span<uint32_t const> queueFamiliesQueueCounts) 
     _handle.reset(ptr);
 }
 
-void Device::loadFunctionTable(VkDevice vkDevice) const { volkLoadDeviceTable(_functionTablePtr.get(), vkDevice); }
+void Device::loadFunctionTable(VkDevice vkDevice) const {
+    volkLoadDeviceTable(_functionTablePtr.get(), vkDevice);
+}
 
 void Device::createQueues(span<queue_family_index_t const> familyIndices) {
     vector<uint32_t> queueCounts(_physicalDevice->queueFamilies().size());
@@ -209,7 +223,12 @@ void Device::createQueues(span<queue_family_index_t const> familyIndices) {
         table()->vkGetDeviceQueue(_handle.get(), familyIndex, queueIndex, &ptr);
 
         // vkGetDeviceQueue() has no failure, a null queue means the device has no such queue
-        CTH_CRITICAL(ptr == VK_NULL_HANDLE, "the device has no queue {} in family {}", queueIndex, familyIndex) {}
+        CTH_CRITICAL(
+            ptr == VK_NULL_HANDLE,
+            "the device has no queue {} in family {}",
+            queueIndex,
+            familyIndex
+        ) {}
 
         _queues.emplace_back(
             _physicalDevice->queueFamily(familyIndex)->properties,

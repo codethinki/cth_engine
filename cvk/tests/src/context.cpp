@@ -38,7 +38,8 @@ namespace {
     std::optional<SharedContexts> shared{};
 
     SharedContexts& shared_contexts() {
-        if(!shared.has_value()) shared.emplace();
+        if(!shared.has_value())
+            shared.emplace();
         // a test with an own instance loaded its functions into volk
         volkLoadInstanceOnly(shared->instance.get());
         return *shared;
@@ -53,7 +54,8 @@ namespace {
 
     Surface const& shared_surface() {
         auto& contexts = shared_contexts();
-        if(!contexts.surface.has_value()) contexts.surface.emplace(headless_surface(contexts.instance));
+        if(!contexts.surface.has_value())
+            contexts.surface.emplace(headless_surface(contexts.instance));
         return *contexts.surface;
     }
 
@@ -74,15 +76,19 @@ Context::Context() : instance{shared_contexts().instance}, core{shared_core()} {
 
 Context::Context(Core::Config const& config) :
     _core{std::in_place, shared_contexts().instance, NO_SURFACES, config},
-    instance{shared_contexts().instance}, core{*_core} {}
+    instance{shared_contexts().instance},
+    core{*_core} {}
 
-PresentContext::PresentContext() : instance{shared_contexts().instance}, core{shared_present_core()},
+PresentContext::PresentContext() : instance{shared_contexts().instance},
+    core{shared_present_core()},
     _surface{shared_surface()} {}
 
 InstanceContext::InstanceContext(std::vector<std::string> extensions) :
     instance{instance_config(std::move(extensions), counting_messenger()), create} {}
 
-CmdPool::Config pool_config(Core const& core) { return {.queueFamilyIndex = core.queue(0).familyIndex()}; }
+CmdPool::Config pool_config(Core const& core) {
+    return {.queueFamilyIndex = core.queue(0).familyIndex()};
+}
 
 GraphicsPipeline::Config fullscreen_config(
     Shader const& vertex,
@@ -91,8 +97,12 @@ GraphicsPipeline::Config fullscreen_config(
 ) {
     GraphicsPipeline::Config config{.colorFormats = {std::from_range, colorFormats}};
     config.addStage(vertex).addStage(fragment);
-    config.vertexBindings = {{.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}};
-    config.vertexAttributes = {{.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0}};
+    config.vertexBindings = {
+        {.binding = 0, .stride = sizeof(Vec3), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}
+    };
+    config.vertexAttributes = {
+        {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0}
+    };
     config.rasterization.cullMode = VK_CULL_MODE_NONE;
     return config;
 }
@@ -108,12 +118,14 @@ bool every_pixel_is(BaseBuffer const& readback, std::array<unsigned char, 4> pix
 }
 
 void destroy_shared_contexts() {
-    if(!shared.has_value()) return;
+    if(!shared.has_value())
+        return;
 
     volkLoadInstanceOnly(shared->instance.get());
     reset_validation_errors();
     shared.reset();
-    EXPECT_EQ(validation_errors(), 0) << "errors at the destruction of the shared contexts, e.g. leaks";
+    EXPECT_EQ(validation_errors(), 0) <<
+ "errors at the destruction of the shared contexts, e.g. leaks";
 }
 
 Context::ValidationCheck::ValidationCheck() { reset_validation_errors(); }

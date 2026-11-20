@@ -11,7 +11,10 @@ namespace cvk {
 using test::pool_config;
 
 CVK_TEST(CmdPool, config_create_info) {
-    constexpr CmdPool::Config config{.queueFamilyIndex = 2, .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT};
+    constexpr CmdPool::Config config{
+        .queueFamilyIndex = 2,
+        .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
+    };
     constexpr auto info = config.createInfo();
 
     static_assert(info.queueFamilyIndex == 2);
@@ -52,9 +55,7 @@ CVK_TEST(CmdPool, create_and_destroy) {
 
 CVK_TEST(CmdPool, counts_its_command_buffers) {
     test::Context const context{};
-    CmdPool const pool{context.core, pool_config(context.core), create};
-
-    {
+    CmdPool const pool{context.core, pool_config(context.core), create}; {
         PrimaryCmdBuffer primary{pool, create};
         SecondaryCmdBuffer const secondary{pool, create};
         EXPECT_FALSE(pool.unused());

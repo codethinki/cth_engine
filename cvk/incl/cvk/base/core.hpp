@@ -100,9 +100,10 @@ public:
      * creates with the surfaces of a braced list
      * @see @ref create(std::span<cth::ref_wrapper<Surface const> const>, Config const&)
      */
-    void create(std::initializer_list<cth::ref_wrapper<Surface const>> surfaces, Config const& config) {
-        create(std::span{surfaces}, config);
-    }
+    void create(
+        std::initializer_list<cth::ref_wrapper<Surface const>> surfaces,
+        Config const& config
+    ) { create(std::span{surfaces}, config); }
 
     /**
      * destroys and forgets
@@ -113,7 +114,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership, returns the state and forgets
@@ -191,7 +195,8 @@ private:
         std::vector<queue_family_index_t> uniqueQueueFamilyIndices;
         std::vector<size_t> queuesToUniqueQueues;
 
-        std::optional<size_t> queueSetIndex = std::nullopt; ///< `std::nullopt` -> the config had no queue sets
+        std::optional<size_t> queueSetIndex = std::nullopt;
+        ///< `std::nullopt` -> the config had no queue sets
     };
     struct queue_set_relations {
         std::vector<QueueFamilyProperties> uniqueQueues;
@@ -214,6 +219,9 @@ private:
         std::span<cth::ref_wrapper<Surface const> const> surfaces,
         Config const&,
         device_requirements const&
+
+
+    
     ) const;
 
     [[nodiscard]] static queue_set_relations createQueueSetRelations(

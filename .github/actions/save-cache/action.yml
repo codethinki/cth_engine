@@ -51,7 +51,7 @@ runs:
         if [ -d "$TARGET_PATH" ]; then
           echo "Compressing for Global Cache..."
           tar -czf cache-archive.tar.gz "$TARGET_PATH"
-          
+        
           echo "Pushing to GHCR..."
           oras push "$REPO/cache:$TAG" cache-archive.tar.gz
           rm cache-archive.tar.gz

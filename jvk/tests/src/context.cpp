@@ -24,7 +24,8 @@ namespace {
         VkDebugUtilsMessengerCallbackDataEXT const* callbackData,
         void* userData
     ) {
-        if(severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) ++errors;
+        if(severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+            ++errors;
         return cvk::default_debug_callback(severity, types, callbackData, userData);
     }
 
@@ -32,27 +33,36 @@ namespace {
      * one instance and core for all tests, the core comes at its first use
      */
     struct SharedContexts {
-        cvk::Instance instance{instance_config(headless_extensions(), counting_messenger()), cvk::create};
+        cvk::Instance instance{
+            instance_config(headless_extensions(), counting_messenger()),
+            cvk::create
+        };
         std::optional<Core> core{};
     };
 
     std::optional<SharedContexts> shared{};
 
     SharedContexts& shared_contexts() {
-        if(!shared.has_value()) shared.emplace();
+        if(!shared.has_value())
+            shared.emplace();
         return *shared;
     }
 
     Core const& shared_core() {
         auto& contexts = shared_contexts();
-        if(!contexts.core.has_value()) contexts.core.emplace(contexts.instance, Context::CONFIG, NO_SURFACES);
+        if(!contexts.core.has_value())
+            contexts.core.emplace(contexts.instance, Context::CONFIG, NO_SURFACES);
         return *contexts.core;
     }
 }
 
-cvk::DebugMessenger::Config counting_messenger() { return cvk::DebugMessenger::Config{.callback = count_errors}; }
+cvk::DebugMessenger::Config counting_messenger() {
+    return cvk::DebugMessenger::Config{.callback = count_errors};
+}
 
-cvk::queue_family_index_t queue_family(Context const& context) { return context.core.queue(0).vk().familyIndex(); }
+cvk::queue_family_index_t queue_family(Context const& context) {
+    return context.core.queue(0).vk().familyIndex();
+}
 
 void submit_and_wait(Context const& context, cvk::PrimaryCmdBuffer const& primary) {
     cvk::Fence const fence{context.core, cvk::create};
@@ -74,7 +84,10 @@ std::vector<std::string> headless_extensions() {
     return extensions;
 }
 
-cvk::Surface headless_surface(cvk::Instance const& instance, cvk::Surface::extent_callback_t extentCallback) {
+cvk::Surface headless_surface(
+    cvk::Instance const& instance,
+    cvk::Surface::extent_callback_t extentCallback
+) {
     VkHeadlessSurfaceCreateInfoEXT const createInfo{
         .sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT,
         .pNext = nullptr,
@@ -82,7 +95,12 @@ cvk::Surface headless_surface(cvk::Instance const& instance, cvk::Surface::exten
     };
 
     VkSurfaceKHR vkSurface = VK_NULL_HANDLE;
-    auto const result = vkCreateHeadlessSurfaceEXT(instance.get(), &createInfo, nullptr, &vkSurface);
+    auto const result = vkCreateHeadlessSurfaceEXT(
+        instance.get(),
+        &createInfo,
+        nullptr,
+        &vkSurface
+    );
     CTH_STABLE_THROW(result != VK_SUCCESS, "failed to create headless surface") {}
 
     return cvk::Surface{
@@ -96,7 +114,8 @@ Context::ValidationCheck::ValidationCheck() { errors = 0; }
 Context::ValidationCheck::~ValidationCheck() { EXPECT_EQ(errors, 0); }
 
 void destroy_shared_contexts() {
-    if(!shared.has_value()) return;
+    if(!shared.has_value())
+        return;
 
     errors = 0;
     shared.reset();

@@ -15,10 +15,16 @@ namespace cvk {
 using std::span;
 using std::vector;
 
-Swapchain::Swapchain(Core const& core, Queue const& presentQueue, Surface const& surface, Config config) :
-    _presentQueue{presentQueue}, _surface{surface}, _config{std::move(config)}, _handle{core} {
-    Config::debug_check(_config);
-}
+Swapchain::Swapchain(
+    Core const& core,
+    Queue const& presentQueue,
+    Surface const& surface,
+    Config config
+) :
+    _presentQueue{presentQueue},
+    _surface{surface},
+    _config{std::move(config)},
+    _handle{core} { Config::debug_check(_config); }
 
 Swapchain::Swapchain(
     Core const& core,
@@ -56,11 +62,18 @@ void Swapchain::create(VkExtent2D extent, Swapchain const* oldSwapchainPtr) {
     Core::debug_check(core());
     Surface::debug_check(*_surface);
     Queue::debug_check_present(_presentQueue);
-    CTH_CRITICAL(extent.width == 0 || extent.height == 0, "extent width and height must be > 0, got {}", extent) {}
+    CTH_CRITICAL(
+        extent.width == 0 || extent.height == 0,
+        "extent width and height must be > 0, got {}",
+        extent
+    ) {}
     CTH_CRITICAL(oldSwapchainPtr == this, "the old swapchain must be another swapchain") {}
     if(oldSwapchainPtr != nullptr) {
         debug_check(*oldSwapchainPtr);
-        CTH_CRITICAL(&*oldSwapchainPtr->_surface != &*_surface, "the old swapchain must be of the same surface") {}
+        CTH_CRITICAL(
+            &*oldSwapchainPtr->_surface != &*_surface,
+            "the old swapchain must be of the same surface"
+        ) {}
     }
     optDestroy();
 
@@ -80,7 +93,12 @@ void Swapchain::create(VkExtent2D extent, Swapchain const* oldSwapchainPtr) {
     );
 
     VkSwapchainKHR ptr = VK_NULL_HANDLE;
-    auto const result = core().functions()->vkCreateSwapchainKHR(core().vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreateSwapchainKHR(
+        core().vkDevice(),
+        &info,
+        nullptr,
+        &ptr
+    );
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to create swapchain") {}
 
     _handle.reset(ptr, core());
@@ -88,10 +106,7 @@ void Swapchain::create(VkExtent2D extent, Swapchain const* oldSwapchainPtr) {
     _surfaceFormat = surfaceFormat;
     _presentMode = presentMode;
 
-    try {
-        createImages();
-    }
-    catch(...) {
+    try { createImages(); } catch(...) {
         destroy();
         throw;
     }
@@ -161,7 +176,11 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
 
 VkResult Swapchain::present(uint32_t imageIndex) {
     debug_check(*this);
-    CTH_CRITICAL(imageIndex >= imageCount() || !acquired(imageIndex), "image {} must be acquired", imageIndex) {}
+    CTH_CRITICAL(
+        imageIndex >= imageCount() || !acquired(imageIndex),
+        "image {} must be acquired",
+        imageIndex
+    ) {}
 
     // signaled by the last present of the image or created signaled
     auto const& fence = presentFence(imageIndex);
@@ -196,9 +215,14 @@ VkResult Swapchain::present(uint32_t imageIndex) {
 void Swapchain::unacquire(span<uint32_t const> imageIndices) {
     debug_check(*this);
     for(auto const index : imageIndices)
-        CTH_CRITICAL(index >= imageCount() || !acquired(index), "image {} must be acquired", index) {}
+        CTH_CRITICAL(
+        index >= imageCount() || !acquired(index),
+        "image {} must be acquired",
+        index
+    ) {}
 
-    if(imageIndices.empty()) return;
+    if(imageIndices.empty())
+        return;
 
     VkReleaseSwapchainImagesInfoKHR const info{
         .sType = VK_STRUCTURE_TYPE_RELEASE_SWAPCHAIN_IMAGES_INFO_KHR,
@@ -218,9 +242,10 @@ void Swapchain::unacquire(span<uint32_t const> imageIndices) {
 bool Swapchain::presented() const {
     debug_check(*this);
 
-    return std::ranges::all_of(_presentFences, [](PresentFence const& presentFence) {
-        return presentFence.fence.signaled();
-    });
+    return std::ranges::all_of(
+        _presentFences,
+        [](PresentFence const& presentFence) { return presentFence.fence.signaled(); }
+    );
 }
 
 void destroy(DeviceTable table, VkSwapchainKHR vkSwapchain) {
@@ -242,7 +267,8 @@ std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> Swapchain::pick(Config const& co
         formats
     ) {}
 
-    if(config.presentModes.empty()) return {*formatIt, VK_PRESENT_MODE_FIFO_KHR};
+    if(config.presentModes.empty())
+        return {*formatIt, VK_PRESENT_MODE_FIFO_KHR};
 
     auto const presentModes = _surface->presentModes(physicalDevice);
     auto const presentModeIt = std::ranges::find_first_of(config.presentModes, presentModes);
@@ -273,7 +299,9 @@ void Swapchain::createImages() {
 
     _images.reserve(count);
     for(auto const vkImage : vkImages)
-        _images.emplace_back(Image{core(), imageConfig, Image::State{.vkImage = vkImage, .extent = _extent}});
+        _images.emplace_back(
+            Image{core(), imageConfig, Image::State{.vkImage = vkImage, .extent = _extent}}
+        );
 
     _views.reserve(count);
     for(auto const& [image] : _images)
@@ -284,7 +312,12 @@ void Swapchain::createImages() {
     for(uint32_t i = 0; i < count; ++i) {
         _presentSemaphores.emplace_back(core(), cvk::create);
         _presentFences.emplace_back(
-            Fence{core(), cvk::create, VK_FENCE_CREATE_SIGNALED_BIT, constants::OS_FENCE_HANDLE_TYPE}
+            Fence{
+                core(),
+                cvk::create,
+                VK_FENCE_CREATE_SIGNALED_BIT,
+                constants::OS_FENCE_HANDLE_TYPE
+            }
         );
     }
 

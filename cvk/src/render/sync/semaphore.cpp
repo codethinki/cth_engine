@@ -56,7 +56,12 @@ void Semaphore::create(VkSemaphoreCreateInfo const& info) {
     optDestroy();
 
     VkSemaphore ptr = VK_NULL_HANDLE;
-    auto const result = core().functions()->vkCreateSemaphore(core().vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreateSemaphore(
+        core().vkDevice(),
+        &info,
+        nullptr,
+        &ptr
+    );
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create semaphore") {
         forget();

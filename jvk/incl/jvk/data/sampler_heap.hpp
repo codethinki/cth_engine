@@ -144,7 +144,8 @@ public:
     Sampler(SamplerHeap const& heap, uint32_t idx) : _heapPtr{&heap}, _idx{idx} {}
 
     ~Sampler() {
-        if(_heapPtr) _heapPtr->unref(_idx);
+        if(_heapPtr)
+            _heapPtr->unref(_idx);
     }
 
     /**
@@ -164,7 +165,8 @@ private:
 
 public:
     Sampler(Sampler const& other) : _heapPtr{other._heapPtr}, _idx{other._idx} {
-        if(_heapPtr) _heapPtr->ref(_idx);
+        if(_heapPtr)
+            _heapPtr->ref(_idx);
     }
 
     Sampler(Sampler&& other) noexcept = default;

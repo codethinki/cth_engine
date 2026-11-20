@@ -16,7 +16,8 @@ namespace cvk {
 struct SampledImageDescriptor {
     cth::ref_wrapper<Image const> image;
     ImageViewConfig view{};
-    VkImageLayout layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL; ///< layout of the image at the shader access
+    VkImageLayout layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+    ///< layout of the image at the shader access
 };
 
 /**
@@ -38,6 +39,7 @@ struct StorageImageDescriptor {
 struct InputAttachmentDescriptor {
     cth::ref_wrapper<Image const> image;
     ImageViewConfig view{};
-    VkImageLayout layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR; ///< layout of the image at the shader access
+    VkImageLayout layout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR;
+    ///< layout of the image at the shader access
 };
 }

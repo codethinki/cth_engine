@@ -30,7 +30,11 @@ constexpr std::string_view APP_NAME = "cgfw_tests";
  * hidden window: a test run shows no window
  */
 [[nodiscard]] inline Window::Config window_config(std::string title = "cgfw test") {
-    return Window::Config{.title = std::move(title), .extent = {64, 64}, .flags = WindowFlags::HIDE};
+    return Window::Config{
+        .title = std::move(title),
+        .extent = {64, 64},
+        .flags = WindowFlags::HIDE
+    };
 }
 
 /**

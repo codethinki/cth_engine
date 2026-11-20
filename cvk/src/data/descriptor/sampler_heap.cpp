@@ -8,10 +8,14 @@
 
 
 namespace cvk {
-SamplerHeap::SamplerHeap(Core const& core, Config const& config) : _buffer{core, dev::HEAP_BUFFER_CONFIG},
+SamplerHeap::SamplerHeap(Core const& core, Config const& config) : _buffer
+    {core, dev::HEAP_BUFFER_CONFIG},
     _config{config} {}
 
-SamplerHeap::SamplerHeap(Core const& core, Config const& config, create_t) : SamplerHeap{core, config} { create(); }
+SamplerHeap::SamplerHeap(Core const& core, Config const& config, create_t) : SamplerHeap{
+    core,
+    config
+} { create(); }
 
 void SamplerHeap::create() {
     Core::debug_check(core());
@@ -21,8 +25,14 @@ void SamplerHeap::create() {
 
     auto const& properties = core().physicalDevice().descriptorHeapProperties();
 
-    auto const stride = cth::num::align_to(properties.samplerDescriptorSize, properties.samplerDescriptorAlignment);
-    auto const reservedOffset = cth::num::align_to(_config.samplers * stride, properties.samplerDescriptorAlignment);
+    auto const stride = cth::num::align_to(
+        properties.samplerDescriptorSize,
+        properties.samplerDescriptorAlignment
+    );
+    auto const reservedOffset = cth::num::align_to(
+        _config.samplers * stride,
+        properties.samplerDescriptorAlignment
+    );
     auto const reservedSize = properties.minSamplerHeapReservedRange;
 
     dev::create_heap_buffer(
@@ -48,7 +58,12 @@ void SamplerHeap::destroy() {
 
 void SamplerHeap::write(uint32_t idx, SamplerConfig const& sampler) {
     debug_check(*this);
-    CTH_CRITICAL(idx >= _config.samplers, "index must lie in the samplers, got {} of {}", idx, _config.samplers) {}
+    CTH_CRITICAL(
+        idx >= _config.samplers,
+        "index must lie in the samplers, got {} of {}",
+        idx,
+        _config.samplers
+    ) {}
     dev::write_descriptor(_buffer, idx * _stride, _stride, sampler);
 }
 

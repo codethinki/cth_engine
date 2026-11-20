@@ -14,7 +14,10 @@ namespace jvk::dev {
  * src of an acquire half: waits for the release wait of the submit, `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`
  */
 [[nodiscard]] constexpr cvk::BarrierScope acquire_src(cvk::queue_family_index_t lastFamily) {
-    return cvk::BarrierScope{.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, .queueFamilyIndex = lastFamily};
+    return cvk::BarrierScope{
+        .stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+        .queueFamilyIndex = lastFamily
+    };
 }
 
 /**

@@ -61,9 +61,11 @@ void Window::create() {
         static_cast<i32>(_config.extent.height),
         static_cast<RGFW_windowFlags>(_config.flags)
     );
-    CGFW_STABLE_THROW(rgfwWindow == nullptr, "failed to create the window {}, e.g. no display", _config.title) {
-        forget();
-    }
+    CGFW_STABLE_THROW(
+        rgfwWindow == nullptr,
+        "failed to create the window {}, e.g. no display",
+        _config.title
+    ) { forget(); }
 
     _handle.reset(rgfwWindow);
 }
@@ -109,7 +111,10 @@ VkExtent2D Window::extent() const {
     i32 width = 0;
     i32 height = 0;
     RGFW_window_getSize(_handle.get(), &width, &height);
-    return VkExtent2D{static_cast<uint32_t>(std::max(width, 0)), static_cast<uint32_t>(std::max(height, 0))};
+    return VkExtent2D{
+        static_cast<uint32_t>(std::max(width, 0)),
+        static_cast<uint32_t>(std::max(height, 0))
+    };
 }
 
 void Window::pollEvents() const {
@@ -129,9 +134,15 @@ native_window Window::nativeWindow() const {
 
 #ifdef CTH_PLATFORM_WINDOWS
     // RGFW has no getter, it gives the Win32 surface this HINSTANCE too
-    return native_window{.display = GetModuleHandleW(nullptr), .window = RGFW_window_getHWND(_handle.get())};
+    return native_window{
+        .display = GetModuleHandleW(nullptr),
+        .window = RGFW_window_getHWND(_handle.get())
+    };
 #else
-    return native_window{.display = RGFW_getDisplay_Wayland(), .window = RGFW_window_getWindow_Wayland(_handle.get())};
+    return native_window{
+        .display = RGFW_getDisplay_Wayland(),
+        .window = RGFW_window_getWindow_Wayland(_handle.get())
+    };
 #endif
 }
 

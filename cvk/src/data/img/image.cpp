@@ -16,9 +16,13 @@ Image::Image(Core const& core, Config const& config) : _handle{core}, _config{co
     Config::debug_check(config);
 }
 
-Image::Image(Core const& core, Config const& config, State const& state) : Image{core, config} { wrap(state); }
+Image::Image(Core const& core, Config const& config, State const& state) : Image{core, config} {
+    wrap(state);
+}
 
-Image::Image(Core const& core, Config const& config, VkExtent2D extent) : Image{core, config} { create(extent); }
+Image::Image(Core const& core, Config const& config, VkExtent2D extent) : Image{core, config} {
+    create(extent);
+}
 
 void Image::wrap(State const& state) {
     Core::debug_check(core());
@@ -26,7 +30,8 @@ void Image::wrap(State const& state) {
     optDestroy();
 
     _handle.reset(state.vkImage.get(), core());
-    if(state.memory.has_value()) _memoryOpt.emplace(core(), _config.memory, *state.memory);
+    if(state.memory.has_value())
+        _memoryOpt.emplace(core(), _config.memory, *state.memory);
     _extent = state.extent;
 }
 
@@ -80,7 +85,8 @@ Image::State Image::release() {
         .extent = _extent,
         .memory = std::nullopt,
     };
-    if(_memoryOpt.has_value()) state.memory = _memoryOpt->release();
+    if(_memoryOpt.has_value())
+        state.memory = _memoryOpt->release();
 
     forget();
     return state;
@@ -169,10 +175,16 @@ void Image::blitMipLevels(
         "first mip level must lie in [1, mip levels)"
     ) {}
 
-    auto const levels = mipLevels == VK_REMAINING_MIP_LEVELS ? _config.mipLevels - firstMipLevel : mipLevels;
-    CTH_CRITICAL(levels == 0 || levels > _config.mipLevels - firstMipLevel, "mip levels must lie in the image") {}
+    auto const levels = mipLevels == VK_REMAINING_MIP_LEVELS
+        ? _config.mipLevels - firstMipLevel
+        : mipLevels;
+    CTH_CRITICAL(
+        levels == 0 || levels > _config.mipLevels - firstMipLevel,
+        "mip levels must lie in the image"
+    ) {}
 
-    constexpr VkImageUsageFlags transfer = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    constexpr VkImageUsageFlags transfer = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     CTH_CRITICAL(
         (_config.usage & transfer) != transfer,
         "image usage must have VK_IMAGE_USAGE_TRANSFER_SRC_BIT and VK_IMAGE_USAGE_TRANSFER_DST_BIT"
@@ -180,7 +192,11 @@ void Image::blitMipLevels(
 
     auto const corner = [this](uint32_t mipLevelIdx) {
         auto const extent = mip_extent(_extent, mipLevelIdx);
-        return VkOffset3D{static_cast<int32_t>(extent.width), static_cast<int32_t>(extent.height), 1};
+        return VkOffset3D{
+            static_cast<int32_t>(extent.width),
+            static_cast<int32_t>(extent.height),
+            1
+        };
     };
     // the level is written, the next blit reads it
     auto const toSrc = [&](uint32_t mipLevelIdx) {

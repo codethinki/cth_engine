@@ -40,7 +40,8 @@ struct SemaphoreSubmitInfo {
         std::optional<uint64_t> valueOpt = std::nullopt
     ) : semaphore{cth::ref_wrapper{semaphore}}, stages{stages}, value{valueOpt} {}
 
-    std::variant<cth::ref_wrapper<Semaphore const>, cth::ref_wrapper<TimelineSemaphore const>> semaphore;
+    std::variant<cth::ref_wrapper<Semaphore const>, cth::ref_wrapper<TimelineSemaphore const>>
+    semaphore;
     VkPipelineStageFlags2 stages;
 
     /**
@@ -54,7 +55,8 @@ struct SemaphoreSubmitInfo {
  * one batch of a queue submit
  */
 struct SubmitInfo {
-    std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{}; ///< the gpu executes them in order
+    std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{};
+    ///< the gpu executes them in order
 
     std::vector<SemaphoreSubmitInfo> waits{};
     std::vector<SemaphoreSubmitInfo> signals{};

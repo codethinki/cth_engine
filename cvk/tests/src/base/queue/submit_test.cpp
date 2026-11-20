@@ -27,7 +27,9 @@ CVK_TEST(Submit, semaphore_info_takes_the_kind_from_the_semaphore) {
     EXPECT_EQ(binaryInfo.stages, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT);
     EXPECT_FALSE(binaryInfo.value.has_value());
 
-    EXPECT_TRUE(std::holds_alternative<cth::ref_wrapper<TimelineSemaphore const>>(timelineInfo.semaphore));
+    EXPECT_TRUE(
+        std::holds_alternative<cth::ref_wrapper<TimelineSemaphore const>>(timelineInfo.semaphore)
+    );
     EXPECT_EQ(timelineInfo.stages, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
     EXPECT_EQ(timelineInfo.value, 3);
 }
@@ -90,7 +92,9 @@ CVK_TEST(Submit, explicit_timeline_value_keeps_the_counter) {
     test::Context const context{};
     TimelineSemaphore const timeline{context.core, create};
 
-    context.core.queue(0).submit({.signals = {{timeline, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 5}}});
+    context.core.queue(0).submit(
+        {.signals = {{timeline, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 5}}}
+    );
 
     context.core.queue(0).waitIdle();
     EXPECT_EQ(timeline.gpuValue(), 5);

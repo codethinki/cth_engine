@@ -22,7 +22,9 @@ namespace jvk::test {
 /**
  * one queue, some devices have one queue only
  */
-inline constexpr std::array QUEUES{cvk::QueueFamilyProperties::GRAPHICS | cvk::QueueFamilyProperties::COMPUTE};
+inline constexpr std::array QUEUES{
+    cvk::QueueFamilyProperties::GRAPHICS | cvk::QueueFamilyProperties::COMPUTE
+};
 
 /**
  * no surfaces for `Core`, for calls that cannot take a braced list like `std::optional::emplace()`

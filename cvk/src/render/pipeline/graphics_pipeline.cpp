@@ -8,17 +8,14 @@
 
 namespace cvk {
 GraphicsPipeline::GraphicsPipeline(Core const& core, Config config) :
-    BasePipeline{core, VK_PIPELINE_BIND_POINT_GRAPHICS}, _config{std::move(config)} {}
+    BasePipeline{core, VK_PIPELINE_BIND_POINT_GRAPHICS},
+    _config{std::move(config)} {}
 
 GraphicsPipeline::GraphicsPipeline(Core const& core, Config config, State const& state) :
-    GraphicsPipeline{core, std::move(config)} {
-    wrap(state);
-}
+    GraphicsPipeline{core, std::move(config)} { wrap(state); }
 
 GraphicsPipeline::GraphicsPipeline(Core const& core, Config config, create_t) :
-    GraphicsPipeline{core, std::move(config)} {
-    create();
-}
+    GraphicsPipeline{core, std::move(config)} { create(); }
 
 GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config) :
     BasePipeline{parent.core(), VK_PIPELINE_BIND_POINT_GRAPHICS},
@@ -26,9 +23,7 @@ GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config
     _config{std::move(config)} {}
 
 GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config, create_t) :
-    GraphicsPipeline{parent, std::move(config)} {
-    create();
-}
+    GraphicsPipeline{parent, std::move(config)} { create(); }
 
 void GraphicsPipeline::create() {
     if(_parentPtr != nullptr) {
@@ -39,7 +34,8 @@ void GraphicsPipeline::create() {
         ) {}
     }
     CTH_CRITICAL(
-        !_config.colorBlendAttachments.empty() && _config.colorBlendAttachments.size() != _config.colorFormats.size(),
+        !_config.colorBlendAttachments.empty() &&
+        _config.colorBlendAttachments.size() != _config.colorFormats.size(),
         "one color blend attachment per color format required, got {} for {}",
         _config.colorBlendAttachments.size(),
         _config.colorFormats.size()
@@ -105,7 +101,9 @@ void GraphicsPipeline::create() {
 
     auto const mapped = mapStages(config.stages, config.descriptorMappings);
     auto const flags = createFlags(
-        config.flags | (_parentPtr != nullptr ? VK_PIPELINE_CREATE_2_DERIVATIVE_BIT : VkPipelineCreateFlags2{0}),
+        config.flags | (_parentPtr != nullptr
+            ? VK_PIPELINE_CREATE_2_DERIVATIVE_BIT
+            : VkPipelineCreateFlags2{0}),
         &rendering
     );
 

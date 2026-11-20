@@ -10,9 +10,11 @@
 
 namespace jvk {
 Queue::Queue(Core const& core, cvk::Queue const& queue, cth::co::scheduler const& queueScheduler) :
-    _core{core}, _queue{queue}, _scheduler{queueScheduler}, _strand{queueScheduler}, _released{core, cvk::create} {
-    cvk::Queue::debug_check(queue);
-}
+    _core{core},
+    _queue{queue},
+    _scheduler{queueScheduler},
+    _strand{queueScheduler},
+    _released{core, cvk::create} { cvk::Queue::debug_check(queue); }
 
 void Queue::waitIdle() const {
     executor().sync_wait(
@@ -47,10 +49,12 @@ cth::co::executor_task<SemaphoreSubmitInfo> Queue::release(cvk::Barrier barriers
 auto Queue::freeReleaseCmd() const -> ReleaseCmd& {
     auto const reached = _released.gpuValue();
 
-    auto const it = std::ranges::find_if(_releaseCmds, [reached](ReleaseCmd const& releaseCmd) {
-        return releaseCmd.value <= reached;
-    });
-    if(it != _releaseCmds.end()) return *it;
+    auto const it = std::ranges::find_if(
+        _releaseCmds,
+        [reached](ReleaseCmd const& releaseCmd) { return releaseCmd.value <= reached; }
+    );
+    if(it != _releaseCmds.end())
+        return *it;
 
     return _releaseCmds.emplace_back(ReleaseCmd{PrimaryCmdBuffer{*_core, _queue->familyIndex()}});
 }

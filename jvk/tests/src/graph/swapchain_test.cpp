@@ -36,11 +36,12 @@ namespace {
         auto config = test::Context::CONFIG;
         config.vk.queueProperties = {GRAPHICS | PRESENT};
         try {
-            coreOpt.emplace(context.instance, std::move(config), std::array{cth::ref_wrapper{surface}});
-        }
-        catch(cvk::cvk_exception const&) {
-            return false;
-        }
+            coreOpt.emplace(
+                context.instance,
+                std::move(config),
+                std::array{cth::ref_wrapper{surface}}
+            );
+        } catch(cvk::cvk_exception const&) { return false; }
         return true;
     }
 
@@ -64,7 +65,8 @@ JVK_TEST(Swapchain, recreate_retires_the_current_swapchain) {
     test::Context const context{};
     auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface)) GTEST_SKIP() << "no device presents to a headless surface";
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
     Swapchain swapchain{core, core.queue(0).vk(), surface};
@@ -85,7 +87,8 @@ JVK_TEST(Swapchain, acquire_destroys_the_finished_retired_swapchains) {
     test::Context const context{};
     auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface)) GTEST_SKIP() << "no device presents to a headless surface";
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
     Swapchain swapchain{core, core.queue(0).vk(), surface};

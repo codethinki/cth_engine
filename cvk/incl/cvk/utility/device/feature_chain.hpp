@@ -55,18 +55,26 @@ struct feature_struct<VkPhysicalDeviceFeatures2> {
 template<>
 struct feature_struct<VkPhysicalDeviceVulkan11Features> {
     static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
-    static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceVulkan11Features, storageBuffer16BitAccess);
+    static constexpr size_t OFFSET = offsetof(
+        VkPhysicalDeviceVulkan11Features,
+        storageBuffer16BitAccess
+    );
     static constexpr size_t COUNT =
-        (offsetof(VkPhysicalDeviceVulkan11Features, shaderDrawParameters) - OFFSET) / sizeof(VkBool32) + 1;
+        (offsetof(VkPhysicalDeviceVulkan11Features, shaderDrawParameters) - OFFSET) /
+        sizeof(VkBool32) + 1;
     static constexpr std::string_view EXTENSION{};
 };
 
 template<>
 struct feature_struct<VkPhysicalDeviceVulkan12Features> {
     static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-    static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceVulkan12Features, samplerMirrorClampToEdge);
+    static constexpr size_t OFFSET = offsetof(
+        VkPhysicalDeviceVulkan12Features,
+        samplerMirrorClampToEdge
+    );
     static constexpr size_t COUNT =
-        (offsetof(VkPhysicalDeviceVulkan12Features, subgroupBroadcastDynamicId) - OFFSET) / sizeof(VkBool32) + 1;
+        (offsetof(VkPhysicalDeviceVulkan12Features, subgroupBroadcastDynamicId) - OFFSET) /
+        sizeof(VkBool32) + 1;
     static constexpr std::string_view EXTENSION{};
 };
 
@@ -81,25 +89,34 @@ struct feature_struct<VkPhysicalDeviceVulkan13Features> {
 
 template<>
 struct feature_struct<VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR> {
-    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR;
-    static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR, swapchainMaintenance1);
+    static constexpr auto TYPE =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR;
+    static constexpr size_t OFFSET = offsetof(
+        VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR,
+        swapchainMaintenance1
+    );
     static constexpr size_t COUNT = 1;
     static constexpr std::string_view EXTENSION = VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME;
 };
 
 template<>
 struct feature_struct<VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR> {
-    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
+    static constexpr auto TYPE =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_LOCAL_READ_FEATURES_KHR;
     static constexpr size_t OFFSET =
         offsetof(VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR, dynamicRenderingLocalRead);
     static constexpr size_t COUNT = 1;
-    static constexpr std::string_view EXTENSION = VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME;
+    static constexpr std::string_view EXTENSION =
+        VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME;
 };
 
 template<>
 struct feature_struct<VkPhysicalDeviceMaintenance5FeaturesKHR> {
     static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR;
-    static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceMaintenance5FeaturesKHR, maintenance5);
+    static constexpr size_t OFFSET = offsetof(
+        VkPhysicalDeviceMaintenance5FeaturesKHR,
+        maintenance5
+    );
     static constexpr size_t COUNT = 1;
     static constexpr std::string_view EXTENSION = VK_KHR_MAINTENANCE_5_EXTENSION_NAME;
 };
@@ -107,10 +124,16 @@ struct feature_struct<VkPhysicalDeviceMaintenance5FeaturesKHR> {
 template<>
 struct feature_struct<VkPhysicalDeviceDescriptorHeapFeaturesEXT> {
     static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT;
-    static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceDescriptorHeapFeaturesEXT, descriptorHeap);
+    static constexpr size_t OFFSET = offsetof(
+        VkPhysicalDeviceDescriptorHeapFeaturesEXT,
+        descriptorHeap
+    );
     static constexpr size_t COUNT =
-        (offsetof(VkPhysicalDeviceDescriptorHeapFeaturesEXT, descriptorHeapCaptureReplay) - OFFSET) / sizeof(VkBool32)
-        + 1;
+        (offsetof(
+            VkPhysicalDeviceDescriptorHeapFeaturesEXT,
+            descriptorHeapCaptureReplay
+        ) - OFFSET) /
+        sizeof(VkBool32) + 1;
     static constexpr std::string_view EXTENSION = VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME;
 };
 
@@ -133,7 +156,9 @@ inline constexpr size_t feature_offset = []<class... Ts>(std::type_identity<std:
 static_assert(
     []<class... Ts>(std::type_identity<std::tuple<Ts...>>) {
         return (feature_struct<Ts>::COUNT + ...);
-    }(std::type_identity<feature_structs_t>{}) == FEATURE_COUNT,
+    }(
+        std::type_identity<feature_structs_t>{}
+    ) == FEATURE_COUNT,
     "DeviceFeatures must have one field per flag of the feature structs"
 );
 static_assert(alignof(DeviceFeatures) == 1, "DeviceFeatures must have bool fields only");
@@ -141,15 +166,20 @@ static_assert(alignof(DeviceFeatures) == 1, "DeviceFeatures must have bool field
 /**
  * @return the extensions of the structs with a `true` bit in the features
  */
-[[nodiscard]] constexpr std::vector<std::string_view> extensions_of(DeviceFeatures const& features) {
+[[nodiscard]] constexpr std::vector<std::string_view>
+extensions_of(DeviceFeatures const& features) {
     auto const bits = to_bits(features);
     std::vector<std::string_view> extensions{};
 
     [&]<class... Ts>(std::type_identity<std::tuple<Ts...>>) {
         ([&] {
             if constexpr(!feature_struct<Ts>::EXTENSION.empty()) {
-                auto const flags = std::span{bits}.subspan(feature_offset<Ts>, feature_struct<Ts>::COUNT);
-                if(std::ranges::contains(flags, true)) extensions.push_back(feature_struct<Ts>::EXTENSION);
+                auto const flags = std::span{bits}.subspan(
+                    feature_offset<Ts>,
+                    feature_struct<Ts>::COUNT
+                );
+                if(std::ranges::contains(flags, true))
+                    extensions.push_back(feature_struct<Ts>::EXTENSION);
             }
         }(), ...);
     }(std::type_identity<feature_structs_t>{});
@@ -193,7 +223,9 @@ public:
     /**
      * start of the `pNext` chain
      */
-    [[nodiscard]] constexpr auto* get(this auto& self) { return &std::get<VkPhysicalDeviceFeatures2>(self._structs); }
+    [[nodiscard]] constexpr auto* get(this auto& self) {
+        return &std::get<VkPhysicalDeviceFeatures2>(self._structs);
+    }
 
 private:
     /**
@@ -215,7 +247,10 @@ public:
  * queries the features of the device
  * @param extensions of the device, the query includes their structs
  */
-[[nodiscard]] DeviceFeatures query_features(vk_not_null<VkPhysicalDevice>, std::span<std::string const> extensions);
+[[nodiscard]] DeviceFeatures query_features(
+    vk_not_null<VkPhysicalDevice>,
+    std::span<std::string const> extensions
+);
 }
 
 namespace cvk::dev {

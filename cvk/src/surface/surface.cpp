@@ -71,7 +71,12 @@ vector<VkPresentModeKHR> Surface::presentModes(PhysicalDevice const& physicalDev
 vector<VkSurfaceFormatKHR> Surface::formats(PhysicalDevice const& physicalDevice) const {
     debug_check(*this);
 
-    return dev::enumerate("surface formats", vkGetPhysicalDeviceSurfaceFormatsKHR, physicalDevice.get(), _handle.get());
+    return dev::enumerate(
+        "surface formats",
+        vkGetPhysicalDeviceSurfaceFormatsKHR,
+        physicalDevice.get(),
+        _handle.get()
+    );
 }
 
 VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physicalDevice) const {
@@ -83,18 +88,24 @@ VkSurfaceCapabilitiesKHR Surface::capabilities(PhysicalDevice const& physicalDev
         _handle.get(),
         &capabilities
     );
-    CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "device-surface capabilities query failed") {}
+    CVK_RESULT_STABLE_THROW(
+        result != VK_SUCCESS,
+        result,
+        "device-surface capabilities query failed"
+    ) {}
 
     return capabilities;
 }
 
 VkExtent2D Surface::extent(PhysicalDevice const& physicalDevice) const {
     auto const capabilities = this->capabilities(physicalDevice);
-    if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) return capabilities.currentExtent;
+    if(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+        return capabilities.currentExtent;
 
     CTH_CRITICAL(!_extentCallback, "a surface without a fixed extent needs an extent callback") {}
     auto const extent = _extentCallback();
-    if(extent.width == 0 || extent.height == 0) return VkExtent2D{};
+    if(extent.width == 0 || extent.height == 0)
+        return VkExtent2D{};
     return Swapchain::evalExtent(extent, capabilities);
 }
 

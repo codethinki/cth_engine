@@ -76,7 +76,9 @@ namespace {
      * @return the device has `cvk::constants::OS_FENCE_FEATURES`
      */
     bool os_fence_exportable(cvk::Core const& core) {
-        auto const features = core.physicalDevice().externalFenceFeatures(cvk::constants::OS_FENCE_HANDLE_TYPE);
+        auto const features = core.physicalDevice().externalFenceFeatures(
+            cvk::constants::OS_FENCE_HANDLE_TYPE
+        );
         return (features & cvk::constants::OS_FENCE_FEATURES) == cvk::constants::OS_FENCE_FEATURES;
     }
 
@@ -109,7 +111,8 @@ namespace {
     ) {
         auto const handle = co_await submit(core.queue(0), semaphore, fence);
         // invalid handle -> already signaled
-        if(handle) co_await cth::co::this_coro::await_handle(handle.get());
+        if(handle)
+            co_await cth::co::this_coro::await_handle(handle.get());
 
         co_return resume_result{core.executor().context().owns_thread(), semaphore.gpuValue()};
     }
@@ -153,10 +156,10 @@ JVK_TEST(Core, create_with_a_surface) {
     config.vk.queueProperties = {GRAPHICS | PRESENT};
 
     std::optional<Core> core{};
-    try { core.emplace(context.instance, std::move(config), std::array{cth::ref_wrapper{surface}}); } catch(
-        cvk::cvk_exception const&) {
-        GTEST_SKIP() << "no device presents to a headless surface";
-    }
+    try {
+        core.emplace(context.instance, std::move(config), std::array{cth::ref_wrapper{surface}});
+    } catch(
+        cvk::cvk_exception const&) { GTEST_SKIP() << "no device presents to a headless surface"; }
     cvk::Core const& vk = *core;
 
     ASSERT_TRUE(core->created());
@@ -189,9 +192,13 @@ JVK_TEST(Core, reactor_waits_after_a_new_create) {
 
         std::promise<std::error_code> promise{};
         auto result = promise.get_future();
-        core.reactor().await(semaphore.get(), 1, [promise = std::move(promise)](std::error_code error) mutable {
-            promise.set_value(error);
-        });
+        core.reactor().await(
+            semaphore.get(),
+            1,
+            [promise = std::move(promise)](std::error_code error) mutable {
+                promise.set_value(error);
+            }
+        );
         [[maybe_unused]] auto const signaled = semaphore.signal();
 
         ASSERT_EQ(result.wait_for(std::chrono::seconds{5}), std::future_status::ready);
@@ -206,9 +213,9 @@ JVK_TEST(Core, reactor_waits_after_a_new_create) {
 JVK_TEST(Core, enables_the_extensions_of_the_config) {
     test::Context const context{};
     std::optional<Core> core{};
-    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); } catch(cvk::cvk_exception const&) {
-        GTEST_SKIP() << "no os fence extension";
-    }
+    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); } catch(
+        cvk::cvk_exception
+        const&) { GTEST_SKIP() << "no os fence extension"; }
     cvk::Core const& vk = *core;
 
     auto const extensions = vk.device().extensions();
@@ -264,15 +271,18 @@ JVK_TEST(Core, executor_runs_on_the_workers) {
 JVK_TEST(Core, worker_resumes_after_the_gpu_signals_the_fence_of_a_strand_submit) {
     test::Context const context{};
     std::optional<Core> core{};
-    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); } catch(cvk::cvk_exception const&) {
-        GTEST_SKIP() << "no os fence extension";
-    }
-    if(!os_fence_exportable(*core)) GTEST_SKIP() << "os fence handle type not exportable";
+    try { core.emplace(context.instance, os_fence_config(), test::NO_SURFACES); } catch(
+        cvk::cvk_exception
+        const&) { GTEST_SKIP() << "no os fence extension"; }
+    if(!os_fence_exportable(*core))
+        GTEST_SKIP() << "os fence handle type not exportable";
 
     cvk::TimelineSemaphore const semaphore{*core, cvk::create};
     cvk::Fence const fence{*core, cvk::create, 0, cvk::constants::OS_FENCE_HANDLE_TYPE};
 
-    auto const [onWorker, gpuValue] = core->executor().sync_wait(submit_and_await(*core, semaphore, fence));
+    auto const [onWorker, gpuValue] = core->executor().sync_wait(
+        submit_and_await(*core, semaphore, fence)
+    );
 
     EXPECT_TRUE(onWorker);
     EXPECT_EQ(gpuValue, 1);

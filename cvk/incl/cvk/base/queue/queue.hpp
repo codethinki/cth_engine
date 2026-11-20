@@ -43,7 +43,9 @@ public:
      * submits the info
      * @see @ref submit(std::span<SubmitInfo const>, Fence const*) const
      */
-    void submit(SubmitInfo const& info, Fence const* fencePtr = nullptr) const { submit({&info, 1}, fencePtr); }
+    void submit(SubmitInfo const& info, Fence const* fencePtr = nullptr) const {
+        submit({&info, 1}, fencePtr);
+    }
 
     /**
      * submits to the vulkan queue, for what `SubmitInfo` does not cover
@@ -72,7 +74,9 @@ public:
     [[nodiscard]] constexpr VkQueue get() const { return _handle.get(); }
     [[nodiscard]] constexpr uint32_t index() const { return _queueIndex; }
     [[nodiscard]] constexpr uint32_t familyIndex() const { return _familyIndex; }
-    [[nodiscard]] constexpr QueueFamilyProperties familyProperties() const { return _familyProperties; }
+    [[nodiscard]] constexpr QueueFamilyProperties familyProperties() const {
+        return _familyProperties;
+    }
 
 private:
     QueueFamilyProperties _familyProperties;

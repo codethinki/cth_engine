@@ -23,7 +23,8 @@ public:
             _erased.pop_back();
             return idx;
         }
-        if(_next == _size) return std::nullopt;
+        if(_next == _size)
+            return std::nullopt;
         return _next++;
     }
 
@@ -36,7 +37,9 @@ public:
     /**
      * @return the cells in use
      */
-    [[nodiscard]] constexpr uint32_t used() const { return _next - static_cast<uint32_t>(_erased.size()); }
+    [[nodiscard]] constexpr uint32_t used() const {
+        return _next - static_cast<uint32_t>(_erased.size());
+    }
 
     [[nodiscard]] constexpr uint32_t size() const { return _size; }
 

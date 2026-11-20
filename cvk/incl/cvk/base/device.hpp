@@ -86,7 +86,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership, returns the state and forgets
@@ -105,12 +108,18 @@ public:
     [[nodiscard]] constexpr std::span<Queue const> queues() const { return _queues; }
     [[nodiscard]] constexpr std::span<Queue> queues() { return _queues; }
 
-    [[nodiscard]] constexpr DeviceTable table() const { return DeviceTable{_handle.get(), *_functionTablePtr}; }
-    [[nodiscard]] constexpr VolkDeviceTable const* functions() const { return _functionTablePtr.get(); }
+    [[nodiscard]] constexpr DeviceTable table() const {
+        return DeviceTable{_handle.get(), *_functionTablePtr};
+    }
+    [[nodiscard]] constexpr VolkDeviceTable const* functions() const {
+        return _functionTablePtr.get();
+    }
     [[nodiscard]] constexpr VkDevice get() const { return _handle.get(); }
 
     [[nodiscard]] constexpr Instance const& instance() const { return *_instance; }
-    [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const { return *_physicalDevice; }
+    [[nodiscard]] constexpr PhysicalDevice const& physicalDevice() const {
+        return *_physicalDevice;
+    }
 
     /**
      * @return the enabled features
@@ -132,7 +141,9 @@ private:
      * @return count of queues per family, one entry per family of the physical device
      * @pre the physical device has a family for each index
      */
-    [[nodiscard]] std::vector<uint32_t> calcQueueFamiliesQueueCounts(std::span<uint32_t const> familyIndices) const;
+    [[nodiscard]] std::vector<uint32_t> calcQueueFamiliesQueueCounts(
+        std::span<uint32_t const> familyIndices
+    ) const;
 
     /**
      * creates the device with `_features` and `_extensions`

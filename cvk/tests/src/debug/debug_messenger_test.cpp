@@ -18,8 +18,12 @@ namespace {
         VkDebugUtilsMessageTypeFlagsEXT,
         VkDebugUtilsMessengerCallbackDataEXT const* callbackData,
         void*
+
+
+    
     ) {
-        if(callbackData->pMessage == TEST_MESSAGE) ++received;
+        if(callbackData->pMessage == TEST_MESSAGE)
+            ++received;
         return VK_FALSE;
     }
 
@@ -59,7 +63,11 @@ CVK_TEST(DebugMessenger, default_config_create_info) {
 
 CVK_TEST(DebugMessenger, forwards_messages_to_the_callback) {
     test::Context const context{};
-    DebugMessenger const messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
+    DebugMessenger const messenger{
+        context.instance,
+        DebugMessenger::Config{.callback = count_test_messages},
+        create
+    };
     ASSERT_TRUE(messenger.created());
 
     received = 0;
@@ -76,11 +84,19 @@ CVK_TEST(DebugMessenger, accepts_a_lambda) {
         VkDebugUtilsMessageTypeFlagsEXT,
         VkDebugUtilsMessengerCallbackDataEXT const* callbackData,
         void*
+
+
+    
     ) -> VkBool32 {
-        if(callbackData->pMessage == TEST_MESSAGE) ++received;
+        if(callbackData->pMessage == TEST_MESSAGE)
+            ++received;
         return VK_FALSE;
     };
-    DebugMessenger const messenger{context.instance, DebugMessenger::Config{.callback = callback}, create};
+    DebugMessenger const messenger{
+        context.instance,
+        DebugMessenger::Config{.callback = callback},
+        create
+    };
 
     received = 0;
     submit_test_message(context.instance);
@@ -90,7 +106,11 @@ CVK_TEST(DebugMessenger, accepts_a_lambda) {
 
 CVK_TEST(DebugMessenger, destroy_stops_the_messages) {
     test::Context const context{};
-    DebugMessenger messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
+    DebugMessenger messenger{
+        context.instance,
+        DebugMessenger::Config{.callback = count_test_messages},
+        create
+    };
 
     messenger.destroy();
     EXPECT_FALSE(messenger.created());
@@ -103,7 +123,11 @@ CVK_TEST(DebugMessenger, destroy_stops_the_messages) {
 
 CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
     test::Context const context{};
-    DebugMessenger messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
+    DebugMessenger messenger{
+        context.instance,
+        DebugMessenger::Config{.callback = count_test_messages},
+        create
+    };
 
     auto const state = messenger.release();
     EXPECT_FALSE(messenger.created());
@@ -117,7 +141,11 @@ CVK_TEST(DebugMessenger, release_keeps_the_messenger) {
 
 CVK_TEST(DebugMessenger, release_and_wrap) {
     test::Context const context{};
-    DebugMessenger messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
+    DebugMessenger messenger{
+        context.instance,
+        DebugMessenger::Config{.callback = count_test_messages},
+        create
+    };
     auto const vkMessenger = messenger.get();
 
     auto const state = messenger.release();
@@ -133,8 +161,16 @@ CVK_TEST(DebugMessenger, release_and_wrap) {
 
 CVK_TEST(DebugMessenger, move_assignment_destroys_the_old_messenger) {
     test::InstanceContext const context{};
-    DebugMessenger messenger{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
-    DebugMessenger other{context.instance, DebugMessenger::Config{.callback = count_test_messages}, create};
+    DebugMessenger messenger{
+        context.instance,
+        DebugMessenger::Config{.callback = count_test_messages},
+        create
+    };
+    DebugMessenger other{
+        context.instance,
+        DebugMessenger::Config{.callback = count_test_messages},
+        create
+    };
     auto const vkMessenger = other.get();
 
     messenger = std::move(other);

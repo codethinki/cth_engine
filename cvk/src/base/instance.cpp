@@ -20,17 +20,23 @@ namespace {
     /**
      * @return the names that are not available
      */
-    [[nodiscard]] vector<string> missing(std::ranges::range auto const& names, vector<string> const& available) {
+    [[nodiscard]] vector<string> missing(
+        std::ranges::range auto const& names,
+        vector<string> const& available
+    ) {
         vector<string> missing{};
         for(string_view const name : names)
-            if(!std::ranges::contains(available, name)) missing.emplace_back(name);
+            if(!std::ranges::contains(available, name))
+                missing.emplace_back(name);
         return missing;
     }
 }
 
 Instance::Instance(Config config) : _config{std::move(config)} {}
 
-Instance::Instance(Config config, State state) : Instance{std::move(config)} { wrap(std::move(state)); }
+Instance::Instance(Config config, State state) : Instance{std::move(config)} {
+    wrap(std::move(state));
+}
 
 Instance::Instance(Config config, create_t) : Instance{std::move(config)} { create(); }
 
@@ -50,7 +56,8 @@ void Instance::wrap(State state) {
 
     loadInstanceFunctions(state.vkInstance);
 
-    if(state.debugMessenger) _debugMessengerOpt.emplace(*this, *messenger, *state.debugMessenger);
+    if(state.debugMessenger)
+        _debugMessengerOpt.emplace(*this, *messenger, *state.debugMessenger);
 }
 
 void Instance::create() {
@@ -62,7 +69,8 @@ void Instance::create() {
     auto requiredExtensions = _config.extensions;
     if(messenger.has_value())
         for(string_view const extension : MESSENGER_EXTENSIONS)
-            if(!std::ranges::contains(requiredExtensions, extension)) requiredExtensions.emplace_back(extension);
+            if(!std::ranges::contains(requiredExtensions, extension))
+                requiredExtensions.emplace_back(extension);
 
     auto const missingExtensions = missing(requiredExtensions, available_instance_extensions());
     CTH_STABLE_ERR(!missingExtensions.empty(), "instance extensions missing") {
@@ -129,7 +137,8 @@ void Instance::create() {
 
     // the messenger needs the created instance, only a catch can destroy the instance when the messenger fails
     try {
-        if(messenger) _debugMessengerOpt.emplace(*this, *messenger, cvk::create);
+        if(messenger)
+            _debugMessengerOpt.emplace(*this, *messenger, cvk::create);
     } catch(...) {
         destroy();
         throw;
@@ -150,9 +159,9 @@ Instance::State Instance::release() {
 
     State state{
         .vkInstance = _handle.release(),
-        .debugMessenger = _debugMessengerOpt.transform([](DebugMessenger& debugMessenger) {
-            return debugMessenger.release();
-        }),
+        .debugMessenger = _debugMessengerOpt.transform(
+            [](DebugMessenger& debugMessenger) { return debugMessenger.release(); }
+        ),
         .extensions = std::move(_extensions),
     };
     forget();
@@ -172,18 +181,24 @@ void Instance::forget() {
     _extensions.clear();
 }
 
-void Instance::loadInstanceFunctions(vk_not_null<VkInstance> vkInstance) { volkLoadInstanceOnly(vkInstance.get()); }
+void Instance::loadInstanceFunctions(vk_not_null<VkInstance> vkInstance) {
+    volkLoadInstanceOnly(vkInstance.get());
+}
 }
 
 namespace cvk {
 vector<string> available_instance_extensions() {
-    auto const properties = dev::enumerate("instance extensions", vkEnumerateInstanceExtensionProperties, nullptr);
+    auto const properties = dev::enumerate(
+        "instance extensions",
+        vkEnumerateInstanceExtensionProperties,
+        nullptr
+    );
 
     return {
         std::from_range,
-        properties | std::views::transform([](VkExtensionProperties const& extension) {
-            return string{extension.extensionName};
-        })
+        properties | std::views::transform(
+            [](VkExtensionProperties const& extension) { return string{extension.extensionName}; }
+        )
     };
 }
 
@@ -192,7 +207,9 @@ vector<string> available_layers() {
 
     return {
         std::from_range,
-        properties | std::views::transform([](VkLayerProperties const& layer) { return string{layer.layerName}; })
+        properties | std::views::transform(
+            [](VkLayerProperties const& layer) { return string{layer.layerName}; }
+        )
     };
 }
 }

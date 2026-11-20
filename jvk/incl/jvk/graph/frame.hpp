@@ -71,7 +71,8 @@ struct FrameSlot {
 
     std::deque<StageSlot> stageSlots{}; ///< one per stage of the config
 
-    std::vector<Stage> stages{}; ///< the stages of the current frame, constructed by `StageGraph::nextFrame()`
+    std::vector<Stage> stages{};
+    ///< the stages of the current frame, constructed by `StageGraph::nextFrame()`
 
     /**
      * the current frame of the slot, constructed by `StageGraph::nextFrame()`

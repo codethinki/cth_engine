@@ -21,7 +21,11 @@ namespace {
      * shaders of the triangle shaders
      */
     struct Triangle {
-        explicit Triangle(Core const& core) : vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::TRIANGLE_VERT},
+        explicit Triangle(Core const& core) : vertex{
+                core,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                test::shaders::TRIANGLE_VERT
+            },
             fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG} {}
 
         [[nodiscard]] GraphicsPipeline::Config config() const {
@@ -31,7 +35,11 @@ namespace {
             };
             config.addStage(vertex).addStage(fragment);
             config.vertexBindings = {
-                {.binding = 0, .stride = 3 * sizeof(float), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX},
+                {
+                    .binding = 0,
+                    .stride = 3 * sizeof(float),
+                    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+                },
             };
             config.vertexAttributes = {
                 {.location = 0, .binding = 0, .format = VK_FORMAT_R32G32B32_SFLOAT, .offset = 0},
@@ -58,25 +66,28 @@ CVK_TEST(GraphicsPipeline, config_is_an_aggregate_without_blend_attachments) {
 }
 
 CVK_TEST(GraphicsPipeline, config_is_constexpr) {
-    static_assert([] {
-        GraphicsPipeline::Config config{
-            .colorFormats = {std::from_range, COLOR_FORMATS},
-            .depthFormat = DEPTH_FORMAT,
-        };
-        config.stages.push_back(
-            VkPipelineShaderStageCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .stage = VK_SHADER_STAGE_VERTEX_BIT,
-                .module = VK_NULL_HANDLE,
-                .pName = "main",
-                .pSpecializationInfo = nullptr,
-            }
-        );
-        config.removeStage(VK_SHADER_STAGE_VERTEX_BIT);
-        return config.colorFormats.size() == 1 && config.colorBlendAttachments.empty() && config.stages.empty();
-    }());
+    static_assert(
+        [] {
+            GraphicsPipeline::Config config{
+                .colorFormats = {std::from_range, COLOR_FORMATS},
+                .depthFormat = DEPTH_FORMAT,
+            };
+            config.stages.push_back(
+                VkPipelineShaderStageCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = 0,
+                    .stage = VK_SHADER_STAGE_VERTEX_BIT,
+                    .module = VK_NULL_HANDLE,
+                    .pName = "main",
+                    .pSpecializationInfo = nullptr,
+                }
+            );
+            config.removeStage(VK_SHADER_STAGE_VERTEX_BIT);
+            return config.colorFormats.size() == 1 && config.colorBlendAttachments.empty() &&
+                config.stages.empty();
+        }()
+    );
 }
 
 CVK_TEST(GraphicsPipeline, config_stages) {
@@ -156,7 +167,10 @@ CVK_TEST(GraphicsPipeline, create_with_a_blend_attachment_per_color_format) {
 
     auto config = triangle.config();
     config.colorBlendAttachments = {
-        {.blendEnable = VK_FALSE, .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT},
+        {
+            .blendEnable = VK_FALSE,
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT
+        },
     };
 
     GraphicsPipeline const pipeline{context.core, std::move(config), create};

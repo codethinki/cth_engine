@@ -27,14 +27,19 @@ namespace jvk {
  * @details a heap whose counts are all `0` -> no heap
  */
 struct HeapsConfig {
-    cvk::ResourceHeap::Config resources{.sampledImages = 65536, .storageImages = 4096, .inputAttachments = 64};
+    cvk::ResourceHeap::Config resources{
+        .sampledImages = 65536,
+        .storageImages = 4096,
+        .inputAttachments = 64
+    };
     cvk::SamplerHeap::Config samplers{.samplers = 256};
 
     /**
      * @return a count of `resources` is not `0`
      */
     [[nodiscard]] constexpr bool createsResourceHeap() const {
-        return resources.sampledImages != 0 || resources.storageImages != 0 || resources.inputAttachments != 0;
+        return resources.sampledImages != 0 || resources.storageImages != 0 ||
+            resources.inputAttachments != 0;
     }
 
     /**

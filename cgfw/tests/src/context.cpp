@@ -16,7 +16,8 @@ namespace {
         VkDebugUtilsMessengerCallbackDataEXT const* callbackData,
         void* userData
     ) {
-        if(severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) ++errors;
+        if(severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+            ++errors;
         return cvk::default_debug_callback(severity, types, callbackData, userData);
     }
 }
@@ -30,7 +31,9 @@ bool display_available() {
 #endif
 }
 
-cvk::DebugMessenger::Config counting_messenger() { return cvk::DebugMessenger::Config{.callback = count_errors}; }
+cvk::DebugMessenger::Config counting_messenger() {
+    return cvk::DebugMessenger::Config{.callback = count_errors};
+}
 
 ValidationCheck::ValidationCheck() { errors = 0; }
 

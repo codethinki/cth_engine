@@ -30,7 +30,10 @@ namespace {
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
     };
-    constexpr BarrierScope INPUT_READ{VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT};
+    constexpr BarrierScope INPUT_READ{
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT
+    };
 
     /**
      * location 0 -> attachment 0, attachment 1 without output
@@ -41,7 +44,10 @@ namespace {
      * attachment 0 -> input attachment 0, location 0 -> attachment 1
      */
     AttachmentMapping copy_first_to_second() {
-        return {.locations = {VK_ATTACHMENT_UNUSED, 0}, .colorInputIndices = {0, VK_ATTACHMENT_UNUSED}};
+        return {
+            .locations = {VK_ATTACHMENT_UNUSED, 0},
+            .colorInputIndices = {0, VK_ATTACHMENT_UNUSED}
+        };
     }
 
     /**
@@ -52,7 +58,8 @@ namespace {
                 core,
                 {
                     .format = COLOR_FORMATS[0],
-                    .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                    .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+                    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
                 },
                 EXTENT
             },
@@ -72,15 +79,26 @@ namespace {
          */
         void toRendering(BaseCmdBuffer const& cmd) const {
             Barrier barrier{};
-            barrier.addTransition(first, VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR, VK_IMAGE_LAYOUT_UNDEFINED);
-            barrier.addTransition(second, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+            barrier.addTransition(
+                first,
+                VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
+            barrier.addTransition(
+                second,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_UNDEFINED
+            );
             barrier.execute(cmd);
         }
 
         /**
          * both attachments cleared to black
          */
-        [[nodiscard]] RenderingInfo renderingInfo(VkRenderingFlags flags = 0, AttachmentMapping mapping = {}) const {
+        [[nodiscard]] RenderingInfo renderingInfo(
+            VkRenderingFlags flags = 0,
+            AttachmentMapping mapping = {}
+        ) const {
             auto const clear = [](ImageView const& view, VkImageLayout layout) {
                 return RenderingAttachment{
                     .view = view,
@@ -141,7 +159,12 @@ namespace {
             write{core, fullscreen(vertex, color, write_first()), create},
             read{
                 core,
-                fullscreen(vertex, localRead, copy_first_to_second(), {heap.inputAttachments().mapping(0, 0)}),
+                fullscreen(
+                    vertex,
+                    localRead,
+                    copy_first_to_second(),
+                    {heap.inputAttachments().mapping(0, 0)}
+                ),
                 create
             },
             pushedRead{
@@ -154,7 +177,11 @@ namespace {
                 ),
                 create
             },
-            vertices{core, test::host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
+            vertices{
+                core,
+                test::host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
+                test::FULLSCREEN.size()
+            } {
             // input attachment: VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR from the descriptor type
             heap.inputAttachments()[0] = InputAttachmentDescriptor{first};
             pushedHeap.inputAttachments()[PUSHED_IDX] = InputAttachmentDescriptor{first};
@@ -194,92 +221,111 @@ namespace {
         Draws const& draws,
         BindRead bindRead
     ) {
-        BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
+        BaseBuffer const readback{
+            context.core,
+            test::READBACK_CONFIG,
+            size_t{EXTENT.width} * EXTENT.height * 4
+        };
 
-        test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-            attachments.toRendering(cmd);
+        test::record_and_submit(
+            context,
+            [&](PrimaryCmdBuffer& cmd) {
+                attachments.toRendering(cmd);
 
-            // the begin sets the mapping of the first draw, the bind of the second pipeline its own
-            cmd.beginRendering(attachments.renderingInfo(0, write_first()));
-            EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
+                // the begin sets the mapping of the first draw, the bind of the second pipeline its own
+                cmd.beginRendering(attachments.renderingInfo(0, write_first()));
+                EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
 
-            draws.drawWrite(cmd);
+                draws.drawWrite(cmd);
 
-            Barrier toInput{VK_DEPENDENCY_BY_REGION_BIT};
-            toInput.add(
-                attachments.first,
-                {
-                    .src = COLOR_WRITE,
-                    .dst = INPUT_READ,
-                    .newLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-                    .oldLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
-                }
-            );
-            toInput.execute(cmd);
+                Barrier toInput{VK_DEPENDENCY_BY_REGION_BIT};
+                toInput.add(
+                    attachments.first,
+                    {
+                        .src = COLOR_WRITE,
+                        .dst = INPUT_READ,
+                        .newLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                        .oldLayout = VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR,
+                    }
+                );
+                toInput.execute(cmd);
 
-            bindRead(cmd);
-            EXPECT_EQ(cmd.rendering()->attachmentMapping, copy_first_to_second());
-            cmd.draw(3);
-            cmd.endRendering();
+                bindRead(cmd);
+                EXPECT_EQ(cmd.rendering()->attachmentMapping, copy_first_to_second());
+                cmd.draw(3);
+                cmd.endRendering();
 
-            Barrier toTransfer{};
-            toTransfer.add(
-                attachments.second,
-                ImageBarrierInfo::LayoutTransition(
-                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT},
-                    COLOR_WRITE
-                )
-            );
-            toTransfer.execute(cmd);
+                Barrier toTransfer{};
+                toTransfer.add(
+                    attachments.second,
+                    ImageBarrierInfo::LayoutTransition(
+                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                        {VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT},
+                        COLOR_WRITE
+                    )
+                );
+                toTransfer.execute(cmd);
 
-            test::copy_to_buffer(context, cmd, attachments.second, readback, 0, 0);
-            test::host_read_barrier(context, cmd);
-        });
+                test::copy_to_buffer(context, cmd, attachments.second, readback, 0, 0);
+                test::host_read_barrier(context, cmd);
+            }
+        );
 
         EXPECT_TRUE(test::every_pixel_is(readback, test::GREEN_PIXEL));
     }
 }
 
 CVK_TEST(AttachmentMapping, empty_maps_to_the_default) {
-    static_assert([] {
-        AttachmentMapping const mapping{};
-        auto const locations = mapping.locationInfo(2);
-        auto const indices = mapping.inputIndexInfo(2);
+    static_assert(
+        [] {
+            AttachmentMapping const mapping{};
+            auto const locations = mapping.locationInfo(2);
+            auto const indices = mapping.inputIndexInfo(2);
 
-        return locations.colorAttachmentCount == 2 && locations.pColorAttachmentLocations == nullptr
-            && indices.colorAttachmentCount == 2 && indices.pColorAttachmentInputIndices == nullptr
-            && indices.pDepthInputAttachmentIndex == nullptr && indices.pStencilInputAttachmentIndex == nullptr;
-    }());
+            return locations.colorAttachmentCount == 2 &&
+                locations.pColorAttachmentLocations == nullptr &&
+                indices.colorAttachmentCount == 2 &&
+                indices.pColorAttachmentInputIndices == nullptr &&
+                indices.pDepthInputAttachmentIndex == nullptr &&
+                indices.pStencilInputAttachmentIndex == nullptr;
+        }()
+    );
 }
 
 CVK_TEST(AttachmentMapping, infos_point_into_the_mapping) {
-    static_assert([] {
-        //TEMP not const: gcc 16 rejects a const aggregate with a vector and another member in a constant expression
-        AttachmentMapping mapping{
-            .locations = {1, 0},
-            .colorInputIndices = {VK_ATTACHMENT_UNUSED, 0},
-            .depthInputIndex = 1,
-        };
-        auto const locations = mapping.locationInfo(2);
-        auto const indices = mapping.inputIndexInfo(2);
+    static_assert(
+        [] {
+            //TEMP not const: gcc 16 rejects a const aggregate with a vector and another member in a constant expression
+            AttachmentMapping mapping{
+                .locations = {1, 0},
+                .colorInputIndices = {VK_ATTACHMENT_UNUSED, 0},
+                .depthInputIndex = 1,
+            };
+            auto const locations = mapping.locationInfo(2);
+            auto const indices = mapping.inputIndexInfo(2);
 
-        return locations.pColorAttachmentLocations[0] == 1 && locations.pColorAttachmentLocations[1] == 0
-            && indices.pColorAttachmentInputIndices[1] == 0 && *indices.pDepthInputAttachmentIndex == 1
-            && indices.pStencilInputAttachmentIndex == nullptr;
-    }());
+            return locations.pColorAttachmentLocations[0] == 1 &&
+                locations.pColorAttachmentLocations[1] == 0 &&
+                indices.pColorAttachmentInputIndices[1] == 0 &&
+                *indices.pDepthInputAttachmentIndex == 1 &&
+                indices.pStencilInputAttachmentIndex == nullptr;
+        }()
+    );
 }
 
 CVK_TEST(AttachmentMapping, empty_equals_the_default) {
-    static_assert([] {
-        //TEMP not const: gcc 16 rejects a const aggregate with a vector and another member in a constant expression
-        AttachmentMapping identity{.locations = {0, 1}, .colorInputIndices = {0, 1}};
-        AttachmentMapping swapped{.locations = {1, 0}};
-        AttachmentMapping depth{.depthInputIndex = 0};
+    static_assert(
+        [] {
+            //TEMP not const: gcc 16 rejects a const aggregate with a vector and another member in a constant expression
+            AttachmentMapping identity{.locations = {0, 1}, .colorInputIndices = {0, 1}};
+            AttachmentMapping swapped{.locations = {1, 0}};
+            AttachmentMapping depth{.depthInputIndex = 0};
 
-        return AttachmentMapping{} == identity && AttachmentMapping{} != swapped && AttachmentMapping{} != depth;
-    }());
+            return AttachmentMapping{} == identity && AttachmentMapping{} != swapped &&
+                AttachmentMapping{} != depth;
+        }()
+    );
 }
 
 CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
@@ -287,10 +333,15 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
     Attachments const attachments{context.core};
     Draws const draws{context.core, attachments.first};
 
-    expect_local_read(context, attachments, draws, [&](PrimaryCmdBuffer& cmd) {
-        cmd.bind(draws.read);
-        cmd.bind(draws.heap);
-    });
+    expect_local_read(
+        context,
+        attachments,
+        draws,
+        [&](PrimaryCmdBuffer& cmd) {
+            cmd.bind(draws.read);
+            cmd.bind(draws.heap);
+        }
+    );
 }
 
 CVK_TEST(LocalRead, draw_reads_the_attachment_at_the_pushed_index) {
@@ -298,11 +349,16 @@ CVK_TEST(LocalRead, draw_reads_the_attachment_at_the_pushed_index) {
     Attachments const attachments{context.core};
     Draws const draws{context.core, attachments.first};
 
-    expect_local_read(context, attachments, draws, [&](PrimaryCmdBuffer& cmd) {
-        cmd.bind(draws.pushedRead);
-        cmd.bind(draws.pushedHeap);
-        cmd.pushData(PUSHED_IDX);
-    });
+    expect_local_read(
+        context,
+        attachments,
+        draws,
+        [&](PrimaryCmdBuffer& cmd) {
+            cmd.bind(draws.pushedRead);
+            cmd.bind(draws.pushedHeap);
+            cmd.pushData(PUSHED_IDX);
+        }
+    );
 }
 
 CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
@@ -312,27 +368,39 @@ CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
     CmdPool const pool{context.core, test::pool_config(context.core), create};
     SecondaryCmdBuffer secondary{pool, create};
 
-    test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
-        attachments.toRendering(cmd);
-        cmd.beginRendering(attachments.renderingInfo(VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT));
-        EXPECT_EQ(cmd.rendering()->attachmentMapping, AttachmentMapping{});
+    test::record_and_submit(
+        context,
+        [&](PrimaryCmdBuffer& cmd) {
+            attachments.toRendering(cmd);
+            cmd.beginRendering(
+                attachments.renderingInfo(VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT)
+            );
+            EXPECT_EQ(cmd.rendering()->attachmentMapping, AttachmentMapping{});
 
-        cmd.setAttachmentMapping(write_first());
-        EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
+            cmd.setAttachmentMapping(write_first());
+            EXPECT_EQ(cmd.rendering()->attachmentMapping, write_first());
 
-        // the draw needs the mapping of the write pipeline in the secondary
-        auto const inheritance = cmd.inheritance();
-        EXPECT_EQ(inheritance.attachmentMapping, write_first());
-        secondary.begin(inheritance, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-        secondary.setViewport(
-            {0.f, 0.f, static_cast<float>(EXTENT.width), static_cast<float>(EXTENT.height), 0.f, 1.f}
-        );
-        secondary.setScissor({{0, 0}, EXTENT});
-        draws.drawWrite(secondary);
-        secondary.end();
+            // the draw needs the mapping of the write pipeline in the secondary
+            auto const inheritance = cmd.inheritance();
+            EXPECT_EQ(inheritance.attachmentMapping, write_first());
+            secondary.begin(inheritance, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+            secondary.setViewport(
+                {
+                    0.f,
+                    0.f,
+                    static_cast<float>(EXTENT.width),
+                    static_cast<float>(EXTENT.height),
+                    0.f,
+                    1.f
+                }
+            );
+            secondary.setScissor({{0, 0}, EXTENT});
+            draws.drawWrite(secondary);
+            secondary.end();
 
-        cmd.execute(secondary);
-        cmd.endRendering();
-    });
+            cmd.execute(secondary);
+            cmd.endRendering();
+        }
+    );
 }
 }

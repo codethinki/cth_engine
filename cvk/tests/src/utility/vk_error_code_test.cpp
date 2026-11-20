@@ -19,7 +19,10 @@ CVK_TEST(vk_error_code, message_is_the_result_name) {
 CVK_TEST(vk_error_code, compares_by_result_and_category) {
     EXPECT_EQ(make_error_code(VK_ERROR_DEVICE_LOST), make_error_code(VK_ERROR_DEVICE_LOST));
     EXPECT_NE(make_error_code(VK_ERROR_DEVICE_LOST), make_error_code(VK_ERROR_OUT_OF_DATE_KHR));
-    EXPECT_NE(make_error_code(VK_ERROR_DEVICE_LOST), std::error_code(VK_ERROR_DEVICE_LOST, std::generic_category()));
+    EXPECT_NE(
+        make_error_code(VK_ERROR_DEVICE_LOST),
+        std::error_code(VK_ERROR_DEVICE_LOST, std::generic_category())
+    );
 }
 
 CVK_TEST(vk_error_code, success_is_no_error) {

@@ -48,7 +48,9 @@ inline constexpr DeviceFeatures PRESENT_DEVICE_FEATURES{.swapchainMaintenance1 =
  * @details the swapchain and `OS_FENCE_DEVICE_EXTENSIONS` for the exportable present fences
  */
 inline constexpr auto PRESENT_DEVICE_EXTENSIONS = [] {
-    std::array<std::string_view, 1 + OS_FENCE_DEVICE_EXTENSIONS.size()> extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    std::array<std::string_view, 1 + OS_FENCE_DEVICE_EXTENSIONS.size()> extensions{
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
     std::ranges::copy(OS_FENCE_DEVICE_EXTENSIONS, extensions.begin() + 1);
     return extensions;
 }();

@@ -15,7 +15,11 @@ SamplerHeap::SamplerHeap(cvk::Core const& core, Config const& config) :
     _slots(config.samplers) {}
 
 SamplerHeap::~SamplerHeap() {
-    CTH_CRITICAL(_cells.used() != 0, "every sampler of the heap must be gone, got {}", _cells.used()) {}
+    CTH_CRITICAL(
+        _cells.used() != 0,
+        "every sampler of the heap must be gone, got {}",
+        _cells.used()
+    ) {}
 }
 
 auto SamplerHeap::insert(cvk::SamplerConfig const& config) const -> Sampler {
@@ -27,13 +31,16 @@ auto SamplerHeap::insert(cvk::SamplerConfig const& config) const -> Sampler {
     }
 
     auto const idxOpt = _cells.insert();
-    JVK_STABLE_THROW(!idxOpt.has_value(), "every sampler cell is in use, got {} cells", _cells.size()) {}
+    JVK_STABLE_THROW(
+        !idxOpt.has_value(),
+        "every sampler cell is in use, got {} cells",
+        _cells.size()
+    ) {}
 
     try {
         _vk.write(*idxOpt, config);
         _indices.emplace(config, *idxOpt);
-    }
-    catch(...) {
+    } catch(...) {
         _cells.erase(*idxOpt);
         throw;
     }
@@ -56,7 +63,8 @@ void SamplerHeap::unref(uint32_t idx) const {
     auto& [refs, config] = _slots[idx];
     CTH_CRITICAL(refs == 0, "the cell {} must be in use", idx) {}
 
-    if(--refs != 0) return;
+    if(--refs != 0)
+        return;
     _indices.erase(config);
     _cells.erase(idx);
 }

@@ -77,7 +77,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * encodes the descriptor into sampled image `idx`, then flushes its cell
@@ -115,7 +118,10 @@ public:
      * @see `DescriptorSpan::mapping()`
      */
     template<descriptor_of<ResourceHeap> Descriptor>
-    [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT mapping(uint32_t set, uint32_t binding) const;
+    [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT mapping(
+        uint32_t set,
+        uint32_t binding
+    ) const;
 
     /**
      * maps a shader variable of `Descriptor` at the set and binding onto the descriptor at an index in the push data
@@ -191,7 +197,10 @@ public:
 
 namespace cvk {
 template<descriptor_of<ResourceHeap> Descriptor>
-constexpr VkDescriptorSetAndBindingMappingEXT ResourceHeap::mapping(uint32_t set, uint32_t binding) const {
+constexpr VkDescriptorSetAndBindingMappingEXT ResourceHeap::mapping(
+    uint32_t set,
+    uint32_t binding
+) const {
     debug_check(*this);
     return dev::heap_mapping<Descriptor>(set, binding, offset<Descriptor>(), _stride);
 }
@@ -204,7 +213,13 @@ constexpr VkDescriptorSetAndBindingMappingEXT ResourceHeap::pushMapping(
 ) const {
     debug_check(*this);
     dev::debug_check_push_offset(core(), pushOffset);
-    return dev::heap_push_mapping<Descriptor>(set, binding, offset<Descriptor>(), _stride, pushOffset);
+    return dev::heap_push_mapping<Descriptor>(
+        set,
+        binding,
+        offset<Descriptor>(),
+        _stride,
+        pushOffset
+    );
 }
 
 constexpr DescriptorSpan<SampledImageDescriptor> ResourceHeap::sampledImages() {
@@ -224,9 +239,12 @@ constexpr DescriptorSpan<InputAttachmentDescriptor> ResourceHeap::inputAttachmen
 
 template<descriptor_of<ResourceHeap> Descriptor>
 constexpr size_t ResourceHeap::offset() const {
-    if constexpr(std::same_as<Descriptor, SampledImageDescriptor>) return 0;
-    else if constexpr(std::same_as<Descriptor, StorageImageDescriptor>) return size_t{_config.sampledImages} * _stride;
-    else return (size_t{_config.sampledImages} + _config.storageImages) * _stride;
+    if constexpr(std::same_as<Descriptor, SampledImageDescriptor>)
+        return 0;
+    else if constexpr(std::same_as<Descriptor, StorageImageDescriptor>)
+        return size_t{_config.sampledImages} * _stride;
+    else
+        return (size_t{_config.sampledImages} + _config.storageImages) * _stride;
 }
 
 constexpr void ResourceHeap::debug_check(ResourceHeap const& heap) {

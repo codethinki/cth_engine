@@ -100,7 +100,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership of the buffer and its memory, returns the state and forgets
@@ -202,7 +205,8 @@ private:
     std::optional<Memory> _memoryOpt = std::nullopt;
     Config _config;
     size_t _size = 0;
-    VkDeviceAddress _address = 0; ///< `0` -> the usage has no `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT`
+    VkDeviceAddress _address = 0;
+    ///< `0` -> the usage has no `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT`
 
 public:
     BaseBuffer(BaseBuffer const& other) = delete;
@@ -218,14 +222,18 @@ namespace cvk {
 struct BaseBuffer::State {
     vk_not_null<VkBuffer> vkBuffer;
     size_t size; ///< in bytes
-    std::optional<Memory::State> memory = std::nullopt; ///< `std::nullopt` -> the buffer does not own its memory
+    std::optional<Memory::State> memory = std::nullopt;
+    ///< `std::nullopt` -> the buffer does not own its memory
 
     /**
      * the raw handles to destroy, in destruction order
      * @return the buffer, then its own memory, `std::nullopt` -> no own memory
      */
     [[nodiscard]] constexpr std::tuple<VkBuffer, std::optional<VmaAllocation>> decompose() && {
-        return {vkBuffer.get(), memory.transform([](Memory::State const& state) { return state.vmaAllocation.get(); })};
+        return {
+            vkBuffer.get(),
+            memory.transform([](Memory::State const& state) { return state.vmaAllocation.get(); })
+        };
     }
 };
 }

@@ -68,7 +68,10 @@ struct ImageConfig {
     /**
      * depth attachment, depth aspect only
      */
-    [[nodiscard]] static constexpr ImageConfig DepthBuffer(VkFormat depthFormat, VkSampleCountFlagBits samples) {
+    [[nodiscard]] static constexpr ImageConfig DepthBuffer(
+        VkFormat depthFormat,
+        VkSampleCountFlagBits samples
+    ) {
         return ImageConfig{
             .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
             .format = depthFormat,
@@ -144,12 +147,16 @@ constexpr void ImageConfig::debug_check(ImageConfig const& config) {
         config.arrayLayers
     ) {}
     CTH_CRITICAL(
-        config.initialLayout != VK_IMAGE_LAYOUT_UNDEFINED && config.initialLayout != VK_IMAGE_LAYOUT_PREINITIALIZED,
+        config.initialLayout != VK_IMAGE_LAYOUT_UNDEFINED &&
+        config.initialLayout != VK_IMAGE_LAYOUT_PREINITIALIZED,
         "initial layout must be undefined or preinitialized"
     ) {}
 
     auto families = config.queueFamilies;
     std::ranges::sort(families);
-    CTH_CRITICAL(std::ranges::adjacent_find(families) != families.end(), "queue families must be unique") {}
+    CTH_CRITICAL(
+        std::ranges::adjacent_find(families) != families.end(),
+        "queue families must be unique"
+    ) {}
 }
 }

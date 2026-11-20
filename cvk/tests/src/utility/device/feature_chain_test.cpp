@@ -57,7 +57,8 @@ namespace {
     template<class T>
     T const* find(FeatureChain const& chain) {
         for(auto const* node = first(chain); node != nullptr; node = node->pNext)
-            if(node->sType == feature_struct<T>::TYPE) return reinterpret_cast<T const*>(node);
+            if(node->sType == feature_struct<T>::TYPE)
+                return reinterpret_cast<T const*>(node);
         return nullptr;
     }
 }
@@ -85,13 +86,21 @@ CVK_TEST(FeatureChain, links_the_structs_of_the_extensions) {
 }
 
 CVK_TEST(FeatureChain, is_not_copyable_or_movable) {
-    static_assert(!std::is_copy_constructible_v<FeatureChain> && !std::is_move_constructible_v<FeatureChain>);
-    static_assert(!std::is_copy_assignable_v<FeatureChain> && !std::is_move_assignable_v<FeatureChain>);
+    static_assert(
+        !std::is_copy_constructible_v<FeatureChain> && !std::is_move_constructible_v<FeatureChain>
+    );
+    static_assert(
+        !std::is_copy_assignable_v<FeatureChain> && !std::is_move_assignable_v<FeatureChain>
+    );
 }
 
 CVK_TEST(FeatureChain, bits_go_into_their_vulkan_member) {
     FeatureChain const chain{
-        DeviceFeatures{.samplerAnisotropy = true, .synchronization2 = true, .dynamicRenderingLocalRead = true},
+        DeviceFeatures{
+            .samplerAnisotropy = true,
+            .synchronization2 = true,
+            .dynamicRenderingLocalRead = true
+        },
         LOCAL_READ
     };
 

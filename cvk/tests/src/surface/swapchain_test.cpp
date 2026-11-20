@@ -56,7 +56,8 @@ namespace {
         Semaphore const acquired{context.core, create};
         auto const [result, index] = swapchain.acquire(acquired);
         EXPECT_TRUE(index.has_value()) << "acquire result: " << result;
-        if(!index.has_value()) return result;
+        if(!index.has_value())
+            return result;
 
         auto const& image = swapchain.image(*index);
         CmdPool const pool{context.core, test::pool_config(context.core), create};
@@ -65,7 +66,11 @@ namespace {
         cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
         Barrier toAttachment{};
-        toAttachment.addTransition(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_UNDEFINED);
+        toAttachment.addTransition(
+            image,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_UNDEFINED
+        );
         toAttachment.execute(cmd);
 
         cmd.beginRendering(
@@ -82,7 +87,11 @@ namespace {
         cmd.endRendering();
 
         Barrier toPresent{};
-        toPresent.addTransition(image, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+        toPresent.addTransition(
+            image,
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        );
         toPresent.execute(cmd);
 
         cmd.end();
@@ -145,7 +154,10 @@ CVK_TEST(Swapchain, create_and_destroy) {
     EXPECT_GE(swapchain.imageCount(), capabilities.minImageCount);
     EXPECT_EQ(swapchain.extent().width, Swapchain::evalExtent(EXTENT, capabilities).width);
     auto const offered = context.surface().formats(context.core.physicalDevice());
-    EXPECT_TRUE(std::ranges::contains(offered, VkSurfaceFormatKHR{swapchain.format(), swapchain.colorSpace()}));
+    EXPECT_TRUE(
+        std::ranges::contains(offered, VkSurfaceFormatKHR{swapchain.format(), swapchain.colorSpace()
+            })
+    );
     EXPECT_EQ(swapchain.image(0).aspectMask(), VK_IMAGE_ASPECT_COLOR_BIT);
 
     swapchain.destroy();
@@ -156,10 +168,15 @@ CVK_TEST(Swapchain, create_and_destroy) {
 CVK_TEST(Swapchain, create_picks_the_first_allowed_format_the_surface_offers) {
     test::PresentContext const context{};
     auto const offered = context.surface().formats(context.core.physicalDevice());
-    if(offered.size() < 2) GTEST_SKIP() << "needs two surface formats";
+    if(offered.size() < 2)
+        GTEST_SKIP() << "needs two surface formats";
 
     Swapchain::Config const config{
-        .formats = {{VK_FORMAT_R64G64B64A64_SFLOAT, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}, offered[1], offered[0]},
+        .formats = {
+            {VK_FORMAT_R64G64B64A64_SFLOAT, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
+            offered[1],
+            offered[0]
+        },
     };
     Swapchain const swapchain{context.core, context.queue(), context.surface(), config, EXTENT};
 
@@ -169,7 +186,9 @@ CVK_TEST(Swapchain, create_picks_the_first_allowed_format_the_surface_offers) {
 
 CVK_TEST(Swapchain, create_without_an_offered_format_throws) {
     test::PresentContext const context{};
-    Swapchain::Config const config{.formats = {{VK_FORMAT_R64G64B64A64_SFLOAT, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}}};
+    Swapchain::Config const config{
+        .formats = {{VK_FORMAT_R64G64B64A64_SFLOAT, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}}
+    };
     Swapchain swapchain{context.core, context.queue(), context.surface(), config};
 
     EXPECT_THROW(swapchain.create(EXTENT), cvk_exception);
@@ -203,7 +222,9 @@ CVK_TEST(Swapchain, acquire_clear_present) {
 
     for(uint32_t frame = 0; frame < swapchain.imageCount() + 1; ++frame) {
         auto const result = present_cleared_image(context, swapchain);
-        EXPECT_TRUE(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) << "present result: " << result;
+        EXPECT_TRUE(
+            result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR
+        ) << "present result: " << result;
     }
 }
 
@@ -234,7 +255,11 @@ CVK_TEST(Swapchain, old_swapchain_presents_its_acquired_image) {
     PrimaryCmdBuffer cmd{pool, create};
     cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
     Barrier toPresent{};
-    toPresent.addTransition(old.image(*index), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_LAYOUT_UNDEFINED);
+    toPresent.addTransition(
+        old.image(*index),
+        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        VK_IMAGE_LAYOUT_UNDEFINED
+    );
     toPresent.execute(cmd);
     cmd.end();
     Fence const fence{context.core, create};
@@ -247,7 +272,10 @@ CVK_TEST(Swapchain, old_swapchain_presents_its_acquired_image) {
         &fence
     );
     auto const presented = old.present(*index);
-    EXPECT_TRUE(presented == VK_SUCCESS || presented == VK_SUBOPTIMAL_KHR || presented == VK_ERROR_OUT_OF_DATE_KHR)
+    EXPECT_TRUE(
+        presented == VK_SUCCESS || presented == VK_SUBOPTIMAL_KHR ||
+        presented == VK_ERROR_OUT_OF_DATE_KHR
+    )
         << "present result: " << presented;
     fence.wait();
 
@@ -289,7 +317,11 @@ CVK_TEST(Swapchain, present_fences_are_exportable) {
 
         // invalid handle -> already signaled
         auto const handle = fence.extractOsHandle();
-        if(handle) EXPECT_EQ(cth::os::wait(handle.get(), std::chrono::seconds{5}), cth::os::wait_result::WAITED);
+        if(handle)
+            EXPECT_EQ(
+            cth::os::wait(handle.get(), std::chrono::seconds{5}),
+            cth::os::wait_result::WAITED
+        );
         EXPECT_TRUE(fence.signaled());
     }
 

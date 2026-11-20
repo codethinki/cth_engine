@@ -41,7 +41,9 @@ template<>
 inline constexpr bool access_pairs<> = true;
 
 template<class Resource, class Access, class... Rest>
-inline constexpr bool access_pairs<Resource, Access, Rest...> = access_pair<Resource, Access> && access_pairs<Rest...>;
+inline constexpr bool access_pairs<Resource, Access, Rest...> = access_pair<Resource, Access> &&
+    access_pairs<
+        Rest...>;
 }
 
 namespace jvk {
@@ -70,10 +72,12 @@ public:
     /**
      * @param cmdBuffer that began the rendering
      */
-    explicit constexpr scoped_rendering(CmdBuffer& cmdBuffer) noexcept : _cmdBufferPtr{&cmdBuffer} {}
+    explicit constexpr
+    scoped_rendering(CmdBuffer& cmdBuffer) noexcept : _cmdBufferPtr{&cmdBuffer} {}
 
     ~scoped_rendering() {
-        if(_cmdBufferPtr && _cmdBufferPtr->rendering() != nullptr) _cmdBufferPtr->endRendering();
+        if(_cmdBufferPtr && _cmdBufferPtr->rendering() != nullptr)
+            _cmdBufferPtr->endRendering();
     }
 
     /**
@@ -159,7 +163,8 @@ public:
     void use(
         StorageImage const&,
         VkPipelineStageFlags2 stages,
-        VkAccessFlags2 access = VK_ACCESS_2_SHADER_STORAGE_READ_BIT | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+        VkAccessFlags2 access = VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
     );
 
     /**
@@ -277,7 +282,9 @@ public:
     /**
      * @see `cvk::BaseCmdBuffer::setAttachmentMapping()`
      */
-    void setAttachmentMapping(cvk::AttachmentMapping const& mapping) { _cmdBuffer.setAttachmentMapping(mapping); }
+    void setAttachmentMapping(cvk::AttachmentMapping const& mapping) {
+        _cmdBuffer.setAttachmentMapping(mapping);
+    }
 
     /**
      * @see `cvk::BaseCmdBuffer::setViewport()`
@@ -325,9 +332,7 @@ public:
         uint32_t instanceCount = 1,
         uint32_t firstVertex = 0,
         uint32_t firstInstance = 0
-    ) const {
-        _cmdBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance);
-    }
+    ) const { _cmdBuffer.draw(vertexCount, instanceCount, firstVertex, firstInstance); }
 
     /**
      * @see `cvk::BaseCmdBuffer::drawIndexed()`
@@ -365,7 +370,9 @@ public:
     /**
      * @see `cvk::BaseCmdBuffer::rendering()`
      */
-    [[nodiscard]] constexpr cvk::RenderingInfo const* rendering() const { return _cmdBuffer.rendering(); }
+    [[nodiscard]] constexpr cvk::RenderingInfo const* rendering() const {
+        return _cmdBuffer.rendering();
+    }
 
     /**
      * @see `cvk::BaseCmdBuffer::insideRendering()`
@@ -375,7 +382,9 @@ public:
     /**
      * @see `cvk::BaseCmdBuffer::renderingViewMask()`
      */
-    [[nodiscard]] constexpr uint32_t renderingViewMask() const { return _cmdBuffer.renderingViewMask(); }
+    [[nodiscard]] constexpr uint32_t renderingViewMask() const {
+        return _cmdBuffer.renderingViewMask();
+    }
 
     /**
      * the cvk command buffer
@@ -421,9 +430,15 @@ private:
     void record(cvk::Barrier&) const;
 
     template<class Resource, class Access, class... Rest>
-    void addAccesses(cvk::Barrier& barrier, Resource const& resource, Access const& access, Rest const&... rest) {
+    void addAccesses(
+        cvk::Barrier& barrier,
+        Resource const& resource,
+        Access const& access,
+        Rest const&... rest
+    ) {
         _states.access(resource, access, barrier);
-        if constexpr(sizeof...(Rest) > 0) addAccesses(barrier, rest...);
+        if constexpr(sizeof...(Rest) > 0)
+            addAccesses(barrier, rest...);
     }
 
     ResourceStates _states{};
@@ -542,12 +557,18 @@ public:
      * @pre the preconditions of @ref begin(VkCommandBufferUsageFlags, cvk::HeapInheritance const&)
      * @throws cvk::vk_result_exception result of `vkResetCommandPool()` or `vkBeginCommandBuffer()`
      */
-    void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0, cvk::HeapInheritance const& heaps = {});
+    void begin(
+        Inheritance const&,
+        VkCommandBufferUsageFlags usage = 0,
+        cvk::HeapInheritance const& heaps = {}
+    );
 
     /**
      * @see `cvk::SecondaryCmdBuffer::inheritedRendering()`
      */
-    [[nodiscard]] constexpr Inheritance const* inheritedRendering() const { return _cmdBuffer.inheritedRendering(); }
+    [[nodiscard]] constexpr Inheritance const* inheritedRendering() const {
+        return _cmdBuffer.inheritedRendering();
+    }
 };
 }
 
@@ -558,5 +579,6 @@ namespace jvk {
  * @details `PrimaryCmdBuffer` or `SecondaryCmdBuffer`
  */
 template<class T>
-concept cmd_buffer = std::derived_from<T, PrimaryCmdBuffer> || std::derived_from<T, SecondaryCmdBuffer>;
+concept cmd_buffer = std::derived_from<T, PrimaryCmdBuffer> || std::derived_from<T,
+    SecondaryCmdBuffer>;
 }

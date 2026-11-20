@@ -28,10 +28,12 @@ class Semaphore;
  * awaiter of `Semaphore::wait()` and of `co_await` on a `Stage`
  * @details resumes the caller on its context, a failed wait throws in the caller
  */
-class semaphore_awaiter : public cth::co::this_coro_awaiter_base, public cth::co::wait_awaiter_base {
+class semaphore_awaiter : public cth::co::this_coro_awaiter_base,
+    public cth::co::wait_awaiter_base {
 public:
     constexpr semaphore_awaiter(Semaphore const& semaphore, uint64_t value) :
-        _semaphore{semaphore}, _value{value} {}
+        _semaphore{semaphore},
+        _value{value} {}
 
     /**
      * @return the semaphore reached the value
@@ -47,8 +49,7 @@ public:
      *   of the result
      * @see `TimelineReactor::await()`
      */
-    template<class Caller>
-    requires cth::co::this_coro_compatible<Caller>
+    template<class Caller> requires cth::co::this_coro_compatible<Caller>
     void await_suspend(std::coroutine_handle<Caller> caller);
 
 private:
@@ -70,7 +71,8 @@ private:
 class submitted_awaiter : public cth::co::this_coro_awaiter_base {
 public:
     constexpr submitted_awaiter(Semaphore const& semaphore, uint64_t value) :
-        _semaphore{semaphore}, _value{value} {}
+        _semaphore{semaphore},
+        _value{value} {}
 
     /**
      * @return `Semaphore::submittedValue()` reached the value
@@ -82,8 +84,7 @@ public:
      * @details resumes on the context of the caller
      * @see `Semaphore::awaitSubmitted()`
      */
-    template<class Caller>
-    requires cth::co::this_coro_compatible<Caller>
+    template<class Caller> requires cth::co::this_coro_compatible<Caller>
     void await_suspend(std::coroutine_handle<Caller> caller);
 
     //TODO review no error: the jvk submit paths mark every signal value, also after an error of the submit
@@ -161,7 +162,10 @@ public:
     /**
      * if `created()` -> calls `destroy()`
      */
-    void optDestroy() { if(created()) destroy(); }
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * releases ownership, returns the state and forgets
@@ -214,7 +218,9 @@ public:
      * - reached -> no suspend
      * @pre `created()`
      */
-    [[nodiscard]] constexpr semaphore_awaiter wait(uint64_t value) const { return semaphore_awaiter{*this, value}; }
+    [[nodiscard]] constexpr semaphore_awaiter wait(uint64_t value) const {
+        return semaphore_awaiter{*this, value};
+    }
 
     //TODO review the counter forwarded: next(), value(), gpuValue(); signal() not: a host signal bypasses
     // markSubmitted()
@@ -267,7 +273,8 @@ private:
 
         uint64_t value = 0; ///< see `submittedValue()`
 
-        std::vector<SubmittedWaiter> waiters{}; ///< the callbacks of `awaitSubmitted()` above `Submitted::value`
+        std::vector<SubmittedWaiter> waiters{};
+        ///< the callbacks of `awaitSubmitted()` above `Submitted::value`
     };
 
     cth::ref_wrapper<Core const> _core;
@@ -329,16 +336,16 @@ namespace jvk::dev {
 }
 
 namespace jvk {
-constexpr void Semaphore::debug_check(Semaphore const& semaphore) { cvk::TimelineSemaphore::debug_check(semaphore); }
+constexpr void Semaphore::debug_check(Semaphore const& semaphore) {
+    cvk::TimelineSemaphore::debug_check(semaphore);
+}
 
-template<class Caller>
-requires cth::co::this_coro_compatible<Caller>
+template<class Caller> requires cth::co::this_coro_compatible<Caller>
 void semaphore_awaiter::await_suspend(std::coroutine_handle<Caller> caller) {
     awaitReactor(dev::post_to(caller.promise().context(), resume(caller)));
 }
 
-template<class Caller>
-requires cth::co::this_coro_compatible<Caller>
+template<class Caller> requires cth::co::this_coro_compatible<Caller>
 void submitted_awaiter::await_suspend(std::coroutine_handle<Caller> caller) {
     _semaphore->awaitSubmitted(
         _value,

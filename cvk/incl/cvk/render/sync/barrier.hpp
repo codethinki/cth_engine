@@ -47,11 +47,13 @@ struct ImageBarrierInfo {
 
     uint32_t firstMipLevel = 0;
 
-    uint32_t mipLevels = VK_REMAINING_MIP_LEVELS; ///< `VK_REMAINING_MIP_LEVELS` -> to the last mip level
+    uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
+    ///< `VK_REMAINING_MIP_LEVELS` -> to the last mip level
 
     uint32_t firstArrayLayer = 0;
 
-    uint32_t arrayLayers = VK_REMAINING_ARRAY_LAYERS; ///< `VK_REMAINING_ARRAY_LAYERS` -> to the last layer
+    uint32_t arrayLayers = VK_REMAINING_ARRAY_LAYERS;
+    ///< `VK_REMAINING_ARRAY_LAYERS` -> to the last layer
 
     VkImageAspectFlags aspectMask = 0; ///< `0` -> the aspect mask of the image
 
@@ -81,9 +83,7 @@ struct ImageBarrierInfo {
         VkImageLayout layout,
         BarrierScope const& dst,
         BarrierScope const& src
-    ) {
-        return ImageBarrierInfo{.src = src, .dst = dst, .newLayout = layout, .oldLayout = layout};
-    }
+    ) { return ImageBarrierInfo{.src = src, .dst = dst, .newLayout = layout, .oldLayout = layout}; }
 };
 
 /**
@@ -100,9 +100,10 @@ struct BufferBarrierInfo {
     /**
      * queue family ownership transfer, `dst` and `src` name the families
      */
-    [[nodiscard]] static constexpr BufferBarrierInfo QueueTransition(BarrierScope const& dst, BarrierScope const& src) {
-        return BufferBarrierInfo{.src = src, .dst = dst};
-    }
+    [[nodiscard]] static constexpr BufferBarrierInfo QueueTransition(
+        BarrierScope const& dst,
+        BarrierScope const& src
+    ) { return BufferBarrierInfo{.src = src, .dst = dst}; }
 };
 
 /**
@@ -130,7 +131,8 @@ struct Barrier {
      */
     static constexpr VkPipelineStageFlags2 INFERRED_SHADER_STAGES = VK_PIPELINE_STAGE_2_NONE;
 
-    VkDependencyFlags flags = 0; ///< `VK_DEPENDENCY_BY_REGION_BIT` -> the dependency is per framebuffer region
+    VkDependencyFlags flags = 0;
+    ///< `VK_DEPENDENCY_BY_REGION_BIT` -> the dependency is per framebuffer region
 
     std::vector<MemoryInfo> memory{};
     std::vector<VkBufferMemoryBarrier2> buffers{};
@@ -211,7 +213,9 @@ struct Barrier {
         images.clear();
     }
 
-    [[nodiscard]] constexpr bool empty() const { return memory.empty() && buffers.empty() && images.empty(); }
+    [[nodiscard]] constexpr bool empty() const {
+        return memory.empty() && buffers.empty() && images.empty();
+    }
 
 private:
     /**
@@ -236,49 +240,54 @@ constexpr void Barrier::add(VkImage vkImage, VkImageAspectFlags aspectMask, Imag
 
     bool const transfer = info.src.queueFamilyIndex != info.dst.queueFamilyIndex;
     CTH_CRITICAL(
-        (info.oldLayout != info.newLayout || transfer)
-        && (info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED || info.newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED),
+        (info.oldLayout != info.newLayout || transfer) &&
+        (info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED ||
+            info.newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED),
         "a transition or queue family transfer must not have an undefined or preinitialized new layout, got {} -> {}",
         info.oldLayout,
         info.newLayout
     ) {}
 
-    images.push_back(VkImageMemoryBarrier2{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-        .pNext = nullptr,
-        .srcStageMask = info.src.stages,
-        .srcAccessMask = info.src.access,
-        .dstStageMask = info.dst.stages,
-        .dstAccessMask = info.dst.access,
-        .oldLayout = info.oldLayout,
-        .newLayout = info.newLayout,
-        .srcQueueFamilyIndex = info.src.queueFamilyIndex,
-        .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
-        .image = vkImage,
-        .subresourceRange = {
-            .aspectMask = info.aspectMask != 0 ? info.aspectMask : aspectMask,
-            .baseMipLevel = info.firstMipLevel,
-            .levelCount = info.mipLevels,
-            .baseArrayLayer = info.firstArrayLayer,
-            .layerCount = info.arrayLayers,
-        },
-    });
+    images.push_back(
+        VkImageMemoryBarrier2{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+            .pNext = nullptr,
+            .srcStageMask = info.src.stages,
+            .srcAccessMask = info.src.access,
+            .dstStageMask = info.dst.stages,
+            .dstAccessMask = info.dst.access,
+            .oldLayout = info.oldLayout,
+            .newLayout = info.newLayout,
+            .srcQueueFamilyIndex = info.src.queueFamilyIndex,
+            .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
+            .image = vkImage,
+            .subresourceRange = {
+                .aspectMask = info.aspectMask != 0 ? info.aspectMask : aspectMask,
+                .baseMipLevel = info.firstMipLevel,
+                .levelCount = info.mipLevels,
+                .baseArrayLayer = info.firstArrayLayer,
+                .layerCount = info.arrayLayers,
+            },
+        }
+    );
 }
 
 constexpr void Barrier::add(VkBuffer vkBuffer, BufferInfo const& info) {
-    buffers.push_back(VkBufferMemoryBarrier2{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-        .pNext = nullptr,
-        .srcStageMask = info.src.stages,
-        .srcAccessMask = info.src.access,
-        .dstStageMask = info.dst.stages,
-        .dstAccessMask = info.dst.access,
-        .srcQueueFamilyIndex = info.src.queueFamilyIndex,
-        .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
-        .buffer = vkBuffer,
-        .offset = info.offset,
-        .size = info.size,
-    });
+    buffers.push_back(
+        VkBufferMemoryBarrier2{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+            .pNext = nullptr,
+            .srcStageMask = info.src.stages,
+            .srcAccessMask = info.src.access,
+            .dstStageMask = info.dst.stages,
+            .dstAccessMask = info.dst.access,
+            .srcQueueFamilyIndex = info.src.queueFamilyIndex,
+            .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
+            .buffer = vkBuffer,
+            .offset = info.offset,
+            .size = info.size,
+        }
+    );
 }
 }
 
@@ -356,7 +365,8 @@ constexpr std::optional<BarrierScope> layout_scope(
     };
     constexpr BarrierScope depthAttachment{
         tests,
-        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
     };
     BarrierScope const shaderRead{shaders, VK_ACCESS_2_SHADER_READ_BIT};
     BarrierScope const depthRead{
@@ -388,7 +398,9 @@ constexpr std::optional<BarrierScope> layout_scope(
         case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL: return depthRead;
         case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL: return color ? colorAttachment : depthAttachment;
         case VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL: return color ? shaderRead : depthRead;
-        case VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR: return localRead(color ? colorAttachment : depthAttachment);
+        case VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR: return localRead(
+                color ? colorAttachment : depthAttachment
+            );
         case VK_IMAGE_LAYOUT_GENERAL:
             return BarrierScope{
                 VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
@@ -406,7 +418,8 @@ constexpr std::optional<LayoutTransition> layout_transition(
     VkPipelineStageFlags2 shaderStages
 ) {
     auto const dst = layout_scope(newLayout, aspects, shaderStages);
-    if(!dst.has_value()) return std::nullopt;
+    if(!dst.has_value())
+        return std::nullopt;
 
     // no content to keep: src waits for the dst stages without access,
     // orders the transition after their last use and after an acquire semaphore wait on these stages
@@ -415,7 +428,8 @@ constexpr std::optional<LayoutTransition> layout_transition(
         return LayoutTransition{.src = {dst->stages}, .dst = *dst};
 
     auto const src = layout_scope(oldLayout, aspects, shaderStages);
-    if(!src.has_value()) return std::nullopt;
+    if(!src.has_value())
+        return std::nullopt;
 
     // reads leave nothing to make visible, only their stages finish first
     constexpr VkAccessFlags2 writes = VK_ACCESS_2_TRANSFER_WRITE_BIT

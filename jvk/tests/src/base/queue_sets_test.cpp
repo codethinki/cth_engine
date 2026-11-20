@@ -38,7 +38,10 @@ JVK_TEST(queue_sets, disjoint_queues_separate_then_all_in_one) {
 JVK_TEST(queue_sets, equal_queues_merge_also_when_not_adjacent) {
     std::vector const queues{GRAPHICS, COMPUTE, GRAPHICS};
 
-    EXPECT_EQ(set_groups(queues), (std::vector<groups_t>{{{0}, {1}, {2}}, {{0, 2}, {1}}, {{0, 1, 2}}}));
+    EXPECT_EQ(
+        set_groups(queues),
+        (std::vector<groups_t>{{{0}, {1}, {2}}, {{0, 2}, {1}}, {{0, 1, 2}}})
+    );
 }
 
 JVK_TEST(queue_sets, equal_before_subset) {
@@ -51,20 +54,26 @@ JVK_TEST(queue_sets, equal_before_subset) {
             {{0}, {1, 3}, {2}},
             {{0, 2}, {1, 3}},
             {{0, 1, 2, 3}},
-        })
+            })
     );
 }
 
 JVK_TEST(queue_sets, subset_merges_in_both_directions) {
     std::vector const queues{TRANSFER, COMPUTE, GRAPHICS | COMPUTE};
 
-    EXPECT_EQ(set_groups(queues), (std::vector<groups_t>{{{0}, {1}, {2}}, {{0}, {1, 2}}, {{0, 1, 2}}}));
+    EXPECT_EQ(
+        set_groups(queues),
+        (std::vector<groups_t>{{{0}, {1}, {2}}, {{0}, {1, 2}}, {{0, 1, 2}}})
+    );
 }
 
 JVK_TEST(queue_sets, subset_uses_the_combined_properties_of_a_group) {
     std::vector const queues{GRAPHICS, COMPUTE, GRAPHICS | COMPUTE};
 
-    EXPECT_EQ(set_groups(queues), (std::vector<groups_t>{{{0}, {1}, {2}}, {{0}, {1, 2}}, {{0, 1, 2}}}));
+    EXPECT_EQ(
+        set_groups(queues),
+        (std::vector<groups_t>{{{0}, {1}, {2}}, {{0}, {1, 2}}, {{0, 1, 2}}})
+    );
 }
 
 JVK_TEST(queue_sets, no_duplicate_sets) {

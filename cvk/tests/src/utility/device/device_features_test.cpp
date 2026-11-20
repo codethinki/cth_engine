@@ -15,22 +15,34 @@ CVK_TEST(DeviceFeatures, default_is_false) {
 
 CVK_TEST(DeviceFeatures, bits_follow_the_field_order) {
     static_assert(dev::to_bits(DeviceFeatures{.robustBufferAccess = true})[0]);
-    static_assert(dev::to_bits(DeviceFeatures{.descriptorHeapCaptureReplay = true})[dev::FEATURE_COUNT - 1]);
-    static_assert(dev::to_features(dev::to_bits(constants::BASE_DEVICE_FEATURES)) == constants::BASE_DEVICE_FEATURES);
+    static_assert(
+        dev::to_bits(DeviceFeatures{.descriptorHeapCaptureReplay = true})[dev::FEATURE_COUNT - 1]
+    );
+    static_assert(
+        dev::to_features(dev::to_bits(constants::BASE_DEVICE_FEATURES)) ==
+        constants::BASE_DEVICE_FEATURES
+    );
 }
 
 CVK_TEST(DeviceFeatures, merge_enables_the_features_of_both) {
-    static_assert([] {
-        DeviceFeatures features{.samplerAnisotropy = true};
-        features.merge(DeviceFeatures{.synchronization2 = true});
+    static_assert(
+        [] {
+            DeviceFeatures features{.samplerAnisotropy = true};
+            features.merge(DeviceFeatures{.synchronization2 = true});
 
-        return features.samplerAnisotropy && features.synchronization2 && !features.dynamicRendering;
-    }());
+            return features.samplerAnisotropy && features.synchronization2 &&
+                !features.dynamicRendering;
+        }()
+    );
 }
 
 CVK_TEST(DeviceFeatures, missing_names_the_features) {
     DeviceFeatures const available{.timelineSemaphore = true};
-    DeviceFeatures const required{.samplerAnisotropy = true, .timelineSemaphore = true, .synchronization2 = true};
+    DeviceFeatures const required{
+        .samplerAnisotropy = true,
+        .timelineSemaphore = true,
+        .synchronization2 = true
+    };
 
     std::vector<std::string_view> const expected{"samplerAnisotropy", "synchronization2"};
     EXPECT_EQ(available.missing(required), expected);

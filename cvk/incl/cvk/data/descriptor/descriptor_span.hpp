@@ -49,7 +49,10 @@ public:
      * @return mapping for the `descriptorMappings` of `GraphicsPipelineConfig` and `ComputePipelineConfig`
      * @see `ResourceHeap::mapping()`, `SamplerHeap::mapping()`
      */
-    [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT mapping(uint32_t set, uint32_t binding) const;
+    [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT mapping(
+        uint32_t set,
+        uint32_t binding
+    ) const;
 
     /**
      * maps a shader variable of `Descriptor` at the set and binding onto the cell at an index in the push data
@@ -116,31 +119,33 @@ constexpr auto DescriptorSpan<Descriptor>::operator[](uint32_t idx) const -> ref
 template<descriptor Descriptor>
 constexpr uint32_t DescriptorSpan<Descriptor>::size() const {
     auto const& config = _heap->config();
-    if constexpr(std::same_as<Descriptor, SampledImageDescriptor>) return config.sampledImages;
-    else if constexpr(std::same_as<Descriptor, StorageImageDescriptor>) return config.storageImages;
-    else if constexpr(std::same_as<Descriptor, InputAttachmentDescriptor>) return config.inputAttachments;
-    else return config.samplers;
+    if constexpr(std::same_as<Descriptor, SampledImageDescriptor>)
+        return config.sampledImages;
+    else if constexpr(std::same_as<Descriptor, StorageImageDescriptor>)
+        return config.storageImages;
+    else if constexpr(std::same_as<Descriptor, InputAttachmentDescriptor>)
+        return config.inputAttachments;
+    else
+        return config.samplers;
 }
 
 template<descriptor Descriptor>
 constexpr VkDescriptorSetAndBindingMappingEXT DescriptorSpan<Descriptor>::mapping(
     uint32_t set,
     uint32_t binding
-) const {
-    return _heap->template mapping<Descriptor>(set, binding);
-}
+) const { return _heap->template mapping<Descriptor>(set, binding); }
 
 template<descriptor Descriptor>
 constexpr VkDescriptorSetAndBindingMappingEXT DescriptorSpan<Descriptor>::pushMapping(
     uint32_t set,
     uint32_t binding,
     uint32_t pushOffset
-) const {
-    return _heap->template pushMapping<Descriptor>(set, binding, pushOffset);
-}
+) const { return _heap->template pushMapping<Descriptor>(set, binding, pushOffset); }
 
 template<descriptor Descriptor>
-auto DescriptorSpan<Descriptor>::reference::operator=(Descriptor const& descriptor) const -> reference const& {
+auto DescriptorSpan<Descriptor>::reference::operator=(
+    Descriptor const& descriptor
+) const -> reference const& {
     _span._heap->write(_idx, descriptor);
     return *this;
 }

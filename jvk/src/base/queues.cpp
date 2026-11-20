@@ -15,14 +15,18 @@ Queues::Queues(Core const& core, cth::co::scheduler const& workers, size_t drive
     cvk::Core const& vk = core;
     cvk::Core::debug_check(vk);
 
-    if(driverThreads > 0) _driverSchedulerOpt.emplace(cth::co::autostart, driverThreads);
-    cth::co::scheduler const& scheduler = _driverSchedulerOpt.has_value() ? *_driverSchedulerOpt : workers;
+    if(driverThreads > 0)
+        _driverSchedulerOpt.emplace(cth::co::autostart, driverThreads);
+    cth::co::scheduler const& scheduler = _driverSchedulerOpt.has_value()
+        ? *_driverSchedulerOpt
+        : workers;
 
     auto const indices = vk.queueIndices();
     _queueIndices.reserve(indices.size());
 
     for(size_t queueIdx = 0; queueIdx < indices.size(); ++queueIdx) {
-        auto const firstIdx = static_cast<size_t>(std::ranges::find(indices, indices[queueIdx]) - indices.begin());
+        auto const firstIdx =
+            static_cast<size_t>(std::ranges::find(indices, indices[queueIdx]) - indices.begin());
         if(firstIdx < queueIdx) {
             _queueIndices.push_back(_queueIndices[firstIdx]);
             continue;

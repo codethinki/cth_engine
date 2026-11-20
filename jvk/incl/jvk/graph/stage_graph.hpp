@@ -236,7 +236,12 @@ private:
      * @param[out] releases gets the release halves per last queue of another family
      * @pre the caller holds `StageGraph::_statesMutex`
      */
-    void append(ResourceStates const& recording, Queue const& queue, cvk::Barrier& prologue, release_map_t& releases);
+    void append(
+        ResourceStates const& recording,
+        Queue const& queue,
+        cvk::Barrier& prologue,
+        release_map_t& releases
+    );
 
     //TODO review jvk waits: they join the jvk extra waits of the stage
     /**
@@ -245,7 +250,9 @@ private:
      * @return the waits for the releases
      * @see `Queue::release()`
      */
-    [[nodiscard]] cth::co::executor_task<std::vector<SemaphoreSubmitInfo>> release(release_map_t releases);
+    [[nodiscard]] cth::co::executor_task<std::vector<SemaphoreSubmitInfo>> release(
+        release_map_t releases
+    );
 
     /**
      * removes the states and the last queues of the mip levels
@@ -281,7 +288,8 @@ private:
      */
     last_queue_map_t<image_mip_t> _imageQueues{};
 
-    last_queue_map_t<VkBuffer> _bufferQueues{}; ///< last queue per buffer, for the queue family ownership transfers
+    last_queue_map_t<VkBuffer> _bufferQueues{};
+    ///< last queue per buffer, for the queue family ownership transfers
 
     //TODO review the error stays: every nextFrame() rethrows it, the errors of the jobs are fatal
     /**
@@ -289,7 +297,8 @@ private:
      */
     dev::first_error _error{};
 
-    cth::co::simple_counting_scope _jobs{}; ///< the running submit jobs, `~StageGraph()` waits for them
+    cth::co::simple_counting_scope _jobs{};
+    ///< the running submit jobs, `~StageGraph()` waits for them
 
     //TODO review name firstFrameNumber
     uint64_t _firstFrameNumber; ///< see `firstFrameNumber()`

@@ -15,17 +15,21 @@
 namespace cvk {
 Shader::Shader(Core const& core, VkShaderStageFlagBits stage) : _handle{core}, _stage{stage} {}
 
-Shader::Shader(Core const& core, VkShaderStageFlagBits stage, State const& state) : Shader{core, stage} {
-    wrap(state);
-}
+Shader::Shader(Core const& core, VkShaderStageFlagBits stage, State const& state) : Shader{
+    core,
+    stage
+} { wrap(state); }
 
-Shader::Shader(Core const& core, VkShaderStageFlagBits stage, std::span<uint32_t const> spv) : Shader{core, stage} {
-    create(spv);
-}
+Shader::Shader(Core const& core, VkShaderStageFlagBits stage, std::span<uint32_t const> spv) :
+    Shader{
+        core,
+        stage
+    } { create(spv); }
 
-Shader::Shader(Core const& core, VkShaderStageFlagBits stage, path_t const& spvPath) : Shader{core, stage} {
-    create(spvPath);
-}
+Shader::Shader(Core const& core, VkShaderStageFlagBits stage, path_t const& spvPath) : Shader{
+    core,
+    stage
+} { create(spvPath); }
 
 Shader::Shader(
     Core const& core,
@@ -34,7 +38,10 @@ Shader::Shader(
     path_t const& glslPath,
     path_t const& compilerPath
 ) : Shader{core, stage} {
-    CTH_STABLE_WARN(!constants::DEBUG_MODE, "compiles shaders at run time, use this in debug builds only") {}
+    CTH_STABLE_WARN(
+        !constants::DEBUG_MODE,
+        "compiles shaders at run time, use this in debug builds only"
+    ) {}
 
     compile(glslPath, spvPath, compilerPath);
     create(spvPath);
@@ -63,7 +70,12 @@ void Shader::create(std::span<uint32_t const> spv) {
     };
 
     VkShaderModule ptr = VK_NULL_HANDLE;
-    auto const result = core().functions()->vkCreateShaderModule(core().vkDevice(), &info, nullptr, &ptr);
+    auto const result = core().functions()->vkCreateShaderModule(
+        core().vkDevice(),
+        &info,
+        nullptr,
+        &ptr
+    );
 
     CTH_STABLE_ERR(result != VK_SUCCESS, "failed to create shader module") {
         forget();
@@ -112,7 +124,11 @@ VkPipelineShaderStageCreateInfo Shader::stageInfo(
 }
 
 std::vector<uint32_t> Shader::load(path_t const& spvPath) {
-    CVK_STABLE_THROW(!std::filesystem::exists(spvPath), "SPIR-V file {} does not exist", spvPath.string()) {}
+    CVK_STABLE_THROW(
+        !std::filesystem::exists(spvPath),
+        "SPIR-V file {} does not exist",
+        spvPath.string()
+    ) {}
 
     auto const size = std::filesystem::file_size(spvPath);
     CVK_STABLE_THROW(
@@ -137,7 +153,11 @@ void Shader::compile(
     path_t const& compilerPath,
     std::string_view flags
 ) {
-    CVK_STABLE_THROW(!std::filesystem::exists(glslPath), "glsl file {} does not exist", glslPath.string()) {}
+    CVK_STABLE_THROW(
+        !std::filesystem::exists(glslPath),
+        "glsl file {} does not exist",
+        glslPath.string()
+    ) {}
 
 #ifdef CTH_PLATFORM_WINDOWS
     constexpr std::string_view nullDevice = "NUL";
@@ -173,11 +193,13 @@ void Shader::compile(
 
     CVK_STABLE_THROW(result != 0, "shader compilation of {} failed", glslPath.string()) {
         details->add("command: {}", command);
-        for(auto const& line : output) details->add("{}", line);
+        for(auto const& line : output)
+            details->add("{}", line);
     }
 
     CTH_STABLE_WARN(!output.empty(), "shader compiler output for {}", glslPath.string()) {
-        for(auto const& line : output) details->add("{}", line);
+        for(auto const& line : output)
+            details->add("{}", line);
     }
 }
 

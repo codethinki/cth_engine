@@ -30,8 +30,9 @@ public:
         std::move(trace)
     } {}
 
-    explicit jvk_exception(cth::except::default_exception defaultException)
-        : default_exception{std::move(defaultException)} { prepend(PREFIX); }
+    explicit jvk_exception(cth::except::default_exception defaultException) : default_exception{
+        std::move(defaultException)
+    } { prepend(PREFIX); }
 };
 }
 

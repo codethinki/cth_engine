@@ -139,11 +139,17 @@ CVK_TEST(Instance, wrap_takes_ownership) {
 
     auto const messengerInfo = test::counting_messenger().createInfo();
     VkDebugUtilsMessengerEXT vkMessenger = VK_NULL_HANDLE;
-    ASSERT_EQ(vkCreateDebugUtilsMessengerEXT(vkInstance, &messengerInfo, nullptr, &vkMessenger), VK_SUCCESS);
+    ASSERT_EQ(
+        vkCreateDebugUtilsMessengerEXT(vkInstance, &messengerInfo, nullptr, &vkMessenger),
+        VK_SUCCESS
+    );
 
     Instance instance{
         test::instance_config({}, test::counting_messenger()),
-        Instance::State{.vkInstance = vkInstance, .debugMessenger = DebugMessenger::State{vkMessenger}}
+        Instance::State{
+            .vkInstance = vkInstance,
+            .debugMessenger = DebugMessenger::State{vkMessenger}
+        }
     };
 
     ASSERT_TRUE(instance.created());
@@ -194,7 +200,9 @@ CVK_TEST(Instance, release_and_wrap) {
 
 CVK_TEST(Instance, objects_construct_before_the_instance_is_created) {
     test::Context::ValidationCheck const validationCheck{};
-    Instance instance{test::instance_config(test::headless_extensions(), test::counting_messenger())};
+    Instance instance{
+        test::instance_config(test::headless_extensions(), test::counting_messenger())
+    };
 
     // the base constructors only store, none of them needs the created instance
     DebugMessenger messenger{instance, test::counting_messenger()};
