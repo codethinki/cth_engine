@@ -18,6 +18,11 @@ namespace {
         VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME,
         VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME,
     };
+    std::vector<std::string> const BASE{
+        VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME,
+        VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
+        VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME,
+    };
 
     std::vector<VkStructureType> const CORE{
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
@@ -104,7 +109,7 @@ CVK_TEST(FeatureChain, bits_go_into_their_vulkan_member) {
 }
 
 CVK_TEST(FeatureChain, features_round_trip) {
-    FeatureChain const chain{constants::BASE_DEVICE_FEATURES, LOCAL_READ};
+    FeatureChain const chain{constants::BASE_DEVICE_FEATURES, BASE};
 
     EXPECT_EQ(chain.features(), constants::BASE_DEVICE_FEATURES);
 }
@@ -113,7 +118,7 @@ CVK_TEST(FeatureChain, extensions_of_the_features) {
     static_assert(extensions_of(DeviceFeatures{.synchronization2 = true}).empty());
     static_assert(extensions_of(constants::PRESENT_DEVICE_FEATURES).size() == 1);
 
-    std::vector<std::string_view> const expected{VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME};
+    std::vector<std::string_view> const expected{std::from_range, BASE};
     EXPECT_EQ(extensions_of(constants::BASE_DEVICE_FEATURES), expected);
 }
 }

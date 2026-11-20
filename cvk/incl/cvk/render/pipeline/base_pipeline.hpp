@@ -7,19 +7,20 @@
 #include <volk.h>
 
 #include <cth/io/log.hpp>
-#include <cth/ptr/ref_wrapper.hpp>
 
+#include <span>
 #include <tuple>
+#include <vector>
 
 
 namespace cvk {
 class Core;
-class PipelineLayout;
 
 /**
  * `VkPipeline` wrapper
  * @details base of `GraphicsPipeline` and `ComputePipeline`
- * @details the layout outlives the pipeline
+ * @details created with `VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT`: the shaders read the descriptors from the
+ *  bound heaps, see `ResourceHeap`, `SamplerHeap`
  */
 class BasePipeline {
 public:
@@ -27,7 +28,7 @@ public:
 
     /**
      * wraps the state
-     * @pre the pipeline was created with the layout and the config of the derived class
+     * @pre the pipeline was created with the config of the derived class
      * @post `created()`
      * @note calls `optDestroy()`
      */
@@ -54,14 +55,22 @@ public:
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkPipeline get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
-    [[nodiscard]] constexpr PipelineLayout const& layout() const { return *_layout; }
     [[nodiscard]] constexpr VkPipelineBindPoint bindPoint() const { return _bindPoint; }
 
 protected:
     /**
-     * base constructor, keeps the layout
+     * stages with the descriptor mappings in front of their `pNext` chains
+     * @attention the stages point into `mappingInfos`, the infos into the mappings
      */
-    BasePipeline(PipelineLayout const&, VkPipelineBindPoint);
+    struct MappedStages {
+        std::vector<VkShaderDescriptorSetAndBindingMappingInfoEXT> mappingInfos;
+        std::vector<VkPipelineShaderStageCreateInfo> stages;
+    };
+
+    /**
+     * base constructor
+     */
+    BasePipeline(Core const&, VkPipelineBindPoint);
 
     /**
      * @note calls `optDestroy()`
@@ -70,7 +79,7 @@ protected:
 
     /**
      * creates the pipeline with the info
-     * @pre the layout of the info is `layout()`
+     * @pre the `pNext` chain of the info has `VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateGraphicsPipelines()`
@@ -79,18 +88,39 @@ protected:
 
     /**
      * creates the pipeline with the info
-     * @pre the layout of the info is `layout()`
+     * @pre the `pNext` chain of the info has `VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT`
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateComputePipelines()`
      */
     void create(VkComputePipelineCreateInfo const&);
 
+    /**
+     * @return the stages with the mappings, empty mappings -> the stages unchanged
+     */
+    [[nodiscard]] static MappedStages mapStages(
+        std::span<VkPipelineShaderStageCreateInfo const> stages,
+        std::span<VkDescriptorSetAndBindingMappingEXT const> mappings
+    );
+
+    /**
+     * @return the create flags with `VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT` in front of `next`
+     */
+    [[nodiscard]] static constexpr VkPipelineCreateFlags2CreateInfo createFlags(
+        VkPipelineCreateFlags2 flags,
+        void const* next
+    ) {
+        return VkPipelineCreateFlags2CreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+            .pNext = next,
+            .flags = flags | VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
+        };
+    }
+
 private:
     void forget();
 
     core_handle<VkPipeline> _handle;
-    cth::ref_wrapper<PipelineLayout const> _layout;
     VkPipelineBindPoint _bindPoint;
 
 public:

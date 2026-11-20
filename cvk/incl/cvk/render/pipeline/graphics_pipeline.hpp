@@ -8,7 +8,7 @@
 
 
 namespace cvk {
-class PipelineLayout;
+class Core;
 
 /**
  * graphics `VkPipeline` wrapper
@@ -19,24 +19,24 @@ public:
     using Config = GraphicsPipelineConfig;
 
     /**
-     * base constructor, keeps the layout
+     * base constructor
      */
-    GraphicsPipeline(PipelineLayout const&, Config);
+    GraphicsPipeline(Core const&, Config);
 
     /**
      * constructs and wraps
-     * @details calls @ref GraphicsPipeline(PipelineLayout const&, Config), `wrap()`
+     * @details calls @ref GraphicsPipeline(Core const&, Config), `wrap()`
      */
-    GraphicsPipeline(PipelineLayout const&, Config, State const&);
+    GraphicsPipeline(Core const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref GraphicsPipeline(PipelineLayout const&, Config), `create()`
+     * @details calls @ref GraphicsPipeline(Core const&, Config), `create()`
      */
-    explicit GraphicsPipeline(PipelineLayout const&, Config, create_t);
+    explicit GraphicsPipeline(Core const&, Config, create_t);
 
     /**
-     * base constructor of a derivative pipeline, keeps the parent and its layout
+     * base constructor of a derivative pipeline, keeps the parent
      */
     GraphicsPipeline(GraphicsPipeline const& parent, Config);
 
@@ -48,10 +48,12 @@ public:
 
     /**
      * creates the pipeline
-     * @details derivative pipeline -> adds `VK_PIPELINE_CREATE_DERIVATIVE_BIT`, the parent is the base pipeline
+     * @details derivative pipeline -> adds `VK_PIPELINE_CREATE_2_DERIVATIVE_BIT`, the parent is the base pipeline
      * @details empty `Config::colorBlendAttachments` -> `Config::ALPHA_BLENDING` per color format
-     * @pre the layout and the shader modules of the config are not destroyed
-     * @pre derivative pipeline -> `created()` of the parent, with `VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT` in
+     * @details chains the descriptor mappings to every stage
+     * @pre `Core::created()`
+     * @pre the shader modules of the config are not destroyed
+     * @pre derivative pipeline -> `created()` of the parent, with `VK_PIPELINE_CREATE_2_ALLOW_DERIVATIVES_BIT` in
      *  its flags
      * @post `created()`
      * @note calls `optDestroy()`

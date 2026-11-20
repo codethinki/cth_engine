@@ -3,12 +3,8 @@
 #include "test.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
-#include "cvk/data/descriptor/descriptor_pool.hpp"
-#include "cvk/data/descriptor/descriptor_set.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/pipeline/compute_pipeline.hpp"
-#include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
@@ -25,46 +21,33 @@ namespace {
     constexpr uint32_t VALUES = GROUPS * 64;
 
     constexpr Buffer<uint32_t>::Config OUTPUT_CONFIG{
-        .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT},
     };
 
     /**
-     * set layout, pipeline layout and shader of the values shader
+     * shader of the values shader
      */
     struct Values {
-        explicit Values(Core const& core) : setLayout{core, set_config(), create},
-            layout{core, PipelineLayout::Config{.setLayouts = {setLayout}}, create},
-            shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::shaders::VALUES_COMP} {}
+        explicit Values(Core const& core) : shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::shaders::VALUES_COMP} {}
 
         [[nodiscard]] ComputePipeline::Config config() const { return {.stage = shader.stageInfo()}; }
 
-        static DescriptorSetLayout::Config set_config() {
-            DescriptorSetLayout::Config config{};
-            config.add(0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT);
-            return config;
-        }
-
-        DescriptorSetLayout setLayout;
-        PipelineLayout layout;
         Shader shader;
     };
 
     /**
-     * binds the values pipeline and its storage buffer, records the dispatch and checks the values
+     * binds the values pipeline, pushes the address of its output, records the dispatch and checks the values
      * @param dispatch records the dispatch with the command buffer
      */
     void expect_values(test::Context const& context, auto&& dispatch) {
         Values const values{context.core};
-        ComputePipeline const pipeline{values.layout, values.config(), create};
+        ComputePipeline const pipeline{context.core, values.config(), create};
         Buffer<uint32_t> const output{context.core, OUTPUT_CONFIG, VALUES};
-        DescriptorPool const pool{context.core, DescriptorPool::Config::ForLayouts({{values.setLayout}}), create};
-        DescriptorSet const set{pool, values.setLayout, create};
-        set.write({0, output});
 
         test::record_and_submit(context, [&](PrimaryCmdBuffer const& cmd) {
-            cmd.bindPipeline(pipeline);
-            cmd.bindDescriptorSet(set, values.layout, 0, VK_PIPELINE_BIND_POINT_COMPUTE);
+            cmd.bind(pipeline);
+            cmd.pushData(output.address());
             dispatch(cmd);
 
             Barrier toHost{};
@@ -86,10 +69,10 @@ CVK_TEST(ComputePipeline, base_constructor_does_not_create) {
     test::Context const context{};
     Values const values{context.core};
 
-    ComputePipeline const pipeline{values.layout, values.config()};
+    ComputePipeline const pipeline{context.core, values.config()};
 
     EXPECT_FALSE(pipeline.created());
-    EXPECT_EQ(&pipeline.layout(), &values.layout);
+    EXPECT_EQ(&pipeline.core(), &context.core);
     EXPECT_EQ(pipeline.bindPoint(), VK_PIPELINE_BIND_POINT_COMPUTE);
 }
 
@@ -97,7 +80,7 @@ CVK_TEST(ComputePipeline, create_and_destroy) {
     test::Context const context{};
     Values const values{context.core};
 
-    ComputePipeline pipeline{values.layout, values.config(), create};
+    ComputePipeline pipeline{context.core, values.config(), create};
     ASSERT_TRUE(pipeline.created());
     EXPECT_EQ(&pipeline.core(), &context.core);
 
@@ -108,21 +91,21 @@ CVK_TEST(ComputePipeline, create_and_destroy) {
 CVK_TEST(ComputePipeline, release_and_wrap) {
     test::Context const context{};
     Values const values{context.core};
-    ComputePipeline pipeline{values.layout, values.config(), create};
+    ComputePipeline pipeline{context.core, values.config(), create};
     auto const vkPipeline = pipeline.get();
 
     auto const state = pipeline.release();
     EXPECT_FALSE(pipeline.created());
 
-    ComputePipeline const wrapped{values.layout, values.config(), state};
+    ComputePipeline const wrapped{context.core, values.config(), state};
     EXPECT_EQ(wrapped.get(), vkPipeline);
 }
 
 CVK_TEST(ComputePipeline, move_assignment_destroys_the_old_pipeline) {
     test::Context const context{};
     Values const values{context.core};
-    ComputePipeline pipeline{values.layout, values.config(), create};
-    ComputePipeline other{values.layout, values.config(), create};
+    ComputePipeline pipeline{context.core, values.config(), create};
+    ComputePipeline other{context.core, values.config(), create};
     auto const vkPipeline = other.get();
 
     pipeline = std::move(other);
@@ -131,13 +114,13 @@ CVK_TEST(ComputePipeline, move_assignment_destroys_the_old_pipeline) {
     EXPECT_FALSE(other.created());
 }
 
-CVK_TEST(ComputePipeline, dispatch_fills_a_storage_buffer) {
+CVK_TEST(ComputePipeline, dispatch_fills_a_buffer_at_the_pushed_address) {
     test::Context const context{};
 
     expect_values(context, [](BaseCmdBuffer const& cmd) { cmd.dispatch(GROUPS); });
 }
 
-CVK_TEST(ComputePipeline, dispatch_indirect_fills_a_storage_buffer) {
+CVK_TEST(ComputePipeline, dispatch_indirect_fills_a_buffer_at_the_pushed_address) {
     test::Context const context{};
     Buffer<VkDispatchIndirectCommand> const indirect{
         context.core,
@@ -153,7 +136,7 @@ CVK_TEST(ComputePipeline, decompose_returns_the_released_handle) {
     // a leak shows up when the shared device is destroyed
     test::Context const context{};
     Values const values{context.core};
-    ComputePipeline pipeline{values.layout, values.config(), create};
+    ComputePipeline pipeline{context.core, values.config(), create};
     auto const vkPipeline = pipeline.get();
 
     auto const [vkReleased] = pipeline.release().decompose();

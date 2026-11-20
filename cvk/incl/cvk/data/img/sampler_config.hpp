@@ -6,7 +6,8 @@
 
 namespace cvk {
 /**
- * config of a `Sampler`
+ * config of a sampler
+ * @details the descriptor of a `SamplerHeap`, see `DescriptorSpan`
  * @details defaults: linear filtering, repeat, 16x anisotropy
  */
 struct SamplerConfig {

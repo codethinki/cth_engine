@@ -1,26 +1,27 @@
 #include "cvk/render/pipeline/graphics_pipeline.hpp"
 
 #include "cvk/base/core.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
+
+#include <utility>
 
 
 namespace cvk {
-GraphicsPipeline::GraphicsPipeline(PipelineLayout const& layout, Config config) :
-    BasePipeline{layout, VK_PIPELINE_BIND_POINT_GRAPHICS}, _config{std::move(config)} {}
+GraphicsPipeline::GraphicsPipeline(Core const& core, Config config) :
+    BasePipeline{core, VK_PIPELINE_BIND_POINT_GRAPHICS}, _config{std::move(config)} {}
 
-GraphicsPipeline::GraphicsPipeline(PipelineLayout const& layout, Config config, State const& state) :
-    GraphicsPipeline{layout, std::move(config)} {
+GraphicsPipeline::GraphicsPipeline(Core const& core, Config config, State const& state) :
+    GraphicsPipeline{core, std::move(config)} {
     wrap(state);
 }
 
-GraphicsPipeline::GraphicsPipeline(PipelineLayout const& layout, Config config, create_t) :
-    GraphicsPipeline{layout, std::move(config)} {
+GraphicsPipeline::GraphicsPipeline(Core const& core, Config config, create_t) :
+    GraphicsPipeline{core, std::move(config)} {
     create();
 }
 
 GraphicsPipeline::GraphicsPipeline(GraphicsPipeline const& parent, Config config) :
-    BasePipeline{parent.layout(), VK_PIPELINE_BIND_POINT_GRAPHICS},
+    BasePipeline{parent.core(), VK_PIPELINE_BIND_POINT_GRAPHICS},
     _parentPtr{&parent},
     _config{std::move(config)} {}
 
@@ -33,8 +34,8 @@ void GraphicsPipeline::create() {
     if(_parentPtr != nullptr) {
         debug_check(*_parentPtr);
         CTH_CRITICAL(
-            (_parentPtr->config().flags & VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT) == 0,
-            "parent must allow derivatives (VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT)"
+            (_parentPtr->config().flags & VK_PIPELINE_CREATE_2_ALLOW_DERIVATIVES_BIT) == 0,
+            "parent must allow derivatives (VK_PIPELINE_CREATE_2_ALLOW_DERIVATIVES_BIT)"
         ) {}
     }
     CTH_CRITICAL(
@@ -102,12 +103,18 @@ void GraphicsPipeline::create() {
         .stencilAttachmentFormat = config.stencilFormat,
     };
 
+    auto const mapped = mapStages(config.stages, config.descriptorMappings);
+    auto const flags = createFlags(
+        config.flags | (_parentPtr != nullptr ? VK_PIPELINE_CREATE_2_DERIVATIVE_BIT : VkPipelineCreateFlags2{0}),
+        &rendering
+    );
+
     VkGraphicsPipelineCreateInfo const info{
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        .pNext = &rendering,
-        .flags = config.flags | (_parentPtr != nullptr ? VK_PIPELINE_CREATE_DERIVATIVE_BIT : 0u),
-        .stageCount = static_cast<uint32_t>(config.stages.size()),
-        .pStages = config.stages.data(),
+        .pNext = &flags,
+        .flags = 0,
+        .stageCount = static_cast<uint32_t>(mapped.stages.size()),
+        .pStages = mapped.stages.data(),
         .pVertexInputState = &vertexInput,
         .pInputAssemblyState = &config.inputAssembly,
         .pTessellationState = nullptr,
@@ -117,7 +124,7 @@ void GraphicsPipeline::create() {
         .pDepthStencilState = &config.depthStencil,
         .pColorBlendState = &colorBlend,
         .pDynamicState = &dynamicState,
-        .layout = layout().get(),
+        .layout = VK_NULL_HANDLE,
         .renderPass = VK_NULL_HANDLE,
         .subpass = 0,
         .basePipelineHandle = _parentPtr != nullptr ? _parentPtr->get() : VK_NULL_HANDLE,

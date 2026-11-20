@@ -28,7 +28,9 @@ using feature_structs_t = std::tuple<
     VkPhysicalDeviceVulkan12Features,
     VkPhysicalDeviceVulkan13Features,
     VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR,
-    VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR
+    VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR,
+    VkPhysicalDeviceMaintenance5FeaturesKHR,
+    VkPhysicalDeviceDescriptorHeapFeaturesEXT
 >;
 
 inline constexpr size_t FEATURE_STRUCTS = std::tuple_size_v<feature_structs_t>;
@@ -92,6 +94,24 @@ struct feature_struct<VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR> {
         offsetof(VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR, dynamicRenderingLocalRead);
     static constexpr size_t COUNT = 1;
     static constexpr std::string_view EXTENSION = VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME;
+};
+
+template<>
+struct feature_struct<VkPhysicalDeviceMaintenance5FeaturesKHR> {
+    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_5_FEATURES_KHR;
+    static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceMaintenance5FeaturesKHR, maintenance5);
+    static constexpr size_t COUNT = 1;
+    static constexpr std::string_view EXTENSION = VK_KHR_MAINTENANCE_5_EXTENSION_NAME;
+};
+
+template<>
+struct feature_struct<VkPhysicalDeviceDescriptorHeapFeaturesEXT> {
+    static constexpr auto TYPE = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT;
+    static constexpr size_t OFFSET = offsetof(VkPhysicalDeviceDescriptorHeapFeaturesEXT, descriptorHeap);
+    static constexpr size_t COUNT =
+        (offsetof(VkPhysicalDeviceDescriptorHeapFeaturesEXT, descriptorHeapCaptureReplay) - OFFSET) / sizeof(VkBool32)
+        + 1;
+    static constexpr std::string_view EXTENSION = VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME;
 };
 
 static_assert(feature_struct<VkPhysicalDeviceFeatures2>::COUNT == 55);

@@ -90,6 +90,13 @@ public:
     [[nodiscard]] constexpr VkPhysicalDeviceLimits const& limits() const { return _properties.limits; }
 
     /**
+     * @return the descriptor heap properties, no `VK_EXT_descriptor_heap` -> zeros
+     */
+    [[nodiscard]] constexpr VkPhysicalDeviceDescriptorHeapPropertiesEXT const& descriptorHeapProperties() const {
+        return _descriptorHeapProperties;
+    }
+
+    /**
      * @return `deviceUUID` of `VkPhysicalDeviceIDProperties`, the same across instances and processes
      */
     [[nodiscard]] constexpr device_uuid_t const& uuid() const { return _uuid; }
@@ -104,6 +111,7 @@ private:
     std::vector<std::string> _extensions;
     DeviceFeatures _features;
     VkPhysicalDeviceProperties _properties;
+    VkPhysicalDeviceDescriptorHeapPropertiesEXT _descriptorHeapProperties;
     device_uuid_t _uuid;
     VkPhysicalDeviceMemoryProperties _memoryProperties;
     VkSampleCountFlagBits _maxSampleCount;

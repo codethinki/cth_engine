@@ -14,7 +14,6 @@
 #include "cvk/base/queue/queue_family.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/pipeline/graphics_pipeline.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/utility/constant/device_constants.hpp"
 #include "cvk/utility/vk_overloads.hpp"
@@ -119,7 +118,7 @@ cth::co::executor_task<void> draw_frames(
                 .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
             }},
         });
-        submit->bindPipeline(pipeline);
+        submit->bind(pipeline);
         submit->setViewport(image->extent);
         submit->setScissor(image->extent);
         submit->draw(3);
@@ -151,11 +150,10 @@ void run() {
 
     cvk::Shader const vertex{core, VK_SHADER_STAGE_VERTEX_BIT, SHADER_DIR / "triangle.vert.spv"};
     cvk::Shader const fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, SHADER_DIR / "triangle.frag.spv"};
-    cvk::PipelineLayout const layout{core, {}, cvk::create};
     cvk::GraphicsPipeline::Config pipelineConfig{.colorFormats = {SURFACE_FORMAT.format}};
     pipelineConfig.multisample.rasterizationSamples = MSAA_SAMPLES;
     pipelineConfig.addStage(vertex).addStage(fragment);
-    cvk::GraphicsPipeline const pipeline{layout, std::move(pipelineConfig), cvk::create};
+    cvk::GraphicsPipeline const pipeline{core, std::move(pipelineConfig), cvk::create};
 
     std::optional<MsaaTarget> msaaOpt{};
     jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};

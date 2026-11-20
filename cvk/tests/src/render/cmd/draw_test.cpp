@@ -7,7 +7,6 @@
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/pipeline/graphics_pipeline.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
@@ -49,22 +48,16 @@ namespace {
     }
 
     /**
-     * pipeline that fills the triangle with the push constant color
+     * pipeline that fills the triangle with the push data color
      */
     struct Fill {
-        explicit Fill(Core const& core) : layout{
-                core,
-                PipelineLayout::Config{.pushConstantRanges = {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GREEN)}}},
-                create
-            },
-            vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
+        explicit Fill(Core const& core) : vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
             fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
-            pipeline{layout, test::fullscreen_config(vertex, fragment, COLOR_FORMATS), create},
+            pipeline{core, test::fullscreen_config(vertex, fragment, COLOR_FORMATS), create},
             vertices{core, host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
             vertices.write(test::FULLSCREEN);
         }
 
-        PipelineLayout layout;
         Shader vertex;
         Shader fragment;
         GraphicsPipeline pipeline;
@@ -106,10 +99,10 @@ namespace {
                 }
             );
 
-            cmd.bindPipeline(fill.pipeline);
-            cmd.bindVertexBuffer(0, fill.vertices);
+            cmd.bind(fill.pipeline);
+            cmd.bindVertices(0, fill.vertices);
             // a span pushes its elements, not itself
-            cmd.pushConstants(fill.layout, VK_SHADER_STAGE_FRAGMENT_BIT, std::span<float const>{GREEN});
+            cmd.pushData(std::span<float const>{GREEN});
             draw(cmd);
 
             cmd.endRendering();
@@ -185,9 +178,46 @@ CVK_TEST(Draw, draw_indexed) {
     indices.write(std::array<uint16_t, 3>{0, 1, 2});
 
     expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) {
+        cmd.bindIndices(indices);
+        cmd.drawIndexed(3);
+    });
+}
+
+CVK_TEST(Draw, vulkan_names_bind_the_buffers) {
+    constexpr std::array<uint16_t, 3> INDICES{0, 1, 2};
+    test::Context const context{};
+    Fill const fill{context.core};
+    Buffer<uint16_t> indices{context.core, host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), INDICES.size()};
+    indices.write(INDICES);
+    BaseBuffer const untyped{context.core, host_written(VK_BUFFER_USAGE_INDEX_BUFFER_BIT), sizeof(INDICES)};
+    untyped.write(std::as_bytes(std::span{INDICES}));
+
+    expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) {
+        cmd.bindVertexBuffer(0, fill.vertices);
+        cmd.bindIndexBuffer(untyped, VK_INDEX_TYPE_UINT16);
+        cmd.drawIndexed(3);
         cmd.bindIndexBuffer(indices);
         cmd.drawIndexed(3);
     });
+}
+
+namespace {
+    template<class Indices>
+    concept binds_with_an_index_type = requires(BaseCmdBuffer const& cmd, Indices const& indices) {
+        cmd.bindIndices(indices, VK_INDEX_TYPE_UINT16);
+    };
+
+    template<class Indices>
+    concept binds_with_an_index_type_by_the_vulkan_name = requires(BaseCmdBuffer const& cmd, Indices const& indices) {
+        cmd.bindIndexBuffer(indices, VK_INDEX_TYPE_UINT16);
+    };
+}
+
+CVK_TEST(Draw, a_typed_index_buffer_takes_no_index_type) {
+    static_assert(binds_with_an_index_type<BaseBuffer>);
+    static_assert(!binds_with_an_index_type<Buffer<uint16_t>>);
+    static_assert(binds_with_an_index_type_by_the_vulkan_name<BaseBuffer>);
+    static_assert(!binds_with_an_index_type_by_the_vulkan_name<Buffer<uint16_t>>);
 }
 
 CVK_TEST(Draw, draw_indirect) {
@@ -228,7 +258,7 @@ CVK_TEST(Draw, draw_indexed_indirect) {
     );
 
     expect_filled(context, fill, [&](PrimaryCmdBuffer const& cmd) {
-        cmd.bindIndexBuffer(indices);
+        cmd.bindIndices(indices);
         cmd.drawIndexedIndirect(commands);
     });
 }

@@ -3,21 +3,19 @@
 #include "test.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
-#include "cvk/data/descriptor/descriptor_pool.hpp"
-#include "cvk/data/descriptor/descriptor_set.hpp"
+#include "cvk/data/descriptor/resource_heap.hpp"
 #include "cvk/data/img/image.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/cmd/cmd_pool.hpp"
 #include "cvk/render/pipeline/graphics_pipeline.hpp"
-#include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/render/pipeline/shader/shader.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
 #include <array>
 #include <cstddef>
 #include <utility>
+#include <vector>
 
 
 namespace cvk {
@@ -111,39 +109,36 @@ namespace {
     /**
      * fullscreen pipeline for the attachments
      */
-    GraphicsPipeline::Config fullscreen(Shader const& vertex, Shader const& fragment, AttachmentMapping mapping) {
+    GraphicsPipeline::Config fullscreen(
+        Shader const& vertex,
+        Shader const& fragment,
+        AttachmentMapping mapping,
+        std::vector<VkDescriptorSetAndBindingMappingEXT> descriptorMappings = {}
+    ) {
         auto config = test::fullscreen_config(vertex, fragment, COLOR_FORMATS);
         config.attachmentMapping = std::move(mapping);
+        config.descriptorMappings = std::move(descriptorMappings);
         return config;
     }
 
     /**
-     * binding 0: input attachment
-     */
-    DescriptorSetLayout::Config input_attachment() {
-        DescriptorSetLayout::Config config{};
-        config.add(0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT);
-        return config;
-    }
-
-    /**
-     * write: push constant color -> attachment 0, read: attachment 0 -> attachment 1
+     * write: push data color -> attachment 0, read: attachment 0 -> attachment 1
      */
     struct Draws {
-        Draws(Core const& core, ImageView const& first) :
+        Draws(Core const& core, Image const& first) :
             vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
             color{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
             localRead{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::LOCAL_READ_FRAG},
-            writeLayout{core, {.pushConstantRanges = {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(GREEN)}}}, create},
-            write{writeLayout, fullscreen(vertex, color, write_first()), create},
-            inputLayout{core, input_attachment(), create},
-            readLayout{core, {.setLayouts = {inputLayout}}, create},
-            read{readLayout, fullscreen(vertex, localRead, copy_first_to_second()), create},
-            pool{core, DescriptorPool::Config::ForLayouts({{inputLayout}}), create},
-            input{pool, inputLayout, create},
+            heap{core, {.inputAttachments = 1}, create},
+            write{core, fullscreen(vertex, color, write_first()), create},
+            read{
+                core,
+                fullscreen(vertex, localRead, copy_first_to_second(), {heap.inputAttachments().mapping(0, 0)}),
+                create
+            },
             vertices{core, test::host_written(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT), test::FULLSCREEN.size()} {
-            // input attachment: VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR from the binding type
-            input.write({0, first});
+            // input attachment: VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR from the descriptor type
+            heap.inputAttachments()[0] = InputAttachmentDescriptor{first};
             vertices.write(test::FULLSCREEN);
         }
 
@@ -152,22 +147,18 @@ namespace {
          * @pre the command buffer has a viewport and a scissor
          */
         void drawWrite(BaseCmdBuffer& cmd) const {
-            cmd.bindVertexBuffer(0, vertices);
-            cmd.bindPipeline(write);
-            cmd.pushConstants(writeLayout, VK_SHADER_STAGE_FRAGMENT_BIT, GREEN);
+            cmd.bindVertices(0, vertices);
+            cmd.bind(write);
+            cmd.pushData(GREEN);
             cmd.draw(3);
         }
 
         Shader vertex;
         Shader color;
         Shader localRead;
-        PipelineLayout writeLayout;
+        ResourceHeap heap;
         GraphicsPipeline write;
-        DescriptorSetLayout inputLayout;
-        PipelineLayout readLayout;
         GraphicsPipeline read;
-        DescriptorPool pool;
-        DescriptorSet input;
         Buffer<Vec3> vertices;
     };
 }
@@ -215,7 +206,7 @@ CVK_TEST(AttachmentMapping, empty_equals_the_default) {
 CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
     test::Context const context{};
     Attachments const attachments{context.core};
-    Draws const draws{context.core, attachments.firstView};
+    Draws const draws{context.core, attachments.first};
     BaseBuffer const readback{context.core, test::READBACK_CONFIG, size_t{EXTENT.width} * EXTENT.height * 4};
 
     test::record_and_submit(context, [&](PrimaryCmdBuffer& cmd) {
@@ -239,9 +230,9 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
         );
         toInput.execute(cmd);
 
-        cmd.bindPipeline(draws.read);
+        cmd.bind(draws.read);
         EXPECT_EQ(cmd.rendering()->attachmentMapping, copy_first_to_second());
-        cmd.bindDescriptorSet(draws.input, draws.readLayout, 0);
+        cmd.bind(draws.heap);
         cmd.draw(3);
         cmd.endRendering();
 
@@ -267,7 +258,7 @@ CVK_TEST(LocalRead, draw_reads_an_attachment_of_the_same_rendering) {
 CVK_TEST(LocalRead, secondary_inherits_the_mapping) {
     test::Context const context{};
     Attachments const attachments{context.core};
-    Draws const draws{context.core, attachments.firstView};
+    Draws const draws{context.core, attachments.first};
     CmdPool const pool{context.core, test::pool_config(context.core), create};
     SecondaryCmdBuffer secondary{pool, create};
 

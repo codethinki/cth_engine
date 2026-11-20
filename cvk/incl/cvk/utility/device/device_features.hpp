@@ -159,6 +159,13 @@ struct DeviceFeatures {
     // VK_KHR_dynamic_rendering_local_read, VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR
     bool dynamicRenderingLocalRead = false;
 
+    // VK_KHR_maintenance5, VkPhysicalDeviceMaintenance5FeaturesKHR
+    bool maintenance5 = false;
+
+    // VK_EXT_descriptor_heap, VkPhysicalDeviceDescriptorHeapFeaturesEXT
+    bool descriptorHeap = false;
+    bool descriptorHeapCaptureReplay = false;
+
     /**
      * enables every feature of other
      */

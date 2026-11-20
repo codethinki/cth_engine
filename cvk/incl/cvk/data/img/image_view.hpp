@@ -98,27 +98,13 @@ public:
     /**
      * @return the layers of the view
      */
-    [[nodiscard]] constexpr uint32_t arrayLayers() const {
-        return _config.arrayLayers == VK_REMAINING_ARRAY_LAYERS ? _image->arrayLayers() - _config.baseArrayLayer
-            : _config.arrayLayers;
-    }
+    [[nodiscard]] constexpr uint32_t arrayLayers() const { return _config.layerCount(*_image); }
 
     /**
      * @return `Config::viewType`, `VK_IMAGE_VIEW_TYPE_MAX_ENUM` -> inferred
-     * @details inferred:
-     * - one layer -> 2D
-     * - cube compatible image with 6 layers -> cube, a multiple of 6 -> cube array
-     * - else 2D array
+     * @see `ImageViewConfig::resolvedViewType()`
      */
-    [[nodiscard]] constexpr VkImageViewType viewType() const {
-        if(_config.viewType != VK_IMAGE_VIEW_TYPE_MAX_ENUM) return _config.viewType;
-
-        auto const layers = arrayLayers();
-        if(layers == 1) return VK_IMAGE_VIEW_TYPE_2D;
-        if((_image->config().flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) == 0 || layers % 6 != 0)
-            return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-        return layers == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
-    }
+    [[nodiscard]] constexpr VkImageViewType viewType() const { return _config.resolvedViewType(*_image); }
 
 private:
     void forget();

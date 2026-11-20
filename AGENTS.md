@@ -110,7 +110,7 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Use `auto const` for locals that do not change.
 - Initialize aggregates with designated initializers. Vulkan structs always get `.sType` and `.pNext`.
 - Data structs (`SubmitInfo`, `Barrier`, info structs) are aggregates. Member functions like `add()` are optional shortcuts, checks run at the use.
-- A command is a member of the object it acts on: the command buffer for its own state (`cmd.bindPipeline(pipeline)`), else the object (`barrier.execute(cmd)`).
+- A command is a member of the object it acts on: the command buffer for its own state (`cmd.bind(pipeline)`), else the object (`barrier.execute(cmd)`).
 - Call patterns follow the modern std library conventions.
 - Use deducing `this` (`this auto& self`) where a function must work on the derived type.
 - Qualify `std::` names. A `.cpp` file can declare `using std::span;` and similar at the top of its namespace.

@@ -2,8 +2,8 @@
 
 layout(location = 0) in vec3 position;
 
-layout(set = 0, binding = 0) uniform Camera {
-    mat4 viewProjection;
-} camera;
+layout(push_constant) uniform Push {
+    layout(offset = 16) mat4 viewProjection;
+} push;
 
-void main() { gl_Position = camera.viewProjection * vec4(position, 1.0); }
+void main() { gl_Position = push.viewProjection * vec4(position, 1.0); }

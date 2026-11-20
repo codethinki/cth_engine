@@ -15,7 +15,7 @@ CVK_TEST(DeviceFeatures, default_is_false) {
 
 CVK_TEST(DeviceFeatures, bits_follow_the_field_order) {
     static_assert(dev::to_bits(DeviceFeatures{.robustBufferAccess = true})[0]);
-    static_assert(dev::to_bits(DeviceFeatures{.dynamicRenderingLocalRead = true})[dev::FEATURE_COUNT - 1]);
+    static_assert(dev::to_bits(DeviceFeatures{.descriptorHeapCaptureReplay = true})[dev::FEATURE_COUNT - 1]);
     static_assert(dev::to_features(dev::to_bits(constants::BASE_DEVICE_FEATURES)) == constants::BASE_DEVICE_FEATURES);
 }
 

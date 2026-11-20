@@ -35,21 +35,14 @@ public:
         VkFence,
         VkImage,
         VkImageView,
-        VkSampler,
         VkBuffer,
-        VkDescriptorPool,
-        VkDescriptorSetLayout,
-        VkPipelineLayout,
         VkShaderModule,
         VkPipeline,
         VkCommandPool,
         VkSwapchainKHR,
         VmaAllocation>;
 
-    using pooled_t = std::variant<
-        std::tuple<VkCommandPool, VkCommandBuffer>,
-        //TODO review pools without VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT and pool resets
-        std::tuple<VkDescriptorPool, VkDescriptorSet>>;
+    using pooled_t = std::variant<std::tuple<VkCommandPool, VkCommandBuffer>>;
 
     /**
      * stable position in the added handles

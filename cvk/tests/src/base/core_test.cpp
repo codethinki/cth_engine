@@ -7,14 +7,11 @@
 #include "cvk/base/instance.hpp"
 #include "cvk/base/physical_device.hpp"
 #include "cvk/data/buffer/base_buffer.hpp"
-#include "cvk/data/descriptor/descriptor_pool.hpp"
-#include "cvk/data/descriptor/descriptor_set.hpp"
+#include "cvk/data/descriptor/resource_heap.hpp"
+#include "cvk/data/descriptor/sampler_heap.hpp"
 #include "cvk/data/img/image.hpp"
-#include "cvk/data/img/sampler.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/cmd/cmd_pool.hpp"
-#include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/render/sync/semaphore.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
@@ -262,9 +259,6 @@ CVK_TEST(Core, objects_construct_before_the_core_is_created) {
     test::Context const context{};
     Core core{context.instance};
 
-    DescriptorSetLayout::Config layoutConfig{};
-    layoutConfig.add(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-
     // the base constructors only store, none of them needs the created core
     Fence fence{core};
     Semaphore semaphore{core};
@@ -278,13 +272,10 @@ CVK_TEST(Core, objects_construct_before_the_core_is_created) {
             .usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         }
     };
-    Sampler sampler{core, {}};
     CmdPool pool{core, test::pool_config(context.core)};
     PrimaryCmdBuffer primary{pool};
-    DescriptorSetLayout layout{core, layoutConfig};
-    PipelineLayout pipelineLayout{core, {.setLayouts = {layout}}};
-    DescriptorPool descriptorPool{core, DescriptorPool::Config::ForLayouts({{layout}})};
-    DescriptorSet set{descriptorPool, layout};
+    ResourceHeap resourceHeap{core, {.sampledImages = 1}};
+    SamplerHeap samplerHeap{core, {.samplers = 1}};
 
     core.create({}, Context::CONFIG);
 
@@ -293,23 +284,18 @@ CVK_TEST(Core, objects_construct_before_the_core_is_created) {
     timeline.create(3);
     buffer.create(64);
     image.create({4, 4});
-    sampler.create();
     pool.create();
     primary.create();
-    layout.create();
-    pipelineLayout.create();
-    descriptorPool.create();
-    set.create();
+    resourceHeap.create();
+    samplerHeap.create();
 
     EXPECT_TRUE(fence.created());
     EXPECT_TRUE(semaphore.created());
     EXPECT_EQ(timeline.gpuValue(), 3);
     EXPECT_TRUE(buffer.created());
     EXPECT_TRUE(image.created());
-    EXPECT_TRUE(sampler.created());
     EXPECT_TRUE(primary.created());
-    ASSERT_EQ(pipelineLayout.setLayouts().size(), 1);
-    EXPECT_EQ(pipelineLayout.setLayouts()[0], layout.get());
-    EXPECT_TRUE(set.created());
+    EXPECT_TRUE(resourceHeap.created());
+    EXPECT_TRUE(samplerHeap.created());
 }
 }

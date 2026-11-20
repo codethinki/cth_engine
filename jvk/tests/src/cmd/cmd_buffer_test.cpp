@@ -482,8 +482,8 @@ JVK_TEST(CmdBuffer, bind_records_the_buffer_access) {
     primary.begin();
     vertices.copy(primary, staging);
     indices.copy(primary, staging);
-    primary.bindVertexBuffer(0, vertices);
-    primary.bindIndexBuffer(indices);
+    primary.bindVertices(0, vertices);
+    primary.bindIndices(indices);
     primary.end();
 
     EXPECT_EQ(primary.states().last(vertices)->scope.access, VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT);

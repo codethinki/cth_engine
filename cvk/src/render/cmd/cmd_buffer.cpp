@@ -1,13 +1,14 @@
 #include "cvk/render/cmd/cmd_buffer.hpp"
 
 #include "cvk/base/core.hpp"
-#include "cvk/data/descriptor/descriptor_set.hpp"
+#include "cvk/base/physical_device.hpp"
+#include "cvk/data/descriptor/resource_heap.hpp"
+#include "cvk/data/descriptor/sampler_heap.hpp"
 #include "cvk/data/img/image.hpp"
 #include "cvk/data/img/image_format.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/pipeline/compute_pipeline.hpp"
 #include "cvk/render/pipeline/graphics_pipeline.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/utility/format.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
@@ -29,10 +30,6 @@ namespace {
             "attachment must be in an attachment layout, got {}",
             layout
         ) {}
-    }
-
-    constexpr bool dynamic_buffer(VkDescriptorType type) {
-        return type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
     }
 
     uint32_t view_mip_levels(ImageView const& view) {
@@ -339,7 +336,7 @@ void BaseCmdBuffer::setScissor(VkRect2D const& scissor) const {
     core().functions()->vkCmdSetScissor(get(), 0, 1, &scissor);
 }
 
-void BaseCmdBuffer::bindPipeline(GraphicsPipeline const& pipeline) {
+void BaseCmdBuffer::bind(GraphicsPipeline const& pipeline) {
     debug_check(*this);
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
     GraphicsPipeline::debug_check(pipeline);
@@ -350,7 +347,7 @@ void BaseCmdBuffer::bindPipeline(GraphicsPipeline const& pipeline) {
     core().functions()->vkCmdBindPipeline(get(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get());
 }
 
-void BaseCmdBuffer::bindPipeline(ComputePipeline const& pipeline) const {
+void BaseCmdBuffer::bind(ComputePipeline const& pipeline) const {
     debug_check(*this);
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
     ComputePipeline::debug_check(pipeline);
@@ -358,69 +355,53 @@ void BaseCmdBuffer::bindPipeline(ComputePipeline const& pipeline) const {
     core().functions()->vkCmdBindPipeline(get(), VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.get());
 }
 
-void BaseCmdBuffer::bindDescriptorSet(
-    DescriptorSet const& set,
-    PipelineLayout const& layout,
-    uint32_t setIndex,
-    VkPipelineBindPoint bindPoint,
-    span<uint32_t const> dynamicOffsets
-) const {
+void BaseCmdBuffer::bind(ResourceHeap const& heap) const {
     debug_check(*this);
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
-    DescriptorSet::debug_check(set);
-    PipelineLayout::debug_check(layout);
-    CTH_CRITICAL(setIndex >= layout.setLayouts().size(), "the pipeline layout has no set {}", setIndex) {}
+    ResourceHeap::debug_check(heap);
 
-    auto const dynamicCount = std::ranges::fold_left(
-        set.layout().bindings(),
-        uint32_t{0},
-        [](uint32_t sum, VkDescriptorSetLayoutBinding const& binding) {
-            return dynamic_buffer(binding.descriptorType) ? sum + binding.descriptorCount : sum;
-        }
-    );
+    auto const info = heap.bindInfo();
+    core().functions()->vkCmdBindResourceHeapEXT(get(), &info);
+}
+
+void BaseCmdBuffer::bind(SamplerHeap const& heap) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    SamplerHeap::debug_check(heap);
+
+    auto const info = heap.bindInfo();
+    core().functions()->vkCmdBindSamplerHeapEXT(get(), &info);
+}
+
+void BaseCmdBuffer::pushDataBytes(span<std::byte const> data, uint32_t offset) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(data.empty(), "push data must not be empty") {}
     CTH_CRITICAL(
-        dynamicOffsets.size() != dynamicCount,
-        "one dynamic offset per dynamic buffer descriptor, got {} for {}",
-        dynamicOffsets.size(),
-        dynamicCount
+        offset % 4 != 0 || data.size() % 4 != 0,
+        "offset and size must be multiples of 4, got {}, {}",
+        offset,
+        data.size()
+    ) {}
+    auto const maxSize = core().physicalDevice().descriptorHeapProperties().maxPushDataSize;
+    CTH_CRITICAL(
+        offset + data.size() > maxSize,
+        "push data must lie in maxPushDataSize, got {} + {} of {}",
+        offset,
+        data.size(),
+        maxSize
     ) {}
 
-    VkDescriptorSet const vkSet = set.get();
-    core().functions()->vkCmdBindDescriptorSets(
-        get(),
-        bindPoint,
-        layout.get(),
-        setIndex,
-        1,
-        &vkSet,
-        static_cast<uint32_t>(dynamicOffsets.size()),
-        dynamicOffsets.data()
-    );
+    VkPushDataInfoEXT const info{
+        .sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+        .pNext = nullptr,
+        .offset = offset,
+        .data = {.address = data.data(), .size = data.size()},
+    };
+    core().functions()->vkCmdPushDataEXT(get(), &info);
 }
 
-void BaseCmdBuffer::pushConstantBytes(
-    PipelineLayout const& layout,
-    VkShaderStageFlags stages,
-    span<std::byte const> data,
-    uint32_t offset
-) const {
-    debug_check(*this);
-    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
-    PipelineLayout::debug_check(layout);
-    CTH_CRITICAL(data.empty(), "push constants must not be empty") {}
-    CTH_CRITICAL(offset % 4 != 0 || data.size() % 4 != 0, "offset and size must be multiples of 4") {}
-
-    core().functions()->vkCmdPushConstants(
-        get(),
-        layout.get(),
-        stages,
-        offset,
-        static_cast<uint32_t>(data.size()),
-        data.data()
-    );
-}
-
-void BaseCmdBuffer::bindVertexBuffer(uint32_t binding, BaseBuffer const& buffer, size_t offset) const {
+void BaseCmdBuffer::bindVertices(uint32_t binding, BaseBuffer const& buffer, size_t offset) const {
     debug_check(*this);
     BaseBuffer::debug_check(buffer);
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
@@ -435,7 +416,7 @@ void BaseCmdBuffer::bindVertexBuffer(uint32_t binding, BaseBuffer const& buffer,
     core().functions()->vkCmdBindVertexBuffers(get(), binding, 1, &vkBuffer, &vkOffset);
 }
 
-void BaseCmdBuffer::bindIndexBuffer(BaseBuffer const& buffer, VkIndexType type, size_t offset) const {
+void BaseCmdBuffer::bindIndices(BaseBuffer const& buffer, VkIndexType type, size_t offset) const {
     debug_check(*this);
     BaseBuffer::debug_check(buffer);
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
@@ -644,28 +625,29 @@ SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool const& pool, State const& state) 
 
 SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool const& pool, create_t) : SecondaryCmdBuffer{pool} { create(); }
 
-void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
-    VkCommandBufferInheritanceInfo const inheritanceInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-        .pNext = nullptr,
-        .renderPass = VK_NULL_HANDLE,
-        .subpass = 0,
-        .framebuffer = VK_NULL_HANDLE,
-        .occlusionQueryEnable = VK_FALSE,
-        .queryFlags = 0,
-        .pipelineStatistics = 0,
-    };
-    VkCommandBufferBeginInfo const info{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .pNext = nullptr,
-        .flags = usage,
-        .pInheritanceInfo = &inheritanceInfo,
-    };
-    BaseCmdBuffer::begin(info);
+void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage, HeapInheritance const& heaps) {
+    beginInherited(
+        VkCommandBufferInheritanceInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+            .pNext = nullptr,
+            .renderPass = VK_NULL_HANDLE,
+            .subpass = 0,
+            .framebuffer = VK_NULL_HANDLE,
+            .occlusionQueryEnable = VK_FALSE,
+            .queryFlags = 0,
+            .pipelineStatistics = 0,
+        },
+        usage,
+        heaps
+    );
     _inheritedRenderingOpt.reset();
 }
 
-void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUsageFlags usage) {
+void SecondaryCmdBuffer::begin(
+    Inheritance const& inheritance,
+    VkCommandBufferUsageFlags usage,
+    HeapInheritance const& heaps
+) {
     auto const colorAttachments = static_cast<uint32_t>(inheritance.colorFormats.size());
     AttachmentMapping::debug_check(inheritance.attachmentMapping, colorAttachments);
 
@@ -675,24 +657,48 @@ void SecondaryCmdBuffer::begin(Inheritance const& inheritance, VkCommandBufferUs
     auto renderingInfo = inheritance.renderingInfo();
     renderingInfo.pNext = &locations;
 
-    VkCommandBufferInheritanceInfo const inheritanceInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-        .pNext = &renderingInfo,
-        .renderPass = VK_NULL_HANDLE,
-        .subpass = 0,
-        .framebuffer = VK_NULL_HANDLE,
-        .occlusionQueryEnable = VK_FALSE,
-        .queryFlags = 0,
-        .pipelineStatistics = 0,
-    };
-    VkCommandBufferBeginInfo const info{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .pNext = nullptr,
-        .flags = usage | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
-        .pInheritanceInfo = &inheritanceInfo,
-    };
-    BaseCmdBuffer::begin(info);
+    beginInherited(
+        VkCommandBufferInheritanceInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+            .pNext = &renderingInfo,
+            .renderPass = VK_NULL_HANDLE,
+            .subpass = 0,
+            .framebuffer = VK_NULL_HANDLE,
+            .occlusionQueryEnable = VK_FALSE,
+            .queryFlags = 0,
+            .pipelineStatistics = 0,
+        },
+        usage | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+        heaps
+    );
     _continuedViewMaskOpt = inheritance.viewMask;
     _inheritedRenderingOpt = inheritance;
+}
+
+void SecondaryCmdBuffer::beginInherited(
+    VkCommandBufferInheritanceInfo inheritanceInfo,
+    VkCommandBufferUsageFlags usage,
+    HeapInheritance const& heaps
+) {
+    auto const [resourceHeapPtr, samplerHeapPtr] = heaps;
+    auto const resourceBind = resourceHeapPtr != nullptr ? resourceHeapPtr->bindInfo() : VkBindHeapInfoEXT{};
+    auto const samplerBind = samplerHeapPtr != nullptr ? samplerHeapPtr->bindInfo() : VkBindHeapInfoEXT{};
+
+    VkCommandBufferInheritanceDescriptorHeapInfoEXT const heapInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_DESCRIPTOR_HEAP_INFO_EXT,
+        .pNext = inheritanceInfo.pNext,
+        .pSamplerHeapBindInfo = samplerHeapPtr != nullptr ? &samplerBind : nullptr,
+        .pResourceHeapBindInfo = resourceHeapPtr != nullptr ? &resourceBind : nullptr,
+    };
+    if(resourceHeapPtr != nullptr || samplerHeapPtr != nullptr) inheritanceInfo.pNext = &heapInfo;
+
+    BaseCmdBuffer::begin(
+        VkCommandBufferBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = usage,
+            .pInheritanceInfo = &inheritanceInfo,
+        }
+    );
 }
 }

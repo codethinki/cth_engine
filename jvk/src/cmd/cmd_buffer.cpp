@@ -225,15 +225,15 @@ void BasicCmdBuffer<Cvk>::endRendering() {
 }
 
 template<class Cvk>
-void BasicCmdBuffer<Cvk>::bindVertexBuffer(uint32_t binding, cvk::BaseBuffer const& buffer, size_t offset) {
+void BasicCmdBuffer<Cvk>::bindVertices(uint32_t binding, cvk::BaseBuffer const& buffer, size_t offset) {
     use(buffer, {VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT, VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT});
-    _cmdBuffer.bindVertexBuffer(binding, buffer, offset);
+    _cmdBuffer.bindVertices(binding, buffer, offset);
 }
 
 template<class Cvk>
-void BasicCmdBuffer<Cvk>::bindIndexBuffer(cvk::BaseBuffer const& buffer, VkIndexType type, size_t offset) {
+void BasicCmdBuffer<Cvk>::bindIndices(cvk::BaseBuffer const& buffer, VkIndexType type, size_t offset) {
     use(buffer, {VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
-    _cmdBuffer.bindIndexBuffer(buffer, type, offset);
+    _cmdBuffer.bindIndices(buffer, type, offset);
 }
 
 template<class Cvk>

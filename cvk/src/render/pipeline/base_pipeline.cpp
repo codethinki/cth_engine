@@ -1,15 +1,11 @@
 #include "cvk/render/pipeline/base_pipeline.hpp"
 
 #include "cvk/base/core.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 
 namespace cvk {
-BasePipeline::BasePipeline(PipelineLayout const& layout, VkPipelineBindPoint bindPoint) : _handle{layout.core()},
-    _layout{layout}, _bindPoint{bindPoint} {
-    Core::debug_check(layout.core());
-}
+BasePipeline::BasePipeline(Core const& core, VkPipelineBindPoint bindPoint) : _handle{core}, _bindPoint{bindPoint} {}
 
 void BasePipeline::wrap(State const& state) {
     optDestroy();
@@ -40,8 +36,7 @@ void destroy(DeviceTable table, VkPipeline vkPipeline) {
 }
 
 void BasePipeline::create(VkGraphicsPipelineCreateInfo const& info) {
-    PipelineLayout::debug_check(*_layout);
-    CTH_CRITICAL(info.layout != _layout->get(), "the create info must use the layout of the pipeline") {}
+    Core::debug_check(core());
 
     optDestroy();
 
@@ -64,8 +59,7 @@ void BasePipeline::create(VkGraphicsPipelineCreateInfo const& info) {
 }
 
 void BasePipeline::create(VkComputePipelineCreateInfo const& info) {
-    PipelineLayout::debug_check(*_layout);
-    CTH_CRITICAL(info.layout != _layout->get(), "the create info must use the layout of the pipeline") {}
+    Core::debug_check(core());
 
     optDestroy();
 
@@ -85,6 +79,28 @@ void BasePipeline::create(VkComputePipelineCreateInfo const& info) {
     }
 
     _handle.reset(ptr, core());
+}
+
+BasePipeline::MappedStages BasePipeline::mapStages(
+    std::span<VkPipelineShaderStageCreateInfo const> stages,
+    std::span<VkDescriptorSetAndBindingMappingEXT const> mappings
+) {
+    MappedStages mapped{.mappingInfos = {}, .stages = {std::from_range, stages}};
+    if(mappings.empty()) return mapped;
+
+    mapped.mappingInfos.reserve(stages.size());
+    for(auto& stage : mapped.stages) {
+        auto const& mappingInfo = mapped.mappingInfos.emplace_back(
+            VkShaderDescriptorSetAndBindingMappingInfoEXT{
+                .sType = VK_STRUCTURE_TYPE_SHADER_DESCRIPTOR_SET_AND_BINDING_MAPPING_INFO_EXT,
+                .pNext = stage.pNext,
+                .mappingCount = static_cast<uint32_t>(mappings.size()),
+                .pMappings = mappings.data(),
+            }
+        );
+        stage.pNext = &mappingInfo;
+    }
+    return mapped;
 }
 
 void BasePipeline::forget() {}

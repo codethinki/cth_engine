@@ -12,11 +12,11 @@
 namespace cvk::constants {
 /**
  * features that every device enables
- * @details bindless:
- * - the descriptor indexing features that `descriptorIndexing` guarantees
- * - `descriptorBindingVariableDescriptorCount`
+ * @details bindless: the shader indexing features that `descriptorIndexing` guarantees, `runtimeDescriptorArray`
  * @details `dynamicRenderingLocalRead`: local reads in a dynamic rendering
  * @details `bufferDeviceAddress`: Vulkan 1.3 requires it, see `BaseBuffer::address()`
+ * @details `descriptorHeap`: every pipeline uses the descriptor heaps, see `ResourceHeap`, `SamplerHeap`
+ * @details `maintenance5`: `VK_EXT_descriptor_heap` requires it on Vulkan 1.3
  */
 inline constexpr DeviceFeatures BASE_DEVICE_FEATURES{
     .samplerAnisotropy = true,
@@ -28,20 +28,14 @@ inline constexpr DeviceFeatures BASE_DEVICE_FEATURES{
     .shaderSampledImageArrayNonUniformIndexing = true,
     .shaderStorageBufferArrayNonUniformIndexing = true,
     .shaderUniformTexelBufferArrayNonUniformIndexing = true,
-    .descriptorBindingSampledImageUpdateAfterBind = true,
-    .descriptorBindingStorageImageUpdateAfterBind = true,
-    .descriptorBindingStorageBufferUpdateAfterBind = true,
-    .descriptorBindingUniformTexelBufferUpdateAfterBind = true,
-    .descriptorBindingStorageTexelBufferUpdateAfterBind = true,
-    .descriptorBindingUpdateUnusedWhilePending = true,
-    .descriptorBindingPartiallyBound = true,
-    .descriptorBindingVariableDescriptorCount = true,
     .runtimeDescriptorArray = true,
     .timelineSemaphore = true,
     .bufferDeviceAddress = true,
     .synchronization2 = true,
     .dynamicRendering = true,
     .dynamicRenderingLocalRead = true,
+    .maintenance5 = true,
+    .descriptorHeap = true,
 };
 
 /**

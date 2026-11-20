@@ -40,11 +40,7 @@ void destroy(DeviceTable, VkFence);
 void destroy(DeviceTable, VkSwapchainKHR);
 void destroy(DeviceTable, VkImage);
 void destroy(DeviceTable, VkImageView);
-void destroy(DeviceTable, VkSampler);
 void destroy(DeviceTable, VkBuffer);
-void destroy(DeviceTable, VkDescriptorPool);
-void destroy(DeviceTable, VkDescriptorSetLayout);
-void destroy(DeviceTable, VkPipelineLayout);
 void destroy(DeviceTable, VkShaderModule);
 void destroy(DeviceTable, VkPipeline);
 void destroy(DeviceTable, VkCommandPool);
@@ -56,6 +52,4 @@ void destroy(DeviceTable, VkCommandPool, VkCommandBuffer);
  * frees the command buffers at once
  */
 void destroy(DeviceTable, VkCommandPool, std::span<VkCommandBuffer const> vkBuffers);
-
-void destroy(DeviceTable, VkDescriptorPool, VkDescriptorSet);
 }

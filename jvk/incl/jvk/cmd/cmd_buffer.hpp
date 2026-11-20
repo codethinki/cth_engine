@@ -24,10 +24,8 @@
 namespace cvk {
 class ComputePipeline;
 class Core;
-class DescriptorSet;
 class GraphicsPipeline;
 class Image;
-class PipelineLayout;
 }
 
 namespace jvk::dev {
@@ -194,23 +192,23 @@ public:
     /**
      * binds the buffer to the vertex input binding
      * @details tracks the read of the buffer at the bind: write the buffer before the bind
-     * @pre the preconditions of `cvk::BaseCmdBuffer::bindVertexBuffer()` and `use()`
+     * @pre the preconditions of `cvk::BaseCmdBuffer::bindVertices()` and `use()`
      */
-    void bindVertexBuffer(uint32_t binding, cvk::BaseBuffer const&, size_t offset = 0);
+    void bindVertices(uint32_t binding, cvk::BaseBuffer const&, size_t offset = 0);
 
     /**
      * binds the index buffer
      * @details tracks the read of the buffer at the bind: write the buffer before the bind
-     * @pre the preconditions of `cvk::BaseCmdBuffer::bindIndexBuffer()` and `use()`
+     * @pre the preconditions of `cvk::BaseCmdBuffer::bindIndices()` and `use()`
      */
-    void bindIndexBuffer(cvk::BaseBuffer const&, VkIndexType, size_t offset = 0);
+    void bindIndices(cvk::BaseBuffer const&, VkIndexType, size_t offset = 0);
 
     /**
      * binds the index buffer with the index type of `T`
      */
     template<cvk::index_element T>
-    void bindIndexBuffer(cvk::Buffer<T> const& buffer, size_t offset = 0) {
-        bindIndexBuffer(static_cast<cvk::BaseBuffer const&>(buffer), cvk::index_type<T>, offset);
+    void bindIndices(cvk::Buffer<T> const& buffer, size_t offset = 0) {
+        bindIndices(static_cast<cvk::BaseBuffer const&>(buffer), cvk::index_type<T>, offset);
     }
 
     /**
@@ -273,40 +271,20 @@ public:
     void setScissor(VkExtent2D extent) const { _cmdBuffer.setScissor(extent); }
 
     /**
-     * @see @ref cvk::BaseCmdBuffer::bindPipeline(cvk::GraphicsPipeline const&)
+     * @see @ref cvk::BaseCmdBuffer::bind(cvk::GraphicsPipeline const&)
      */
-    void bindPipeline(cvk::GraphicsPipeline const& pipeline) { _cmdBuffer.bindPipeline(pipeline); }
+    void bind(cvk::GraphicsPipeline const& pipeline) { _cmdBuffer.bind(pipeline); }
 
     /**
-     * @see @ref cvk::BaseCmdBuffer::bindPipeline(cvk::ComputePipeline const&) const
+     * @see @ref cvk::BaseCmdBuffer::bind(cvk::ComputePipeline const&) const
      */
-    void bindPipeline(cvk::ComputePipeline const& pipeline) const { _cmdBuffer.bindPipeline(pipeline); }
+    void bind(cvk::ComputePipeline const& pipeline) const { _cmdBuffer.bind(pipeline); }
 
     /**
-     * @see `cvk::BaseCmdBuffer::bindDescriptorSet()`
-     */
-    void bindDescriptorSet(
-        cvk::DescriptorSet const& set,
-        cvk::PipelineLayout const& layout,
-        uint32_t setIndex,
-        VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        std::span<uint32_t const> dynamicOffsets = {}
-    ) const {
-        _cmdBuffer.bindDescriptorSet(set, layout, setIndex, bindPoint, dynamicOffsets);
-    }
-
-    /**
-     * @see `cvk::BaseCmdBuffer::pushConstants()`
+     * @see `cvk::BaseCmdBuffer::pushData()`
      */
     template<cvk::push_constant_data T>
-    void pushConstants(
-        cvk::PipelineLayout const& layout,
-        VkShaderStageFlags stages,
-        T const& data,
-        uint32_t offset = 0
-    ) const {
-        _cmdBuffer.pushConstants(layout, stages, data, offset);
-    }
+    void pushData(T const& data, uint32_t offset = 0) const { _cmdBuffer.pushData(data, offset); }
 
     /**
      * @see `cvk::BaseCmdBuffer::draw()`

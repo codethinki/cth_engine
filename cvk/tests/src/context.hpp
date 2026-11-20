@@ -49,13 +49,6 @@ inline constexpr BaseBuffer::Config READBACK_CONFIG{
 };
 
 /**
- * binding flags of a bindless descriptor array
- */
-inline constexpr VkDescriptorBindingFlags BINDLESS = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
-    | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
-    | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-
-/**
  * vertex of `cvk::test::FULLSCREEN`, the `vec3` position at location 0 of the test vertex shaders
  */
 struct Vec3 {

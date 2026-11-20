@@ -20,6 +20,12 @@ struct MemoryConfig {
     VkMemoryPropertyFlags preferredFlags = 0; ///< VMA prefers memory types with these flags
 
     /**
+     * minimum alignment of the allocation, `0` -> the alignment of the memory requirements
+     * @pre `0` or a power of two
+     */
+    VkDeviceSize minAlignment = 0;
+
+    /**
      * @return create info with the members of the config, no pool
      */
     [[nodiscard]] constexpr VmaAllocationCreateInfo createInfo() const {
@@ -32,7 +38,7 @@ struct MemoryConfig {
             .pool = VK_NULL_HANDLE,
             .pUserData = nullptr,
             .priority = 0.0f,
-            .minAlignment = 0,
+            .minAlignment = minAlignment,
         };
     }
 

@@ -85,7 +85,7 @@ public:
     State release();
 
     /**
-     * @return VMA flags for `bufferDeviceAddress`, `maintenance4` and `VK_EXT_memory_budget` of the device
+     * @return VMA flags for the device: `bufferDeviceAddress`, `maintenance4`, `maintenance5`, `VK_EXT_memory_budget`
      */
     [[nodiscard]] static VmaAllocatorCreateFlags flags(Device const&);
 

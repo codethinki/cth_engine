@@ -51,9 +51,21 @@ struct GraphicsPipelineConfig {
      */
     constexpr GraphicsPipelineConfig& removeStage(VkShaderStageFlagBits stage);
 
-    VkPipelineCreateFlags flags = 0; ///< `VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT` -> the pipeline can be a parent
+    /**
+     * create flags
+     * @details `VK_PIPELINE_CREATE_2_ALLOW_DERIVATIVES_BIT` -> the pipeline can be a parent
+     * @details `GraphicsPipeline::create()` adds `VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT`
+     */
+    VkPipelineCreateFlags2 flags = 0;
 
     std::vector<VkPipelineShaderStageCreateInfo> stages{};
+
+    /**
+     * maps the descriptor sets and bindings of the shaders onto the heaps, chained to every stage
+     * @pre every set and binding of the shaders has a mapping
+     * @see `DescriptorSpan::mapping()`
+     */
+    std::vector<VkDescriptorSetAndBindingMappingEXT> descriptorMappings{};
 
     std::vector<VkVertexInputBindingDescription> vertexBindings{};
     std::vector<VkVertexInputAttributeDescription> vertexAttributes{};

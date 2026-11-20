@@ -4,8 +4,6 @@
 
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/pipeline/graphics_pipeline.hpp"
-#include "cvk/render/pipeline/layout/descriptor_set_layout.hpp"
-#include "cvk/render/pipeline/layout/pipeline_layout.hpp"
 #include "cvk/render/pipeline/shader/shader.hpp"
 
 #include <array>
@@ -20,19 +18,10 @@ namespace {
     constexpr VkFormat DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT;
 
     /**
-     * layout and shaders of the triangle shaders
+     * shaders of the triangle shaders
      */
     struct Triangle {
-        explicit Triangle(Core const& core) : setLayout{core, set_config(), create},
-            layout{
-                core,
-                PipelineLayout::Config{
-                    .setLayouts = {setLayout},
-                    .pushConstantRanges = {{.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, .offset = 0, .size = 16}},
-                },
-                create
-            },
-            vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::TRIANGLE_VERT},
+        explicit Triangle(Core const& core) : vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::TRIANGLE_VERT},
             fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG} {}
 
         [[nodiscard]] GraphicsPipeline::Config config() const {
@@ -50,14 +39,6 @@ namespace {
             return config;
         }
 
-        static DescriptorSetLayout::Config set_config() {
-            DescriptorSetLayout::Config config{};
-            config.add(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT);
-            return config;
-        }
-
-        DescriptorSetLayout setLayout;
-        PipelineLayout layout;
         Shader vertex;
         Shader fragment;
     };
@@ -127,12 +108,12 @@ CVK_TEST(GraphicsPipeline, config_add_stage_takes_the_entry_point) {
 CVK_TEST(GraphicsPipeline, bind) {
     test::Context const context{};
     Triangle const triangle{context.core};
-    GraphicsPipeline const pipeline{triangle.layout, triangle.config(), create};
+    GraphicsPipeline const pipeline{context.core, triangle.config(), create};
     CmdPool const pool{context.core, test::pool_config(context.core), create};
     PrimaryCmdBuffer primary{pool, create};
 
     primary.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    primary.bindPipeline(pipeline);
+    primary.bind(pipeline);
     primary.end();
 
     test::submit_and_wait(context, primary);
@@ -142,10 +123,10 @@ CVK_TEST(GraphicsPipeline, base_constructor_does_not_create) {
     test::Context const context{};
     Triangle const triangle{context.core};
 
-    GraphicsPipeline const pipeline{triangle.layout, triangle.config()};
+    GraphicsPipeline const pipeline{context.core, triangle.config()};
 
     EXPECT_FALSE(pipeline.created());
-    EXPECT_EQ(&pipeline.layout(), &triangle.layout);
+    EXPECT_EQ(&pipeline.core(), &context.core);
     EXPECT_EQ(pipeline.bindPoint(), VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
@@ -153,7 +134,7 @@ CVK_TEST(GraphicsPipeline, create) {
     test::Context const context{};
     Triangle const triangle{context.core};
 
-    GraphicsPipeline const pipeline{triangle.layout, triangle.config(), create};
+    GraphicsPipeline const pipeline{context.core, triangle.config(), create};
 
     EXPECT_TRUE(pipeline.created());
     EXPECT_EQ(pipeline.config().stages.size(), 2);
@@ -163,7 +144,7 @@ CVK_TEST(GraphicsPipeline, create_keeps_the_empty_blend_attachments) {
     test::Context const context{};
     Triangle const triangle{context.core};
 
-    GraphicsPipeline const pipeline{triangle.layout, triangle.config(), create};
+    GraphicsPipeline const pipeline{context.core, triangle.config(), create};
 
     EXPECT_TRUE(pipeline.created());
     EXPECT_TRUE(pipeline.config().colorBlendAttachments.empty());
@@ -178,7 +159,7 @@ CVK_TEST(GraphicsPipeline, create_with_a_blend_attachment_per_color_format) {
         {.blendEnable = VK_FALSE, .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT},
     };
 
-    GraphicsPipeline const pipeline{triangle.layout, std::move(config), create};
+    GraphicsPipeline const pipeline{context.core, std::move(config), create};
 
     EXPECT_TRUE(pipeline.created());
     ASSERT_EQ(pipeline.config().colorBlendAttachments.size(), 1);
@@ -192,7 +173,7 @@ CVK_TEST(GraphicsPipeline, create_without_depth) {
     auto config = triangle.config();
     config.depthFormat = VK_FORMAT_UNDEFINED;
 
-    GraphicsPipeline const pipeline{triangle.layout, std::move(config), create};
+    GraphicsPipeline const pipeline{context.core, std::move(config), create};
 
     EXPECT_TRUE(pipeline.created());
 }
@@ -201,7 +182,7 @@ CVK_TEST(GraphicsPipeline, shaders_can_be_destroyed_after_create) {
     test::Context const context{};
     auto triangle = std::make_unique<Triangle>(context.core);
 
-    GraphicsPipeline pipeline{triangle->layout, triangle->config(), create};
+    GraphicsPipeline pipeline{context.core, triangle->config(), create};
     triangle->vertex.destroy();
     triangle->fragment.destroy();
 
@@ -211,21 +192,21 @@ CVK_TEST(GraphicsPipeline, shaders_can_be_destroyed_after_create) {
 CVK_TEST(GraphicsPipeline, release_and_wrap) {
     test::Context const context{};
     Triangle const triangle{context.core};
-    GraphicsPipeline pipeline{triangle.layout, triangle.config(), create};
+    GraphicsPipeline pipeline{context.core, triangle.config(), create};
     auto const vkPipeline = pipeline.get();
 
     auto const state = pipeline.release();
     EXPECT_FALSE(pipeline.created());
 
-    GraphicsPipeline const wrapped{triangle.layout, triangle.config(), state};
+    GraphicsPipeline const wrapped{context.core, triangle.config(), state};
     EXPECT_EQ(wrapped.get(), vkPipeline);
 }
 
 CVK_TEST(GraphicsPipeline, move_assignment_destroys_the_old_pipeline) {
     test::Context const context{};
     Triangle const triangle{context.core};
-    GraphicsPipeline pipeline{triangle.layout, triangle.config(), create};
-    GraphicsPipeline other{triangle.layout, triangle.config(), create};
+    GraphicsPipeline pipeline{context.core, triangle.config(), create};
+    GraphicsPipeline other{context.core, triangle.config(), create};
     auto const vkPipeline = other.get();
 
     pipeline = std::move(other);
@@ -239,8 +220,8 @@ CVK_TEST(GraphicsPipeline, derivative) {
     Triangle const triangle{context.core};
 
     auto parentConfig = triangle.config();
-    parentConfig.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
-    GraphicsPipeline const parent{triangle.layout, std::move(parentConfig), create};
+    parentConfig.flags = VK_PIPELINE_CREATE_2_ALLOW_DERIVATIVES_BIT;
+    GraphicsPipeline const parent{context.core, std::move(parentConfig), create};
 
     auto childConfig = triangle.config();
     childConfig.rasterization.cullMode = VK_CULL_MODE_NONE;
@@ -248,7 +229,7 @@ CVK_TEST(GraphicsPipeline, derivative) {
 
     ASSERT_TRUE(child.created());
     EXPECT_EQ(child.parent(), &parent);
-    EXPECT_EQ(&child.layout(), &triangle.layout);
+    EXPECT_EQ(&child.core(), &context.core);
     EXPECT_EQ(parent.parent(), nullptr);
 }
 
@@ -256,9 +237,9 @@ CVK_TEST(GraphicsPipeline, derivative_constructs_before_the_parent_is_created) {
     test::Context const context{};
     Triangle const triangle{context.core};
     auto parentConfig = triangle.config();
-    parentConfig.flags = VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT;
+    parentConfig.flags = VK_PIPELINE_CREATE_2_ALLOW_DERIVATIVES_BIT;
 
-    GraphicsPipeline parent{triangle.layout, std::move(parentConfig)};
+    GraphicsPipeline parent{context.core, std::move(parentConfig)};
     GraphicsPipeline child{parent, triangle.config()};
 
     parent.create();

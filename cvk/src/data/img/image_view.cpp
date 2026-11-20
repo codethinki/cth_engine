@@ -21,37 +21,11 @@ void ImageView::wrap(State const& state) {
 }
 
 void ImageView::create() {
-    Image::debug_check(*_image);
-    CTH_CRITICAL(_config.baseMipLevel >= _image->mipLevels(), "base mip level must lie in the image") {}
-    CTH_CRITICAL(
-        _config.mipLevels != VK_REMAINING_MIP_LEVELS
-            && _config.mipLevels > _image->mipLevels() - _config.baseMipLevel,
-        "mip levels must lie in the image"
-    ) {}
-    CTH_CRITICAL(_config.baseArrayLayer >= _image->arrayLayers(), "base array layer must lie in the image") {}
-    CTH_CRITICAL(
-        _config.arrayLayers != VK_REMAINING_ARRAY_LAYERS
-        && _config.arrayLayers > _image->arrayLayers() - _config.baseArrayLayer,
-        "array layers must lie in the image"
-    ) {}
+    Config::debug_check(_config, *_image);
 
     optDestroy();
 
-    VkImageViewCreateInfo const info{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .image = _image->get(),
-        .viewType = viewType(),
-        .format = _image->format(),
-        .components = {
-            .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .a = VK_COMPONENT_SWIZZLE_IDENTITY,
-        },
-        .subresourceRange = range(),
-    };
+    auto const info = _config.createInfo(*_image);
 
     VkImageView ptr = VK_NULL_HANDLE;
     auto const result = core().functions()->vkCreateImageView(core().vkDevice(), &info, nullptr, &ptr);

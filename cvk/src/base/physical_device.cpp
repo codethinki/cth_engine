@@ -38,13 +38,26 @@ namespace {
 
     struct queried_properties {
         VkPhysicalDeviceProperties properties;
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapProperties;
         device_uuid_t uuid;
     };
 
-    [[nodiscard]] queried_properties query_properties(vk_not_null<VkPhysicalDevice> vkDevice) {
+    /**
+     * @param extensions of the device, the query includes the descriptor heap properties only with its extension
+     */
+    [[nodiscard]] queried_properties query_properties(
+        vk_not_null<VkPhysicalDevice> vkDevice,
+        span<string const> extensions
+    ) {
+        VkPhysicalDeviceDescriptorHeapPropertiesEXT heapProperties{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT,
+            .pNext = nullptr,
+        };
+        bool const heaps = std::ranges::contains(extensions, std::string_view{VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME});
+
         VkPhysicalDeviceIDProperties idProperties{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES,
-            .pNext = nullptr,
+            .pNext = heaps ? &heapProperties : nullptr,
         };
         VkPhysicalDeviceProperties2 properties{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
@@ -52,7 +65,12 @@ namespace {
         };
         vkGetPhysicalDeviceProperties2(vkDevice.get(), &properties);
 
-        queried_properties result{.properties = properties.properties, .uuid = {}};
+        heapProperties.pNext = nullptr;
+        queried_properties result{
+            .properties = properties.properties,
+            .descriptorHeapProperties = heapProperties,
+            .uuid = {},
+        };
         std::ranges::copy(idProperties.deviceUUID, result.uuid.begin());
         return result;
     }
@@ -127,8 +145,9 @@ PhysicalDevice::PhysicalDevice(
     _features{dev::query_features(vkDevice, _extensions)},
     _memoryProperties{query_memory_properties(vkDevice)},
     _queueFamilies{query_queue_families(surfaces, vkDevice)} {
-    auto const [properties, uuid] = query_properties(vkDevice);
+    auto const [properties, heapProperties, uuid] = query_properties(vkDevice, _extensions);
     _properties = properties;
+    _descriptorHeapProperties = heapProperties;
     _uuid = uuid;
     _maxSampleCount = max_sample_count(_properties);
 }

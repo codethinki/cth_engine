@@ -29,9 +29,9 @@
 namespace cvk {
 class ComputePipeline;
 class Core;
-class DescriptorSet;
 class GraphicsPipeline;
-class PipelineLayout;
+class ResourceHeap;
+class SamplerHeap;
 
 /**
  * contiguous range of trivially copyable elements
@@ -183,54 +183,49 @@ public:
      * @pre `recording()`, `GraphicsPipeline::created()`
      * @pre a secondary inside the rendering of a primary -> the attachment mapping of the pipeline == the inherited one
      */
-    void bindPipeline(GraphicsPipeline const&);
+    void bind(GraphicsPipeline const&);
 
     /**
      * binds the pipeline to the compute bind point
      * @pre `recording()`, `ComputePipeline::created()`
      */
-    void bindPipeline(ComputePipeline const&) const;
+    void bind(ComputePipeline const&) const;
 
     /**
-     * binds the set to the set number of the pipeline layout
-     * @param setIndex set number in the pipeline layout
-     * @param dynamicOffsets one per dynamic buffer descriptor of the set
-     * @pre `recording()`, `DescriptorSet::created()`
-     * @pre the set layout of `setIndex` in the pipeline layout is compatible with the layout of the set
+     * binds the whole heap with its reserved range
+     * @pre `recording()`, `ResourceHeap::created()`
+     * @pre a secondary -> began without a resource heap in its `HeapInheritance`
      */
-    void bindDescriptorSet(
-        DescriptorSet const&,
-        PipelineLayout const&,
-        uint32_t setIndex,
-        VkPipelineBindPoint bindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        std::span<uint32_t const> dynamicOffsets = {}
-    ) const;
+    void bind(ResourceHeap const&) const;
 
     /**
-     * records push constants
+     * binds the whole heap with its reserved range
+     * @pre `recording()`, `SamplerHeap::created()`
+     * @pre a secondary -> began without a sampler heap in its `HeapInheritance`
+     */
+    void bind(SamplerHeap const&) const;
+
+    /**
+     * records push data, the push constants of the shaders
      * @param data `cvk::push_constant_range` -> the bytes of the elements, else the bytes of the value
      * @param offset in bytes
-     * @pre `recording()`, `PipelineLayout::created()`
+     * @pre `recording()`
      * @pre `data` has bytes, `offset` and the byte count are multiples of 4
-     * @pre the push constant ranges of the layout cover the bytes for the stages
+     * @pre `offset` + the byte count `<= maxPushDataSize`
      */
     template<push_constant_data T>
-    void pushConstants(
-        PipelineLayout const& layout,
-        VkShaderStageFlags stages,
-        T const& data,
-        uint32_t offset = 0
-    ) const {
-        if constexpr(push_constant_range<T>) pushConstantBytes(layout, stages, std::as_bytes(std::span{data}), offset);
-        else pushConstantBytes(layout, stages, std::as_bytes(std::span{&data, 1}), offset);
+    void pushData(T const& data, uint32_t offset = 0) const {
+        if constexpr(push_constant_range<T>) pushDataBytes(std::as_bytes(std::span{data}), offset);
+        else pushDataBytes(std::as_bytes(std::span{&data, 1}), offset);
     }
 
     /**
      * binds the buffer to the vertex input binding
+     * @param binding vertex input binding
      * @param offset in bytes
      * @pre `recording()`, buffer created with `VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`
      */
-    void bindVertexBuffer(uint32_t binding, BaseBuffer const&, size_t offset = 0) const;
+    void bindVertices(uint32_t binding, BaseBuffer const&, size_t offset = 0) const;
 
     /**
      * binds the index buffer
@@ -238,16 +233,56 @@ public:
      * @pre `recording()`, buffer created with `VK_BUFFER_USAGE_INDEX_BUFFER_BIT`
      * @pre `offset` is a multiple of the index size
      */
-    void bindIndexBuffer(BaseBuffer const&, VkIndexType, size_t offset = 0) const;
+    void bindIndices(BaseBuffer const&, VkIndexType, size_t offset = 0) const;
 
     /**
      * binds the index buffer with the index type of `T`
+     * @param buffer of the indices
      * @param offset in bytes
      */
     template<index_element T>
-    void bindIndexBuffer(Buffer<T> const& buffer, size_t offset = 0) const {
-        bindIndexBuffer(static_cast<BaseBuffer const&>(buffer), index_type<T>, offset);
+    void bindIndices(Buffer<T> const& buffer, size_t offset = 0) const {
+        bindIndices(static_cast<BaseBuffer const&>(buffer), index_type<T>, offset);
     }
+
+    /**
+     * deleted: the index type of a typed buffer comes from `T`
+     * @see `bindIndices()`
+     */
+    template<index_element T>
+    void bindIndices(Buffer<T> const&, VkIndexType, size_t offset = 0) const = delete("the index type comes from T");
+
+    /**
+     * the Vulkan name of `bindVertices()`
+     * @see `bindVertices()`
+     */
+    void bindVertexBuffer(uint32_t binding, BaseBuffer const& buffer, size_t offset = 0) const {
+        bindVertices(binding, buffer, offset);
+    }
+
+    /**
+     * the Vulkan name of `bindIndices()`
+     * @see `bindIndices()`
+     */
+    void bindIndexBuffer(BaseBuffer const& buffer, VkIndexType type, size_t offset = 0) const {
+        bindIndices(buffer, type, offset);
+    }
+
+    /**
+     * the Vulkan name of `bindIndices()`
+     * @see `bindIndices()`
+     */
+    template<index_element T>
+    void bindIndexBuffer(Buffer<T> const& buffer, size_t offset = 0) const { bindIndices(buffer, offset); }
+
+    /**
+     * deleted: the index type of a typed buffer comes from `T`
+     * @see `bindIndexBuffer()`
+     */
+    template<index_element T>
+    void bindIndexBuffer(Buffer<T> const&, VkIndexType, size_t offset = 0) const = delete(
+        "the index type comes from T"
+    );
 
     /**
      * @pre `rendering()` or a secondary inside the rendering of a primary
@@ -396,14 +431,9 @@ private:
     void recordAttachmentMapping() const;
 
     /**
-     * records the bytes as push constants
+     * records the bytes as push data
      */
-    void pushConstantBytes(
-        PipelineLayout const&,
-        VkShaderStageFlags stages,
-        std::span<std::byte const> data,
-        uint32_t offset
-    ) const;
+    void pushDataBytes(std::span<std::byte const> data, uint32_t offset) const;
 
     void forget();
 
@@ -526,6 +556,15 @@ private:
 
 namespace cvk {
 /**
+ * heaps that a secondary inherits from the primary
+ * @details `nullptr` -> the secondary binds the heap itself
+ */
+struct HeapInheritance {
+    ResourceHeap const* resourceHeapPtr = nullptr;
+    SamplerHeap const* samplerHeapPtr = nullptr;
+};
+
+/**
  * secondary command buffer
  */
 class SecondaryCmdBuffer : public BaseCmdBuffer {
@@ -551,23 +590,29 @@ public:
 
     /**
      * begins the recording for use outside of a rendering
+     * @param usage of the recording
+     * @param heaps that the secondary inherits
      * @pre `created()`
      * @pre `!recording()`
+     * @pre the heaps of `heaps` are created and bound in the primary at the execute
      * @post `recording()`
      * @throws cvk::vk_result_exception result of `vkBeginCommandBuffer()`
      */
-    void begin(VkCommandBufferUsageFlags usage = 0);
+    void begin(VkCommandBufferUsageFlags usage = 0, HeapInheritance const& heaps = {});
 
     /**
      * begins the recording for use inside the rendering of a primary
+     * @param usage of the recording
+     * @param heaps that the secondary inherits
      * @details adds `VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT`
      * @pre `created()`
      * @pre `!recording()`
      * @pre `AttachmentMapping::debug_check()` passes for the color formats
+     * @pre the heaps of `heaps` are created and bound in the primary at the execute
      * @post `recording()`
      * @throws cvk::vk_result_exception result of `vkBeginCommandBuffer()`
      */
-    void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0);
+    void begin(Inheritance const&, VkCommandBufferUsageFlags usage = 0, HeapInheritance const& heaps = {});
 
     /**
      * @return what the secondary inherits from the rendering it continues
@@ -578,6 +623,11 @@ public:
     }
 
 private:
+    /**
+     * begins the recording with the inheritance info, chains the inherited heaps in front of its `pNext`
+     */
+    void beginInherited(VkCommandBufferInheritanceInfo, VkCommandBufferUsageFlags usage, HeapInheritance const& heaps);
+
     std::optional<Inheritance> _inheritedRenderingOpt = std::nullopt;
 };
 }

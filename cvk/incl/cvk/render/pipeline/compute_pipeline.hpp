@@ -5,9 +5,11 @@
 
 #include <volk.h>
 
+#include <vector>
+
 
 namespace cvk {
-class PipelineLayout;
+class Core;
 
 /**
  * config of a `ComputePipeline`
@@ -20,7 +22,18 @@ struct ComputePipelineConfig {
      */
     VkPipelineShaderStageCreateInfo stage{};
 
-    VkPipelineCreateFlags flags = 0;
+    /**
+     * create flags
+     * @details `ComputePipeline::create()` adds `VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT`
+     */
+    VkPipelineCreateFlags2 flags = 0;
+
+    /**
+     * maps the descriptor sets and bindings of the shader onto the heaps
+     * @pre every set and binding of the shader has a mapping
+     * @see `DescriptorSpan::mapping()`
+     */
+    std::vector<VkDescriptorSetAndBindingMappingEXT> descriptorMappings{};
 };
 
 /**
@@ -31,26 +44,28 @@ public:
     using Config = ComputePipelineConfig;
 
     /**
-     * base constructor, keeps the layout
+     * base constructor
      */
-    ComputePipeline(PipelineLayout const&, Config const&);
+    ComputePipeline(Core const&, Config);
 
     /**
      * constructs and wraps
-     * @details calls @ref ComputePipeline(PipelineLayout const&, Config const&), `wrap()`
+     * @details calls @ref ComputePipeline(Core const&, Config), `wrap()`
      */
-    ComputePipeline(PipelineLayout const&, Config const&, State const&);
+    ComputePipeline(Core const&, Config, State const&);
 
     /**
      * constructs and creates
-     * @details calls @ref ComputePipeline(PipelineLayout const&, Config const&), `create()`
+     * @details calls @ref ComputePipeline(Core const&, Config), `create()`
      */
-    explicit ComputePipeline(PipelineLayout const&, Config const&, create_t);
+    explicit ComputePipeline(Core const&, Config, create_t);
 
     /**
      * creates the pipeline
+     * @details chains the descriptor mappings to the stage
+     * @pre `Core::created()`
      * @pre the stage of the config is a compute shader
-     * @pre the layout and the shader module of the config are not destroyed
+     * @pre the shader module of the config is not destroyed
      * @post `created()`
      * @note calls `optDestroy()`
      * @throws cvk::vk_result_exception result of `vkCreateComputePipelines()`
