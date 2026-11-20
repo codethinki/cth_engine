@@ -10,6 +10,9 @@ cth_set_latest_c_cpp_standard()
 
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+# a clang precompiled header stores the mtimes of its headers: a cached one fails against a fresh checkout
+add_compile_options("$<$<COMPILE_LANG_AND_ID:CXX,Clang>:SHELL:-Xclang -fno-pch-timestamp>")
+
 # lld links much faster than the default linker
 find_program(LLD_LINKER ld.lld)
 if(LLD_LINKER AND NOT MSVC)
