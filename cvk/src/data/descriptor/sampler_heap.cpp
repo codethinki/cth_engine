@@ -4,6 +4,8 @@
 #include "cvk/base/physical_device.hpp"
 #include "cvk/data/descriptor/heap_buffer.hpp"
 
+#include <cth/numeric.hpp>
+
 
 namespace cvk {
 SamplerHeap::SamplerHeap(Core const& core, Config const& config) : _buffer{core, dev::HEAP_BUFFER_CONFIG},
@@ -19,8 +21,8 @@ void SamplerHeap::create() {
 
     auto const& properties = core().physicalDevice().descriptorHeapProperties();
 
-    auto const stride = dev::align_up(properties.samplerDescriptorSize, properties.samplerDescriptorAlignment);
-    auto const reservedOffset = dev::align_up(_config.samplers * stride, properties.samplerDescriptorAlignment);
+    auto const stride = cth::num::align_to(properties.samplerDescriptorSize, properties.samplerDescriptorAlignment);
+    auto const reservedOffset = cth::num::align_to(_config.samplers * stride, properties.samplerDescriptorAlignment);
     auto const reservedSize = properties.minSamplerHeapReservedRange;
 
     dev::create_heap_buffer(

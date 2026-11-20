@@ -4,6 +4,8 @@
 #include "cvk/base/physical_device.hpp"
 #include "cvk/data/descriptor/heap_buffer.hpp"
 
+#include <cth/numeric.hpp>
+
 #include <algorithm>
 
 
@@ -27,9 +29,9 @@ void ResourceHeap::create() {
 
     auto const& properties = core().physicalDevice().descriptorHeapProperties();
 
-    auto const stride = dev::align_up(properties.imageDescriptorSize, properties.imageDescriptorAlignment);
+    auto const stride = cth::num::align_to(properties.imageDescriptorSize, properties.imageDescriptorAlignment);
     size_t const descriptors = size_t{sampledImages} + storageImages + inputAttachments;
-    auto const reservedOffset = dev::align_up(
+    auto const reservedOffset = cth::num::align_to(
         descriptors * stride,
         std::max(properties.bufferDescriptorAlignment, properties.imageDescriptorAlignment)
     );

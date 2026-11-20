@@ -9,14 +9,6 @@
 
 namespace cvk::dev {
 /**
- * @return `value` rounded up to a multiple of `alignment`
- * @pre `alignment > 0`
- */
-[[nodiscard]] constexpr size_t align_up(size_t value, size_t alignment) {
-    return (value + alignment - 1) / alignment * alignment;
-}
-
-/**
  * buffer config of a descriptor heap
  * @details usage: descriptor heap and device address
  * @details memory: mapped, sequential host writes, prefers device memory
