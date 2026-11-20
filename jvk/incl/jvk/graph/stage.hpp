@@ -283,14 +283,12 @@ public:
         await(SemaphoreSubmitInfo{semaphore, stages, value});
     }
 
-    //TODO review deleted with a reason (C++26): without it a jvk semaphore takes the binary overload through the
-    // private base of cvk::TimelineSemaphore and fails with an inaccessible base error
+    //TODO review deleted: without it a jvk semaphore takes the binary overload through the private base of
+    // cvk::TimelineSemaphore and fails with an inaccessible base error. no reason: MSVC lacks C++26 delete("...")
     /**
-     * a jvk semaphore needs a value
+     * a jvk semaphore needs a value: `await(semaphore, stages, value)`
      */
-    void await(Semaphore const&, VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT) = delete(
-        "a jvk semaphore needs a value: await(semaphore, stages, value)"
-    );
+    void await(Semaphore const&, VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT) = delete;
 
     /**
      * adds a wait on a binary semaphore to the submit of this frame

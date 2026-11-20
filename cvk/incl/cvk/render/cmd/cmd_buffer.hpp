@@ -250,7 +250,7 @@ public:
      * @see `bindIndices()`
      */
     template<index_element T>
-    void bindIndices(Buffer<T> const&, VkIndexType, size_t offset = 0) const = delete("the index type comes from T");
+    void bindIndices(Buffer<T> const&, VkIndexType, size_t offset = 0) const = delete;
 
     /**
      * the Vulkan name of `bindVertices()`
@@ -280,9 +280,7 @@ public:
      * @see `bindIndexBuffer()`
      */
     template<index_element T>
-    void bindIndexBuffer(Buffer<T> const&, VkIndexType, size_t offset = 0) const = delete(
-        "the index type comes from T"
-    );
+    void bindIndexBuffer(Buffer<T> const&, VkIndexType, size_t offset = 0) const = delete;
 
     /**
      * @pre `rendering()` or a secondary inside the rendering of a primary

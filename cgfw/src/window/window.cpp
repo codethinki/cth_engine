@@ -9,6 +9,10 @@
 
 #include <cth/os/osdef.hpp>
 
+#ifdef CTH_PLATFORM_WINDOWS
+#include <windows.h>
+#endif
+
 #include <algorithm>
 #include <span>
 
