@@ -107,12 +107,11 @@ void Presenter::destroy() {
 }
 
 cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipelineStageFlags2 stages) {
-    // on the calling thread, the scope compares them at its end
+    // on the calling thread: the scope compares them at its end
     auto const uncaughtExceptions = std::uncaught_exceptions();
 
     debug_check(*this);
     CTH_CRITICAL(stage.status() != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
-    // the wait for the stage of the first image would never end
     CTH_CRITICAL(
         _acquiredOpt.has_value() && _acquiredOpt->frameNumber == stage.frameNumber()
             && _acquiredOpt->stageSemaphore->submittedValue() < _acquiredOpt->frameNumber,
@@ -121,19 +120,14 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
     ) {}
     if(_error) _error.rethrow();
 
-    // after the last present: the acquire and the present share the swapchain, a blocking acquire before the last
-    // present delays that present by one refresh (FIFO), the order of a plain loop: present N, then acquire N + 1
+    // present N before acquire N + 1: a blocking acquire would delay the present (FIFO)
     auto const value = _semaphore.value();
     if(value > 0) co_await _semaphore.submitted(value);
-    // an image without a present: the stage waits for its acquire semaphore, the unacquire waits until the gpu
-    // finished the submit or the skip of the stage (VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786)
+    // the unacquire needs the gpu done with its stage: VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786
     if(_acquiredOpt.has_value()) co_await _acquiredOpt->stageSemaphore->wait(_acquiredOpt->frameNumber);
-    // on the scheduler of the queue, outside the strand: only the vkQueue*() calls need the strand, the swapchain uses
-    // are ordered without it: present job N marks after vkQueuePresentKHR(), acquire() N + 1 waits for that mark,
-    // present() N + 1 comes after acquire() N + 1 returned
+    // outside the strand: the present marks order the swapchain uses
     co_await cth::co::executor{_queue->scheduler()}.schedule();
 
-    // an image without a present, e.g. after an exception or a skip
     if(_acquiredOpt.has_value()) unacquireImage();
 
     cvk::Core const& vkCore = *_core;
@@ -146,7 +140,7 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(Stage& stage, VkPipeli
             co_return scoped_acquire{*this, stage, std::nullopt, _error, uncaughtExceptions};
         updateSwapchain(extent, &stage.graph());
 
-        // an infinite timeout: no image -> out of date, the next round recreates the swapchain
+        // no image -> out of date, the next round recreates the swapchain
         imageIdxOpt = _swapchain.acquire(acquireSemaphore).imageIndex;
         if(!imageIdxOpt.has_value()) _outOfDate = true;
     }
