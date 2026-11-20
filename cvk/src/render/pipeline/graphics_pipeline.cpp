@@ -34,8 +34,8 @@ void GraphicsPipeline::create() {
         ) {}
     }
     CTH_CRITICAL(
-        !_config.colorBlendAttachments.empty() &&
-        _config.colorBlendAttachments.size() != _config.colorFormats.size(),
+        !_config.colorBlendAttachments.empty()
+        && _config.colorBlendAttachments.size() != _config.colorFormats.size(),
         "one color blend attachment per color format required, got {} for {}",
         _config.colorBlendAttachments.size(),
         _config.colorFormats.size()

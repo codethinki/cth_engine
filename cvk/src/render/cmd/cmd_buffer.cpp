@@ -24,11 +24,11 @@ using std::span;
 namespace {
     void debug_check_attachment_layout(VkImageLayout layout) {
         CTH_CRITICAL(
-            layout == VK_IMAGE_LAYOUT_UNDEFINED || layout == VK_IMAGE_LAYOUT_PREINITIALIZED ||
-            layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL ||
-            layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ||
-            layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ||
-            layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            layout == VK_IMAGE_LAYOUT_UNDEFINED || layout == VK_IMAGE_LAYOUT_PREINITIALIZED
+            || layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+            || layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+            || layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            || layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
             "attachment must be in an attachment layout, got {}",
             layout
         ) {}
@@ -49,9 +49,9 @@ namespace {
         // the own rendering of the command buffer
         auto const* renderingPtr = cmdBuffer.rendering();
         CTH_CRITICAL(
-            renderingPtr != nullptr &&
-            (renderingPtr->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) != 0 &&
-            (renderingPtr->flags & VK_RENDERING_CONTENTS_INLINE_BIT_KHR) == 0,
+            renderingPtr != nullptr
+            && (renderingPtr->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) != 0
+            && (renderingPtr->flags & VK_RENDERING_CONTENTS_INLINE_BIT_KHR) == 0,
             "the secondaries record the draws of a rendering with VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT"
         ) {}
     }
@@ -680,8 +680,8 @@ void PrimaryCmdBuffer::recordExecute(span<VkCommandBuffer const> vkBuffers) cons
     debug_check(*this);
     CTH_CRITICAL(!recording(), "command buffer must be recording") {}
     CTH_CRITICAL(
-        rendering() != nullptr &&
-        (rendering()->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) == 0,
+        rendering() != nullptr
+        && (rendering()->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) == 0,
         "the rendering must have VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT"
     ) {}
 

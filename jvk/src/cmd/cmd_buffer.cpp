@@ -95,8 +95,8 @@ namespace {
     }
 
     [[nodiscard]] bool same_mip_level(cvk::ImageView const& view, cvk::ImageView const& other) {
-        return &view.image() == &other.image() &&
-            view.range().baseMipLevel == other.range().baseMipLevel;
+        return &view.image() == &other.image()
+            && view.range().baseMipLevel == other.range().baseMipLevel;
     }
 
 

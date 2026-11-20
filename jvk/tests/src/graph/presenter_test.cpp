@@ -194,8 +194,8 @@ namespace {
                 core,
                 {
                     .format = format,
-                    .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                    VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+                    .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                    | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
                     .samples = MSAA_SAMPLES,
                 },
                 extent
@@ -752,8 +752,8 @@ JVK_TEST(Presenter, present_queue_of_the_same_family) {
     if(!create_present_core(coreOpt, context, surface, {GRAPHICS, GRAPHICS | PRESENT}))
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
-    if(&core.queue(0) == &core.queue(1) ||
-        core.queue(0).vk().familyIndex() != core.queue(1).vk().familyIndex())
+    if(&core.queue(0) == &core.queue(1)
+        || core.queue(0).vk().familyIndex() != core.queue(1).vk().familyIndex())
         GTEST_SKIP() << "needs two vulkan queues of one family, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
 
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};

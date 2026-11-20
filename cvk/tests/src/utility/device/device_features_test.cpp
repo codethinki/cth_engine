@@ -19,8 +19,8 @@ CVK_TEST(DeviceFeatures, bits_follow_the_field_order) {
         dev::to_bits(DeviceFeatures{.descriptorHeapCaptureReplay = true})[dev::FEATURE_COUNT - 1]
     );
     static_assert(
-        dev::to_features(dev::to_bits(constants::BASE_DEVICE_FEATURES)) ==
-        constants::BASE_DEVICE_FEATURES
+        dev::to_features(dev::to_bits(constants::BASE_DEVICE_FEATURES))
+        == constants::BASE_DEVICE_FEATURES
     );
 }
 
@@ -30,8 +30,8 @@ CVK_TEST(DeviceFeatures, merge_enables_the_features_of_both) {
             DeviceFeatures features{.samplerAnisotropy = true};
             features.merge(DeviceFeatures{.synchronization2 = true});
 
-            return features.samplerAnisotropy && features.synchronization2 &&
-                !features.dynamicRendering;
+            return features.samplerAnisotropy && features.synchronization2
+                && !features.dynamicRendering;
         }()
     );
 }

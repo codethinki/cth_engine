@@ -116,8 +116,8 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
     debug_check(*this);
     CTH_CRITICAL(stage.status() != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
     CTH_CRITICAL(
-        _acquiredOpt.has_value() && _acquiredOpt->frameNumber == stage.frameNumber() &&
-        _acquiredOpt->stageSemaphore->submittedValue() < _acquiredOpt->frameNumber,
+        _acquiredOpt.has_value() && _acquiredOpt->frameNumber == stage.frameNumber()
+        && _acquiredOpt->stageSemaphore->submittedValue() < _acquiredOpt->frameNumber,
         "a second acquire in frame {}: submit or skip the stage of the first image first",
         stage.frameNumber()
     ) {}
@@ -370,8 +370,8 @@ scoped_acquire::~scoped_acquire() {
     if(exception && stage.status() != Stage::Status::SUBMITTED)
         return;
     CTH_CRITICAL(
-        stage.status() == Stage::Status::UNSUBMITTED && stage.primary().recording() &&
-        stage.primary().states().last(_imageOpt->image->get(), 0).has_value(),
+        stage.status() == Stage::Status::UNSUBMITTED && stage.primary().recording()
+        && stage.primary().states().last(_imageOpt->image->get(), 0).has_value(),
         "the open primary of the stage uses the swapchain image {}, declare scoped_acquire before scoped_submit",
         _imageOpt->imageIdx
     ) {}

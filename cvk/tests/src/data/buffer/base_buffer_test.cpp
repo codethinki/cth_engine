@@ -48,8 +48,8 @@ CVK_TEST(BaseBuffer, config_create_info) {
     static_assert(info.flags == 0);
     static_assert(info.sharingMode == VK_SHARING_MODE_EXCLUSIVE);
     static_assert(
-        info.queueFamilyIndexCount == 0 &&
-        info.pQueueFamilyIndices == STAGING_CONFIG.queueFamilies.data()
+        info.queueFamilyIndexCount == 0
+        && info.pQueueFamilyIndices == STAGING_CONFIG.queueFamilies.data()
     );
     static_assert(STAGING_CONFIG.memory.autoUsage());
 }
@@ -76,10 +76,10 @@ CVK_TEST(BaseBuffer, config_queue_families_are_concurrent) {
                 .queueFamilies = {0, 2},
             };
             auto const info = config.createInfo(SIZE);
-            return info.sharingMode == VK_SHARING_MODE_CONCURRENT &&
-                info.queueFamilyIndexCount == 2 &&
-                info.pQueueFamilyIndices == config.queueFamilies.data() &&
-                info.flags == VK_BUFFER_CREATE_PROTECTED_BIT;
+            return info.sharingMode == VK_SHARING_MODE_CONCURRENT
+                && info.queueFamilyIndexCount == 2
+                && info.pQueueFamilyIndices == config.queueFamilies.data()
+                && info.flags == VK_BUFFER_CREATE_PROTECTED_BIT;
         }()
     );
 }

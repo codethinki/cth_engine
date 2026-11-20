@@ -273,8 +273,8 @@ CVK_TEST(Swapchain, old_swapchain_presents_its_acquired_image) {
     );
     auto const presented = old.present(*index);
     EXPECT_TRUE(
-        presented == VK_SUCCESS || presented == VK_SUBOPTIMAL_KHR ||
-        presented == VK_ERROR_OUT_OF_DATE_KHR
+        presented == VK_SUCCESS || presented == VK_SUBOPTIMAL_KHR
+        || presented == VK_ERROR_OUT_OF_DATE_KHR
     )
         << "present result: " << presented;
     fence.wait();

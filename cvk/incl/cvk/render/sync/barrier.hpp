@@ -240,9 +240,9 @@ constexpr void Barrier::add(VkImage vkImage, VkImageAspectFlags aspectMask, Imag
 
     bool const transfer = info.src.queueFamilyIndex != info.dst.queueFamilyIndex;
     CTH_CRITICAL(
-        (info.oldLayout != info.newLayout || transfer) &&
-        (info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED ||
-            info.newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED),
+        (info.oldLayout != info.newLayout || transfer)
+        && (info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED
+            || info.newLayout == VK_IMAGE_LAYOUT_PREINITIALIZED),
         "a transition or queue family transfer must not have an undefined or preinitialized new layout, got {} -> {}",
         info.oldLayout,
         info.newLayout
@@ -365,8 +365,8 @@ constexpr std::optional<BarrierScope> layout_scope(
     };
     constexpr BarrierScope depthAttachment{
         tests,
-        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
+        | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
     };
     BarrierScope const shaderRead{shaders, VK_ACCESS_2_SHADER_READ_BIT};
     BarrierScope const depthRead{

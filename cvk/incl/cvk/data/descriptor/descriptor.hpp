@@ -64,8 +64,8 @@ inline constexpr VkSpirvResourceTypeFlagsEXT resource_mask = [] {
     else if constexpr(std::same_as<T, SamplerConfig>)
         return VK_SPIRV_RESOURCE_TYPE_SAMPLER_BIT_EXT;
     else
-        return VK_SPIRV_RESOURCE_TYPE_READ_ONLY_IMAGE_BIT_EXT |
-            VK_SPIRV_RESOURCE_TYPE_READ_WRITE_IMAGE_BIT_EXT;
+        return VK_SPIRV_RESOURCE_TYPE_READ_ONLY_IMAGE_BIT_EXT
+            | VK_SPIRV_RESOURCE_TYPE_READ_WRITE_IMAGE_BIT_EXT;
 }();
 
 /**

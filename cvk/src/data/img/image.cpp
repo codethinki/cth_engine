@@ -183,8 +183,8 @@ void Image::blitMipLevels(
         "mip levels must lie in the image"
     ) {}
 
-    constexpr VkImageUsageFlags transfer = VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    constexpr VkImageUsageFlags transfer = VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+        | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     CTH_CRITICAL(
         (_config.usage & transfer) != transfer,
         "image usage must have VK_IMAGE_USAGE_TRANSFER_SRC_BIT and VK_IMAGE_USAGE_TRANSFER_DST_BIT"

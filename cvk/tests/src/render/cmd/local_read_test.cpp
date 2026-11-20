@@ -58,8 +58,8 @@ namespace {
                 core,
                 {
                     .format = COLOR_FORMATS[0],
-                    .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+                    .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                    | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
                 },
                 EXTENT
             },
@@ -283,12 +283,12 @@ CVK_TEST(AttachmentMapping, empty_maps_to_the_default) {
             auto const locations = mapping.locationInfo(2);
             auto const indices = mapping.inputIndexInfo(2);
 
-            return locations.colorAttachmentCount == 2 &&
-                locations.pColorAttachmentLocations == nullptr &&
-                indices.colorAttachmentCount == 2 &&
-                indices.pColorAttachmentInputIndices == nullptr &&
-                indices.pDepthInputAttachmentIndex == nullptr &&
-                indices.pStencilInputAttachmentIndex == nullptr;
+            return locations.colorAttachmentCount == 2
+                && locations.pColorAttachmentLocations == nullptr
+                && indices.colorAttachmentCount == 2
+                && indices.pColorAttachmentInputIndices == nullptr
+                && indices.pDepthInputAttachmentIndex == nullptr
+                && indices.pStencilInputAttachmentIndex == nullptr;
         }()
     );
 }
@@ -305,11 +305,11 @@ CVK_TEST(AttachmentMapping, infos_point_into_the_mapping) {
             auto const locations = mapping.locationInfo(2);
             auto const indices = mapping.inputIndexInfo(2);
 
-            return locations.pColorAttachmentLocations[0] == 1 &&
-                locations.pColorAttachmentLocations[1] == 0 &&
-                indices.pColorAttachmentInputIndices[1] == 0 &&
-                *indices.pDepthInputAttachmentIndex == 1 &&
-                indices.pStencilInputAttachmentIndex == nullptr;
+            return locations.pColorAttachmentLocations[0] == 1
+                && locations.pColorAttachmentLocations[1] == 0
+                && indices.pColorAttachmentInputIndices[1] == 0
+                && *indices.pDepthInputAttachmentIndex == 1
+                && indices.pStencilInputAttachmentIndex == nullptr;
         }()
     );
 }
@@ -322,8 +322,8 @@ CVK_TEST(AttachmentMapping, empty_equals_the_default) {
             AttachmentMapping swapped{.locations = {1, 0}};
             AttachmentMapping depth{.depthInputIndex = 0};
 
-            return AttachmentMapping{} == identity && AttachmentMapping{} != swapped &&
-                AttachmentMapping{} != depth;
+            return AttachmentMapping{} == identity && AttachmentMapping{} != swapped
+                && AttachmentMapping{} != depth;
         }()
     );
 }

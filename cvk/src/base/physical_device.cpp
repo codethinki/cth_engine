@@ -229,8 +229,8 @@ auto PhysicalDevice::findSupportedFormat(
         VkFormatProperties props{};
         vkGetPhysicalDeviceFormatProperties(_handle.get(), format, &props);
 
-        if(tiling == VK_IMAGE_TILING_OPTIMAL &&
-            (props.optimalTilingFeatures & features) == features)
+        if(tiling == VK_IMAGE_TILING_OPTIMAL
+            && (props.optimalTilingFeatures & features) == features)
             return format;
         if(tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
             return format;

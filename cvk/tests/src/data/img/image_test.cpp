@@ -80,8 +80,8 @@ CVK_TEST(Image, format_aspects) {
     static_assert(format_aspects(VK_FORMAT_D32_SFLOAT) == VK_IMAGE_ASPECT_DEPTH_BIT);
     static_assert(format_aspects(VK_FORMAT_S8_UINT) == VK_IMAGE_ASPECT_STENCIL_BIT);
     static_assert(
-        format_aspects(VK_FORMAT_D24_UNORM_S8_UINT) == (VK_IMAGE_ASPECT_DEPTH_BIT |
-            VK_IMAGE_ASPECT_STENCIL_BIT)
+        format_aspects(VK_FORMAT_D24_UNORM_S8_UINT) == (VK_IMAGE_ASPECT_DEPTH_BIT
+            | VK_IMAGE_ASPECT_STENCIL_BIT)
     );
 }
 
@@ -124,8 +124,8 @@ CVK_TEST(Image, config_create_info) {
 
     static_assert(info.imageType == VK_IMAGE_TYPE_2D);
     static_assert(
-        info.extent.width == EXTENT.width && info.extent.height == EXTENT.height &&
-        info.extent.depth == 1
+        info.extent.width == EXTENT.width && info.extent.height == EXTENT.height
+        && info.extent.depth == 1
     );
     static_assert(info.mipLevels == 7);
     static_assert(info.arrayLayers == 1);
@@ -139,8 +139,8 @@ CVK_TEST(Image, config_queue_families_are_concurrent) {
             auto config = TEXTURE_CONFIG;
             config.queueFamilies = {0, 1};
             auto const info = config.createInfo(EXTENT);
-            return info.sharingMode == VK_SHARING_MODE_CONCURRENT &&
-                info.queueFamilyIndexCount == 2;
+            return info.sharingMode == VK_SHARING_MODE_CONCURRENT
+                && info.queueFamilyIndexCount == 2;
         }()
     );
 }

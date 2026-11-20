@@ -267,8 +267,8 @@ JVK_TEST(CmdBuffer, use_of_a_handle_tracks_the_layout_of_its_type_on_the_mip_lev
         context.core,
         {
             .format = VK_FORMAT_R8G8B8A8_UNORM,
-            .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
-            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
+            .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT
+            | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT
             | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
             .mipLevels = 3,
         },

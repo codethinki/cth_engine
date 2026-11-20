@@ -55,8 +55,8 @@ namespace {
         ImageState const& next,
         bool discard
     ) {
-        return discard || last.layout != next.layout || writes(last.scope.access) ||
-            writes(next.scope.access);
+        return discard || last.layout != next.layout || writes(last.scope.access)
+            || writes(next.scope.access);
     }
 
     [[nodiscard]] constexpr bool needs_barrier(BufferState const& last, BufferState const& next) {
@@ -101,17 +101,17 @@ namespace {
     ) {
         auto const& lastRange = last.subresourceRange;
         auto const& nextRange = next.subresourceRange;
-        return last.image == next.image && last.oldLayout == next.oldLayout &&
-            last.newLayout == next.newLayout &&
-            last.srcStageMask == next.srcStageMask && last.srcAccessMask == next.srcAccessMask &&
-            last.dstStageMask == next.dstStageMask && last.dstAccessMask == next.dstAccessMask &&
-            last.srcQueueFamilyIndex == next.srcQueueFamilyIndex &&
-            last.dstQueueFamilyIndex == next.dstQueueFamilyIndex &&
-            lastRange.aspectMask == nextRange.aspectMask &&
-            lastRange.baseArrayLayer == nextRange.baseArrayLayer &&
-            lastRange.layerCount == nextRange.layerCount &&
-            lastRange.levelCount != VK_REMAINING_MIP_LEVELS &&
-            lastRange.baseMipLevel + lastRange.levelCount == nextRange.baseMipLevel;
+        return last.image == next.image && last.oldLayout == next.oldLayout
+            && last.newLayout == next.newLayout
+            && last.srcStageMask == next.srcStageMask && last.srcAccessMask == next.srcAccessMask
+            && last.dstStageMask == next.dstStageMask && last.dstAccessMask == next.dstAccessMask
+            && last.srcQueueFamilyIndex == next.srcQueueFamilyIndex
+            && last.dstQueueFamilyIndex == next.dstQueueFamilyIndex
+            && lastRange.aspectMask == nextRange.aspectMask
+            && lastRange.baseArrayLayer == nextRange.baseArrayLayer
+            && lastRange.layerCount == nextRange.layerCount
+            && lastRange.levelCount != VK_REMAINING_MIP_LEVELS
+            && lastRange.baseMipLevel + lastRange.levelCount == nextRange.baseMipLevel;
     }
 
     /**

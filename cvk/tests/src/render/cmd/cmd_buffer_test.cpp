@@ -27,10 +27,10 @@ CVK_TEST(CmdBuffer, inheritance_rendering_info) {
                 .samples = VK_SAMPLE_COUNT_4_BIT,
             };
             auto const info = inheritance.renderingInfo();
-            return info.colorAttachmentCount == 1 &&
-                info.pColorAttachmentFormats == inheritance.colorFormats.data() &&
-                info.depthAttachmentFormat == VK_FORMAT_D16_UNORM &&
-                info.rasterizationSamples == VK_SAMPLE_COUNT_4_BIT;
+            return info.colorAttachmentCount == 1
+                && info.pColorAttachmentFormats == inheritance.colorFormats.data()
+                && info.depthAttachmentFormat == VK_FORMAT_D16_UNORM
+                && info.rasterizationSamples == VK_SAMPLE_COUNT_4_BIT;
         }()
     );
 }

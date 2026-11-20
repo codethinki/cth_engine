@@ -84,8 +84,8 @@ CVK_TEST(GraphicsPipeline, config_is_constexpr) {
                 }
             );
             config.removeStage(VK_SHADER_STAGE_VERTEX_BIT);
-            return config.colorFormats.size() == 1 && config.colorBlendAttachments.empty() &&
-                config.stages.empty();
+            return config.colorFormats.size() == 1 && config.colorBlendAttachments.empty()
+                && config.stages.empty();
         }()
     );
 }

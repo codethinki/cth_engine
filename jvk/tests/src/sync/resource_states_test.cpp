@@ -131,8 +131,8 @@ JVK_TEST(ResourceStates, read_after_read_needs_no_barrier) {
     states.access(image, COMPUTE_READ, barrier);
 
     EXPECT_TRUE(barrier.empty());
-    constexpr auto stages = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT |
-        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    constexpr auto stages = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
+        | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
     EXPECT_EQ(states.last(image, 0)->scope.stages, stages);
     // the first use spans the accesses until the first barrier
     EXPECT_EQ(states.first(image, 0)->scope.stages, stages);

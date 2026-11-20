@@ -38,8 +38,8 @@ struct HeapsConfig {
      * @return a count of `resources` is not `0`
      */
     [[nodiscard]] constexpr bool createsResourceHeap() const {
-        return resources.sampledImages != 0 || resources.storageImages != 0 ||
-            resources.inputAttachments != 0;
+        return resources.sampledImages != 0 || resources.storageImages != 0
+            || resources.inputAttachments != 0;
     }
 
     /**

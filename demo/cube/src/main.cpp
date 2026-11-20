@@ -182,8 +182,8 @@ struct Targets {
             core,
             {
                 .format = SURFACE_FORMAT.format,
-                .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
-                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+                .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+                | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
                 .samples = MSAA_SAMPLES,
                 .memory = {.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             },
@@ -193,8 +193,8 @@ struct Targets {
             core,
             {
                 .format = DEPTH_FORMAT,
-                .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
-                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
+                .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+                | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
                 .samples = MSAA_SAMPLES,
                 .memory = {.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT},
             },
@@ -423,8 +423,8 @@ void run() {
     };
     cvk::Core const& vk = core;
     auto const& limits = vk.physicalDevice().limits();
-    if((limits.framebufferColorSampleCounts & limits.framebufferDepthSampleCounts & MSAA_SAMPLES) ==
-        0)
+    if((limits.framebufferColorSampleCounts & limits.framebufferDepthSampleCounts & MSAA_SAMPLES)
+        == 0)
         throw std::runtime_error{
             std::format("the device offers no {}x msaa for color and depth", +MSAA_SAMPLES)
         };

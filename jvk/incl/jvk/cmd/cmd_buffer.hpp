@@ -41,8 +41,8 @@ template<>
 inline constexpr bool access_pairs<> = true;
 
 template<class Resource, class Access, class... Rest>
-inline constexpr bool access_pairs<Resource, Access, Rest...> = access_pair<Resource, Access> &&
-    access_pairs<
+inline constexpr bool access_pairs<Resource, Access, Rest...> = access_pair<Resource, Access>
+    && access_pairs<
         Rest...>;
 }
 
@@ -163,8 +163,8 @@ public:
     void use(
         StorageImage const&,
         VkPipelineStageFlags2 stages,
-        VkAccessFlags2 access = VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
-            VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+        VkAccessFlags2 access = VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+            | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
     );
 
     /**

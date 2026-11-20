@@ -60,8 +60,8 @@ struct feature_struct<VkPhysicalDeviceVulkan11Features> {
         storageBuffer16BitAccess
     );
     static constexpr size_t COUNT =
-        (offsetof(VkPhysicalDeviceVulkan11Features, shaderDrawParameters) - OFFSET) /
-        sizeof(VkBool32) + 1;
+        (offsetof(VkPhysicalDeviceVulkan11Features, shaderDrawParameters) - OFFSET)
+        / sizeof(VkBool32) + 1;
     static constexpr std::string_view EXTENSION{};
 };
 
@@ -73,8 +73,8 @@ struct feature_struct<VkPhysicalDeviceVulkan12Features> {
         samplerMirrorClampToEdge
     );
     static constexpr size_t COUNT =
-        (offsetof(VkPhysicalDeviceVulkan12Features, subgroupBroadcastDynamicId) - OFFSET) /
-        sizeof(VkBool32) + 1;
+        (offsetof(VkPhysicalDeviceVulkan12Features, subgroupBroadcastDynamicId) - OFFSET)
+        / sizeof(VkBool32) + 1;
     static constexpr std::string_view EXTENSION{};
 };
 
@@ -132,8 +132,8 @@ struct feature_struct<VkPhysicalDeviceDescriptorHeapFeaturesEXT> {
         (offsetof(
             VkPhysicalDeviceDescriptorHeapFeaturesEXT,
             descriptorHeapCaptureReplay
-        ) - OFFSET) /
-        sizeof(VkBool32) + 1;
+        ) - OFFSET)
+        / sizeof(VkBool32) + 1;
     static constexpr std::string_view EXTENSION = VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME;
 };
 
