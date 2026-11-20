@@ -59,10 +59,11 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 
 ### Formatting
 
-`.clang-format` is the reference. Short form:
+The CLion code style of the project (`.idea/codeStyles/Project.xml`) is the reference. Short form:
 
 - 4 spaces, no tabs, 120 columns.
 - Attached braces: `class X {`, `void f() {`, `if(x) {`.
+- The statement of an `if`, `for` or `while` without braces goes on its own line.
 - No space between a keyword and `(`: `if(`, `for(`, `while(`, `switch(`, `if constexpr(`.
 - Pointer and reference bind left: `T* ptr`, `T const& ref`.
 - `const` comes after the type: `T const&`, `auto const`.
