@@ -30,6 +30,7 @@ add_subdirectory(jvk)
 
 # Demos
 add_subdirectory(demo/triangle)
+add_subdirectory(demo/cube)
 
 # Tests
 if(JOLLY_ENABLE_TESTS)
