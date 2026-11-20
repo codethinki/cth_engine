@@ -10,7 +10,6 @@ Read it before you change a file. Match the existing code.
 | `cvk/` | C++ wrapper of the Vulkan C API: one class per Vulkan object, objects own their handle |
 | `cgfw/` | C++ wrapper of RGFW: windows of the platform (Win32, Wayland) and their Vulkan surface |
 | `jvk/` | coroutine layer on top of `cvk` (in progress): threads, queues, stage graph, object lifetimes |
-| `legacy/` | the old `jvk`, `jolly` and `demo` code, reference only, not built |
 | `tests/` | loader smoke tests |
 | `lib/cth` | cth (submodule), `lib/cmake/cth.cmake` adds it with only the components the engine needs |
 | `lib/cth_cmake` | cmake utilities (submodule) |
@@ -367,6 +366,7 @@ void create();
 
 ### When you port legacy code
 
+- The legacy code is in the history: `git show 6d013e5:legacy/<path>`.
 - Apply this guide to ported code. The legacy macros `cxpr`, `cval` and `declauto` become keywords.
 - Check every comment against the code. The legacy comments are not always up to date.
 - Report bugs that you find. Do not fix a behavior change silently.
