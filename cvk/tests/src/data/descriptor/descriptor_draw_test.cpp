@@ -150,14 +150,13 @@ CVK_TEST(DescriptorDraw, color_from_a_pushed_buffer_address) {
 namespace {
     /**
      * draws a green texture from the heaps
-     * @param layout of the texture at the draw (`VK_IMAGE_LAYOUT_MAX_ENUM` => the default, shader read only)
+     * @param layout of the texture at the draw (`VK_IMAGE_LAYOUT_MAX_ENUM` => the default of the descriptor, read only)
      * @param afterRecording `true` -> bindless array of 64, the descriptor at element 17 comes after the recording,
      *  `false` -> one `texture2D`, the descriptor comes before the recording, the layers check its layout at the draw
      */
     void draw_texture(test::Context const& context, VkImageLayout layout, bool afterRecording) {
         uint32_t const textureIdx = afterRecording ? 17 : 0;
-        auto const textureLayout = layout != VK_IMAGE_LAYOUT_MAX_ENUM ? layout
-            : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        auto const textureLayout = layout != VK_IMAGE_LAYOUT_MAX_ENUM ? layout : VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
 
         ResourceHeap resources{context.core, {.sampledImages = afterRecording ? 64u : 1u}, create};
         SamplerHeap samplers{context.core, {.samplers = 1}, create};

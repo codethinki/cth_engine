@@ -117,6 +117,12 @@ JVK_TEST(ResourceHeap, handles_are_move_only) {
     static_assert(std::is_nothrow_move_assignable_v<StorageImage>);
 }
 
+JVK_TEST(ResourceHeap, the_layout_is_fixed_per_handle_type) {
+    static_assert(SampledImage::LAYOUT == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
+    static_assert(StorageImage::LAYOUT == VK_IMAGE_LAYOUT_GENERAL);
+    static_assert(InputAttachment::LAYOUT == VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR);
+}
+
 JVK_TEST(ResourceHeap, the_destructor_of_a_handle_returns_the_cell) {
     test::Context const context{};
     auto const& heap = context.core.resourceHeap();
@@ -266,7 +272,7 @@ JVK_TEST(CmdBuffer, use_of_a_handle_tracks_the_layout_of_its_type_on_the_mip_lev
     primary.use(input);
 
     auto const& states = primary.states();
-    EXPECT_EQ(states.last(image, 0)->layout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    EXPECT_EQ(states.last(image, 0)->layout, VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL);
     EXPECT_EQ(states.last(image, 0)->scope.access, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
     EXPECT_EQ(states.last(image, 1)->layout, VK_IMAGE_LAYOUT_GENERAL);
     EXPECT_EQ(states.last(image, 1)->scope.stages, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT);

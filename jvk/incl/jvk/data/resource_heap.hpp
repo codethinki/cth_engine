@@ -41,6 +41,25 @@ public:
     template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
     struct Cell;
 
+    /**
+     * deleter of a `unique_cell`, returns the cell to the free list of its type
+     * @details nested in the heap: it reaches the private erase of the heap
+     */
+    template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
+    struct cell_eraser {
+        uint32_t idx; ///< of the cell
+
+        void operator()(ResourceHeap const* heap) const;
+    };
+
+    /**
+     * owner of a cell: the deleter returns the cell to the free list
+     * @details the pointer is the heap, the deleter holds the index of the cell
+     * @details the heap and the image stay, nothing but the cell goes
+     */
+    template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
+    using unique_cell = std::unique_ptr<ResourceHeap const, cell_eraser<Descriptor>>;
+
     template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
     class ImageHandle;
 
@@ -64,6 +83,7 @@ public:
     /**
      * places the descriptor into a free cell of its type
      * @return the owning handle of the cell
+     * @pre the layout of the descriptor is the `ImageHandle::LAYOUT` of its handle
      * @pre the preconditions of `cvk::ResourceHeap::write()` besides the index
      * @throws jvk::jvk_exception reason: every cell of the type is in use
      * @throws cvk::vk_result_exception the exceptions of `cvk::ResourceHeap::write()`
@@ -127,7 +147,7 @@ private:
      * @pre `_mutex` is locked
      */
     template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
-    [[nodiscard]] dev::free_list& cells() const;
+    [[nodiscard]] dev::free_list& freeList() const;
 
     mutable std::mutex _mutex{};
     mutable cvk::ResourceHeap _vk; ///< written under `_mutex`
@@ -159,11 +179,15 @@ struct ResourceHeap::Cell {
     void erase() const { heap->erase<Descriptor>(idx); }
 };
 
+template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
+void ResourceHeap::cell_eraser<Descriptor>::operator()(ResourceHeap const* heap) const { heap->erase<Descriptor>(idx); }
+
 /**
  * owning handle of a cell of the heap
  * @details
  * - the destructor returns the cell to the free list
- * - keeps the image, the subresource range of the view and the layout for the tracking, see `PrimaryCmdBuffer::use()`
+ * - keeps the image and the subresource range of the view for the tracking, see `PrimaryCmdBuffer::use()`
+ * - the layout is fixed per type: `LAYOUT`
  * - release it with `Stage::retain()` while the gpu uses it
  * - move only, a moved-from handle owns no cell
  * @tparam Descriptor type of the descriptor in the cell
@@ -174,15 +198,26 @@ public:
     struct State;
 
     /**
+     * layout of the image at the shader access, the descriptor has it
+     * @details sampled image: `VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL`, also for a read-only depth attachment
+     * @details storage image: `VK_IMAGE_LAYOUT_GENERAL`
+     * @details input attachment: `VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR`
+     */
+    static constexpr VkImageLayout LAYOUT = [] {
+        if constexpr(std::same_as<Descriptor, cvk::SampledImageDescriptor>) return VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+        else if constexpr(std::same_as<Descriptor, cvk::StorageImageDescriptor>) return VK_IMAGE_LAYOUT_GENERAL;
+        else return VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR;
+    }();
+
+    /**
      * owns the cell with the descriptor
      * @details `ResourceHeap::insert()` constructs it
      * @pre the heap handed out the cell for this handle
      */
     ImageHandle(ResourceHeap const& heap, uint32_t idx, Descriptor const& descriptor) :
-        _cell{&heap, eraser{idx}},
+        _cell{&heap, cell_eraser<Descriptor>{idx}},
         _image{descriptor.image},
-        _range{descriptor.view.range(descriptor.image->aspectMask())},
-        _layout{descriptor.layout} {}
+        _range{descriptor.view.range(descriptor.image->aspectMask())} {}
 
     ~ImageHandle() = default;
 
@@ -206,25 +241,10 @@ public:
      */
     [[nodiscard]] constexpr VkImageSubresourceRange const& range() const { return _range; }
 
-    /**
-     * @return layout of the image at the shader access, from the descriptor
-     */
-    [[nodiscard]] constexpr VkImageLayout layout() const { return _layout; }
-
 private:
-    /**
-     * erases the cell of the handle
-     */
-    struct eraser {
-        uint32_t idx;
-
-        void operator()(ResourceHeap const* heap) const { heap->erase<Descriptor>(idx); }
-    };
-
-    std::unique_ptr<ResourceHeap const, eraser> _cell;
+    unique_cell<Descriptor> _cell;
     cth::ref_wrapper<cvk::Image const> _image;
     VkImageSubresourceRange _range;
-    VkImageLayout _layout;
 
 public:
     ImageHandle(ImageHandle const& other) = delete;

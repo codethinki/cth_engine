@@ -142,7 +142,7 @@ public:
 
     /**
      * tracks a shader read of the sampled image
-     * @details `VK_ACCESS_2_SHADER_SAMPLED_READ_BIT` in the layout of the handle
+     * @details `VK_ACCESS_2_SHADER_SAMPLED_READ_BIT` in the `LAYOUT` of the handle
      * @details on the subresource range of its view
      * @param stages that read the image
      * @pre the preconditions of @ref use(cvk::Image const&, ImageAccess const&)
@@ -151,7 +151,7 @@ public:
 
     /**
      * tracks a shader access of the storage image
-     * @details in the layout of the handle, on the subresource range of its view
+     * @details in the `LAYOUT` of the handle, on the subresource range of its view
      * @param stages that access the image
      * @param access of the stages
      * @pre the preconditions of @ref use(cvk::Image const&, ImageAccess const&)
@@ -164,7 +164,7 @@ public:
 
     /**
      * tracks the read of the input attachment in the fragment shader
-     * @details `VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT` in the layout of the handle
+     * @details `VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT` in the `LAYOUT` of the handle
      * @details on the subresource range of its view
      * @pre the preconditions of @ref use(cvk::Image const&, ImageAccess const&)
      */

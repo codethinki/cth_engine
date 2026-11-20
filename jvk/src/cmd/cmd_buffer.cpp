@@ -18,7 +18,8 @@
 namespace jvk::dev {
 namespace {
     /**
-     * @return the shader access of the image of the handle, in its layout, on the subresource range of its view
+     * @return the shader access of the image of the handle, in the layout of its type, on the subresource range of
+     *  its view
      */
     template<class Handle>
     [[nodiscard]] constexpr ImageAccess shader_access(
@@ -27,7 +28,7 @@ namespace {
         VkAccessFlags2 access
     ) {
         return ImageAccess{
-            .layout = handle.layout(),
+            .layout = Handle::LAYOUT,
             .stages = stages,
             .access = access,
             .firstMipLevel = handle.range().baseMipLevel,

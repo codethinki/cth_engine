@@ -4,6 +4,7 @@
 #include "jvk/utility/exception.hpp"
 
 #include "cvk/base/core.hpp"
+#include "cvk/utility/format.hpp"
 
 #include <concepts>
 #include <exception>
@@ -55,9 +56,16 @@ VkDescriptorSetAndBindingMappingEXT ResourceHeap::pushMapping(
 
 template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
 auto ResourceHeap::insertImage(Descriptor const& descriptor) const -> ImageHandle<Descriptor> {
+    CTH_CRITICAL(
+        descriptor.layout != ImageHandle<Descriptor>::LAYOUT,
+        "the descriptor must have the layout of its handle, got {} for {}",
+        descriptor.layout,
+        ImageHandle<Descriptor>::LAYOUT
+    ) {}
+
     std::scoped_lock const lock{_mutex};
 
-    auto& free = cells<Descriptor>();
+    auto& free = freeList<Descriptor>();
     auto const idxOpt = free.insert();
     JVK_STABLE_THROW(!idxOpt.has_value(), "every cell of the type is in use, got {} cells", free.size()) {}
 
@@ -74,11 +82,11 @@ auto ResourceHeap::insertImage(Descriptor const& descriptor) const -> ImageHandl
 template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
 void ResourceHeap::erase(uint32_t idx) const {
     std::scoped_lock const lock{_mutex};
-    cells<Descriptor>().erase(idx);
+    freeList<Descriptor>().erase(idx);
 }
 
 template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
-dev::free_list& ResourceHeap::cells() const {
+dev::free_list& ResourceHeap::freeList() const {
     if constexpr(std::same_as<Descriptor, cvk::SampledImageDescriptor>) return _sampledImages;
     else if constexpr(std::same_as<Descriptor, cvk::StorageImageDescriptor>) return _storageImages;
     else return _inputAttachments;
