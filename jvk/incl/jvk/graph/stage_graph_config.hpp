@@ -16,11 +16,11 @@ namespace jvk {
 struct StageWait {
     size_t stageId; ///< id of the waited stage, see `StageGraphConfig::stages`
 
+    /** stages of the waiting submit that wait */
     VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-    ///< stages of the waiting submit that wait
 
+    /** frames before the current frame (`0` => the same frame, `1` => the previous frame) */
     uint32_t frameOffset = 0;
-    ///< frames before the current frame (`0` => the same frame, `1` => the previous frame)
 };
 
 /**

@@ -67,8 +67,8 @@ constexpr VkSampleCountFlagBits MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
 constexpr size_t QUEUE_IDX = 0; ///< the graphics queue that presents
 constexpr size_t CUBE_STAGE_ID = 0;
 
+/** after a frame without an image, e.g. minimized */
 constexpr auto IDLE_WAIT = std::chrono::milliseconds{16};
-///< after a frame without an image, e.g. minimized
 
 constexpr float SPEED = 1.f; ///< radians per second
 glm::vec3 const AXIS = glm::normalize(glm::vec3{0.3f, 1.f, 0.2f});

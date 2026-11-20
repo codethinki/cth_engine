@@ -49,8 +49,8 @@ private:
     std::optional<cth::co::scheduler> _driverSchedulerOpt{}; ///< the driver threads
     std::deque<Queue> _queues{};
 
+    /** index in `_queues` per index of `cvk::CoreConfig::queueProperties` */
     std::vector<size_t> _queueIndices{};
-    ///< index in `_queues` per index of `cvk::CoreConfig::queueProperties`
 
 public:
     Queues(Queues const& other) = delete;

@@ -29,8 +29,8 @@ struct BufferConfig {
      */
     std::vector<queue_family_index_t> queueFamilies{};
 
+    /** memory of the buffer, `VMA_MEMORY_USAGE_AUTO` picks the memory type from `usage` */
     MemoryConfig memory{};
-    ///< memory of the buffer, `VMA_MEMORY_USAGE_AUTO` picks the memory type from `usage`
 
     //TODO review one place for the rule: the create info and the jvk tracking read it
     /**

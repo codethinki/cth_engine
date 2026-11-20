@@ -123,10 +123,10 @@ private:
     std::vector<handle_t> _handles{};
     std::vector<pooled_t> _pooledHandles{};
 
+    /** handles destroyed by `clear()`, the position of `_handles.front()` */
     size_t _clearedHandles = 0;
-    ///< handles destroyed by `clear()`, the position of `_handles.front()`
+    /** pooled handles destroyed by `clear()`, the position of the first one */
     size_t _clearedPooledHandles = 0;
-    ///< pooled handles destroyed by `clear()`, the position of the first one
 
 public:
     Stasis(Stasis const& other) = delete;

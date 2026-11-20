@@ -40,8 +40,8 @@ struct ImageAccess {
 
     uint32_t firstMipLevel = 0;
 
+    /** (`VK_REMAINING_MIP_LEVELS` => to the last mip level) */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
-    ///< (`VK_REMAINING_MIP_LEVELS` => to the last mip level)
 
     //TODO review
     /**
@@ -245,8 +245,8 @@ private:
         VkImageAspectFlags aspectMask; ///< of the image, the barriers take it
         VkSharingMode sharingMode; ///< of the image
 
+        /** `std::nullopt` -> `assume()` before the first access */
         std::optional<ImageState> firstOpt;
-        ///< `std::nullopt` -> `assume()` before the first access
         ImageState last;
         bool discard = false;
 
@@ -256,8 +256,8 @@ private:
     struct buffer_states {
         VkSharingMode sharingMode; ///< of the buffer
 
+        /** `std::nullopt` -> `assume()` before the first access */
         std::optional<BufferState> firstOpt;
-        ///< `std::nullopt` -> `assume()` before the first access
         BufferState last;
 
         bool barrier = false; ///< a barrier or `assume()` after the first use: `firstOpt` is final

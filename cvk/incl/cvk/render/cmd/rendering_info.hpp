@@ -167,8 +167,8 @@ struct RenderingInfo {
     std::optional<RenderingAttachment> depthAttachment = std::nullopt;
     std::optional<RenderingAttachment> stencilAttachment = std::nullopt;
 
+    /** `std::nullopt` -> the extent that fits every attachment */
     std::optional<VkRect2D> area = std::nullopt;
-    ///< `std::nullopt` -> the extent that fits every attachment
 
     /**
      * layers that the rendering writes, `viewMask != 0` -> ignored

@@ -234,8 +234,8 @@ private:
      */
     struct AcquiredImage {
         SwapchainImage image;
+        /** `Stage::semaphore()` of the stage of the acquire */
         cth::ref_wrapper<Semaphore const> stageSemaphore;
-        ///< `Stage::semaphore()` of the stage of the acquire
         uint64_t frameNumber; ///< `Stage::frameNumber()`, the value of `stageSemaphore` to wait for
     };
 
@@ -308,23 +308,23 @@ private:
     // destroyed after the swapchain
     cvk::Surface _surface;
 
+    /** created once the surface extent is `> 0`, `Presenter::_semaphore` orders its uses */
     Swapchain _swapchain;
-    ///< created once the surface extent is `> 0`, `Presenter::_semaphore` orders its uses
 
     /**
      * ring of `PresenterConfig::framesInFlight`, signaled by the acquires
      */
     std::vector<cvk::Semaphore> _acquireSemaphores{};
 
+    /** the semaphore in `Presenter::_acquireSemaphores` for the next acquire */
     size_t _acquireSemaphoreIdx = 0;
-    ///< the semaphore in `Presenter::_acquireSemaphores` for the next acquire
 
     Semaphore _semaphore; ///< signaled by the present submits, each submit signals the next value
 
     std::vector<PresentSubmit> _submits{}; ///< one per swapchain image
 
+    /** the acquired image without a present */
     std::optional<AcquiredImage> _acquiredOpt = std::nullopt;
-    ///< the acquired image without a present
 
     /**
      * `VK_ERROR_OUT_OF_DATE_KHR` of a present of the current swapchain, the next `acquire()` recreates the swapchain
@@ -333,8 +333,8 @@ private:
 
     dev::first_error _error{}; ///< the first error of a job or a scope, `acquire()` rethrows it
 
+    /** the running present jobs, `destroy()` waits for them */
     cth::co::simple_counting_scope _jobs{};
-    ///< the running present jobs, `destroy()` waits for them
 
 public:
     Presenter(Presenter const& other) = delete;

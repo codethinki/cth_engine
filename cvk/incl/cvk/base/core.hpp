@@ -195,8 +195,8 @@ private:
         std::vector<queue_family_index_t> uniqueQueueFamilyIndices;
         std::vector<size_t> queuesToUniqueQueues;
 
+        /** `std::nullopt` -> the config had no queue sets */
         std::optional<size_t> queueSetIndex = std::nullopt;
-        ///< `std::nullopt` -> the config had no queue sets
     };
     struct queue_set_relations {
         std::vector<QueueFamilyProperties> uniqueQueues;

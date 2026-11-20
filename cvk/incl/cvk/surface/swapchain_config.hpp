@@ -30,8 +30,8 @@ struct SwapchainConfig {
      */
     std::vector<VkPresentModeKHR> presentModes{VK_PRESENT_MODE_FIFO_KHR};
 
+    /** `0` -> `minImageCount` of the surface + 1, clamped to the limits of the surface */
     uint32_t minImageCount = 0;
-    ///< `0` -> `minImageCount` of the surface + 1, clamped to the limits of the surface
 
     /**
      * @pre `!= 0`

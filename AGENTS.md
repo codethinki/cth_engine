@@ -333,6 +333,7 @@ this code base.
     - several facts: `@details`, optional with a label, then `- ` items
     - one `@details` per topic
 - A member with one fact gets a trailing `///<` on its line: `uint32_t framesInFlight; ///< frames in flight, > 0`.
+  The line exceeds 100 columns: a one-line `/** fact */` above the member.
   More than one fact: a `/** */` block above it.
 - Related functions go to `@see`, not into the text: ``@see `skip()` ``.
 - A class brief names what it is, in a few words: `primary command buffer`. Its properties go to `@details` as a list:

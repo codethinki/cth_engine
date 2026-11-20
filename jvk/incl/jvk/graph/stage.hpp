@@ -46,8 +46,8 @@ namespace jvk::dev {
  * - a skip submits the waits and the signal without the command buffers
  */
 struct SubmitInfo {
+    /** `StageSlot::prologue`, `StageSlot::primary` */
     std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{};
-    ///< `StageSlot::prologue`, `StageSlot::primary`
 
     //TODO review no queueWaits: the submit job awaits the marks of every wait, its append follows the dependency order
     /**
@@ -103,8 +103,8 @@ struct SubmitInfo {
  * @details the submit job erases their graph states before it destroys them, see `StageGraph::erase()`
  */
 struct RetainedResources {
+    /** the handle and the mip levels of each image */
     std::vector<std::pair<VkImage, uint32_t>> images{};
-    ///< the handle and the mip levels of each image
     std::vector<VkBuffer> buffers{};
 };
 
@@ -138,8 +138,8 @@ struct StageSlot {
 
     cth::ref_wrapper<StageGraph> graph;
 
+    /** the first error of the graph, the scopes of the stages store into it */
     cth::ref_wrapper<first_error> error;
-    ///< the first error of the graph, the scopes of the stages store into it
 
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
@@ -161,11 +161,11 @@ struct StageSlot {
 
     //TODO review a member of the stage slot: it refers to StageSlot::semaphore, StageSlot::prologue,
     // StageSlot::primary and the semaphores of the waited stage slots, they live as long as the graph
+    /** the waits and the signal of the next submit or skip, see `SubmitInfo::next()` */
     SubmitInfo submitInfo;
-    ///< the waits and the signal of the next submit or skip, see `SubmitInfo::next()`
 
+    /** the stage in the frame slot before, submits first */
     cth::ref_wrapper<StageSlot const> previous;
-    ///< the stage in the frame slot before, submits first
 
     PrimaryCmdBuffer prologue; ///< barriers for the first uses of the primary, submitted before it
 
@@ -405,16 +405,16 @@ private:
     Status _status = Status::UNSUBMITTED;
 
     //TODO review names: the extra waits per kind, the jvk ones keep the jvk semaphore
+    /** the waits of @ref await(SemaphoreSubmitInfo const&) */
     std::vector<SemaphoreSubmitInfo> _extraWaits{};
-    ///< the waits of @ref await(SemaphoreSubmitInfo const&)
 
     /**
      * the waits of @ref await(cvk::Semaphore const&, VkPipelineStageFlags2)
      */
     std::vector<cvk::SemaphoreSubmitInfo> _extraBinaryWaits{};
 
+    /** the images and buffers of `retain()`, under `StageSlot::stasisMutex` */
     dev::RetainedResources _retained{};
-    ///< the images and buffers of `retain()`, under `StageSlot::stasisMutex`
 
 public:
     Stage(Stage const& other) = delete;

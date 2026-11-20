@@ -288,8 +288,8 @@ private:
      */
     last_queue_map_t<image_mip_t> _imageQueues{};
 
+    /** last queue per buffer, for the queue family ownership transfers */
     last_queue_map_t<VkBuffer> _bufferQueues{};
-    ///< last queue per buffer, for the queue family ownership transfers
 
     //TODO review the error stays: every nextFrame() rethrows it, the errors of the jobs are fatal
     /**
@@ -297,8 +297,8 @@ private:
      */
     dev::first_error _error{};
 
+    /** the running submit jobs, `~StageGraph()` waits for them */
     cth::co::simple_counting_scope _jobs{};
-    ///< the running submit jobs, `~StageGraph()` waits for them
 
     //TODO review name firstFrameNumber
     uint64_t _firstFrameNumber; ///< see `firstFrameNumber()`

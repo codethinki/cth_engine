@@ -273,8 +273,8 @@ private:
 
         uint64_t value = 0; ///< see `submittedValue()`
 
+        /** the callbacks of `awaitSubmitted()` above `Submitted::value` */
         std::vector<SubmittedWaiter> waiters{};
-        ///< the callbacks of `awaitSubmitted()` above `Submitted::value`
     };
 
     cth::ref_wrapper<Core const> _core;

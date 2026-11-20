@@ -47,13 +47,13 @@ struct ImageBarrierInfo {
 
     uint32_t firstMipLevel = 0;
 
+    /** `VK_REMAINING_MIP_LEVELS` -> to the last mip level */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
-    ///< `VK_REMAINING_MIP_LEVELS` -> to the last mip level
 
     uint32_t firstArrayLayer = 0;
 
+    /** `VK_REMAINING_ARRAY_LAYERS` -> to the last layer */
     uint32_t arrayLayers = VK_REMAINING_ARRAY_LAYERS;
-    ///< `VK_REMAINING_ARRAY_LAYERS` -> to the last layer
 
     VkImageAspectFlags aspectMask = 0; ///< `0` -> the aspect mask of the image
 
@@ -131,8 +131,8 @@ struct Barrier {
      */
     static constexpr VkPipelineStageFlags2 INFERRED_SHADER_STAGES = VK_PIPELINE_STAGE_2_NONE;
 
+    /** `VK_DEPENDENCY_BY_REGION_BIT` -> the dependency is per framebuffer region */
     VkDependencyFlags flags = 0;
-    ///< `VK_DEPENDENCY_BY_REGION_BIT` -> the dependency is per framebuffer region
 
     std::vector<MemoryInfo> memory{};
     std::vector<VkBufferMemoryBarrier2> buffers{};

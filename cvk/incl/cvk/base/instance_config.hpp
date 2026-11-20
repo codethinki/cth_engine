@@ -19,8 +19,8 @@ struct InstanceConfig {
     std::string engineName = "cvk";
     uint32_t engineVersion = 0;
 
+    /** instance extensions, a messenger adds `Instance::MESSENGER_EXTENSIONS` */
     std::vector<std::string> extensions{};
-    ///< instance extensions, a messenger adds `Instance::MESSENGER_EXTENSIONS`
 
     /**
      * value -> messenger with this config

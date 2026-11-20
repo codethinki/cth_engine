@@ -52,8 +52,8 @@ public:
          */
         VkResult result;
 
+        /** `std::nullopt` -> no image acquired, the semaphore stays unsignaled */
         std::optional<uint32_t> imageIndex;
-        ///< `std::nullopt` -> no image acquired, the semaphore stays unsignaled
     };
 
     /**

@@ -127,8 +127,8 @@ private:
 
     cth::ref_wrapper<cth::co::scheduler const> _workers;
 
+    /** the thread waits for it next to the semaphores with waiters */
     mutable cvk::TimelineSemaphore _wake;
-    ///< the thread waits for it next to the semaphores with waiters
 
     mutable std::mutex _mutex{};
 

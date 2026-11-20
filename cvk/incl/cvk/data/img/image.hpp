@@ -231,8 +231,8 @@ namespace cvk {
 struct Image::State {
     vk_not_null<VkImage> vkImage;
     VkExtent2D extent;
+    /** `std::nullopt` -> the image does not own its memory */
     std::optional<Memory::State> memory = std::nullopt;
-    ///< `std::nullopt` -> the image does not own its memory
 
     /**
      * the raw handles to destroy, in destruction order
