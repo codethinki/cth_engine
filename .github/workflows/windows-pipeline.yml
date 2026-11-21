@@ -29,8 +29,23 @@ jobs:
         with:
           compiler: ${{ inputs.compiler }}
 
+      #TEMP buildcache diagnosis: the most verbose log of buildcache for the clang build
+      - name: Enable BuildCache log
+        if: inputs.compiler == 'clang'
+        run: |
+          echo "BUILDCACHE_DEBUG=1" >> "$GITHUB_ENV"
+          echo "BUILDCACHE_LOG_FILE=$RUNNER_TEMP/buildcache.log" >> "$GITHUB_ENV"
+
       - name: Build
         uses: ./.github/actions/build-engine
         with:
           cache_prefix: engine-windows
           preset: ci_windows_${{ inputs.compiler }}
+
+      #TEMP buildcache diagnosis: the log also of a failed build
+      - name: Upload BuildCache log
+        if: always() && inputs.compiler == 'clang'
+        uses: actions/upload-artifact@v7
+        with:
+          name: buildcache-log-windows-clang
+          path: ${{ runner.temp }}/buildcache.log
