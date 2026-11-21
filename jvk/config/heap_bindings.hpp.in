@@ -1,0 +1,16 @@
+#pragma once
+#include <cstdint>
+
+// generated from jvk/config/heap_bindings.hpp.in, the values come from jvk/CMakeLists.txt, like jvk/heaps.glsl
+
+namespace jvk::constants {
+/**
+ * descriptor set of the jvk heaps in the shaders
+ * @see `ResourceHeap::mappings()`, `SamplerHeap::mappings()`
+ */
+inline constexpr uint32_t HEAP_SET = @JVK_HEAP_SET@;
+
+inline constexpr uint32_t HEAP_SAMPLED_IMAGE_BINDING = @JVK_HEAP_SAMPLED_IMAGE_BINDING@; ///< `jvk_textures*` arrays
+inline constexpr uint32_t HEAP_STORAGE_IMAGE_BINDING = @JVK_HEAP_STORAGE_IMAGE_BINDING@; ///< `jvk_images*` arrays
+inline constexpr uint32_t HEAP_SAMPLER_BINDING = @JVK_HEAP_SAMPLER_BINDING@; ///< `jvk_samplers` array
+}

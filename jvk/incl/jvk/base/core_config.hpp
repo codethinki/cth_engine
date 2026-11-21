@@ -1,54 +1,76 @@
 #pragma once
+#include "cvk/base/core_config.hpp"
+#include "cvk/data/descriptor/resource_heap.hpp"
+#include "cvk/data/descriptor/sampler_heap.hpp"
+#include "cvk/utility/device/device_features.hpp"
 
-#include "destruction_queue_config.hpp"
-
-#include "queue/queue_family.hpp"
-
-#include <cth/data/union_find.hpp>
-
-#include <string>
+#include <cstddef>
 
 
-namespace jvk {
-class Queue;
-}
-
-namespace jvk {
-struct CoreConfig {
-    using queue_set_t = cth::dt::union_find;
-
-    std::string appName;
-    std::string engineName;
-    std::vector<std::string> requiredInstanceExtensions; //TODO replace this with better extension handling
-
-
-    /**
-     * creates a destruction queue if not @ref std::nullopt 
-     */
-    std::optional<DestructionQueueConfig> destructionQueueConfig;
-
-    /**
-     * defines the properties for the created queues
-     * 
-     */
-    std::vector<QueueFamilyProperties> queueProperties;
-
-    /**
-     * Groups queues, first possible queue set is accepted. Groups share the same vk_queue. 
-     * @note empty -> default queue set, every queue is unique, equivalent to {0, ..., N - 1}
-     * @details each root represents a group, requirements in a group are combined.
-     *  Groups are separated onto different queue families as much as possible.
-     */
-    std::vector<queue_set_t> queueSets{};
-
-    static constexpr void debug_check(CoreConfig const&);
+namespace jvk::constants {
+/**
+ * features that the jvk core enables besides `cvk::constants::BASE_DEVICE_FEATURES`
+ * @details `imageCubeArray`: `jvk/heaps.glsl` declares `jvk_texturesCubeArray`, every shader with it has the capability
+ * @details `shaderStorageImageReadWithoutFormat`, `shaderStorageImageWriteWithoutFormat`: the `jvk_images*` arrays
+ *  of `jvk/heaps.glsl` have no format
+ */
+inline constexpr cvk::DeviceFeatures DEVICE_FEATURES{
+    .imageCubeArray = true,
+    .shaderStorageImageReadWithoutFormat = true,
+    .shaderStorageImageWriteWithoutFormat = true,
 };
-constexpr void CoreConfig::debug_check(CoreConfig const& c) {
-    auto const& sets = c.queueSets;
-
-    CTH_CRITICAL(
-        std::ranges::any_of(sets, [queues = c.queueProperties.size()](auto& set){ return set.size() != queues; }),
-        "sets must span all queues"
-    ){}
 }
+
+namespace jvk {
+/**
+ * descriptors of the heaps of a `Core`
+ * @details a heap whose counts are all `0` -> no heap
+ */
+struct HeapsConfig {
+    cvk::ResourceHeap::Config resources{
+        .sampledImages = 65536,
+        .storageImages = 4096,
+        .inputAttachments = 64
+    };
+    cvk::SamplerHeap::Config samplers{.samplers = 256};
+
+    /**
+     * @return a count of `resources` is not `0`
+     */
+    [[nodiscard]] constexpr bool createsResourceHeap() const {
+        return resources.sampledImages != 0 || resources.storageImages != 0
+            || resources.inputAttachments != 0;
+    }
+
+    /**
+     * @return a count of `samplers` is not `0`
+     */
+    [[nodiscard]] constexpr bool createsSamplerHeap() const { return samplers.samplers != 0; }
+};
+
+/**
+ * config of a `Core`
+ */
+struct CoreConfig {
+    /**
+     * queues, features, extensions and device of the cvk core
+     * @details empty `cvk::CoreConfig::queueSets` -> `queue_sets()` of `cvk::CoreConfig::queueProperties`
+     */
+    cvk::CoreConfig vk{};
+
+    /**
+     * threads of the worker scheduler, `0` -> `std::thread::hardware_concurrency()`
+     * @details `std::thread::hardware_concurrency()` is `0` -> one thread
+     * @details `driverThreads` `0` -> the workers call the driver too
+     */
+    size_t workers = 0;
+
+    /**
+     * threads for the vulkan driver calls, `0` -> the workers
+     * @details recommended `>= 2`: a blocking acquire holds one
+     */
+    size_t driverThreads = 0;
+
+    HeapsConfig heaps{}; ///< see `Core::resourceHeap()`, `Core::samplerHeap()`
+};
 }

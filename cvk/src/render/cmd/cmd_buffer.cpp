@@ -1,0 +1,792 @@
+#include "cvk/render/cmd/cmd_buffer.hpp"
+
+#include "cvk/base/core.hpp"
+#include "cvk/base/physical_device.hpp"
+#include "cvk/data/descriptor/resource_heap.hpp"
+#include "cvk/data/descriptor/sampler_heap.hpp"
+#include "cvk/data/img/image.hpp"
+#include "cvk/data/img/image_format.hpp"
+#include "cvk/data/img/image_view.hpp"
+#include "cvk/render/pipeline/compute_pipeline.hpp"
+#include "cvk/render/pipeline/graphics_pipeline.hpp"
+#include "cvk/utility/format.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
+
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <ranges>
+
+
+namespace cvk {
+using std::span;
+
+namespace {
+    void debug_check_attachment_layout(VkImageLayout layout) {
+        CTH_CRITICAL(
+            layout == VK_IMAGE_LAYOUT_UNDEFINED || layout == VK_IMAGE_LAYOUT_PREINITIALIZED
+            || layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+            || layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+            || layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            || layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            "attachment must be in an attachment layout, got {}",
+            layout
+        ) {}
+    }
+
+    uint32_t view_mip_levels(ImageView const& view) {
+        auto const range = view.range();
+        return range.levelCount == VK_REMAINING_MIP_LEVELS
+            ? view.image().mipLevels() - range.baseMipLevel
+            : range.levelCount;
+    }
+
+    void debug_check_draw(BaseCmdBuffer const& cmdBuffer) {
+        BaseCmdBuffer::debug_check(cmdBuffer);
+
+        CTH_CRITICAL(!cmdBuffer.insideRendering(), "draws need a rendering") {}
+
+        // the own rendering of the command buffer
+        auto const* renderingPtr = cmdBuffer.rendering();
+        CTH_CRITICAL(
+            renderingPtr != nullptr
+            && (renderingPtr->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) != 0
+            && (renderingPtr->flags & VK_RENDERING_CONTENTS_INLINE_BIT_KHR) == 0,
+            "the secondaries record the draws of a rendering with VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT"
+        ) {}
+    }
+
+    void debug_check_indirect(
+        BaseBuffer const& buffer,
+        size_t offset,
+        uint32_t drawCount,
+        uint32_t stride,
+        size_t size
+    ) {
+        BaseBuffer::debug_check(buffer);
+        CTH_CRITICAL(
+            (buffer.config().usage & VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT) == 0,
+            "buffer usage must have VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT"
+        ) {}
+        CTH_CRITICAL(offset % 4 != 0, "offset must be a multiple of 4") {}
+        CTH_CRITICAL(
+            drawCount > 0 && offset + size_t{drawCount - 1} * stride + size > buffer.size(),
+            "the commands must lie in the buffer"
+        ) {}
+    }
+
+    VkExtent2D view_extent(ImageView const& view) {
+        return mip_extent(view.image().extent(), view.range().baseMipLevel);
+    }
+
+    void debug_check_secondary(SecondaryCmdBuffer const& secondary) {
+        CTH_CRITICAL(
+            !secondary.created() || secondary.recording(),
+            "secondary must be created and not recording"
+        ) {}
+    }
+}
+
+BaseCmdBuffer::BaseCmdBuffer(
+    CmdPool const& pool,
+    VkCommandBufferLevel level
+) : _handle{pool}, _level{level} {}
+
+void BaseCmdBuffer::wrap(State const& state) {
+    CmdPool::debug_check(pool());
+    CTH_CRITICAL(
+        state.vkPool.get() != pool().get(),
+        "state.vkPool must be the pool of the command buffer {}, got {}",
+        pool().get(),
+        state.vkPool.get()
+    ) {}
+
+    optDestroy();
+
+    _handle.reset(state.vkBuffer.get(), pool());
+    pool().add();
+    _recording = false;
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
+}
+
+void BaseCmdBuffer::create() {
+    CmdPool::debug_check(pool());
+
+    optDestroy();
+
+    VkCommandBufferAllocateInfo const info{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .commandPool = pool().get(),
+        .level = _level,
+        .commandBufferCount = 1,
+    };
+
+    VkCommandBuffer ptr = VK_NULL_HANDLE;
+    auto const result =
+        core().functions()->vkAllocateCommandBuffers(core().vkDevice(), &info, &ptr);
+
+    CTH_STABLE_ERR(result != VK_SUCCESS, "failed to allocate command buffer") {
+        forget();
+        throw cvk::vk_result_exception{result, details->exception()};
+    }
+
+    _handle.reset(ptr, pool());
+    pool().add();
+    _recording = false;
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
+}
+
+void BaseCmdBuffer::destroy() {
+    debug_check(*this);
+
+    _handle.reset();
+
+    forget();
+}
+
+BaseCmdBuffer::State BaseCmdBuffer::release() {
+    debug_check(*this);
+
+    State const state{.vkPool = pool().get(), .vkBuffer = _handle.release()};
+    pool().remove();
+
+    forget();
+    return state;
+}
+
+void BaseCmdBuffer::end() {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(rendering() != nullptr, "rendering must be ended first") {}
+
+    auto const result = core().functions()->vkEndCommandBuffer(get());
+    _recording = false;
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
+
+    CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to end command buffer") {}
+}
+
+void BaseCmdBuffer::reset(VkCommandBufferResetFlags flags) {
+    debug_check(*this);
+    CTH_CRITICAL(
+        (pool().config().flags & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) == 0,
+        "pool must allow command buffer resets"
+    ) {}
+
+    auto const result = core().functions()->vkResetCommandBuffer(get(), flags);
+    _recording = false;
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
+
+    CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to reset command buffer") {}
+}
+
+void BaseCmdBuffer::beginRendering(RenderingInfo const& info) {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(rendering() != nullptr, "command buffer must be outside of a rendering") {}
+    AttachmentMapping::debug_check(info.attachmentMapping, info.colorAttachments.size());
+
+    std::optional<VkExtent2D> extentOpt{};
+
+    auto const attachmentInfo = [&](RenderingAttachment const& attachment) {
+        ImageView const& view = attachment.view;
+        ImageView::debug_check(view);
+        CTH_CRITICAL(view_mip_levels(view) != 1, "attachment views must have one mip level") {}
+        // multiview: view i renders into layer i
+        auto const layers = info.viewMask != 0
+            ? static_cast<uint32_t>(std::bit_width(info.viewMask))
+            : info.layerCount;
+        CTH_CRITICAL(
+            view.arrayLayers() < layers,
+            "attachment views need a layer per rendered layer or view, got {} for {}",
+            view.arrayLayers(),
+            layers
+        ) {}
+
+        auto const viewExtent = view_extent(view);
+        extentOpt = extentOpt.has_value()
+            ? VkExtent2D{
+                std::min(extentOpt->width, viewExtent.width),
+                std::min(extentOpt->height, viewExtent.height)
+            }
+            : viewExtent;
+        debug_check_attachment_layout(attachment.layout);
+
+        VkImageView resolveView = VK_NULL_HANDLE;
+        VkImageLayout resolveLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        if(attachment.resolveViewPtr != nullptr) {
+            ImageView const& resolve = *attachment.resolveViewPtr;
+            ImageView::debug_check(resolve);
+            CTH_CRITICAL(
+                attachment.resolveMode == VK_RESOLVE_MODE_NONE,
+                "a resolve view needs a resolve mode"
+            ) {}
+
+            debug_check_attachment_layout(attachment.resolveLayout);
+
+            resolveView = resolve.get();
+            resolveLayout = attachment.resolveLayout;
+        }
+
+        return VkRenderingAttachmentInfo{
+            .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+            .pNext = nullptr,
+            .imageView = view.get(),
+            .imageLayout = attachment.layout,
+            .resolveMode = attachment.resolveMode,
+            .resolveImageView = resolveView,
+            .resolveImageLayout = resolveLayout,
+            .loadOp = attachment.loadOp,
+            .storeOp = attachment.storeOp,
+            .clearValue = attachment.clearValue,
+        };
+    };
+
+    std::vector<VkRenderingAttachmentInfo> colors{};
+    colors.reserve(info.colorAttachments.size());
+    for(auto const& attachment : info.colorAttachments) {
+        colors.push_back(attachmentInfo(attachment));
+
+        auto const format = attachment.view->image().format();
+        CTH_CRITICAL(
+            format_aspects(format) != VK_IMAGE_ASPECT_COLOR_BIT,
+            "color attachments need a color format, got {}",
+            format
+        ) {}
+    }
+
+    std::optional<VkRenderingAttachmentInfo> depthOpt{};
+    if(info.depthAttachment.has_value()) {
+        depthOpt = attachmentInfo(*info.depthAttachment);
+
+        auto const format = info.depthAttachment->view->image().format();
+        CTH_CRITICAL(
+            (format_aspects(format) & VK_IMAGE_ASPECT_DEPTH_BIT) == 0,
+            "the depth attachment needs a depth format, got {}",
+            format
+        ) {}
+    }
+
+    std::optional<VkRenderingAttachmentInfo> stencilOpt{};
+    if(info.stencilAttachment.has_value()) {
+        stencilOpt = attachmentInfo(*info.stencilAttachment);
+
+        auto const format = info.stencilAttachment->view->image().format();
+        CTH_CRITICAL(
+            (format_aspects(format) & VK_IMAGE_ASPECT_STENCIL_BIT) == 0,
+            "the stencil attachment needs a stencil format, got {}",
+            format
+        ) {}
+    }
+
+    CTH_CRITICAL(
+        !extentOpt.has_value() && !info.area.has_value(),
+        "a rendering without attachments needs an area"
+    ) {}
+
+    VkRenderingInfo const renderingInfo{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+        .pNext = nullptr,
+        .flags = info.flags,
+        .renderArea = info.area.value_or(
+            VkRect2D{.offset = {0, 0}, .extent = extentOpt.value_or(VkExtent2D{})}
+        ),
+        .layerCount = info.layerCount,
+        .viewMask = info.viewMask,
+        .colorAttachmentCount = static_cast<uint32_t>(colors.size()),
+        .pColorAttachments = colors.data(),
+        .pDepthAttachment = depthOpt.has_value() ? &*depthOpt : nullptr,
+        .pStencilAttachment = stencilOpt.has_value() ? &*stencilOpt : nullptr,
+    };
+    core().functions()->vkCmdBeginRendering(get(), &renderingInfo);
+
+    _renderingOpt = info;
+    _renderingOpt->area = renderingInfo.renderArea;
+    if(_renderingOpt->attachmentMapping != AttachmentMapping{})
+        recordAttachmentMapping();
+
+    // secondaries do not inherit dynamic state
+    bool const inlineContents = (info.flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT)
+        == 0
+        || (info.flags & VK_RENDERING_CONTENTS_INLINE_BIT_KHR) != 0;
+    if(!inlineContents)
+        return;
+
+    auto const& area = renderingInfo.renderArea;
+    setViewport(
+        VkViewport{
+            .x = static_cast<float>(area.offset.x),
+            .y = static_cast<float>(area.offset.y),
+            .width = static_cast<float>(area.extent.width),
+            .height = static_cast<float>(area.extent.height),
+            .minDepth = 0.f,
+            .maxDepth = 1.f,
+        }
+    );
+    setScissor(area);
+}
+
+void BaseCmdBuffer::endRendering() {
+    debug_check(*this);
+    CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside its own rendering") {}
+
+    core().functions()->vkCmdEndRendering(get());
+
+    _renderingOpt.reset();
+}
+
+void BaseCmdBuffer::setAttachmentMapping(AttachmentMapping const& mapping) {
+    debug_check(*this);
+    CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside its own rendering") {}
+    AttachmentMapping::debug_check(mapping, _renderingOpt->colorAttachments.size());
+
+    _renderingOpt->attachmentMapping = mapping;
+    recordAttachmentMapping();
+}
+
+void BaseCmdBuffer::setViewport(VkViewport const& viewport) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+
+    core().functions()->vkCmdSetViewport(get(), 0, 1, &viewport);
+}
+
+void BaseCmdBuffer::setScissor(VkRect2D const& scissor) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+
+    core().functions()->vkCmdSetScissor(get(), 0, 1, &scissor);
+}
+
+void BaseCmdBuffer::bind(GraphicsPipeline const& pipeline) {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    GraphicsPipeline::debug_check(pipeline);
+
+    auto const& mapping = pipeline.config().attachmentMapping;
+    if(rendering() != nullptr && mapping != rendering()->attachmentMapping)
+        setAttachmentMapping(mapping);
+
+    core().functions()->vkCmdBindPipeline(get(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.get());
+}
+
+void BaseCmdBuffer::bind(ComputePipeline const& pipeline) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    ComputePipeline::debug_check(pipeline);
+
+    core().functions()->vkCmdBindPipeline(get(), VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.get());
+}
+
+void BaseCmdBuffer::bind(ResourceHeap const& heap) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    ResourceHeap::debug_check(heap);
+
+    auto const info = heap.bindInfo();
+    core().functions()->vkCmdBindResourceHeapEXT(get(), &info);
+}
+
+void BaseCmdBuffer::bind(SamplerHeap const& heap) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    SamplerHeap::debug_check(heap);
+
+    auto const info = heap.bindInfo();
+    core().functions()->vkCmdBindSamplerHeapEXT(get(), &info);
+}
+
+void BaseCmdBuffer::pushDataBytes(span<std::byte const> data, uint32_t offset) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(data.empty(), "push data must not be empty") {}
+    CTH_CRITICAL(
+        offset % 4 != 0 || data.size() % 4 != 0,
+        "offset and size must be multiples of 4, got {}, {}",
+        offset,
+        data.size()
+    ) {}
+    auto const maxSize = core().physicalDevice().descriptorHeapProperties().maxPushDataSize;
+    CTH_CRITICAL(
+        offset + data.size() > maxSize,
+        "push data must lie in maxPushDataSize, got {} + {} of {}",
+        offset,
+        data.size(),
+        maxSize
+    ) {}
+
+    VkPushDataInfoEXT const info{
+        .sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+        .pNext = nullptr,
+        .offset = offset,
+        .data = {.address = data.data(), .size = data.size()},
+    };
+    core().functions()->vkCmdPushDataEXT(get(), &info);
+}
+
+void BaseCmdBuffer::bindVertices(uint32_t binding, BaseBuffer const& buffer, size_t offset) const {
+    debug_check(*this);
+    BaseBuffer::debug_check(buffer);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(
+        (buffer.config().usage & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) == 0,
+        "buffer usage must have VK_BUFFER_USAGE_VERTEX_BUFFER_BIT"
+    ) {}
+    CTH_CRITICAL(offset >= buffer.size(), "offset must lie in the buffer") {}
+
+    VkBuffer const vkBuffer = buffer.get();
+    VkDeviceSize const vkOffset = offset;
+    core().functions()->vkCmdBindVertexBuffers(get(), binding, 1, &vkBuffer, &vkOffset);
+}
+
+void BaseCmdBuffer::bindIndices(BaseBuffer const& buffer, VkIndexType type, size_t offset) const {
+    debug_check(*this);
+    BaseBuffer::debug_check(buffer);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(
+        (buffer.config().usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT) == 0,
+        "buffer usage must have VK_BUFFER_USAGE_INDEX_BUFFER_BIT"
+    ) {}
+    CTH_CRITICAL(offset >= buffer.size(), "offset must lie in the buffer") {}
+    CTH_CRITICAL(
+        offset % (type == VK_INDEX_TYPE_UINT16 ? sizeof(uint16_t) : sizeof(uint32_t)) != 0,
+        "offset must be a multiple of the index size"
+    ) {}
+
+    core().functions()->vkCmdBindIndexBuffer(get(), buffer.get(), offset, type);
+}
+
+void BaseCmdBuffer::draw(
+    uint32_t vertexCount,
+    uint32_t instanceCount,
+    uint32_t firstVertex,
+    uint32_t firstInstance
+) const {
+    debug_check_draw(*this);
+
+    core().functions()->vkCmdDraw(get(), vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void BaseCmdBuffer::drawIndexed(
+    uint32_t indexCount,
+    uint32_t instanceCount,
+    uint32_t firstIndex,
+    int32_t vertexOffset,
+    uint32_t firstInstance
+) const {
+    debug_check_draw(*this);
+
+    core().functions()->vkCmdDrawIndexed(
+        get(),
+        indexCount,
+        instanceCount,
+        firstIndex,
+        vertexOffset,
+        firstInstance
+    );
+}
+
+void BaseCmdBuffer::drawIndirect(
+    BaseBuffer const& buffer,
+    size_t offset,
+    uint32_t drawCount,
+    uint32_t stride
+) const {
+    debug_check_draw(*this);
+    debug_check_indirect(buffer, offset, drawCount, stride, sizeof(VkDrawIndirectCommand));
+
+    core().functions()->vkCmdDrawIndirect(get(), buffer.get(), offset, drawCount, stride);
+}
+
+void BaseCmdBuffer::drawIndexedIndirect(
+    BaseBuffer const& buffer,
+    size_t offset,
+    uint32_t drawCount,
+    uint32_t stride
+) const {
+    debug_check_draw(*this);
+    debug_check_indirect(buffer, offset, drawCount, stride, sizeof(VkDrawIndexedIndirectCommand));
+
+    core().functions()->vkCmdDrawIndexedIndirect(get(), buffer.get(), offset, drawCount, stride);
+}
+
+void BaseCmdBuffer::dispatch(
+    uint32_t groupCountX,
+    uint32_t groupCountY,
+    uint32_t groupCountZ
+) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(rendering() != nullptr, "dispatches must be outside of a rendering") {}
+
+    core().functions()->vkCmdDispatch(get(), groupCountX, groupCountY, groupCountZ);
+}
+
+void BaseCmdBuffer::dispatchIndirect(BaseBuffer const& buffer, size_t offset) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(rendering() != nullptr, "dispatches must be outside of a rendering") {}
+    debug_check_indirect(buffer, offset, 1, 0, sizeof(VkDispatchIndirectCommand));
+
+    core().functions()->vkCmdDispatchIndirect(get(), buffer.get(), offset);
+}
+
+void destroy(DeviceTable table, VkCommandPool vkPool, VkCommandBuffer vkBuffer) {
+    CTH_WARN(vkBuffer == VK_NULL_HANDLE, "vkBuffer invalid (VK_NULL_HANDLE)") {}
+
+    table->vkFreeCommandBuffers(table.device(), vkPool, 1, &vkBuffer);
+}
+
+void destroy(DeviceTable table, VkCommandPool vkPool, span<VkCommandBuffer const> vkBuffers) {
+    CTH_WARN(
+        std::ranges::contains(vkBuffers, VK_NULL_HANDLE),
+        "> 0 vkBuffers invalid (VK_NULL_HANDLE)"
+    ) {}
+
+    table->vkFreeCommandBuffers(
+        table.device(),
+        vkPool,
+        static_cast<uint32_t>(vkBuffers.size()),
+        vkBuffers.data()
+    );
+}
+
+void BaseCmdBuffer::begin(VkCommandBufferBeginInfo const& info) {
+    debug_check(*this);
+    CTH_CRITICAL(recording(), "command buffer must not be recording") {}
+
+    auto const result = core().functions()->vkBeginCommandBuffer(get(), &info);
+    CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to begin command buffer") {}
+
+    _recording = true;
+    _beginResets = pool().resets();
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
+}
+
+void BaseCmdBuffer::recordAttachmentMapping() const {
+    auto const& mapping = _renderingOpt->attachmentMapping;
+    auto const colorAttachments = static_cast<uint32_t>(_renderingOpt->colorAttachments.size());
+
+    auto const locations = mapping.locationInfo(colorAttachments);
+    auto const inputIndices = mapping.inputIndexInfo(colorAttachments);
+    core().functions()->vkCmdSetRenderingAttachmentLocationsKHR(get(), &locations);
+    core().functions()->vkCmdSetRenderingInputAttachmentIndicesKHR(get(), &inputIndices);
+}
+
+void BaseCmdBuffer::forget() {
+    _recording = false;
+    _renderingOpt.reset();
+    _continuedViewMaskOpt.reset();
+}
+
+void BaseCmdBuffer::pool_deleter::operator()(VkCommandBuffer vkBuffer) const {
+    _pool->remove();
+    cvk::destroy(_pool->core().deviceTable(), _pool->get(), vkBuffer);
+}
+}
+
+namespace cvk {
+PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool const& pool) : BaseCmdBuffer{
+    pool,
+    VK_COMMAND_BUFFER_LEVEL_PRIMARY
+} {}
+
+PrimaryCmdBuffer::PrimaryCmdBuffer(
+    CmdPool const& pool,
+    State const& state
+) : PrimaryCmdBuffer{pool} { wrap(state); }
+
+PrimaryCmdBuffer::PrimaryCmdBuffer(CmdPool const& pool, create_t) : PrimaryCmdBuffer{pool} {
+    create();
+}
+
+void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
+    VkCommandBufferBeginInfo const info{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .pNext = nullptr,
+        .flags = usage,
+        .pInheritanceInfo = nullptr,
+    };
+    BaseCmdBuffer::begin(info);
+}
+
+void PrimaryCmdBuffer::execute(
+    span<cth::ref_wrapper<SecondaryCmdBuffer const> const> secondaries
+) const {
+    for(SecondaryCmdBuffer const& secondary : secondaries)
+        debug_check_secondary(secondary);
+
+    std::vector const vkBuffers{
+        std::from_range,
+        secondaries | std::views::transform(&SecondaryCmdBuffer::get)
+    };
+    recordExecute(vkBuffers);
+}
+
+void PrimaryCmdBuffer::execute(
+    std::initializer_list<cth::ref_wrapper<SecondaryCmdBuffer const>> secondaries
+) const { execute(span{secondaries}); }
+
+void PrimaryCmdBuffer::execute(SecondaryCmdBuffer const& secondary) const {
+    std::array const secondaries{cth::ref_wrapper{secondary}};
+    execute(secondaries);
+}
+
+RenderingInheritance PrimaryCmdBuffer::inheritance() const {
+    debug_check(*this);
+    CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside its own rendering") {}
+
+    auto const& info = *rendering();
+    auto const format = [](RenderingAttachment const& attachment) {
+        return attachment.view->image().format();
+    };
+
+    // every attachment has the same sample count
+    auto const samples = [&info] {
+        auto const of = [](RenderingAttachment const& attachment) {
+            return attachment.view->image().config().samples;
+        };
+        if(!info.colorAttachments.empty())
+            return of(info.colorAttachments.front());
+        if(info.depthAttachment.has_value())
+            return of(*info.depthAttachment);
+        if(info.stencilAttachment.has_value())
+            return of(*info.stencilAttachment);
+        return VK_SAMPLE_COUNT_1_BIT;
+    };
+
+    return RenderingInheritance{
+        .colorFormats = {std::from_range, info.colorAttachments | std::views::transform(format)},
+        .depthFormat = info.depthAttachment.has_value()
+        ? format(*info.depthAttachment)
+        : VK_FORMAT_UNDEFINED,
+        .stencilFormat = info.stencilAttachment.has_value()
+        ? format(*info.stencilAttachment)
+        : VK_FORMAT_UNDEFINED,
+        .samples = samples(),
+        .viewMask = info.viewMask,
+        .flags = info.flags & ~VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT,
+        .attachmentMapping = info.attachmentMapping,
+    };
+}
+
+void PrimaryCmdBuffer::recordExecute(span<VkCommandBuffer const> vkBuffers) const {
+    debug_check(*this);
+    CTH_CRITICAL(!recording(), "command buffer must be recording") {}
+    CTH_CRITICAL(
+        rendering() != nullptr
+        && (rendering()->flags & VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT) == 0,
+        "the rendering must have VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT"
+    ) {}
+
+    core().functions()->vkCmdExecuteCommands(
+        get(),
+        static_cast<uint32_t>(vkBuffers.size()),
+        vkBuffers.data()
+    );
+}
+}
+
+namespace cvk {
+SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool const& pool) : BaseCmdBuffer{
+    pool,
+    VK_COMMAND_BUFFER_LEVEL_SECONDARY
+} {}
+
+SecondaryCmdBuffer::SecondaryCmdBuffer(
+    CmdPool const& pool,
+    State const& state
+) : SecondaryCmdBuffer{pool} { wrap(state); }
+
+SecondaryCmdBuffer::SecondaryCmdBuffer(CmdPool const& pool, create_t) : SecondaryCmdBuffer{pool} {
+    create();
+}
+
+void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage, HeapInheritance const& heaps) {
+    beginInherited(
+        VkCommandBufferInheritanceInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+            .pNext = nullptr,
+            .renderPass = VK_NULL_HANDLE,
+            .subpass = 0,
+            .framebuffer = VK_NULL_HANDLE,
+            .occlusionQueryEnable = VK_FALSE,
+            .queryFlags = 0,
+            .pipelineStatistics = 0,
+        },
+        usage,
+        heaps
+    );
+    _inheritedRenderingOpt.reset();
+}
+
+void SecondaryCmdBuffer::begin(
+    Inheritance const& inheritance,
+    VkCommandBufferUsageFlags usage,
+    HeapInheritance const& heaps
+) {
+    auto const colorAttachments = static_cast<uint32_t>(inheritance.colorFormats.size());
+    AttachmentMapping::debug_check(inheritance.attachmentMapping, colorAttachments);
+
+    auto const inputIndices = inheritance.attachmentMapping.inputIndexInfo(colorAttachments);
+    auto locations = inheritance.attachmentMapping.locationInfo(colorAttachments);
+    locations.pNext = &inputIndices;
+    auto renderingInfo = inheritance.renderingInfo();
+    renderingInfo.pNext = &locations;
+
+    beginInherited(
+        VkCommandBufferInheritanceInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+            .pNext = &renderingInfo,
+            .renderPass = VK_NULL_HANDLE,
+            .subpass = 0,
+            .framebuffer = VK_NULL_HANDLE,
+            .occlusionQueryEnable = VK_FALSE,
+            .queryFlags = 0,
+            .pipelineStatistics = 0,
+        },
+        usage | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+        heaps
+    );
+    _continuedViewMaskOpt = inheritance.viewMask;
+    _inheritedRenderingOpt = inheritance;
+}
+
+void SecondaryCmdBuffer::beginInherited(
+    VkCommandBufferInheritanceInfo inheritanceInfo,
+    VkCommandBufferUsageFlags usage,
+    HeapInheritance const& heaps
+) {
+    auto const [resourceHeapPtr, samplerHeapPtr] = heaps;
+    auto const resourceBind = resourceHeapPtr != nullptr
+        ? resourceHeapPtr->bindInfo()
+        : VkBindHeapInfoEXT{};
+    auto const samplerBind = samplerHeapPtr != nullptr
+        ? samplerHeapPtr->bindInfo()
+        : VkBindHeapInfoEXT{};
+
+    VkCommandBufferInheritanceDescriptorHeapInfoEXT const heapInfo{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_DESCRIPTOR_HEAP_INFO_EXT,
+        .pNext = inheritanceInfo.pNext,
+        .pSamplerHeapBindInfo = samplerHeapPtr != nullptr ? &samplerBind : nullptr,
+        .pResourceHeapBindInfo = resourceHeapPtr != nullptr ? &resourceBind : nullptr,
+    };
+    if(resourceHeapPtr != nullptr || samplerHeapPtr != nullptr)
+        inheritanceInfo.pNext = &heapInfo;
+
+    BaseCmdBuffer::begin(
+        VkCommandBufferBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = usage,
+            .pInheritanceInfo = &inheritanceInfo,
+        }
+    );
+}
+}

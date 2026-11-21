@@ -1,0 +1,14 @@
+#version 450
+#extension GL_EXT_buffer_reference : require
+
+layout(local_size_x = 64) in;
+
+layout(buffer_reference, std430) buffer Values {
+    uint values[];
+};
+
+layout(push_constant) uniform Push {
+    Values values;
+} push;
+
+void main() { push.values.values[gl_GlobalInvocationID.x] = gl_GlobalInvocationID.x * 3u; }

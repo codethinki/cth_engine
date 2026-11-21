@@ -1,0 +1,155 @@
+#pragma once
+#include "cvk/utility/constants.hpp"
+#include "cvk/utility/handle/destroy.hpp"
+#include "cvk/utility/handle/instance_handle.hpp"
+#include "cvk/utility/types.hpp"
+
+#include <volk.h>
+
+#include <cth/io/log.hpp>
+#include <cth/ptr.hpp>
+
+
+namespace cvk {
+class Instance;
+
+/**
+ * writes the message to `cth::log`
+ * @return `VK_FALSE`
+ */
+VKAPI_ATTR VkBool32 VKAPI_CALL default_debug_callback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT,
+    VkDebugUtilsMessageTypeFlagsEXT,
+    VkDebugUtilsMessengerCallbackDataEXT const*,
+    void* userData
+);
+
+/**
+ * `VkDebugUtilsMessengerEXT` wrapper
+ */
+class DebugMessenger {
+public:
+    struct Config;
+    struct State;
+    using callback_t = PFN_vkDebugUtilsMessengerCallbackEXT;
+
+    /**
+     * base constructor
+     */
+    DebugMessenger(Instance const&, Config);
+
+    /**
+     * constructs and wraps
+     * @details calls @ref DebugMessenger(Instance const&, Config), `wrap()`
+     */
+    DebugMessenger(Instance const&, Config, State const&);
+
+    /**
+     * constructs and creates
+     * @details calls @ref DebugMessenger(Instance const&, Config), `create()`
+     */
+    explicit DebugMessenger(Instance const&, Config, create_t);
+
+    /**
+     * @note calls `optDestroy()`
+     */
+    ~DebugMessenger() { optDestroy(); }
+
+    /**
+     * wraps the state
+     * @pre `Instance::created()`
+     * @pre the instance created the messenger
+     * @post `created()`
+     * @note calls `optDestroy()`
+     */
+    void wrap(State const&);
+
+    /**
+     * creates the messenger
+     * @pre `Instance::created()`
+     * @pre the instance enables `VK_EXT_debug_utils`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateDebugUtilsMessengerEXT()`
+     */
+    void create();
+
+    /**
+     * destroys and forgets
+     * @pre `created()`
+     */
+    void destroy();
+
+    /**
+     * if `created()` -> calls `destroy()`
+     */
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
+
+    /**
+     * releases ownership, returns the state and forgets
+     * @pre `created()`
+     */
+    State release();
+
+    struct Config {
+        /**
+         * @pre `!= nullptr`
+         */
+        callback_t callback = &default_debug_callback;
+        VkDebugUtilsMessageSeverityFlagsEXT messageSeverities = constants::DEBUG_MESSAGE_SEVERITY;
+        VkDebugUtilsMessageTypeFlagsEXT messageTypes = constants::DEBUG_MESSAGE_TYPE;
+
+        [[nodiscard]] constexpr VkDebugUtilsMessengerCreateInfoEXT createInfo() const {
+            return VkDebugUtilsMessengerCreateInfoEXT{
+                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                .pNext = nullptr,
+                .flags = 0,
+                .messageSeverity = messageSeverities,
+                .messageType = messageTypes,
+                .pfnUserCallback = callback,
+                .pUserData = nullptr,
+            };
+        }
+
+        static constexpr void debug_check(Config const&);
+    };
+
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkDebugUtilsMessengerEXT get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Config const& config() const { return _config; }
+
+private:
+    void forget();
+
+    Config _config;
+    cth::ref_wrapper<Instance const> _instance;
+    instance_handle<VkDebugUtilsMessengerEXT> _handle{nullptr};
+
+public:
+    DebugMessenger(DebugMessenger const& other) = delete;
+    DebugMessenger(DebugMessenger&& other) noexcept = default;
+    DebugMessenger& operator=(DebugMessenger const& other) = delete;
+    DebugMessenger& operator=(DebugMessenger&& other) noexcept = default;
+
+    static constexpr void debug_check(DebugMessenger const&);
+};
+}
+
+namespace cvk {
+struct DebugMessenger::State {
+    vk_not_null<VkDebugUtilsMessengerEXT> vkMessenger;
+};
+}
+
+namespace cvk {
+constexpr void DebugMessenger::debug_check(DebugMessenger const& debugMessenger) {
+    CTH_CRITICAL(!debugMessenger.created(), "debug messenger must be created") {}
+}
+
+constexpr void DebugMessenger::Config::debug_check(Config const& config) {
+    CTH_CRITICAL(config.callback == nullptr, "callback must not be nullptr") {}
+}
+}

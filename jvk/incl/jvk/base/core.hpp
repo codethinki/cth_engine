@@ -1,213 +1,191 @@
 #pragma once
-#include "jvk/base/core_config.hpp"
+#include "core_config.hpp"
+#include "queues.hpp"
 
-#include "jvk/base/queue/queue.hpp"
-#include "jvk/surface/surface.hpp"
-#include "jvk/utility/constants.hpp"
-#include "jvk/utility/types.hpp"
-#include "jvk/utility/vk_exceptions.hpp"
+#include "jvk/data/resource_heap.hpp"
+#include "jvk/data/sampler_heap.hpp"
+#include "jvk/sync/timeline_reactor.hpp"
 
+#include "cvk/base/core.hpp"
 
+#include <cth/coro/executor.hpp>
+#include <cth/coro/scheduler.hpp>
+#include <cth/io/log.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
 
-#include <map>
-#include <volk.h>
-#include <cth/data/union_find.hpp>
-
+#include <cstddef>
+#include <initializer_list>
+#include <optional>
 #include <span>
+#include <utility>
 
+
+namespace cvk {
+class Instance;
+class Surface;
+}
 
 namespace jvk {
-struct DeviceTable;
-
-class DestructionQueue;
-class Queue;
-class Device;
-class PhysicalDevice;
-class Instance;
-
+/**
+ * jvk core
+ * @details owns the cvk core, the workers, the timeline reactor, the serialized queues and the descriptor heaps
+ * @details the indices of one vulkan queue share one `Queue`
+ */
 class Core {
 public:
     using Config = CoreConfig;
-    using queue_set_t = Config::queue_set_t;
-    struct State;
-
-    Core();
 
     /**
-     * @brief constructs and wraps
-     * @details
-     * calls: @ref optDestroy()
+     * base constructor
      */
-    explicit Core(State state);
+    Core(cvk::Instance const&, Config);
 
+    //TODO review no default for the surfaces, like cvk::Core::create(): a core without windows passes {}
     /**
-     * @brief constructs and creates
-     * @details
-     * calls: @ref create(vk_not_null<VkSurfaceKHR>, Config const&)
+     * constructs and creates
+     * @details calls @ref Core(cvk::Instance const&, Config), `create()`
      */
-    explicit Core(Config const& config);
+    Core(
+        cvk::Instance const&,
+        Config,
+        std::span<cth::ref_wrapper<cvk::Surface const> const> surfaces
+    );
 
     /**
-     * @details
-     * calls: @ref optDestroy()
+     * constructs and creates with the surfaces of a braced list
+     * @see @ref Core(cvk::Instance const&, Config, std::span<cth::ref_wrapper<cvk::Surface const> const>)
+     */
+    Core(
+        cvk::Instance const& instance,
+        Config config,
+        std::initializer_list<cth::ref_wrapper<cvk::Surface const>> surfaces
+    ) : Core{instance, std::move(config), std::span{surfaces}} {}
+
+    /**
+     * @note calls `optDestroy()`
      */
     ~Core();
 
     /**
-     * @brief wraps the @ref State
-     * @note calls @ref optDestroy()
+     * creates the cvk core, the workers, the reactor, the queues and the heaps
+     * @details the features: `Config::vk` and `constants::DEVICE_FEATURES`
+     * @details the heaps: `Config::heaps`, a heap whose counts are all `0` -> no heap
+     * @param surfaces the present queues present to every surface
+     * @pre `cvk::Instance::created()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::cvk_exception reason: no physical device meets the requirements
+     * @throws cvk::cvk_exception reason: `cvk::CoreConfig::device` is missing or does not meet the requirements
+     * @throws cvk::vk_result_exception result of `vkCreateDevice()`
+     * @throws cvk::vk_result_exception result of `vmaCreateAllocator()`
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the reactor
+     * @throws cvk::cvk_exception the exceptions of the heap creations
+     * @see `cvk::Core::create()`
      */
-    void wrap(State state);
+    void create(std::span<cth::ref_wrapper<cvk::Surface const> const> surfaces);
 
     /**
-     * @brief creates the components
-     * @details
-     * calls:
-     * - @ref Instance::Instance(std::string_view, std::span<std::string const>, std::optional<DebugMessenger::Config> const&)
-     * - @ref PhysicalDevice::AutoPick(Instance const&, vk_not_null<VkSurfaceKHR>, std::span<Queue const>, std::span<std::string const>, utils::PhysicalDeviceFeatures const&)
-     * - @ref Device::Device(Instance const&, PhysicalDevice const&, std::span<Queue>)
-     * - if @ref Config::destructionQueue -> @ref DestructionQueue::DestructionQueue()
+     * creates with the surfaces of a braced list
+     * @see @ref create(std::span<cth::ref_wrapper<cvk::Surface const> const>)
      */
-    void create(Config const& config);
+    void create(std::initializer_list<cth::ref_wrapper<cvk::Surface const>> surfaces) {
+        create(std::span{surfaces});
+    }
 
     /**
-     * @brief destroys the objects state
+     * destroys the queues, the heaps, the reactor, the workers and the cvk core
+     * @details waits until every queue is idle first
+     * @details a failed wait does not stop the destruction
+     * @pre `created()`
+     * @pre the calling thread runs no job of the core
+     * @pre no handle of the heaps is left, the stage graphs of the core are destroyed
      */
     void destroy();
 
-    /** @brief destroys if @ref created() */
-    void optDestroy() { if(created()) destroy(); }
+    /**
+     * if `created()` -> calls `destroy()`
+     */
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
-     * @brief resets
-     * @details calls: @ref optDestroy()
+     * @param queueIdx index of the queue in `cvk::CoreConfig::queueProperties`
+     * @return serialized queue, the indices of one vulkan queue return the same object
+     * @pre `created()`
+     * @pre `queueIdx` < size of `cvk::CoreConfig::queueProperties`
      */
-    void reset();
+    [[nodiscard]] Queue const& queue(size_t queueIdx) const;
 
     /**
-     * @brief releases the state
-     * @return internal state
-     * @details calls: @ref reset()
-     *
-     * @note does destroy state
+     * @return executor of the workers
+     * @pre `created()`
      */
-    State release();
+    [[nodiscard]] constexpr cth::co::executor executor() const {
+        debug_check(*this);
+        return cth::co::executor{_workers};
+    }
+
+    /**
+     * @return reactor of the core, waits for the timeline semaphores
+     * @pre `created()`
+     */
+    [[nodiscard]] constexpr TimelineReactor const& reactor() const {
+        debug_check(*this);
+        return _reactor;
+    }
+
+    /**
+     * @return the heap of the images, places the descriptors
+     * @pre `created()`
+     * @pre `HeapsConfig::createsResourceHeap()` of `Config::heaps`
+     */
+    [[nodiscard]] ResourceHeap const& resourceHeap() const;
+
+    /**
+     * @return the heap of the samplers, places the descriptors
+     * @pre `created()`
+     * @pre `HeapsConfig::createsSamplerHeap()` of `Config::heaps`
+     */
+    [[nodiscard]] SamplerHeap const& samplerHeap() const;
+
+    /**
+     * the cvk core
+     * @attention `cvk::Core::queue()` returns the queue without its strand
+     */
+    constexpr operator cvk::Core const&() const { return _core; }
+
+    [[nodiscard]] constexpr bool created() const { return _core.created(); }
+    [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
-    struct queue_mappings {
-        std::vector<queue_family_index_t> uniqueQueueFamilyIndices;
-        std::vector<size_t> queuesToUniqueQueues;
-    };
-    struct queue_set_relations {
-        std::vector<QueueFamilyProperties> uniqueQueues;
-        std::vector<size_t> queueToUniqueQueue;
-    };
-
-
-    /**
-     * @post if successful, sets `_queueSetIndex`
-     * @throws jvk::jvk_exception if no physical device meets the requirements
-     */
-    [[nodiscard]] queue_mappings createPhysicalDevice(
-        std::span<QueueFamilyProperties const> queues,
-        std::span<queue_set_t const> queue_sets
-    );
-
-    static queue_set_relations createQueueSetRelations(
-        queue_set_t const& queue_set,
-        std::span<QueueFamilyProperties const> queue_properties
-    );
-
-    [[nodiscard]] std::optional<queue_mappings> tryCreatePhysicalDevice(
-        std::span<Surface const> surfaces,
-        std::span<QueueFamilyProperties const> queue_properties,
-        queue_set_t const& queue_set
-    );
-
-    void createQueues(std::span<size_t const> queues_to_unique_queues);
-
-    std::unique_ptr<DestructionQueue> _destructionQueue;
-    //IMPLEMENT force a destruction queue this is optional stuff is unnecessary
-    std::unique_ptr<Instance> _instance;
-    //IMPLEMENT this is technically wrong. an instance is a singleton and should be provided to the core
-    std::unique_ptr<PhysicalDevice> _physicalDevice;
-    //IMPLEMENT this too a unique physical device is not correct in the api sense
-    std::unique_ptr<Device> _device;
-    std::optional<size_t> _queueSetIndex;
-    std::vector<Queue> _queues;
+    Config _config;
+    cvk::Core _core;
+    cth::co::scheduler _workers;
+    // destroyed after the queues, before the workers and the cvk core: it posts to the workers
+    TimelineReactor _reactor;
+    //TODO review stays a std::optional: Queues owns no vulkan object, the device owns the queues, its construction
+    // needs the created cvk core and starts the driver threads
+    // destroyed before the reactor, the workers and the cvk core
+    std::optional<Queues> _queuesOpt{};
+    //TODO review std::optional like the queues: the heaps need the created cvk core, no heap without counts
+    // destroyed before the cvk core
+    std::optional<ResourceHeap> _resourceHeapOpt{};
+    std::optional<SamplerHeap> _samplerHeapOpt{};
 
 public:
-    [[nodiscard]] bool created() const {
-        return _device != nullptr && _physicalDevice != nullptr && _instance != nullptr;
-    }
-    /**
-     * @pre sets were provided in the config
-     * @throws jvk::jvk_exception if no sets were given
-     */
-    [[nodiscard]] size_t queueSetIndex() const {
-        debug_check(*this);
-        CTH_CRITICAL(_queueSetIndex.has_value(), "queue set index has no value") {}
-        return *_queueSetIndex;
-    }
-
-    //TODO add this guard for all the other getters
-    /**
-     * @pre @ref created()
-     */
-    [[nodiscard]] Device const& device() const;
-    [[nodiscard]] DeviceTable deviceTable() const;
-    [[nodiscard]] VolkDeviceTable const* functions() const;
-    [[nodiscard]] VkDevice vkDevice() const;
-    [[nodiscard]] PhysicalDevice const& physicalDevice() const;
-    [[nodiscard]] VkPhysicalDevice vkPhysicalDevice() const;
-    [[nodiscard]] Instance const& instance() const;
-    [[nodiscard]] VkInstance vkInstance() const;
-    [[nodiscard]] DestructionQueue* destructionQueue() const;
-    [[nodiscard]] auto& queue(this auto& self, size_t idx) { return self._queues[idx]; }
-
     Core(Core const& other) = delete;
-    Core(Core&& other) noexcept = default;
+    Core(Core&& other) = delete;
     Core& operator=(Core const& other) = delete;
-    Core& operator=(Core&& other) noexcept = default;
+    Core& operator=(Core&& other) = delete;
 
-    static void debug_check(Core const& core);
-};
-
-
-}
-
-
-//State
-
-namespace jvk {
-struct Core::State {
-    /**
-     * @attention Instance::created() required
-     */
-    unique_not_null<Instance> instance;
-    /**
-     * @attention PhysicalDevice::created() required
-     */
-    unique_not_null<PhysicalDevice> physicalDevice;
-    /**
-     * @attention Device::created() required
-     */
-    unique_not_null<Device> device;
-    /**
-     *@brief optional but highly recommended
-     * @note may be nullptr
-     */
-    std::unique_ptr<DestructionQueue> destructionQueue;
+    static constexpr void debug_check(Core const&);
 };
 }
 
-
-
-//debug check
-
 namespace jvk {
-
-inline void Core::debug_check(Core const& core) {
+constexpr void Core::debug_check(Core const& core) {
     CTH_CRITICAL(!core.created(), "core must be created") {}
 }
 }

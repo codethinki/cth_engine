@@ -1,0 +1,659 @@
+#pragma once
+#include "cmd_pool.hpp"
+#include "rendering_info.hpp"
+
+#include "cvk/data/buffer/buffer.hpp"
+
+#include "cvk/base/device_table.hpp"
+#include "cvk/utility/constants.hpp"
+#include "cvk/utility/handle/destroy.hpp"
+#include "cvk/utility/handle/unique_handle.hpp"
+#include "cvk/utility/types.hpp"
+
+#include <volk.h>
+
+#include <cth/io/log.hpp>
+#include <cth/meta/ranges.hpp>
+#include <cth/ptr/ref_wrapper.hpp>
+
+#include <cstddef>
+#include <initializer_list>
+#include <optional>
+#include <ranges>
+#include <span>
+#include <tuple>
+#include <type_traits>
+#include <vector>
+
+
+namespace cvk {
+class ComputePipeline;
+class Core;
+class GraphicsPipeline;
+class ResourceHeap;
+class SamplerHeap;
+
+/**
+ * contiguous range of trivially copyable elements
+ */
+template<class T>
+concept push_constant_range = std::ranges::contiguous_range<T const&>
+    && cth::mta::range_over_cpt<T, CPT(cth::mta::trivially_copyable)>;
+
+/**
+ * `cvk::push_constant_range` or trivially copyable value that is no pointer
+ */
+template<class T>
+concept push_constant_data = push_constant_range<T> || (cth::mta::trivially_copyable<T> && !
+    std::is_pointer_v<
+        T>);
+
+/**
+ * `VkCommandBuffer` wrapper
+ * @details allocated from its pool
+ * @details base of `PrimaryCmdBuffer` and `SecondaryCmdBuffer`
+ */
+class BaseCmdBuffer {
+public:
+    struct State;
+
+    /**
+     * wraps the state
+     * @pre `CmdPool::created()`
+     * @pre `State::vkPool` is the pool of the command buffer
+     * @pre the pool of the command buffer allocated it with the level
+     * @pre the command buffer is not recording
+     * @post `created()`
+     * @note calls `optDestroy()`
+     */
+    void wrap(State const&);
+
+    /**
+     * allocates the command buffer from the pool
+     * @pre `CmdPool::created()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkAllocateCommandBuffers()`
+     */
+    void create();
+
+    /**
+     * frees and forgets
+     * @pre `created()`
+     * @pre the gpu does not use the command buffer
+     */
+    void destroy();
+
+    /**
+     * if `created()` -> calls `destroy()`
+     */
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
+
+    /**
+     * releases ownership, returns the state and forgets
+     * @pre `created()`
+     */
+    State release();
+
+    /**
+     * ends the recording
+     * @pre `recording()`
+     * @throws cvk::vk_result_exception result of `vkEndCommandBuffer()`
+     */
+    void end();
+
+    /**
+     * if `recording()` -> calls `end()`
+     */
+    void optEnd() {
+        if(recording())
+            end();
+    }
+
+    /**
+     * resets the command buffer to the initial state
+     * @param flags `VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT` -> returns the memory to the pool
+     * @pre `created()`
+     * @pre the pool has `VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT`
+     * @throws cvk::vk_result_exception result of `vkResetCommandBuffer()`
+     */
+    void reset(VkCommandBufferResetFlags flags = 0);
+
+    /**
+     * begins a dynamic rendering
+     * @details `std::nullopt` `RenderingInfo::area` -> the extent that fits every attachment
+     * @details inline contents -> sets viewport 0 and scissor 0 to the area, depth 0 to 1
+     * @details a mapping other than the default -> sets it after the begin
+     * @pre `recording()`, outside of a rendering
+     * @pre the attachment views are created and have one mip level
+     * @pre the attachment layouts are the layouts of the views
+     * @pre the attachment layouts are attachment layouts (not undefined, transfer, shader read or present)
+     * @pre color attachments have color formats, the depth and stencil attachments depth and stencil formats
+     * @pre `AttachmentMapping::debug_check()` passes for the color attachments
+     * @post `rendering()` is the info with the area
+     */
+    void beginRendering(RenderingInfo const&);
+
+    /**
+     * ends the dynamic rendering
+     * @pre `rendering()`
+     */
+    void endRendering();
+
+    /**
+     * maps the attachments of the rendering to the fragment shader outputs and input attachments
+     * @pre `rendering()`
+     * @pre `AttachmentMapping::debug_check()` passes for the color attachments of the rendering
+     * @post `rendering()` has the mapping
+     */
+    void setAttachmentMapping(AttachmentMapping const&);
+
+    /**
+     * sets viewport 0
+     * @pre `recording()`
+     */
+    void setViewport(VkViewport const&) const;
+
+    /**
+     * sets viewport 0 to the extent at offset 0
+     * @pre `recording()`
+     */
+    void setViewport(VkExtent2D extent, float minDepth = 0.f, float maxDepth = 1.f) const {
+        setViewport(
+            VkViewport{
+                .x = 0.f,
+                .y = 0.f,
+                .width = static_cast<float>(extent.width),
+                .height = static_cast<float>(extent.height),
+                .minDepth = minDepth,
+                .maxDepth = maxDepth,
+            }
+        );
+    }
+
+    /**
+     * sets scissor 0
+     * @pre `recording()`
+     */
+    void setScissor(VkRect2D const&) const;
+
+    /**
+     * sets scissor 0 to the extent at offset 0
+     * @pre `recording()`
+     */
+    void setScissor(VkExtent2D extent) const {
+        setScissor(VkRect2D{.offset = {0, 0}, .extent = extent});
+    }
+
+    /**
+     * binds the pipeline to the graphics bind point
+     * @details `rendering()` -> sets the attachment mapping of the pipeline if the current one differs
+     * @details outside of a rendering -> sets no attachment mapping
+     * @pre `recording()`, `GraphicsPipeline::created()`
+     * @pre a secondary inside the rendering of a primary -> the attachment mapping of the pipeline == the inherited one
+     */
+    void bind(GraphicsPipeline const&);
+
+    /**
+     * binds the pipeline to the compute bind point
+     * @pre `recording()`, `ComputePipeline::created()`
+     */
+    void bind(ComputePipeline const&) const;
+
+    /**
+     * binds the whole heap with its reserved range
+     * @pre `recording()`, `ResourceHeap::created()`
+     * @pre a secondary -> began without a resource heap in its `HeapInheritance`
+     */
+    void bind(ResourceHeap const&) const;
+
+    /**
+     * binds the whole heap with its reserved range
+     * @pre `recording()`, `SamplerHeap::created()`
+     * @pre a secondary -> began without a sampler heap in its `HeapInheritance`
+     */
+    void bind(SamplerHeap const&) const;
+
+    /**
+     * records push data, the push constants of the shaders
+     * @param data `cvk::push_constant_range` -> the bytes of the elements, else the bytes of the value
+     * @param offset in bytes
+     * @pre `recording()`
+     * @pre `data` has bytes, `offset` and the byte count are multiples of 4
+     * @pre `offset` + the byte count `<= maxPushDataSize`
+     */
+    template<push_constant_data T>
+    void pushData(T const& data, uint32_t offset = 0) const {
+        if constexpr(push_constant_range<T>)
+            pushDataBytes(std::as_bytes(std::span{data}), offset);
+        else
+            pushDataBytes(std::as_bytes(std::span{&data, 1}), offset);
+    }
+
+    /**
+     * binds the buffer to the vertex input binding
+     * @param binding vertex input binding
+     * @param offset in bytes
+     * @pre `recording()`, buffer created with `VK_BUFFER_USAGE_VERTEX_BUFFER_BIT`
+     */
+    void bindVertices(uint32_t binding, BaseBuffer const&, size_t offset = 0) const;
+
+    /**
+     * binds the index buffer
+     * @param offset in bytes
+     * @pre `recording()`, buffer created with `VK_BUFFER_USAGE_INDEX_BUFFER_BIT`
+     * @pre `offset` is a multiple of the index size
+     */
+    void bindIndices(BaseBuffer const&, VkIndexType, size_t offset = 0) const;
+
+    /**
+     * binds the index buffer with the index type of `T`
+     * @param buffer of the indices
+     * @param offset in bytes
+     */
+    template<index_element T>
+    void bindIndices(Buffer<T> const& buffer, size_t offset = 0) const {
+        bindIndices(static_cast<BaseBuffer const&>(buffer), index_type<T>, offset);
+    }
+
+    /**
+     * deleted: the index type of a typed buffer comes from `T`
+     * @see `bindIndices()`
+     */
+    template<index_element T>
+    void bindIndices(Buffer<T> const&, VkIndexType, size_t offset = 0) const = delete;
+
+    /**
+     * the Vulkan name of `bindVertices()`
+     * @see `bindVertices()`
+     */
+    void bindVertexBuffer(uint32_t binding, BaseBuffer const& buffer, size_t offset = 0) const {
+        bindVertices(binding, buffer, offset);
+    }
+
+    /**
+     * the Vulkan name of `bindIndices()`
+     * @see `bindIndices()`
+     */
+    void bindIndexBuffer(BaseBuffer const& buffer, VkIndexType type, size_t offset = 0) const {
+        bindIndices(buffer, type, offset);
+    }
+
+    /**
+     * the Vulkan name of `bindIndices()`
+     * @see `bindIndices()`
+     */
+    template<index_element T>
+    void bindIndexBuffer(Buffer<T> const& buffer, size_t offset = 0) const {
+        bindIndices(buffer, offset);
+    }
+
+    /**
+     * deleted: the index type of a typed buffer comes from `T`
+     * @see `bindIndexBuffer()`
+     */
+    template<index_element T>
+    void bindIndexBuffer(Buffer<T> const&, VkIndexType, size_t offset = 0) const = delete;
+
+    /**
+     * @pre `rendering()` or a secondary inside the rendering of a primary
+     * @pre `rendering()` -> without `VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT`
+     */
+    void draw(
+        uint32_t vertexCount,
+        uint32_t instanceCount = 1,
+        uint32_t firstVertex = 0,
+        uint32_t firstInstance = 0
+    ) const;
+
+    /**
+     * @pre the preconditions of `draw()`, an index buffer is bound
+     */
+    void drawIndexed(
+        uint32_t indexCount,
+        uint32_t instanceCount = 1,
+        uint32_t firstIndex = 0,
+        int32_t vertexOffset = 0,
+        uint32_t firstInstance = 0
+    ) const;
+
+    /**
+     * draws with the `VkDrawIndirectCommands` in the buffer
+     * @param offset in bytes
+     * @pre the preconditions of `draw()`, buffer created with `VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT`
+     * @pre the commands lie in the buffer
+     */
+    void drawIndirect(
+        BaseBuffer const&,
+        size_t offset = 0,
+        uint32_t drawCount = 1,
+        uint32_t stride = sizeof(VkDrawIndirectCommand)
+    ) const;
+
+    /**
+     * draws with the `VkDrawIndexedIndirectCommands` in the buffer
+     * @param offset in bytes
+     * @pre the preconditions of `draw()`, buffer created with `VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT`
+     * @pre an index buffer is bound
+     * @pre the commands lie in the buffer
+     */
+    void drawIndexedIndirect(
+        BaseBuffer const&,
+        size_t offset = 0,
+        uint32_t drawCount = 1,
+        uint32_t stride = sizeof(VkDrawIndexedIndirectCommand)
+    ) const;
+
+    /**
+     * records a dispatch of the bound compute pipeline
+     * @param groupCountX work groups in x, the same for y and z
+     * @pre `recording()`, outside of a rendering
+     */
+    void dispatch(uint32_t groupCountX, uint32_t groupCountY = 1, uint32_t groupCountZ = 1) const;
+
+    /**
+     * dispatches with the `VkDispatchIndirectCommand` in the buffer
+     * @param offset in bytes
+     * @pre the preconditions of `dispatch()`, buffer created with `VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT`
+     * @pre the command lies in the buffer
+     */
+    void dispatchIndirect(BaseBuffer const&, size_t offset = 0) const;
+
+    [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
+    [[nodiscard]] constexpr VkCommandBuffer get() const { return _handle.get(); }
+    [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
+    [[nodiscard]] constexpr CmdPool const& pool() const { return _handle.deleter().pool(); }
+    [[nodiscard]] constexpr VkCommandBufferLevel level() const { return _level; }
+
+    /**
+     * @return recording, a reset of the pool ends it
+     */
+    [[nodiscard]] constexpr bool recording() const {
+        return created() && _recording && _beginResets == pool().resets();
+    }
+
+    /**
+     * @return info of the rendering the command buffer began, with the area and the current attachment mapping
+     * @return `nullptr` -> no rendering of the command buffer
+     */
+    [[nodiscard]] constexpr RenderingInfo const* rendering() const {
+        return recording() && _renderingOpt.has_value() ? &*_renderingOpt : nullptr;
+    }
+
+    /**
+     * @return inside the own `rendering()` or a rendering that the secondary continues
+     */
+    [[nodiscard]] constexpr bool insideRendering() const {
+        return rendering() != nullptr || (recording() && _continuedViewMaskOpt.has_value());
+    }
+
+    /**
+     * @return view mask of the own `rendering()` or of the rendering that the secondary continues
+     * @pre `insideRendering()`
+     */
+    [[nodiscard]] constexpr uint32_t renderingViewMask() const;
+
+protected:
+    /**
+     * base constructor
+     */
+    BaseCmdBuffer(CmdPool const&, VkCommandBufferLevel);
+
+    /**
+     * @note calls `optDestroy()`
+     */
+    ~BaseCmdBuffer() { optDestroy(); }
+
+    /**
+     * begins the recording
+     * @pre `created()`
+     * @pre `!recording()`
+     * @post `recording()`
+     * @throws cvk::vk_result_exception result of `vkBeginCommandBuffer()`
+     */
+    void begin(VkCommandBufferBeginInfo const&);
+
+    /**
+     * view mask of the rendering that the secondary continues, `std::nullopt` -> continues no rendering
+     * @details @ref begin(VkCommandBufferBeginInfo const&) clears it
+     */
+    std::optional<uint32_t> _continuedViewMaskOpt = std::nullopt;
+
+private:
+    /**
+     * frees the command buffer through its pool, the pool stops to count it
+     */
+    class pool_deleter {
+    public:
+        constexpr explicit pool_deleter(CmdPool const& pool) : _pool{pool} {}
+
+        void operator()(VkCommandBuffer) const;
+
+        [[nodiscard]] constexpr CmdPool const& pool() const { return *_pool; }
+        [[nodiscard]] constexpr Core const& core() const { return _pool->core(); }
+
+    private:
+        cth::ref_wrapper<CmdPool const> _pool;
+    };
+
+    /**
+     * records the attachment mapping of `rendering()`
+     */
+    void recordAttachmentMapping() const;
+
+    /**
+     * records the bytes as push data
+     */
+    void pushDataBytes(std::span<std::byte const> data, uint32_t offset) const;
+
+    void forget();
+
+    unique_handle<VkCommandBuffer, pool_deleter> _handle;
+    VkCommandBufferLevel _level;
+    bool _recording = false;
+    uint64_t _beginResets = 0;
+    std::optional<RenderingInfo> _renderingOpt = std::nullopt;
+
+public:
+    BaseCmdBuffer(BaseCmdBuffer const& other) = delete;
+    BaseCmdBuffer(BaseCmdBuffer&& other) noexcept = default;
+    BaseCmdBuffer& operator=(BaseCmdBuffer const& other) = delete;
+    BaseCmdBuffer& operator=(BaseCmdBuffer&& other) noexcept = default;
+
+    static constexpr void debug_check(BaseCmdBuffer const&);
+};
+}
+
+namespace cvk {
+struct BaseCmdBuffer::State {
+    vk_not_null<VkCommandPool> vkPool; ///< pool that allocated `vkBuffer`
+    vk_not_null<VkCommandBuffer> vkBuffer;
+
+    /**
+     * the raw handles to destroy, in destruction order
+     */
+    [[nodiscard]] constexpr std::tuple<std::tuple<VkCommandPool, VkCommandBuffer>> decompose() && {
+        return {std::tuple{vkPool.get(), vkBuffer.get()}};
+    }
+};
+}
+
+namespace cvk {
+constexpr uint32_t BaseCmdBuffer::renderingViewMask() const {
+    CTH_CRITICAL(!insideRendering(), "command buffer must be inside a rendering") {}
+    return rendering() != nullptr ? rendering()->viewMask : *_continuedViewMaskOpt;
+}
+
+constexpr void BaseCmdBuffer::debug_check(BaseCmdBuffer const& buffer) {
+    CTH_CRITICAL(!buffer.created(), "command buffer must be created") {}
+}
+}
+
+
+namespace cvk {
+class SecondaryCmdBuffer;
+
+/**
+ * primary command buffer
+ */
+class PrimaryCmdBuffer : public BaseCmdBuffer {
+public:
+    /**
+     * base constructor
+     */
+    explicit PrimaryCmdBuffer(CmdPool const&);
+
+    /**
+     * constructs and wraps
+     * @details calls @ref PrimaryCmdBuffer(CmdPool const&), `wrap()`
+     */
+    PrimaryCmdBuffer(CmdPool const&, State const&);
+
+    /**
+     * constructs and creates
+     * @details calls @ref PrimaryCmdBuffer(CmdPool const&), `create()`
+     */
+    explicit PrimaryCmdBuffer(CmdPool const&, create_t);
+
+    /**
+     * begins the recording
+     * @pre `created()`
+     * @pre `!recording()`
+     * @post `recording()`
+     * @throws cvk::vk_result_exception result of `vkBeginCommandBuffer()`
+     */
+    void begin(VkCommandBufferUsageFlags usage = 0);
+
+    /**
+     * records the secondary command buffers
+     * @pre `recording()`
+     * @pre the secondaries are created and not recording
+     * @pre `rendering()` -> `VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT`
+     * @pre `rendering()` -> the secondaries continue it with the current attachment mapping
+     * @pre outside of a rendering -> the secondaries continue no rendering
+     */
+    void execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer const> const> secondaries) const;
+
+    /**
+     * records the secondary command buffers of a braced list
+     */
+    void execute(
+        std::initializer_list<cth::ref_wrapper<SecondaryCmdBuffer const>> secondaries
+    ) const;
+
+    /**
+     * records the secondary command buffer
+     */
+    void execute(SecondaryCmdBuffer const& secondary) const;
+
+    /**
+     * what a secondary inherits from the rendering
+     * @details inherits:
+     * - the formats and samples of the attachments
+     * - the flags without `VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT`
+     * - the current attachment mapping
+     * @pre `rendering()`
+     */
+    [[nodiscard]] RenderingInheritance inheritance() const;
+
+private:
+    /**
+     * records `vkCmdExecuteCommands()` with the command buffers
+     * @pre `recording()`
+     * @pre `rendering()` -> `VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT`
+     */
+    void recordExecute(std::span<VkCommandBuffer const>) const;
+};
+}
+
+
+namespace cvk {
+/**
+ * heaps that a secondary inherits from the primary
+ * @details `nullptr` -> the secondary binds the heap itself
+ */
+struct HeapInheritance {
+    ResourceHeap const* resourceHeapPtr = nullptr;
+    SamplerHeap const* samplerHeapPtr = nullptr;
+};
+
+/**
+ * secondary command buffer
+ */
+class SecondaryCmdBuffer : public BaseCmdBuffer {
+public:
+    using Inheritance = RenderingInheritance;
+
+    /**
+     * base constructor
+     */
+    explicit SecondaryCmdBuffer(CmdPool const&);
+
+    /**
+     * constructs and wraps
+     * @details calls @ref SecondaryCmdBuffer(CmdPool const&), `wrap()`
+     */
+    SecondaryCmdBuffer(CmdPool const&, State const&);
+
+    /**
+     * constructs and creates
+     * @details calls @ref SecondaryCmdBuffer(CmdPool const&), `create()`
+     */
+    explicit SecondaryCmdBuffer(CmdPool const&, create_t);
+
+    /**
+     * begins the recording for use outside of a rendering
+     * @param usage of the recording
+     * @param heaps that the secondary inherits
+     * @pre `created()`
+     * @pre `!recording()`
+     * @pre the heaps of `heaps` are created and bound in the primary at the execute
+     * @post `recording()`
+     * @throws cvk::vk_result_exception result of `vkBeginCommandBuffer()`
+     */
+    void begin(VkCommandBufferUsageFlags usage = 0, HeapInheritance const& heaps = {});
+
+    /**
+     * begins the recording for use inside the rendering of a primary
+     * @param usage of the recording
+     * @param heaps that the secondary inherits
+     * @details adds `VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT`
+     * @pre `created()`
+     * @pre `!recording()`
+     * @pre `AttachmentMapping::debug_check()` passes for the color formats
+     * @pre the heaps of `heaps` are created and bound in the primary at the execute
+     * @post `recording()`
+     * @throws cvk::vk_result_exception result of `vkBeginCommandBuffer()`
+     */
+    void begin(
+        Inheritance const&,
+        VkCommandBufferUsageFlags usage = 0,
+        HeapInheritance const& heaps = {}
+    );
+
+    /**
+     * @return what the secondary inherits from the rendering it continues
+     * @return `nullptr` -> continues no rendering
+     */
+    [[nodiscard]] constexpr Inheritance const* inheritedRendering() const {
+        return recording() && _inheritedRenderingOpt.has_value()
+            ? &*_inheritedRenderingOpt
+            : nullptr;
+    }
+
+private:
+    /**
+     * begins the recording with the inheritance info, chains the inherited heaps in front of its `pNext`
+     */
+    void beginInherited(
+        VkCommandBufferInheritanceInfo,
+        VkCommandBufferUsageFlags usage,
+        HeapInheritance const& heaps
+    );
+
+    std::optional<Inheritance> _inheritedRenderingOpt = std::nullopt;
+};
+}
