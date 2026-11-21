@@ -261,6 +261,7 @@ namespace {
             .colorBlendAttachments = {BLENDING},
             .colorFormats = {config.colorFormat},
             .depthFormat = config.depthFormat,
+            .stencilFormat = config.stencilFormat,
         };
         pipelineConfig.rasterization.cullMode = VK_CULL_MODE_NONE;
         pipelineConfig.multisample.rasterizationSamples = config.samples;

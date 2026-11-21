@@ -14,10 +14,13 @@
 
 #include "cgfw/window/window.hpp"
 
+#include "cvk/base/core.hpp"
+#include "cvk/base/physical_device.hpp"
 #include "cvk/data/buffer/buffer.hpp"
 #include "cvk/data/descriptor/image_descriptor.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/cmd/rendering_info.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -118,31 +121,43 @@ namespace {
     /**
      * uploads and draws the draw data into the cleared target in the next frame
      * @details copies the target to its buffer, waits until the gpu finished
+     * @param depthStencilViewPtr `nullptr` -> no depth and no stencil attachment, else both
      */
     void draw_frame(
         jvk::Core const& core,
         jvk::StageGraph& graph,
         Imgui& imgui,
         ImDrawData& drawData,
-        Target const& target
+        Target const& target,
+        cvk::ImageView const* depthStencilViewPtr = nullptr
     ) {
+        cvk::RenderingInfo info{
+            .colorAttachments = {
+                cvk::RenderingAttachment{
+                    .view = target.view,
+                    .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                },
+            },
+        };
+        if(depthStencilViewPtr != nullptr) {
+            cvk::RenderingAttachment const depthStencil{
+                .view = *depthStencilViewPtr,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .clearValue = {.depthStencil = {.depth = 1.f, .stencil = 0}},
+            };
+            info.depthAttachment = depthStencil;
+            info.stencilAttachment = depthStencil;
+        }
+
         auto& stage = next_stage(core, graph);
         {
             auto const submit = stage.begin();
             imgui.upload(stage, *submit, drawData);
             {
-                auto const rendering = submit->beginRendering(
-                    {
-                        .colorAttachments = {
-                            cvk::RenderingAttachment{
-                                .view = target.view,
-                                .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                            },
-                        },
-                    }
-                );
+                auto const rendering = submit->beginRendering(info);
                 imgui.draw(stage, *submit, drawData);
             }
             target.image.copyTo(*submit, target.readback);
@@ -249,6 +264,51 @@ TIMGUI_TEST(Imgui, draw_fills_with_the_vertex_color) {
     auto& drawData = rect_frame(RED);
     draw_frame(context.core, graph, imgui, drawData, target);
 
+    EXPECT_EQ(target.pixel(EXTENT.width / 2, EXTENT.height / 2), RED);
+}
+
+TIMGUI_TEST(Imgui, draw_into_a_depth_stencil_rendering) {
+    constexpr std::array CANDIDATES{
+        VK_FORMAT_D24_UNORM_S8_UINT,
+        VK_FORMAT_D32_SFLOAT_S8_UINT,
+        VK_FORMAT_D16_UNORM_S8_UINT,
+    };
+
+    test::Context context{};
+    cvk::Core const& vk = context.core;
+    VkFormat depthStencilFormat = VK_FORMAT_UNDEFINED;
+    try {
+        depthStencilFormat = vk.physicalDevice().findSupportedFormat(
+            CANDIDATES,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+        );
+    }
+    catch(cvk::cvk_exception const&) { GTEST_SKIP() << "no depth stencil format"; }
+
+    cgfw::Window const window{test::window_config()};
+    Imgui imgui{
+        context.core,
+        window,
+        {
+            .colorFormat = VK_FORMAT_R8G8B8A8_UNORM,
+            .depthFormat = depthStencilFormat,
+            .stencilFormat = depthStencilFormat,
+        }
+    };
+    Target const target{context.core, VK_FORMAT_R8G8B8A8_UNORM};
+    jvk::Image const depthStencil{
+        context.core,
+        {.format = depthStencilFormat, .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT},
+        EXTENT
+    };
+    cvk::ImageView const depthStencilView{depthStencil, {}, cvk::create};
+    jvk::StageGraph graph{context.core, {.stages = {{.queueIdx = 0}}}};
+
+    auto& drawData = rect_frame(RED);
+    draw_frame(context.core, graph, imgui, drawData, target, &depthStencilView);
+
+    // no depth test: the cleared depth does not hide the draw
     EXPECT_EQ(target.pixel(EXTENT.width / 2, EXTENT.height / 2), RED);
 }
 

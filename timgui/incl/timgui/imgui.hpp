@@ -129,6 +129,8 @@ struct Imgui::Config {
     VkFormat colorFormat;
     /** depth attachment of those renderings, `VK_FORMAT_UNDEFINED` -> none */
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+    /** stencil attachment of those renderings, `VK_FORMAT_UNDEFINED` -> none */
+    VkFormat stencilFormat = VK_FORMAT_UNDEFINED;
     VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT; ///< samples of those renderings
     std::filesystem::path iniFile{}; ///< ImGui settings file, empty -> no file
 };
