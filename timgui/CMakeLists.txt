@@ -1,10 +1,3 @@
-# glslc of the PATH or of the Vulkan SDK, without it no timgui: the Windows CI has none
-cth_find_program(GLSLC_EXECUTABLE glslc OPTIONAL HINTS ENV VULKAN_SDK PATH_SUFFIXES bin)
-if (NOT GLSLC_EXECUTABLE)
-    message(STATUS "glslc not found, no timgui")
-    return()
-endif ()
-
 find_package(imgui CONFIG REQUIRED)
 find_package(implot CONFIG REQUIRED)
 

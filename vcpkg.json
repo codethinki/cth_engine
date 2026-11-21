@@ -7,6 +7,10 @@
     "gtest",
     "imgui",
     "implot",
+    {
+      "name": "shaderc",
+      "host": true
+    },
     "volk",
     "vulkan-memory-allocator",
     "vulkan-utility-libraries",

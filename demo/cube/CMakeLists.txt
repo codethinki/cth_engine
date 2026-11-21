@@ -1,10 +1,3 @@
-# glslc of the PATH or of the Vulkan SDK, without it no demo: the Windows CI has none
-cth_find_program(GLSLC_EXECUTABLE glslc OPTIONAL HINTS ENV VULKAN_SDK PATH_SUFFIXES bin)
-if (NOT GLSLC_EXECUTABLE)
-    message(STATUS "glslc not found, no cube demo")
-    return()
-endif ()
-
 find_package(glm CONFIG REQUIRED)
 
 cth_glob_cpp(CUBE_SRC "src")
