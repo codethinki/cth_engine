@@ -27,6 +27,7 @@ endif ()
 add_subdirectory(cvk)
 add_subdirectory(cgfw)
 add_subdirectory(jvk)
+add_subdirectory(timgui)
 
 # Demos
 add_subdirectory(demo/triangle)

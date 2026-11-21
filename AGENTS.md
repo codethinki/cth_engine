@@ -10,6 +10,7 @@ Read it before you change a file. Match the existing code.
 | `cvk/`          | C++ wrapper of the Vulkan C API: one class per Vulkan object, objects own their handle        |
 | `cgfw/`         | C++ wrapper of RGFW: windows of the platform (Win32, Wayland) and their Vulkan surface        |
 | `jvk/`          | coroutine layer on top of `cvk` (in progress): threads, queues, stage graph, object lifetimes |
+| `timgui/`       | ImGui on `jvk` and `cgfw`: input from a window, draws into a rendering                        |
 | `tests/`        | loader smoke tests                                                                            |
 | `lib/cth`       | cth (submodule), `lib/cmake/cth.cmake` adds it with only the components the engine needs      |
 | `lib/cth_cmake` | cmake utilities (submodule)                                                                   |

@@ -13,7 +13,7 @@ add_executable(cube ${CUBE_SRC})
 
 cth_target_enable_build_cache(cube OPTIONAL)
 
-target_link_libraries(cube PRIVATE cgfw jvk glm::glm-header-only)
+target_link_libraries(cube PRIVATE cgfw jvk timgui glm::glm-header-only)
 
 target_compile_definitions(cube PRIVATE GLM_FORCE_DEPTH_ZERO_TO_ONE)
 

@@ -10,6 +10,8 @@
 #include "jvk/graph/stage.hpp"
 #include "jvk/graph/stage_graph.hpp"
 
+#include "timgui/imgui.hpp"
+
 #include "cgfw/window/window.hpp"
 
 #include "cvk/base/cvk.hpp"
@@ -31,6 +33,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+#include <imgui.h>
 
 #include <algorithm>
 #include <array>
@@ -278,8 +282,22 @@ struct Cube {
 };
 
 /**
- * draws the spinning cube in every frame until the window closes
- * @details only the scopes: the `jvk::scoped_submit` ends first and submits, then the `jvk::scoped_acquire` presents
+ * ImGui window with the frame time and the frames per second
+ */
+void stats_window() {
+    auto const framerate = ImGui::GetIO().Framerate;
+    ImGui::Begin("stats");
+    ImGui::Text("%.2f ms", 1000.f / framerate);
+    ImGui::Text("%.0f fps", framerate);
+    ImGui::End();
+}
+
+/**
+ * draws the spinning cube and the ImGui window in every frame until the window closes
+ * @details
+ * - only the scopes: the `jvk::scoped_submit` ends first and submits
+ * - then the `jvk::scoped_acquire` presents
+ * - the ImGui frame comes first: it takes the events also in a frame without an image
  */
 cth::co::executor_task<void> draw_frames(
     cgfw::Window& window,
@@ -288,6 +306,7 @@ cth::co::executor_task<void> draw_frames(
     jvk::Presenter& presenter,
     cvk::GraphicsPipeline const& pipeline,
     Cube const& cube,
+    timgui::Imgui& imgui,
     std::optional<Targets>& targetsOpt
 ) {
     bool uploaded = false;
@@ -296,6 +315,10 @@ cth::co::executor_task<void> draw_frames(
 
     while(!window.shouldClose()) {
         window.pollEvents();
+        auto imguiFrame = imgui.frame();
+        stats_window();
+        auto& drawData = imguiFrame.render();
+
         auto& stage = (co_await graph.nextFrame()).stage(CUBE_STAGE_ID);
 
         auto const image = co_await presenter.acquire(
@@ -353,6 +376,7 @@ cth::co::executor_task<void> draw_frames(
             cube.upload(stage, *submit);
             uploaded = true;
         }
+        imgui.upload(stage, *submit, drawData);
         submit->use(cube.sampled, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
         submit->use(
             cube.vertices,
@@ -390,13 +414,16 @@ cth::co::executor_task<void> draw_frames(
         submit->bindIndices(cube.indices);
         submit->pushData(draw);
         submit->drawIndexed(36);
+
+        // the rendering of the cube: the formats and samples of the targets
+        imgui.draw(stage, *submit, drawData);
     }
 }
 
 /**
  * creates the window, the vulkan objects, the cube and the pipeline, then draws until the window closes
  * @details the declaration order is the destruction order backwards:
- * - the cube, the pipeline and the targets live until `~StageGraph()` waited for the gpu
+ * - the cube, the pipeline, the ImGui and the targets live until `~StageGraph()` waited for the gpu
  * - the presenter is destroyed before the graph: its present jobs wait for the semaphores of the graph
  */
 void run() {
@@ -445,6 +472,12 @@ void run() {
     pipelineConfig.descriptorMappings.append_range(core.samplerHeap().mappings());
     cvk::GraphicsPipeline const pipeline{core, std::move(pipelineConfig), cvk::create};
 
+    timgui::Imgui imgui{
+        core,
+        window,
+        {.colorFormat = SURFACE_FORMAT.format, .depthFormat = DEPTH_FORMAT, .samples = MSAA_SAMPLES}
+    };
+
     std::optional<Targets> targetsOpt{};
     jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
     jvk::Presenter presenter{
@@ -455,7 +488,7 @@ void run() {
     };
 
     core.executor().sync_wait(
-        draw_frames(window, core, graph, presenter, pipeline, cube, targetsOpt)
+        draw_frames(window, core, graph, presenter, pipeline, cube, imgui, targetsOpt)
     );
 }
 }

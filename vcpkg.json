@@ -5,6 +5,8 @@
     "glm",
     "gtl",
     "gtest",
+    "imgui",
+    "implot",
     "volk",
     "vulkan-memory-allocator",
     "vulkan-utility-libraries",
