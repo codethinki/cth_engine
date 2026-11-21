@@ -16,6 +16,9 @@ if (NOT TARGET rgfw::rgfw)
     target_include_directories(rgfw INTERFACE "${RGFW_DIR}")
     # RGFWDEF empty: the functions have external linkage, the default inline needs the definitions in every user
     target_compile_definitions(rgfw INTERFACE RGFW_VULKAN "RGFWDEF=")
+    # the queue holds the events of every window between two polls, a full queue drops all events
+    # the default 32 fills with the mouse motion of one frame
+    target_compile_definitions(rgfw INTERFACE "RGFW_MAX_EVENTS=1024")
 
     if (WIN32)
         # RGFW includes windows.h: no min and max macros

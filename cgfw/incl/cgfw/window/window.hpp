@@ -1,4 +1,6 @@
 #pragma once
+#include "cgfw/window/event.hpp"
+
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/handle/unique_handle.hpp"
@@ -11,6 +13,7 @@
 #include <cth/ptr/not_null.hpp>
 
 #include <cstdint>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -75,6 +78,7 @@ namespace dev {
  * @details a window of the platform: Win32 or Wayland
  * @details the first window initializes RGFW, the destruction of the last one deinitializes it
  * @details `pollEvents()` handles the events of every window
+ * @details `events()` holds the input events of the window
  * @attention not thread safe, also across windows
  */
 class Window {
@@ -181,11 +185,20 @@ public:
     [[nodiscard]] VkExtent2D extent() const;
 
     /**
-     * handles the pending events of every window
-     * @details returns at once, no wait for an event: for a render loop, it answers the pings of the compositor
+     * handles the pending events of every window, keeps the input events of this window
+     * @details
+     * - returns at once, no wait for an event: for a render loop, it answers the pings of the compositor
+     * - replaces `events()`
+     * - the events of the other windows stay queued until their `pollEvents()`
      * @pre `created()`
      */
-    void pollEvents() const;
+    void pollEvents();
+
+    /**
+     * @return the input events of the last `pollEvents()`, in order
+     * @details valid until the next `pollEvents()`
+     */
+    [[nodiscard]] std::span<window_event const> events() const { return _events; }
 
     /**
      * @return the user or the platform requested to close the window
@@ -216,6 +229,7 @@ private:
 
     Config _config;
     cvk::unique_handle<handle_t, dev::window_deleter> _handle{};
+    std::vector<window_event> _events{};
 
 public:
     Window(Window const& other) = delete;

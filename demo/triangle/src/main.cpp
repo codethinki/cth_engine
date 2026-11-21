@@ -86,7 +86,7 @@ struct MsaaTarget {
  * @details only the scopes: the `jvk::scoped_submit` ends first and submits, then the `jvk::scoped_acquire` presents
  */
 cth::co::executor_task<void> draw_frames(
-    cgfw::Window const& window,
+    cgfw::Window& window,
     jvk::Core const& core,
     jvk::StageGraph& graph,
     jvk::Presenter& presenter,
@@ -145,7 +145,7 @@ cth::co::executor_task<void> draw_frames(
  */
 void run() {
     cvk::Cvk const cvk{};
-    cgfw::Window const window{{.title = "triangle", .extent = WINDOW_EXTENT}, cgfw::create};
+    cgfw::Window window{{.title = "triangle", .extent = WINDOW_EXTENT}, cgfw::create};
 
     // the surface extensions of the window and the instance extensions of a present queue
     auto extensions = cgfw::instance_extensions();

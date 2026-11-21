@@ -1,6 +1,7 @@
 #include "cgfw/window/window.hpp"
 
 #include "cgfw/utility/exception.hpp"
+#include "window/rgfw_event.hpp"
 #include "window/rgfw_info.h"
 
 #include "cvk/base/instance.hpp"
@@ -71,6 +72,9 @@ void Window::create() {
             _config.title,
             initResult
         ) { forget(); }
+
+        // the queue holds the events between two pollEvents(), also the first ones of a window
+        RGFW_setQueueEvents(RGFW_TRUE);
     }
 
     auto* const rgfwWindow = RGFW_createWindow(
@@ -136,10 +140,20 @@ VkExtent2D Window::extent() const {
     };
 }
 
-void Window::pollEvents() const {
+void Window::pollEvents() {
     debug_check(*this);
 
+    _events.clear();
     RGFW_pollEvents();
+
+    auto const clock = dev::input_clock::Now();
+
+    RGFW_event rgfwEvent{};
+    while(RGFW_window_checkQueuedEvent(_handle.get(), &rgfwEvent) != RGFW_FALSE) {
+        auto event = dev::to_event(rgfwEvent, clock, &RGFW_physicalToKeyChar);
+        if(event)
+            _events.push_back(std::move(*event));
+    }
 }
 
 bool Window::shouldClose() const {
@@ -172,7 +186,7 @@ void Window::destroy(RGFW_window* rgfwWindow) {
     deinit_without_windows();
 }
 
-void Window::forget() {}
+void Window::forget() { _events.clear(); }
 
 std::vector<std::string> instance_extensions() {
     size_t count = 0;
