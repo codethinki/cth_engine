@@ -23,14 +23,10 @@ if (NOT TARGET rgfw::rgfw)
     if (WIN32)
         # RGFW includes windows.h: no min and max macros
         target_compile_definitions(rgfw INTERFACE NOMINMAX)
-        # the Vulkan types of the surface in RGFW.h: vulkan.h can come before RGFW.h, empty like the define of RGFW
-        target_compile_definitions(rgfw INTERFACE "VK_USE_PLATFORM_WIN32_KHR=")
         # RGFW loads winmm, dwmapi, shcore and opengl32 at run time, advapi32 reads the registry
         target_link_libraries(rgfw INTERFACE gdi32 user32 shell32 advapi32)
     elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         target_compile_definitions(rgfw INTERFACE RGFW_WAYLAND RGFW_NO_X11)
-        # the Vulkan types of the surface in RGFW.h: vulkan.h can come before RGFW.h, empty like the define of RGFW
-        target_compile_definitions(rgfw INTERFACE "VK_USE_PLATFORM_WAYLAND_KHR=")
 
         # wayland and xkbcommon come from the system, the vcpkg ports of them are empty on linux
         find_package(PkgConfig REQUIRED)
