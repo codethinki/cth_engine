@@ -18,7 +18,7 @@ endif ()
 
 include(lib/cmake/cth.cmake)
 include(lib/cmake/rgfw.cmake)
-include(lib/cmake/shaderc.cmake)
+include(lib/cmake/glslc.cmake)
 
 if (JOLLY_ENABLE_TESTS)
     enable_testing()

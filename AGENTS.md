@@ -57,6 +57,8 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Tests that need a device use `test::Context` (`cvk/tests/src/context.hpp`). It fails the test on validation errors,
   leaked objects included.
 - `VCPKG_ROOT` must point at vcpkg.
+- `glslc` and the validation layers come from the Vulkan SDK (Windows) or the system packages (Linux), not from
+  vcpkg.
 - `doxygen` in the repository root checks the docs (`Doxyfile`, output in `out/doxygen`). A change adds no doxygen
   warning.
 

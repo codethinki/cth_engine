@@ -23,6 +23,8 @@ built and tested with:
 - [vcpkg](https://github.com/microsoft/vcpkg) with `VCPKG_ROOT` set
 - gcc 16, clang 23 or msvc
 - a vulkan 1.3 driver
+- windows: the [vulkan sdk](https://vulkan.lunarg.com/sdk/home), linux: the packages of the validation layers and shaderc
+  - glslc compiles the shaders, debug builds enable the validation layers
 
 ## build & test
 ```bash
