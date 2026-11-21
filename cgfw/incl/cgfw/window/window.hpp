@@ -33,7 +33,7 @@ enum class WindowFlags : uint32_t {
     NONE = 0,
     NO_BORDER = cth::en::flag_val(0),
     NO_RESIZE = cth::en::flag_val(1),
-    FULLSCREEN = cth::en::flag_val(4),
+    FULLSCREEN = cth::en::flag_val(19), ///< borderless, the monitor keeps its video mode
     CENTER = cth::en::flag_val(6),
     SCALE_TO_MONITOR = cth::en::flag_val(8),
     /**
@@ -131,10 +131,11 @@ public:
 
     /**
      * creates the window with the config
-     * @details no window exists -> initializes RGFW first
+     * @details RGFW is not initialized -> initializes RGFW with Vulkan first
      * @pre `Config::debug_check()` passes for the config
      * @post `created()`
      * @note calls `optDestroy()`
+     * @throws cgfw::cgfw_exception reason: `RGFW_init()` failed, e.g. no display
      * @throws cgfw::cgfw_exception reason: `RGFW_createWindow()` failed
      */
     void create();
@@ -201,6 +202,7 @@ public:
 
     /**
      * closes the window and frees it
+     * @details the last window of RGFW deinitializes RGFW
      * @pre the window is not `nullptr`
      */
     static void destroy(RGFW_window*);
