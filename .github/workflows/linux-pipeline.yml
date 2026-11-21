@@ -1,0 +1,62 @@
+name: Linux Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      compiler:
+        required: true
+        type: string
+      config:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  prepare:
+    name: Build Container
+    runs-on: ubuntu-latest
+    outputs:
+      container-image-adress: ${{ steps.build.outputs.container-image-adress }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: build
+        name: Build & Push
+        uses: ./.github/actions/build-container
+        with:
+          dockerfile: ci/docker/linux/Dockerfile
+          tag: linux-container
+
+  build:
+    name: Linux (${{ inputs.compiler }} ${{ inputs.config }})
+    needs: prepare
+    runs-on: ubuntu-latest
+    # the container has no gpu: the tests run on lavapipe (VK_DRIVER_FILES in the Dockerfile),
+    # tests that need more queues than lavapipe has skip
+    container:
+      image: ${{ needs.prepare.outputs.container-image-adress }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+      options: >-
+        -v /usr/local/share/vcpkg:/vcpkg
+        -e VCPKG_ROOT=/vcpkg
+      env:
+        VCPKG_ROOT: /vcpkg
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Build
+        uses: ./.github/actions/build-engine
+        with:
+          cache_prefix: engine-linux
+          preset: ci_linux_${{ inputs.compiler }}_${{ inputs.config }}
+
+      - name: Test
+        uses: ./.github/actions/test-engine
+        with:
+          preset: ci_linux_${{ inputs.compiler }}_${{ inputs.config }}

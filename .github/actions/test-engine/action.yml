@@ -1,0 +1,13 @@
+name: 'Test engine'
+description: 'Runs CTest with the given CI test preset'
+inputs:
+  preset:
+    description: 'CI preset from ci/CMakeUserPresets.json'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Test
+      shell: bash
+      run: ctest --preset ${{ inputs.preset }} --output-on-failure

@@ -1,0 +1,162 @@
+#pragma once
+#include "image_format.hpp"
+
+#include "cvk/base/queue/queue_family.hpp"
+#include "cvk/data/memory/memory_config.hpp"
+
+#include <volk.h>
+
+#include <cth/io/log.hpp>
+
+#include <algorithm>
+#include <vector>
+
+
+namespace cvk {
+/**
+ * config of a 2D `Image`
+ */
+struct ImageConfig {
+    /**
+     * `0` -> the aspects of `format`
+     * @pre the aspects of `format` contain it
+     * @see `format_aspects()`
+     */
+    VkImageAspectFlags aspectMask = 0;
+
+    /**
+     * @pre `!= VK_FORMAT_UNDEFINED`
+     */
+    VkFormat format = VK_FORMAT_UNDEFINED;
+
+    /**
+     * @pre `!= 0`
+     */
+    VkImageUsageFlags usage = 0;
+
+    VkImageCreateFlags flags = 0;
+
+    VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+
+    /**
+     * @pre `>= 1`
+     */
+    uint32_t mipLevels = 1;
+
+    /**
+     * @pre `>= 1`
+     * @pre `VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT` -> a multiple of 6, one layer per face
+     */
+    uint32_t arrayLayers = 1;
+
+    VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
+
+    /**
+     * @pre `VK_IMAGE_LAYOUT_UNDEFINED` or `VK_IMAGE_LAYOUT_PREINITIALIZED`
+     */
+    VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    /**
+     * queue families that use the image at the same time
+     * @details `size < 2` -> `VK_SHARING_MODE_EXCLUSIVE`, else `VK_SHARING_MODE_CONCURRENT`
+     * @pre unique
+     */
+    std::vector<queue_family_index_t> queueFamilies{};
+
+    MemoryConfig memory{}; ///< memory of the image
+
+    /**
+     * depth attachment, depth aspect only
+     */
+    [[nodiscard]] static constexpr ImageConfig DepthBuffer(
+        VkFormat depthFormat,
+        VkSampleCountFlagBits samples
+    ) {
+        return ImageConfig{
+            .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .format = depthFormat,
+            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+            .samples = samples,
+        };
+    }
+
+    /**
+     * sampled cube map, the six faces are the layers
+     * @details the faces: +x, -x, +y, -y, +z, -z
+     * @param mipLevels `> 1` -> transfer src usage for `Image::blitMipLevels()`
+     */
+    [[nodiscard]] static constexpr ImageConfig CubeMap(VkFormat format, uint32_t mipLevels = 1) {
+        return ImageConfig{
+            .format = format,
+            .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+            | (mipLevels > 1 ? VK_IMAGE_USAGE_TRANSFER_SRC_BIT : VkImageUsageFlags{0}),
+            .flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT,
+            .mipLevels = mipLevels,
+            .arrayLayers = 6,
+        };
+    }
+
+    //TODO review one place for the rule: the create info and the jvk tracking read it
+    /**
+     * @return `VK_SHARING_MODE_CONCURRENT` for two or more `queueFamilies`, else `VK_SHARING_MODE_EXCLUSIVE`
+     */
+    [[nodiscard]] constexpr VkSharingMode sharingMode() const {
+        return queueFamilies.size() >= 2 ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE;
+    }
+
+    /**
+     * @attention `pQueueFamilyIndices` points into `queueFamilies`
+     */
+    [[nodiscard]] constexpr VkImageCreateInfo createInfo(VkExtent2D extent) const {
+        return VkImageCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = flags,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = format,
+            .extent = {extent.width, extent.height, 1},
+            .mipLevels = mipLevels,
+            .arrayLayers = arrayLayers,
+            .samples = samples,
+            .tiling = tiling,
+            .usage = usage,
+            .sharingMode = sharingMode(),
+            .queueFamilyIndexCount = static_cast<uint32_t>(queueFamilies.size()),
+            .pQueueFamilyIndices = queueFamilies.data(),
+            .initialLayout = initialLayout,
+        };
+    }
+
+    static constexpr void debug_check(ImageConfig const&);
+};
+}
+
+namespace cvk {
+constexpr void ImageConfig::debug_check(ImageConfig const& config) {
+    CTH_CRITICAL(config.format == VK_FORMAT_UNDEFINED, "format must not be undefined") {}
+    CTH_CRITICAL(
+        (config.aspectMask & ~format_aspects(config.format)) != 0,
+        "the aspects of the format must contain the aspect mask"
+    ) {}
+    CTH_CRITICAL(config.usage == 0, "usage must not be 0") {}
+    CTH_CRITICAL(config.mipLevels == 0, "at least one mip level is required") {}
+    CTH_CRITICAL(config.arrayLayers == 0, "at least one layer is required") {}
+    CTH_CRITICAL(
+        (config.flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0 && config.arrayLayers % 6 != 0,
+        "a cube compatible image needs a multiple of 6 layers, got {}",
+        config.arrayLayers
+    ) {}
+    CTH_CRITICAL(
+        config.initialLayout != VK_IMAGE_LAYOUT_UNDEFINED
+        && config.initialLayout != VK_IMAGE_LAYOUT_PREINITIALIZED,
+        "initial layout must be undefined or preinitialized"
+    ) {}
+
+    auto families = config.queueFamilies;
+    std::ranges::sort(families);
+    CTH_CRITICAL(
+        std::ranges::adjacent_find(families) != families.end(),
+        "queue families must be unique"
+    ) {}
+}
+}

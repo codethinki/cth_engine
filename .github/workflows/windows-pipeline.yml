@@ -1,0 +1,36 @@
+name: Windows Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      compiler:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # build only: the runners have no vulkan driver, the tests need a device
+  build:
+    name: Windows (${{ inputs.compiler }})
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash # Forces Git Bash for consistency with Linux scripts
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: ./.github/actions/setup-windows
+        with:
+          compiler: ${{ inputs.compiler }}
+
+      - name: Build
+        uses: ./.github/actions/build-engine
+        with:
+          cache_prefix: engine-windows
+          preset: ci_windows_${{ inputs.compiler }}

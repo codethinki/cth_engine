@@ -1,0 +1,81 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="ClangTidy" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="clangTidyChecks" value="bugprone-*,misc-*,modernize-*,performance-*,readability-*,mpi-*,openmp-*,cert-err60-cpp,cert-err34-c,cert-err33-c,cert-mem57-cpp,cert-oop57-cpp,cert-msc51-cpp,cert-dcl58-cpp,cert-flp30-c,cppcoreguidelines-avoid-capturing-lambda-coroutines,cppcoreguidelines-avoid-const-or-ref-data-members,cppcoreguidelines-misleading-capture-default-by-value,cppcoreguidelines-no-suspend-with-lock,cppcoreguidelines-rvalue-reference-param-not-moved,cppcoreguidelines-interfaces-global-init,cppcoreguidelines-pro-type-static-cast-downcast,cppcoreguidelines-narrowing-conversions,hicpp-multiway-paths-covered,portability-std-allocator-const,portability-simd-intrinsics,-bugprone-switch-missing-default-case,-bugprone-casting-through-void,-bugprone-tagged-union-member-count,-bugprone-suspicious-stringview-data-usage,-bugprone-multiple-new-in-one-expression,-bugprone-incorrect-enable-shared-from-this,-bugprone-misleading-setter-of-reference,-bugprone-nondeterministic-pointer-iteration-order,-bugprone-incorrect-enable-if,-bugprone-unintended-char-ostream-output,-bugprone-crtp-constructor-accessibility,-bugprone-multi-level-implicit-pointer-conversion,-bugprone-not-null-terminated-result,-bugprone-standalone-empty,-misc-misleading-identifier,-misc-confusable-identifiers,-misc-misleading-bidirectional,-misc-header-include-cycle,-misc-non-private-member-variables-in-classes,-misc-redundant-expression,-modernize-macro-to-enum,-performance-noexcept-swap,-performance-noexcept-destructor,-performance-avoid-endl,-readability-named-parameter,-readability-identifier-length,-readability-uppercase-literal-suffix,-readability-math-missing-parentheses,-readability-operators-representation,-readability-ambiguous-smartptr-reset-call,-readability-implicit-bool-conversion,-readability-braces-around-statements,-readability-qualified-auto,-readability-container-data-pointer,-readability-avoid-unconditional-preprocessor-if,-readability-function-cognitive-complexity,-readability-identifier-naming,-readability-enum-initial-value,bugprone-bool-pointer-implicit-conversion,bugprone-branch-clone,-bugprone-easily-swappable-parameters,bugprone-exception-escape,bugprone-narrowing-conversions,cert-con36-c,cert-con54-cpp,cert-dcl03-c,cert-dcl16-c,cert-dcl37-c,cert-dcl50-cpp,cert-dcl51-cpp,cert-dcl54-cpp,cert-dcl59-cpp,cert-env33-c,cert-err09-cpp,cert-err52-cpp,cert-err58-cpp,cert-err61-cpp,cert-exp42-c,cert-fio38-c,cert-flp37-c,cert-msc24-c,cert-msc30-c,cert-msc32-c,cert-msc33-c,cert-msc50-cpp,cert-oop11-cpp,cert-oop54-cpp,cert-pos44-c,cert-pos47-c,cert-sig30-c,cert-str34-c,cppcoreguidelines-avoid-c-arrays,-cppcoreguidelines-avoid-do-while,-cppcoreguidelines-avoid-goto,cppcoreguidelines-avoid-magic-numbers,cppcoreguidelines-avoid-non-const-global-variables,cppcoreguidelines-avoid-reference-coroutine-parameters,-cppcoreguidelines-c-copy-assignment-signature,cppcoreguidelines-explicit-virtual-functions,-cppcoreguidelines-init-variables,-cppcoreguidelines-macro-usage,cppcoreguidelines-missing-std-forward,-cppcoreguidelines-no-malloc,cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-owning-memory,cppcoreguidelines-prefer-member-initializer,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-pro-type-member-init,-cppcoreguidelines-pro-type-reinterpret-cast,-cppcoreguidelines-pro-type-union-access,cppcoreguidelines-pro-type-vararg,cppcoreguidelines-slicing,cppcoreguidelines-use-default-member-init,cppcoreguidelines-virtual-class-destructor,google-build-explicit-make-pair,google-build-namespaces,-google-build-using-namespace,google-default-arguments,-google-explicit-constructor,google-global-names-in-headers,google-objc-avoid-nsobject-new,google-objc-avoid-throwing-exception,google-objc-function-naming,google-objc-global-variable-declaration,-google-readability-avoid-underscore-in-googletest-name,-google-readability-braces-around-statements,-google-readability-casting,google-readability-function-size,-google-readability-namespace-comments,-google-readability-todo,-google-runtime-int,-hicpp-avoid-goto,hicpp-use-auto,hicpp-use-emplace,misc-misplaced-const,misc-no-recursion,-misc-unconventional-assign-operator,misc-unused-parameters,misc-use-internal-linkage,modernize-avoid-c-arrays,modernize-concat-nested-namespaces,modernize-make-shared,modernize-make-unique,modernize-pass-by-value,modernize-redundant-void-arg,modernize-return-braced-init-list,modernize-use-auto,-modernize-use-bool-literals,modernize-use-default-member-init,-modernize-use-designated-initializers,modernize-use-nodiscard,modernize-use-nullptr,modernize-use-override,-modernize-use-trailing-return-type,modernize-use-using,-performance-enum-size,performance-move-const-arg,-performance-no-int-to-ptr,readability-function-size,readability-simplify-boolean-expr" />
+    </inspection_tool>
+    <inspection_tool class="Clazy" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="CppBadAngleBracketsSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadBracesSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadChildStatementIndent" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadColonSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadCommaSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadControlBracesIndent" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadControlBracesLineBreaks" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadDeclarationBracesIndent" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadDeclarationBracesLineBreaks" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadEmptyBracesLineBreaks" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadExpressionBracesIndent" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadExpressionBracesLineBreaks" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadIndent" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadListLineBreaks" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadMemberAccessSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadNamespaceBracesIndent" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadParensLineBreaks" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadParensSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadSemicolonSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadSpacesAfterKeyword" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadSquareBracketsSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadSwitchBracesIndent" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppBadSymbolSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppCStyleCast" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppDoxygenUndocumentedParameter" enabled="true" level="HINT" enabled_by_default="true" />
+    <inspection_tool class="CppEnforceCVQualifiersOrder" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppEnforceCVQualifiersPlacement" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppEnforceDoStatementBraces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppEnforceNestedNamespacesStyle" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppEnforceOverridingDestructorStyle" enabled="true" level="ERROR" enabled_by_default="true" />
+    <inspection_tool class="CppEnforceOverridingFunctionStyle" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppEnforceTypeAliasCodeStyle" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppFunctionDoesntReturnValue" enabled="true" level="ERROR" enabled_by_default="true" />
+    <inspection_tool class="CppFunctionIsNotImplemented" enabled="true" level="ERROR" enabled_by_default="true" />
+    <inspection_tool class="CppFunctionalStyleCast" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppInconsistentNaming" enabled="true" level="ERROR" enabled_by_default="true" />
+    <inspection_tool class="CppIncorrectBlankLinesNearBraces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppInitializedValueIsAlwaysRewritten" enabled="true" level="HINT" enabled_by_default="true" />
+    <inspection_tool class="CppJoinDeclarationAndAssignment" enabled="true" level="HINT" enabled_by_default="true" />
+    <inspection_tool class="CppLocalVariableMayBeConst" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppLocalVariableWithNonTrivialDtorIsNeverUsed" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppMemberFunctionMayBeStatic" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppMissingBlankLines" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppMissingIndent" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppMissingLinebreak" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppMissingSpace" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppMultipleSpaces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppNonExplicitConversionOperator" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="CppNotAllPathsReturnValue" enabled="true" level="ERROR" enabled_by_default="true" />
+    <inspection_tool class="CppOutdentIsOffPrevLevel" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppParameterMayBeConst" enabled="false" level="HINT" enabled_by_default="false" />
+    <inspection_tool class="CppParameterNamesMismatch" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppRedundantBlankLines" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppRedundantCastExpression" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppRedundantLinebreak" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppRedundantSpace" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppReinterpretCastFromVoidPtr" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppRemoveRedundantBraces" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppTabsAndSpacesMismatch" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppTabsAreDisallowed" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppTabsOutsideIndent" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppTooWideScope" enabled="true" level="HINT" enabled_by_default="true" />
+    <inspection_tool class="CppTooWideScopeInitStatement" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="CppUninitializedNonStaticDataMember" enabled="true" level="HINT" enabled_by_default="true" />
+    <inspection_tool class="CppUnnecessaryWhitespace" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppUnusedIncludeDirective" enabled="true" level="HINT" enabled_by_default="true" />
+    <inspection_tool class="CppUseAuto" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppUseStructuredBinding" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppVariableCanBeMadeConstexpr" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppWrongIncludesOrder" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppWrongIndentSize" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="CppWrongSlashesInIncludeDirective" enabled="true" level="WARNING" enabled_by_default="true" />
+  </profile>
+</component>

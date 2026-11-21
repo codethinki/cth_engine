@@ -1,0 +1,49 @@
+name: 'Build engine'
+description: 'Handles Caching, Configuration, and Compilation'
+inputs:
+  cache_prefix:
+    description: 'Cache Prefix e.g. OS'
+    required: true
+  preset:
+    description: 'CI preset from ci/CMakeUserPresets.json'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # --- 1. setup vcpkg cache ---
+    - name: setup vcpkg
+      uses: ./.github/actions/setup-vcpkg-cache
+
+    # --- 2. configure ---
+    - name: Configure CMake
+      shell: bash
+      run: |
+        [ -f ci/CMakeUserPresets.json ] && cp ci/CMakeUserPresets.json CMakeUserPresets.json
+        cmake --preset ${{ inputs.preset }}
+
+    # --- 3. restore BuildCache ---
+    - name: Restore BuildCache
+      id: buildcache
+      uses: ./.github/actions/restore-cache
+      with:
+        path: .buildcache
+        key: buildcache-${{ inputs.cache_prefix }}-${{ inputs.preset }}-${{ github.run_id }}
+        restore-keys: buildcache-${{ inputs.cache_prefix }}-${{ inputs.preset }}-
+        global-tag: buildcache-${{ inputs.cache_prefix }}-${{ inputs.preset }}
+        gh-token: ${{ github.token }}
+
+    # --- 4. build ---
+    - name: Build
+      shell: bash
+      run: cmake --build --preset ${{ inputs.preset }}
+
+    # --- 5. save BuildCache ---
+    - name: Save BuildCache
+      if: always()
+      uses: ./.github/actions/save-cache
+      with:
+        path: .buildcache
+        key: ${{ steps.buildcache.outputs.primary-key }}
+        global-tag: buildcache-${{ inputs.cache_prefix }}-${{ inputs.preset }}
+        gh-token: ${{ github.token }}

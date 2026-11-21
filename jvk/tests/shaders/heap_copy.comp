@@ -1,0 +1,17 @@
+#version 460
+#extension GL_GOOGLE_include_directive : require
+
+#include "jvk/heaps.glsl"
+
+layout(local_size_x = 1) in;
+
+layout(push_constant) uniform Push {
+    uint textureIdx;
+    uint samplerIdx;
+    uint imageIdx;
+} push;
+
+void main() {
+    vec4 color = textureLod(sampler2D(jvk_textures2D[push.textureIdx], jvk_samplers[push.samplerIdx]), vec2(0.5), 0.0);
+    imageStore(jvk_images2D[push.imageIdx], ivec2(0), color);
+}
