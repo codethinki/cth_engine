@@ -1,3 +1,5 @@
+// compute shader: `jvk/heaps.glsl`, push data `uint` texture, sampler and image index, stores the
+// center of the sampled image at texel 0 of the storage image
 #version 460
 #extension GL_GOOGLE_include_directive : require
 

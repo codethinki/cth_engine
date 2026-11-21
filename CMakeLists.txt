@@ -8,6 +8,11 @@ include(cth_setup_utilities)
 cth_set_compiler_specifics()
 cth_set_latest_c_cpp_standard()
 
+# the shaders: the GLSL language of cth_cmake, glslc of the Vulkan SDK or of the system
+enable_language(GLSL)
+# the Vulkan of the engine is a requirement of the project, no user flag of CMAKE_GLSL_FLAGS
+add_compile_options($<$<COMPILE_LANGUAGE:GLSL>:--target-env=vulkan1.3>)
+
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 # lld links much faster than the default linker
@@ -18,7 +23,6 @@ endif ()
 
 include(lib/cmake/cth.cmake)
 include(lib/cmake/rgfw.cmake)
-include(lib/cmake/glslc.cmake)
 
 if (JOLLY_ENABLE_TESTS)
     enable_testing()

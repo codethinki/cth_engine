@@ -8,37 +8,41 @@ add_library(timgui STATIC ${TIMGUI_SRC} ${TIMGUI_INCL})
 
 cth_target_enable_build_cache(timgui OPTIONAL)
 
-# the SPIR-V of the shaders in generated headers, the library embeds it: no SPIR-V files at run time
-set(TIMGUI_SHADER_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
-set(TIMGUI_SHADER_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+# the shaders: GLSL objects, imgui.glsl is an include of them and no object
+cth_glob(TIMGUI_GLSL "shaders" PATTERNS *.vert *.frag *.glsl)
+add_library(timgui_shaders OBJECT ${TIMGUI_GLSL})
+# <jvk/heaps.glsl>
+target_link_libraries(timgui_shaders PRIVATE jvk)
+
+#TEMP until MSVC has #embed: generated headers embed the SPIR-V
+# the library has the SPIR-V: no SPIR-V files at run time
 set(TIMGUI_GENERATED_SRC "${CMAKE_CURRENT_BINARY_DIR}/generated/src")
 set(TIMGUI_SPIRV_HEADER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/cmake/spirv_header.cmake")
-get_target_property(JVK_GLSL_INCLUDE_DIR jvk JVK_GLSL_INCLUDE_DIR)
-
-set(TIMGUI_GLSL "${TIMGUI_SHADER_SRC_DIR}/imgui.vert" "${TIMGUI_SHADER_SRC_DIR}/imgui.frag")
-set(TIMGUI_GLSL_SHARED "${TIMGUI_SHADER_SRC_DIR}/imgui.glsl")
-# the includes of the shaders: a change compiles them again
-set(TIMGUI_GLSL_INCLUDES ${TIMGUI_GLSL_SHARED} "${JVK_GLSL_INCLUDE_DIR}/jvk/heaps.glsl")
 set(TIMGUI_SHADER_HEADERS "")
 
 foreach (GLSL_FILE ${TIMGUI_GLSL})
     get_filename_component(GLSL_NAME ${GLSL_FILE} NAME)
-    # imgui.vert -> shaders/imgui_vert.hpp with IMGUI_VERT
+    get_filename_component(GLSL_STAGE ${GLSL_FILE} LAST_EXT)
+    string(SUBSTRING ${GLSL_STAGE} 1 -1 GLSL_STAGE)
+    # the includes have no object
+    if (NOT GLSL_STAGE IN_LIST CMAKE_GLSL_SOURCE_FILE_EXTENSIONS)
+        continue()
+    endif ()
+
+    # imgui.vert -> object imgui.vert.spv -> shaders/imgui_vert.hpp with IMGUI_VERT
+    string(REPLACE "." "\\." SPIRV_NAME_REGEX "/${GLSL_NAME}.spv")
+    set(SPIRV_FILE "$<LIST:FILTER,$<TARGET_OBJECTS:timgui_shaders>,INCLUDE,${SPIRV_NAME_REGEX}>")
     string(REPLACE "." "_" HEADER_NAME ${GLSL_NAME})
     string(TOUPPER ${HEADER_NAME} ARRAY_NAME)
-    set(SPIRV_FILE "${TIMGUI_SHADER_DIR}/${GLSL_NAME}.spv")
     set(HEADER_FILE "${TIMGUI_GENERATED_SRC}/shaders/${HEADER_NAME}.hpp")
 
     add_custom_command(
             OUTPUT ${HEADER_FILE}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${TIMGUI_SHADER_DIR}
-            COMMAND ${GLSLC_EXECUTABLE} --target-env=vulkan1.3 -O
-            -I ${JVK_GLSL_INCLUDE_DIR} -I ${TIMGUI_SHADER_SRC_DIR} ${GLSL_FILE} -o ${SPIRV_FILE}
             COMMAND ${CMAKE_COMMAND}
             -DSPIRV_FILE=${SPIRV_FILE} -DHEADER_FILE=${HEADER_FILE} -DARRAY_NAME=${ARRAY_NAME}
             -P ${TIMGUI_SPIRV_HEADER_SCRIPT}
-            DEPENDS ${GLSL_FILE} ${TIMGUI_GLSL_INCLUDES} ${TIMGUI_SPIRV_HEADER_SCRIPT}
-            COMMENT "Compiling ${GLSL_NAME}"
+            DEPENDS ${SPIRV_FILE} ${TIMGUI_SPIRV_HEADER_SCRIPT}
+            COMMENT "Embedding ${GLSL_NAME}"
             VERBATIM
     )
 
@@ -46,7 +50,8 @@ foreach (GLSL_FILE ${TIMGUI_GLSL})
 endforeach ()
 
 # the generated headers as sources: the build writes them before it compiles the library
-target_sources(timgui PRIVATE ${TIMGUI_SHADER_HEADERS} ${TIMGUI_GLSL} ${TIMGUI_GLSL_SHARED})
+target_sources(timgui PRIVATE ${TIMGUI_SHADER_HEADERS})
+add_dependencies(timgui timgui_shaders)
 
 target_include_directories(
         timgui

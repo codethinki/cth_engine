@@ -1,3 +1,5 @@
+// compute shader: set 0 binding 0 sampled images, binding 1 samplers, binding 2 storage images,
+// push data `uint` indices: stores the center of the sampled image at texel 0 of the storage image
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
 

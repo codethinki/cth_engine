@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
@@ -32,7 +31,7 @@ namespace {
         explicit Values(Core const& core) : shader{
             core,
             VK_SHADER_STAGE_COMPUTE_BIT,
-            test::shaders::VALUES_COMP
+            test::SHADER_DIR / "values.comp.spv"
         } {}
 
         [[nodiscard]] ComputePipeline::Config config() const {

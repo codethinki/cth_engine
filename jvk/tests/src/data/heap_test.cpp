@@ -1,7 +1,6 @@
 #include "jvk/data/resource_heap.hpp"
 #include "jvk/data/sampler_heap.hpp"
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "jvk/base/core.hpp"
@@ -318,7 +317,7 @@ namespace {
             sampled{core.resourceHeap().insert(cvk::SampledImageDescriptor{texture})},
             storage{core.resourceHeap().insert(cvk::StorageImageDescriptor{target})},
             sampler{core.samplerHeap().insert(cvk::SamplerConfig{})},
-            shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::shaders::HEAP_COPY_COMP},
+            shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::SHADER_DIR / "heap_copy.comp.spv"},
             pipeline{
                 core,
                 {.stage = shader.stageInfo(), .descriptorMappings = mappings(core)},

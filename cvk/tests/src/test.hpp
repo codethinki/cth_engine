@@ -30,7 +30,7 @@ constexpr std::string_view APP_NAME = "cvk_tests";
 }
 
 /**
- * glsl sources of the test shaders
+ * SPIR-V of the test shaders of cvk/tests/shaders: `<name>.<stage>.spv`
  */
 inline std::filesystem::path const SHADER_DIR{CVK_TEST_SHADER_DIR};
 }

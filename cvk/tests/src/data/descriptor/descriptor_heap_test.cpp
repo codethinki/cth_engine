@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "cvk/base/physical_device.hpp"
@@ -333,7 +332,7 @@ namespace {
             samplers{core, {.samplers = 3}, create},
             texture{pixel(core, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)},
             image{pixel(core, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)},
-            shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::shaders::HEAP_COMP},
+            shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::SHADER_DIR / "heap.comp.spv"},
             pipeline{
                 core,
                 {

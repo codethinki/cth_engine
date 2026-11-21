@@ -15,6 +15,20 @@ target_precompile_headers(
         src/pch/pch.hpp
 )
 
+# the test shaders: GLSL objects, the tests load them from the object folder
+cth_glob(JVK_TESTS_GLSL "shaders" PATTERNS *.comp)
+add_library(jvk_tests_shaders OBJECT ${JVK_TESTS_GLSL})
+# "jvk/heaps.glsl"
+target_link_libraries(jvk_tests_shaders PRIVATE jvk)
+add_dependencies(jvk_tests jvk_tests_shaders)
+
+# the shaders of one source folder share one object folder
+target_compile_definitions(
+        jvk_tests
+        PRIVATE
+        JVK_TEST_SHADER_DIR="$<PATH:GET_PARENT_PATH,$<LIST:GET,$<TARGET_OBJECTS:jvk_tests_shaders>,0>>"
+)
+
 find_package(GTest CONFIG REQUIRED)
 
 target_link_libraries(jvk_tests PRIVATE GTest::gtest_main jvk)

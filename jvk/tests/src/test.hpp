@@ -3,6 +3,7 @@
 
 #include <cth/test.hpp>
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -28,4 +29,9 @@ constexpr std::string_view APP_NAME = "jvk_tests";
         .debugMessenger = debugMessengerOpt,
     };
 }
+
+/**
+ * SPIR-V of the test shaders of jvk/tests/shaders: `<name>.<stage>.spv`
+ */
+inline std::filesystem::path const SHADER_DIR{JVK_TEST_SHADER_DIR};
 }

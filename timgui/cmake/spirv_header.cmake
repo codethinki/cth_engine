@@ -1,3 +1,4 @@
+#TEMP until MSVC has #embed
 # writes a SPIR-V file as a header with a constexpr array of its words, run: cmake -P
 # -DSPIRV_FILE: the SPIR-V of glslc, little endian words
 # -DHEADER_FILE: the header to write

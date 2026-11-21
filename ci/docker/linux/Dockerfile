@@ -2,7 +2,7 @@ FROM cachyos/cachyos:latest
 
 # vulkan-swrast: lavapipe, the cpu vulkan driver of mesa
 # vulkan-validation-layers: debug builds enable them with synchronization validation
-# shaderc: glslc for the shader compile tests
+# shaderc: glslc of the GLSL language, the build compiles the shaders
 # wayland, libxkbcommon: the RGFW Wayland backend of cgfw, the vcpkg ports of them are empty on linux
 RUN pacman -Syu --noconfirm && \
     pacman -S --noconfirm \

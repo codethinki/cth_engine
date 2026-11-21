@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
@@ -16,6 +15,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <span>
 #include <vector>
@@ -35,10 +35,10 @@ namespace {
     struct Fill {
         Fill(
             Core const& core,
-            std::span<uint32_t const> fragmentCode,
+            std::filesystem::path const& fragmentPath,
             std::vector<VkDescriptorSetAndBindingMappingEXT> mappings = {}
-        ) : vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
-            fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentCode},
+        ) : vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::SHADER_DIR / "fill.vert.spv"},
+            fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, fragmentPath},
             pipeline{core, config(vertex, fragment, std::move(mappings)), create},
             vertices{
                 core,
@@ -139,7 +139,7 @@ namespace {
 
 CVK_TEST(DescriptorDraw, color_from_a_pushed_buffer_address) {
     test::Context const context{};
-    Fill const fill{context.core, test::shaders::BUFFER_COLOR_FRAG};
+    Fill const fill{context.core, test::SHADER_DIR / "buffer_color.frag.spv"};
     Target const target{context.core};
 
     Buffer<std::array<float, 4>> color{
@@ -189,8 +189,8 @@ namespace {
         Fill const fill{
             context.core,
             afterRecording
-            ? std::span<uint32_t const>{test::shaders::BINDLESS_FRAG}
-            : std::span<uint32_t const>{test::shaders::TEXTURE_FRAG},
+            ? test::SHADER_DIR / "bindless.frag.spv"
+            : test::SHADER_DIR / "texture.frag.spv",
             {resources.sampledImages().mapping(0, 0), samplers.samplers().mapping(0, 1)}
         };
         Target const target{context.core};
