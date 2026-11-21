@@ -16,6 +16,15 @@ jobs:
   build:
     name: Windows (${{ inputs.compiler }})
     runs-on: windows-latest
+    #TEMP buildcache direct mode gives stale precompiled headers
+    # - direct mode keys on the headers of clang -H, -H does not list the headers of -include
+    # - CMake includes the precompiled header with -include: a changed header of it still hits,
+    #   the build takes the old precompiled header and old objects, no error
+    # - only Windows: buildcache 0.31.7 of this job has direct mode on by default, the
+    #   buildcache-git 0.28.1 of the Linux image (cachyos repo) has it off
+    # - remove when direct mode takes its inputs from the depfile or the -include operands
+    env:
+      BUILDCACHE_DIRECT_MODE: false
     defaults:
       run:
         shell: bash # Forces Git Bash for consistency with Linux scripts
@@ -29,23 +38,8 @@ jobs:
         with:
           compiler: ${{ inputs.compiler }}
 
-      #TEMP buildcache diagnosis: the most verbose log of buildcache for the clang build
-      - name: Enable BuildCache log
-        if: inputs.compiler == 'clang'
-        run: |
-          echo "BUILDCACHE_DEBUG=1" >> "$GITHUB_ENV"
-          echo "BUILDCACHE_LOG_FILE=$RUNNER_TEMP/buildcache.log" >> "$GITHUB_ENV"
-
       - name: Build
         uses: ./.github/actions/build-engine
         with:
           cache_prefix: engine-windows
           preset: ci_windows_${{ inputs.compiler }}
-
-      #TEMP buildcache diagnosis: the log also of a failed build
-      - name: Upload BuildCache log
-        if: always() && inputs.compiler == 'clang'
-        uses: actions/upload-artifact@v7
-        with:
-          name: buildcache-log-windows-clang
-          path: ${{ runner.temp }}/buildcache.log
