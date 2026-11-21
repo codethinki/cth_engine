@@ -98,11 +98,7 @@ CGFW_TEST(to_ex_key, editing_and_navigation) {
     static_assert(to_ex_key(RGFW_keyTab) == ex_key{Key::TAB});
     static_assert(to_ex_key(RGFW_keyReturn) == ex_key{Key::ENTER});
     static_assert(to_ex_key(RGFW_keySpace) == ex_key{Key::SPACE});
-// windows.h defines DELETE
-#pragma push_macro("DELETE")
-#undef DELETE
-    static_assert(to_ex_key(RGFW_keyDelete) == ex_key{Key::DELETE});
-#pragma pop_macro("DELETE")
+    static_assert(to_ex_key(RGFW_keyDelete) == ex_key{Key::DEL});
     static_assert(to_ex_key(RGFW_keyInsert) == ex_key{Key::INSERT});
     static_assert(to_ex_key(RGFW_keyHome) == ex_key{Key::HOME});
     static_assert(to_ex_key(RGFW_keyEnd) == ex_key{Key::END});

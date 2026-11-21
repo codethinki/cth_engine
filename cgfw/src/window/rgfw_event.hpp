@@ -157,11 +157,7 @@ constexpr std::optional<cth::io::ex_key> to_ex_key(RGFW_key key) {
         case RGFW_keyApostrophe: return ex_key{Key::QUOTE};
         case RGFW_keyBackSlash: return ex_key{Key::BACKSLASH};
         case RGFW_keyReturn: return ex_key{Key::ENTER};
-// windows.h defines DELETE
-#pragma push_macro("DELETE")
-#undef DELETE
-        case RGFW_keyDelete: return ex_key{Key::DELETE};
-#pragma pop_macro("DELETE")
+        case RGFW_keyDelete: return ex_key{Key::DEL};
         case RGFW_keyWorld1: return ex_key{Key::LESS_THAN};
 
         case RGFW_keyCapsLock: return ex_key{Key::CAPS_LOCK};
