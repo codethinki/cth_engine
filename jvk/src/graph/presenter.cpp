@@ -227,7 +227,6 @@ cth::co::executor_task<void> Presenter::presentJob(
     // buffers and signals the value before
     co_await _semaphore.submitted(value - 1);
 
-    bool submitted = false;
     try {
         ImageState const presentState{
             .layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
@@ -269,47 +268,27 @@ cth::co::executor_task<void> Presenter::presentJob(
         submit.cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         barrier.execute(submit.cmd);
         submit.cmd.end();
-
-        // in the strand the submit and the present, no suspension: the presents follow the order of present()
-        co_await queue.executor().schedule();
-        queue.vk().submit(
-            {
-                .cmdBuffers = {submit.cmd},
-                .waits = {waits.begin(), waits.end()},
-                .signals = {
-                    cvk::SemaphoreSubmitInfo{_swapchain.current().presentSemaphore(image.imageIdx)},
-                    signal
-                },
-            }
-        );
+        // before the submit: the empty submit of a failed one signals the value too
         submit.value = value;
-        submitted = true;
+
+        // the swapchain of the image is the current one: a recreation only happens in acquire(),
+        // after the mark of the last present
+        // no use of the result: the next acquire() runs after the mark, an out of date swapchain
+        // fails its acquire
+        static_cast<void>(
+            co_await queue.present(
+                {.cmdBuffers = {submit.cmd}, .waits = waits, .signals = {signal}},
+                _swapchain.current(),
+                image.imageIdx
+            )
+        );
     }
     catch(...) { _error.store(std::current_exception()); }
 
-    // a failed submit: the timeline signal for the waits on the presenter, the present semaphore stays unsignaled
-    if(!submitted) {
-        co_await queue.executor().schedule();
-        dev::fallback_submit(
-            [&] {
-                queue.vk().submit({.waits = {waits.begin(), waits.end()}, .signals = {signal}});
-            },
-            _error
-        );
-    }
-
-    if(submitted) {
-        try {
-            // the swapchain of the image is the current one: a recreation only happens in acquire(), after the last
-            // present called vkQueuePresentKHR()
-            if(_swapchain.current().present(image.imageIdx) == VK_ERROR_OUT_OF_DATE_KHR)
-                _outOfDate = true;
-        }
-        catch(cvk::vk_result_exception const&) { _error.store(std::current_exception()); }
-    }
-
-    // after the present: the next acquire() awaits it
-    _semaphore.markSubmitted(value);
+    // a failed submit marks nothing: the empty submit signals the value for the waits on the
+    // presenter
+    if(_semaphore.submittedValue() < value)
+        co_await dev::fallback_submit(queue, {.waits = waits, .signals = {signal}}, _error);
 }
 
 void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {

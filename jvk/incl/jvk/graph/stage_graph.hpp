@@ -198,19 +198,22 @@ private:
     /**
      * submit job of `submit()` and `skip()`
      * @details the order:
-     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before, of the waits of
-     *   `StageSlot::submitInfo` and of every jvk extra wait: the appends follow the dependency order
+     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before, of the
+     *   waits of `StageSlot::slotSubmit` and of every jvk extra wait: the appends follow the
+     *   dependency order
      * - the binary extra waits: no await on the cpu
+     * - `SlotSubmit::skipInfo()` of the frame, then `SlotSubmit::next()`
      * - `SUBMITTED`: `append()` of the states of the primary under `StageGraph::_statesMutex`, `release()` of the
      *   release halves, records the prologue, an empty prologue: no record, the submit without it
-     * - in the strand: `SubmitInfo::submit()` with the release waits
-     * - `SKIPPED` or a failed submit: in the strand, `SubmitInfo::skip()`
-     * - in the strand: `SubmitInfo::next()`, then `Semaphore::markSubmitted()` of the slot with the frame number
+     * - `SUBMITTED`: `Queue::submit()` with the release waits, it marks the slot with the frame
+     *   number
+     * - `SKIPPED` or a failed submit: `dev::fallback_submit()` of the skip info
      * - on the workers of the core: after the gpu finished, erases the states of the retained resources, then
      *   `Stasis::clear()` to `stasisEnd`
      * @details the errors:
      * - a failed submit: stores the error, see `dev::first_error`, then skips
-     * - a failed skip: `VK_ERROR_DEVICE_LOST` -> stores the error, else terminates: the waiters would hang
+     * - a failed skip: `VK_ERROR_DEVICE_LOST` -> stores the error, marks the slot, else terminates:
+     *   the waiters would hang
      * - a failed gpu wait: stores the error, keeps the retained objects for the destruction of the graph
      * @param targetStatus the status the job reaches: `SUBMITTED` or `SKIPPED`
      * @param stasisEnd `Stasis::end()` of the stage slot at the submit or the skip

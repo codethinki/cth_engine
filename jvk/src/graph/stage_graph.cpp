@@ -96,7 +96,7 @@ StageGraph::StageGraph(Core& core, Config config) :
                 auto const& waited = _frameSlots[waitedSlot].stageSlots[wait.stageId];
 
                 // the first frame of the slot waits for the frame frameOffset frames before it
-                stageSlot.submitInfo.waits.push_back(
+                stageSlot.slotSubmit.waits.push_back(
                     SemaphoreSubmitInfo{
                         .semaphore = waited.semaphore,
                         .stages = wait.stages,
@@ -293,16 +293,21 @@ cth::co::executor_task<void> StageGraph::submitJob(
     Stasis::pos stasisEnd,
     Stage::Status targetStatus
 ) {
-    auto const& info = stageSlot.submitInfo;
+    auto& slotSubmit = stageSlot.slotSubmit;
     auto const& queue = *stageSlot.queue;
 
     // the marks first, off the strand: a wait before the signal on one queue would block it, the appends follow the
     // dependency order
     co_await stageSlot.previous->semaphore.submitted(frameNumber - 1);
-    for(auto const& wait : info.waits)
+    for(auto const& wait : slotSubmit.waits)
         co_await wait.semaphore->submitted(wait.value);
     for(auto const& wait : extraWaits)
         co_await wait.semaphore->submitted(wait.value);
+
+    // the values of this frame, then next(): the job of the next frame of the slot reads them after
+    // the mark
+    auto info = slotSubmit.skipInfo(extraWaits, extraBinaryWaits);
+    slotSubmit.next(_config.frameSlots);
 
     bool submitted = false;
     if(targetStatus == Stage::Status::SUBMITTED) {
@@ -313,8 +318,9 @@ cth::co::executor_task<void> StageGraph::submitJob(
                 std::scoped_lock const lock{_statesMutex};
                 append(stageSlot.primary.states(), queue, prologue, releases);
             }
+            // the skip of a failed submit waits for the releases too
             if(!releases.empty())
-                extraWaits.append_range(co_await release(std::move(releases)));
+                info.waits.append_range(co_await release(std::move(releases)));
 
             // off the strand: the prologue belongs to the job of the slot, an empty one stays out of the submit
             bool const withPrologue = !prologue.empty();
@@ -324,25 +330,17 @@ cth::co::executor_task<void> StageGraph::submitJob(
                 stageSlot.prologue.end();
             }
 
-            co_await queue.executor().schedule();
-            info.submit(queue, extraWaits, extraBinaryWaits, withPrologue);
+            auto submitInfo = info;
+            slotSubmit.addCmdBuffers(submitInfo, withPrologue);
+            co_await queue.submit(std::move(submitInfo));
             submitted = true;
         }
         catch(...) { _error.store(std::current_exception()); }
     }
 
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
-    if(!submitted) {
-        co_await queue.executor().schedule();
-        dev::fallback_submit([&] { info.skip(queue, extraWaits, extraBinaryWaits); }, _error);
-    }
-
-    stageSlot.submitInfo.next(_config.frameSlots);
-    stageSlot.semaphore.markSubmitted(frameNumber);
-
-    // back on the workers: the cleanup destroys retained objects, the strand stays free for the next submits, one post
-    // per stage and frame, off the critical path
-    co_await core().executor().schedule();
+    if(!submitted)
+        co_await dev::fallback_submit(queue, std::move(info), _error);
 
     // the job never touches the stage: nextFrame() destroys the stages after the gpu wait
     bool reached = false;

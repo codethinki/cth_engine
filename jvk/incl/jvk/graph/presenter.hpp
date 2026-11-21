@@ -17,7 +17,6 @@
 #include <cth/ptr/move_ptr.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -159,7 +158,7 @@ public:
      * - waits until the last present job called `vkQueuePresentKHR()`: the acquire and the present share the
      *   swapchain, a blocking acquire before that present delays it by one refresh (FIFO)
      * - runs on `Queue::scheduler()`, outside the strand
-     * - `VK_ERROR_OUT_OF_DATE_KHR` of a present or an acquire of the current swapchain, or a changed
+     * - `VK_ERROR_OUT_OF_DATE_KHR` of an acquire of the current swapchain, or a changed
      *   `cvk::Surface::extent()` -> recreates the swapchain first, erases the old images in the graph of the stage,
      *   see `StageGraph::erase()`, `Swapchain::recreate()`
      * - an acquired image without a present, e.g. after an exception or a skip: waits until the gpu finished the
@@ -190,7 +189,8 @@ public:
      * - transitions the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` from its last state in the stage primary
      * - a stage of another queue family: the job releases the image on the stage queue, the images stay
      *   `VK_SHARING_MODE_EXCLUSIVE`
-     * - `VK_ERROR_OUT_OF_DATE_KHR` -> the next `acquire()` recreates the swapchain
+     * - `VK_ERROR_OUT_OF_DATE_KHR` -> the acquire of the next `acquire()` fails with it, then
+     *   recreates the swapchain
      * - a failure of the job: the next `acquire()` rethrows it
      * @pre an acquired image without a present
      * @pre `Stage::status()` is `SUBMITTED`
@@ -252,15 +252,17 @@ private:
      * - off the strand: awaits `Semaphore::submitted()` of `Presenter::_semaphore` with the value before: the present
      *   jobs submit and present in the order of `present()`
      * - off the strand: records the command buffer, the present jobs run one at a time
-     * - in the strand of the queue: submits through `Queue::vk()`, presents through the current swapchain: a
-     *   recreation only happens in `acquire()`, after the last present
-     * - the submit waits for the semaphore of the stage and the release, signals the present semaphore and
-     *   `Presenter::_semaphore` with the value
+     * - `Queue::present()` with the current swapchain: a recreation only happens in `acquire()`,
+     *   after the last present
+     * - the submit waits for the semaphore of the stage and the release, signals
+     *   `Presenter::_semaphore` with the value, `Queue::present()` marks it after the present
      * - the command buffer: the acquire half of another family, the transition to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
-     * - `Semaphore::markSubmitted()` of `Presenter::_semaphore` with the value, after the present
+     * - the result of the present: unused, the next `acquire()` runs after the mark
      * @details the errors:
-     * - a failed submit: stores the error, then an empty submit that signals only `Presenter::_semaphore`, no present
-     * - a failed empty submit: `VK_ERROR_DEVICE_LOST` -> stores the error, else terminates: the waiters would hang
+     * - a failed submit: stores the error, then `dev::fallback_submit()` that signals only
+     *   `Presenter::_semaphore`, no present
+     * - a failed empty submit: `VK_ERROR_DEVICE_LOST` -> stores the error, marks, else terminates:
+     *   the waiters would hang
      * - a failed present: stores the error
      * @param image the acquired image
      * @param lastState of the image in the stage primary
@@ -328,10 +330,8 @@ private:
     /** the acquired image without a present */
     std::optional<AcquiredImage> _acquiredOpt = std::nullopt;
 
-    /**
-     * `VK_ERROR_OUT_OF_DATE_KHR` of a present of the current swapchain, the next `acquire()` recreates the swapchain
-     */
-    std::atomic<bool> _outOfDate = false;
+    /** an acquire of the current swapchain gave no image, the next `acquire()` round recreates */
+    bool _outOfDate = false;
 
     dev::first_error _error{}; ///< the first error of a job or a scope, `acquire()` rethrows it
 

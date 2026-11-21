@@ -1,6 +1,7 @@
 #pragma once
 #include "jvk/cmd/cmd_buffer.hpp"
 #include "jvk/sync/semaphore.hpp"
+#include "jvk/utility/first_error.hpp"
 
 #include "cvk/base/queue/queue.hpp"
 #include "cvk/base/queue/submit_info.hpp"
@@ -15,24 +16,47 @@
 
 #include <cstdint>
 #include <deque>
+#include <vector>
 
 
 namespace cth::co {
 class scheduler;
 }
 
+namespace cvk {
+class Swapchain;
+}
+
 namespace jvk {
 class Core;
 
-//TODO review no jvk::Semaphore per queue that every submit signals (optional, 2026-11-09), it does not fit yet:
-// submits go through vk() in the strand, the queue sees none of them, only the graph could add the signal
+// in queue.hpp next to Queue: it is small, no own header
+/**
+ * one batch of a submit on a `Queue`
+ * @details
+ * - `Queue::submit()` and `Queue::present()` mark the jvk signals after the submit, see
+ *   `Semaphore::markSubmitted()`
+ * - the binary semaphores get no mark
+ */
+struct SubmitInfo {
+    /** the gpu executes them in order */
+    std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{};
+
+    std::vector<SemaphoreSubmitInfo> waits{};
+    std::vector<cvk::SemaphoreSubmitInfo> binaryWaits{};
+
+    std::vector<SemaphoreSubmitInfo> signals{}; ///< marked after the submit
+    std::vector<cvk::SemaphoreSubmitInfo> binarySignals{};
+};
+
 /**
  * serialized vulkan queue
  * @details
  * - refers to the queue of the cvk core
  * - runs its work in one strand
+ * - submits and presents, marks the jvk signals of its submits
  * - releases the queue family ownership of resources
- * @see `release()`
+ * @see `submit()`, `present()`, `release()`
  */
 class Queue {
 public:
@@ -51,6 +75,37 @@ public:
      * @throws cvk::vk_result_exception result of `vkQueueWaitIdle()`
      */
     void waitIdle() const;
+
+    /**
+     * submits the batch in the strand, then marks the jvk signals
+     * @details a failed submit marks nothing: the caller submits a fallback, see
+     *  `dev::fallback_submit()`
+     * @pre the preconditions of `cvk::Queue::submit()`
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
+     * @see `present()`
+     */
+    [[nodiscard]] cth::co::executor_task<void> submit(SubmitInfo) const;
+
+    /**
+     * submits the batch and presents the image in one job of the strand, then marks the jvk signals
+     * @details
+     * - the submit signals `cvk::Swapchain::presentSemaphore()` of the image too
+     * - no other job of the strand runs between the submit and the present
+     * - a failed submit marks nothing and presents nothing
+     * - a failed present marks the signals before it throws: the submit reached the queue
+     * @param swapchain of the image
+     * @param imageIdx of the acquired image
+     * @return `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` or `VK_ERROR_OUT_OF_DATE_KHR`
+     * @pre `cvk::Queue::canPresent()`
+     * @pre the preconditions of `cvk::Queue::submit()` and of `cvk::Swapchain::present()`
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
+     * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
+     */
+    [[nodiscard]] cth::co::executor_task<VkResult> present(
+        SubmitInfo,
+        cvk::Swapchain& swapchain,
+        uint32_t imageIdx
+    ) const;
 
     // an executor_task: the receiving submit job awaits it before its own submit, so the release is
     // submitted first and the counter only changes in the strand (returning at once needs a lock around the value
@@ -98,6 +153,13 @@ public:
 
 private:
     /**
+     * submits the batch through the cvk queue
+     * @pre runs in the strand
+     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
+     */
+    void submitInStrand(SubmitInfo const&) const;
+
+    /**
      * command buffer of one release
      * @details owns its command pool, see `PrimaryCmdBuffer`
      */
@@ -133,4 +195,22 @@ public:
     Queue& operator=(Queue const& other) = delete;
     Queue& operator=(Queue&& other) noexcept = default;
 };
+}
+
+namespace jvk::dev {
+/**
+ * the empty submit after a failed submit: the waiters of its jvk signals go on
+ * @details
+ * - `Queue::submit()` marks the signals
+ * - `VK_ERROR_DEVICE_LOST` -> stores the error, marks the signals: the gpu waits end on their own
+ * @param queue of the failed submit
+ * @param info waits and signals of the failed submit, no command buffers
+ * @param[out] error gets a device loss
+ * @throws cvk::vk_result_exception other results of the submit: the waiters would hang
+ */
+[[nodiscard]] cth::co::executor_task<void> fallback_submit(
+    Queue const& queue,
+    SubmitInfo info,
+    first_error& error
+);
 }

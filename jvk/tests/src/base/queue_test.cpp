@@ -5,21 +5,26 @@
 
 #include "jvk/data/buffer.hpp"
 #include "jvk/data/image.hpp"
+#include "jvk/graph/swapchain.hpp"
 
 #include "cvk/base/core.hpp"
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/render/sync/barrier.hpp"
 #include "cvk/render/sync/fence.hpp"
+#include "cvk/render/sync/semaphore.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
+#include "cvk/utility/vk_exceptions.hpp"
 
 #include <cth/coro/scheduler.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
+#include <optional>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -143,6 +148,28 @@ namespace {
         for(size_t i = 0; i < PIXELS; ++i)
             if(mapping[i] != i)
                 return false;
+        return true;
+    }
+
+    /**
+     * @param[out] coreOpt gets a core with a queue that presents to the surface
+     * @return `false` -> no device presents to a headless surface
+     */
+    [[nodiscard]] bool create_present_core(
+        std::optional<Core>& coreOpt,
+        test::Context const& context,
+        cvk::Surface const& surface
+    ) {
+        auto config = test::Context::CONFIG;
+        config.vk.queueProperties = {GRAPHICS | PRESENT};
+        try {
+            coreOpt.emplace(
+                context.instance,
+                std::move(config),
+                std::array{cth::ref_wrapper{surface}}
+            );
+        }
+        catch(cvk::cvk_exception const&) { return false; }
         return true;
     }
 
@@ -388,5 +415,120 @@ JVK_TEST(Queue, several_releases_in_a_row) {
     auto const next = core.executor().sync_wait(owner.release(cvk::Barrier{}));
     EXPECT_EQ(next.value, released.back().value + 1);
     owner.waitIdle();
+}
+
+JVK_TEST(Queue, submit_marks_the_jvk_signals) {
+    test::Context const context{};
+    auto const& queue = context.core.queue(0);
+    Semaphore const first{context.core, cvk::create};
+    Semaphore const second{context.core, cvk::create};
+
+    context.core.executor().sync_wait(
+        queue.submit(
+            {.signals = {{.semaphore = first, .value = 1}, {.semaphore = second, .value = 2}}}
+        )
+    );
+
+    EXPECT_EQ(first.submittedValue(), 1);
+    EXPECT_EQ(second.submittedValue(), 2);
+    static_cast<cvk::TimelineSemaphore const&>(second).wait(2);
+    EXPECT_EQ(first.gpuValue(), 1);
+}
+
+JVK_TEST(Queue, submit_waits_for_the_jvk_and_the_binary_waits) {
+    test::Context const context{};
+    auto const& queue = context.core.queue(0);
+    cvk::Semaphore const binary{context.core, cvk::create};
+    Semaphore const gate{context.core, cvk::create};
+    Semaphore const done{context.core, cvk::create};
+
+    auto const& executor = context.core.executor();
+    executor.sync_wait(
+        queue.submit({.signals = {{.semaphore = gate, .value = 1}}, .binarySignals = {binary}})
+    );
+    executor.sync_wait(
+        queue.submit(
+            {
+                .waits = {{.semaphore = gate, .value = 1}},
+                .binaryWaits = {binary},
+                .signals = {{.semaphore = done, .value = 1}},
+            }
+        )
+    );
+
+    EXPECT_EQ(done.submittedValue(), 1);
+    static_cast<cvk::TimelineSemaphore const&>(done).wait(1);
+}
+
+JVK_TEST(Queue, fallback_submit_marks_through_the_submit) {
+    test::Context const context{};
+    auto const& queue = context.core.queue(0);
+    Semaphore const semaphore{context.core, cvk::create};
+    dev::first_error error{};
+
+    context.core.executor().sync_wait(
+        dev::fallback_submit(queue, {.signals = {{.semaphore = semaphore, .value = 1}}}, error)
+    );
+
+    EXPECT_FALSE(error);
+    EXPECT_EQ(semaphore.submittedValue(), 1);
+    static_cast<cvk::TimelineSemaphore const&>(semaphore).wait(1);
+}
+
+JVK_TEST(Queue, present_submits_presents_and_marks) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto const& core = *coreOpt;
+    auto const& queue = core.queue(0);
+
+    Swapchain swapchain{core, queue.vk(), surface};
+    swapchain.create({}, EXTENT);
+    auto& current = swapchain.current();
+    Semaphore const presented{core, cvk::create};
+    PrimaryCmdBuffer cmd{core, queue.vk().familyIndex(), cvk::create};
+
+    // two presents in a row: each one transitions its image after the wait for its acquire
+    for(uint64_t value = 1; value <= 2; ++value) {
+        cvk::Semaphore const acquired{core, cvk::create};
+        auto const imageIdxOpt = swapchain.acquire(acquired).imageIndex;
+        ASSERT_TRUE(imageIdxOpt.has_value());
+
+        // the command buffer of the present before is free once the gpu reached its value
+        static_cast<cvk::TimelineSemaphore const&>(presented).wait(value - 1);
+        cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+        cvk::Barrier barrier{};
+        barrier.add(
+            current.image(*imageIdxOpt),
+            cvk::ImageBarrierInfo{
+                .src = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
+                .dst = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
+                .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            }
+        );
+        barrier.execute(cmd);
+        cmd.end();
+
+        auto const result = core.executor().sync_wait(
+            queue.present(
+                {
+                    .cmdBuffers = {cmd},
+                    .binaryWaits = {acquired},
+                    .signals = {{.semaphore = presented, .value = value}},
+                },
+                current,
+                *imageIdxOpt
+            )
+        );
+
+        EXPECT_TRUE(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
+            << "present result: " << result;
+        EXPECT_EQ(presented.submittedValue(), value);
+        // the acquire semaphore goes after the gpu waited for it
+        static_cast<cvk::TimelineSemaphore const&>(presented).wait(value);
+    }
 }
 }

@@ -43,9 +43,9 @@ namespace jvk::dev {
  * @details
  * - the graph builds it once, at its construction
  * - holds the values of the next submit or skip of the slot
- * - a skip submits the waits and the signal without the command buffers
+ * - builds the `SubmitInfo` of the next submit or skip: a skip has no command buffers
  */
-struct SubmitInfo {
+struct SlotSubmit {
     /** `StageSlot::prologue`, `StageSlot::primary` */
     std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{};
 
@@ -62,34 +62,23 @@ struct SubmitInfo {
     SemaphoreSubmitInfo signal; ///< `StageSlot::semaphore` with the frame number
 
     /**
-     * submits the command buffers on the queue
-     * @details waits for `SubmitInfo::waits` and the extra waits, signals `SubmitInfo::signal`
-     * @param queue of the stage slot
-     * @param extraWaits the jvk waits of the stage and of the releases
+     * the skip of the slot: the waits and the signal without the command buffers
+     * @details waits for `SlotSubmit::waits` and the extra waits, signals `SlotSubmit::signal`
+     * @param extraWaits the jvk waits of the stage
      * @param extraBinaryWaits the binary waits of the stage
-     * @param prologue `false` -> without `StageSlot::prologue`: the prologue is empty
-     * @pre runs in the strand of the queue
-     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
-     * @see `skip()`
+     * @see `addCmdBuffers()`
      */
-    void submit(
-        Queue const& queue,
-        std::span<SemaphoreSubmitInfo const> extraWaits,
-        std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits,
-        bool prologue
-    ) const;
-
-    /**
-     * submits the waits and the signal without the command buffers
-     * @details the parameters of `submit()`
-     * @pre runs in the strand of the queue
-     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
-     */
-    void skip(
-        Queue const& queue,
+    [[nodiscard]] SubmitInfo skipInfo(
         std::span<SemaphoreSubmitInfo const> extraWaits,
         std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
     ) const;
+
+    /**
+     * adds the command buffers of the submit, the prologue first
+     * @param[out] info gets the command buffers
+     * @param prologue `false` -> without `StageSlot::prologue`: the prologue is empty
+     */
+    void addCmdBuffers(SubmitInfo& info, bool prologue) const;
 
     /**
      * advances every wait and signal value to the next frame of the slot
@@ -109,7 +98,7 @@ struct RetainedResources {
     std::vector<VkBuffer> buffers{};
 };
 
-// a constructor, no aggregate: `SubmitInfo::signal` and `SubmitInfo::cmdBuffers` refer to members,
+// a constructor, no aggregate: `SlotSubmit::signal` and `SlotSubmit::cmdBuffers` refer to members,
 // the mutex does not move
 /**
  * resources of a stage in one frame slot
@@ -122,8 +111,9 @@ struct StageSlot {
      * creates the semaphore and the command buffers of the stage slot
      * @details
      * - the semaphore starts at `StageGraph::firstFrameNumber() - 1`
-     * - `SubmitInfo::signal`: the semaphore with the first frame number of the slot
-     * - the graph sets `StageSlot::previous` and the waits of `StageSlot::submitInfo` once all slots exist
+     * - `SlotSubmit::signal`: the semaphore with the first frame number of the slot
+     * - the graph sets `StageSlot::previous` and the waits of `StageSlot::slotSubmit` once all
+     *   slots exist
      * - `secondaries`: `StageConfig::secondaries` of the stage
      * @pre `StageGraph::firstFrameNumber()` is set
      * @throws cvk::vk_result_exception result of a create of the semaphore or the command buffers
@@ -162,8 +152,8 @@ struct StageSlot {
 
     // a member of the stage slot: it refers to StageSlot::semaphore, StageSlot::prologue,
     // StageSlot::primary and the semaphores of the waited stage slots, they live as long as the graph
-    /** the waits and the signal of the next submit or skip, see `SubmitInfo::next()` */
-    SubmitInfo submitInfo;
+    /** the waits and the signal of the next submit or skip, see `SlotSubmit::next()` */
+    SlotSubmit slotSubmit;
 
     /** the stage in the frame slot before, submits first */
     cth::ref_wrapper<StageSlot const> previous;
@@ -471,7 +461,7 @@ public:
 }
 
 namespace jvk::dev {
-constexpr void SubmitInfo::next(size_t frameSlots) {
+constexpr void SlotSubmit::next(size_t frameSlots) {
     for(auto& wait : waits)
         wait.value += frameSlots;
     signal.value += frameSlots;

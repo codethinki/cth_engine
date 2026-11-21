@@ -37,50 +37,25 @@ namespace {
             .samplerHeapPtr = heaps.createsSamplerHeap() ? &core.samplerHeap().vk() : nullptr,
         };
     }
-
-    /**
-     * the waits of the submit info, then the extra waits
-     */
-    [[nodiscard]] std::vector<cvk::SemaphoreSubmitInfo> all_waits(
-        SubmitInfo const& info,
-        std::span<SemaphoreSubmitInfo const> extraWaits,
-        std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
-    ) {
-        std::vector<cvk::SemaphoreSubmitInfo> waits{};
-        waits.reserve(info.waits.size() + extraWaits.size() + extraBinaryWaits.size());
-        waits.append_range(info.waits);
-        waits.append_range(extraWaits);
-        waits.append_range(extraBinaryWaits);
-        return waits;
-    }
 }
 
-void SubmitInfo::submit(
-    Queue const& queue,
-    std::span<SemaphoreSubmitInfo const> extraWaits,
-    std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits,
-    bool prologue
-) const {
-    cvk::SubmitInfo submitInfo{
-        .waits = all_waits(*this, extraWaits, extraBinaryWaits),
-        .signals = {signal}
-    };
-    submitInfo.cmdBuffers.reserve(cmdBuffers.size());
-    // the prologue comes first
-    for(PrimaryCmdBuffer const& cmdBuffer : cmdBuffers | std::views::drop(prologue ? 0 : 1))
-        submitInfo.cmdBuffers.emplace_back(cmdBuffer);
-
-    queue.vk().submit(submitInfo);
-}
-
-void SubmitInfo::skip(
-    Queue const& queue,
+SubmitInfo SlotSubmit::skipInfo(
     std::span<SemaphoreSubmitInfo const> extraWaits,
     std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
 ) const {
-    queue.vk().submit(
-        {.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}}
-    );
+    SubmitInfo info{
+        .binaryWaits = {extraBinaryWaits.begin(), extraBinaryWaits.end()},
+        .signals = {signal},
+    };
+    info.waits.reserve(waits.size() + extraWaits.size());
+    info.waits.append_range(waits);
+    info.waits.append_range(extraWaits);
+    return info;
+}
+
+void SlotSubmit::addCmdBuffers(SubmitInfo& info, bool prologue) const {
+    // the prologue comes first
+    info.cmdBuffers.append_range(cmdBuffers | std::views::drop(prologue ? 0 : 1));
 }
 
 StageSlot::StageSlot(
@@ -98,12 +73,12 @@ StageSlot::StageSlot(
     queue{queue},
     heaps{stage_heaps(graph.core(), queue)},
     semaphore{graph.core(), cvk::create, graph.firstFrameNumber() - 1},
-    submitInfo{.signal = {.semaphore = semaphore, .value = graph.firstFrameNumber() + slot}},
+    slotSubmit{.signal = {.semaphore = semaphore, .value = graph.firstFrameNumber() + slot}},
     previous{*this},
     prologue{graph.core(), queue.vk().familyIndex(), cvk::create},
     primary{graph.core(), queue.vk().familyIndex(), cvk::create},
     stasis{graph.core()} {
-    submitInfo.cmdBuffers = {prologue, primary};
+    slotSubmit.cmdBuffers = {prologue, primary};
 
     this->secondaries.reserve(secondaries);
     for(size_t i = 0; i < secondaries; ++i)
