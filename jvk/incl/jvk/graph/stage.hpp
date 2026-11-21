@@ -11,6 +11,7 @@
 
 #include <volk.h>
 
+#include <cth/coro/counter_event.hpp>
 #include <cth/io/log.hpp>
 #include <cth/ptr/move_ptr.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
@@ -374,7 +375,7 @@ public:
      * - `Semaphore::submitted()` of `semaphore()` with `frameNumber()`
      * @see `operator co_await()`
      */
-    [[nodiscard]] constexpr submitted_awaiter submitted() const {
+    [[nodiscard]] constexpr cth::co::counter_event::awaiter submitted() const {
         return _stageSlot->semaphore.submitted(_frameNumber);
     }
 

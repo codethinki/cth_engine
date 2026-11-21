@@ -14,7 +14,6 @@
 #include <chrono>
 #include <cstdint>
 #include <future>
-#include <system_error>
 #include <thread>
 #include <utility>
 #include <variant>
@@ -76,25 +75,6 @@ namespace {
                 return core.executor().sync_wait(std::move(task));
             }
         );
-    }
-
-    /**
-     * registers a callback for the submitted value
-     * @return the callback ran
-     */
-    [[nodiscard]] std::future<std::error_code> await_mark(
-        Semaphore const& semaphore,
-        uint64_t value
-    ) {
-        std::promise<std::error_code> promise{};
-        auto future = promise.get_future();
-        semaphore.onSubmitted(
-            value,
-            [promise = std::move(promise)](std::error_code error) mutable {
-                promise.set_value(error);
-            }
-        );
-        return future;
     }
 
     template<class T>
@@ -243,35 +223,35 @@ JVK_TEST(Semaphore, reached_values_do_not_suspend) {
     EXPECT_TRUE(context.core.executor().sync_wait(await_submitted(context.core, semaphore, 4)));
 }
 
-JVK_TEST(Semaphore, mark_submitted_calls_the_waiters_up_to_the_value) {
+JVK_TEST(Semaphore, mark_submitted_resumes_the_waits_up_to_the_value) {
     test::Context const context{};
     Semaphore const semaphore{context.core, cvk::create};
 
-    auto third = await_mark(semaphore, 3);
-    auto first = await_mark(semaphore, 1);
-    auto second = await_mark(semaphore, 2);
+    auto third = start(context.core, await_submitted(context.core, semaphore, 3));
+    auto first = start(context.core, await_submitted(context.core, semaphore, 1));
+    auto second = start(context.core, await_submitted(context.core, semaphore, 2));
 
     semaphore.markSubmitted(2);
     EXPECT_EQ(semaphore.submittedValue(), 2);
     ASSERT_TRUE(reached(first));
     ASSERT_TRUE(reached(second));
-    EXPECT_FALSE(first.get());
-    EXPECT_FALSE(second.get());
+    EXPECT_TRUE(first.get());
+    EXPECT_TRUE(second.get());
     EXPECT_TRUE(pending(third));
 
     semaphore.markSubmitted(3);
     ASSERT_TRUE(reached(third));
-    EXPECT_FALSE(third.get());
+    EXPECT_TRUE(third.get());
 }
 
-JVK_TEST(Semaphore, marked_value_calls_the_callback_at_once) {
+JVK_TEST(Semaphore, a_marked_value_does_not_suspend) {
     test::Context const context{};
     Semaphore const semaphore{context.core, cvk::create};
     semaphore.markSubmitted(2);
 
-    auto result = await_mark(semaphore, 1);
-
-    EXPECT_TRUE(reached(result));
+    EXPECT_TRUE(semaphore.submitted(1).await_ready());
+    EXPECT_TRUE(semaphore.submitted(2).await_ready());
+    EXPECT_TRUE(context.core.executor().sync_wait(await_submitted(context.core, semaphore, 1)));
 }
 
 JVK_TEST(Semaphore, submitted_resumes_on_a_worker_after_the_mark) {

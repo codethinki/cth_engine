@@ -7,16 +7,14 @@
 
 #include <cth/coro/awaiters/base/wait_awaiter_base.hpp>
 #include <cth/coro/context.hpp>
+#include <cth/coro/counter_event.hpp>
 #include <cth/coro/utility/fwd.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <coroutine>
 #include <cstdint>
-#include <memory>
-#include <mutex>
 #include <system_error>
 #include <utility>
-#include <vector>
 
 
 namespace jvk {
@@ -61,37 +59,6 @@ private:
     cth::ref_wrapper<Semaphore const> _semaphore;
     uint64_t _value;
 };
-
-/**
- * awaiter of `Semaphore::submitted()`
- * @details resumes the caller on its context
- */
-class submitted_awaiter : public cth::co::this_coro_awaiter_base {
-public:
-    constexpr submitted_awaiter(Semaphore const& semaphore, uint64_t value) :
-        _semaphore{semaphore},
-        _value{value} {}
-
-    /**
-     * @return `Semaphore::submittedValue()` reached the value
-     */
-    [[nodiscard]] bool await_ready() const;
-
-    /**
-     * registers the resume of the caller with the semaphore
-     * @details resumes on the context of the caller
-     * @see `Semaphore::onSubmitted()`
-     */
-    template<class Caller> requires cth::co::this_coro_compatible<Caller>
-    void await_suspend(std::coroutine_handle<Caller> caller);
-
-    // no error: the jvk submit paths mark every signal value, also after an error of the submit
-    constexpr void await_resume() const noexcept {}
-
-private:
-    cth::ref_wrapper<Semaphore const> _semaphore;
-    uint64_t _value;
-};
 }
 
 namespace jvk {
@@ -101,6 +68,7 @@ namespace jvk {
  * - holds a `cvk::TimelineSemaphore`, converts to it
  * - `wait()`: the reactor of the core waits for the gpu, no thread blocks
  * - `submitted()`: waits for the submit of a signal, the jvk submit paths call `markSubmitted()`
+ * - a semaphore with a pending `submitted()` does not move, see `cth::co::counter_event`
  */
 class Semaphore {
 public:
@@ -176,10 +144,11 @@ public:
      * marks the signal of the value as submitted
      * @details
      * - for the jvk submit paths, after the `vkQueueSubmit2()` of the signal
-     * - posts the callbacks of `onSubmitted()` up to the value to the workers of the core
-     * - thread safe
+     * - posts the resume of every reached `submitted()` to the context of its caller
+     * - thread safe against `submitted()` and `submittedValue()`
      * @pre `created()`
      * @pre `value > submittedValue()`
+     * @pre no concurrent `markSubmitted()`
      */
     void markSubmitted(uint64_t value) const;
 
@@ -189,24 +158,13 @@ public:
      * - not until the gpu reached the value
      * - resumes on the context of the caller
      * - marked -> no suspend
+     * - no error: the jvk submit paths mark every signal value, also after an error of the submit
      * @pre `created()`
      * @see `markSubmitted()`, `wait()`
      */
-    [[nodiscard]] constexpr submitted_awaiter submitted(uint64_t value) const {
-        return submitted_awaiter{*this, value};
+    [[nodiscard]] constexpr cth::co::counter_event::awaiter submitted(uint64_t value) const {
+        return _submitted.wait(value);
     }
-
-    /**
-     * calls the callback on a worker of the core once `markSubmitted()` reached the value
-     * @details
-     * - the callback form of `submitted()`
-     * - the callback gets an empty `std::error_code`
-     * - marked -> posts the callback at once
-     * - thread safe
-     * @pre `created()`
-     * @see `submitted()`
-     */
-    void onSubmitted(uint64_t value, cth::co::context::await_func cb) const;
 
     /**
      * waits until the semaphore reaches the value
@@ -241,7 +199,7 @@ public:
      * @return the largest value of `markSubmitted()`, the initial value before
      * @details thread safe
      */
-    [[nodiscard]] uint64_t submittedValue() const;
+    [[nodiscard]] uint64_t submittedValue() const { return _submitted.value(); }
 
     [[nodiscard]] constexpr bool created() const { return _semaphore.created(); }
     [[nodiscard]] constexpr VkSemaphore get() const { return _semaphore.get(); }
@@ -254,31 +212,11 @@ public:
     constexpr operator cvk::TimelineSemaphore const&() const { return _semaphore; }
 
 private:
-    /**
-     * callback of `onSubmitted()`
-     */
-    struct SubmittedWaiter {
-        uint64_t value;
-        cth::co::context::await_func cb;
-    };
-
-    /**
-     * the submitted value with its waiters
-     */
-    struct Submitted {
-        std::mutex mutex{};
-
-        uint64_t value = 0; ///< see `submittedValue()`
-
-        /** the callbacks of `onSubmitted()` above `Submitted::value` */
-        std::vector<SubmittedWaiter> waiters{};
-    };
-
     cth::ref_wrapper<Core const> _core;
     cvk::TimelineSemaphore _semaphore;
 
-    //TODO review behind a std::unique_ptr: the mutex is not movable, the moves stay = default
-    std::unique_ptr<Submitted> _submittedPtr;
+    // mutable: markSubmitted() is const like the submit paths that call it
+    mutable cth::co::counter_event _submitted{}; ///< see `submittedValue()`
 
 public:
     Semaphore(Semaphore const& other) = delete;
@@ -317,8 +255,7 @@ struct SemaphoreSubmitInfo {
 namespace jvk::dev {
 /**
  * callback that posts the callback to the context
- * @details the reactor and `Semaphore::markSubmitted()` call on a worker, the awaiters resume on the context of the
- *  caller
+ * @details the reactor calls on a worker, the awaiter resumes on the context of the caller
  */
 [[nodiscard]] inline cth::co::context::await_func post_to(
     cth::co::context const& context,
@@ -338,13 +275,5 @@ constexpr void Semaphore::debug_check(Semaphore const& semaphore) {
 template<class Caller> requires cth::co::this_coro_compatible<Caller>
 void semaphore_awaiter::await_suspend(std::coroutine_handle<Caller> caller) {
     awaitReactor(dev::post_to(caller.promise().context(), resume(caller)));
-}
-
-template<class Caller> requires cth::co::this_coro_compatible<Caller>
-void submitted_awaiter::await_suspend(std::coroutine_handle<Caller> caller) {
-    _semaphore->onSubmitted(
-        _value,
-        dev::post_to(caller.promise().context(), [caller](std::error_code) { caller.resume(); })
-    );
 }
 }

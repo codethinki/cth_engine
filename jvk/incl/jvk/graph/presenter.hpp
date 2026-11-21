@@ -239,7 +239,7 @@ private:
         uint64_t frameNumber; ///< `Stage::frameNumber()`, the value of `stageSemaphore` to wait for
     };
 
-    // no submitted_awaiter parameter: the job takes it from the stage semaphore and the frame
+    // no awaiter parameter: the job takes `submitted()` from the stage semaphore and the frame
     // number
     // the image as a parameter: the job reads no presenter state outside of the strand
     // the submit mark of the present job before awaited: acquire() no longer orders the present
