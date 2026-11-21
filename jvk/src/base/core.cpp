@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <memory>
 #include <span>
 #include <thread>
 #include <utility>
@@ -20,12 +21,16 @@ using std::span;
 
 Core::Core(cvk::Instance const& instance, Config config) :
     _config{std::move(config)},
-    _core{instance},
-    _workers{
-        _config.workers == 0 ? std::max(std::thread::hardware_concurrency(), 1u) : _config.workers
+    _corePtr{std::make_unique<cvk::Core>(instance)},
+    _workersPtr{
+        std::make_unique<cth::co::scheduler>(
+            _config.workers == 0
+                ? std::max(std::thread::hardware_concurrency(), 1u)
+                : _config.workers
+        )
     },
-    _reactor{_core, _workers},
-    _resourceHeap{_core, _config.heaps.resources} {}
+    _reactor{*_corePtr, *_workersPtr},
+    _resourceHeap{*_corePtr, _config.heaps.resources} {}
 
 Core::Core(
     cvk::Instance const& instance,
@@ -46,37 +51,37 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
         config.queueSets = queue_sets(config.queueProperties);
     config.features.merge(constants::DEVICE_FEATURES);
 
-    _core.create(surfaces, config);
+    _corePtr->create(surfaces, config);
 
     // the cvk core exists before the workers, the reactor and the queues, only a catch can destroy it when a later
     // step fails
     try {
-        _workers.start();
+        _workersPtr->start();
         _reactor.create();
         createQueues();
         if(_config.heaps.createsResourceHeap())
             _resourceHeap.create();
         if(_config.heaps.createsSamplerHeap())
-            _samplerHeapOpt.emplace(_core, _config.heaps.samplers);
+            _samplerHeapOpt.emplace(*_corePtr, _config.heaps.samplers);
     }
     catch(...) {
         _resourceHeap.optDestroy();
         destroyQueues();
         _reactor.optDestroy();
-        _workers.await_stop();
-        _core.destroy();
+        _workersPtr->await_stop();
+        _corePtr->destroy();
         throw;
     }
 }
 
 void Core::destroy() {
     debug_check(*this);
-    CTH_CRITICAL(_workers.owns_thread(), "destroy() must not run on a worker of the core") {}
+    CTH_CRITICAL(_workersPtr->owns_thread(), "destroy() must not run on a worker of the core") {}
 
 
     // one wait per vulkan queue: the first index of each vulkan queue
     // swallow errors bc destructor
-    auto const indices = _core.queueIndices();
+    auto const indices = _corePtr->queueIndices();
     for(size_t qIdx = 0; qIdx < indices.size(); ++qIdx) {
         if(std::ranges::contains(indices.first(qIdx), indices[qIdx]))
             continue;
@@ -112,8 +117,8 @@ void Core::destroy() {
     _samplerHeapOpt.reset();
     _resourceHeap.optDestroy();
     _reactor.destroy();
-    _workers.await_stop();
-    _core.destroy();
+    _workersPtr->await_stop();
+    _corePtr->destroy();
 }
 
 Queue const& Core::queue(size_t queueIdx) const {
@@ -141,9 +146,9 @@ void Core::createQueues() {
         _driverSchedulerOpt.emplace(cth::co::autostart, _config.driverThreads);
     cth::co::scheduler const& scheduler = _driverSchedulerOpt.has_value()
         ? *_driverSchedulerOpt
-        : _workers;
+        : *_workersPtr;
 
-    auto const indices = _core.queueIndices();
+    auto const indices = _corePtr->queueIndices();
     _queues.reserve(indices.size());
     _queueIndices.reserve(indices.size());
 
@@ -156,7 +161,7 @@ void Core::createQueues() {
         }
 
         _queueIndices.push_back(_queues.size());
-        _queues.emplace_back(*this, _core.queue(queueIdx), scheduler);
+        _queues.emplace_back(*this, _corePtr->queue(queueIdx), scheduler);
     }
 }
 

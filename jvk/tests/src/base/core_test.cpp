@@ -5,6 +5,7 @@
 
 #include "jvk/base/queue.hpp"
 #include "jvk/base/queue_sets.hpp"
+#include "jvk/data/sampler_heap.hpp"
 //TEMP compile check of the phase 6 headers until their sources exist
 #include "jvk/graph/presenter.hpp"
 #include "jvk/graph/stage_graph.hpp"
@@ -13,6 +14,7 @@
 
 #include "cvk/base/device.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/data/img/sampler_config.hpp"
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
 #include "cvk/utility/constant/os_constants.hpp"
@@ -127,6 +129,34 @@ JVK_TEST(Core, base_constructor_does_not_create) {
     EXPECT_FALSE(static_cast<cvk::Core const&>(core).created());
     EXPECT_EQ(core.config().workers, test::Context::CONFIG.workers);
     EXPECT_EQ(core.config().driverThreads, test::Context::CONFIG.driverThreads);
+}
+
+JVK_TEST(Core, a_base_constructed_core_moves_then_creates_and_works) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG};
+
+    Core moved{std::move(core)};
+    Core other{context.instance, test::Context::CONFIG};
+    other = std::move(moved);
+    EXPECT_FALSE(other.created());
+
+    other.create({});
+    ASSERT_TRUE(other.created());
+
+    // the queues, the reactor and the workers of the moved core
+    Semaphore const semaphore{other, cvk::create};
+    auto task = [](Core const& c, Semaphore const& s) -> cth::co::executor_task<bool> {
+        co_await c.queue(0).submit({.signals = {{.semaphore = s, .value = 1}}});
+        co_await s.wait(1);
+        co_return c.executor().context().owns_thread();
+    };
+    EXPECT_TRUE(other.executor().sync_wait(task(other, semaphore)));
+
+    auto const& heaps = other.config().heaps;
+    if(heaps.createsResourceHeap())
+        EXPECT_TRUE(other.resourceHeap().created());
+    if(heaps.createsSamplerHeap())
+        EXPECT_EQ(other.samplerHeap().insert(cvk::SamplerConfig{}).idx().get(), 0);
 }
 
 JVK_TEST(Core, create_and_destroy) {

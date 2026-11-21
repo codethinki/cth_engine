@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <initializer_list>
+#include <memory>
 #include <optional>
 #include <span>
 #include <utility>
@@ -31,6 +32,8 @@ namespace jvk {
  * jvk core
  * @details owns the cvk core, the workers, the timeline reactor, the serialized queues and the descriptor heaps
  * @details the indices of one vulkan queue share one `Queue`
+ * @details a created core neither moves nor takes a move assignment: its queues, heaps, command
+ *  buffers and reactor refer to it
  */
 class Core {
 public:
@@ -125,7 +128,7 @@ public:
      */
     [[nodiscard]] constexpr cth::co::executor executor() const {
         debug_check(*this);
-        return cth::co::executor{_workers};
+        return cth::co::executor{*_workersPtr};
     }
 
     /**
@@ -155,9 +158,12 @@ public:
      * the cvk core
      * @attention `cvk::Core::queue()` returns the queue without its strand
      */
-    constexpr operator cvk::Core const&() const { return _core; }
+    constexpr operator cvk::Core const&() const { return *_corePtr; }
 
-    [[nodiscard]] constexpr bool created() const { return _core.created(); }
+    // a moved-from core has no cvk core, its destructor asks
+    [[nodiscard]] constexpr bool created() const {
+        return _corePtr != nullptr && _corePtr->created();
+    }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
@@ -174,8 +180,12 @@ private:
     void destroyQueues();
 
     Config _config;
-    cvk::Core _core;
-    cth::co::scheduler _workers;
+
+    // behind a std::unique_ptr: the reactor and the heaps refer to them also before create(), the
+    // moves stay = default
+    std::unique_ptr<cvk::Core> _corePtr;
+    std::unique_ptr<cth::co::scheduler> _workersPtr;
+
     // destroyed after the queues, before the workers and the cvk core: it posts to the workers
     TimelineReactor _reactor;
 
@@ -193,9 +203,9 @@ private:
 
 public:
     Core(Core const& other) = delete;
-    Core(Core&& other) = delete;
+    Core(Core&& other) noexcept = default;
     Core& operator=(Core const& other) = delete;
-    Core& operator=(Core&& other) = delete;
+    Core& operator=(Core&& other) noexcept = default;
 
     static constexpr void debug_check(Core const&);
 };
