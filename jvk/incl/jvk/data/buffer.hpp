@@ -1,6 +1,6 @@
 #pragma once
 #include "jvk/cmd/cmd_buffer.hpp"
-#include "jvk/sync/resource_states.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
 #include "cvk/data/img/image.hpp"

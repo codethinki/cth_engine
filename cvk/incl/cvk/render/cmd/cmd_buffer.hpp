@@ -537,6 +537,7 @@ public:
      */
     void execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer const> const> secondaries) const;
 
+    //TEMP until libstdc++ has std::span from a braced list (P2447)
     /**
      * records the secondary command buffers of a braced list
      */

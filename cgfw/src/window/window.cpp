@@ -45,7 +45,9 @@ namespace {
     }
 }
 
-void dev::window_deleter::operator()(RGFW_window* rgfwWindow) const { Window::destroy(rgfwWindow); }
+void dev::window_deleter::operator()(RGFW_window* rgfwWindow) const {
+    Window::destroy(*rgfwWindow);
+}
 
 Window::Window(Config config) : _config{std::move(config)} {}
 
@@ -179,10 +181,8 @@ native_window Window::nativeWindow() const {
 #endif
 }
 
-void Window::destroy(RGFW_window* rgfwWindow) {
-    CTH_CRITICAL(rgfwWindow == nullptr, "rgfwWindow must not be nullptr") {}
-
-    RGFW_window_close(rgfwWindow);
+void Window::destroy(RGFW_window& rgfwWindow) {
+    RGFW_window_close(&rgfwWindow);
     deinit_without_windows();
 }
 

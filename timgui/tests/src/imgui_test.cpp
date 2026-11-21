@@ -10,7 +10,7 @@
 #include "jvk/graph/frame.hpp"
 #include "jvk/graph/stage.hpp"
 #include "jvk/graph/stage_graph.hpp"
-#include "jvk/sync/resource_states.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 
 #include "cgfw/window/window.hpp"
 

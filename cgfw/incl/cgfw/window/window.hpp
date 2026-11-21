@@ -216,9 +216,8 @@ public:
     /**
      * closes the window and frees it
      * @details the last window of RGFW deinitializes RGFW
-     * @pre the window is not `nullptr`
      */
-    static void destroy(RGFW_window*);
+    static void destroy(RGFW_window&);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr handle_t get() const { return _handle.get(); }
@@ -248,7 +247,7 @@ public:
 
 namespace cgfw {
 struct Window::State {
-    //TODO review stays a not_null pointer: the raw handle of RGFW, like vk_not_null for Vulkan handles
+    // stays a not_null pointer: the raw handle of RGFW, like vk_not_null for Vulkan handles
     cth::not_null_ptr<RGFW_window> rgfwWindow;
 };
 }

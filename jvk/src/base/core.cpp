@@ -24,7 +24,8 @@ Core::Core(cvk::Instance const& instance, Config config) :
     _workers{
         _config.workers == 0 ? std::max(std::thread::hardware_concurrency(), 1u) : _config.workers
     },
-    _reactor{_core, _workers} {}
+    _reactor{_core, _workers},
+    _resourceHeap{_core, _config.heaps.resources} {}
 
 Core::Core(
     cvk::Instance const& instance,
@@ -52,15 +53,15 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
     try {
         _workers.start();
         _reactor.create();
-        _queuesOpt.emplace(*this, _workers, _config.driverThreads);
+        createQueues();
         if(_config.heaps.createsResourceHeap())
-            _resourceHeapOpt.emplace(_core, _config.heaps.resources);
+            _resourceHeap.create();
         if(_config.heaps.createsSamplerHeap())
             _samplerHeapOpt.emplace(_core, _config.heaps.samplers);
     }
     catch(...) {
-        _resourceHeapOpt.reset();
-        _queuesOpt.reset();
+        _resourceHeap.optDestroy();
+        destroyQueues();
         _reactor.optDestroy();
         _workers.await_stop();
         _core.destroy();
@@ -107,9 +108,9 @@ void Core::destroy() {
         }
     }
 
-    _queuesOpt.reset();
+    destroyQueues();
     _samplerHeapOpt.reset();
-    _resourceHeapOpt.reset();
+    _resourceHeap.optDestroy();
     _reactor.destroy();
     _workers.await_stop();
     _core.destroy();
@@ -117,16 +118,52 @@ void Core::destroy() {
 
 Queue const& Core::queue(size_t queueIdx) const {
     debug_check(*this);
-    return _queuesOpt->queue(queueIdx);
+    CTH_CRITICAL(
+        queueIdx >= _queueIndices.size(),
+        "queue index must be < {}, got {}",
+        _queueIndices.size(),
+        queueIdx
+    ) {}
+    return _queues[_queueIndices[queueIdx]];
 }
 
 ResourceHeap const& Core::resourceHeap() const {
     debug_check(*this);
     CTH_CRITICAL(
-        !_resourceHeapOpt.has_value(),
+        !_resourceHeap.created(),
         "the core must have a resource heap, see HeapsConfig"
     ) {}
-    return *_resourceHeapOpt;
+    return _resourceHeap;
+}
+
+void Core::createQueues() {
+    if(_config.driverThreads > 0)
+        _driverSchedulerOpt.emplace(cth::co::autostart, _config.driverThreads);
+    cth::co::scheduler const& scheduler = _driverSchedulerOpt.has_value()
+        ? *_driverSchedulerOpt
+        : _workers;
+
+    auto const indices = _core.queueIndices();
+    _queues.reserve(indices.size());
+    _queueIndices.reserve(indices.size());
+
+    for(size_t queueIdx = 0; queueIdx < indices.size(); ++queueIdx) {
+        auto const firstIdx =
+            static_cast<size_t>(std::ranges::find(indices, indices[queueIdx]) - indices.begin());
+        if(firstIdx < queueIdx) {
+            _queueIndices.push_back(_queueIndices[firstIdx]);
+            continue;
+        }
+
+        _queueIndices.push_back(_queues.size());
+        _queues.emplace_back(*this, _core.queue(queueIdx), scheduler);
+    }
+}
+
+void Core::destroyQueues() {
+    _queues.clear();
+    _queueIndices.clear();
+    _driverSchedulerOpt.reset();
 }
 
 SamplerHeap const& Core::samplerHeap() const {

@@ -399,7 +399,7 @@ void BasicCmdBuffer<Cvk>::reset() {
 }
 
 template<class Cvk>
-void BasicCmdBuffer<Cvk>::appendStates(ResourceStates const& next) {
+void BasicCmdBuffer<Cvk>::appendStates(ResourceTracker const& next) {
     cvk::Barrier barrier{};
     _states.append(next, barrier);
     record(barrier);

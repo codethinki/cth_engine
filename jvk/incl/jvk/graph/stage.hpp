@@ -48,7 +48,8 @@ struct SubmitInfo {
     /** `StageSlot::prologue`, `StageSlot::primary` */
     std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{};
 
-    //TODO review no queueWaits: the submit job awaits the marks of every wait, its append follows the dependency order
+    // no queueWaits: the submit job awaits the marks of every wait, its append follows the
+    // dependency order
     /**
      * one per `StageConfig::waits`: `StageSlot::semaphore` of the waited stage slot
      * @details the waited stage slot: stage `StageWait::stageId`, `StageWait::frameOffset` frame slots before
@@ -158,7 +159,7 @@ struct StageSlot {
      */
     Semaphore semaphore;
 
-    //TODO review a member of the stage slot: it refers to StageSlot::semaphore, StageSlot::prologue,
+    // a member of the stage slot: it refers to StageSlot::semaphore, StageSlot::prologue,
     // StageSlot::primary and the semaphores of the waited stage slots, they live as long as the graph
     /** the waits and the signal of the next submit or skip, see `SubmitInfo::next()` */
     SubmitInfo submitInfo;
@@ -234,7 +235,7 @@ public:
      */
     [[nodiscard]] PrimaryCmdBuffer& primary() { return _stageSlot->primary; }
 
-    //TODO review std::optional instead of a default inheritance {}: an empty inheritance continues a rendering
+    // std::optional instead of a default inheritance {}: an empty inheritance continues a rendering
     /**
      * begins the secondary command buffer of the frame slot
      * @details inherits the heaps of the primary, see `StageSlot::heaps`
@@ -287,7 +288,7 @@ public:
         await(SemaphoreSubmitInfo{semaphore, stages, value});
     }
 
-    //TODO review deleted: without it a jvk semaphore takes the binary overload through the private base of
+    // deleted: without it a jvk semaphore takes the binary overload through the private base of
     // cvk::TimelineSemaphore and fails with an inaccessible base error. no reason: MSVC lacks C++26 delete("...")
     /**
      * a jvk semaphore needs a value: `await(semaphore, stages, value)`

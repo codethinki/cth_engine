@@ -18,8 +18,9 @@ namespace cvk {
  */
 class instance_deleter {
 public:
-    //TODO review a nullptr constructor, no default constructor: the base constructor of the owner has no created
-    // instance, the context comes with the handle; a reset() without context still does not compile
+    // a nullptr constructor, no default constructor: the base constructor of the owner has no
+    // created instance, the context comes with the handle; a reset() without context still does
+    // not compile
     /**
      * without context, for an owner without a handle
      */

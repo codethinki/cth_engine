@@ -106,7 +106,7 @@ void Semaphore::markSubmitted(uint64_t value) const {
         workers.post([cb = std::move(cb)]() mutable { cb({}); });
 }
 
-void Semaphore::awaitSubmitted(uint64_t value, await_func cb) const {
+void Semaphore::onSubmitted(uint64_t value, await_func cb) const {
     debug_check(*this);
 
     {

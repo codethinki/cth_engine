@@ -96,7 +96,7 @@ struct ImageConfig {
         };
     }
 
-    //TODO review one place for the rule: the create info and the jvk tracking read it
+    // one place for the rule: the create info and the jvk tracking read it
     /**
      * @return `VK_SHARING_MODE_CONCURRENT` for two or more `queueFamilies`, else `VK_SHARING_MODE_EXCLUSIVE`
      */

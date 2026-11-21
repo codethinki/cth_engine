@@ -1,7 +1,7 @@
 #pragma once
 #include "jvk/cmd/cmd_buffer.hpp"
 #include "jvk/graph/swapchain.hpp"
-#include "jvk/sync/resource_states.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 #include "jvk/sync/semaphore.hpp"
 #include "jvk/utility/first_error.hpp"
 
@@ -239,9 +239,11 @@ private:
         uint64_t frameNumber; ///< `Stage::frameNumber()`, the value of `stageSemaphore` to wait for
     };
 
-    //TODO review no submitted_awaiter parameter: the job takes it from the stage semaphore and the frame number
-    //TODO review the image as a parameter: the job reads no presenter state outside of the strand
-    //TODO review the submit mark of the present job before awaited: acquire() no longer orders the present jobs
+    // no submitted_awaiter parameter: the job takes it from the stage semaphore and the frame
+    // number
+    // the image as a parameter: the job reads no presenter state outside of the strand
+    // the submit mark of the present job before awaited: acquire() no longer orders the present
+    // jobs
     /**
      * present job of `present()`
      * @details the order:
@@ -362,22 +364,17 @@ namespace jvk {
  */
 class scoped_acquire {
 public:
-    //TODO review the uncaught exceptions as a parameter: acquire() reads them on the calling thread before it moves
-    // onto `Queue::scheduler()`, the scope is constructed there
     /**
      * @param presenter of the image
      * @param stage of the acquire
      * @param imageOpt `std::nullopt` -> no image
      * @param error the first error of the presenter, gets a failure at the end
-     * @param uncaughtExceptions of the calling thread at the start of `Presenter::acquire()`, tell the exception at
-     *  the end
      */
     scoped_acquire(
         Presenter& presenter,
         Stage& stage,
         std::optional<SwapchainImage> imageOpt,
-        dev::first_error& error,
-        int uncaughtExceptions
+        dev::first_error& error
     ) noexcept;
 
     ~scoped_acquire();
@@ -417,7 +414,6 @@ private:
     cth::ref_wrapper<Stage> _stage;
     std::optional<SwapchainImage> _imageOpt;
     cth::ref_wrapper<dev::first_error> _error; ///< the first error of the presenter
-    int _uncaughtExceptions; ///< of the calling thread at the start of `Presenter::acquire()`
 
 public:
     scoped_acquire(scoped_acquire const& other) = delete;

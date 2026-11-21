@@ -88,7 +88,7 @@ namespace {
     ) {
         std::promise<std::error_code> promise{};
         auto future = promise.get_future();
-        semaphore.awaitSubmitted(
+        semaphore.onSubmitted(
             value,
             [promise = std::move(promise)](std::error_code error) mutable {
                 promise.set_value(error);

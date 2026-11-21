@@ -5,7 +5,7 @@
 
 
 namespace cvk {
-//TODO review own header next to vk_exceptions.hpp: error codes are no exceptions
+// own header next to vk_exceptions.hpp: error codes are no exceptions
 // no std::is_error_code_enum<VkResult>: VkResult lives in the global namespace, the implicit
 // conversion finds make_error_code() only through ADL there, a global make_error_code() would be needed
 /**

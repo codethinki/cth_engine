@@ -1,6 +1,6 @@
 #pragma once
 #include "jvk/data/resource_heap.hpp"
-#include "jvk/sync/resource_states.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 
 #include "cvk/base/queue/queue_family.hpp"
 #include "cvk/data/buffer/buffer.hpp"
@@ -123,10 +123,11 @@ public:
      * @details the resource states start empty
      * @pre `cvk::Core::created()`
      * @pre `State::vkPool` was created with the queue family of the object and `POOL_FLAGS`
-     * @pre `State::vkBuffer` is the only command buffer of `State::vkPool`, with the level of `Cvk`
+     * @pre `State::vkPool` allocated `State::vkBuffer` with the level of `Cvk`
      * @pre the command buffer is not recording
      * @post `created()`
      * @note calls `optDestroy()`
+     * @note takes the whole pool: `reset()` and `destroy()` act on every command buffer of the pool
      */
     void wrap(State const&);
 
@@ -239,7 +240,7 @@ public:
     /**
      * sets the tracked state of the mip levels after untracked code
      * @pre `recording()`
-     * @see `ResourceStates::assume()`
+     * @see `ResourceTracker::assume()`
      */
     void assume(
         cvk::Image const&,
@@ -251,7 +252,7 @@ public:
     /**
      * sets the tracked state of the buffer after untracked code
      * @pre `recording()`
-     * @see `ResourceStates::assume()`
+     * @see `ResourceTracker::assume()`
      */
     void assume(cvk::BaseBuffer const&, BufferState const& state);
 
@@ -326,7 +327,7 @@ public:
      */
     void dispatchIndirect(cvk::BaseBuffer const&, size_t offset = 0);
 
-    //TODO review the forwarders keep the constness of cvk
+    // the forwarders keep the constness of cvk
     /**
      * @see `cvk::BaseCmdBuffer::setAttachmentMapping()`
      */
@@ -402,9 +403,9 @@ public:
         _cmdBuffer.dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
-    [[nodiscard]] constexpr ResourceStates const& states() const { return _states; }
+    [[nodiscard]] constexpr ResourceTracker const& states() const { return _states; }
 
-    //TODO review no level() forwarder: the type tells it
+    // no level() forwarder: the type tells it
     [[nodiscard]] constexpr bool created() const { return _cmdBuffer.created(); }
     [[nodiscard]] constexpr VkCommandBuffer get() const { return _cmdBuffer.get(); }
     [[nodiscard]] constexpr cvk::Core const& core() const { return _cmdBuffer.core(); }
@@ -464,9 +465,9 @@ protected:
      * @details records the barriers for its first accesses
      * @pre the preconditions of `cvk::Barrier::execute()`
      */
-    void appendStates(ResourceStates const& next);
+    void appendStates(ResourceTracker const& next);
 
-    //TODO review protected member: begin() and execute() of the derived classes record into it
+    // protected member: begin() and execute() of the derived classes record into it
     // declared before the pool: the move assignment frees the old command buffer before the old pool
     Cvk _cmdBuffer;
 
@@ -493,7 +494,7 @@ private:
             addAccesses(barrier, rest...);
     }
 
-    ResourceStates _states{};
+    ResourceTracker _states{};
 
     std::unique_ptr<cvk::CmdPool> _poolPtr;
 
@@ -581,7 +582,7 @@ public:
      */
     void execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer> const>);
 
-    //TODO review braced list overload like cvk: libstdc++ 16 has no std::span constructor from a braced list
+    //TEMP until libstdc++ has std::span from a braced list (P2447)
     /**
      * executes the secondaries of a braced list
      * @see @ref execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer> const>)

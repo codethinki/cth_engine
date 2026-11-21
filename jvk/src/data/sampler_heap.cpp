@@ -15,15 +15,16 @@ SamplerHeap::SamplerHeap(cvk::Core const& core, Config const& config) :
     _slots(config.samplers) {}
 
 SamplerHeap::~SamplerHeap() {
+    // a moved-from heap has no cvk heap
     CTH_CRITICAL(
-        _cells.used() != 0,
+        _vk.created() && _cells.used() != 0,
         "every sampler of the heap must be gone, got {}",
         _cells.used()
     ) {}
 }
 
 auto SamplerHeap::insert(cvk::SamplerConfig const& config) const -> Sampler {
-    std::scoped_lock const lock{_mutex};
+    std::scoped_lock const lock{*_mutexPtr};
 
     if(auto const it = _indices.find(config); it != _indices.end()) {
         ++_slots[it->second].refs;
@@ -54,13 +55,13 @@ std::vector<VkDescriptorSetAndBindingMappingEXT> SamplerHeap::mappings() const {
 }
 
 void SamplerHeap::ref(uint32_t idx) const {
-    std::scoped_lock const lock{_mutex};
+    std::scoped_lock const lock{*_mutexPtr};
     CTH_CRITICAL(_slots[idx].refs == 0, "the cell {} must be in use", idx) {}
     ++_slots[idx].refs;
 }
 
 void SamplerHeap::unref(uint32_t idx) const {
-    std::scoped_lock const lock{_mutex};
+    std::scoped_lock const lock{*_mutexPtr};
     auto& [refs, config] = _slots[idx];
     CTH_CRITICAL(refs == 0, "the cell {} must be in use", idx) {}
 

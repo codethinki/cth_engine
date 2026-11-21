@@ -6,6 +6,7 @@
 #include "cvk/data/descriptor/image_descriptor.hpp"
 #include "cvk/data/descriptor/resource_heap.hpp"
 #include "cvk/data/img/image.hpp"
+#include "cvk/utility/constants.hpp"
 
 #include <volk.h>
 
@@ -32,7 +33,7 @@ namespace jvk {
  * - the destructor of a handle returns its cell, `Stage::retain()` keeps it while the gpu uses it
  * - the shader convention: `mappings()` and `jvk/heaps.glsl`
  * - owns a `cvk::ResourceHeap`, `vk()` reads it
- * - thread safe
+ * - `insert()` and the handles: thread safe
  */
 class ResourceHeap {
 public:
@@ -68,17 +69,46 @@ public:
     using InputAttachment = ImageHandle<cvk::InputAttachmentDescriptor>;
 
     /**
-     * creates the cvk heap
-     * @pre `cvk::Core::created()`
-     * @pre the preconditions of `cvk::ResourceHeap::create()`
-     * @throws cvk::cvk_exception the exceptions of `cvk::ResourceHeap::create()`
+     * base constructor
      */
     ResourceHeap(cvk::Core const&, Config const&);
 
     /**
-     * @pre no handle and no cell in a stasis of the heap is left
+     * constructs and creates
+     * @details calls @ref ResourceHeap(cvk::Core const&, Config const&), `create()`
      */
-    ~ResourceHeap();
+    explicit ResourceHeap(cvk::Core const&, Config const&, cvk::create_t);
+
+    /**
+     * @note calls `optDestroy()`
+     */
+    ~ResourceHeap() { optDestroy(); }
+
+    /**
+     * creates the cvk heap, every cell is free
+     * @pre `cvk::Core::created()`
+     * @pre the preconditions of `cvk::ResourceHeap::create()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::cvk_exception the exceptions of `cvk::ResourceHeap::create()`
+     */
+    void create();
+
+    /**
+     * destroys the cvk heap and forgets the cells
+     * @pre `created()`
+     * @pre no handle and no cell in a stasis of the heap is left
+     * @pre the gpu does not use the heap
+     */
+    void destroy();
+
+    /**
+     * if `created()` -> calls `destroy()`
+     */
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * places the descriptor into a free cell of its type
@@ -104,6 +134,7 @@ public:
 
     /**
      * @return the mappings of the shader convention: the sampled images and the storage images
+     * @pre `created()`
      * @details set `constants::HEAP_SET`
      * @details bindings `constants::HEAP_SAMPLED_IMAGE_BINDING`, `constants::HEAP_STORAGE_IMAGE_BINDING`
      * @see `jvk/heaps.glsl`, `SamplerHeap::mappings()`
@@ -130,9 +161,15 @@ public:
      */
     [[nodiscard]] constexpr cvk::ResourceHeap const& vk() const { return _vk; }
 
+    [[nodiscard]] constexpr bool created() const { return _vk.created(); }
     [[nodiscard]] constexpr Config const& config() const { return _vk.config(); }
 
 private:
+    /**
+     * frees every cell
+     */
+    void forget();
+
     template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
     [[nodiscard]] ImageHandle<Descriptor> insertImage(Descriptor const&) const;
 
@@ -144,22 +181,23 @@ private:
 
     /**
      * @return the free list of the type
-     * @pre `_mutex` is locked
+     * @pre `_mutexPtr` is locked
      */
     template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
     [[nodiscard]] dev::free_list& freeList() const;
 
-    mutable std::mutex _mutex{};
-    mutable cvk::ResourceHeap _vk; ///< written under `_mutex`
-    mutable dev::free_list _sampledImages; ///< under `_mutex`
-    mutable dev::free_list _storageImages; ///< under `_mutex`
-    mutable dev::free_list _inputAttachments; ///< under `_mutex`
+    // behind a std::unique_ptr: the mutex is not movable, the moves stay = default
+    std::unique_ptr<std::mutex> _mutexPtr = std::make_unique<std::mutex>();
+    mutable cvk::ResourceHeap _vk; ///< written under `_mutexPtr`
+    mutable dev::free_list _sampledImages; ///< under `_mutexPtr`
+    mutable dev::free_list _storageImages; ///< under `_mutexPtr`
+    mutable dev::free_list _inputAttachments; ///< under `_mutexPtr`
 
 public:
     ResourceHeap(ResourceHeap const& other) = delete;
-    ResourceHeap(ResourceHeap&& other) = delete;
+    ResourceHeap(ResourceHeap&& other) noexcept = default;
     ResourceHeap& operator=(ResourceHeap const& other) = delete;
-    ResourceHeap& operator=(ResourceHeap&& other) = delete;
+    ResourceHeap& operator=(ResourceHeap&& other) noexcept = default;
 };
 }
 

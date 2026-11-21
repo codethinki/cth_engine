@@ -52,12 +52,12 @@ public:
      */
     void waitIdle() const;
 
-    //TODO review an executor_task: the receiving submit job awaits it before its own submit, so the release is
+    // an executor_task: the receiving submit job awaits it before its own submit, so the release is
     // submitted first and the counter only changes in the strand (returning at once needs a lock around the value
     // and the post)
-    // const like executor(): Queues hands out Queue const&, the release members are mutable
-    //TODO review returns the jvk SemaphoreSubmitInfo: it keeps the counter for Semaphore::submitted(), it converts to
-    // the cvk one
+    // const like executor(): the core hands out Queue const&, the release members are mutable
+    // returns the jvk SemaphoreSubmitInfo: it keeps the counter for Semaphore::submitted(), it
+    // converts to the cvk one
     /**
      * releases the queue family ownership of the resources in the strand
      * @details
@@ -129,8 +129,8 @@ private:
 
 public:
     Queue(Queue const& other) = delete;
-    Queue(Queue&& other) = delete;
+    Queue(Queue&& other) noexcept = default;
     Queue& operator=(Queue const& other) = delete;
-    Queue& operator=(Queue&& other) = delete;
+    Queue& operator=(Queue&& other) noexcept = default;
 };
 }

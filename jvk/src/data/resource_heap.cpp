@@ -12,12 +12,22 @@
 
 namespace jvk {
 ResourceHeap::ResourceHeap(cvk::Core const& core, Config const& config) :
-    _vk{core, config, cvk::create},
+    _vk{core, config},
     _sampledImages{config.sampledImages},
     _storageImages{config.storageImages},
     _inputAttachments{config.inputAttachments} {}
 
-ResourceHeap::~ResourceHeap() {
+ResourceHeap::ResourceHeap(cvk::Core const& core, Config const& config, cvk::create_t) :
+    ResourceHeap{core, config} { create(); }
+
+void ResourceHeap::create() {
+    optDestroy();
+
+    _vk.create();
+}
+
+void ResourceHeap::destroy() {
+    cvk::ResourceHeap::debug_check(_vk);
     CTH_CRITICAL(
         _sampledImages.used() + _storageImages.used() + _inputAttachments.used() != 0,
         "every handle of the heap must be gone, got {} sampled images, {} storage images, {} input attachments",
@@ -25,6 +35,10 @@ ResourceHeap::~ResourceHeap() {
         _storageImages.used(),
         _inputAttachments.used()
     ) {}
+
+    _vk.destroy();
+
+    forget();
 }
 
 auto ResourceHeap::insert(cvk::SampledImageDescriptor const& descriptor) const -> SampledImage {
@@ -67,7 +81,7 @@ auto ResourceHeap::insertImage(Descriptor const& descriptor) const -> ImageHandl
         ImageHandle<Descriptor>::LAYOUT
     ) {}
 
-    std::scoped_lock const lock{_mutex};
+    std::scoped_lock const lock{*_mutexPtr};
 
     auto& free = freeList<Descriptor>();
     auto const idxOpt = free.insert();
@@ -87,7 +101,7 @@ auto ResourceHeap::insertImage(Descriptor const& descriptor) const -> ImageHandl
 
 template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
 void ResourceHeap::erase(uint32_t idx) const {
-    std::scoped_lock const lock{_mutex};
+    std::scoped_lock const lock{*_mutexPtr};
     freeList<Descriptor>().erase(idx);
 }
 
@@ -99,6 +113,13 @@ dev::free_list& ResourceHeap::freeList() const {
         return _storageImages;
     else
         return _inputAttachments;
+}
+
+void ResourceHeap::forget() {
+    auto const& config = _vk.config();
+    _sampledImages = dev::free_list{config.sampledImages};
+    _storageImages = dev::free_list{config.storageImages};
+    _inputAttachments = dev::free_list{config.inputAttachments};
 }
 
 template void ResourceHeap::erase<cvk::SampledImageDescriptor>(uint32_t) const;

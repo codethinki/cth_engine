@@ -6,11 +6,13 @@
 #include "jvk/data/buffer.hpp"
 #include "jvk/data/image.hpp"
 
+#include "cvk/base/core.hpp"
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/render/sync/barrier.hpp"
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
 
+#include <cth/coro/scheduler.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
 
 #include <atomic>
@@ -145,23 +147,6 @@ namespace {
     }
 
     /**
-     * the queue family ownership transfer of the image, without layout transition when the layouts are equal
-     */
-    [[nodiscard]] cvk::ImageBarrierInfo image_transfer(
-        cvk::BarrierScope src,
-        cvk::BarrierScope dst,
-        VkImageLayout oldLayout,
-        VkImageLayout newLayout
-    ) {
-        return cvk::ImageBarrierInfo{
-            .src = src,
-            .dst = dst,
-            .newLayout = newLayout,
-            .oldLayout = oldLayout
-        };
-    }
-
-    /**
      * submits inside the strand
      */
     cth::co::executor_task<void> submit(
@@ -229,6 +214,25 @@ JVK_TEST(Queue, wait_idle_waits_for_the_submits) {
     EXPECT_EQ(semaphore.gpuValue(), 1);
 }
 
+JVK_TEST(Queue, a_moved_queue_runs_its_strand) {
+    test::Context const context{};
+    cvk::Core const& vk = context.core;
+    cth::co::scheduler const workers{cth::co::autostart};
+    cvk::TimelineSemaphore const semaphore{context.core, cvk::create};
+    Queue queue{context.core, vk.queue(0), workers};
+
+    Queue moved{std::move(queue)};
+    moved.executor().sync_wait(signal(moved, semaphore));
+    moved.waitIdle();
+    EXPECT_EQ(semaphore.gpuValue(), 1);
+
+    Queue other{context.core, vk.queue(0), workers};
+    other = std::move(moved);
+    other.executor().sync_wait(signal(other, semaphore));
+    other.waitIdle();
+    EXPECT_EQ(semaphore.gpuValue(), 2);
+}
+
 JVK_TEST(Queue, release_transfers_an_image_to_another_family) {
     test::Context const context{};
     Core const core{context.instance, two_families(), {}};
@@ -255,12 +259,13 @@ JVK_TEST(Queue, release_transfers_an_image_to_another_family) {
     cvk::Barrier release{};
     release.add(
         image,
-        image_transfer(
-            {TRANSFER_WRITE.stages, TRANSFER_WRITE.access, ownerFamily},
-            {.queueFamilyIndex = receiverFamily},
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-        )
+        cvk::ImageBarrierInfo{
+            .src = TRANSFER_WRITE,
+            .srcQueueFamilyIndex = ownerFamily,
+            .dstQueueFamilyIndex = receiverFamily,
+            .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        }
     );
     auto const released = core.executor().sync_wait(owner.release(release));
     EXPECT_EQ(released.semaphore->submittedValue(), released.value);
@@ -271,12 +276,14 @@ JVK_TEST(Queue, release_transfers_an_image_to_another_family) {
     cvk::Barrier acquire{};
     acquire.add(
         image,
-        image_transfer(
-            {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, .queueFamilyIndex = ownerFamily},
-            {TRANSFER_READ.stages, TRANSFER_READ.access, receiverFamily},
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
-        )
+        cvk::ImageBarrierInfo{
+            .src = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
+            .dst = TRANSFER_READ,
+            .srcQueueFamilyIndex = ownerFamily,
+            .dstQueueFamilyIndex = receiverFamily,
+            .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        }
     );
     acquire.execute(read);
     read.assume(
@@ -331,10 +338,11 @@ JVK_TEST(Queue, several_releases_in_a_row) {
         cvk::Barrier release{};
         release.add(
             buffer,
-            cvk::BufferBarrierInfo::QueueTransition(
-                {.queueFamilyIndex = receiverFamily},
-                {TRANSFER_WRITE.stages, TRANSFER_WRITE.access, ownerFamily}
-            )
+            cvk::BufferBarrierInfo{
+                .src = TRANSFER_WRITE,
+                .srcQueueFamilyIndex = ownerFamily,
+                .dstQueueFamilyIndex = receiverFamily,
+            }
         );
         released.push_back(core.executor().sync_wait(owner.release(release)));
     }
@@ -350,10 +358,12 @@ JVK_TEST(Queue, several_releases_in_a_row) {
     for(auto const& buffer : buffers)
         acquire.add(
             buffer,
-            cvk::BufferBarrierInfo::QueueTransition(
-                {TRANSFER_READ.stages, TRANSFER_READ.access, receiverFamily},
-                {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, .queueFamilyIndex = ownerFamily}
-            )
+            cvk::BufferBarrierInfo{
+                .src = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
+                .dst = TRANSFER_READ,
+                .srcQueueFamilyIndex = ownerFamily,
+                .dstQueueFamilyIndex = receiverFamily,
+            }
         );
     acquire.execute(read);
     for(size_t i = 0; i < RELEASES; ++i) {

@@ -179,17 +179,30 @@ CVK_TEST(Barrier, layout_transition_info_covers_the_remaining_mip_levels) {
     static_assert(info.src.access == VK_ACCESS_2_NONE);
 }
 
-CVK_TEST(Barrier, queue_transition_info_keeps_the_layout) {
-    constexpr auto info = ImageBarrierInfo::QueueTransition(
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        {.queueFamilyIndex = 1},
-        {.queueFamilyIndex = 0}
+CVK_TEST(Barrier, the_queue_families_reach_the_vulkan_structs) {
+    static_assert(
+        [] {
+            Barrier barrier{};
+            barrier.add(
+                VkBuffer{VK_NULL_HANDLE},
+                BufferBarrierInfo{.srcQueueFamilyIndex = 0, .dstQueueFamilyIndex = 1}
+            );
+            barrier.add(
+                VkImage{VK_NULL_HANDLE},
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                ImageBarrierInfo{
+                    .srcQueueFamilyIndex = 0,
+                    .dstQueueFamilyIndex = 1,
+                    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                }
+            );
+            auto const& buffer = barrier.buffers.front();
+            auto const& image = barrier.images.front();
+            return buffer.srcQueueFamilyIndex == 0 && buffer.dstQueueFamilyIndex == 1
+                && image.srcQueueFamilyIndex == 0 && image.dstQueueFamilyIndex == 1;
+        }()
     );
-
-    static_assert(info.newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    static_assert(info.oldLayout == info.newLayout);
-    static_assert(info.dst.queueFamilyIndex == 1);
-    static_assert(info.src.queueFamilyIndex == 0);
 }
 
 CVK_TEST(Barrier, memory_barriers_are_constexpr) {
@@ -198,7 +211,7 @@ CVK_TEST(Barrier, memory_barriers_are_constexpr) {
             Barrier barrier{VK_DEPENDENCY_BY_REGION_BIT};
             barrier.add(FRAGMENT_READ, TRANSFER_WRITE);
             bool const added = !barrier.empty();
-            bool const ordered = barrier.memory.front().dst.access == FRAGMENT_READ.access;
+            bool const ordered = barrier.memory.front().dstAccessMask == FRAGMENT_READ.access;
             barrier.clear();
             return added && ordered && barrier.empty();
         }()
@@ -211,7 +224,16 @@ CVK_TEST(Barrier, aggregate_is_constexpr) {
             //TEMP not const: gcc 16 rejects a const aggregate with a vector and another member in a constant expression
             Barrier barrier{
                 .flags = VK_DEPENDENCY_BY_REGION_BIT,
-                .memory = {{TRANSFER_WRITE, FRAGMENT_READ}},
+                .memory = {
+                    VkMemoryBarrier2{
+                        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+                        .pNext = nullptr,
+                        .srcStageMask = TRANSFER_WRITE.stages,
+                        .srcAccessMask = TRANSFER_WRITE.access,
+                        .dstStageMask = FRAGMENT_READ.stages,
+                        .dstAccessMask = FRAGMENT_READ.access,
+                    }
+                },
             };
             return !barrier.empty() && barrier.memory.size() == 1 && barrier.buffers.empty();
         }()

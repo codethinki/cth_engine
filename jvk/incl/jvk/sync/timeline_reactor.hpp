@@ -8,6 +8,7 @@
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <stop_token>
 #include <system_error>
@@ -30,6 +31,7 @@ namespace jvk {
  * - posts the callbacks to the worker scheduler, the thread runs no callback
  * - wakes only when a waited value is reached or a smaller wait comes in
  * - thread safe
+ * - a created reactor does not move and takes no move assignment: its thread refers to it
  */
 class TimelineReactor {
 public:
@@ -108,7 +110,7 @@ private:
 
     /**
      * raises the wake semaphore, the thread waits again with the new values
-     * @pre the caller holds `TimelineReactor::_mutex`
+     * @pre the caller holds `TimelineReactor::_mutexPtr`
      * @throws cvk::vk_result_exception result of `vkSignalSemaphore()`
      */
     void wake() const;
@@ -116,7 +118,7 @@ private:
     /**
      * stores the error, takes every pending callback
      * @return the callbacks to post with the error
-     * @pre the caller holds `TimelineReactor::_mutex`
+     * @pre the caller holds `TimelineReactor::_mutexPtr`
      */
     [[nodiscard]] std::vector<cth::co::context::await_func> fail(std::error_code) const;
 
@@ -130,7 +132,8 @@ private:
     /** the thread waits for it next to the semaphores with waiters */
     mutable cvk::TimelineSemaphore _wake;
 
-    mutable std::mutex _mutex{};
+    // behind a std::unique_ptr: the mutex is not movable, the moves stay = default
+    std::unique_ptr<std::mutex> _mutexPtr = std::make_unique<std::mutex>();
 
     /**
      * min-heap of the waiters by value per semaphore
@@ -146,8 +149,8 @@ private:
 
 public:
     TimelineReactor(TimelineReactor const& other) = delete;
-    TimelineReactor(TimelineReactor&& other) = delete;
+    TimelineReactor(TimelineReactor&& other) noexcept = default;
     TimelineReactor& operator=(TimelineReactor const& other) = delete;
-    TimelineReactor& operator=(TimelineReactor&& other) = delete;
+    TimelineReactor& operator=(TimelineReactor&& other) noexcept = default;
 };
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include "core_config.hpp"
-#include "queues.hpp"
+#include "queue.hpp"
 
 #include "jvk/data/resource_heap.hpp"
 #include "jvk/data/sampler_heap.hpp"
@@ -18,6 +18,7 @@
 #include <optional>
 #include <span>
 #include <utility>
+#include <vector>
 
 
 namespace cvk {
@@ -40,7 +41,7 @@ public:
      */
     Core(cvk::Instance const&, Config);
 
-    //TODO review no default for the surfaces, like cvk::Core::create(): a core without windows passes {}
+    // no default for the surfaces, like cvk::Core::create(): a core without windows passes {}
     /**
      * constructs and creates
      * @details calls @ref Core(cvk::Instance const&, Config), `create()`
@@ -160,18 +161,34 @@ public:
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
+    /**
+     * constructs the driver threads and one queue per vulkan queue
+     * @pre the cvk core and the reactor are created
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the release counters
+     */
+    void createQueues();
+
+    /**
+     * destroys the queues, then the driver threads that run their strands
+     */
+    void destroyQueues();
+
     Config _config;
     cvk::Core _core;
     cth::co::scheduler _workers;
     // destroyed after the queues, before the workers and the cvk core: it posts to the workers
     TimelineReactor _reactor;
-    //TODO review stays a std::optional: Queues owns no vulkan object, the device owns the queues, its construction
-    // needs the created cvk core and starts the driver threads
+
+    // destroyed after the queues: their strands run on it
+    std::optional<cth::co::scheduler> _driverSchedulerOpt{}; ///< see `CoreConfig::driverThreads`
     // destroyed before the reactor, the workers and the cvk core
-    std::optional<Queues> _queuesOpt{};
-    //TODO review std::optional like the queues: the heaps need the created cvk core, no heap without counts
+    std::vector<Queue> _queues{}; ///< one per vulkan queue
+    /** index in `_queues` per index of `cvk::CoreConfig::queueProperties` */
+    std::vector<size_t> _queueIndices{};
+
     // destroyed before the cvk core
-    std::optional<ResourceHeap> _resourceHeapOpt{};
+    ResourceHeap _resourceHeap; ///< not created without counts, see `HeapsConfig`
+    // the sampler heap needs the created cvk core, no heap without counts
     std::optional<SamplerHeap> _samplerHeapOpt{};
 
 public:

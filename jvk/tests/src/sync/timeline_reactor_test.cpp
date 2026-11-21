@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <future>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 
@@ -108,6 +109,31 @@ JVK_TEST(TimelineReactor, create_and_destroy) {
 
     reactor.create();
     EXPECT_TRUE(reactor.created());
+}
+
+JVK_TEST(TimelineReactor, a_moved_reactor_creates_and_calls_the_callback) {
+    test::Context const context{};
+    cth::co::scheduler workers{cth::co::autostart};
+    cvk::TimelineSemaphore semaphore{context.core, cvk::create};
+    TimelineReactor reactor{context.core, workers};
+
+    TimelineReactor moved{std::move(reactor)};
+    TimelineReactor other{context.core, workers};
+    other = std::move(moved);
+    other.create();
+    EXPECT_TRUE(other.created());
+
+    std::promise<std::error_code> promise{};
+    auto result = promise.get_future();
+    other.await(
+        semaphore.get(),
+        1,
+        [promise = std::move(promise)](std::error_code error) mutable { promise.set_value(error); }
+    );
+    host_signal(semaphore, 1);
+
+    ASSERT_EQ(result.wait_for(REACHED_TIMEOUT), std::future_status::ready);
+    EXPECT_FALSE(result.get());
 }
 
 JVK_TEST(TimelineReactor, gpu_signal_calls_the_callback_on_a_worker) {

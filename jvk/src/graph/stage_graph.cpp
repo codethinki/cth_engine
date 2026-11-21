@@ -11,6 +11,7 @@
 #include "cvk/render/sync/timeline_semaphore.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
+#include <cth/coro/all.hpp>
 #include <cth/coro/exception.hpp>
 #include <cth/coro/executor.hpp>
 #include <cth/io/log.hpp>
@@ -18,6 +19,7 @@
 #include <algorithm>
 #include <exception>
 #include <mutex>
+#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -164,10 +166,12 @@ cth::co::executor_task<Frame&> StageGraph::nextFrame() {
         // a failed skip in an earlier nextFrame() leaves a stage of an older frame unsubmitted
         skipUnsubmitted(frameSlot);
 
-        for(auto const& stage : frameSlot.stages)
-            co_await stage.submitted();
-        for(auto const& stage : frameSlot.stages)
-            co_await stage;
+        // the marks first: the gpu can finish before the graph job marks the submit
+        co_await cth::co::all(
+            frameSlot.stages
+            | std::views::transform([](Stage const& stage) { return stage.submitted(); })
+        );
+        co_await cth::co::all(frameSlot.stages);
     }
 
     frameSlot.frameOpt.reset();
@@ -365,7 +369,7 @@ cth::co::executor_task<void> StageGraph::submitJob(
 }
 
 void StageGraph::append(
-    ResourceStates const& recording,
+    ResourceTracker const& recording,
     Queue const& queue,
     cvk::Barrier& prologue,
     release_map_t& releases
@@ -383,7 +387,7 @@ void StageGraph::append(
 
     for(auto const& [vkImage, mipLevel, aspectMask, sharingMode] : recording.images()) {
         auto const firstOpt = recording.first(vkImage, mipLevel);
-        // an assume() before the first use: ResourceStates::append() takes the state
+        // an assume() before the first use: ResourceTracker::append() takes the state
         if(!firstOpt.has_value())
             continue;
 
@@ -397,7 +401,7 @@ void StageGraph::append(
         if(lastQueuePtr == nullptr || sharingMode != VK_SHARING_MODE_EXCLUSIVE)
             continue;
 
-        // ResourceStates::append() inserts the state of the recording without a barrier
+        // ResourceTracker::append() inserts the state of the recording without a barrier
         _states.erase(vkImage, mipLevel);
 
         if(recording.discards(vkImage, mipLevel) || lastOpt->layout == VK_IMAGE_LAYOUT_UNDEFINED) {

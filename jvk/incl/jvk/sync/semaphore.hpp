@@ -52,7 +52,7 @@ public:
     void await_suspend(std::coroutine_handle<Caller> caller);
 
 private:
-    //TODO review a private helper: the reactor needs the complete jvk::Core, the template stays in the header
+    // a private helper: the reactor needs the complete jvk::Core, the template stays in the header
     /**
      * registers the callback with the reactor of the core
      */
@@ -80,7 +80,7 @@ public:
     /**
      * registers the resume of the caller with the semaphore
      * @details resumes on the context of the caller
-     * @see `Semaphore::awaitSubmitted()`
+     * @see `Semaphore::onSubmitted()`
      */
     template<class Caller> requires cth::co::this_coro_compatible<Caller>
     void await_suspend(std::coroutine_handle<Caller> caller);
@@ -172,12 +172,11 @@ public:
      */
     State release();
 
-    //TODO review @pre rising values, like the signal values of a timeline semaphore
     /**
      * marks the signal of the value as submitted
      * @details
      * - for the jvk submit paths, after the `vkQueueSubmit2()` of the signal
-     * - posts the callbacks of `awaitSubmitted()` up to the value to the workers of the core
+     * - posts the callbacks of `onSubmitted()` up to the value to the workers of the core
      * - thread safe
      * @pre `created()`
      * @pre `value > submittedValue()`
@@ -197,17 +196,17 @@ public:
         return submitted_awaiter{*this, value};
     }
 
-    //TODO review like TimelineReactor::await(): marked -> posts the callback at once, no bool result
     /**
      * calls the callback on a worker of the core once `markSubmitted()` reached the value
      * @details
+     * - the callback form of `submitted()`
      * - the callback gets an empty `std::error_code`
      * - marked -> posts the callback at once
      * - thread safe
      * @pre `created()`
      * @see `submitted()`
      */
-    void awaitSubmitted(uint64_t value, cth::co::context::await_func cb) const;
+    void onSubmitted(uint64_t value, cth::co::context::await_func cb) const;
 
     /**
      * waits until the semaphore reaches the value
@@ -220,7 +219,7 @@ public:
         return semaphore_awaiter{*this, value};
     }
 
-    //TODO review the counter forwarded: next(), value(), gpuValue(); signal() not: a host signal bypasses
+    // the counter forwarded: next(), value(), gpuValue(); signal() not: a host signal bypasses
     // markSubmitted()
     /**
      * advances the counter
@@ -256,7 +255,7 @@ public:
 
 private:
     /**
-     * callback of `awaitSubmitted()`
+     * callback of `onSubmitted()`
      */
     struct SubmittedWaiter {
         uint64_t value;
@@ -271,7 +270,7 @@ private:
 
         uint64_t value = 0; ///< see `submittedValue()`
 
-        /** the callbacks of `awaitSubmitted()` above `Submitted::value` */
+        /** the callbacks of `onSubmitted()` above `Submitted::value` */
         std::vector<SubmittedWaiter> waiters{};
     };
 
@@ -292,7 +291,7 @@ public:
 }
 
 namespace jvk {
-//TODO review in semaphore.hpp next to Semaphore: it is small, no own header
+// in semaphore.hpp next to Semaphore: it is small, no own header
 /**
  * wait or signal of a submit on a jvk semaphore
  * @details
@@ -343,7 +342,7 @@ void semaphore_awaiter::await_suspend(std::coroutine_handle<Caller> caller) {
 
 template<class Caller> requires cth::co::this_coro_compatible<Caller>
 void submitted_awaiter::await_suspend(std::coroutine_handle<Caller> caller) {
-    _semaphore->awaitSubmitted(
+    _semaphore->onSubmitted(
         _value,
         dev::post_to(caller.promise().context(), [caller](std::error_code) { caller.resume(); })
     );

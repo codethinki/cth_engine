@@ -114,9 +114,6 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
     Stage& stage,
     VkPipelineStageFlags2 stages
 ) {
-    // on the calling thread: the scope compares them at its end
-    auto const uncaughtExceptions = std::uncaught_exceptions();
-
     debug_check(*this);
     CTH_CRITICAL(stage.status() != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
     CTH_CRITICAL(
@@ -148,7 +145,7 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
     while(!imageIdxOpt.has_value()) {
         auto const extent = _surface.extent(vkCore.physicalDevice());
         if(extent.width == 0 || extent.height == 0)
-            co_return scoped_acquire{*this, stage, std::nullopt, _error, uncaughtExceptions};
+            co_return scoped_acquire{*this, stage, std::nullopt, _error};
         updateSwapchain(extent, &stage.graph());
 
         // no image -> out of date, the next round recreates the swapchain
@@ -179,7 +176,7 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
         ImageState{.layout = VK_IMAGE_LAYOUT_UNDEFINED, .scope = {.stages = stages}}
     );
 
-    co_return scoped_acquire{*this, stage, image, _error, uncaughtExceptions};
+    co_return scoped_acquire{*this, stage, image, _error};
 }
 
 void Presenter::present(Stage& stage) {
@@ -357,31 +354,18 @@ scoped_acquire::scoped_acquire(
     Presenter& presenter,
     Stage& stage,
     std::optional<SwapchainImage> imageOpt,
-    dev::first_error& error,
-    int uncaughtExceptions
+    dev::first_error& error
 ) noexcept :
     _presenterPtr{&presenter},
     _stage{stage},
     _imageOpt{std::move(imageOpt)},
-    _error{error},
-    _uncaughtExceptions{uncaughtExceptions} {}
+    _error{error} {}
 
 scoped_acquire::~scoped_acquire() {
     if(!_presenterPtr || !_imageOpt.has_value())
         return;
 
     auto& stage = *_stage;
-    // an exception after the submit: the frame is complete
-    bool const exception = std::uncaught_exceptions() > _uncaughtExceptions;
-    if(exception && stage.status() != Stage::Status::SUBMITTED)
-        return;
-    CTH_CRITICAL(
-        stage.status() == Stage::Status::UNSUBMITTED && stage.primary().recording()
-        && stage.primary().states().last(_imageOpt->image->get(), 0).has_value(),
-        "the open primary of the stage uses the swapchain image {}, declare scoped_acquire before scoped_submit",
-        _imageOpt->imageIdx
-    ) {}
-
     // skipped or unsubmitted: the next acquire() or destroy() unacquires the image
     if(stage.status() != Stage::Status::SUBMITTED)
         return;

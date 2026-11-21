@@ -1,5 +1,5 @@
 #pragma once
-#include "jvk/sync/resource_states.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 
 #include "cvk/base/queue/queue_family.hpp"
 #include "cvk/render/sync/barrier.hpp"
@@ -10,15 +10,8 @@
 
 
 namespace jvk::dev {
-/**
- * src of an acquire half: waits for the release wait of the submit, `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`
- */
-[[nodiscard]] constexpr cvk::BarrierScope acquire_src(cvk::queue_family_index_t lastFamily) {
-    return cvk::BarrierScope{
-        .stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-        .queueFamilyIndex = lastFamily
-    };
-}
+/** src of an acquire half: waits for the release wait of the submit */
+constexpr cvk::BarrierScope ACQUIRE_SRC{.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT};
 
 /**
  * release half of the queue family ownership transfer of a mip level, transitions to the first layout
@@ -36,8 +29,9 @@ namespace jvk::dev {
     uint32_t mipLevel
 ) {
     return cvk::ImageBarrierInfo{
-        .src = {last.scope.stages, last.scope.access, lastFamily},
-        .dst = {.queueFamilyIndex = family},
+        .src = last.scope,
+        .srcQueueFamilyIndex = lastFamily,
+        .dstQueueFamilyIndex = family,
         .newLayout = first.layout,
         .oldLayout = last.layout,
         .firstMipLevel = mipLevel,
@@ -61,8 +55,10 @@ namespace jvk::dev {
     uint32_t mipLevel
 ) {
     return cvk::ImageBarrierInfo{
-        .src = acquire_src(lastFamily),
-        .dst = {first.scope.stages, first.scope.access, family},
+        .src = ACQUIRE_SRC,
+        .dst = first.scope,
+        .srcQueueFamilyIndex = lastFamily,
+        .dstQueueFamilyIndex = family,
         .newLayout = first.layout,
         .oldLayout = last.layout,
         .firstMipLevel = mipLevel,
@@ -81,10 +77,11 @@ namespace jvk::dev {
     cvk::queue_family_index_t lastFamily,
     cvk::queue_family_index_t family
 ) {
-    return cvk::BufferBarrierInfo::QueueTransition(
-        {.queueFamilyIndex = family},
-        {last.scope.stages, last.scope.access, lastFamily}
-    );
+    return cvk::BufferBarrierInfo{
+        .src = last.scope,
+        .srcQueueFamilyIndex = lastFamily,
+        .dstQueueFamilyIndex = family,
+    };
 }
 
 /**
@@ -98,9 +95,11 @@ namespace jvk::dev {
     cvk::queue_family_index_t lastFamily,
     cvk::queue_family_index_t family
 ) {
-    return cvk::BufferBarrierInfo::QueueTransition(
-        {first.scope.stages, first.scope.access, family},
-        acquire_src(lastFamily)
-    );
+    return cvk::BufferBarrierInfo{
+        .src = ACQUIRE_SRC,
+        .dst = first.scope,
+        .srcQueueFamilyIndex = lastFamily,
+        .dstQueueFamilyIndex = family,
+    };
 }
 }

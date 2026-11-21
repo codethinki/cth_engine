@@ -43,7 +43,7 @@ void TimelineReactor::destroy() {
     CTH_CRITICAL(!created(), "reactor must be created") {}
 
     {
-        std::scoped_lock const lock{_mutex};
+        std::scoped_lock const lock{*_mutexPtr};
         CTH_CRITICAL(
             !_waiters.empty(),
             "no callback must be pending, got {} semaphores",
@@ -77,7 +77,7 @@ void TimelineReactor::await(VkSemaphore vkSemaphore, uint64_t value, await_func 
 
     std::error_code error{};
     {
-        std::scoped_lock const lock{_mutex};
+        std::scoped_lock const lock{*_mutexPtr};
 
         if(!_error) {
             // the thread waits for the smallest value per semaphore, a new smallest value needs a new wait
@@ -100,7 +100,7 @@ void TimelineReactor::await(VkSemaphore vkSemaphore, uint64_t value, await_func 
 }
 
 bool TimelineReactor::pending(VkSemaphore vkSemaphore) const {
-    std::scoped_lock const lock{_mutex};
+    std::scoped_lock const lock{*_mutexPtr};
     return _waiters.contains(vkSemaphore);
 }
 
@@ -115,7 +115,7 @@ void TimelineReactor::run(std::stop_token stop) {
 
     while(true) {
         {
-            std::scoped_lock const lock{_mutex};
+            std::scoped_lock const lock{*_mutexPtr};
             if(stop.stop_requested())
                 return;
 
@@ -142,7 +142,7 @@ void TimelineReactor::run(std::stop_token stop) {
         );
 
         {
-            std::scoped_lock const lock{_mutex};
+            std::scoped_lock const lock{*_mutexPtr};
 
             for(auto it = _waiters.begin(); result == VK_SUCCESS && it != _waiters.end();) {
                 auto& [vkSemaphore, waiters] = *it;

@@ -13,6 +13,7 @@
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <tuple>
 #include <utility>
@@ -96,17 +97,18 @@ private:
         cvk::SamplerConfig config{};
     };
 
-    mutable std::mutex _mutex{};
-    mutable cvk::SamplerHeap _vk; ///< written under `_mutex`
-    mutable dev::free_list _cells; ///< under `_mutex`
-    mutable cth::dt::flat_hash_map<cvk::SamplerConfig, uint32_t> _indices{}; ///< under `_mutex`
-    mutable std::vector<slot> _slots; ///< one per cell, under `_mutex`
+    // behind a std::unique_ptr: the mutex is not movable, the moves stay = default
+    std::unique_ptr<std::mutex> _mutexPtr = std::make_unique<std::mutex>();
+    mutable cvk::SamplerHeap _vk; ///< written under `_mutexPtr`
+    mutable dev::free_list _cells; ///< under `_mutexPtr`
+    mutable cth::dt::flat_hash_map<cvk::SamplerConfig, uint32_t> _indices{}; ///< under `_mutexPtr`
+    mutable std::vector<slot> _slots; ///< one per cell, under `_mutexPtr`
 
 public:
     SamplerHeap(SamplerHeap const& other) = delete;
-    SamplerHeap(SamplerHeap&& other) = delete;
+    SamplerHeap(SamplerHeap&& other) noexcept = default;
     SamplerHeap& operator=(SamplerHeap const& other) = delete;
-    SamplerHeap& operator=(SamplerHeap&& other) = delete;
+    SamplerHeap& operator=(SamplerHeap&& other) noexcept = default;
 };
 }
 

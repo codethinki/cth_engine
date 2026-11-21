@@ -269,9 +269,9 @@ private:
      * image of the swapchain, the swapchain destroys it
      * @details the destruction releases the image, it does not destroy it
      */
-    struct OwnedImage {
-        explicit OwnedImage(Image image) : image{std::move(image)} {}
-        ~OwnedImage() {
+    struct ReleasingImage {
+        explicit ReleasingImage(Image image) : image{std::move(image)} {}
+        ~ReleasingImage() {
             if(image.created())
                 static_cast<void>(image.release());
         }
@@ -279,8 +279,8 @@ private:
         Image image;
 
         // the user-declared destructor suppresses the implicit moves
-        OwnedImage(OwnedImage&& other) noexcept = default;
-        OwnedImage& operator=(OwnedImage&& other) noexcept = default;
+        ReleasingImage(ReleasingImage&& other) noexcept = default;
+        ReleasingImage& operator=(ReleasingImage&& other) noexcept = default;
     };
 
     /**
@@ -324,7 +324,7 @@ private:
     std::vector<WaitingFence> _presentFences{};
     std::vector<Semaphore> _presentSemaphores{};
     std::vector<ImageView> _views{};
-    std::vector<OwnedImage> _images{};
+    std::vector<ReleasingImage> _images{};
     std::vector<bool> _acquired{};
 
     core_handle<VkSwapchainKHR> _handle;

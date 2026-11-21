@@ -4,7 +4,7 @@
 #include "stage_graph_config.hpp"
 
 #include "jvk/base/stasis.hpp"
-#include "jvk/sync/resource_states.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 #include "jvk/utility/first_error.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
@@ -74,16 +74,20 @@ public:
      */
     ~StageGraph();
 
-    //TODO review awaits Stage::submitted() of the old frame: the gpu can finish before the graph job marks the submit
+    // awaits Stage::submitted() of the old frame: the gpu can finish before the graph job marks the
+    // submit
     /**
      * constructs the frame and its stages in the next slot
      * @details the frame before: skips its stages without `Stage::submit()` or `Stage::skip()`, warns for a waited one
-     * @details the old frame of the slot: awaits `Stage::submitted()` of its stages, then each stage: the gpu finished
-     *  it
+     * @details the old frame of the slot: awaits `Stage::submitted()` of its stages, then the
+     *  stages: the gpu finished them, both with `cth::co::all()`
      * @return the frame of the slot
      * @pre no stage of the frame before records or submits: `nextFrame()` ends the frame
      * @throws cvk::vk_result_exception the first error of a submit job or a scope, stored before the call: an error
      *  during the waits -> the next `nextFrame()` rethrows it
+     * @throws cth::except::group_coro_exception reason: the wait for a stage of the old frame
+     *  failed, after the waits for all its stages: `exceptions()` holds the
+     *  `cth::except::coro_exception` per stage
      * @attention not thread safe
      */
     [[nodiscard]] cth::co::executor_task<Frame&> nextFrame();
@@ -129,7 +133,7 @@ public:
      * - the first use of the next submit starts from the state
      * - thread safe
      * @pre the jobs of the submits before that use the image appended their states: they are marked
-     * @see `ResourceStates::assume()`
+     * @see `ResourceTracker::assume()`
      */
     void assume(cvk::Image const&, ImageState const& state);
 
@@ -187,9 +191,10 @@ private:
      */
     void detachJob(Stage&, Stage::Status targetStatus);
 
-    //TODO review no marks as parameters: the job awaits Semaphore::submitted() of the slots, they live as long as
-    // the graph
-    //TODO review next() before the mark: the job of the next frame of the slot awaits the mark, it reads the values
+    // no marks as parameters: the job awaits Semaphore::submitted() of the slots, they live as
+    // long as the graph
+    // next() before the mark: the job of the next frame of the slot awaits the mark, it reads the
+    // values
     /**
      * submit job of `submit()` and `skip()`
      * @details the order:
@@ -226,7 +231,8 @@ private:
      * @details the first use of a mip level or a buffer after the last state:
      * - unknown image: from `VK_IMAGE_LAYOUT_UNDEFINED`
      * - unknown buffer: no barrier
-     * - the same queue family, or `VK_SHARING_MODE_CONCURRENT`: the barrier of `ResourceStates::append()`
+     * - the same queue family, or `VK_SHARING_MODE_CONCURRENT`: the barrier of
+     *   `ResourceTracker::append()`
      * - another queue family, `EXCLUSIVE`, contents needed: release half for the last queue, acquire half
      * - another queue family, discard or `VK_IMAGE_LAYOUT_UNDEFINED`: from `VK_IMAGE_LAYOUT_UNDEFINED`, no transfer
      * - an `assume()` before the first use: no barrier
@@ -236,13 +242,13 @@ private:
      * @pre the caller holds `StageGraph::_statesMutex`
      */
     void append(
-        ResourceStates const& recording,
+        ResourceTracker const& recording,
         Queue const& queue,
         cvk::Barrier& prologue,
         release_map_t& releases
     );
 
-    //TODO review jvk waits: they join the jvk extra waits of the stage
+    // jvk waits: they join the jvk extra waits of the stage
     /**
      * releases the resources on their last queues
      * @param releases the release halves per last queue, from `append()`
@@ -280,7 +286,7 @@ private:
      */
     std::mutex _statesMutex{};
 
-    ResourceStates _states{}; ///< resource states after all submits
+    ResourceTracker _states{}; ///< resource states after all submits
 
     /**
      * last queue per mip level of an image, for the queue family ownership transfers
