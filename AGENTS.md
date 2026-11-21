@@ -32,14 +32,11 @@ Read it before you change a file. Match the existing code.
 
 ## Branches
 
-- `master` is the main branch. The rebuild goes into it when it is finished.
-- `v2` is the main branch of the rebuild until then.
-- `_v2/jvk_rebuild` is the current work branch. It goes into `v2`.
-- Topic branches off the work branch are named `_v2/_jvk_rebuild/<topic>`.
-- `dev` and the `_dev/...` branches are old. Do not use them.
+- `master` is the main branch.
+- Work happens on a work branch off `master`. Its draft pull request into `master` runs the CI on every push.
+- `v2`, `_v2/...`, `dev` and `_dev/...` are old. Do not use them.
 - Work locally. Do not open pull requests for single steps.
-- CI runs on pushes and pull requests to `master` and `v2`. The work branch has a draft pull request into `v2`, it runs
-  the CI on every push.
+- CI runs on pushes and pull requests to `master`.
 
 ## Build and test
 
