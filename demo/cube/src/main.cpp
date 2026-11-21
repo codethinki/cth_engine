@@ -27,14 +27,17 @@
 
 #include <volk.h>
 
+#include <cth/chrono.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/coro/this_coro.hpp>
+#include <cth/io/log.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #include <imgui.h>
+#include <implot.h>
 
 #include <algorithm>
 #include <array>
@@ -48,7 +51,9 @@
 #include <format>
 #include <optional>
 #include <print>
+#include <span>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -281,23 +286,141 @@ struct Cube {
     jvk::Sampler sampler;
 };
 
+//IMPLEMENT moves into an engine library
 /**
- * ImGui window with the frame time and the frames per second
+ * frame times of the last `CAPACITY` frames, in ms
+ * @details ring buffer: full -> a new time overwrites the oldest one
  */
-void stats_window() {
-    auto const framerate = ImGui::GetIO().Framerate;
-    ImGui::Begin("stats");
-    ImGui::Text("%.2f ms", 1000.f / framerate);
-    ImGui::Text("%.0f fps", framerate);
+class FrameTimes {
+public:
+    static constexpr size_t CAPACITY = 240;
+
+    /**
+     * stores the time of a frame, in ms
+     * @details full -> overwrites the oldest time
+     */
+    constexpr void add(cth::chrono::clock_t::duration frameTime) {
+        _times[_nextIdx] = std::chrono::duration<float, std::milli>{frameTime}.count();
+        _nextIdx = (_nextIdx + 1) % CAPACITY;
+        _count = std::min(_count + 1, CAPACITY);
+    }
+
+    /**
+     * @return the stored time at the rank `fraction * (count - 1)` of the sorted times
+     * @details the rank is rounded down
+     * @pre `!empty()`
+     * @pre `0 <= fraction <= 1`
+     */
+    [[nodiscard]] constexpr float percentile(float fraction) const {
+        CTH_CRITICAL(empty(), "no frame time is stored") {}
+        CTH_CRITICAL(
+            fraction < 0.f || fraction > 1.f,
+            "the fraction must be in [0, 1], got {}",
+            fraction
+        ) {}
+
+        auto sorted = _times;
+        auto const stored = std::span{sorted}.first(_count);
+        auto const rank = static_cast<size_t>(fraction * static_cast<float>(_count - 1));
+        std::ranges::nth_element(stored, stored.begin() + static_cast<ptrdiff_t>(rank));
+        return stored[rank];
+    }
+
+    [[nodiscard]] constexpr float median() const { return percentile(0.5f); }
+    [[nodiscard]] constexpr float p75() const { return percentile(0.75f); }
+    [[nodiscard]] constexpr float p99() const { return percentile(0.99f); }
+
+    /**
+     * @return the stored times in storage order, the oldest at `oldestIdx()`
+     */
+    [[nodiscard]] constexpr std::span<float const> values() const {
+        return std::span{_times}.first(_count);
+    }
+
+    /**
+     * @return index of the oldest time in `values()`
+     */
+    [[nodiscard]] constexpr size_t oldestIdx() const { return _count < CAPACITY ? 0 : _nextIdx; }
+
+    [[nodiscard]] constexpr bool empty() const { return _count == 0; }
+
+private:
+    std::array<float, CAPACITY> _times{};
+    size_t _nextIdx = 0; ///< of the next `add()`
+    size_t _count = 0;
+};
+
+constexpr float FRAME_TIME_WINDOW_WIDTH = 360.f; ///< at the first frame, the user can resize it
+constexpr float FRAME_TIME_PLOT_HEIGHT = 120.f;
+
+/**
+ * ImGui window of the frame times: the percentiles and a plot of the stored times
+ * @details the collapsed window shows the percentiles in its title
+ * @param[out] collapsed the window was collapsed in the last frame, gets the state of this frame
+ */
+void frame_time_window(FrameTimes const& times, bool& collapsed) {
+    // ImGui knows the collapsed state only inside Begin(): the title follows one frame later
+    auto const title = collapsed && !times.empty()
+        ? std::format(
+            "frame time (med {:.2f}ms, p75 {:.2f}ms, p99 {:.2f}ms)###frame_time",
+            times.median(),
+            times.p75(),
+            times.p99()
+        )
+        : std::string{"frame time###frame_time"};
+
+    ImGui::SetNextWindowSize(ImVec2{FRAME_TIME_WINDOW_WIDTH, 0.f}, ImGuiCond_FirstUseEver);
+    bool const visible = ImGui::Begin(title.c_str());
+    collapsed = ImGui::IsWindowCollapsed();
+
+    if(visible && !times.empty()) {
+        ImGui::TextUnformatted(std::format("med {:.2f}ms", times.median()).c_str());
+        ImGui::TextUnformatted(std::format("p75 {:.2f}ms", times.p75()).c_str());
+        ImGui::TextUnformatted(std::format("p99 {:.2f}ms", times.p99()).c_str());
+
+        if(ImPlot::BeginPlot(
+            "##frame_times",
+            ImVec2{-1.f, FRAME_TIME_PLOT_HEIGHT},
+            ImPlotFlags_NoLegend | ImPlotFlags_NoMenus
+        )) {
+            // x: the frames, the newest at 0; y: the ms, labels on the right
+            ImPlot::SetupAxes(
+                nullptr,
+                nullptr,
+                ImPlotAxisFlags_None,
+                ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_Opposite
+            );
+            ImPlot::SetupAxisLimits(
+                ImAxis_X1,
+                -static_cast<double>(FrameTimes::CAPACITY),
+                0.,
+                ImPlotCond_Always
+            );
+
+            auto const values = times.values();
+            ImPlotSpec spec{};
+            spec.Offset = static_cast<int>(times.oldestIdx());
+            ImPlot::PlotLine(
+                "##ms",
+                values.data(),
+                static_cast<int>(values.size()),
+                1.,
+                -static_cast<double>(values.size() - 1),
+                spec
+            );
+            ImPlot::EndPlot();
+        }
+    }
     ImGui::End();
 }
 
 /**
- * draws the spinning cube and the ImGui window in every frame until the window closes
+ * draws the spinning cube and the frame time window in every frame until the window closes
  * @details
  * - only the scopes: the `jvk::scoped_submit` ends first and submits
  * - then the `jvk::scoped_acquire` presents
  * - the ImGui frame comes first: it takes the events also in a frame without an image
+ * - frame time: the time between the starts of two iterations, the first iteration has none
  */
 cth::co::executor_task<void> draw_frames(
     cgfw::Window& window,
@@ -313,10 +436,19 @@ cth::co::executor_task<void> draw_frames(
     glm::quat rotation{1.f, 0.f, 0.f, 0.f};
     auto last = std::chrono::steady_clock::now();
 
+    FrameTimes frameTimes{};
+    std::optional<cth::chrono::time_point_t> lastIterationStartOpt{};
+    bool frameTimeCollapsed = false;
+
     while(!window.shouldClose()) {
+        auto const iterationStart = cth::chrono::clock_t::now();
+        if(lastIterationStartOpt.has_value())
+            frameTimes.add(iterationStart - *lastIterationStartOpt);
+        lastIterationStartOpt = iterationStart;
+
         window.pollEvents();
         auto imguiFrame = imgui.frame();
-        stats_window();
+        frame_time_window(frameTimes, frameTimeCollapsed);
         auto& drawData = imguiFrame.render();
 
         auto& stage = (co_await graph.nextFrame()).stage(CUBE_STAGE_ID);
