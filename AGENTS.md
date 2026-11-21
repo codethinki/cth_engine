@@ -34,6 +34,7 @@ Read it before you change a file. Match the existing code.
 
 - `master` is the main branch.
 - Work happens on a work branch off `master`. Its pull request into `master` runs the CI on every push.
+- The pull request of a work branch stays a draft until the work is finished.
 - `v2`, `_v2/...`, `dev` and `_dev/...` are old. Do not use them.
 - Work locally. Do not open pull requests for single steps.
 - CI runs on pushes and pull requests to `master`.
