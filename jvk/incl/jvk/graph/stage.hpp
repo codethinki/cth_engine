@@ -37,7 +37,6 @@ class scoped_submit;
 }
 
 namespace jvk::dev {
-//TODO review name: like cvk::SubmitInfo and the legacy jvk::SubmitInfo
 /**
  * prebuilt submit of a stage slot
  * @details
@@ -108,8 +107,8 @@ struct RetainedResources {
     std::vector<VkBuffer> buffers{};
 };
 
-//TODO review a constructor, no aggregate: `SubmitInfo::signal` and `SubmitInfo::cmdBuffers` refer to members, the
-// mutex does not move
+// a constructor, no aggregate: `SubmitInfo::signal` and `SubmitInfo::cmdBuffers` refer to members,
+// the mutex does not move
 /**
  * resources of a stage in one frame slot
  * @details
@@ -404,7 +403,7 @@ private:
     uint64_t _frameNumber;
     Status _status = Status::UNSUBMITTED;
 
-    //TODO review names: the extra waits per kind, the jvk ones keep the jvk semaphore
+    // one list per kind of wait: the jvk waits keep the jvk semaphore
     /** the waits of @ref await(SemaphoreSubmitInfo const&) */
     std::vector<SemaphoreSubmitInfo> _extraWaits{};
 

@@ -55,7 +55,7 @@ public:
     //TODO review an executor_task: the receiving submit job awaits it before its own submit, so the release is
     // submitted first and the counter only changes in the strand (returning at once needs a lock around the value
     // and the post)
-    //TODO review const like executor(): Queues hands out Queue const&, the release members are mutable
+    // const like executor(): Queues hands out Queue const&, the release members are mutable
     //TODO review returns the jvk SemaphoreSubmitInfo: it keeps the counter for Semaphore::submitted(), it converts to
     // the cvk one
     /**

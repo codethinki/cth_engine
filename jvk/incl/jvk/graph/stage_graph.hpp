@@ -52,7 +52,7 @@ class StageGraph {
 public:
     using Config = StageGraphConfig;
 
-    //TODO review no base constructor and create(): the graph has no wrap or release
+    // no base constructor and create(): the graph has no wrap or release
     /**
      * creates the stage slots and the frame slots
      * @details computes `firstFrameNumber()` from the config
@@ -166,7 +166,6 @@ private:
 
     using release_map_t = cth::dt::flat_hash_map<Queue const*, cvk::Barrier>;
 
-    //TODO review name
     using semaphore_waits_t = std::vector<cvk::SemaphoreSubmitInfo>;
 
     /**
@@ -300,7 +299,6 @@ private:
     /** the running submit jobs, `~StageGraph()` waits for them */
     cth::co::simple_counting_scope _jobs{};
 
-    //TODO review name firstFrameNumber
     uint64_t _firstFrameNumber; ///< see `firstFrameNumber()`
 
     /**

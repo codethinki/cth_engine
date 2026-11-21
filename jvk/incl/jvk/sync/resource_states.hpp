@@ -43,7 +43,6 @@ struct ImageAccess {
     /** (`VK_REMAINING_MIP_LEVELS` => to the last mip level) */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
 
-    //TODO review
     /**
      * the access does not need the previous contents
      * @attention all layers and aspects of the mip levels lose their contents

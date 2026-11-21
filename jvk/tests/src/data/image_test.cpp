@@ -33,7 +33,7 @@ JVK_TEST(Image, blit_mip_levels_records_its_accesses) {
     Buffer<uint32_t> staging{context.core, STAGING_CONFIG, size_t{EXTENT.width} * EXTENT.height};
     staging.write(std::vector(size_t{EXTENT.width} * EXTENT.height, WHITE));
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, 1};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
     auto const lastLevel = image.mipLevels() - 1;
 
     primary.begin();

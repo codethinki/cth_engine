@@ -263,8 +263,8 @@ public:
     }
 
 private:
-    //TODO review element wrappers: = default moves of the swapchain tear down in the member order, the swapchain
-    // destroys its images itself and the present fences must signal before their destruction
+    // the element wrappers: = default moves of the swapchain tear down in the member order, the
+    // swapchain destroys its images itself, the present fences must signal before their destruction
     /**
      * image of the swapchain, the swapchain destroys it
      * @details the destruction releases the image, it does not destroy it
@@ -278,9 +278,8 @@ private:
 
         Image image;
 
-        OwnedImage(OwnedImage const& other) = delete;
+        // the user-declared destructor suppresses the implicit moves
         OwnedImage(OwnedImage&& other) noexcept = default;
-        OwnedImage& operator=(OwnedImage const& other) = delete;
         OwnedImage& operator=(OwnedImage&& other) noexcept = default;
     };
 
@@ -288,19 +287,18 @@ private:
      * present fence of an image
      * @details the destruction waits for the present that signals it
      */
-    struct PresentFence {
-        explicit PresentFence(Fence fence) : fence{std::move(fence)} {}
-        ~PresentFence() {
+    struct WaitingFence {
+        explicit WaitingFence(Fence fence) : fence{std::move(fence)} {}
+        ~WaitingFence() {
             if(fence.created())
                 fence.wait();
         }
 
         Fence fence;
 
-        PresentFence(PresentFence const& other) = delete;
-        PresentFence(PresentFence&& other) noexcept = default;
-        PresentFence& operator=(PresentFence const& other) = delete;
-        PresentFence& operator=(PresentFence&& other) noexcept = default;
+        // the user-declared destructor suppresses the implicit moves
+        WaitingFence(WaitingFence&& other) noexcept = default;
+        WaitingFence& operator=(WaitingFence&& other) noexcept = default;
     };
 
     /**
@@ -323,7 +321,7 @@ private:
 
     // the objects of the images before the handle, in the order of their teardown: = default moves wait for the
     // presents, release the images, destroy the views and semaphores, then the swapchain
-    std::vector<PresentFence> _presentFences{};
+    std::vector<WaitingFence> _presentFences{};
     std::vector<Semaphore> _presentSemaphores{};
     std::vector<ImageView> _views{};
     std::vector<OwnedImage> _images{};

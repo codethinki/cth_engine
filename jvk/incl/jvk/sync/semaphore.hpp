@@ -23,7 +23,6 @@ namespace jvk {
 class Core;
 class Semaphore;
 
-//TODO review name: snake_case like the awaiters of cth (general type, like std)
 /**
  * awaiter of `Semaphore::wait()` and of `co_await` on a `Stage`
  * @details resumes the caller on its context, a failed wait throws in the caller
@@ -63,7 +62,6 @@ private:
     uint64_t _value;
 };
 
-//TODO review name: snake_case like semaphore_awaiter
 /**
  * awaiter of `Semaphore::submitted()`
  * @details resumes the caller on its context
@@ -87,7 +85,7 @@ public:
     template<class Caller> requires cth::co::this_coro_compatible<Caller>
     void await_suspend(std::coroutine_handle<Caller> caller);
 
-    //TODO review no error: the jvk submit paths mark every signal value, also after an error of the submit
+    // no error: the jvk submit paths mark every signal value, also after an error of the submit
     constexpr void await_resume() const noexcept {}
 
 private:
@@ -130,7 +128,7 @@ public:
      */
     ~Semaphore() { optDestroy(); }
 
-    //TODO review the submitted value of a wrap: State::value, the values given out before the wrap count as submitted
+    // the values given out before the wrap count as submitted
     /**
      * wraps the state
      * @details `submittedValue()` becomes `State::value`
@@ -294,7 +292,6 @@ public:
 }
 
 namespace jvk {
-//TODO review name: cvk::SemaphoreSubmitInfo with the jvk semaphore and a fixed value
 //TODO review in semaphore.hpp next to Semaphore: it is small, no own header
 /**
  * wait or signal of a submit on a jvk semaphore
@@ -319,7 +316,6 @@ struct SemaphoreSubmitInfo {
 }
 
 namespace jvk::dev {
-//TODO review name post_to
 /**
  * callback that posts the callback to the context
  * @details the reactor and `Semaphore::markSubmitted()` call on a worker, the awaiters resume on the context of the

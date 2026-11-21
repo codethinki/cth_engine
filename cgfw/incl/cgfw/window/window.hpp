@@ -176,8 +176,8 @@ public:
      */
     [[nodiscard]] cvk::Surface surface(cvk::Instance const&) const;
 
-    //TODO review the size of RGFW: our fork keeps the buffer scale of Wayland at 1, the size is in buffer pixels
-    //TODO the buffer scale of Wayland (HiDPI): the surface stays at scale 1, a scaled output upscales the window
+    //TODO the buffer scale of Wayland (HiDPI): the size is in buffer pixels, our fork of RGFW keeps
+    // the buffer scale at 1, a scaled output upscales the window
     /**
      * @return current size of the framebuffer in pixels
      * @pre `created()`

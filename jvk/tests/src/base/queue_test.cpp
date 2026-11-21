@@ -244,7 +244,7 @@ JVK_TEST(Queue, release_transfers_an_image_to_another_family) {
     Buffer<uint32_t> const readback{core, test::READBACK_CONFIG, PIXELS};
 
     // written on the family of the owner
-    PrimaryCmdBuffer write{core, ownerFamily};
+    PrimaryCmdBuffer write{core, ownerFamily, cvk::create};
     write.begin();
     write.assume(image, UNDEFINED);
     image.copy(write, staging);
@@ -266,7 +266,7 @@ JVK_TEST(Queue, release_transfers_an_image_to_another_family) {
     EXPECT_EQ(released.semaphore->submittedValue(), released.value);
 
     // the acquire half on the family of the receiver, then the read
-    PrimaryCmdBuffer read{core, receiverFamily};
+    PrimaryCmdBuffer read{core, receiverFamily, cvk::create};
     read.begin();
     cvk::Barrier acquire{};
     acquire.add(
@@ -318,7 +318,7 @@ JVK_TEST(Queue, several_releases_in_a_row) {
         readbacks.emplace_back(core, test::READBACK_CONFIG, PIXELS);
     }
 
-    PrimaryCmdBuffer write{core, ownerFamily};
+    PrimaryCmdBuffer write{core, ownerFamily, cvk::create};
     write.begin();
     for(auto const& buffer : buffers)
         buffer.copy(write, staging);
@@ -344,7 +344,7 @@ JVK_TEST(Queue, several_releases_in_a_row) {
     }
 
     // the wait for the last value covers the earlier releases
-    PrimaryCmdBuffer read{core, receiverFamily};
+    PrimaryCmdBuffer read{core, receiverFamily, cvk::create};
     read.begin();
     cvk::Barrier acquire{};
     for(auto const& buffer : buffers)

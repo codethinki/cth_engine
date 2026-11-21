@@ -29,7 +29,7 @@ JVK_TEST(Buffer, copies_record_their_accesses) {
     staging.write(VALUES);
     Buffer<uint32_t> const device{context.core, DEVICE_CONFIG, VALUES.size()};
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, VALUES.size()};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     device.copy(primary, staging);

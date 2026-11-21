@@ -56,6 +56,8 @@ auto Queue::freeReleaseCmd() const -> ReleaseCmd& {
     if(it != _releaseCmds.end())
         return *it;
 
-    return _releaseCmds.emplace_back(ReleaseCmd{PrimaryCmdBuffer{*_core, _queue->familyIndex()}});
+    return _releaseCmds.emplace_back(
+        ReleaseCmd{PrimaryCmdBuffer{*_core, _queue->familyIndex(), cvk::create}}
+    );
 }
 }

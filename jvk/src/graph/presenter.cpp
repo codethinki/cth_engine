@@ -83,8 +83,9 @@ void Presenter::destroy() {
         }
     }
 
-    //TODO review after the wait for the present submits: the earlier frames that used the image ended on the gpu
-    // (VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786), the stage of the image is under the @pre
+    // after the wait for the present submits: the earlier frames that used the image ended on the
+    // gpu (VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786), the stage of the image is under
+    // the @pre
     // no job runs, no acquire is pending: nothing else uses the swapchain
     if(_acquiredOpt.has_value()) {
         try { unacquireImage(); }
@@ -330,7 +331,7 @@ void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
 
     while(_submits.size() < _swapchain.current().imageCount())
         _submits.push_back(
-            PresentSubmit{.cmd = PrimaryCmdBuffer{*_core, _queue->vk().familyIndex()}}
+            PresentSubmit{.cmd = PrimaryCmdBuffer{*_core, _queue->vk().familyIndex(), cvk::create}}
         );
 }
 

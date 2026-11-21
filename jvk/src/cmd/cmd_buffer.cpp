@@ -206,15 +206,58 @@ BasicCmdBuffer<Cvk>::BasicCmdBuffer(
     BasicCmdBuffer{
         std::make_unique<cvk::CmdPool>(
             core,
-            cvk::CmdPool::Config{.queueFamilyIndex = queueFamilyIndex, .flags = POOL_FLAGS},
-            cvk::create
+            cvk::CmdPool::Config{.queueFamilyIndex = queueFamilyIndex, .flags = POOL_FLAGS}
         )
     } {}
 
 template<class Cvk>
 BasicCmdBuffer<Cvk>::BasicCmdBuffer(std::unique_ptr<cvk::CmdPool> poolPtr) :
-    _cmdBuffer{*poolPtr, cvk::create},
+    _cmdBuffer{*poolPtr},
     _poolPtr{std::move(poolPtr)} {}
+
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::wrap(State const& state) {
+    optDestroy();
+
+    _poolPtr->wrap(cvk::CmdPool::State{.vkPool = state.vkPool});
+    _cmdBuffer.wrap(cvk::BaseCmdBuffer::State{.vkPool = state.vkPool, .vkBuffer = state.vkBuffer});
+}
+
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::create() {
+    optDestroy();
+
+    _poolPtr->create();
+
+    // the command buffer needs the created pool, only a catch destroys the pool when the allocation fails
+    try { _cmdBuffer.create(); }
+    catch(...) {
+        _poolPtr->destroy();
+        throw;
+    }
+}
+
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::destroy() {
+    Cvk::debug_check(_cmdBuffer);
+
+    _cmdBuffer.destroy();
+    _poolPtr->destroy();
+
+    forget();
+}
+
+template<class Cvk>
+auto BasicCmdBuffer<Cvk>::release() -> State {
+    Cvk::debug_check(_cmdBuffer);
+
+    // the command buffer first: the pool releases only without counted command buffers
+    auto const cmdBuffer = _cmdBuffer.release();
+    auto const pool = _poolPtr->release();
+
+    forget();
+    return State{.vkPool = pool.vkPool, .vkBuffer = cmdBuffer.vkBuffer};
+}
 
 template<class Cvk>
 void BasicCmdBuffer<Cvk>::use(cvk::Image const& image, ImageAccess const& access) {
@@ -375,6 +418,9 @@ void BasicCmdBuffer<Cvk>::record(cvk::Barrier& barrier) const {
     barrier.execute(_cmdBuffer);
 }
 
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::forget() { _states.clear(); }
+
 template class BasicCmdBuffer<cvk::PrimaryCmdBuffer>;
 template class BasicCmdBuffer<cvk::SecondaryCmdBuffer>;
 }
@@ -386,6 +432,20 @@ PrimaryCmdBuffer::PrimaryCmdBuffer(
     cvk::queue_family_index_t queueFamilyIndex
 ) :
     BasicCmdBuffer{core, queueFamilyIndex} {}
+
+PrimaryCmdBuffer::PrimaryCmdBuffer(
+    cvk::Core const& core,
+    cvk::queue_family_index_t queueFamilyIndex,
+    State const& state
+) :
+    PrimaryCmdBuffer{core, queueFamilyIndex} { wrap(state); }
+
+PrimaryCmdBuffer::PrimaryCmdBuffer(
+    cvk::Core const& core,
+    cvk::queue_family_index_t queueFamilyIndex,
+    cvk::create_t
+) :
+    PrimaryCmdBuffer{core, queueFamilyIndex} { create(); }
 
 void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
     reset();
@@ -416,6 +476,20 @@ SecondaryCmdBuffer::SecondaryCmdBuffer(
     cvk::queue_family_index_t queueFamilyIndex
 ) :
     BasicCmdBuffer{core, queueFamilyIndex} {}
+
+SecondaryCmdBuffer::SecondaryCmdBuffer(
+    cvk::Core const& core,
+    cvk::queue_family_index_t queueFamilyIndex,
+    State const& state
+) :
+    SecondaryCmdBuffer{core, queueFamilyIndex} { wrap(state); }
+
+SecondaryCmdBuffer::SecondaryCmdBuffer(
+    cvk::Core const& core,
+    cvk::queue_family_index_t queueFamilyIndex,
+    cvk::create_t
+) :
+    SecondaryCmdBuffer{core, queueFamilyIndex} { create(); }
 
 void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage, cvk::HeapInheritance const& heaps) {
     reset();

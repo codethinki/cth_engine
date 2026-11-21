@@ -284,7 +284,7 @@ JVK_TEST(CmdBuffer, use_of_a_handle_tracks_the_layout_of_its_type_on_the_mip_lev
     auto const storage = heap.insert(cvk::StorageImageDescriptor{.image = image, .view = view(1)});
     auto const input = heap.insert(cvk::InputAttachmentDescriptor{.image = image, .view = view(2)});
 
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
     primary.begin();
     primary.use(sampled, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
     primary.use(

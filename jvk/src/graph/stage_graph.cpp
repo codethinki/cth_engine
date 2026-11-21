@@ -111,8 +111,9 @@ StageGraph::~StageGraph() {
         for(auto& stage : frameSlot.stages) {
             if(stage.status() != Stage::Status::UNSUBMITTED)
                 continue;
-            //TODO review the binary waits dropped: a presenter is destroyed before the graph, its present submits wait
-            // for the semaphores of the graph, the acquire semaphore of an unpresented image is destroyed already
+            // the binary waits dropped: a presenter is destroyed before the graph, its present
+            // submits wait for the semaphores of the graph, the acquire semaphore of an unpresented
+            // image is destroyed already
             stage._extraBinaryWaits.clear();
             try { skip(stage); }
             catch(std::exception const& e) {

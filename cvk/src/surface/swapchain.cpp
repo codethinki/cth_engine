@@ -245,7 +245,7 @@ bool Swapchain::presented() const {
 
     return std::ranges::all_of(
         _presentFences,
-        [](PresentFence const& presentFence) { return presentFence.fence.signaled(); }
+        [](WaitingFence const& presentFence) { return presentFence.fence.signaled(); }
     );
 }
 

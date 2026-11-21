@@ -100,14 +100,14 @@ StageSlot::StageSlot(
     semaphore{graph.core(), cvk::create, graph.firstFrameNumber() - 1},
     submitInfo{.signal = {.semaphore = semaphore, .value = graph.firstFrameNumber() + slot}},
     previous{*this},
-    prologue{graph.core(), queue.vk().familyIndex()},
-    primary{graph.core(), queue.vk().familyIndex()},
+    prologue{graph.core(), queue.vk().familyIndex(), cvk::create},
+    primary{graph.core(), queue.vk().familyIndex(), cvk::create},
     stasis{graph.core()} {
     submitInfo.cmdBuffers = {prologue, primary};
 
     this->secondaries.reserve(secondaries);
     for(size_t i = 0; i < secondaries; ++i)
-        this->secondaries.emplace_back(graph.core(), queue.vk().familyIndex());
+        this->secondaries.emplace_back(graph.core(), queue.vk().familyIndex(), cvk::create);
 }
 }
 
@@ -155,7 +155,7 @@ SecondaryCmdBuffer& Stage::secondary(size_t secondaryIdx) {
 }
 
 SecondaryCmdBuffer Stage::persistentSecondary() const {
-    return SecondaryCmdBuffer{_stageSlot->graph->core(), queue().vk().familyIndex()};
+    return SecondaryCmdBuffer{_stageSlot->graph->core(), queue().vk().familyIndex(), cvk::create};
 }
 
 void Stage::await(SemaphoreSubmitInfo const& wait) {

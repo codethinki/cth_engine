@@ -97,7 +97,6 @@ public:
      */
     [[nodiscard]] std::vector<VkSurfaceFormatKHR> formats(PhysicalDevice const&) const;
 
-    //TODO review a 0 of the callback stays 0, no clamp: a minimized window has no image
     /**
      * @return extent of the swapchain images for the surface
      * @details
