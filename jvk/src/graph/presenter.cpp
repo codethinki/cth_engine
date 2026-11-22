@@ -20,7 +20,6 @@
 #include <cth/coro/scheduler.hpp>
 
 #include <array>
-#include <atomic>
 #include <exception>
 #include <utility>
 #include <vector>
@@ -103,11 +102,13 @@ void Presenter::destroy() {
     _submits.clear();
     _acquireSemaphores.clear();
     _semaphore.optDestroy();
+    // the semaphore starts at 0 again
+    _presented = cth::co::counter_event{};
     _swapchain.optDestroy();
     _surface.destroy();
 
     _acquireSemaphoreIdx = 0;
-    _outOfDate.store(false, std::memory_order_relaxed);
+    _outOfDate = false;
     _error.clear();
 }
 
@@ -126,14 +127,14 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
     if(_error)
         _error.rethrow();
 
-    // present N before acquire N + 1: a blocking acquire would delay the present (FIFO)
-    auto const value = _semaphore.value();
-    if(value > 0)
-        co_await _semaphore.submitted(value);
+    // present N before acquire N + 1: the acquire and the present share the swapchain
+    // (externally synchronized), a blocking acquire would delay the present (FIFO), the flag of
+    // the present is final
+    co_await _presented.wait(_semaphore.value());
     // the unacquire needs the gpu done with its stage: VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786
     if(_acquiredOpt.has_value())
         co_await _acquiredOpt->stageSemaphore->wait(_acquiredOpt->frameNumber);
-    // outside the strand: the present marks order the swapchain uses
+    // outside the strand: the ends of the present jobs order the swapchain uses
     co_await cth::co::executor{_queue->scheduler()}.schedule();
 
     if(_acquiredOpt.has_value())
@@ -152,7 +153,7 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
         // no image -> out of date, the next round recreates the swapchain
         imageIdxOpt = _swapchain.acquire(acquireSemaphore).imageIndex;
         if(!imageIdxOpt.has_value())
-            _outOfDate.store(true, std::memory_order_relaxed);
+            _outOfDate = true;
     }
 
     auto const imageIdx = *imageIdxOpt;
@@ -224,9 +225,9 @@ cth::co::executor_task<void> Presenter::presentJob(
     // off the strand: a wait before the signal on one queue would block it, the release needs the submit of the stage,
     // the next acquire() sets the state of the image in the graph after the submit job of the stage appended its states
     co_await stageSemaphore.submitted(frameNumber);
-    // the present jobs submit and present in order, also a failed one: the job before wrote the values of the command
-    // buffers and signals the value before
-    co_await _semaphore.submitted(value - 1);
+    // the present jobs run one at a time, also a failed one: the job before ended, it wrote the
+    // values of the command buffers, signaled the value before and wrote the flag
+    co_await _presented.wait(value - 1);
 
     try {
         ImageState const presentState{
@@ -264,7 +265,7 @@ cth::co::executor_task<void> Presenter::presentJob(
         // the last submit of the command buffer, a swapchain before a recreation used it too
         co_await _semaphore.wait(_submits[image.imageIdx].value);
 
-        // off the strand: the present jobs run one at a time, the mark of the job before orders them
+        // off the strand: the present jobs run one at a time, the end of the job before orders them
         auto& submit = _submits[image.imageIdx];
         submit.cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         barrier.execute(submit.cmd);
@@ -273,16 +274,15 @@ cth::co::executor_task<void> Presenter::presentJob(
         submit.value = value;
 
         // the swapchain of the image is the current one: a recreation only happens in acquire(),
-        // after the mark of the last present
+        // after the end of the last present job
         auto const result = co_await queue.present(
             {.cmdBuffers = {submit.cmd}, .waits = waits, .signals = {signal}},
             _swapchain.current(),
             image.imageIdx
         );
-        // relaxed: the flag carries no data
-        // after the mark: the next acquire() can miss it, a later one recreates the swapchain
+        // before _presented.set(): the next acquire() reads it
         if(result == VK_ERROR_OUT_OF_DATE_KHR)
-            _outOfDate.store(true, std::memory_order_relaxed);
+            _outOfDate = true;
     }
     catch(...) { _error.store(std::current_exception()); }
 
@@ -290,11 +290,14 @@ cth::co::executor_task<void> Presenter::presentJob(
     // presenter
     if(_semaphore.submittedValue() < value)
         co_await dev::fallback_submit(queue, {.waits = waits, .signals = {signal}}, _error);
+
+    // the last step, also after a failure, an escaped exception terminates anyway (detach)
+    // one set() at a time, rising: the next job waits for this value
+    _presented.set(value);
 }
 
 void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
-    if(_swapchain.created() && !_outOfDate.load(std::memory_order_relaxed)
-        && _swapchain.current().extent() == extent)
+    if(_swapchain.created() && !_outOfDate && _swapchain.current().extent() == extent)
         return;
 
     if(_swapchain.created()) {
@@ -305,7 +308,7 @@ void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
         _swapchain.recreate(extent);
     } else
         _swapchain.create(swapchainConfig(), extent);
-    _outOfDate.store(false, std::memory_order_relaxed);
+    _outOfDate = false;
 
     while(_submits.size() < _swapchain.current().imageCount())
         _submits.push_back(
