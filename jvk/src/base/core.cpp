@@ -22,12 +22,10 @@ using std::span;
 Core::Core(cvk::Instance const& instance, Config config) :
     _config{std::move(config)},
     _corePtr{std::make_unique<cvk::Core>(instance)},
-    _workersPtr{
-        std::make_unique<cth::co::scheduler>(
-            _config.workers == 0
-                ? std::max(std::thread::hardware_concurrency(), 1u)
-                : _config.workers
-        )
+    _workers{
+        _config.workers == 0
+            ? std::max(std::thread::hardware_concurrency(), 1u)
+            : _config.workers
     },
     _reactor{*_corePtr},
     _resourceHeap{*_corePtr, _config.heaps.resources} {}
@@ -56,7 +54,7 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
     // the cvk core exists before the workers, the reactor and the queues, only a catch can destroy it when a later
     // step fails
     try {
-        _workersPtr->start();
+        _workers.start();
         _reactor.create();
         createQueues();
         if(_config.heaps.createsResourceHeap())
@@ -68,7 +66,7 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
         _resourceHeap.optDestroy();
         destroyQueues();
         _reactor.optDestroy();
-        _workersPtr->await_stop();
+        _workers.await_stop();
         _corePtr->destroy();
         throw;
     }
@@ -76,7 +74,7 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
 
 void Core::destroy() {
     debug_check(*this);
-    CTH_CRITICAL(_workersPtr->owns_thread(), "destroy() must not run on a worker of the core") {}
+    CTH_CRITICAL(_workers.owns_thread(), "destroy() must not run on a worker of the core") {}
 
 
     // one wait per vulkan queue: the first index of each vulkan queue
@@ -117,7 +115,7 @@ void Core::destroy() {
     _samplerHeapOpt.reset();
     _resourceHeap.optDestroy();
     _reactor.destroy();
-    _workersPtr->await_stop();
+    _workers.await_stop();
     _corePtr->destroy();
 }
 
@@ -146,7 +144,7 @@ void Core::createQueues() {
         _driverSchedulerOpt.emplace(cth::co::autostart, _config.driverThreads);
     cth::co::scheduler const& scheduler = _driverSchedulerOpt.has_value()
         ? *_driverSchedulerOpt
-        : *_workersPtr;
+        : _workers;
 
     auto const indices = _corePtr->queueIndices();
     _queues.reserve(indices.size());

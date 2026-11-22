@@ -128,7 +128,7 @@ public:
      */
     [[nodiscard]] constexpr cth::co::executor executor() const {
         debug_check(*this);
-        return cth::co::executor{*_workersPtr};
+        return cth::co::executor{_workers};
     }
 
     /**
@@ -184,7 +184,9 @@ private:
     // behind a std::unique_ptr: the reactor and the heaps refer to the cvk core also before
     // create(), the moves stay = default
     std::unique_ptr<cvk::Core> _corePtr;
-    std::unique_ptr<cth::co::scheduler> _workersPtr;
+
+    // destroyed after the reactor and the queues, before the cvk core
+    cth::co::scheduler _workers;
 
     // destroyed after the queues, before the workers and the cvk core: it posts the resumes of its
     // waiters to their contexts
