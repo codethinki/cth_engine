@@ -22,12 +22,9 @@
 #include <array>
 #include <exception>
 #include <utility>
-#include <vector>
 
 
 namespace jvk {
-using std::vector;
-
 Presenter::Presenter(Core const& core, Queue const& queue, Config config) :
     _core{core},
     _queue{queue},
@@ -221,18 +218,22 @@ cth::co::executor_task<void> Presenter::presentJob(
     auto const vkImage = image.image->get();
     auto const aspectMask = image.image->aspectMask();
 
-    // noexcept: without the waits no fallback signals the value, the waiters would hang
-    auto waits = [&]() noexcept {
-        return vector<SemaphoreSubmitInfo>{{.semaphore = stageSemaphore, .value = frameNumber}};
-    }();
-    SemaphoreSubmitInfo const signal{.semaphore = _semaphore, .value = value};
-
     // off the strand: a wait before the signal on one queue would block it, the release needs the submit of the stage,
     // the next acquire() sets the state of the image in the graph after the submit job of the stage appended its states
     co_await stageSemaphore.submitted(frameNumber);
     // the present jobs run one at a time, also a failed one: the job before ended, it wrote the
     // values of the command buffers, signaled the value before and wrote the flag
     co_await _presented.wait(value - 1);
+
+    // after the job before: it used the info until its end
+    // noexcept: without the wait and the signal no fallback signals the value, the waiters would
+    // hang
+    auto& info = _submitInfo;
+    [&]() noexcept {
+        info.clear();
+        info.waits.push_back({.semaphore = stageSemaphore, .value = frameNumber});
+        info.signals.push_back({.semaphore = _semaphore, .value = value});
+    }();
 
     try {
         ImageState const presentState{
@@ -248,7 +249,7 @@ cth::co::executor_task<void> Presenter::presentJob(
                 aspectMask,
                 dev::release_half(lastState, presentState, stageFamily, family, 0)
             );
-            waits.push_back(co_await stageQueue.release(std::move(release)));
+            info.waits.push_back(co_await stageQueue.release(std::move(release)));
 
             barrier.add(
                 vkImage,
@@ -277,14 +278,11 @@ cth::co::executor_task<void> Presenter::presentJob(
         submit.cmd.end();
         // before the submit: the empty submit of a failed one signals the value too
         submit.value = value;
+        info.cmdBuffers.push_back(submit.cmd);
 
         // the swapchain of the image is the current one: a recreation only happens in acquire(),
         // after the end of the last present job
-        auto const result = co_await queue.present(
-            {.cmdBuffers = {submit.cmd}, .waits = waits, .signals = {signal}},
-            _swapchain.current(),
-            image.imageIdx
-        );
+        auto const result = co_await queue.present(info, _swapchain.current(), image.imageIdx);
         // before _presented.set(): the next acquire() reads it
         if(result == VK_ERROR_OUT_OF_DATE_KHR)
             _outOfDate = true;
@@ -298,7 +296,8 @@ cth::co::executor_task<void> Presenter::presentJob(
         // noexcept: a failed start of the fallback leaves the value unmarked, the waiters would
         // hang
         auto fallback = [&]() noexcept {
-            return dev::fallback_submit(queue, {.waits = waits, .signals = {signal}}, _jobs);
+            info.cmdBuffers.clear();
+            return dev::fallback_submit(queue, info, _jobs);
         }();
         co_await std::move(fallback);
     }

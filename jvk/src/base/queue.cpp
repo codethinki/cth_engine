@@ -12,30 +12,10 @@
 #include <algorithm>
 #include <exception>
 #include <span>
-#include <utility>
 
 
 namespace jvk {
 namespace {
-    /**
-     * the cvk batch: the jvk semaphores, then the binary ones
-     */
-    [[nodiscard]] cvk::SubmitInfo to_cvk(SubmitInfo const& info) {
-        cvk::SubmitInfo vkInfo{};
-        vkInfo.cmdBuffers.reserve(info.cmdBuffers.size());
-        for(PrimaryCmdBuffer const& cmdBuffer : info.cmdBuffers)
-            vkInfo.cmdBuffers.emplace_back(cmdBuffer);
-
-        vkInfo.waits.reserve(info.waits.size() + info.binaryWaits.size());
-        vkInfo.waits.append_range(info.waits);
-        vkInfo.waits.append_range(info.binaryWaits);
-
-        vkInfo.signals.reserve(info.signals.size() + info.binarySignals.size());
-        vkInfo.signals.append_range(info.signals);
-        vkInfo.signals.append_range(info.binarySignals);
-        return vkInfo;
-    }
-
     /**
      * marks the jvk signals, see `Semaphore::markSubmitted()`
      */
@@ -61,7 +41,7 @@ void Queue::waitIdle() const {
     );
 }
 
-cth::co::executor_task<void> Queue::submit(SubmitInfo info) const {
+cth::co::executor_task<void> Queue::submit(SubmitInfo const& info) const {
     co_await executor().schedule();
 
     submitInStrand(info);
@@ -69,16 +49,14 @@ cth::co::executor_task<void> Queue::submit(SubmitInfo info) const {
 }
 
 cth::co::executor_task<VkResult> Queue::present(
-    SubmitInfo info,
+    SubmitInfo const& info,
     cvk::Swapchain& swapchain,
     uint32_t imageIdx
 ) const {
-    info.binarySignals.emplace_back(swapchain.presentSemaphore(imageIdx));
-
     // no suspension between the submit and the present: the presents follow the order of the
     // submits
     co_await executor().schedule();
-    submitInStrand(info);
+    submitInStrand(info, &swapchain.presentSemaphore(imageIdx));
 
     // the marks after the present: a waiter for them uses the swapchain after vkQueuePresentKHR()
     VkResult result{};
@@ -115,7 +93,43 @@ cth::co::executor_task<SemaphoreSubmitInfo> Queue::release(cvk::Barrier barriers
     co_return signal;
 }
 
-void Queue::submitInStrand(SubmitInfo const& info) const { _queue->submit(to_cvk(info)); }
+void Queue::submitInStrand(
+    SubmitInfo const& info,
+    cvk::Semaphore const* presentSemaphorePtr
+) const {
+    _cmdBufferInfos.clear();
+    for(PrimaryCmdBuffer const& cmdBuffer : info.cmdBuffers)
+        _cmdBufferInfos.push_back(cvk::cmd_buffer_submit_info(cmdBuffer));
+
+    // the waits first: the order of the value resolution in cvk::Queue::submit()
+    _waitInfos.clear();
+    for(auto const& wait : info.waits)
+        _waitInfos.push_back(cvk::wait_submit_info(wait));
+    for(auto const& wait : info.binaryWaits)
+        _waitInfos.push_back(cvk::wait_submit_info(wait));
+
+    _signalInfos.clear();
+    for(auto const& signal : info.signals)
+        _signalInfos.push_back(cvk::signal_submit_info(signal));
+    for(auto const& signal : info.binarySignals)
+        _signalInfos.push_back(cvk::signal_submit_info(signal));
+    if(presentSemaphorePtr != nullptr)
+        _signalInfos.push_back(cvk::signal_submit_info({*presentSemaphorePtr}));
+
+    _queue->rawSubmit(
+        VkSubmitInfo2{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .pNext = nullptr,
+            .flags = 0,
+            .waitSemaphoreInfoCount = static_cast<uint32_t>(_waitInfos.size()),
+            .pWaitSemaphoreInfos = _waitInfos.data(),
+            .commandBufferInfoCount = static_cast<uint32_t>(_cmdBufferInfos.size()),
+            .pCommandBufferInfos = _cmdBufferInfos.data(),
+            .signalSemaphoreInfoCount = static_cast<uint32_t>(_signalInfos.size()),
+            .pSignalSemaphoreInfos = _signalInfos.data(),
+        }
+    );
+}
 
 auto Queue::freeReleaseCmd() const -> ReleaseCmd& {
     auto const reached = _released.gpuValue();
@@ -135,15 +149,12 @@ auto Queue::freeReleaseCmd() const -> ReleaseCmd& {
 namespace dev {
     cth::co::executor_task<void> fallback_submit(
         Queue const& queue,
-        SubmitInfo info,
+        SubmitInfo const& info,
         cth::co::catching_scope& jobs
     ) {
-        // a copy: the submit takes the info
-        auto const signals = info.signals;
-
         // every failure but a device loss terminates: nobody marks the signals, the waiters would
         // hang
-        try { co_await queue.submit(std::move(info)); }
+        try { co_await queue.submit(info); }
         catch(cvk::vk_result_exception const& e) {
             if(e.vkResult() != VK_ERROR_DEVICE_LOST) {
                 JVK_STABLE_ERR(true, "the fallback submit failed, got {}", e.vkResult()) {}
@@ -151,7 +162,7 @@ namespace dev {
             }
             jobs.store(std::current_exception());
             // the failed submit marked nothing: the waiters of the marks go on
-            mark(signals);
+            mark(info.signals);
         }
         catch(...) { std::terminate(); }
     }

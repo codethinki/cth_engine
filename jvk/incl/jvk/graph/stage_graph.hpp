@@ -169,8 +169,6 @@ private:
 
     using release_map_t = cth::dt::flat_hash_map<Queue const*, cvk::Barrier>;
 
-    using semaphore_waits_t = std::vector<cvk::SemaphoreSubmitInfo>;
-
     /**
      * skips the stages of the frame in the slot without `Stage::submit()` or `Stage::skip()`
      * @details a skipped stage that other stages wait for: warns
@@ -184,8 +182,8 @@ private:
      * @details
      * - takes `Stasis::end()` of the stage slot and the retained resources of the stage under
      *   `StageSlot::stasisMutex`
-     * - a failed allocation: the stage stays `UNSUBMITTED` without its waits and retained resources, the exception
-     *   destroys the graph
+     * - a failed allocation: the stage stays `UNSUBMITTED` without its retained resources, the exception destroys
+     *   the graph
      * @param targetStatus `SUBMITTED` or `SKIPPED`
      */
     void detachJob(Stage&, Stage::Status targetStatus);
@@ -201,7 +199,8 @@ private:
      *   waits of `StageSlot::slotSubmit` and of every jvk extra wait: the appends follow the
      *   dependency order
      * - the binary extra waits: no await on the cpu
-     * - `SlotSubmit::skipInfo()` of the frame, then `SlotSubmit::next()`
+     * - `SlotSubmit::skipInfo()` of the frame into `StageSlot::submitInfo`, clears the extra waits
+     *   of the slot, then `SlotSubmit::next()`
      * - `SUBMITTED`: `append()` of the states of the primary under `StageGraph::_statesMutex`, `release()` of the
      *   release halves, records the prologue, an empty prologue: no record, the submit without it
      * - `SUBMITTED`: `Queue::submit()` with the release waits, it marks the slot with the frame
@@ -223,8 +222,6 @@ private:
     [[nodiscard]] cth::co::executor_task<void> submitJob(
         dev::StageSlot&,
         uint64_t frameNumber,
-        std::vector<SemaphoreSubmitInfo> extraWaits,
-        semaphore_waits_t extraBinaryWaits,
         dev::RetainedResources retained,
         Stasis::pos stasisEnd,
         Stage::Status targetStatus

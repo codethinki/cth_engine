@@ -24,6 +24,7 @@ class scheduler;
 }
 
 namespace cvk {
+class Semaphore;
 class Swapchain;
 }
 
@@ -47,6 +48,18 @@ struct SubmitInfo {
 
     std::vector<SemaphoreSubmitInfo> signals{}; ///< marked after the submit
     std::vector<cvk::SemaphoreSubmitInfo> binarySignals{};
+
+    /**
+     * removes the command buffers and the semaphores
+     * @details keeps the capacity: a refill allocates nothing once the vectors are large enough
+     */
+    constexpr void clear() {
+        cmdBuffers.clear();
+        waits.clear();
+        binaryWaits.clear();
+        signals.clear();
+        binarySignals.clear();
+    }
 };
 
 /**
@@ -80,11 +93,12 @@ public:
      * submits the batch in the strand, then marks the jvk signals
      * @details a failed submit marks nothing: the caller submits a fallback, see
      *  `dev::fallback_submit()`
+     * @pre the info lives until the end of the task, nothing changes it
      * @pre the preconditions of `cvk::Queue::submit()`
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      * @see `present()`
      */
-    [[nodiscard]] cth::co::executor_task<void> submit(SubmitInfo) const;
+    [[nodiscard]] cth::co::executor_task<void> submit(SubmitInfo const&) const;
 
     /**
      * submits the batch and presents the image in one job of the strand, then marks the jvk signals
@@ -97,12 +111,13 @@ public:
      * @param imageIdx of the acquired image
      * @return `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` or `VK_ERROR_OUT_OF_DATE_KHR`
      * @pre `cvk::Queue::canPresent()`
+     * @pre the info lives until the end of the task, nothing changes it
      * @pre the preconditions of `cvk::Queue::submit()` and of `cvk::Swapchain::present()`
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
      */
     [[nodiscard]] cth::co::executor_task<VkResult> present(
-        SubmitInfo,
+        SubmitInfo const&,
         cvk::Swapchain& swapchain,
         uint32_t imageIdx
     ) const;
@@ -153,11 +168,18 @@ public:
 
 private:
     /**
-     * submits the batch through the cvk queue
+     * submits the batch through `cvk::Queue::rawSubmit()`
+     * @details resolves the `std::nullopt` timeline values in order: the waits, then the signals
+     * @param presentSemaphorePtr `nullptr` -> no present semaphore, else signaled after the signals
+     *  of the info
      * @pre runs in the strand
+     * @pre the preconditions of `cvk::Queue::submit()`
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      */
-    void submitInStrand(SubmitInfo const&) const;
+    void submitInStrand(
+        SubmitInfo const&,
+        cvk::Semaphore const* presentSemaphorePtr = nullptr
+    ) const;
 
     /**
      * command buffer of one release
@@ -186,6 +208,14 @@ private:
 
     mutable std::deque<ReleaseCmd> _releaseCmds{}; ///< used in the strand only
 
+    // members, no locals: submitInStrand() refills them, they keep their capacity
+    /** the command buffers of the submit in `submitInStrand()`, used in the strand only */
+    mutable std::vector<VkCommandBufferSubmitInfo> _cmdBufferInfos{};
+    /** the waits of the submit in `submitInStrand()`, used in the strand only */
+    mutable std::vector<VkSemaphoreSubmitInfo> _waitInfos{};
+    /** the signals of the submit in `submitInStrand()`, used in the strand only */
+    mutable std::vector<VkSemaphoreSubmitInfo> _signalInfos{};
+
     //TODO review the counter decides the reuse of the release command buffers, no reactor wait: a release reads it
     mutable Semaphore _released; ///< the release counter, raised by each release submit
 
@@ -208,10 +238,11 @@ namespace jvk::dev {
  * @param queue of the failed submit
  * @param info waits and signals of the failed submit, no command buffers
  * @param[out] jobs of the caller, gets a device loss
+ * @pre the info lives until the end of the task, nothing changes it
  */
 [[nodiscard]] cth::co::executor_task<void> fallback_submit(
     Queue const& queue,
-    SubmitInfo info,
+    SubmitInfo const& info,
     cth::co::catching_scope& jobs
 );
 }

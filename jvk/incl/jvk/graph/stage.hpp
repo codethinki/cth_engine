@@ -43,7 +43,7 @@ namespace jvk::dev {
  * @details
  * - the graph builds it once, at its construction
  * - holds the values of the next submit or skip of the slot
- * - builds the `SubmitInfo` of the next submit or skip: a skip has no command buffers
+ * - fills the `SubmitInfo` of the next submit or skip: a skip has no command buffers
  */
 struct SlotSubmit {
     /** `StageSlot::prologue`, `StageSlot::primary` */
@@ -62,13 +62,15 @@ struct SlotSubmit {
     SemaphoreSubmitInfo signal; ///< `StageSlot::semaphore` with the frame number
 
     /**
-     * the skip of the slot: the waits and the signal without the command buffers
+     * fills the info with the skip of the slot: the waits and the signal, no command buffers
      * @details waits for `SlotSubmit::waits` and the extra waits, signals `SlotSubmit::signal`
+     * @param[out] info gets the skip, `SubmitInfo::clear()` first
      * @param extraWaits the jvk waits of the stage
      * @param extraBinaryWaits the binary waits of the stage
      * @see `addCmdBuffers()`
      */
-    [[nodiscard]] SubmitInfo skipInfo(
+    void skipInfo(
+        SubmitInfo& info,
         std::span<SemaphoreSubmitInfo const> extraWaits,
         std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
     ) const;
@@ -154,6 +156,24 @@ struct StageSlot {
     // StageSlot::primary and the semaphores of the waited stage slots, they live as long as the graph
     /** the waits and the signal of the next submit or skip, see `SlotSubmit::next()` */
     SlotSubmit slotSubmit;
+
+    // the next three in the stage slot, not in the stage: they keep their capacity for the next
+    // frames of the slot
+    // one list per kind of wait: the jvk waits keep the jvk semaphore
+    /** the jvk waits of `Stage::await()` in the frame of the slot, the submit job clears them */
+    std::vector<SemaphoreSubmitInfo> extraWaits{};
+
+    /** the binary waits of `Stage::await()` in the frame of the slot, the submit job clears them */
+    std::vector<cvk::SemaphoreSubmitInfo> extraBinaryWaits{};
+
+    /**
+     * the submit or the skip of the frame of the slot
+     * @details
+     * - the submit job fills it, see `SlotSubmit::skipInfo()`
+     * - one job at a time: `StageGraph::nextFrame()` hands out the slot again after the mark of
+     *   the job
+     */
+    SubmitInfo submitInfo{};
 
     /** the stage in the frame slot before, submits first */
     cth::ref_wrapper<StageSlot const> previous;
@@ -394,15 +414,6 @@ private:
     cth::ref_wrapper<dev::StageSlot> _stageSlot;
     uint64_t _frameNumber;
     Status _status = Status::UNSUBMITTED;
-
-    // one list per kind of wait: the jvk waits keep the jvk semaphore
-    /** the waits of @ref await(SemaphoreSubmitInfo const&) */
-    std::vector<SemaphoreSubmitInfo> _extraWaits{};
-
-    /**
-     * the waits of @ref await(cvk::Semaphore const&, VkPipelineStageFlags2)
-     */
-    std::vector<cvk::SemaphoreSubmitInfo> _extraBinaryWaits{};
 
     /** the images and buffers of `retain()`, under `StageSlot::stasisMutex` */
     dev::RetainedResources _retained{};

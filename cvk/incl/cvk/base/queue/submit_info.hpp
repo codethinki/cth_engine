@@ -61,4 +61,24 @@ struct SubmitInfo {
     std::vector<SemaphoreSubmitInfo> waits{};
     std::vector<SemaphoreSubmitInfo> signals{};
 };
+
+/**
+ * vulkan info of a wait
+ * @details timeline semaphore, `std::nullopt` value -> waits for `TimelineSemaphore::value()`
+ * @pre the semaphore is created
+ */
+[[nodiscard]] VkSemaphoreSubmitInfo wait_submit_info(SemaphoreSubmitInfo const& wait);
+
+/**
+ * vulkan info of a signal
+ * @details timeline semaphore, `std::nullopt` value -> signals `TimelineSemaphore::next()`
+ * @pre the semaphore is created
+ */
+[[nodiscard]] VkSemaphoreSubmitInfo signal_submit_info(SemaphoreSubmitInfo const& signal);
+
+/**
+ * vulkan info of a command buffer of a submit
+ * @pre the command buffer is created and ended its recording
+ */
+[[nodiscard]] VkCommandBufferSubmitInfo cmd_buffer_submit_info(PrimaryCmdBuffer const& cmdBuffer);
 }

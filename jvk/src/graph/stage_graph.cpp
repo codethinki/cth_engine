@@ -114,7 +114,7 @@ StageGraph::~StageGraph() {
             // the binary waits dropped: a presenter is destroyed before the graph, its present
             // submits wait for the semaphores of the graph, the acquire semaphore of an unpresented
             // image is destroyed already
-            stage._extraBinaryWaits.clear();
+            stage._stageSlot->extraBinaryWaits.clear();
             try { skip(stage); }
             catch(std::exception const& e) {
                 JVK_STABLE_ERR(
@@ -272,8 +272,6 @@ void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
         submitJob(
             stageSlot,
             stage._frameNumber,
-            std::move(stage._extraWaits),
-            std::move(stage._extraBinaryWaits),
             std::move(retained),
             stasisEnd,
             targetStatus
@@ -285,13 +283,12 @@ void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
 cth::co::executor_task<void> StageGraph::submitJob(
     dev::StageSlot& stageSlot,
     uint64_t frameNumber,
-    vector<SemaphoreSubmitInfo> extraWaits,
-    semaphore_waits_t extraBinaryWaits,
     dev::RetainedResources retained,
     Stasis::pos stasisEnd,
     Stage::Status targetStatus
 ) {
     auto& slotSubmit = stageSlot.slotSubmit;
+    auto& info = stageSlot.submitInfo;
     auto const& queue = *stageSlot.queue;
 
     // the marks first, off the strand: a wait before the signal on one queue would block it, the appends follow the
@@ -299,13 +296,18 @@ cth::co::executor_task<void> StageGraph::submitJob(
     co_await stageSlot.previous->semaphore.submitted(frameNumber - 1);
     for(auto const& wait : slotSubmit.waits)
         co_await wait.semaphore->submitted(wait.value);
-    for(auto const& wait : extraWaits)
+    for(auto const& wait : stageSlot.extraWaits)
         co_await wait.semaphore->submitted(wait.value);
 
     // the values of this frame, then next(): the job of the next frame of the slot reads them after
     // the mark
     // noexcept: without the skip info no fallback marks the slot, the waiters would hang
-    auto info = [&]() noexcept { return slotSubmit.skipInfo(extraWaits, extraBinaryWaits); }();
+    [&]() noexcept {
+        slotSubmit.skipInfo(info, stageSlot.extraWaits, stageSlot.extraBinaryWaits);
+    }();
+    // the stage of the next frame of the slot adds its own
+    stageSlot.extraWaits.clear();
+    stageSlot.extraBinaryWaits.clear();
     slotSubmit.next(_config.frameSlots);
 
     bool submitted = false;
@@ -329,9 +331,8 @@ cth::co::executor_task<void> StageGraph::submitJob(
                 stageSlot.prologue.end();
             }
 
-            auto submitInfo = info;
-            slotSubmit.addCmdBuffers(submitInfo, withPrologue);
-            co_await queue.submit(std::move(submitInfo));
+            slotSubmit.addCmdBuffers(info, withPrologue);
+            co_await queue.submit(info);
             submitted = true;
         }
         // the job goes on with the skip
@@ -342,7 +343,8 @@ cth::co::executor_task<void> StageGraph::submitJob(
     if(!submitted) {
         // noexcept: a failed start of the fallback leaves the slot unmarked, the waiters would hang
         auto fallback = [&]() noexcept {
-            return dev::fallback_submit(queue, std::move(info), _jobs);
+            info.cmdBuffers.clear();
+            return dev::fallback_submit(queue, info, _jobs);
         }();
         co_await std::move(fallback);
     }

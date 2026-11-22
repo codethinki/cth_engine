@@ -39,18 +39,17 @@ namespace {
     }
 }
 
-SubmitInfo SlotSubmit::skipInfo(
+void SlotSubmit::skipInfo(
+    SubmitInfo& info,
     std::span<SemaphoreSubmitInfo const> extraWaits,
     std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
 ) const {
-    SubmitInfo info{
-        .binaryWaits = {extraBinaryWaits.begin(), extraBinaryWaits.end()},
-        .signals = {signal},
-    };
+    info.clear();
     info.waits.reserve(waits.size() + extraWaits.size());
     info.waits.append_range(waits);
     info.waits.append_range(extraWaits);
-    return info;
+    info.binaryWaits.append_range(extraBinaryWaits);
+    info.signals.push_back(signal);
 }
 
 void SlotSubmit::addCmdBuffers(SubmitInfo& info, bool prologue) const {
@@ -135,12 +134,12 @@ SecondaryCmdBuffer Stage::persistentSecondary() const {
 
 void Stage::await(SemaphoreSubmitInfo const& wait) {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
-    _extraWaits.push_back(wait);
+    _stageSlot->extraWaits.push_back(wait);
 }
 
 void Stage::await(cvk::Semaphore const& binary, VkPipelineStageFlags2 stages) {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
-    _extraBinaryWaits.emplace_back(binary, stages);
+    _stageSlot->extraBinaryWaits.emplace_back(binary, stages);
 }
 
 void Stage::submit() { _stageSlot->graph->submit(*this); }

@@ -34,6 +34,38 @@ CVK_TEST(Submit, semaphore_info_takes_the_kind_from_the_semaphore) {
     EXPECT_EQ(timelineInfo.value, 3);
 }
 
+CVK_TEST(Submit, wait_info_takes_the_counter_signal_info_the_next_value) {
+    test::Context const context{};
+    Semaphore const binary{context.core, create};
+    TimelineSemaphore const timeline{context.core, create};
+
+    auto const wait = wait_submit_info({timeline, VK_PIPELINE_STAGE_2_TRANSFER_BIT});
+    auto const signal = signal_submit_info({timeline});
+    auto const explicitSignal = signal_submit_info({timeline, VK_PIPELINE_STAGE_2_NONE, 5});
+    auto const binaryWait = wait_submit_info({binary});
+
+    EXPECT_EQ(wait.semaphore, timeline.get());
+    EXPECT_EQ(wait.value, 0);
+    EXPECT_EQ(wait.stageMask, VK_PIPELINE_STAGE_2_TRANSFER_BIT);
+    EXPECT_EQ(signal.value, 1);
+    EXPECT_EQ(explicitSignal.value, 5);
+    EXPECT_EQ(timeline.value(), 1);
+    EXPECT_EQ(binaryWait.semaphore, binary.get());
+    EXPECT_EQ(binaryWait.value, 0);
+}
+
+CVK_TEST(Submit, cmd_buffer_info_takes_the_handle) {
+    test::Context const context{};
+    CmdPool const pool{context.core, test::pool_config(context.core), create};
+    PrimaryCmdBuffer primary{pool, create};
+
+    auto const info = cmd_buffer_submit_info(primary);
+
+    EXPECT_EQ(info.sType, VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO);
+    EXPECT_EQ(info.commandBuffer, primary.get());
+    EXPECT_EQ(info.deviceMask, 0);
+}
+
 CVK_TEST(Submit, command_buffer_without_fence) {
     test::Context const context{};
     CmdPool const pool{context.core, test::pool_config(context.core), create};

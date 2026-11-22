@@ -527,6 +527,27 @@ JVK_TEST(StageGraph, extra_jvk_wait_and_binary_wait) {
     EXPECT_EQ(external.gpuValue(), 1);
 }
 
+JVK_TEST(StageGraph, extra_waits_end_with_their_frame) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    cvk::Semaphore const binary{core, cvk::create};
+
+    core.executor().sync_wait(submit(core.queue(0), {.signals = {binary}}));
+    auto& first = next_frame(core, graph).stage(0);
+    first.await(binary);
+    submit_empty(first);
+    wait(core, first);
+
+    // up to the next frame of the slot: the binary semaphore has no signal, a wait for it fails
+    // the validation
+    for(size_t i = 0; i < graph.config().frameSlots; ++i) {
+        auto& stage = next_frame(core, graph).stage(0);
+        submit_empty(stage);
+        wait(core, stage);
+    }
+}
+
 JVK_TEST(StageGraph, secondaries_record_on_several_threads) {
     constexpr size_t SECONDARIES = 4;
     test::Context const context{};

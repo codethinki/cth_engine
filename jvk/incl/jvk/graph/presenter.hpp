@@ -1,4 +1,5 @@
 #pragma once
+#include "jvk/base/queue.hpp"
 #include "jvk/cmd/cmd_buffer.hpp"
 #include "jvk/graph/swapchain.hpp"
 #include "jvk/sync/resource_tracker.hpp"
@@ -31,7 +32,6 @@ class ImageView;
 
 namespace jvk {
 class Core;
-class Queue;
 class Stage;
 class StageGraph;
 class scoped_acquire;
@@ -247,9 +247,10 @@ private:
      * present job of `present()`
      * @details the order:
      * - off the strand: awaits `Semaphore::submitted()` of the stage semaphore with the frame number
-     * - stage of another family -> `Queue::release()` of the image on the stage queue
      * - off the strand: awaits `Presenter::_presented` of the job before: the present jobs run one
      *   at a time, in the order of `present()`
+     * - fills `Presenter::_submitInfo`: the job before ended its use
+     * - stage of another family -> `Queue::release()` of the image on the stage queue
      * - off the strand: records the command buffer, the present jobs run one at a time
      * - `Queue::present()` with the current swapchain: a recreation only happens in `acquire()`,
      *   after the last present
@@ -334,6 +335,12 @@ private:
     cth::co::counter_event _presented{};
 
     std::vector<PresentSubmit> _submits{}; ///< one per swapchain image
+
+    /**
+     * the submit of the present job that runs, `Presenter::_presented` orders its uses
+     * @details each present job fills it: it keeps its capacity for the next jobs
+     */
+    SubmitInfo _submitInfo{};
 
     /** the acquired image without a present */
     std::optional<AcquiredImage> _acquiredOpt = std::nullopt;
