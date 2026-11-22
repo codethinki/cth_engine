@@ -301,7 +301,7 @@ cth::co::executor_task<void> StageGraph::submitJob(
 
     // the values of this frame, then next(): the job of the next frame of the slot reads them after
     // the mark
-    // noexcept: without the skip info no fallback marks the slot, the waiters would hang
+    // noexcept: without the skip info no skip submit marks the slot, the waiters would hang
     [&]() noexcept {
         slotSubmit.skipInfo(info, stageSlot.extraWaits, stageSlot.extraBinaryWaits);
     }();
@@ -341,12 +341,13 @@ cth::co::executor_task<void> StageGraph::submitJob(
 
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
     if(!submitted) {
-        // noexcept: a failed start of the fallback leaves the slot unmarked, the waiters would hang
-        auto fallback = [&]() noexcept {
+        // noexcept: a failed start of the skip submit leaves the slot unmarked, the waiters would
+        // hang
+        auto skip = [&]() noexcept {
             info.cmdBuffers.clear();
-            return dev::fallback_submit(queue, info, _jobs);
+            return dev::skip_submit(queue, info, _jobs);
         }();
-        co_await std::move(fallback);
+        co_await std::move(skip);
     }
 
     // after the mark: a failed gpu wait escapes, _jobs stores it, the retained objects stay for

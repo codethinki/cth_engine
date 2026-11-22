@@ -226,8 +226,8 @@ cth::co::executor_task<void> Presenter::presentJob(
     co_await _presented.wait(value - 1);
 
     // after the job before: it used the info until its end
-    // noexcept: without the wait and the signal no fallback signals the value, the waiters would
-    // hang
+    // noexcept: without the wait and the signal no skip submit signals the value, the waiters
+    // would hang
     auto& info = _submitInfo;
     [&]() noexcept {
         info.clear();
@@ -276,7 +276,7 @@ cth::co::executor_task<void> Presenter::presentJob(
         submit.cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         barrier.execute(submit.cmd);
         submit.cmd.end();
-        // before the submit: the empty submit of a failed one signals the value too
+        // before the submit: the skip submit of a failed one signals the value too
         submit.value = value;
         info.cmdBuffers.push_back(submit.cmd);
 
@@ -287,19 +287,19 @@ cth::co::executor_task<void> Presenter::presentJob(
         if(result == VK_ERROR_OUT_OF_DATE_KHR)
             _outOfDate = true;
     }
-    // the job goes on with the fallback and _presented.set()
+    // the job goes on with the skip submit and _presented.set()
     catch(...) { _jobs.store(std::current_exception()); }
 
-    // a failed submit marks nothing: the empty submit signals the value for the waits on the
+    // a failed submit marks nothing: the skip submit signals the value for the waits on the
     // presenter
     if(_semaphore.submittedValue() < value) {
-        // noexcept: a failed start of the fallback leaves the value unmarked, the waiters would
+        // noexcept: a failed start of the skip submit leaves the value unmarked, the waiters would
         // hang
-        auto fallback = [&]() noexcept {
+        auto skip = [&]() noexcept {
             info.cmdBuffers.clear();
-            return dev::fallback_submit(queue, info, _jobs);
+            return dev::skip_submit(queue, info, _jobs);
         }();
-        co_await std::move(fallback);
+        co_await std::move(skip);
     }
 
     // the last step, also after a failure: nothing before it escapes, the waiters would hang

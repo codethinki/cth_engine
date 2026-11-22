@@ -91,8 +91,7 @@ public:
 
     /**
      * submits the batch in the strand, then marks the jvk signals
-     * @details a failed submit marks nothing: the caller submits a fallback, see
-     *  `dev::fallback_submit()`
+     * @details a failed submit marks nothing: the caller skips it, see `dev::skip_submit()`
      * @pre the info lives until the end of the task, nothing changes it
      * @pre the preconditions of `cvk::Queue::submit()`
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
@@ -229,18 +228,19 @@ public:
 
 namespace jvk::dev {
 /**
- * the empty submit after a failed submit: the waiters of its jvk signals go on
+ * submits the waits and the signals of a skip, no command buffers
  * @details
+ * - a skip, also of a failed submit: the waiters of the jvk signals go on
  * - `Queue::submit()` marks the signals
  * - `VK_ERROR_DEVICE_LOST` -> stores the error in the scope, marks the signals: the gpu waits end
  *   on their own
  * - another failure terminates: the waiters would hang
- * @param queue of the failed submit
- * @param info waits and signals of the failed submit, no command buffers
+ * @param queue of the skipped submit
+ * @param info waits and signals of the skipped submit, no command buffers
  * @param[out] jobs of the caller, gets a device loss
  * @pre the info lives until the end of the task, nothing changes it
  */
-[[nodiscard]] cth::co::executor_task<void> fallback_submit(
+[[nodiscard]] cth::co::executor_task<void> skip_submit(
     Queue const& queue,
     SubmitInfo const& info,
     cth::co::catching_scope& jobs

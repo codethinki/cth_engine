@@ -261,9 +261,9 @@ private:
      *   `Presenter::_presented`
      * - the last step, also after a failure: sets `Presenter::_presented` to the value
      * @details the errors:
-     * - a failed submit: stores the error, then `dev::fallback_submit()` that signals only
+     * - a failed submit: stores the error, then `dev::skip_submit()` that signals only
      *   `Presenter::_semaphore`, no present
-     * - a failed empty submit: `VK_ERROR_DEVICE_LOST` -> stores the error, marks, else terminates:
+     * - a failed skip submit: `VK_ERROR_DEVICE_LOST` -> stores the error, marks, else terminates:
      *   the waiters would hang
      * - a failed present: stores the error
      * - before the end: every other failure terminates, the waiters on `Presenter::_presented`

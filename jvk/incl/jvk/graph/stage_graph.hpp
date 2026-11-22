@@ -116,10 +116,10 @@ public:
      * submits no work for the stage in this frame
      * @details sets the status of the stage to `SKIPPED`, thread safe for different stages
      * @details returns at once, the strand of the queue submits after the waited stages submitted
-     * @details empty submit on the queue of the stage:
+     * @details skip submit on the queue of the stage, no command buffers:
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
-     * @details after the gpu finished the empty submit: destroys the retained objects
+     * @details after the gpu finished the skip submit: destroys the retained objects
      * @details a begun primary: ends its rendering and the primary, discards the recording
      * @pre the stage is of this graph
      * @pre `Stage::status()` is `UNSUBMITTED`
@@ -205,7 +205,7 @@ private:
      *   release halves, records the prologue, an empty prologue: no record, the submit without it
      * - `SUBMITTED`: `Queue::submit()` with the release waits, it marks the slot with the frame
      *   number
-     * - `SKIPPED` or a failed submit: `dev::fallback_submit()` of the skip info
+     * - `SKIPPED` or a failed submit: `dev::skip_submit()` of the skip info
      * - on the workers of the core: after the gpu finished, erases the states of the retained resources, then
      *   `Stasis::clear()` to `stasisEnd`
      * @details the errors:

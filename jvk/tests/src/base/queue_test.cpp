@@ -460,14 +460,14 @@ JVK_TEST(Queue, submit_waits_for_the_jvk_and_the_binary_waits) {
     static_cast<cvk::TimelineSemaphore const&>(done).wait(1);
 }
 
-JVK_TEST(Queue, fallback_submit_marks_through_the_submit) {
+JVK_TEST(Queue, skip_submit_marks_through_the_submit) {
     test::Context const context{};
     auto const& queue = context.core.queue(0);
     Semaphore const semaphore{context.core, cvk::create};
     cth::co::catching_scope jobs{};
 
     context.core.executor().sync_wait(
-        dev::fallback_submit(queue, {.signals = {{.semaphore = semaphore, .value = 1}}}, jobs)
+        dev::skip_submit(queue, {.signals = {{.semaphore = semaphore, .value = 1}}}, jobs)
     );
 
     EXPECT_FALSE(jobs.failed());

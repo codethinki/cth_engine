@@ -147,7 +147,7 @@ auto Queue::freeReleaseCmd() const -> ReleaseCmd& {
 }
 
 namespace dev {
-    cth::co::executor_task<void> fallback_submit(
+    cth::co::executor_task<void> skip_submit(
         Queue const& queue,
         SubmitInfo const& info,
         cth::co::catching_scope& jobs
@@ -157,7 +157,7 @@ namespace dev {
         try { co_await queue.submit(info); }
         catch(cvk::vk_result_exception const& e) {
             if(e.vkResult() != VK_ERROR_DEVICE_LOST) {
-                JVK_STABLE_ERR(true, "the fallback submit failed, got {}", e.vkResult()) {}
+                JVK_STABLE_ERR(true, "the skip submit failed, got {}", e.vkResult()) {}
                 std::terminate();
             }
             jobs.store(std::current_exception());
