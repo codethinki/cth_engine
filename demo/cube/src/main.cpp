@@ -19,6 +19,7 @@
 #include "cvk/base/physical_device.hpp"
 #include "cvk/base/queue/queue_family.hpp"
 #include "cvk/data/buffer/device_ptr.hpp"
+#include "cvk/data/img/image.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/pipeline/graphics_pipeline.hpp"
 #include "cvk/render/pipeline/shader/shader.hpp"
@@ -41,7 +42,6 @@
 
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -83,6 +83,8 @@ constexpr float SPEED = 1.f; ///< radians per second
 glm::vec3 const AXIS = glm::normalize(glm::vec3{0.3f, 1.f, 0.2f});
 
 constexpr uint32_t TEXTURE_SIZE = 256;
+/** full mip chain */
+constexpr uint32_t TEXTURE_MIP_LEVELS = cvk::mip_level_count({TEXTURE_SIZE, TEXTURE_SIZE});
 constexpr uint32_t CHECKER_SIZE = 32; ///< pixels per square of the checkerboard
 
 std::filesystem::path const SHADER_DIR{CUBE_SHADER_DIR};
@@ -242,7 +244,7 @@ struct Cube {
                 .format = VK_FORMAT_R8G8B8A8_SRGB,
                 .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
                 | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                .mipLevels = std::bit_width(TEXTURE_SIZE),
+                .mipLevels = TEXTURE_MIP_LEVELS,
             },
             VkExtent2D{TEXTURE_SIZE, TEXTURE_SIZE}
         },
