@@ -12,7 +12,6 @@
 #include <array>
 #include <bit>
 #include <optional>
-#include <vector>
 
 
 namespace jvk::dev {
@@ -100,37 +99,28 @@ namespace {
     }
 
 
+    // a callable, no vector: no allocation per rendering
     /**
-     * access of an attachment to the mip level of its image
+     * hands the access of each attachment to the mip level of its image to the callable
+     * @details the order: color, depth and stencil, resolve
+     * @param visit called with the image and the access
      */
-    struct AttachmentAccess {
-        cth::ref_wrapper<cvk::Image const> image;
-        ImageAccess access;
-    };
-
-    /**
-     * @return the accesses of the attachments: color, depth and stencil, resolve
-     */
-    [[nodiscard]] std::vector<AttachmentAccess>
-    attachment_accesses(cvk::RenderingInfo const& info) {
-        std::vector<AttachmentAccess> accesses{};
-
+    template<class Visit>
+    void visit_attachment_accesses(cvk::RenderingInfo const& info, Visit visit) {
         for(auto const& attachment : info.colorAttachments) {
             auto const access = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
                 | (attachment.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD
                     ? VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
                     : VK_ACCESS_2_NONE);
-            accesses.push_back(
-                {
-                    attachment.view->image(),
-                    view_access(
-                        attachment.view,
-                        attachment.layout,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        access,
-                        discards(attachment.loadOp)
-                    ),
-                }
+            visit(
+                attachment.view->image(),
+                view_access(
+                    attachment.view,
+                    attachment.layout,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    access,
+                    discards(attachment.loadOp)
+                )
             );
         }
 
@@ -152,21 +142,17 @@ namespace {
                 !stencil_read_only(stencil->layout)
             ).access;
             access.discard = discards(depth->loadOp) && discards(stencil->loadOp);
-            accesses.push_back({depth->view->image(), access});
+            visit(depth->view->image(), access);
         } else {
             if(depth.has_value())
-                accesses.push_back(
-                    {
-                        depth->view->image(),
-                        depth_stencil_access(*depth, !depth_read_only(depth->layout)),
-                    }
+                visit(
+                    depth->view->image(),
+                    depth_stencil_access(*depth, !depth_read_only(depth->layout))
                 );
             if(stencil.has_value())
-                accesses.push_back(
-                    {
-                        stencil->view->image(),
-                        depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)),
-                    }
+                visit(
+                    stencil->view->image(),
+                    depth_stencil_access(*stencil, !stencil_read_only(stencil->layout))
                 );
         }
 
@@ -174,17 +160,15 @@ namespace {
             if(attachment.resolveViewPtr == nullptr)
                 return;
             cvk::ImageView const& resolveView = *attachment.resolveViewPtr;
-            accesses.push_back(
-                {
-                    resolveView.image(),
-                    view_access(
-                        resolveView,
-                        attachment.resolveLayout,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        false
-                    ),
-                }
+            visit(
+                resolveView.image(),
+                view_access(
+                    resolveView,
+                    attachment.resolveLayout,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    false
+                )
             );
         };
         for(auto const& attachment : info.colorAttachments)
@@ -194,7 +178,6 @@ namespace {
         if(stencil.has_value() && !(shared && stencil->resolveViewPtr == depth->resolveViewPtr))
             resolve(*stencil);
 
-        return accesses;
     }
 }
 
@@ -318,8 +301,12 @@ scoped_rendering<BasicCmdBuffer<Cvk>> BasicCmdBuffer<Cvk>::beginRendering(
     cvk::RenderingInfo const& info
 ) {
     cvk::Barrier barrier{};
-    for(auto const& [image, access] : attachment_accesses(info))
-        _states.access(*image, access, barrier);
+    visit_attachment_accesses(
+        info,
+        [&](cvk::Image const& image, ImageAccess const& access) {
+            _states.access(image, access, barrier);
+        }
+    );
 
     record(barrier);
     _cmdBuffer.beginRendering(info);
@@ -330,13 +317,17 @@ template<class Cvk>
 void BasicCmdBuffer<Cvk>::endRendering() {
     CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside its own rendering") {}
 
-    for(auto const& [image, access] : attachment_accesses(*rendering()))
-        _states.extend(
-            *image,
-            cvk::BarrierScope{.stages = access.stages, .access = access.access},
-            access.firstMipLevel,
-            access.mipLevels
-        );
+    visit_attachment_accesses(
+        *rendering(),
+        [this](cvk::Image const& image, ImageAccess const& access) {
+            _states.extend(
+                image,
+                cvk::BarrierScope{.stages = access.stages, .access = access.access},
+                access.firstMipLevel,
+                access.mipLevels
+            );
+        }
+    );
 
     _cmdBuffer.endRendering();
 }
