@@ -20,6 +20,7 @@
 #include <cth/coro/scheduler.hpp>
 
 #include <array>
+#include <atomic>
 #include <exception>
 #include <utility>
 #include <vector>
@@ -106,7 +107,7 @@ void Presenter::destroy() {
     _surface.destroy();
 
     _acquireSemaphoreIdx = 0;
-    _outOfDate = false;
+    _outOfDate.store(false, std::memory_order_relaxed);
     _error.clear();
 }
 
@@ -151,7 +152,7 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
         // no image -> out of date, the next round recreates the swapchain
         imageIdxOpt = _swapchain.acquire(acquireSemaphore).imageIndex;
         if(!imageIdxOpt.has_value())
-            _outOfDate = true;
+            _outOfDate.store(true, std::memory_order_relaxed);
     }
 
     auto const imageIdx = *imageIdxOpt;
@@ -273,15 +274,15 @@ cth::co::executor_task<void> Presenter::presentJob(
 
         // the swapchain of the image is the current one: a recreation only happens in acquire(),
         // after the mark of the last present
-        // no use of the result: the next acquire() runs after the mark, an out of date swapchain
-        // fails its acquire
-        static_cast<void>(
-            co_await queue.present(
-                {.cmdBuffers = {submit.cmd}, .waits = waits, .signals = {signal}},
-                _swapchain.current(),
-                image.imageIdx
-            )
+        auto const result = co_await queue.present(
+            {.cmdBuffers = {submit.cmd}, .waits = waits, .signals = {signal}},
+            _swapchain.current(),
+            image.imageIdx
         );
+        // relaxed: the flag carries no data
+        // after the mark: the next acquire() can miss it, a later one recreates the swapchain
+        if(result == VK_ERROR_OUT_OF_DATE_KHR)
+            _outOfDate.store(true, std::memory_order_relaxed);
     }
     catch(...) { _error.store(std::current_exception()); }
 
@@ -292,7 +293,8 @@ cth::co::executor_task<void> Presenter::presentJob(
 }
 
 void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
-    if(_swapchain.created() && !_outOfDate && _swapchain.current().extent() == extent)
+    if(_swapchain.created() && !_outOfDate.load(std::memory_order_relaxed)
+        && _swapchain.current().extent() == extent)
         return;
 
     if(_swapchain.created()) {
@@ -303,7 +305,7 @@ void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
         _swapchain.recreate(extent);
     } else
         _swapchain.create(swapchainConfig(), extent);
-    _outOfDate = false;
+    _outOfDate.store(false, std::memory_order_relaxed);
 
     while(_submits.size() < _swapchain.current().imageCount())
         _submits.push_back(
