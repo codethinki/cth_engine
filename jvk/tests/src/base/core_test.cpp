@@ -32,6 +32,7 @@
 #include <numeric>
 #include <optional>
 #include <system_error>
+#include <thread>
 #include <utility>
 
 
@@ -221,21 +222,23 @@ JVK_TEST(Core, reactor_waits_after_a_new_create) {
 
     for(size_t round = 0; round < 2; ++round) {
         ASSERT_TRUE(core.reactor().created());
-        cvk::TimelineSemaphore semaphore{core, cvk::create};
+        Semaphore semaphore{core, cvk::create};
 
-        std::promise<std::error_code> promise{};
-        auto result = promise.get_future();
-        core.reactor().await(
-            semaphore.get(),
-            1,
-            [promise = std::move(promise)](std::error_code error) mutable {
-                promise.set_value(error);
-            }
+        auto wait = [](Semaphore const& s) -> cth::co::executor_task<void> { co_await s.wait(1); };
+        auto result = std::async(
+            std::launch::async,
+            [&core, &semaphore, wait] { core.executor().sync_wait(wait(semaphore)); }
         );
-        [[maybe_unused]] auto const signaled = semaphore.signal();
+        auto const end = std::chrono::steady_clock::now() + std::chrono::seconds{5};
+        while(!core.reactor().pending(semaphore.get()) && std::chrono::steady_clock::now() < end)
+            std::this_thread::yield();
+        ASSERT_TRUE(core.reactor().pending(semaphore.get()));
 
+        core.executor().sync_wait(
+            core.queue(0).submit({.signals = {{.semaphore = semaphore, .value = 1}}})
+        );
         ASSERT_EQ(result.wait_for(std::chrono::seconds{5}), std::future_status::ready);
-        EXPECT_FALSE(result.get());
+        result.get();
 
         semaphore.destroy();
         core.destroy();

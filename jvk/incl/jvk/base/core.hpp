@@ -181,12 +181,13 @@ private:
 
     Config _config;
 
-    // behind a std::unique_ptr: the reactor and the heaps refer to them also before create(), the
-    // moves stay = default
+    // behind a std::unique_ptr: the reactor and the heaps refer to the cvk core also before
+    // create(), the moves stay = default
     std::unique_ptr<cvk::Core> _corePtr;
     std::unique_ptr<cth::co::scheduler> _workersPtr;
 
-    // destroyed after the queues, before the workers and the cvk core: it posts to the workers
+    // destroyed after the queues, before the workers and the cvk core: it posts the resumes of its
+    // waiters to their contexts
     TimelineReactor _reactor;
 
     // destroyed after the queues: their strands run on it

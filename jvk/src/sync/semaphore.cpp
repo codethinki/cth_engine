@@ -3,18 +3,27 @@
 #include "jvk/base/core.hpp"
 #include "jvk/sync/timeline_reactor.hpp"
 
+#include <cth/coro/exception.hpp>
 #include <cth/io/log.hpp>
 
 #include <utility>
 
 
 namespace jvk {
-using await_func = cth::co::context::await_func;
+bool semaphore_awaiter::await_ready() const { return _semaphore->gpuValue() >= _waiter.value; }
 
-bool semaphore_awaiter::await_ready() const { return _semaphore->gpuValue() >= _value; }
+void semaphore_awaiter::awaitReactor() {
+    // the last access to the awaiter: the reactor can post the resume before await() returns
+    _semaphore->core().reactor().await(_semaphore->get(), _waiter);
+}
 
-void semaphore_awaiter::awaitReactor(await_func cb) const {
-    _semaphore->core().reactor().await(_semaphore->get(), _value, std::move(cb));
+void semaphore_awaiter::await_resume() const {
+    CTH_CORO_CODE_STABLE_THROW(
+        _waiter.error,
+        _waiter.error,
+        "wait failed, got {}",
+        _waiter.error.message()
+    ) {}
 }
 
 Semaphore::Semaphore(Core const& core) : _core{core}, _semaphore{core} {}

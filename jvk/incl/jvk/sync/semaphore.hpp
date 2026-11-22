@@ -1,11 +1,12 @@
 #pragma once
+#include "jvk/sync/timeline_reactor.hpp"
+
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
 #include "cvk/utility/constants.hpp"
 
 #include <volk.h>
 
-#include <cth/coro/awaiters/base/wait_awaiter_base.hpp>
 #include <cth/coro/context.hpp>
 #include <cth/coro/counter_event.hpp>
 #include <cth/coro/utility/fwd.hpp>
@@ -23,14 +24,15 @@ class Semaphore;
 
 /**
  * awaiter of `Semaphore::wait()` and of `co_await` on a `Stage`
- * @details resumes the caller on its context, a failed wait throws in the caller
+ * @details
+ * - resumes the caller on its context, a failed wait throws in the caller
+ * - holds the waiter of the reactor: the frame of the suspended caller holds it, no allocation
  */
-class semaphore_awaiter : public cth::co::this_coro_awaiter_base,
-    public cth::co::wait_awaiter_base {
+class semaphore_awaiter : public cth::co::this_coro_awaiter_base {
 public:
     constexpr semaphore_awaiter(Semaphore const& semaphore, uint64_t value) :
         _semaphore{semaphore},
-        _value{value} {}
+        _waiter{.value = value} {}
 
     /**
      * @return the semaphore reached the value
@@ -39,25 +41,28 @@ public:
     [[nodiscard]] bool await_ready() const;
 
     /**
-     * registers the resume of the caller with the reactor of the core
-     * @details
-     * - the callback of `cth::co::wait_awaiter_base::resume()`, posted to the context of the caller
-     * - a failed wait: `await_resume()` throws `cth::except::coro_exception`, `code()` is `cvk::make_error_code()`
-     *   of the result
+     * hands the waiter to the reactor of the core, it posts the resume to the context of the caller
+     * @details after the hand over nothing touches the awaiter: the resumed caller can end at once
      * @see `TimelineReactor::await()`
      */
     template<class Caller> requires cth::co::this_coro_compatible<Caller>
     void await_suspend(std::coroutine_handle<Caller> caller);
 
+    /**
+     * @throws cth::except::coro_exception reason: the wait failed, `code()` is
+     *  `cvk::make_error_code()` of the result
+     */
+    void await_resume() const;
+
 private:
     // a private helper: the reactor needs the complete jvk::Core, the template stays in the header
     /**
-     * registers the callback with the reactor of the core
+     * hands the waiter to the reactor of the core
      */
-    void awaitReactor(cth::co::context::await_func cb) const;
+    void awaitReactor();
 
     cth::ref_wrapper<Semaphore const> _semaphore;
-    uint64_t _value;
+    TimelineReactor::Waiter _waiter;
 };
 }
 
@@ -252,21 +257,6 @@ struct SemaphoreSubmitInfo {
 };
 }
 
-namespace jvk::dev {
-/**
- * callback that posts the callback to the context
- * @details the reactor calls on a worker, the awaiter resumes on the context of the caller
- */
-[[nodiscard]] inline cth::co::context::await_func post_to(
-    cth::co::context const& context,
-    cth::co::context::await_func cb
-) {
-    return [&context, cb = std::move(cb)](std::error_code error) mutable {
-        context.post([cb = std::move(cb), error]() mutable { cb(error); });
-    };
-}
-}
-
 namespace jvk {
 constexpr void Semaphore::debug_check(Semaphore const& semaphore) {
     cvk::TimelineSemaphore::debug_check(semaphore);
@@ -274,6 +264,8 @@ constexpr void Semaphore::debug_check(Semaphore const& semaphore) {
 
 template<class Caller> requires cth::co::this_coro_compatible<Caller>
 void semaphore_awaiter::await_suspend(std::coroutine_handle<Caller> caller) {
-    awaitReactor(dev::post_to(caller.promise().context(), resume(caller)));
+    _waiter.caller = caller;
+    _waiter.contextPtr = &caller.promise().context();
+    awaitReactor();
 }
 }

@@ -29,7 +29,7 @@ Core::Core(cvk::Instance const& instance, Config config) :
                 : _config.workers
         )
     },
-    _reactor{*_corePtr, *_workersPtr},
+    _reactor{*_corePtr},
     _resourceHeap{*_corePtr, _config.heaps.resources} {}
 
 Core::Core(
