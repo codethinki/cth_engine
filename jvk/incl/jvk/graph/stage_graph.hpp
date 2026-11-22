@@ -5,14 +5,13 @@
 
 #include "jvk/base/stasis.hpp"
 #include "jvk/sync/resource_tracker.hpp"
-#include "jvk/utility/first_error.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
 #include <volk.h>
 
-#include <cth/coro/simple_counting_scope.hpp>
+#include <cth/coro/catching_scope.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/data/hash_map.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
@@ -83,8 +82,8 @@ public:
      *  stages: the gpu finished them, both with `cth::co::all()`
      * @return the frame of the slot
      * @pre no stage of the frame before records or submits: `nextFrame()` ends the frame
-     * @throws cvk::vk_result_exception the first error of a submit job or a scope, stored before the call: an error
-     *  during the waits -> the next `nextFrame()` rethrows it
+     * @throws std::exception the first error of a submit job or a scope, stored before the call: an
+     *  error during the waits -> the next `nextFrame()` rethrows it, see `cth::co::catching_scope`
      * @throws cth::except::group_coro_exception reason: the wait for a stage of the old frame
      *  failed, after the waits for all its stages: `exceptions()` holds the
      *  `cth::except::coro_exception` per stage
@@ -211,10 +210,12 @@ private:
      * - on the workers of the core: after the gpu finished, erases the states of the retained resources, then
      *   `Stasis::clear()` to `stasisEnd`
      * @details the errors:
-     * - a failed submit: stores the error, see `dev::first_error`, then skips
+     * - a failed submit: stores the error in `StageGraph::_jobs`, then skips
      * - a failed skip: `VK_ERROR_DEVICE_LOST` -> stores the error, marks the slot, else terminates:
      *   the waiters would hang
-     * - a failed gpu wait: stores the error, keeps the retained objects for the destruction of the graph
+     * - before the mark: every other failure terminates, the waiters would hang
+     * - after the mark: an escaped exception ends the job, `StageGraph::_jobs` stores it
+     * - a failed gpu wait escapes: the retained objects stay for the destruction of the graph
      * @param targetStatus the status the job reaches: `SUBMITTED` or `SKIPPED`
      * @param stasisEnd `Stasis::end()` of the stage slot at the submit or the skip
      * @see `Stage::submitted()`
@@ -301,12 +302,10 @@ private:
 
     //TODO review the error stays: every nextFrame() rethrows it, the errors of the jobs are fatal
     /**
-     * the first error of a submit job or a scope of a stage, `nextFrame()` rethrows it
+     * the running submit jobs, `~StageGraph()` waits for them
+     * @details the first error of a job or a scope of a stage, `nextFrame()` rethrows it
      */
-    dev::first_error _error{};
-
-    /** the running submit jobs, `~StageGraph()` waits for them */
-    cth::co::simple_counting_scope _jobs{};
+    cth::co::catching_scope _jobs{};
 
     uint64_t _firstFrameNumber; ///< see `firstFrameNumber()`
 

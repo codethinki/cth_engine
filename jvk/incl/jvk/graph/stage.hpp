@@ -3,7 +3,6 @@
 #include "jvk/base/stasis.hpp"
 #include "jvk/cmd/cmd_buffer.hpp"
 #include "jvk/sync/semaphore.hpp"
-#include "jvk/utility/first_error.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/data/buffer/base_buffer.hpp"
@@ -11,6 +10,7 @@
 
 #include <volk.h>
 
+#include <cth/coro/catching_scope.hpp>
 #include <cth/coro/counter_event.hpp>
 #include <cth/io/log.hpp>
 #include <cth/ptr/move_ptr.hpp>
@@ -120,7 +120,7 @@ struct StageSlot {
      */
     StageSlot(
         StageGraph& graph,
-        first_error& error,
+        cth::co::catching_scope& jobs,
         size_t stageId,
         size_t slot,
         Queue const& queue,
@@ -129,8 +129,8 @@ struct StageSlot {
 
     cth::ref_wrapper<StageGraph> graph;
 
-    /** the first error of the graph, the scopes of the stages store into it */
-    cth::ref_wrapper<first_error> error;
+    /** the jobs of the graph, the scopes of the stages store their errors into it */
+    cth::ref_wrapper<cth::co::catching_scope> jobs;
 
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
@@ -429,17 +429,17 @@ namespace jvk {
  */
 class scoped_submit {
 public:
-    //TODO review the first error as a parameter: scoped_submit is no nested class, Stage::begin() hands it the error
-    // of the graph from its stage slot
+    //TODO review the jobs of the graph as a parameter: scoped_submit is no nested class,
+    // Stage::begin() hands it the jobs of the graph from its stage slot
     /**
      * @details the uncaught exceptions of the calling thread at the construction tell the exception at the end
      * @param stage with the begun primary
-     * @param error the first error of the graph, gets a failure of the submit at the end
+     * @param jobs of the graph, gets a failure of the submit at the end
      * @pre `Stage::begin()` began the primary
      */
-    scoped_submit(Stage& stage, dev::first_error& error) noexcept :
+    scoped_submit(Stage& stage, cth::co::catching_scope& jobs) noexcept :
         _stagePtr{&stage},
-        _error{error},
+        _jobs{jobs},
         _uncaughtExceptions{std::uncaught_exceptions()} {}
 
     ~scoped_submit();
@@ -449,7 +449,7 @@ public:
 
 private:
     cth::move_ptr<Stage> _stagePtr;
-    cth::ref_wrapper<dev::first_error> _error; ///< the first error of the graph
+    cth::ref_wrapper<cth::co::catching_scope> _jobs; ///< of the graph
     int _uncaughtExceptions;
 
 public:

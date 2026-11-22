@@ -1,6 +1,7 @@
 #include "jvk/base/queue.hpp"
 
 #include "jvk/base/core.hpp"
+#include "jvk/utility/exception.hpp"
 
 #include "cvk/surface/swapchain.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
@@ -135,19 +136,24 @@ namespace dev {
     cth::co::executor_task<void> fallback_submit(
         Queue const& queue,
         SubmitInfo info,
-        first_error& error
+        cth::co::catching_scope& jobs
     ) {
         // a copy: the submit takes the info
         auto const signals = info.signals;
 
+        // every failure but a device loss terminates: nobody marks the signals, the waiters would
+        // hang
         try { co_await queue.submit(std::move(info)); }
         catch(cvk::vk_result_exception const& e) {
-            if(e.vkResult() != VK_ERROR_DEVICE_LOST)
-                throw;
-            error.store(std::current_exception());
+            if(e.vkResult() != VK_ERROR_DEVICE_LOST) {
+                JVK_STABLE_ERR(true, "the fallback submit failed, got {}", e.vkResult()) {}
+                std::terminate();
+            }
+            jobs.store(std::current_exception());
             // the failed submit marked nothing: the waiters of the marks go on
             mark(signals);
         }
+        catch(...) { std::terminate(); }
     }
 }
 }

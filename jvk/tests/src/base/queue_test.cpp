@@ -464,13 +464,13 @@ JVK_TEST(Queue, fallback_submit_marks_through_the_submit) {
     test::Context const context{};
     auto const& queue = context.core.queue(0);
     Semaphore const semaphore{context.core, cvk::create};
-    dev::first_error error{};
+    cth::co::catching_scope jobs{};
 
     context.core.executor().sync_wait(
-        dev::fallback_submit(queue, {.signals = {{.semaphore = semaphore, .value = 1}}}, error)
+        dev::fallback_submit(queue, {.signals = {{.semaphore = semaphore, .value = 1}}}, jobs)
     );
 
-    EXPECT_FALSE(error);
+    EXPECT_FALSE(jobs.failed());
     EXPECT_EQ(semaphore.submittedValue(), 1);
     static_cast<cvk::TimelineSemaphore const&>(semaphore).wait(1);
 }

@@ -109,13 +109,17 @@ void Presenter::destroy() {
 
     _acquireSemaphoreIdx = 0;
     _outOfDate = false;
-    _error.clear();
+    // after _jobs.wait(): no job stores anymore
+    _jobs.clear();
 }
 
 cth::co::executor_task<scoped_acquire> Presenter::acquire(
     Stage& stage,
     VkPipelineStageFlags2 stages
 ) {
+    if(_jobs.failed())
+        _jobs.rethrow();
+
     debug_check(*this);
     CTH_CRITICAL(stage.status() != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
     CTH_CRITICAL(
@@ -124,8 +128,6 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
         "a second acquire in frame {}: submit or skip the stage of the first image first",
         stage.frameNumber()
     ) {}
-    if(_error)
-        _error.rethrow();
 
     // present N before acquire N + 1: the acquire and the present share the swapchain
     // (externally synchronized), a blocking acquire would delay the present (FIFO), the flag of
@@ -147,7 +149,7 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
     while(!imageIdxOpt.has_value()) {
         auto const extent = _surface.extent(vkCore.physicalDevice());
         if(extent.width == 0 || extent.height == 0)
-            co_return scoped_acquire{*this, stage, std::nullopt, _error};
+            co_return scoped_acquire{*this, stage, std::nullopt, _jobs};
         updateSwapchain(extent, &stage.graph());
 
         // no image -> out of date, the next round recreates the swapchain
@@ -178,7 +180,7 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
         ImageState{.layout = VK_IMAGE_LAYOUT_UNDEFINED, .scope = {.stages = stages}}
     );
 
-    co_return scoped_acquire{*this, stage, image, _error};
+    co_return scoped_acquire{*this, stage, image, _jobs};
 }
 
 void Presenter::present(Stage& stage) {
@@ -219,7 +221,10 @@ cth::co::executor_task<void> Presenter::presentJob(
     auto const vkImage = image.image->get();
     auto const aspectMask = image.image->aspectMask();
 
-    vector<SemaphoreSubmitInfo> waits{{.semaphore = stageSemaphore, .value = frameNumber}};
+    // noexcept: without the waits no fallback signals the value, the waiters would hang
+    auto waits = [&]() noexcept {
+        return vector<SemaphoreSubmitInfo>{{.semaphore = stageSemaphore, .value = frameNumber}};
+    }();
     SemaphoreSubmitInfo const signal{.semaphore = _semaphore, .value = value};
 
     // off the strand: a wait before the signal on one queue would block it, the release needs the submit of the stage,
@@ -284,14 +289,21 @@ cth::co::executor_task<void> Presenter::presentJob(
         if(result == VK_ERROR_OUT_OF_DATE_KHR)
             _outOfDate = true;
     }
-    catch(...) { _error.store(std::current_exception()); }
+    // the job goes on with the fallback and _presented.set()
+    catch(...) { _jobs.store(std::current_exception()); }
 
     // a failed submit marks nothing: the empty submit signals the value for the waits on the
     // presenter
-    if(_semaphore.submittedValue() < value)
-        co_await dev::fallback_submit(queue, {.waits = waits, .signals = {signal}}, _error);
+    if(_semaphore.submittedValue() < value) {
+        // noexcept: a failed start of the fallback leaves the value unmarked, the waiters would
+        // hang
+        auto fallback = [&]() noexcept {
+            return dev::fallback_submit(queue, {.waits = waits, .signals = {signal}}, _jobs);
+        }();
+        co_await std::move(fallback);
+    }
 
-    // the last step, also after a failure, an escaped exception terminates anyway (detach)
+    // the last step, also after a failure: nothing before it escapes, the waiters would hang
     // one set() at a time, rising: the next job waits for this value
     _presented.set(value);
 }
@@ -338,12 +350,12 @@ scoped_acquire::scoped_acquire(
     Presenter& presenter,
     Stage& stage,
     std::optional<SwapchainImage> imageOpt,
-    dev::first_error& error
+    cth::co::catching_scope& jobs
 ) noexcept :
     _presenterPtr{&presenter},
     _stage{stage},
     _imageOpt{std::move(imageOpt)},
-    _error{error} {}
+    _jobs{jobs} {}
 
 scoped_acquire::~scoped_acquire() {
     if(!_presenterPtr || !_imageOpt.has_value())
@@ -354,9 +366,10 @@ scoped_acquire::~scoped_acquire() {
     if(stage.status() != Stage::Status::SUBMITTED)
         return;
 
-    // a destructor does not throw: the next acquire() rethrows
+    // a destructor does not throw and is no task: it stores the failure, the next acquire()
+    // rethrows
     try { _presenterPtr->present(stage); }
-    catch(...) { _error->store(std::current_exception()); }
+    catch(...) { _jobs->store(std::current_exception()); }
 }
 
 void scoped_acquire::present() {

@@ -3,7 +3,6 @@
 #include "jvk/graph/swapchain.hpp"
 #include "jvk/sync/resource_tracker.hpp"
 #include "jvk/sync/semaphore.hpp"
-#include "jvk/utility/first_error.hpp"
 
 #include "cvk/render/sync/semaphore.hpp"
 #include "cvk/surface/surface.hpp"
@@ -11,8 +10,8 @@
 
 #include <volk.h>
 
+#include <cth/coro/catching_scope.hpp>
 #include <cth/coro/counter_event.hpp>
-#include <cth/coro/simple_counting_scope.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/io/log.hpp>
 #include <cth/ptr/move_ptr.hpp>
@@ -172,8 +171,9 @@ public:
      * @pre an acquired image without a present of this frame: its stage is submitted or skipped
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
-     * @throws cvk::vk_result_exception the first error of a present job or a scope, stored before the call: an error
-     *  of the last present job during the waits -> the next `acquire()` rethrows it
+     * @throws std::exception the first error of a present job or a scope, stored before the call:
+     *  an error of the last present job during the waits -> the next `acquire()` rethrows it, see
+     *  `cth::co::catching_scope`
      * @attention `vkAcquireNextImageKHR()` can block (FIFO: the vsync throttle): it occupies a driver thread,
      *  `CoreConfig::driverThreads` `0` -> the calling worker
      * @see `Stage::await()`
@@ -265,6 +265,8 @@ private:
      * - a failed empty submit: `VK_ERROR_DEVICE_LOST` -> stores the error, marks, else terminates:
      *   the waiters would hang
      * - a failed present: stores the error
+     * - before the end: every other failure terminates, the waiters on `Presenter::_presented`
+     *   would hang
      * @param image the acquired image
      * @param lastState of the image in the stage primary
      * @param value of `Presenter::_semaphore` for the submit
@@ -342,10 +344,11 @@ private:
      */
     bool _outOfDate = false;
 
-    dev::first_error _error{}; ///< the first error of a job or a scope, `acquire()` rethrows it
-
-    /** the running present jobs, `destroy()` waits for them */
-    cth::co::simple_counting_scope _jobs{};
+    /**
+     * the running present jobs, `destroy()` waits for them
+     * @details the first error of a job or a scope, `acquire()` rethrows it
+     */
+    cth::co::catching_scope _jobs{};
 
 public:
     Presenter(Presenter const& other) = delete;
@@ -377,13 +380,13 @@ public:
      * @param presenter of the image
      * @param stage of the acquire
      * @param imageOpt `std::nullopt` -> no image
-     * @param error the first error of the presenter, gets a failure at the end
+     * @param jobs of the presenter, gets a failure at the end
      */
     scoped_acquire(
         Presenter& presenter,
         Stage& stage,
         std::optional<SwapchainImage> imageOpt,
-        dev::first_error& error
+        cth::co::catching_scope& jobs
     ) noexcept;
 
     ~scoped_acquire();
@@ -422,7 +425,7 @@ private:
     cth::move_ptr<Presenter> _presenterPtr; ///< `nullptr` -> the end does nothing
     cth::ref_wrapper<Stage> _stage;
     std::optional<SwapchainImage> _imageOpt;
-    cth::ref_wrapper<dev::first_error> _error; ///< the first error of the presenter
+    cth::ref_wrapper<cth::co::catching_scope> _jobs; ///< of the presenter
 
 public:
     scoped_acquire(scoped_acquire const& other) = delete;

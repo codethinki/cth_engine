@@ -1,7 +1,6 @@
 #pragma once
 #include "jvk/cmd/cmd_buffer.hpp"
 #include "jvk/sync/semaphore.hpp"
-#include "jvk/utility/first_error.hpp"
 
 #include "cvk/base/queue/queue.hpp"
 #include "cvk/base/queue/submit_info.hpp"
@@ -9,6 +8,7 @@
 
 #include <volk.h>
 
+#include <cth/coro/catching_scope.hpp>
 #include <cth/coro/executor.hpp>
 #include <cth/coro/strand.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
@@ -202,15 +202,16 @@ namespace jvk::dev {
  * the empty submit after a failed submit: the waiters of its jvk signals go on
  * @details
  * - `Queue::submit()` marks the signals
- * - `VK_ERROR_DEVICE_LOST` -> stores the error, marks the signals: the gpu waits end on their own
+ * - `VK_ERROR_DEVICE_LOST` -> stores the error in the scope, marks the signals: the gpu waits end
+ *   on their own
+ * - another failure terminates: the waiters would hang
  * @param queue of the failed submit
  * @param info waits and signals of the failed submit, no command buffers
- * @param[out] error gets a device loss
- * @throws cvk::vk_result_exception other results of the submit: the waiters would hang
+ * @param[out] jobs of the caller, gets a device loss
  */
 [[nodiscard]] cth::co::executor_task<void> fallback_submit(
     Queue const& queue,
     SubmitInfo info,
-    first_error& error
+    cth::co::catching_scope& jobs
 );
 }

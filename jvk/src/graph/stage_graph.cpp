@@ -4,7 +4,6 @@
 #include "jvk/base/queue.hpp"
 #include "jvk/sync/family_transfer.hpp"
 #include "jvk/utility/exception.hpp"
-#include "jvk/utility/first_error.hpp"
 
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/data/img/image.hpp"
@@ -12,7 +11,6 @@
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <cth/coro/all.hpp>
-#include <cth/coro/exception.hpp>
 #include <cth/coro/executor.hpp>
 #include <cth/io/log.hpp>
 
@@ -75,7 +73,7 @@ StageGraph::StageGraph(Core& core, Config config) :
         for(size_t stageId = 0; stageId < stages.size(); ++stageId)
             frameSlot.stageSlots.emplace_back(
                 *this,
-                _error,
+                _jobs,
                 stageId,
                 slot,
                 core.queue(stages[stageId].queueIdx),
@@ -149,8 +147,8 @@ StageGraph::~StageGraph() {
 }
 
 cth::co::executor_task<Frame&> StageGraph::nextFrame() {
-    if(_error)
-        _error.rethrow();
+    if(_jobs.failed())
+        _jobs.rethrow();
 
     auto const number = ++_frameNumber;
     auto const slotOf = [this](uint64_t frameNumber) -> dev::FrameSlot& {
@@ -306,7 +304,8 @@ cth::co::executor_task<void> StageGraph::submitJob(
 
     // the values of this frame, then next(): the job of the next frame of the slot reads them after
     // the mark
-    auto info = slotSubmit.skipInfo(extraWaits, extraBinaryWaits);
+    // noexcept: without the skip info no fallback marks the slot, the waiters would hang
+    auto info = [&]() noexcept { return slotSubmit.skipInfo(extraWaits, extraBinaryWaits); }();
     slotSubmit.next(_config.frameSlots);
 
     bool submitted = false;
@@ -335,24 +334,23 @@ cth::co::executor_task<void> StageGraph::submitJob(
             co_await queue.submit(std::move(submitInfo));
             submitted = true;
         }
-        catch(...) { _error.store(std::current_exception()); }
+        // the job goes on with the skip
+        catch(...) { _jobs.store(std::current_exception()); }
     }
 
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
-    if(!submitted)
-        co_await dev::fallback_submit(queue, std::move(info), _error);
-
-    // the job never touches the stage: nextFrame() destroys the stages after the gpu wait
-    bool reached = false;
-    try {
-        co_await stageSlot.semaphore.wait(frameNumber);
-        reached = true;
+    if(!submitted) {
+        // noexcept: a failed start of the fallback leaves the slot unmarked, the waiters would hang
+        auto fallback = [&]() noexcept {
+            return dev::fallback_submit(queue, std::move(info), _jobs);
+        }();
+        co_await std::move(fallback);
     }
-    catch(cth::except::coro_exception const&) { _error.store(std::current_exception()); }
-    catch(cvk::vk_result_exception const&) { _error.store(std::current_exception()); }
-    // the gpu can still use the retained objects, the destruction of the graph destroys them
-    if(!reached)
-        co_return;
+
+    // after the mark: a failed gpu wait escapes, _jobs stores it, the retained objects stay for
+    // the destruction of the graph
+    // the job never touches the stage: nextFrame() destroys the stages after the gpu wait
+    co_await stageSlot.semaphore.wait(frameNumber);
 
     {
         std::scoped_lock const lock{_statesMutex};
