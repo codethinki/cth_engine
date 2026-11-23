@@ -150,7 +150,7 @@ public:
         std::span<VkResult> results
     );
 
-    // an executor_task: the receiving submit job awaits it before its own submit, so the transfer
+    // an executor_task: the receiving submission awaits it before its own submit, so the transfer
     // is submitted first and the counter only changes in the strand (returning at once needs a lock
     // around the value and the post)
     // returns the jvk SemaphoreSubmitInfo: it keeps the counter for Semaphore::submitted(), it
@@ -251,6 +251,6 @@ namespace jvk::dev {
 [[nodiscard]] cth::co::executor_task<void> skip_submit(
     Queue& queue,
     SubmitInfo const& info,
-    cth::co::catching_scope& jobs
+    cth::co::catching_scope& submissions
 );
 }

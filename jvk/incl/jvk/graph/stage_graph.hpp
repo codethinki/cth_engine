@@ -66,23 +66,23 @@ public:
      * @details
      * - skips the unsubmitted stages first, e.g. after an exception in their recording: their waiters go on
      * - the skip drops the presents of the stage, see `Surface::acquire()`
-     * - waits for the end of every submit job
+     * - waits for the end of every submission
      * - a failed skip or wait does not stop the destruction
-     * @attention blocks the calling thread: a worker of the core must be free for the jobs
+     * @attention blocks the calling thread: a worker of the core must be free for the submissions
      */
     ~StageGraph();
 
-    // awaits Stage::submitted() of the old frame: the gpu can finish before the graph job marks the
-    // submit
+    // awaits Stage::submitted() of the old frame: the gpu can finish before the submission marks
+    // the submit
     /**
      * constructs the frame and its stages in the next slot
      * @details the frame before: skips its stages without `Stage::submit()` or `Stage::skip()`, warns for a waited one
-     * @details the old frame of the slot: awaits `StageSlot::submitDone` of its stages: their jobs
-     *  ended the submits and the presents, then the stages: the gpu finished them, both with
-     *  `cth::co::all()`
+     * @details the old frame of the slot: awaits `StageSlot::submitDone` of its stages: their
+     *  submissions ended the submits and the presents, then the stages: the gpu finished them, both
+     *  with `cth::co::all()`
      * @return the frame of the slot
      * @pre no stage of the frame before records or submits: `nextFrame()` ends the frame
-     * @throws std::exception the first error of a submit job or a scope, stored before the call: an
+     * @throws std::exception the first error of a submission or a scope, stored before the call: an
      *  error during the waits -> the next `nextFrame()` rethrows it, see `cth::co::catching_scope`
      * @throws cth::except::group_coro_exception reason: the wait for a stage of the old frame
      *  failed, after the waits for all its stages: `exceptions()` holds the
@@ -135,7 +135,7 @@ public:
      * @details
      * - the first use of the next submit starts from the state
      * - thread safe
-     * @pre the jobs of the submits before that use the image appended their states: they are marked
+     * @pre the submissions before that use the image appended their states: they are marked
      * @see `ResourceTracker::assume()`
      */
     void assume(cvk::Image const&, ImageState const& state);
@@ -176,13 +176,13 @@ private:
     void skipUnsubmitted(dev::FrameSlot&);
 
     //TODO review one helper for submit() and skip(): they differ in the status only
-    void detachJob(Stage&, Stage::Status targetStatus);
+    void detachSubmission(Stage&, Stage::Status targetStatus);
 
-    // no marks as parameters: the job awaits Semaphore::submitted() of the slots, they live as
-    // long as the graph
-    // next() before the mark: the job of the next frame of the slot awaits the mark, it reads the
-    // values
-    [[nodiscard]] cth::co::executor_task<void> submitJob(
+    // no marks as parameters: the submission awaits Semaphore::submitted() of the slots, they live
+    // as long as the graph
+    // next() before the mark: the submission of the next frame of the slot awaits the mark, it
+    // reads the values
+    [[nodiscard]] cth::co::executor_task<void> submission(
         dev::StageSlot&,
         uint64_t frameNumber,
         dev::RetainedResources retained,
@@ -233,8 +233,9 @@ private:
 
     last_queue_map_t<VkBuffer> _bufferQueues{};
 
-    //TODO review the error stays: every nextFrame() rethrows it, the errors of the jobs are fatal
-    cth::co::catching_scope _jobs{};
+    //TODO review the error stays: every nextFrame() rethrows it, the errors of the submissions are
+    // fatal
+    cth::co::catching_scope _submissions{};
 
     uint64_t _firstFrameNumber;
 

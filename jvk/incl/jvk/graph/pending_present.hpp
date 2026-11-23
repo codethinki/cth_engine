@@ -68,7 +68,7 @@ struct present_dropper {
  * present of an acquired swapchain image after the submit of its present stage
  * @details
  * - `Surface::acquire()` hands it to the present stage, see `Stage::present()`
- * - the submit job of the present stage presents the image, a skip drops it
+ * - the submission of the present stage presents the image, a skip drops it
  * - resolves the image exactly once: `present()`, `drop()`, or its destruction as dropped
  * - destroyed pending: only after the gpu finished the stages that used the image, e.g. in
  *   `~StageGraph()`, or before a stage submitted a use of it

@@ -201,7 +201,7 @@ namespace dev {
     cth::co::executor_task<void> skip_submit(
         Queue& queue,
         SubmitInfo const& info,
-        cth::co::catching_scope& jobs
+        cth::co::catching_scope& submissions
     ) {
         // every failure but a device loss terminates: nobody marks the signals, the waiters would
         // hang
@@ -211,7 +211,7 @@ namespace dev {
                 JVK_STABLE_ERR(true, "the skip submit failed, got {}", e.vkResult()) {}
                 std::terminate();
             }
-            jobs.store(std::current_exception());
+            submissions.store(std::current_exception());
             // the failed submit marked nothing: the waiters of the marks go on
             mark(info.signals);
         }

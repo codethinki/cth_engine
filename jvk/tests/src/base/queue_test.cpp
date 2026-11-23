@@ -538,13 +538,13 @@ JVK_TEST(Queue, skip_submit_marks_through_the_submit) {
     test::Context const context{};
     auto& queue = context.core.queue(0);
     Semaphore const semaphore{context.core, cvk::create};
-    cth::co::catching_scope jobs{};
+    cth::co::catching_scope submissions{};
 
     context.core.executor().sync_wait(
-        dev::skip_submit(queue, {.signals = {{.semaphore = semaphore, .value = 1}}}, jobs)
+        dev::skip_submit(queue, {.signals = {{.semaphore = semaphore, .value = 1}}}, submissions)
     );
 
-    EXPECT_FALSE(jobs.failed());
+    EXPECT_FALSE(submissions.failed());
     EXPECT_EQ(semaphore.submittedValue(), 1);
     static_cast<cvk::TimelineSemaphore const&>(semaphore).wait(1);
 }

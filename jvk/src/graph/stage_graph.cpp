@@ -76,7 +76,7 @@ StageGraph::StageGraph(Core& core, Config config) :
         for(size_t stageId = 0; stageId < stages.size(); ++stageId)
             frameSlot.stageSlots.emplace_back(
                 *this,
-                _jobs,
+                _submissions,
                 stageId,
                 slot,
                 core.queue(stages[stageId].queueIdx),
@@ -109,7 +109,8 @@ StageGraph::StageGraph(Core& core, Config config) :
 }
 
 StageGraph::~StageGraph() {
-    // the waiters of an unsubmitted stage would hang in _jobs.wait(), e.g. after an exception in the recording
+    // the waiters of an unsubmitted stage would hang in _submissions.wait(), e.g. after an
+    // exception in the recording
     for(auto& frameSlot : _frameSlots)
         for(auto& stage : frameSlot.stages) {
             if(stage.status() != Stage::Status::UNSUBMITTED)
@@ -126,7 +127,7 @@ StageGraph::~StageGraph() {
             }
         }
 
-    _jobs.wait();
+    _submissions.wait();
 
     for(auto& frameSlot : _frameSlots)
         for(auto& stageSlot : frameSlot.stageSlots) {
@@ -147,8 +148,8 @@ StageGraph::~StageGraph() {
 }
 
 cth::co::executor_task<Frame&> StageGraph::nextFrame() {
-    if(_jobs.failed())
-        _jobs.rethrow();
+    if(_submissions.failed())
+        _submissions.rethrow();
 
     auto const number = ++_frameNumber;
     auto const slotOf = [this](uint64_t frameNumber) -> dev::FrameSlot& {
@@ -164,8 +165,8 @@ cth::co::executor_task<Frame&> StageGraph::nextFrame() {
         // a failed skip in an earlier nextFrame() leaves a stage of an older frame unsubmitted
         skipUnsubmitted(frameSlot);
 
-        // the jobs first: the gpu can finish before the job marks the submit, the job uses the
-        // slot until it ended its presents
+        // the submissions first: the gpu can finish before the submission marks the submit, the
+        // submission uses the slot until it ended its presents
         co_await cth::co::all(
             frameSlot.stages
             | std::views::transform(
@@ -192,7 +193,7 @@ void StageGraph::submit(Stage& stage) {
     CTH_CRITICAL(stage._status != Stage::Status::UNSUBMITTED, "the stage must be unsubmitted") {}
 
     endPrimary(stageSlot.primary);
-    detachJob(stage, Stage::Status::SUBMITTED);
+    detachSubmission(stage, Stage::Status::SUBMITTED);
 }
 
 void StageGraph::skip(Stage& stage) {
@@ -202,7 +203,7 @@ void StageGraph::skip(Stage& stage) {
 
     // the recording of a begun primary is discarded, the next begin resets it
     endPrimary(stageSlot.primary);
-    detachJob(stage, Stage::Status::SKIPPED);
+    detachSubmission(stage, Stage::Status::SKIPPED);
 }
 
 void StageGraph::assume(cvk::Image const& image, ImageState const& state) {
@@ -260,7 +261,7 @@ void StageGraph::skipUnsubmitted(dev::FrameSlot& frameSlot) {
     }
 }
 
-void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
+void StageGraph::detachSubmission(Stage& stage, Stage::Status targetStatus) {
     auto& stageSlot = *stage._stageSlot;
 
     // the status after the detach: a failed allocation leaves the stage unsubmitted, the moved data is lost
@@ -273,8 +274,8 @@ void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
     }
 
     core().executor().detach(
-        _jobs,
-        submitJob(
+        _submissions,
+        submission(
             stageSlot,
             stage._frameNumber,
             std::move(retained),
@@ -285,7 +286,7 @@ void StageGraph::detachJob(Stage& stage, Stage::Status targetStatus) {
     stage._status = targetStatus;
 }
 
-cth::co::executor_task<void> StageGraph::submitJob(
+cth::co::executor_task<void> StageGraph::submission(
     dev::StageSlot& stageSlot,
     uint64_t frameNumber,
     dev::RetainedResources retained,
@@ -304,8 +305,8 @@ cth::co::executor_task<void> StageGraph::submitJob(
     for(auto const& wait : stageSlot.extraWaits)
         co_await wait.semaphore->submitted(wait.value);
 
-    // the values of this frame, then next(): the job of the next frame of the slot reads them after
-    // the mark
+    // the values of this frame, then next(): the submission of the next frame of the slot reads
+    // them after the mark
     // noexcept: without the skip info no skip submit marks the slot, the waiters would hang
     [&]() noexcept {
         slotSubmit.skipInfo(info, stageSlot.extraWaits, stageSlot.extraBinaryWaits);
@@ -330,8 +331,8 @@ cth::co::executor_task<void> StageGraph::submitJob(
             if(!releases.empty())
                 info.waits.append_range(co_await release(std::move(releases)));
 
-            // off the strand: the prologue and the epilogue belong to the job of the slot, an empty
-            // one stays out of the submit
+            // off the strand: the prologue and the epilogue belong to the submission of the slot,
+            // an empty one stays out of the submit
             bool const withPrologue = !prologue.empty();
             if(withPrologue) {
                 stageSlot.prologue.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -349,8 +350,8 @@ cth::co::executor_task<void> StageGraph::submitJob(
             co_await submitAndPresent(stageSlot, frameNumber);
             submitted = true;
         }
-        // the job goes on with the skip
-        catch(...) { _jobs.store(std::current_exception()); }
+        // the submission goes on with the skip
+        catch(...) { _submissions.store(std::current_exception()); }
     }
 
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
@@ -361,7 +362,7 @@ cth::co::executor_task<void> StageGraph::submitJob(
             info.cmdBuffers.clear();
             // the present semaphores of a failed submit: no present waits for them
             info.binarySignals.clear();
-            return dev::skip_submit(queue, info, _jobs);
+            return dev::skip_submit(queue, info, _submissions);
         }();
         co_await std::move(skip);
 
@@ -369,17 +370,25 @@ cth::co::executor_task<void> StageGraph::submitJob(
         // surface unacquires its image at once
         if(!stageSlot.presents.empty()) {
             try { co_await stageSlot.semaphore.wait(frameNumber); }
-            catch(...) { _jobs.store(std::current_exception()); }
+            catch(...) { _submissions.store(std::current_exception()); }
             stageSlot.presents.clear();
         }
     }
 
-    // the last use of the slot by the job before the gpu wait: nextFrame() hands it out after it
+    // the last use of the slot by the submission before the gpu wait: nextFrame() hands it out
+    // after it
     stageSlot.submitDone.set(frameNumber);
 
-    // after the mark: a failed gpu wait escapes, _jobs stores it, the retained objects stay for
-    // the destruction of the graph
-    // the job never touches the stage: nextFrame() destroys the stages after the gpu wait
+    // nothing to free: no gpu wait, the submission ends
+    if(retained.images.empty() && retained.buffers.empty()) {
+        std::scoped_lock const lock{stageSlot.stasisMutex};
+        if(stageSlot.stasis.empty(stasisEnd))
+            co_return;
+    }
+
+    // after the mark: a failed gpu wait escapes, _submissions stores it, the retained objects stay
+    // for the destruction of the graph
+    // the submission never touches the stage: nextFrame() destroys the stages after the gpu wait
     co_await stageSlot.semaphore.wait(frameNumber);
 
     {
@@ -570,7 +579,7 @@ cth::co::executor_task<void> StageGraph::submitAndPresent(
         if(stageSlot.semaphore.submittedValue() < frameNumber)
             throw;
         // a failed present after the submit: the images resolve with their results
-        _jobs.store(std::current_exception());
+        _submissions.store(std::current_exception());
     }
     if(ownGroup)
         groups.front().presented = true;
@@ -621,12 +630,12 @@ cth::co::executor_task<void> StageGraph::submitAndPresent(
             );
 
             // the transfer waits for the semaphore of the slot: ~StageGraph() destroys it after
-            // the jobs ended
+            // the submissions ended
             if(transferredOpt.has_value())
                 co_await transferredOpt->semaphore->wait(transferredOpt->value);
         }
         // a failed transfer drops the images of the queue, a failed present presented them
-        catch(...) { _jobs.store(std::current_exception()); }
+        catch(...) { _submissions.store(std::current_exception()); }
     }
 
     // each image of a group resolves with its result, in the order of the group
@@ -643,7 +652,7 @@ cth::co::executor_task<void> StageGraph::submitAndPresent(
     // them
     if(std::ranges::any_of(groups, [](auto const& group) { return !group.presented; })) {
         try { co_await stageSlot.semaphore.wait(frameNumber); }
-        catch(...) { _jobs.store(std::current_exception()); }
+        catch(...) { _submissions.store(std::current_exception()); }
     }
     presents.clear();
 }

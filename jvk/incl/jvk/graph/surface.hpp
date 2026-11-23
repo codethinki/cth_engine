@@ -78,7 +78,7 @@ struct SurfaceConfig {
  *   `Swapchain`
  * - acquires outside the strand of its queue on `Queue::scheduler()`
  * - the present stage of an image presents it after its submit, see `acquire()`: the surface has
- *   no jobs, the errors of the presents go to the graph of the present stage
+ *   no submissions, the errors of the presents go to the graph of the present stage
  * - one acquired image at a time: `acquire()` waits until the last image is presented or dropped
  * - a dropped image: the next `acquire()` or `destroy()` unacquires it after the gpu finished its
  *   stages
@@ -133,8 +133,8 @@ public:
      * @pre the present stage of the last image is submitted or skipped, or its graph is destroyed:
      *  else the wait never ends, e.g. destroy the graphs of the stages first
      * @pre the submits that wait for the acquire semaphores finished on the gpu
-     * @attention blocks the calling thread: a worker of the core must be free for the jobs of the
-     *  graph
+     * @attention blocks the calling thread: a worker of the core must be free for the submissions
+     *  of the graph
      */
     void destroy();
 

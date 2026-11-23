@@ -176,8 +176,8 @@ namespace {
     }
 
     /**
-     * acquires and clears the image of the stage, the scope submits, the job presents
-     * @details the submit job waits for the gate: the present stays pending
+     * acquires and clears the image of the stage, the scope submits, the submission presents
+     * @details the submission waits for the gate: the present stays pending
      * @return the image
      */
     SwapchainImage present_behind_gate(
@@ -224,7 +224,7 @@ namespace {
 
     /**
      * acquires the image of the next frame, clears the multisampled target and resolves it into the image
-     * @details only the scope: `scoped_submit` submits, the job presents
+     * @details only the scope: `scoped_submit` submits, the submission presents
      * @details a new extent: the stage retains the old target, then a new one
      * @param[out] msaaOpt the target of the frames
      * @return the image
@@ -266,7 +266,7 @@ namespace {
 
     /**
      * acquires, clears and presents the image of the stage in the next frame
-     * @details only the scope: `scoped_submit` submits, the job presents
+     * @details only the scope: `scoped_submit` submits, the submission presents
      * @details the acquire comes before `Stage::begin()`
      * @return the image
      */
@@ -504,7 +504,8 @@ JVK_TEST(Surface, acquire_waits_for_the_present_before) {
     auto& first = next_frame(core, graph).stage(0);
     present_behind_gate(core, first, surface, gate);
 
-    // the job of the first frame waits for the mark of the gate, the next acquire for its present
+    // the submission of the first frame waits for the mark of the gate, the next acquire for its
+    // present
     auto& second = next_frame(core, graph).stage(0);
     std::binary_semaphore acquiredSignal{0};
     size_t acquiredImages = 0;
@@ -700,7 +701,7 @@ JVK_TEST(Surface, exception_after_the_submit_presents_the_image) {
     ASSERT_TRUE(imageIdxOpt.has_value());
     EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
 
-    // the stage is submitted: its job presents the image
+    // the stage is submitted: its submission presents the image
     EXPECT_TRUE(reaches_unacquired(core, core.queue(0), surface, *imageIdxOpt));
     wait(core, stage);
 

@@ -52,7 +52,7 @@ struct SlotSubmit {
     /** `StageSlot::prologue`, `StageSlot::primary`, `StageSlot::epilogue` */
     std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{};
 
-    // no queueWaits: the submit job awaits the marks of every wait, its append follows the
+    // no queueWaits: the submission awaits the marks of every wait, its append follows the
     // dependency order
     /**
      * one per `StageConfig::waits`: `StageSlot::semaphore` of the waited stage slot
@@ -88,14 +88,14 @@ struct SlotSubmit {
 
     /**
      * advances every wait and signal value to the next frame of the slot
-     * @details never reads the waited semaphores: their submit jobs run at the same time, a read can see an old frame
+     * @details never reads the waited semaphores: their submissions run at the same time, a read can see an old frame
      * @param frameSlots `StageGraphConfig::frameSlots`, the values rise by it
      */
     constexpr void next(size_t frameSlots);
 };
 
 /**
- * the images of one queue in the presents of a submit job
+ * the images of one queue in the presents of a submission
  * @see `StageSlot::presentImages`
  */
 struct PresentGroup {
@@ -110,7 +110,7 @@ struct PresentGroup {
 
 /**
  * the images and buffers of `Stage::retain()` in one frame
- * @details the submit job erases their graph states before it destroys them, see `StageGraph::erase()`
+ * @details the submission erases their graph states before it destroys them, see `StageGraph::erase()`
  */
 struct RetainedResources {
     /** the handle and the mip levels of each image */
@@ -140,7 +140,7 @@ struct StageSlot {
      */
     StageSlot(
         StageGraph& graph,
-        cth::co::catching_scope& jobs,
+        cth::co::catching_scope& submissions,
         size_t stageId,
         size_t slot,
         Queue& queue,
@@ -149,8 +149,8 @@ struct StageSlot {
 
     cth::ref_wrapper<StageGraph> graph;
 
-    /** the jobs of the graph, the scopes of the stages store their errors into it */
-    cth::ref_wrapper<cth::co::catching_scope> jobs;
+    /** the submissions of the graph, the scopes of the stages store their errors into it */
+    cth::ref_wrapper<cth::co::catching_scope> submissions;
 
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
@@ -178,15 +178,15 @@ struct StageSlot {
     // the next three in the stage slot, not in the stage: they keep their capacity for the next
     // frames of the slot
     // one list per kind of wait: the jvk waits keep the jvk semaphore
-    /** the jvk waits of `Stage::await()` in the frame of the slot, the submit job clears them */
+    /** the jvk waits of `Stage::await()` in the frame of the slot, the submission clears them */
     std::vector<SemaphoreSubmitInfo> extraWaits{};
 
-    /** the binary waits of `Stage::await()` in the frame of the slot, the submit job clears them */
+    /** the binary waits of `Stage::await()` in the frame of the slot, the submission clears them */
     std::vector<cvk::SemaphoreSubmitInfo> extraBinaryWaits{};
 
     /**
      * the presents of the frame of the slot, see `Stage::present()`
-     * @details the submit job presents them after the submit or drops them on a skip, then
+     * @details the submission presents them after the submit or drops them on a skip, then
      *  clears the list
      */
     std::vector<PendingPresent> presents{};
@@ -194,13 +194,13 @@ struct StageSlot {
     /**
      * the submit or the skip of the frame of the slot
      * @details
-     * - the submit job fills it, see `SlotSubmit::skipInfo()`
-     * - one job at a time: `StageGraph::nextFrame()` hands out the slot again after
-     *   `StageSlot::submitDone` of the job
+     * - the submission fills it, see `SlotSubmit::skipInfo()`
+     * - one submission at a time: `StageGraph::nextFrame()` hands out the slot again after
+     *   `StageSlot::submitDone` of the submission
      */
     SubmitInfo submitInfo{};
 
-    // the scratch of the presents: the submit job refills them, they keep their capacity
+    // the scratch of the presents: the submission refills them, they keep their capacity
     /** the barriers of the presented images, recorded into `StageSlot::epilogue` */
     cvk::Barrier epilogueBarriers{};
 
@@ -218,7 +218,8 @@ struct StageSlot {
     std::vector<cvk::SemaphoreSubmitInfo> presentSignals{};
 
     /**
-     * frame number of the last job of the slot that ended its submit or skip and its presents
+     * frame number of the last submission of the slot that ended its submit or skip and its
+     *  presents
      * @details `StageGraph::nextFrame()` awaits it before it hands out the slot again
      * @details initial value: `StageGraph::firstFrameNumber() - 1`
      */
@@ -243,7 +244,8 @@ struct StageSlot {
 
     /**
      * the objects of `Stage::retain()`
-     * @details the job of a frame destroys them up to the `Stasis::end()` of its submit or skip
+     * @details the submission of a frame destroys them up to the `Stasis::end()` of its submit or
+     *  skip
      */
     Stasis stasis;
 
@@ -332,7 +334,7 @@ public:
 
     /**
      * adds a wait on a jvk semaphore to the submit of this frame
-     * @details `submit()` and `skip()` wait for it, the submit job first awaits its `Semaphore::submitted()`
+     * @details `submit()` and `skip()` wait for it, the submission first awaits its `Semaphore::submitted()`
      * @pre `status()` is `UNSUBMITTED`
      * @pre the semaphore lives until the gpu finished the submit
      * @attention not thread safe
@@ -379,12 +381,12 @@ public:
     /**
      * presents the swapchain image of the present after the submit of this frame
      * @details `Surface::acquire()` calls it for its present stage
-     * @details the submit job of the frame:
+     * @details the submission of the frame:
      * - records the barrier of the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` into the epilogue,
      *   after the primary, see `StageSlot::epilogue`
      * - presents the image after the submit, the images of one queue in one `vkQueuePresentKHR()`
      * - a skip or a failed submit drops the image
-     * @param present of the image, the stage owns it until its job resolves it
+     * @param present of the image, the stage owns it until its submission resolves it
      * @pre `status()` is `UNSUBMITTED`
      * @attention not thread safe
      */
@@ -409,7 +411,7 @@ public:
      * @details
      * - releases the object at once, the stasis of the stage slot holds its handles
      * - the recordings keep no reference to the object: the caller can destroy it
-     * - an image or a buffer: the job erases its graph state before it destroys it
+     * - an image or a buffer: the submission erases its graph state before it destroys it
      * - thread safe
      * @pre `status()` is `UNSUBMITTED`
      * @pre its users on other queues finish before this submit: this submit waits for them
@@ -505,17 +507,17 @@ namespace jvk {
  */
 class scoped_submit {
 public:
-    //TODO review the jobs of the graph as a parameter: scoped_submit is no nested class,
-    // Stage::begin() hands it the jobs of the graph from its stage slot
+    //TODO review the submissions of the graph as a parameter: scoped_submit is no nested class,
+    // Stage::begin() hands it the submissions of the graph from its stage slot
     /**
      * @details the uncaught exceptions of the calling thread at the construction tell the exception at the end
      * @param stage with the begun primary
-     * @param jobs of the graph, gets a failure of the submit at the end
+     * @param submissions of the graph, gets a failure of the submit at the end
      * @pre `Stage::begin()` began the primary
      */
-    scoped_submit(Stage& stage, cth::co::catching_scope& jobs) noexcept :
+    scoped_submit(Stage& stage, cth::co::catching_scope& submissions) noexcept :
         _stagePtr{&stage},
-        _jobs{jobs},
+        _submissions{submissions},
         _uncaughtExceptions{std::uncaught_exceptions()} {}
 
     ~scoped_submit();
@@ -525,7 +527,7 @@ public:
 
 private:
     cth::move_ptr<Stage> _stagePtr;
-    cth::ref_wrapper<cth::co::catching_scope> _jobs;
+    cth::ref_wrapper<cth::co::catching_scope> _submissions;
     int _uncaughtExceptions;
 
 public:

@@ -59,14 +59,14 @@ void SlotSubmit::addCmdBuffers(SubmitInfo& info, bool prologue, bool epilogue) c
 
 StageSlot::StageSlot(
     StageGraph& graph,
-    cth::co::catching_scope& jobs,
+    cth::co::catching_scope& submissions,
     size_t stageId,
     size_t slot,
     Queue& queue,
     size_t secondaries
 ) :
     graph{graph},
-    jobs{jobs},
+    submissions{submissions},
     stageId{stageId},
     slot{slot},
     queue{queue},
@@ -104,7 +104,7 @@ scoped_submit Stage::begin() {
     if(samplerHeapPtr != nullptr)
         vk.bind(*samplerHeapPtr);
 
-    return scoped_submit{*this, _stageSlot->jobs};
+    return scoped_submit{*this, _stageSlot->submissions};
 }
 
 SecondaryCmdBuffer& Stage::beginSecondary(
@@ -162,6 +162,6 @@ scoped_submit::~scoped_submit() {
 
     // a destructor is no task: it stores the failure itself
     try { _stagePtr->submit(); }
-    catch(...) { _jobs->store(std::current_exception()); }
+    catch(...) { _submissions->store(std::current_exception()); }
 }
 }

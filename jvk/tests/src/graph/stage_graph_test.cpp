@@ -235,7 +235,8 @@ JVK_TEST(StageGraph, chain_on_one_queue_submitted_in_reverse) {
     auto& writer = frame.stage(0);
     auto& reader = frame.stage(1);
 
-    // the reader submits first, from another thread: its job waits for the mark of the writer
+    // the reader submits first, from another thread: its submission waits for the mark of the
+    // writer
     std::jthread{
         [&] {
             auto const primary = reader.begin();
@@ -468,7 +469,7 @@ JVK_TEST(StageGraph, destruction_after_an_exception_skips_the_unsubmitted_stage)
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
 
-    // the waiter is submitted, ~StageGraph() skips the waited stage, else its job hangs
+    // the waiter is submitted, ~StageGraph() skips the waited stage, else its submission hangs
     auto const run = [&core] {
         StageGraph graph{
             core,
@@ -517,7 +518,7 @@ JVK_TEST(StageGraph, extra_jvk_wait_and_binary_wait) {
     stage.await(binary);
     submit_empty(stage);
 
-    // the job waits for the mark of the external wait before its submit
+    // the submission waits for the mark of the external wait before its submit
     core.executor().sync_wait(
         submit(queue, {.signals = {SemaphoreSubmitInfo{.semaphore = external, .value = 1}}})
     );
@@ -613,7 +614,7 @@ JVK_TEST(StageGraph, retain_lives_until_the_gpu_finished_the_submit) {
     EXPECT_TRUE(reaches_allocations(core, before - 1));
 }
 
-JVK_TEST(StageGraph, retain_of_the_next_frame_survives_the_job_of_the_frame_before) {
+JVK_TEST(StageGraph, retain_of_the_next_frame_survives_the_submission_of_the_frame_before) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
@@ -631,7 +632,7 @@ JVK_TEST(StageGraph, retain_of_the_next_frame_survives_the_job_of_the_frame_befo
     gate.markSubmitted(1);
     core.executor().sync_wait(await_submitted(stage));
 
-    // the job waits for the gpu: its resume comes behind this strand job
+    // the submission waits for the gpu: its resume comes behind this strand job
     std::binary_semaphore blocking{0};
     std::binary_semaphore unblock{0};
     queue.executor().context().post(
@@ -643,12 +644,13 @@ JVK_TEST(StageGraph, retain_of_the_next_frame_survives_the_job_of_the_frame_befo
     ASSERT_TRUE(blocking.try_acquire_for(TIMEOUT));
     host_signal(gate, 1);
 
-    // the same slot: the gpu finished the frame before, its job did not destroy the retained objects yet
+    // the same slot: the gpu finished the frame before, its submission did not destroy the retained
+    // objects yet
     auto& next = next_frame(core, graph).stage(0);
     next.retain(std::move(second));
     unblock.release();
 
-    // the job of the frame before destroys its own retained buffer only
+    // the submission of the frame before destroys its own retained buffer only
     EXPECT_TRUE(reaches_allocations(core, before - 1));
     core.executor().sync_wait(enter_strand(queue));
     EXPECT_EQ(allocations(core), before - 1);
@@ -713,7 +715,7 @@ JVK_TEST(StageGraph, retained_transient_image_starts_from_undefined) {
     image.copy(*primary, staging);
     image.copyTo(*primary, readback);
     primary->use(readback, HOST_READ);
-    // the last use: the job records the transition from undefined after the release
+    // the last use: the submission records the transition from undefined after the release
     stage.retain(std::move(image));
     stage.submit();
 
@@ -738,7 +740,7 @@ JVK_TEST(StageGraph, image_moved_after_the_submit_keeps_its_prologue) {
     std::optional<Image> firstOpt{std::in_place, core, IMAGE_CONFIG, EXTENT};
     std::optional<Image> secondOpt{};
 
-    // the job awaits the mark of the gate before its append
+    // the submission awaits the mark of the gate before its append
     auto& stage = next_frame(core, graph).stage(0);
     stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
     auto const primary = stage.begin();
@@ -747,7 +749,7 @@ JVK_TEST(StageGraph, image_moved_after_the_submit_keeps_its_prologue) {
     primary->use(readback, HOST_READ);
     stage.submit();
 
-    // the recorded object is gone before the job records the prologue
+    // the recorded object is gone before the submission records the prologue
     secondOpt.emplace(std::move(*firstOpt));
     firstOpt.reset();
 
@@ -777,7 +779,8 @@ JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
     auto& writer = frame.stage(0);
     auto& reader = frame.stage(1);
 
-    // the reader submits first: its job appends after the writer, the writer queue releases both
+    // the reader submits first: its submission appends after the writer, the writer queue releases
+    // both
     auto const readerPrimary = reader.begin();
     image.copyTo(*readerPrimary, imageReadback);
     bufferReadback.copy(*readerPrimary, buffer);

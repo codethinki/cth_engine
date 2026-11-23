@@ -62,7 +62,7 @@ void Surface::create(cvk::Surface surface) {
 void Surface::destroy() {
     debug_check(*this);
 
-    // the job of the present stage resolves the last image
+    // the submission of the present stage resolves the last image
     if(_presentState.resolved.value() < _lastValue)
         _core->executor().sync_wait(await_value(_presentState.resolved, _lastValue));
 
