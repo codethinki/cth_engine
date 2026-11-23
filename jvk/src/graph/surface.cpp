@@ -1,4 +1,4 @@
-#include "jvk/graph/presenter.hpp"
+#include "jvk/graph/surface.hpp"
 
 #include "jvk/base/core.hpp"
 #include "jvk/base/queue.hpp"
@@ -25,7 +25,7 @@
 
 
 namespace jvk {
-Presenter::Presenter(Core const& core, Queue const& queue, Config config) :
+Surface::Surface(Core const& core, Queue const& queue, Config config) :
     _core{core},
     _queue{queue},
     _config{std::move(config)},
@@ -33,10 +33,10 @@ Presenter::Presenter(Core const& core, Queue const& queue, Config config) :
     _swapchain{core, queue.vk(), _surface},
     _semaphore{core} { Config::debug_check(_config); }
 
-Presenter::Presenter(Core const& core, Queue const& queue, Config config, cvk::Surface surface) :
-    Presenter{core, queue, std::move(config)} { create(std::move(surface)); }
+Surface::Surface(Core const& core, Queue const& queue, Config config, cvk::Surface surface) :
+    Surface{core, queue, std::move(config)} { create(std::move(surface)); }
 
-void Presenter::create(cvk::Surface surface) {
+void Surface::create(cvk::Surface surface) {
     Core::debug_check(*_core);
     cvk::Surface::debug_check(surface);
     optDestroy();
@@ -60,7 +60,7 @@ void Presenter::create(cvk::Surface surface) {
     }
 }
 
-void Presenter::destroy() {
+void Surface::destroy() {
     debug_check(*this);
 
     _jobs.wait();
@@ -110,7 +110,7 @@ void Presenter::destroy() {
     _jobs.clear();
 }
 
-cth::co::executor_task<scoped_acquire> Presenter::acquire(
+cth::co::executor_task<scoped_acquire> Surface::acquire(
     Stage& stage,
     VkPipelineStageFlags2 stages
 ) {
@@ -180,9 +180,9 @@ cth::co::executor_task<scoped_acquire> Presenter::acquire(
     co_return scoped_acquire{*this, stage, image, _jobs};
 }
 
-void Presenter::present(Stage& stage) {
+void Surface::present(Stage& stage) {
     debug_check(*this);
-    CTH_CRITICAL(!_acquiredOpt.has_value(), "the presenter must have an acquired image") {}
+    CTH_CRITICAL(!_acquiredOpt.has_value(), "the surface must have an acquired image") {}
     CTH_CRITICAL(stage.status() != Stage::Status::SUBMITTED, "the stage must be submitted") {}
 
     auto const image = _acquiredOpt->image;
@@ -203,7 +203,7 @@ void Presenter::present(Stage& stage) {
     _acquiredOpt.reset();
 }
 
-cth::co::executor_task<void> Presenter::presentJob(
+cth::co::executor_task<void> Surface::presentJob(
     Queue const& stageQueue,
     Semaphore const& stageSemaphore,
     uint64_t frameNumber,
@@ -296,7 +296,7 @@ cth::co::executor_task<void> Presenter::presentJob(
     catch(...) { _jobs.store(std::current_exception()); }
 
     // a failed submit marks nothing: the skip submit signals the value for the waits on the
-    // presenter
+    // surface
     if(_semaphore.submittedValue() < value) {
         // noexcept: a failed start of the skip submit leaves the value unmarked, the waiters would
         // hang
@@ -312,7 +312,7 @@ cth::co::executor_task<void> Presenter::presentJob(
     _presented.set(value);
 }
 
-void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
+void Surface::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
     if(_swapchain.created() && !_outOfDate && _swapchain.current().extent() == extent)
         return;
 
@@ -332,7 +332,7 @@ void Presenter::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {
         );
 }
 
-Swapchain::Config Presenter::swapchainConfig() const {
+Swapchain::Config Surface::swapchainConfig() const {
     auto config = _config.swapchain;
     if(config.minImageCount != 0)
         return config;
@@ -343,7 +343,7 @@ Swapchain::Config Presenter::swapchainConfig() const {
     return config;
 }
 
-void Presenter::unacquireImage() {
+void Surface::unacquireImage() {
     _swapchain.current().unacquire(std::array{_acquiredOpt->image.imageIdx});
     _acquiredOpt.reset();
 }
@@ -351,18 +351,18 @@ void Presenter::unacquireImage() {
 
 namespace jvk {
 scoped_acquire::scoped_acquire(
-    Presenter& presenter,
+    Surface& surface,
     Stage& stage,
     std::optional<SwapchainImage> imageOpt,
     cth::co::catching_scope& jobs
 ) noexcept :
-    _presenterPtr{&presenter},
+    _surfacePtr{&surface},
     _stage{stage},
     _imageOpt{std::move(imageOpt)},
     _jobs{jobs} {}
 
 scoped_acquire::~scoped_acquire() {
-    if(!_presenterPtr || !_imageOpt.has_value())
+    if(!_surfacePtr || !_imageOpt.has_value())
         return;
 
     auto& stage = *_stage;
@@ -372,7 +372,7 @@ scoped_acquire::~scoped_acquire() {
 
     // a destructor does not throw and is no task: it stores the failure, the next acquire()
     // rethrows
-    try { _presenterPtr->present(stage); }
+    try { _surfacePtr->present(stage); }
     catch(...) { _jobs->store(std::current_exception()); }
 }
 
@@ -382,12 +382,12 @@ void scoped_acquire::present() {
 
     if(_stage->status() == Stage::Status::UNSUBMITTED)
         _stage->submit();
-    _presenterPtr.release()->present(*_stage);
+    _surfacePtr.release()->present(*_stage);
 }
 
 void scoped_acquire::unacquire() {
     debug_check(*this);
     // the next acquire() or destroy() unacquires the image
-    static_cast<void>(_presenterPtr.release());
+    static_cast<void>(_surfacePtr.release());
 }
 }

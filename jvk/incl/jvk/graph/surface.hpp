@@ -54,9 +54,9 @@ struct SwapchainImage {
 };
 
 /**
- * config of a `Presenter`
+ * config of a `Surface`
  */
-struct PresenterConfig {
+struct SurfaceConfig {
     /**
      * @details `cvk::SwapchainConfig::minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`: an
      *  image for each frame in flight beside the images of the presentation engine
@@ -71,16 +71,16 @@ struct PresenterConfig {
      */
     uint32_t framesInFlight = 2;
 
-    static constexpr void debug_check(PresenterConfig const&);
+    static constexpr void debug_check(SurfaceConfig const&);
 };
 
 /**
- * presents to a surface
+ * cvk surface with its swapchain, acquires and presents its images
  * @details
- * - owns the surface and the swapchain
+ * - owns the cvk surface and the swapchain
  * - recreates the swapchain in `acquire()`, a retired swapchain stays until its presents ended, see `Swapchain`
  * - submits and presents in the strand of its queue, acquires outside the strand on `Queue::scheduler()`
- * - `Presenter::_presented` orders the uses of the swapchain: a present job sets it at its end, the
+ * - `Surface::_presented` orders the uses of the swapchain: a present job sets it at its end, the
  *   next `acquire()` waits for it
  * - one acquired image at a time, in a scope: `scoped_acquire` presents it at its end
  * - an image without a present: the next `acquire()` or `destroy()` unacquires it, `acquire()` after the gpu finished
@@ -88,27 +88,27 @@ struct PresenterConfig {
  * - the present jobs run detached, `destroy()` waits for them
  * @attention not thread safe
  */
-class Presenter {
+class Surface {
 public:
-    using Config = PresenterConfig;
+    using Config = SurfaceConfig;
 
     /**
      * base constructor
      * @details the queue presents and runs the present submits
      * @pre the config passes `Config::debug_check()`
      */
-    Presenter(Core const&, Queue const&, Config);
+    Surface(Core const&, Queue const&, Config);
 
     /**
      * constructs and creates
-     * @details calls @ref Presenter(Core const&, Queue const&, Config), `create()`
+     * @details calls @ref Surface(Core const&, Queue const&, Config), `create()`
      */
-    Presenter(Core const&, Queue const&, Config, cvk::Surface);
+    Surface(Core const&, Queue const&, Config, cvk::Surface);
 
     /**
      * @note calls `optDestroy()`
      */
-    ~Presenter() { optDestroy(); }
+    ~Surface() { optDestroy(); }
 
     /**
      * takes the surface, creates the swapchain, the semaphores and the command buffers
@@ -222,7 +222,7 @@ private:
         PrimaryCmdBuffer cmd; ///< the barrier of the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
 
         /**
-         * value of `Presenter::_semaphore` for the last submit of `PresentSubmit::cmd`, free once reached
+         * value of `Surface::_semaphore` for the last submit of `PresentSubmit::cmd`, free once reached
          */
         uint64_t value = 0;
     };
@@ -241,36 +241,36 @@ private:
 
     // no awaiter parameter: the job takes `submitted()` from the stage semaphore and the frame
     // number
-    // the image as a parameter: the job reads no presenter state outside of the strand
+    // the image as a parameter: the job reads no surface state outside of the strand
     // `_presented` of the job before awaited: acquire() no longer orders the present jobs
     /**
      * present job of `present()`
      * @details the order:
      * - off the strand: awaits `Semaphore::submitted()` of the stage semaphore with the frame number
-     * - off the strand: awaits `Presenter::_presented` of the job before: the present jobs run one
+     * - off the strand: awaits `Surface::_presented` of the job before: the present jobs run one
      *   at a time, in the order of `present()`
-     * - fills `Presenter::_submitInfo`: the job before ended its use
+     * - fills `Surface::_submitInfo`: the job before ended its use
      * - stage of another family -> `Queue::transfer()` of the release half on the stage queue
      * - off the strand: records the command buffer, the present jobs run one at a time
      * - `Queue::present()` with the current swapchain: a recreation only happens in `acquire()`,
      *   after the last present
      * - the submit waits for the semaphore of the stage and the release, signals
-     *   `Presenter::_semaphore` with the value, `Queue::present()` marks it after the present
+     *   `Surface::_semaphore` with the value, `Queue::present()` marks it after the present
      * - the command buffer: the acquire half of another family, the transition to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
-     * - `VK_ERROR_OUT_OF_DATE_KHR` of the present: sets `Presenter::_outOfDate` before
-     *   `Presenter::_presented`
-     * - the last step, also after a failure: sets `Presenter::_presented` to the value
+     * - `VK_ERROR_OUT_OF_DATE_KHR` of the present: sets `Surface::_outOfDate` before
+     *   `Surface::_presented`
+     * - the last step, also after a failure: sets `Surface::_presented` to the value
      * @details the errors:
      * - a failed submit: stores the error, then `dev::skip_submit()` that signals only
-     *   `Presenter::_semaphore`, no present
+     *   `Surface::_semaphore`, no present
      * - a failed skip submit: `VK_ERROR_DEVICE_LOST` -> stores the error, marks, else terminates:
      *   the waiters would hang
      * - a failed present: stores the error
-     * - before the end: every other failure terminates, the waiters on `Presenter::_presented`
+     * - before the end: every other failure terminates, the waiters on `Surface::_presented`
      *   would hang
      * @param image the acquired image
      * @param lastState of the image in the stage primary
-     * @param value of `Presenter::_semaphore` for the submit
+     * @param value of `Surface::_semaphore` for the submit
      * @pre the command buffer of the submit belongs to the queue family of the queue
      */
     [[nodiscard]] cth::co::executor_task<void> presentJob(
@@ -287,7 +287,7 @@ private:
      * @details
      * - the first creation: the config of `swapchainConfig()`
      * - a recreation erases the old images in the graph first: the new images can reuse their handles
-     * - grows `Presenter::_submits` to the image count
+     * - grows `Surface::_submits` to the image count
      * @param extent of the surface, `> 0`
      * @param graphPtr of the acquiring stage, `nullptr` -> no graph
      * @pre no present job uses the swapchain: `create()`, or `acquire()` after the end of the last
@@ -298,7 +298,7 @@ private:
     void updateSwapchain(VkExtent2D extent, StageGraph* graphPtr);
 
     /**
-     * @return `PresenterConfig::swapchain`, `minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`
+     * @return `SurfaceConfig::swapchain`, `minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`
      */
     [[nodiscard]] Swapchain::Config swapchainConfig() const;
 
@@ -318,15 +318,15 @@ private:
     // destroyed after the swapchain
     cvk::Surface _surface;
 
-    /** created once the surface extent is `> 0`, `Presenter::_presented` orders its uses */
+    /** created once the surface extent is `> 0`, `Surface::_presented` orders its uses */
     Swapchain _swapchain;
 
     /**
-     * ring of `PresenterConfig::framesInFlight`, signaled by the acquires
+     * ring of `SurfaceConfig::framesInFlight`, signaled by the acquires
      */
     std::vector<cvk::Semaphore> _acquireSemaphores{};
 
-    /** the semaphore in `Presenter::_acquireSemaphores` for the next acquire */
+    /** the semaphore in `Surface::_acquireSemaphores` for the next acquire */
     size_t _acquireSemaphoreIdx = 0;
 
     Semaphore _semaphore; ///< signaled by the present submits, each submit signals the next value
@@ -337,7 +337,7 @@ private:
     std::vector<PresentSubmit> _submits{}; ///< one per swapchain image
 
     /**
-     * the submit of the present job that runs, `Presenter::_presented` orders its uses
+     * the submit of the present job that runs, `Surface::_presented` orders its uses
      * @details each present job fills it: it keeps its capacity for the next jobs
      */
     SubmitInfo _submitInfo{};
@@ -347,7 +347,7 @@ private:
 
     /**
      * set by an out of date acquire and by the present jobs
-     * @details `acquire()` reads it after `Presenter::_presented` reached the last present
+     * @details `acquire()` reads it after `Surface::_presented` reached the last present
      */
     bool _outOfDate = false;
 
@@ -358,12 +358,12 @@ private:
     cth::co::catching_scope _jobs{};
 
 public:
-    Presenter(Presenter const& other) = delete;
-    Presenter(Presenter&& other) = delete;
-    Presenter& operator=(Presenter const& other) = delete;
-    Presenter& operator=(Presenter&& other) = delete;
+    Surface(Surface const& other) = delete;
+    Surface(Surface&& other) = delete;
+    Surface& operator=(Surface const& other) = delete;
+    Surface& operator=(Surface&& other) = delete;
 
-    static constexpr void debug_check(Presenter const&);
+    static constexpr void debug_check(Surface const&);
 };
 }
 
@@ -371,12 +371,12 @@ namespace jvk {
 /**
  * acquired swapchain image of a stage for the scope, presents it at its end
  * @details
- * - `Presenter::acquire()` returns it
- * - end, by `Stage::status()`: `SUBMITTED` -> `Presenter::present()`, also after an exception: the frame is complete
- * - end, by `Stage::status()`: `SKIPPED` or `UNSUBMITTED` -> nothing, the next `Presenter::acquire()` or
- *   `Presenter::destroy()` unacquires the image
+ * - `Surface::acquire()` returns it
+ * - end, by `Stage::status()`: `SUBMITTED` -> `Surface::present()`, also after an exception: the frame is complete
+ * - end, by `Stage::status()`: `SKIPPED` or `UNSUBMITTED` -> nothing, the next `Surface::acquire()` or
+ *   `Surface::destroy()` unacquires the image
  * - no image or a moved-from scope: nothing
- * - a failure at the end, e.g. an allocation: the next `Presenter::acquire()` rethrows it
+ * - a failure at the end, e.g. an allocation: the next `Surface::acquire()` rethrows it
  * - `->` and `*` reach the image
  * - declare it before the `scoped_submit` of the stage: the `scoped_submit` ends first and submits
  * @attention a coroutine destroyed while suspended with the scope alive presents the image of a submitted stage
@@ -384,13 +384,13 @@ namespace jvk {
 class scoped_acquire {
 public:
     /**
-     * @param presenter of the image
+     * @param surface of the image
      * @param stage of the acquire
      * @param imageOpt `std::nullopt` -> no image
-     * @param jobs of the presenter, gets a failure at the end
+     * @param jobs of the surface, gets a failure at the end
      */
     scoped_acquire(
-        Presenter& presenter,
+        Surface& surface,
         Stage& stage,
         std::optional<SwapchainImage> imageOpt,
         cth::co::catching_scope& jobs
@@ -404,15 +404,15 @@ public:
      * @pre an image
      * @pre `Stage::status()` is not `SKIPPED`
      * @pre the recording of the stage uses the image
-     * @see `Presenter::present()`
+     * @see `Surface::present()`
      */
     void present();
 
     /**
      * ends the scope without a present, the end of the scope does nothing
-     * @details the next `Presenter::acquire()` or `Presenter::destroy()` unacquires the image
+     * @details the next `Surface::acquire()` or `Surface::destroy()` unacquires the image
      * @pre an image
-     * @see `Presenter::acquire()`
+     * @see `Surface::acquire()`
      */
     void unacquire();
 
@@ -429,10 +429,10 @@ public:
     [[nodiscard]] constexpr SwapchainImage const& operator*() const { return *_imageOpt; }
 
 private:
-    cth::move_ptr<Presenter> _presenterPtr; ///< `nullptr` -> the end does nothing
+    cth::move_ptr<Surface> _surfacePtr; ///< `nullptr` -> the end does nothing
     cth::ref_wrapper<Stage> _stage;
     std::optional<SwapchainImage> _imageOpt;
-    cth::ref_wrapper<cth::co::catching_scope> _jobs; ///< of the presenter
+    cth::ref_wrapper<cth::co::catching_scope> _jobs; ///< of the surface
 
 public:
     scoped_acquire(scoped_acquire const& other) = delete;
@@ -445,7 +445,7 @@ public:
 }
 
 namespace jvk {
-constexpr void PresenterConfig::debug_check(PresenterConfig const& config) {
+constexpr void SurfaceConfig::debug_check(SurfaceConfig const& config) {
     CTH_CRITICAL(config.framesInFlight == 0, "framesInFlight must be > 0") {}
     CTH_CRITICAL(
         config.swapchain.queueFamilies.size() >= 2,
@@ -454,13 +454,13 @@ constexpr void PresenterConfig::debug_check(PresenterConfig const& config) {
     ) {}
 }
 
-constexpr void Presenter::debug_check(Presenter const& presenter) {
-    CTH_CRITICAL(!presenter.created(), "presenter must be created") {}
+constexpr void Surface::debug_check(Surface const& surface) {
+    CTH_CRITICAL(!surface.created(), "surface must be created") {}
 }
 
 constexpr void scoped_acquire::debug_check(scoped_acquire const& image) {
     CTH_CRITICAL(
-        !image._presenterPtr,
+        !image._surfacePtr,
         "the scope must hold the image, got a moved-from or ended scope"
     ) {}
     CTH_CRITICAL(!image._imageOpt.has_value(), "the scope must hold an image, got none") {}

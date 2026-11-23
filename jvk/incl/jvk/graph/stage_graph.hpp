@@ -66,7 +66,7 @@ public:
      * @details
      * - skips the unsubmitted stages first, e.g. after an exception in their recording: their waiters go on
      * - the skip of an unsubmitted stage drops its binary waits: their semaphores, e.g. the acquire semaphores of a
-     *   `Presenter`, can be destroyed before the graph
+     *   `Surface`, can be destroyed before the graph
      * - waits for the end of every submit job
      * - a failed skip or wait does not stop the destruction
      * @attention blocks the calling thread: a worker of the core must be free for the jobs

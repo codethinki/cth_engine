@@ -27,7 +27,7 @@ namespace jvk {
  * - `recreate()` creates the next swapchain with the current one as the old swapchain, the old one retires
  * - a retired swapchain still presents its acquired images
  * - `acquire()` destroys the retired swapchains that finished their presents first
- * @attention not thread safe: the presenter orders its uses, see `Presenter`
+ * @attention not thread safe: the surface orders its uses, see `Surface`
  */
 class Swapchain {
 public:

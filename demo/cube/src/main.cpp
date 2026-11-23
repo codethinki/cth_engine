@@ -6,7 +6,7 @@
 #include "jvk/data/resource_heap.hpp"
 #include "jvk/data/sampler_heap.hpp"
 #include "jvk/graph/frame.hpp"
-#include "jvk/graph/presenter.hpp"
+#include "jvk/graph/surface.hpp"
 #include "jvk/graph/stage.hpp"
 #include "jvk/graph/stage_graph.hpp"
 
@@ -64,7 +64,7 @@ using enum cvk::QueueFamilyProperties;
 constexpr VkExtent2D WINDOW_EXTENT{800, 600};
 
 /**
- * format of the swapchain and the pipeline, fixed: the pipeline is declared before the presenter, see `run()`
+ * format of the swapchain and the pipeline, fixed: the pipeline is declared before the surface, see `run()`
  */
 constexpr VkSurfaceFormatKHR SURFACE_FORMAT{
     VK_FORMAT_B8G8R8A8_SRGB,
@@ -428,7 +428,7 @@ cth::co::executor_task<void> draw_frames(
     cgfw::Window& window,
     jvk::Core const& core,
     jvk::StageGraph& graph,
-    jvk::Presenter& presenter,
+    jvk::Surface& surface,
     cvk::GraphicsPipeline const& pipeline,
     Cube const& cube,
     timgui::Imgui& imgui,
@@ -455,7 +455,7 @@ cth::co::executor_task<void> draw_frames(
 
         auto& stage = (co_await graph.nextFrame()).stage(CUBE_STAGE_ID);
 
-        auto const image = co_await presenter.acquire(
+        auto const image = co_await surface.acquire(
             stage,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
         );
@@ -558,7 +558,7 @@ cth::co::executor_task<void> draw_frames(
  * creates the window, the vulkan objects, the cube and the pipeline, then draws until the window closes
  * @details the declaration order is the destruction order backwards:
  * - the cube, the pipeline, the ImGui and the targets live until `~StageGraph()` waited for the gpu
- * - the presenter is destroyed before the graph: its present jobs wait for the semaphores of the graph
+ * - the surface is destroyed before the graph: its present jobs wait for the semaphores of the graph
  */
 void run() {
     cvk::Cvk const cvk{};
@@ -574,13 +574,13 @@ void run() {
         cvk::create
     };
 
-    // the core picks a queue that presents to the surface, the presenter takes the surface
+    // the core picks a queue that presents to the surface, the jvk surface takes it
     // scalar block layout: the vertices and the push data of cube.glsl
-    auto surface = window.surface(instance);
+    auto windowSurface = window.surface(instance);
     jvk::Core core{
         instance,
         {.vk = {.queueProperties = {GRAPHICS | PRESENT}, .features = {.scalarBlockLayout = true}}},
-        {surface}
+        {windowSurface}
     };
     cvk::Core const& vk = core;
     auto const& limits = vk.physicalDevice().limits();
@@ -614,15 +614,15 @@ void run() {
 
     std::optional<Targets> targetsOpt{};
     jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
-    jvk::Presenter presenter{
+    jvk::Surface surface{
         core,
         core.queue(QUEUE_IDX),
         {.swapchain = {.formats = {SURFACE_FORMAT}}},
-        std::move(surface),
+        std::move(windowSurface),
     };
 
     core.executor().sync_wait(
-        draw_frames(window, core, graph, presenter, pipeline, cube, imgui, targetsOpt)
+        draw_frames(window, core, graph, surface, pipeline, cube, imgui, targetsOpt)
     );
 }
 }
