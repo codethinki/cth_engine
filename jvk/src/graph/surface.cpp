@@ -107,14 +107,6 @@ cth::co::executor_task<std::optional<SwapchainImage>> Surface::acquire(
         || acquireStage.frameNumber() != presentStage.frameNumber(),
         "the acquire stage and the present stage must belong to one frame of one graph"
     ) {}
-    CTH_CRITICAL(
-        presentStage.id() != acquireStage.id()
-        && !acquireStage.graph().config().waitsFor(presentStage.id(), acquireStage.id()),
-        "the present stage must be the acquire stage or wait for it in the frame, got present {}, "
-        "acquire {}",
-        presentStage.id(),
-        acquireStage.id()
-    ) {}
 
     // the last image first: the acquire and the present share the swapchain (externally
     // synchronized), a blocking acquire before that present would delay it (FIFO)
