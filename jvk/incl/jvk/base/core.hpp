@@ -116,11 +116,22 @@ public:
 
     /**
      * @param queueIdx index of the queue in `cvk::CoreConfig::queueProperties`
-     * @return serialized queue, the indices of one vulkan queue return the same object
+     * @return serialized queue, the indices of one vulkan queue return the same object, `const` for
+     *  a `const` core: the submits change the queue
      * @pre `created()`
      * @pre `queueIdx` < size of `cvk::CoreConfig::queueProperties`
      */
-    [[nodiscard]] Queue const& queue(size_t queueIdx) const;
+    template<class Self>
+    [[nodiscard]] auto& queue(this Self& self, size_t queueIdx) {
+        debug_check(self);
+        CTH_CRITICAL(
+            queueIdx >= self._queueIndices.size(),
+            "queue index must be < {}, got {}",
+            self._queueIndices.size(),
+            queueIdx
+        ) {}
+        return self._queues[self._queueIndices[queueIdx]];
+    }
 
     /**
      * @return executor of the workers

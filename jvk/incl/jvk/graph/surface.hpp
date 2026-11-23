@@ -93,13 +93,13 @@ public:
      * @details the queue presents the images
      * @pre the config passes `Config::debug_check()`
      */
-    Surface(Core const&, Queue const&, Config);
+    Surface(Core const&, Queue&, Config);
 
     /**
      * constructs and creates
-     * @details calls @ref Surface(Core const&, Queue const&, Config), `create()`
+     * @details calls @ref Surface(Core const&, Queue&, Config), `create()`
      */
-    Surface(Core const&, Queue const&, Config, cvk::Surface);
+    Surface(Core const&, Queue&, Config, cvk::Surface);
 
     /**
      * @note calls `optDestroy()`
@@ -239,7 +239,7 @@ private:
     [[nodiscard]] Swapchain::Config swapchainConfig() const;
 
     cth::ref_wrapper<Core const> _core;
-    cth::ref_wrapper<Queue const> _queue;
+    cth::ref_wrapper<Queue> _queue;
     Config _config;
 
     // destroyed after the swapchain

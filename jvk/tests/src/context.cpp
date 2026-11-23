@@ -48,7 +48,7 @@ namespace {
         return *shared;
     }
 
-    Core const& shared_core() {
+    Core& shared_core() {
         auto& contexts = shared_contexts();
         if(!contexts.core.has_value())
             contexts.core.emplace(contexts.instance, Context::CONFIG, NO_SURFACES);

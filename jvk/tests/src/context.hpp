@@ -74,7 +74,7 @@ struct Context {
     ValidationCheck validationCheck;
 
     cvk::Instance const& instance;
-    Core const& core;
+    Core& core;
 
     Context(Context const& other) = delete;
     Context(Context&& other) = delete;

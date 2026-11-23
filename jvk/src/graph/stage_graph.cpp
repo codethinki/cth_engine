@@ -301,7 +301,7 @@ cth::co::executor_task<void> StageGraph::submitJob(
 ) {
     auto& slotSubmit = stageSlot.slotSubmit;
     auto& info = stageSlot.submitInfo;
-    auto const& queue = *stageSlot.queue;
+    auto& queue = *stageSlot.queue;
 
     // the marks first, off the strand: a wait before the signal on one queue would block it, the appends follow the
     // dependency order
@@ -403,7 +403,7 @@ cth::co::executor_task<void> StageGraph::submitJob(
 
 void StageGraph::append(
     ResourceTracker const& recording,
-    Queue const& queue,
+    Queue& queue,
     cvk::Barrier& prologue,
     release_map_t& releases
 ) {
@@ -411,7 +411,7 @@ void StageGraph::append(
 
     // the last queue if it has another family, nullptr -> no last queue or the same family
     auto const otherFamilyQueue = [family
-        ](auto const& lastQueues, auto const& key) -> Queue const* {
+        ](auto const& lastQueues, auto const& key) -> Queue* {
         auto const it = lastQueues.find(key);
         if(it == lastQueues.end() || it->second->vk().familyIndex() == family)
             return nullptr;
@@ -430,7 +430,7 @@ void StageGraph::append(
             continue;
         }
 
-        auto const* lastQueuePtr = otherFamilyQueue(_imageQueues, image_mip_t{vkImage, mipLevel});
+        auto* const lastQueuePtr = otherFamilyQueue(_imageQueues, image_mip_t{vkImage, mipLevel});
         if(lastQueuePtr == nullptr || sharingMode != VK_SHARING_MODE_EXCLUSIVE)
             continue;
 
@@ -462,7 +462,7 @@ void StageGraph::append(
         if(!firstOpt.has_value() || !lastOpt.has_value())
             continue;
 
-        auto const* lastQueuePtr = otherFamilyQueue(_bufferQueues, vkBuffer);
+        auto* const lastQueuePtr = otherFamilyQueue(_bufferQueues, vkBuffer);
         if(lastQueuePtr == nullptr || sharingMode != VK_SHARING_MODE_EXCLUSIVE)
             continue;
 
@@ -478,10 +478,10 @@ void StageGraph::append(
     for(auto const& [vkImage, mipLevel, aspectMask, sharingMode] : recording.images())
         _imageQueues.insert_or_assign(
             image_mip_t{vkImage, mipLevel},
-            cth::ref_wrapper<Queue const>{queue}
+            cth::ref_wrapper<Queue>{queue}
         );
     for(auto const& [vkBuffer, sharingMode] : recording.buffers())
-        _bufferQueues.insert_or_assign(vkBuffer, cth::ref_wrapper<Queue const>{queue});
+        _bufferQueues.insert_or_assign(vkBuffer, cth::ref_wrapper<Queue>{queue});
 }
 
 void StageGraph::presentBarriers(dev::StageSlot& stageSlot) {
@@ -525,7 +525,7 @@ cth::co::executor_task<void> StageGraph::submitAndPresent(
     uint64_t frameNumber
 ) {
     auto& info = stageSlot.submitInfo;
-    auto const& queue = *stageSlot.queue;
+    auto& queue = *stageSlot.queue;
     auto const family = queue.vk().familyIndex();
     auto& presents = stageSlot.presents;
     auto& images = stageSlot.presentImages;
@@ -536,7 +536,7 @@ cth::co::executor_task<void> StageGraph::submitAndPresent(
     // submit in one strand job
     images.clear();
     groups.clear();
-    auto const addGroup = [&](Queue const& groupQueue) {
+    auto const addGroup = [&](Queue& groupQueue) {
         auto const first = images.size();
         for(auto const& present : presents)
             if(&present.queue() == &groupQueue)
@@ -547,7 +547,7 @@ cth::co::executor_task<void> StageGraph::submitAndPresent(
     if(std::ranges::contains(presents, &queue, queueOf))
         addGroup(queue);
     for(auto it = presents.begin(); it != presents.end(); ++it) {
-        auto const* queuePtr = &it->queue();
+        auto* const queuePtr = &it->queue();
         // the first present of a queue opens its group
         if(queuePtr != &queue && !std::ranges::contains(presents.begin(), it, queuePtr, queueOf))
             addGroup(*queuePtr);
@@ -585,7 +585,7 @@ cth::co::executor_task<void> StageGraph::submitAndPresent(
     // the presents on other queues after the submit
     SemaphoreSubmitInfo const submitted{.semaphore = stageSlot.semaphore, .value = frameNumber};
     for(auto& group : groups) {
-        auto const& groupQueue = *group.queue;
+        auto& groupQueue = *group.queue;
         if(&groupQueue == &queue)
             continue;
 

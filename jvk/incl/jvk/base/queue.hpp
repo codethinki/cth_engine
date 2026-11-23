@@ -106,7 +106,7 @@ public:
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      * @see `present()`
      */
-    [[nodiscard]] cth::co::executor_task<void> submit(SubmitInfo const&) const;
+    [[nodiscard]] cth::co::executor_task<void> submit(SubmitInfo const&);
 
     /**
      * submits the batch and presents the images in one strand job, then marks the jvk signals
@@ -131,7 +131,7 @@ public:
         SubmitInfo const&,
         std::span<PresentImage const> images,
         std::span<VkResult> results
-    ) const;
+    );
 
     /**
      * presents the images in one job of the strand, without a submit
@@ -148,12 +148,11 @@ public:
     [[nodiscard]] cth::co::executor_task<void> present(
         std::span<PresentImage const> images,
         std::span<VkResult> results
-    ) const;
+    );
 
     // an executor_task: the receiving submit job awaits it before its own submit, so the transfer
     // is submitted first and the counter only changes in the strand (returning at once needs a lock
     // around the value and the post)
-    // const like executor(): the core hands out Queue const&, the transfer members are mutable
     // returns the jvk SemaphoreSubmitInfo: it keeps the counter for Semaphore::submitted(), it
     // converts to the cvk one
     /**
@@ -180,7 +179,7 @@ public:
         cvk::Barrier barriers,
         std::span<SemaphoreSubmitInfo const> waits = {},
         std::span<cvk::SemaphoreSubmitInfo const> binarySignals = {}
-    ) const;
+    );
 
     /**
      * @return executor of the strand
@@ -213,7 +212,7 @@ private:
      * @pre the preconditions of `cvk::Queue::submit()`
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      */
-    void submitInStrand(SubmitInfo const&, std::span<PresentImage const> presents = {}) const;
+    void submitInStrand(SubmitInfo const&, std::span<PresentImage const> presents = {});
 
     /**
      * presents the images in one `cvk::Queue::rawPresent()`
@@ -222,7 +221,7 @@ private:
      * @pre the preconditions of `present()`
      * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
      */
-    void presentInStrand(std::span<PresentImage const> images, std::span<VkResult> results) const;
+    void presentInStrand(std::span<PresentImage const> images, std::span<VkResult> results);
 
     /**
      * command buffer of one transfer
@@ -240,38 +239,38 @@ private:
      * @details reads the counter, no wait
      * @pre runs in the strand
      */
-    [[nodiscard]] TransferCmd& freeTransferCmd() const;
+    [[nodiscard]] TransferCmd& freeTransferCmd();
 
     cth::ref_wrapper<Core const> _core;
     cth::ref_wrapper<cvk::Queue const> _queue;
     cth::ref_wrapper<cth::co::scheduler const> _scheduler;
     cth::co::strand _strand;
 
-    mutable std::deque<TransferCmd> _transferCmds{}; ///< used in the strand only
+    std::deque<TransferCmd> _transferCmds{}; ///< used in the strand only
     /** the submit of `transfer()`, used in the strand only: it keeps its capacity */
-    mutable SubmitInfo _transferInfo{};
+    SubmitInfo _transferInfo{};
 
     // members, no locals: submitInStrand() refills them, they keep their capacity
     /** the command buffers of the submit in `submitInStrand()`, used in the strand only */
-    mutable std::vector<VkCommandBufferSubmitInfo> _cmdBufferInfos{};
+    std::vector<VkCommandBufferSubmitInfo> _cmdBufferInfos{};
     /** the waits of the submit in `submitInStrand()`, used in the strand only */
-    mutable std::vector<VkSemaphoreSubmitInfo> _waitInfos{};
+    std::vector<VkSemaphoreSubmitInfo> _waitInfos{};
     /** the signals of the submit in `submitInStrand()`, used in the strand only */
-    mutable std::vector<VkSemaphoreSubmitInfo> _signalInfos{};
+    std::vector<VkSemaphoreSubmitInfo> _signalInfos{};
 
     // members, no locals: presentInStrand() refills them, they keep their capacity
     /** the swapchains of the present in `presentInStrand()`, used in the strand only */
-    mutable std::vector<VkSwapchainKHR> _presentSwapchains{};
+    std::vector<VkSwapchainKHR> _presentSwapchains{};
     /** the image indices of the present in `presentInStrand()`, used in the strand only */
-    mutable std::vector<uint32_t> _presentImageIndices{};
+    std::vector<uint32_t> _presentImageIndices{};
     /** the present semaphores of the present in `presentInStrand()`, used in the strand only */
-    mutable std::vector<VkSemaphore> _presentWaits{};
+    std::vector<VkSemaphore> _presentWaits{};
     /** the present fences of the present in `presentInStrand()`, used in the strand only */
-    mutable std::vector<VkFence> _presentFences{};
+    std::vector<VkFence> _presentFences{};
 
     //TODO review the counter decides the reuse of the transfer command buffers, no reactor wait: a
     // transfer reads it
-    mutable Semaphore _transferred; ///< the transfer counter, raised by each transfer submit
+    Semaphore _transferred; ///< the transfer counter, raised by each transfer submit
 
 public:
     Queue(Queue const& other) = delete;
@@ -296,7 +295,7 @@ namespace jvk::dev {
  * @pre the info lives until the end of the task, nothing changes it
  */
 [[nodiscard]] cth::co::executor_task<void> skip_submit(
-    Queue const& queue,
+    Queue& queue,
     SubmitInfo const& info,
     cth::co::catching_scope& jobs
 );

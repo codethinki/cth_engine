@@ -65,7 +65,7 @@ StageSlot::StageSlot(
     cth::co::catching_scope& jobs,
     size_t stageId,
     size_t slot,
-    Queue const& queue,
+    Queue& queue,
     size_t secondaries
 ) :
     graph{graph},

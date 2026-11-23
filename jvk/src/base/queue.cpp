@@ -43,7 +43,7 @@ void Queue::waitIdle() const {
     );
 }
 
-cth::co::executor_task<void> Queue::submit(SubmitInfo const& info) const {
+cth::co::executor_task<void> Queue::submit(SubmitInfo const& info) {
     co_await executor().schedule();
 
     submitInStrand(info);
@@ -54,7 +54,7 @@ cth::co::executor_task<void> Queue::present(
     SubmitInfo const& info,
     span<PresentImage const> images,
     span<VkResult> results
-) const {
+) {
     // no suspension between the submit and the present: the presents follow the order of the
     // submits
     co_await executor().schedule();
@@ -73,7 +73,7 @@ cth::co::executor_task<void> Queue::present(
 cth::co::executor_task<void> Queue::present(
     span<PresentImage const> images,
     span<VkResult> results
-) const {
+) {
     co_await executor().schedule();
     presentInStrand(images, results);
 }
@@ -82,7 +82,7 @@ cth::co::executor_task<SemaphoreSubmitInfo> Queue::transfer(
     cvk::Barrier barriers,
     span<SemaphoreSubmitInfo const> waits,
     span<cvk::SemaphoreSubmitInfo const> binarySignals
-) const {
+) {
     // all in the strand: it serializes the transfer command buffers, the counter values follow the
     // submit order
     co_await executor().schedule();
@@ -110,7 +110,7 @@ cth::co::executor_task<SemaphoreSubmitInfo> Queue::transfer(
     co_return signal;
 }
 
-void Queue::submitInStrand(SubmitInfo const& info, span<PresentImage const> presents) const {
+void Queue::submitInStrand(SubmitInfo const& info, span<PresentImage const> presents) {
     _cmdBufferInfos.clear();
     for(PrimaryCmdBuffer const& cmdBuffer : info.cmdBuffers)
         _cmdBufferInfos.push_back(cvk::cmd_buffer_submit_info(cmdBuffer));
@@ -145,7 +145,7 @@ void Queue::submitInStrand(SubmitInfo const& info, span<PresentImage const> pres
     );
 }
 
-void Queue::presentInStrand(span<PresentImage const> images, span<VkResult> results) const {
+void Queue::presentInStrand(span<PresentImage const> images, span<VkResult> results) {
     CTH_CRITICAL(
         results.size() != images.size(),
         "one result per image, got {} results for {} images",
@@ -185,7 +185,7 @@ void Queue::presentInStrand(span<PresentImage const> images, span<VkResult> resu
     ));
 }
 
-auto Queue::freeTransferCmd() const -> TransferCmd& {
+auto Queue::freeTransferCmd() -> TransferCmd& {
     auto const reached = _transferred.gpuValue();
 
     auto const it = std::ranges::find_if(
@@ -202,7 +202,7 @@ auto Queue::freeTransferCmd() const -> TransferCmd& {
 
 namespace dev {
     cth::co::executor_task<void> skip_submit(
-        Queue const& queue,
+        Queue& queue,
         SubmitInfo const& info,
         cth::co::catching_scope& jobs
     ) {

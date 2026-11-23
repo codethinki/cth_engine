@@ -794,7 +794,7 @@ JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
     EXPECT_TRUE(counts(bufferReadback));
 
     // one release on the writer queue for both: the next release gets the second value of its counter
-    auto const& writerQueue = core.queue(0);
+    auto& writerQueue = core.queue(0);
     auto const next = core.executor().sync_wait(writerQueue.transfer(cvk::Barrier{}));
     EXPECT_EQ(next.value, 2);
     writerQueue.waitIdle();
@@ -803,7 +803,7 @@ JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
 JVK_TEST(StageGraph, erase_removes_the_state_and_the_last_queue_of_an_image) {
     test::Context const context{};
     Core core{context.instance, two_families(), {}};
-    auto const& firstQueue = core.queue(0);
+    auto& firstQueue = core.queue(0);
     if(firstQueue.vk().familyIndex() == core.queue(1).vk().familyIndex())
         GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
     StageGraph graph{core, {.stages = {{.queueIdx = 0}, {.queueIdx = 1}}}};

@@ -86,7 +86,7 @@ public:
     PendingPresent(
         PresentState& state,
         uint64_t value,
-        Queue const& queue,
+        Queue& queue,
         cvk::Swapchain& swapchain,
         uint32_t imageIdx
     ) :
@@ -118,7 +118,7 @@ public:
         _state.reset();
     }
 
-    [[nodiscard]] Queue const& queue() const { return *_queue; }
+    [[nodiscard]] Queue& queue() const { return *_queue; }
     [[nodiscard]] PresentImage image() const { return {_swapchain, _imageIdx}; }
 
     /**
@@ -128,7 +128,7 @@ public:
 
 private:
     std::unique_ptr<PresentState, present_dropper> _state; ///< `nullptr` -> resolved or moved from
-    cth::ref_wrapper<Queue const> _queue;
+    cth::ref_wrapper<Queue> _queue;
     cth::ref_wrapper<cvk::Swapchain> _swapchain;
     uint32_t _imageIdx;
 

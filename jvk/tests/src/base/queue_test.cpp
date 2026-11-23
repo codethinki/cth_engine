@@ -199,7 +199,7 @@ namespace {
 
 JVK_TEST(Queue, jobs_of_two_coroutines_never_overlap) {
     test::Context const context{};
-    auto const& queue = context.core.queue(0);
+    auto& queue = context.core.queue(0);
     StrandJobs jobs{};
 
     std::jthread other{
@@ -232,7 +232,7 @@ JVK_TEST(Queue, strand_runs_on_the_driver_threads) {
 
 JVK_TEST(Queue, wait_idle_waits_for_the_submits) {
     test::Context const context{};
-    auto const& queue = context.core.queue(0);
+    auto& queue = context.core.queue(0);
     cvk::TimelineSemaphore const semaphore{context.core, cvk::create};
 
     queue.executor().sync_wait(signal(queue, semaphore));
@@ -262,9 +262,9 @@ JVK_TEST(Queue, a_moved_queue_runs_its_strand) {
 
 JVK_TEST(Queue, release_transfers_an_image_to_another_family) {
     test::Context const context{};
-    Core const core{context.instance, two_families(), {}};
-    auto const& owner = core.queue(0);
-    auto const& receiver = core.queue(1);
+    Core core{context.instance, two_families(), {}};
+    auto& owner = core.queue(0);
+    auto& receiver = core.queue(1);
     auto const ownerFamily = owner.vk().familyIndex();
     auto const receiverFamily = receiver.vk().familyIndex();
     if(ownerFamily == receiverFamily)
@@ -335,9 +335,9 @@ JVK_TEST(Queue, release_transfers_an_image_to_another_family) {
 
 JVK_TEST(Queue, transfer_of_the_acquire_half_waits_and_signals) {
     test::Context const context{};
-    Core const core{context.instance, two_families(), {}};
-    auto const& owner = core.queue(0);
-    auto const& receiver = core.queue(1);
+    Core core{context.instance, two_families(), {}};
+    auto& owner = core.queue(0);
+    auto& receiver = core.queue(1);
     auto const ownerFamily = owner.vk().familyIndex();
     auto const receiverFamily = receiver.vk().familyIndex();
     if(ownerFamily == receiverFamily)
@@ -410,9 +410,9 @@ JVK_TEST(Queue, transfer_of_the_acquire_half_waits_and_signals) {
 JVK_TEST(Queue, several_releases_in_a_row) {
     constexpr size_t RELEASES = 4;
     test::Context const context{};
-    Core const core{context.instance, two_families(), {}};
-    auto const& owner = core.queue(0);
-    auto const& receiver = core.queue(1);
+    Core core{context.instance, two_families(), {}};
+    auto& owner = core.queue(0);
+    auto& receiver = core.queue(1);
     auto const ownerFamily = owner.vk().familyIndex();
     auto const receiverFamily = receiver.vk().familyIndex();
     if(ownerFamily == receiverFamily)
@@ -493,7 +493,7 @@ JVK_TEST(Queue, several_releases_in_a_row) {
 
 JVK_TEST(Queue, submit_marks_the_jvk_signals) {
     test::Context const context{};
-    auto const& queue = context.core.queue(0);
+    auto& queue = context.core.queue(0);
     Semaphore const first{context.core, cvk::create};
     Semaphore const second{context.core, cvk::create};
 
@@ -511,7 +511,7 @@ JVK_TEST(Queue, submit_marks_the_jvk_signals) {
 
 JVK_TEST(Queue, submit_waits_for_the_jvk_and_the_binary_waits) {
     test::Context const context{};
-    auto const& queue = context.core.queue(0);
+    auto& queue = context.core.queue(0);
     cvk::Semaphore const binary{context.core, cvk::create};
     Semaphore const gate{context.core, cvk::create};
     Semaphore const done{context.core, cvk::create};
@@ -536,7 +536,7 @@ JVK_TEST(Queue, submit_waits_for_the_jvk_and_the_binary_waits) {
 
 JVK_TEST(Queue, skip_submit_marks_through_the_submit) {
     test::Context const context{};
-    auto const& queue = context.core.queue(0);
+    auto& queue = context.core.queue(0);
     Semaphore const semaphore{context.core, cvk::create};
     cth::co::catching_scope jobs{};
 
@@ -555,8 +555,8 @@ JVK_TEST(Queue, present_submits_presents_and_marks) {
     std::optional<Core> coreOpt{};
     if(!create_present_core(coreOpt, context, surface))
         GTEST_SKIP() << "no device presents to a headless surface";
-    auto const& core = *coreOpt;
-    auto const& queue = core.queue(0);
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
 
     Swapchain swapchain{core, queue.vk(), surface};
     swapchain.create({}, EXTENT);
@@ -615,8 +615,8 @@ JVK_TEST(Queue, present_of_two_swapchains_in_one_call) {
     std::optional<Core> coreOpt{};
     if(!create_present_core(coreOpt, context, firstSurface))
         GTEST_SKIP() << "no device presents to a headless surface";
-    auto const& core = *coreOpt;
-    auto const& queue = core.queue(0);
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
 
     Swapchain first{core, queue.vk(), firstSurface};
     first.create({}, EXTENT);
@@ -680,8 +680,8 @@ JVK_TEST(Queue, present_without_a_submit_after_the_submit_of_the_present_semapho
     std::optional<Core> coreOpt{};
     if(!create_present_core(coreOpt, context, surface))
         GTEST_SKIP() << "no device presents to a headless surface";
-    auto const& core = *coreOpt;
-    auto const& queue = core.queue(0);
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
 
     Swapchain swapchain{core, queue.vk(), surface};
     swapchain.create({}, EXTENT);

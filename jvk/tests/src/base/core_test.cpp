@@ -146,7 +146,7 @@ JVK_TEST(Core, a_base_constructed_core_moves_then_creates_and_works) {
 
     // the queues, the reactor and the workers of the moved core
     Semaphore const semaphore{other, cvk::create};
-    auto task = [](Core const& c, Semaphore const& s) -> cth::co::executor_task<bool> {
+    auto task = [](Core& c, Semaphore const& s) -> cth::co::executor_task<bool> {
         co_await c.queue(0).submit({.signals = {{.semaphore = s, .value = 1}}});
         co_await s.wait(1);
         co_return c.executor().context().owns_thread();

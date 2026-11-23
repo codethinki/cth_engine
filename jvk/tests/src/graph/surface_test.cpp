@@ -937,7 +937,7 @@ JVK_TEST(Surface, present_queue_of_another_family) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
     auto const& stageQueue = core.queue(0);
-    auto const& surfaceQueue = core.queue(1);
+    auto& surfaceQueue = core.queue(1);
     if(stageQueue.vk().familyIndex() == surfaceQueue.vk().familyIndex())
         GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
 

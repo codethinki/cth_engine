@@ -119,17 +119,6 @@ void Core::destroy() {
     _corePtr->destroy();
 }
 
-Queue const& Core::queue(size_t queueIdx) const {
-    debug_check(*this);
-    CTH_CRITICAL(
-        queueIdx >= _queueIndices.size(),
-        "queue index must be < {}, got {}",
-        _queueIndices.size(),
-        queueIdx
-    ) {}
-    return _queues[_queueIndices[queueIdx]];
-}
-
 ResourceHeap const& Core::resourceHeap() const {
     debug_check(*this);
     CTH_CRITICAL(

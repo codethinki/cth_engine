@@ -29,14 +29,14 @@ namespace {
     }
 }
 
-Surface::Surface(Core const& core, Queue const& queue, Config config) :
+Surface::Surface(Core const& core, Queue& queue, Config config) :
     _core{core},
     _queue{queue},
     _config{std::move(config)},
     _surface{static_cast<cvk::Core const&>(core).instance()},
     _swapchain{core, queue.vk(), _surface} { Config::debug_check(_config); }
 
-Surface::Surface(Core const& core, Queue const& queue, Config config, cvk::Surface surface) :
+Surface::Surface(Core const& core, Queue& queue, Config config, cvk::Surface surface) :
     Surface{core, queue, std::move(config)} { create(std::move(surface)); }
 
 void Surface::create(cvk::Surface surface) {

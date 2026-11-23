@@ -169,9 +169,9 @@ private:
     using image_mip_t = std::pair<VkImage, uint32_t>;
 
     template<class Key>
-    using last_queue_map_t = cth::dt::flat_hash_map<Key, cth::ref_wrapper<Queue const>>;
+    using last_queue_map_t = cth::dt::flat_hash_map<Key, cth::ref_wrapper<Queue>>;
 
-    using release_map_t = cth::dt::flat_hash_map<Queue const*, cvk::Barrier>;
+    using release_map_t = cth::dt::flat_hash_map<Queue*, cvk::Barrier>;
 
     /**
      * skips the stages of the frame in the slot without `Stage::submit()` or `Stage::skip()`
@@ -252,7 +252,7 @@ private:
      */
     void append(
         ResourceTracker const& recording,
-        Queue const& queue,
+        Queue& queue,
         cvk::Barrier& prologue,
         release_map_t& releases
     );

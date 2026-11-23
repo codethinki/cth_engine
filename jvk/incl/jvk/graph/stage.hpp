@@ -99,7 +99,7 @@ struct SlotSubmit {
  * @see `StageSlot::presentImages`
  */
 struct PresentGroup {
-    cth::ref_wrapper<Queue const> queue; ///< the queue of the surfaces of the images
+    cth::ref_wrapper<Queue> queue; ///< the queue of the surfaces of the images
 
     size_t first; ///< index of the first image in `StageSlot::presentImages`
     size_t count; ///< of the images
@@ -143,7 +143,7 @@ struct StageSlot {
         cth::co::catching_scope& jobs,
         size_t stageId,
         size_t slot,
-        Queue const& queue,
+        Queue& queue,
         size_t secondaries
     );
 
@@ -155,7 +155,7 @@ struct StageSlot {
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
     size_t slot;
-    cth::ref_wrapper<Queue const> queue;
+    cth::ref_wrapper<Queue> queue;
 
     /**
      * the heaps of the core that the stage binds and that its secondaries inherit
