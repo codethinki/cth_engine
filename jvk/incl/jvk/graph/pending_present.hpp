@@ -127,7 +127,7 @@ public:
     [[nodiscard]] cvk::Image const& swapchainImage() const { return _swapchain->image(_imageIdx); }
 
 private:
-    std::unique_ptr<PresentState, present_dropper> _state; // `nullptr` -> resolved or moved from
+    std::unique_ptr<PresentState, present_dropper> _state; ///< `nullptr` -> resolved or moved from
     cth::ref_wrapper<Queue> _queue;
     cth::ref_wrapper<cvk::Swapchain> _swapchain;
     uint32_t _imageIdx;

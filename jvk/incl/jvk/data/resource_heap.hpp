@@ -173,16 +173,16 @@ private:
     template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
     void erase(uint32_t idx) const;
 
-    // the caller holds `_mutexPtr`
+    /** the caller holds `_mutexPtr` */
     template<cvk::descriptor_of<cvk::ResourceHeap> Descriptor>
     [[nodiscard]] dev::free_list& freeList() const;
 
     // behind a std::unique_ptr: the mutex is not movable, the moves stay = default
     std::unique_ptr<std::mutex> _mutexPtr = std::make_unique<std::mutex>();
-    mutable cvk::ResourceHeap _vk; // written under `_mutexPtr`
-    mutable dev::free_list _sampledImages; // under `_mutexPtr`
-    mutable dev::free_list _storageImages; // under `_mutexPtr`
-    mutable dev::free_list _inputAttachments; // under `_mutexPtr`
+    mutable cvk::ResourceHeap _vk; ///< written under `_mutexPtr`
+    mutable dev::free_list _sampledImages; ///< under `_mutexPtr`
+    mutable dev::free_list _storageImages; ///< under `_mutexPtr`
+    mutable dev::free_list _inputAttachments; ///< under `_mutexPtr`
 
 public:
     ResourceHeap(ResourceHeap const& other) = delete;

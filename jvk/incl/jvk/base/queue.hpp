@@ -211,8 +211,7 @@ private:
     struct TransferCmd {
         PrimaryCmdBuffer cmd;
 
-        // free once the transfer counter reached it
-        uint64_t value = 0;
+        uint64_t value = 0; ///< free once the transfer counter reached it
     };
 
     [[nodiscard]] TransferCmd& freeTransferCmd();
@@ -248,7 +247,7 @@ public:
 }
 
 namespace jvk::dev {
-// terminates on a failure other than a device loss: the waiters of the signals would hang
+/** terminates on a failure other than a device loss: the waiters of the signals would hang */
 [[nodiscard]] cth::co::executor_task<void> skip_submit(
     Queue& queue,
     SubmitInfo const& info,

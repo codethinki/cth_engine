@@ -53,7 +53,7 @@ concept descriptor_of = descriptor<T> && std::same_as<heap_of_t<T>, Heap>;
 }
 
 namespace cvk::dev {
-// image descriptors with `Sampled` 2: with and without `NonWritable`
+/** image descriptors with `Sampled` 2: with and without `NonWritable` */
 template<descriptor T>
 inline constexpr VkSpirvResourceTypeFlagsEXT resource_mask = [] {
     if constexpr(std::same_as<T, SampledImageDescriptor>)

@@ -199,7 +199,7 @@ private:
     std::optional<Memory> _memoryOpt = std::nullopt;
     Config _config;
     size_t _size = 0;
-    // `0` -> the usage has no `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT`
+    /** `0` -> the usage has no `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT` */
     VkDeviceAddress _address = 0;
 
 public:

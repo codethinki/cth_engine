@@ -96,7 +96,7 @@ public:
     reference const& operator=(Descriptor const& descriptor) const;
 
 private:
-    DescriptorSpan _span; // a copy: the reference outlives a temporary span
+    DescriptorSpan _span; ///< a copy: the reference outlives a temporary span
     uint32_t _idx;
 
 public:

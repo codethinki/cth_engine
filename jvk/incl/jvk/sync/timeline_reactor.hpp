@@ -104,13 +104,13 @@ private:
 
     void run(std::stop_token);
 
-    // the caller holds `_mutexPtr`
+    /** the caller holds `_mutexPtr` */
     void wake() const;
 
-    // the caller holds `_mutexPtr`
+    /** the caller holds `_mutexPtr` */
     void fail(std::error_code, std::vector<cth::ref_wrapper<Waiter>>& waiters) const;
 
-    // the caller holds no lock of the reactor
+    /** the caller holds no lock of the reactor */
     static void post(std::span<cth::ref_wrapper<Waiter> const> waiters);
 
     mutable cvk::TimelineSemaphore _wake;

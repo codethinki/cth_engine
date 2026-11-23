@@ -48,10 +48,10 @@ public:
     constexpr bool set(ImGuiKey key, bool down);
 
 private:
-    // the left keys, then the right keys
+    /** the left keys, then the right keys */
     static constexpr size_t SIDE_KEYS = ImGuiKey_RightCtrl - ImGuiKey_LeftCtrl;
 
-    std::array<bool, 2 * SIDE_KEYS> _down{}; // from `ImGuiKey_LeftCtrl` to `ImGuiKey_RightSuper`
+    std::array<bool, 2 * SIDE_KEYS> _down{}; ///< from `ImGuiKey_LeftCtrl` to `ImGuiKey_RightSuper`
 };
 
 /**

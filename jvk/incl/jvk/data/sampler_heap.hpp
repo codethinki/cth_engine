@@ -90,10 +90,10 @@ private:
 
     // behind a std::unique_ptr: the mutex is not movable, the moves stay = default
     std::unique_ptr<std::mutex> _mutexPtr = std::make_unique<std::mutex>();
-    mutable cvk::SamplerHeap _vk; // written under `_mutexPtr`
-    mutable dev::free_list _cells; // under `_mutexPtr`
-    mutable cth::dt::flat_hash_map<cvk::SamplerConfig, uint32_t> _indices{}; // under `_mutexPtr`
-    mutable std::vector<slot> _slots; // one per cell, under `_mutexPtr`
+    mutable cvk::SamplerHeap _vk; ///< written under `_mutexPtr`
+    mutable dev::free_list _cells; ///< under `_mutexPtr`
+    mutable cth::dt::flat_hash_map<cvk::SamplerConfig, uint32_t> _indices{}; ///< under `_mutexPtr`
+    mutable std::vector<slot> _slots; ///< one per cell, under `_mutexPtr`
 
 public:
     SamplerHeap(SamplerHeap const& other) = delete;

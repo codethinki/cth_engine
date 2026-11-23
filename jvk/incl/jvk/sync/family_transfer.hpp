@@ -10,7 +10,7 @@
 
 
 namespace jvk::dev {
-// waits for the release wait of the submit
+/** waits for the release wait of the submit */
 constexpr cvk::BarrierScope ACQUIRE_SRC{.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT};
 
 [[nodiscard]] constexpr cvk::ImageBarrierInfo release_half(
@@ -31,7 +31,7 @@ constexpr cvk::BarrierScope ACQUIRE_SRC{.stages = VK_PIPELINE_STAGE_2_ALL_COMMAN
     };
 }
 
-// the layouts of `release_half()`: both halves of a transfer have the same layouts
+/** the layouts of `release_half()`: both halves of a transfer have the same layouts */
 [[nodiscard]] constexpr cvk::ImageBarrierInfo acquire_half(
     ImageState const& last,
     ImageState const& first,

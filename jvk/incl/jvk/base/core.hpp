@@ -180,7 +180,7 @@ public:
 private:
     void createQueues();
 
-    // the queues first: the driver threads run their strands
+    /** the queues first: the driver threads run their strands */
     void destroyQueues();
 
     Config _config;
@@ -199,12 +199,13 @@ private:
     // destroyed after the queues: their strands run on it
     std::optional<cth::co::scheduler> _driverSchedulerOpt{};
     // destroyed before the reactor, the workers and the cvk core
-    std::vector<Queue> _queues{}; // one per vulkan queue: the indices of one vulkan queue share it
-    // index in `_queues` per index of `cvk::CoreConfig::queueProperties`
+    /** one per vulkan queue: the indices of one vulkan queue share it */
+    std::vector<Queue> _queues{};
+    /** index in `_queues` per index of `cvk::CoreConfig::queueProperties` */
     std::vector<size_t> _queueIndices{};
 
     // destroyed before the cvk core
-    ResourceHeap _resourceHeap; // not created without counts, see `HeapsConfig`
+    ResourceHeap _resourceHeap; ///< not created without counts, see `HeapsConfig`
     // the sampler heap needs the created cvk core, no heap without counts
     std::optional<SamplerHeap> _samplerHeapOpt{};
 

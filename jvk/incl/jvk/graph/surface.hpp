@@ -218,8 +218,10 @@ public:
     }
 
 private:
-    // a recreation erases the old images in the graph first: the new images can reuse their
-    // handles; only when no present uses the swapchain
+    /**
+     * a recreation erases the old images in the graph first: the new images can reuse their handles
+     * only when no present uses the swapchain
+     */
     void updateSwapchain(VkExtent2D extent, StageGraph* graphPtr);
 
     [[nodiscard]] Swapchain::Config swapchainConfig() const;
@@ -231,8 +233,7 @@ private:
     // destroyed after the swapchain
     cvk::Surface _surface;
 
-    // the resolve of the last image orders its uses
-    Swapchain _swapchain;
+    Swapchain _swapchain; ///< the resolve of the last image orders its uses
 
     std::vector<cvk::Semaphore> _acquireSemaphores{};
 
@@ -240,8 +241,7 @@ private:
 
     dev::PresentState _presentState{};
 
-    // `0` -> none
-    uint64_t _lastValue = 0;
+    uint64_t _lastValue = 0; ///< `0` -> none
 
     uint32_t _lastImageIdx = 0;
 

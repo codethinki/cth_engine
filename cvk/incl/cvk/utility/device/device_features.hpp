@@ -181,7 +181,7 @@ struct DeviceFeatures {
 }
 
 namespace cvk::dev {
-// every field of `DeviceFeatures` is a bool without padding
+/** every field of `DeviceFeatures` is a bool without padding */
 inline constexpr size_t FEATURE_COUNT = sizeof(DeviceFeatures);
 
 using feature_bits_t = std::array<bool, FEATURE_COUNT>;

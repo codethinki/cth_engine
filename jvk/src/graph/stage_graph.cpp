@@ -43,7 +43,7 @@ namespace {
         .scope = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
     };
 
-    // `src` waits for the stages of the first use, no access: like `cvk::layout_transition()`
+    /** `src` waits for the stages of the first use, no access: like `cvk::layout_transition()` */
     [[nodiscard]] constexpr cvk::ImageBarrierInfo from_undefined(
         ImageState const& first,
         uint32_t mipLevel

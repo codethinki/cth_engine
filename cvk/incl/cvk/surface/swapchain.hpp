@@ -287,7 +287,9 @@ public:
 private:
     // the element wrappers: = default moves of the swapchain tear down in the member order, the
     // swapchain destroys its images itself, the present fences must signal before their destruction
-    // the destruction releases the image, it does not destroy it: the swapchain destroys its images
+    /**
+     * the destruction releases the image, it does not destroy it: the swapchain destroys its images
+     */
     struct ReleasingImage {
         explicit ReleasingImage(Image image) : image{std::move(image)} {}
         ~ReleasingImage() {
@@ -302,7 +304,7 @@ private:
         ReleasingImage& operator=(ReleasingImage&& other) noexcept = default;
     };
 
-    // the destruction waits for the present that signals the fence
+    /** the destruction waits for the present that signals the fence */
     struct WaitingFence {
         explicit WaitingFence(Fence fence) : fence{std::move(fence)} {}
         ~WaitingFence() {

@@ -45,7 +45,7 @@
 
 namespace timgui::dev {
 namespace {
-    // one `Frame` in the program: ImGui keeps the current context in a global
+    /** one `Frame` in the program: ImGui keeps the current context in a global */
     bool frameExists = false;
 }
 
@@ -130,7 +130,7 @@ struct ImguiState {
 
 namespace timgui {
 namespace {
-    constexpr float FIRST_DELTA_TIME = 1.f / 60.f; // seconds, ImGui needs a positive time
+    constexpr float FIRST_DELTA_TIME = 1.f / 60.f; ///< seconds, ImGui needs a positive time
 
     constexpr cvk::ImageConfig TEXTURE_CONFIG{
         .format = VK_FORMAT_R8G8B8A8_UNORM,
@@ -159,7 +159,7 @@ namespace {
         .maxAnisotropy = 0.f,
     };
 
-    // the alpha of the attachment gets the coverage of the draws
+    /** the alpha of the attachment gets the coverage of the draws */
     constexpr VkPipelineColorBlendAttachmentState BLENDING{
         .blendEnable = VK_TRUE,
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
@@ -180,7 +180,7 @@ namespace {
         ImPlot::SetCurrentContext(state.plotContext.get());
     }
 
-    // `+ 1`: `ImTextureID_Invalid` is `0`, the heap index `0` is a valid cell
+    /** `+ 1`: `ImTextureID_Invalid` is `0`, the heap index `0` is a valid cell */
     [[nodiscard]] constexpr ImTextureID to_texture_id(jvk::heap_idx<jvk::SampledImage> idx) {
         return ImTextureID{idx.get()} + 1;
     }
@@ -211,7 +211,7 @@ namespace {
         };
     }
 
-    // the config of the pipeline keeps the destroyed shaders: no second `create()`
+    /** the config of the pipeline keeps the destroyed shaders: no second `create()` */
     [[nodiscard]] cvk::GraphicsPipeline create_pipeline(
         jvk::Core const& core,
         Imgui::Config const& config

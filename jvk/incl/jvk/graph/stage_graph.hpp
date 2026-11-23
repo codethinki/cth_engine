@@ -190,7 +190,7 @@ private:
         Stage::Status targetStatus
     );
 
-    // the caller holds `_statesMutex`
+    /** the caller holds `_statesMutex` */
     void append(
         ResourceTracker const& recording,
         Queue& queue,
@@ -203,19 +203,19 @@ private:
         release_map_t releases
     );
 
-    // the caller holds `_statesMutex`, after `append()`
+    /** the caller holds `_statesMutex`, after `append()` */
     void presentBarriers(dev::StageSlot&);
 
-    // throws only for a failed submit: nothing is presented or resolved then
+    /** throws only for a failed submit: nothing is presented or resolved then */
     [[nodiscard]] cth::co::executor_task<void> submitAndPresent(
         dev::StageSlot&,
         uint64_t frameNumber
     );
 
-    // the caller holds `_statesMutex`
+    /** the caller holds `_statesMutex` */
     void eraseStates(VkImage, uint32_t mipLevels);
 
-    // the caller holds `_statesMutex`
+    /** the caller holds `_statesMutex` */
     void eraseStates(VkBuffer);
 
     static void endPrimary(PrimaryCmdBuffer&);
@@ -225,8 +225,7 @@ private:
 
     std::deque<dev::FrameSlot> _frameSlots{};
 
-    // locks `_states`, `_imageQueues` and `_bufferQueues`
-    std::mutex _statesMutex{};
+    std::mutex _statesMutex{}; ///< locks `_states`, `_imageQueues` and `_bufferQueues`
 
     ResourceTracker _states{};
 

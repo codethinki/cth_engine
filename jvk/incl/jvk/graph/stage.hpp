@@ -481,8 +481,7 @@ private:
     uint64_t _frameNumber;
     Status _status = Status::UNSUBMITTED;
 
-    // under `StageSlot::stasisMutex`
-    dev::RetainedResources _retained{};
+    dev::RetainedResources _retained{}; ///< under `StageSlot::stasisMutex`
 
 public:
     Stage(Stage const& other) = delete;
