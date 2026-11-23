@@ -906,6 +906,30 @@ JVK_TEST(Surface, acquire_for_a_submitted_present_stage_crashes) {
     );
     frame[SCENE].skip();
 }
+
+JVK_TEST(Surface, acquire_for_a_present_stage_that_does_not_wait_for_the_acquire_stage_crashes) {
+    // the child runs the test again: the parent has device threads
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, scene_and_ui()};
+
+    // the scene stage does not wait for the ui stage
+    auto& frame = next_frame(core, graph);
+    ASSERT_DEATH(
+        [[maybe_unused]]
+        auto const image = acquire(core, surface, frame[UI], frame[SCENE]),
+        "the present stage must be the acquire stage or wait for it"
+    );
+    frame[SCENE].skip();
+    frame[UI].skip();
+}
 #endif
 
 JVK_TEST(Surface, present_queue_of_the_same_family) {

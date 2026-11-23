@@ -51,6 +51,15 @@ struct StageGraphConfig {
     size_t frameSlots = 2;
 
     /**
+     * checks if a stage waits for another stage in the frame, directly or through other stages
+     * @details only the waits with `frameOffset == 0`
+     * @param waiterId id of the waiting stage
+     * @param waitedId id of the waited stage
+     * @pre `debug_check()` passes
+     */
+    [[nodiscard, gnu::pure]] constexpr bool waitsFor(size_t waiterId, size_t waitedId) const;
+
+    /**
      * checks the config
      * @details checks:
      * - the waits name stages of the config
@@ -61,6 +70,15 @@ struct StageGraphConfig {
 }
 
 namespace jvk {
+constexpr bool StageGraphConfig::waitsFor(size_t waiterId, size_t waitedId) const {
+    // gnu::pure: a release CTH_CRITICAL drops the call, the compilers do not prove that a
+    // recursion returns
+    for(auto const& wait : stages[waiterId].waits)
+        if(wait.frameOffset == 0 && (wait.stageId == waitedId || waitsFor(wait.stageId, waitedId)))
+            return true;
+    return false;
+}
+
 constexpr void StageGraphConfig::debug_check(StageGraphConfig const& config) {
     CTH_CRITICAL(config.frameSlots == 0, "frameSlots must be > 0") {}
 

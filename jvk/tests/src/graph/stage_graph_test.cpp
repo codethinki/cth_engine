@@ -173,6 +173,23 @@ namespace {
     }
 }
 
+JVK_TEST(StageGraphConfig, waits_for_directly_or_through_other_stages) {
+    // 2 waits for 1, 1 waits for 0, 3 waits for 2 in the previous frame
+    static_assert([] {
+        //TEMP not const: gcc 16 rejects a const aggregate with a vector and another member in a constant expression
+        StageGraph::Config config{
+            .stages = {
+                {.queueIdx = 0},
+                {.queueIdx = 0, .waits = {{.stageId = 0}}},
+                {.queueIdx = 0, .waits = {{.stageId = 1}}},
+                {.queueIdx = 0, .waits = {{.stageId = 2, .frameOffset = 1}}},
+            },
+        };
+        return config.waitsFor(1, 0) && config.waitsFor(2, 0) && !config.waitsFor(0, 2)
+            && !config.waitsFor(3, 2) && !config.waitsFor(0, 0);
+    }());
+}
+
 JVK_TEST(StageGraph, first_frame_number_is_above_the_largest_frame_offset) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
