@@ -207,9 +207,6 @@ struct PhysicalDevicePick {
 }
 
 namespace cvk::dev {
-/**
- * @return rank of the device type for the pick, 0 is the best: discrete, integrated, virtual, cpu, other
- */
 [[nodiscard]] constexpr uint32_t device_type_rank(VkPhysicalDeviceType type) {
     switch(type) {
         case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: return 0;

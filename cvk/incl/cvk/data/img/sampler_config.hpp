@@ -63,9 +63,6 @@ struct SamplerConfig {
 }
 
 namespace cvk::dev {
-/**
- * @return hash of the members, equal configs hash equal
- */
 [[nodiscard]] inline size_t hash(SamplerConfig const& config) noexcept {
     return cth::hash::combine(
         config.magFilter,

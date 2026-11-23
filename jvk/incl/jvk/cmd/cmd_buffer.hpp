@@ -474,10 +474,6 @@ protected:
 private:
     explicit BasicCmdBuffer(std::unique_ptr<cvk::CmdPool>);
 
-    /**
-     * records the barrier if it is not empty
-     * @details inside a rendering: adds `VK_DEPENDENCY_BY_REGION_BIT`, with multiview `VK_DEPENDENCY_VIEW_LOCAL_BIT`
-     */
     void record(cvk::Barrier&) const;
 
     void forget();

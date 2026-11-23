@@ -178,16 +178,9 @@ public:
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
-    /**
-     * constructs the driver threads and one queue per vulkan queue
-     * @pre the cvk core and the reactor are created
-     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the transfer counters
-     */
     void createQueues();
 
-    /**
-     * destroys the queues, then the driver threads that run their strands
-     */
+    // the queues first: the driver threads run their strands
     void destroyQueues();
 
     Config _config;
@@ -204,14 +197,14 @@ private:
     TimelineReactor _reactor;
 
     // destroyed after the queues: their strands run on it
-    std::optional<cth::co::scheduler> _driverSchedulerOpt{}; ///< see `CoreConfig::driverThreads`
+    std::optional<cth::co::scheduler> _driverSchedulerOpt{};
     // destroyed before the reactor, the workers and the cvk core
-    std::vector<Queue> _queues{}; ///< one per vulkan queue
-    /** index in `_queues` per index of `cvk::CoreConfig::queueProperties` */
+    std::vector<Queue> _queues{}; // one per vulkan queue: the indices of one vulkan queue share it
+    // index in `_queues` per index of `cvk::CoreConfig::queueProperties`
     std::vector<size_t> _queueIndices{};
 
     // destroyed before the cvk core
-    ResourceHeap _resourceHeap; ///< not created without counts, see `HeapsConfig`
+    ResourceHeap _resourceHeap; // not created without counts, see `HeapsConfig`
     // the sampler heap needs the created cvk core, no heap without counts
     std::optional<SamplerHeap> _samplerHeapOpt{};
 

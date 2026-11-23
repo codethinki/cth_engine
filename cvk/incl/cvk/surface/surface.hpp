@@ -119,7 +119,7 @@ private:
 
     cth::ref_wrapper<Instance const> _instance;
     instance_handle<VkSurfaceKHR> _handle{nullptr};
-    extent_callback_t _extentCallback{}; ///< see `State::extentCallback`
+    extent_callback_t _extentCallback{};
 
 public:
     Surface(Surface const& other) = delete;

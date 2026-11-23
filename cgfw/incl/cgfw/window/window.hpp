@@ -65,9 +65,6 @@ struct native_window {
 };
 
 namespace dev {
-    /**
-     * deleter of a window, without context
-     */
     struct window_deleter {
         void operator()(RGFW_window*) const;
     };

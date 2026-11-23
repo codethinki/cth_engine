@@ -18,9 +18,6 @@ namespace jvk {
 using std::span;
 
 namespace {
-    /**
-     * marks the jvk signals, see `Semaphore::markSubmitted()`
-     */
     void mark(std::span<SemaphoreSubmitInfo const> signals) {
         for(auto const& signal : signals)
             signal.semaphore->markSubmitted(signal.value);

@@ -190,14 +190,8 @@ public:
 private:
     void forget();
 
-    /**
-     * @return `vkGetBufferDeviceAddress()`, `0` -> the usage has no `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT`
-     */
     [[nodiscard]] VkDeviceAddress queryAddress() const;
 
-    /**
-     * @pre `memory() != nullptr`
-     */
     [[nodiscard]] constexpr Memory const& ownMemory() const;
 
     // declared before the memory: move assignment destroys the old buffer before its memory
@@ -205,7 +199,7 @@ private:
     std::optional<Memory> _memoryOpt = std::nullopt;
     Config _config;
     size_t _size = 0;
-    /** `0` -> the usage has no `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT` */
+    // `0` -> the usage has no `VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT`
     VkDeviceAddress _address = 0;
 
 public:

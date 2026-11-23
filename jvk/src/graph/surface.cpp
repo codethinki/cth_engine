@@ -21,9 +21,6 @@
 
 namespace jvk {
 namespace {
-    /**
-     * waits until the counter reaches the value
-     */
     cth::co::executor_task<void> await_value(cth::co::counter_event const& event, uint64_t value) {
         co_await event.wait(value);
     }

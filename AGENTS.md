@@ -327,6 +327,8 @@ this code base.
   ``@details calls @ref Instance(Config), `wrap()` ``, `@ref create(Config const&)`.
   Do not write `(...)`: it does not link.
 - Do not document what the signature already tells. A getter without conditions needs no comment.
+- Docs are for the users of the API: private members and the helpers that only the module uses get no doc, only a
+  `//` comment for a quirk that the code cannot say.
 - The brief is the purpose. Side effects the caller must know go to `@details`.
 - `@details` holds one fact per line, starting with its keyword, so a reader can scan for it. No text walls.
     - one item: inline on the tag line: ``@details calls `optEnd()` on the secondaries``

@@ -9,9 +9,6 @@ namespace cvk::dev {
 using std::span;
 
 namespace {
-    /**
-     * @return the `VkBool32` flags of the feature struct
-     */
     template<class T>
     [[nodiscard]] auto flags(T& features) {
         using feature_t = std::remove_const_t<T>;

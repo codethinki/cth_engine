@@ -16,10 +16,6 @@
 
 namespace jvk::dev {
 namespace {
-    /**
-     * @return the shader access of the image of the handle, in the layout of its type, on the subresource range of
-     *  its view
-     */
     template<class Handle>
     [[nodiscard]] constexpr ImageAccess shader_access(
         Handle const& handle,
@@ -53,9 +49,6 @@ namespace {
             || layout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
     }
 
-    /**
-     * access of the mip level of the view
-     */
     [[nodiscard]] ImageAccess view_access(
         cvk::ImageView const& view,
         VkImageLayout layout,
@@ -73,9 +66,6 @@ namespace {
         };
     }
 
-    /**
-     * access of a depth or stencil attachment
-     */
     [[nodiscard]] ImageAccess depth_stencil_access(
         cvk::RenderingAttachment const& attachment,
         bool writes
@@ -100,11 +90,6 @@ namespace {
 
 
     // a callable, no vector: no allocation per rendering
-    /**
-     * hands the access of each attachment to the mip level of its image to the callable
-     * @details the order: color, depth and stencil, resolve
-     * @param visit called with the image and the access
-     */
     template<class Visit>
     void visit_attachment_accesses(cvk::RenderingInfo const& info, Visit visit) {
         for(auto const& attachment : info.colorAttachments) {

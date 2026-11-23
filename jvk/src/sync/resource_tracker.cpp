@@ -12,9 +12,6 @@ using cvk::BaseBuffer;
 using cvk::Image;
 
 namespace {
-    /**
-     * the write accesses
-     */
     constexpr VkAccessFlags2 WRITES = VK_ACCESS_2_SHADER_WRITE_BIT
         | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
         | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
@@ -28,24 +25,15 @@ namespace {
 
     [[nodiscard]] constexpr bool writes(VkAccessFlags2 access) { return (access & WRITES) != 0; }
 
-    /**
-     * src of a barrier after the scope, only the writes of its access
-     */
     [[nodiscard]] constexpr BarrierScope src_scope(BarrierScope const& scope) {
         return BarrierScope{scope.stages, scope.access & WRITES};
     }
 
-    /**
-     * the stages and accesses of both scopes
-     */
     [[nodiscard]] constexpr BarrierScope
     merge(BarrierScope const& scope, BarrierScope const& other) {
         return BarrierScope{scope.stages | other.stages, scope.access | other.access};
     }
 
-    /**
-     * @return the access after the state needs a barrier
-     */
     [[nodiscard]] constexpr bool needs_barrier(
         ImageState const& last,
         ImageState const& next,
@@ -59,9 +47,6 @@ namespace {
         return writes(last.scope.access) || writes(next.scope.access);
     }
 
-    /**
-     * @return the mip level count, `VK_REMAINING_MIP_LEVELS` resolved
-     */
     [[nodiscard]] uint32_t mip_count(
         Image const& image,
         uint32_t firstMipLevel,
@@ -88,9 +73,6 @@ namespace {
         return count;
     }
 
-    /**
-     * @return the barriers differ in the mip levels only, `next` starts after the levels of `last`
-     */
     [[nodiscard]] constexpr bool next_mip_levels(
         VkImageMemoryBarrier2 const& last,
         VkImageMemoryBarrier2 const& next
@@ -110,10 +92,6 @@ namespace {
             && lastRange.baseMipLevel + lastRange.levelCount == nextRange.baseMipLevel;
     }
 
-    /**
-     * appends the barrier of one mip level, merges it into an equal barrier of the level before
-     * @param[out] barrier
-     */
     void add_image_barrier(
         cvk::Barrier& barrier,
         VkImage vkImage,

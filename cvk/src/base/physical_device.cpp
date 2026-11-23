@@ -44,9 +44,7 @@ namespace {
         device_uuid_t uuid;
     };
 
-    /**
-     * @param extensions of the device, the query includes the descriptor heap properties only with its extension
-     */
+    // the query includes the descriptor heap properties only with their extension
     [[nodiscard]] queried_properties query_properties(
         vk_not_null<VkPhysicalDevice> vkDevice,
         span<string const> extensions
@@ -88,9 +86,7 @@ namespace {
         return properties;
     }
 
-    /**
-     * @param surfaces a family presents only if it presents to every surface, empty -> no present support
-     */
+    // a family presents only if it presents to every surface, empty surfaces -> no present support
     [[nodiscard]] vector<QueueFamily> query_queue_families(
         span<cth::ref_wrapper<Surface const> const> surfaces,
         vk_not_null<VkPhysicalDevice> vkDevice

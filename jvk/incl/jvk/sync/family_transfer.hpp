@@ -10,17 +10,9 @@
 
 
 namespace jvk::dev {
-/** src of an acquire half: waits for the release wait of the submit */
+// waits for the release wait of the submit
 constexpr cvk::BarrierScope ACQUIRE_SRC{.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT};
 
-/**
- * release half of the queue family ownership transfer of a mip level, transitions to the first layout
- * @param last state on the last queue
- * @param first state of the first use
- * @param lastFamily of the last queue
- * @param family of the first use
- * @param mipLevel to transfer
- */
 [[nodiscard]] constexpr cvk::ImageBarrierInfo release_half(
     ImageState const& last,
     ImageState const& first,
@@ -39,14 +31,7 @@ constexpr cvk::BarrierScope ACQUIRE_SRC{.stages = VK_PIPELINE_STAGE_2_ALL_COMMAN
     };
 }
 
-/**
- * acquire half of the queue family ownership transfer of a mip level, the layouts of `release_half()`
- * @param last state on the last queue
- * @param first state of the first use
- * @param lastFamily of the last queue
- * @param family of the first use
- * @param mipLevel to transfer
- */
+// the layouts of `release_half()`: both halves of a transfer have the same layouts
 [[nodiscard]] constexpr cvk::ImageBarrierInfo acquire_half(
     ImageState const& last,
     ImageState const& first,
@@ -66,12 +51,6 @@ constexpr cvk::BarrierScope ACQUIRE_SRC{.stages = VK_PIPELINE_STAGE_2_ALL_COMMAN
     };
 }
 
-/**
- * release half of the queue family ownership transfer of a buffer
- * @param last state on the last queue
- * @param lastFamily of the last queue
- * @param family of the first use
- */
 [[nodiscard]] constexpr cvk::BufferBarrierInfo release_half(
     BufferState const& last,
     cvk::queue_family_index_t lastFamily,
@@ -84,12 +63,6 @@ constexpr cvk::BarrierScope ACQUIRE_SRC{.stages = VK_PIPELINE_STAGE_2_ALL_COMMAN
     };
 }
 
-/**
- * acquire half of the queue family ownership transfer of a buffer
- * @param first state of the first use
- * @param lastFamily of the last queue
- * @param family of the first use
- */
 [[nodiscard]] constexpr cvk::BufferBarrierInfo acquire_half(
     BufferState const& first,
     cvk::queue_family_index_t lastFamily,

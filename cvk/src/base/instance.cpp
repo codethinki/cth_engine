@@ -17,9 +17,6 @@ using std::string_view;
 using std::vector;
 
 namespace {
-    /**
-     * @return the names that are not available
-     */
     [[nodiscard]] vector<string> missing(
         std::ranges::range auto const& names,
         vector<string> const& available

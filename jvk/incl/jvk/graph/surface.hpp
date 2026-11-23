@@ -218,24 +218,10 @@ public:
     }
 
 private:
-    /**
-     * creates or recreates the swapchain if it is not created, out of date or of another extent
-     * @details
-     * - the first creation: the config of `swapchainConfig()`
-     * - a recreation erases the old images in the graph first: the new images can reuse their
-     *   handles
-     * @param extent of the surface, `> 0`
-     * @param graphPtr of the acquiring stage, `nullptr` -> no graph
-     * @pre no present uses the swapchain: `create()`, or `acquire()` after the last image resolved
-     * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
-     * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`
-     */
+    // a recreation erases the old images in the graph first: the new images can reuse their
+    // handles; only when no present uses the swapchain
     void updateSwapchain(VkExtent2D extent, StageGraph* graphPtr);
 
-    /**
-     * @return `SurfaceConfig::swapchain`, `minImageCount` `0` -> `minImageCount` of the surface +
-     *  `framesInFlight`
-     */
     [[nodiscard]] Swapchain::Config swapchainConfig() const;
 
     cth::ref_wrapper<Core const> _core;
@@ -245,24 +231,19 @@ private:
     // destroyed after the swapchain
     cvk::Surface _surface;
 
-    /** created once the surface extent is `> 0`, the resolve of the last image orders its uses */
+    // the resolve of the last image orders its uses
     Swapchain _swapchain;
 
-    /**
-     * ring of `SurfaceConfig::framesInFlight`, signaled by the acquires
-     */
     std::vector<cvk::Semaphore> _acquireSemaphores{};
 
-    /** the semaphore in `Surface::_acquireSemaphores` for the next acquire */
     size_t _acquireSemaphoreIdx = 0;
 
-    /** written by the pending present of the last image, see `dev::PendingPresent` */
     dev::PresentState _presentState{};
 
-    /** value of the last acquired image in `PresentState::resolved`, `0` -> none */
+    // `0` -> none
     uint64_t _lastValue = 0;
 
-    uint32_t _lastImageIdx = 0; ///< index of the last acquired image in the current swapchain
+    uint32_t _lastImageIdx = 0;
 
 public:
     Surface(Surface const& other) = delete;

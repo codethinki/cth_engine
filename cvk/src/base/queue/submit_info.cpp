@@ -27,9 +27,6 @@ namespace {
         };
     }
 
-    /**
-     * @param resolve the value of a timeline semaphore without value
-     */
     template<class Resolve>
     [[nodiscard]] VkSemaphoreSubmitInfo semaphore_info(
         SemaphoreSubmitInfo const& info,

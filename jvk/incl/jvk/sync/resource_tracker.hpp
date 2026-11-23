@@ -253,25 +253,25 @@ private:
     using image_key_t = std::pair<VkImage, uint32_t>;
 
     struct image_states {
-        VkImageAspectFlags aspectMask; ///< of the image, the barriers take it
-        VkSharingMode sharingMode; ///< of the image
+        VkImageAspectFlags aspectMask;
+        VkSharingMode sharingMode;
 
-        /** `std::nullopt` -> `assume()` before the first access */
+        // `std::nullopt` -> `assume()` before the first access
         std::optional<ImageState> firstOpt;
         ImageState last;
         bool discard = false;
 
-        bool barrier = false; ///< a barrier or `assume()` after the first use: `firstOpt` is final
+        bool barrier = false; // a barrier or `assume()` after the first use: `firstOpt` is final
     };
 
     struct buffer_states {
-        VkSharingMode sharingMode; ///< of the buffer
+        VkSharingMode sharingMode;
 
-        /** `std::nullopt` -> `assume()` before the first access */
+        // `std::nullopt` -> `assume()` before the first access
         std::optional<BufferState> firstOpt;
         BufferState last;
 
-        bool barrier = false; ///< a barrier or `assume()` after the first use: `firstOpt` is final
+        bool barrier = false; // a barrier or `assume()` after the first use: `firstOpt` is final
     };
 
     cth::dt::flat_hash_map<image_key_t, image_states> _images{};

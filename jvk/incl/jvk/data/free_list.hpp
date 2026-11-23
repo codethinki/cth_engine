@@ -45,7 +45,7 @@ public:
 
 private:
     uint32_t _size;
-    uint32_t _next = 0; ///< the cells from here on were never in use
+    uint32_t _next = 0; // the cells from here on were never in use
     std::vector<uint32_t> _erased{};
 };
 }

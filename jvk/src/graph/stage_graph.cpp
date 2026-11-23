@@ -30,9 +30,6 @@ using std::span;
 using std::vector;
 
 namespace {
-    /**
-     * @return `1 +` the largest `StageWait::frameOffset` of the config
-     */
     [[nodiscard]] uint64_t first_frame_number(StageGraphConfig const& config) {
         uint64_t maxOffset = 0;
         for(auto const& stage : config.stages)
@@ -41,16 +38,12 @@ namespace {
         return maxOffset + 1;
     }
 
-    /** state of a presented image after the epilogue */
     constexpr ImageState PRESENT_STATE{
         .layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         .scope = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
     };
 
-    /**
-     * transition of the first use from `VK_IMAGE_LAYOUT_UNDEFINED`, no queue family ownership transfer
-     * @details `src` waits for the stages of the first use, no access: like `cvk::layout_transition()`
-     */
+    // `src` waits for the stages of the first use, no access: like `cvk::layout_transition()`
     [[nodiscard]] constexpr cvk::ImageBarrierInfo from_undefined(
         ImageState const& first,
         uint32_t mipLevel

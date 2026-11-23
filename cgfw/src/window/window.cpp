@@ -36,9 +36,6 @@ namespace {
     static_assert(same_flag(WindowFlags::FOCUS_ON_SHOW, RGFW_windowFocusOnShow));
     static_assert(same_flag(WindowFlags::MINIMIZE, RGFW_windowMinimize));
 
-    /**
-     * deinitializes RGFW if it is initialized and has no window
-     */
     void deinit_without_windows() {
         if(RGFW_getInfo() != nullptr && cgfw_rgfw_window_count() == 0)
             RGFW_deinit();

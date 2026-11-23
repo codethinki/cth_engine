@@ -30,9 +30,6 @@ namespace jvk {
 }
 
 namespace jvk::dev {
-/**
- * @return combined properties of the group of the queue
- */
 [[nodiscard]] inline cvk::QueueFamilyProperties group_properties(
     cvk::Core::queue_set_t const& set,
     std::span<cvk::QueueFamilyProperties const> queues,
@@ -47,12 +44,6 @@ namespace jvk::dev {
     return result;
 }
 
-/**
- * appends one set per merge of two groups that match
- * @param[out] sets
- * @param match(lhs, rhs) properties of two groups, `true` -> the groups merge
- * @pre `!sets.empty()`
- */
 template<class Match>
 void merge_groups(
     std::vector<cvk::Core::queue_set_t>& sets,

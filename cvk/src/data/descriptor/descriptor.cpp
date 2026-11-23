@@ -9,9 +9,6 @@
 
 namespace cvk::dev {
 namespace {
-    /**
-     * @return the mapped cell of the heap
-     */
     [[nodiscard]] VkHostAddressRangeEXT host_cell(
         BaseBuffer const& heap,
         size_t offset,
@@ -30,9 +27,6 @@ namespace {
         return VkHostAddressRangeEXT{.address = mapped.data() + offset, .size = size};
     }
 
-    /**
-     * encodes the image descriptor of the type into the cell, then flushes the cell
-     */
     void write_image(
         BaseBuffer const& heap,
         size_t offset,

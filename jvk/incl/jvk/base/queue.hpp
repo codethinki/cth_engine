@@ -204,41 +204,17 @@ public:
     [[nodiscard]] constexpr VkQueue get() const { return _queue->get(); }
 
 private:
-    /**
-     * submits the batch through `cvk::Queue::rawSubmit()`
-     * @details resolves the `std::nullopt` timeline values in order: the waits, then the signals
-     * @param presents their present semaphores are signaled after the signals of the info
-     * @pre runs in the strand
-     * @pre the preconditions of `cvk::Queue::submit()`
-     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
-     */
     void submitInStrand(SubmitInfo const&, std::span<PresentImage const> presents = {});
 
-    /**
-     * presents the images in one `cvk::Queue::rawPresent()`
-     * @param[out] results one per image, also written by a failed present
-     * @pre runs in the strand
-     * @pre the preconditions of `present()`
-     * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
-     */
     void presentInStrand(std::span<PresentImage const> images, std::span<VkResult> results);
 
-    /**
-     * command buffer of one transfer
-     * @details owns its command pool, see `PrimaryCmdBuffer`
-     */
     struct TransferCmd {
         PrimaryCmdBuffer cmd;
 
-        /** value of the transfer counter for the last submit of `cmd`, free once reached */
+        // free once the transfer counter reached it
         uint64_t value = 0;
     };
 
-    /**
-     * a command buffer whose last transfer the gpu finished, or a new one
-     * @details reads the counter, no wait
-     * @pre runs in the strand
-     */
     [[nodiscard]] TransferCmd& freeTransferCmd();
 
     cth::ref_wrapper<Core const> _core;
@@ -246,31 +222,22 @@ private:
     cth::ref_wrapper<cth::co::scheduler const> _scheduler;
     cth::co::strand _strand;
 
-    std::deque<TransferCmd> _transferCmds{}; ///< used in the strand only
-    /** the submit of `transfer()`, used in the strand only: it keeps its capacity */
+    // used in the strand only, members and no locals: they keep their capacity
+    std::deque<TransferCmd> _transferCmds{};
     SubmitInfo _transferInfo{};
 
-    // members, no locals: submitInStrand() refills them, they keep their capacity
-    /** the command buffers of the submit in `submitInStrand()`, used in the strand only */
     std::vector<VkCommandBufferSubmitInfo> _cmdBufferInfos{};
-    /** the waits of the submit in `submitInStrand()`, used in the strand only */
     std::vector<VkSemaphoreSubmitInfo> _waitInfos{};
-    /** the signals of the submit in `submitInStrand()`, used in the strand only */
     std::vector<VkSemaphoreSubmitInfo> _signalInfos{};
 
-    // members, no locals: presentInStrand() refills them, they keep their capacity
-    /** the swapchains of the present in `presentInStrand()`, used in the strand only */
     std::vector<VkSwapchainKHR> _presentSwapchains{};
-    /** the image indices of the present in `presentInStrand()`, used in the strand only */
     std::vector<uint32_t> _presentImageIndices{};
-    /** the present semaphores of the present in `presentInStrand()`, used in the strand only */
     std::vector<VkSemaphore> _presentWaits{};
-    /** the present fences of the present in `presentInStrand()`, used in the strand only */
     std::vector<VkFence> _presentFences{};
 
     //TODO review the counter decides the reuse of the transfer command buffers, no reactor wait: a
     // transfer reads it
-    Semaphore _transferred; ///< the transfer counter, raised by each transfer submit
+    Semaphore _transferred;
 
 public:
     Queue(Queue const& other) = delete;
@@ -281,19 +248,7 @@ public:
 }
 
 namespace jvk::dev {
-/**
- * submits the waits and the signals of a skip, no command buffers
- * @details
- * - a skip, also of a failed submit: the waiters of the jvk signals go on
- * - `Queue::submit()` marks the signals
- * - `VK_ERROR_DEVICE_LOST` -> stores the error in the scope, marks the signals: the gpu waits end
- *   on their own
- * - another failure terminates: the waiters would hang
- * @param queue of the skipped submit
- * @param info waits and signals of the skipped submit, no command buffers
- * @param[out] jobs of the caller, gets a device loss
- * @pre the info lives until the end of the task, nothing changes it
- */
+// terminates on a failure other than a device loss: the waiters of the signals would hang
 [[nodiscard]] cth::co::executor_task<void> skip_submit(
     Queue& queue,
     SubmitInfo const& info,

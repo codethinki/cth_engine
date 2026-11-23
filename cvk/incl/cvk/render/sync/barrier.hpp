@@ -201,11 +201,6 @@ struct Barrier {
     }
 
 private:
-    /**
-     * checks the rules of barriers inside a dynamic rendering
-     * @param renderingPtr the rendering the command buffer began, `nullptr` -> a secondary continues the rendering
-     * @param viewMask of the rendering
-     */
     void debug_check_rendering(
         RenderingInfo const* renderingPtr,
         uint32_t viewMask,

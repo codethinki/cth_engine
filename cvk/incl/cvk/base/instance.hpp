@@ -144,10 +144,6 @@ public:
 private:
     void forget();
 
-    /**
-     * the config the messenger is created with
-     * @return `std::nullopt` -> no messenger, debug builds: the config of `Config::debugMessenger` or the default
-     */
     [[nodiscard]] constexpr std::optional<DebugMessenger::Config> messengerConfig() const;
 
     static void loadInstanceFunctions(vk_not_null<VkInstance>);

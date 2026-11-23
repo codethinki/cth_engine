@@ -97,53 +97,30 @@ public:
     [[nodiscard]] constexpr bool created() const { return _wake.created(); }
 
 private:
-    /** pending waiter and its semaphore */
     struct Pending {
         VkSemaphore vkSemaphore;
         cth::ref_wrapper<Waiter> waiter;
     };
 
-    /**
-     * thread function: waits for the semaphores with waiters and the wake semaphore, posts the
-     * reached resumes
-     * @details stop request -> ends at the next wake
-     */
     void run(std::stop_token);
 
-    /**
-     * raises the wake semaphore, the thread waits again with the new values
-     * @pre the caller holds `TimelineReactor::_mutexPtr`
-     * @throws cvk::vk_result_exception result of `vkSignalSemaphore()`
-     */
+    // the caller holds `_mutexPtr`
     void wake() const;
 
-    /**
-     * stores the error, takes every pending waiter with the error
-     * @param[out] waiters gets the pending waiters
-     * @pre the caller holds `TimelineReactor::_mutexPtr`
-     */
+    // the caller holds `_mutexPtr`
     void fail(std::error_code, std::vector<cth::ref_wrapper<Waiter>>& waiters) const;
 
-    /**
-     * posts the resume of every waiter to its context
-     * @details touches no waiter after its post: the resumed caller can destroy it at once
-     * @pre the caller holds no lock of the reactor
-     */
+    // the caller holds no lock of the reactor
     static void post(std::span<cth::ref_wrapper<Waiter> const> waiters);
 
-    /** the thread waits for it next to the semaphores with waiters */
     mutable cvk::TimelineSemaphore _wake;
 
     // behind a std::unique_ptr: the mutex is not movable, the moves stay = default
     std::unique_ptr<std::mutex> _mutexPtr = std::make_unique<std::mutex>();
 
-    /**
-     * the pending waiters of every semaphore, in no order
-     * @details keeps its capacity: no allocation once it is large enough
-     */
     mutable std::vector<Pending> _pending{};
 
-    mutable std::error_code _error{}; ///< the result of a failed wait of the thread, empty -> none
+    mutable std::error_code _error{};
 
     // destroyed first: destroy() stops it before the members
     std::jthread _thread{};

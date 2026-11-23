@@ -18,9 +18,6 @@
 
 namespace jvk::dev {
 namespace {
-    /**
-     * @return the heaps of the core, none on a family without graphics and compute
-     */
     [[nodiscard]] cvk::HeapInheritance stage_heaps(Core const& core, Queue const& queue) {
         cvk::Core const& vk = core;
         auto const* familyPtr = vk.physicalDevice().queueFamily(queue.vk().familyIndex());

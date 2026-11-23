@@ -481,7 +481,7 @@ private:
     uint64_t _frameNumber;
     Status _status = Status::UNSUBMITTED;
 
-    /** the images and buffers of `retain()`, under `StageSlot::stasisMutex` */
+    // under `StageSlot::stasisMutex`
     dev::RetainedResources _retained{};
 
 public:
@@ -526,7 +526,7 @@ public:
 
 private:
     cth::move_ptr<Stage> _stagePtr;
-    cth::ref_wrapper<cth::co::catching_scope> _jobs; ///< of the graph
+    cth::ref_wrapper<cth::co::catching_scope> _jobs;
     int _uncaughtExceptions;
 
 public:

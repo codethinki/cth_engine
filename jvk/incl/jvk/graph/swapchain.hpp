@@ -121,10 +121,8 @@ private:
     cth::ref_wrapper<cvk::Queue const> _presentQueue;
     cth::ref_wrapper<cvk::Surface const> _surface;
 
-    /**
-     * `back()` is the current swapchain, the others are retired, the oldest first
-     * @details a deque: the addresses stay at the end and the front changes
-     */
+    // `back()` is the current swapchain, the others are retired, the oldest first; a deque: the
+    // addresses stay at the end
     std::deque<cvk::Swapchain> _swapchains{};
 
 public:

@@ -56,9 +56,6 @@ public:
 
 private:
     // a private helper: the reactor needs the complete jvk::Core, the template stays in the header
-    /**
-     * hands the waiter to the reactor of the core
-     */
     void awaitReactor();
 
     cth::ref_wrapper<Semaphore const> _semaphore;
@@ -221,7 +218,7 @@ private:
     cvk::TimelineSemaphore _semaphore;
 
     // mutable: markSubmitted() is const like the submit paths that call it
-    mutable cth::co::counter_event _submitted{}; ///< see `submittedValue()`
+    mutable cth::co::counter_event _submitted{};
 
 public:
     Semaphore(Semaphore const& other) = delete;

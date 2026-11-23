@@ -173,60 +173,15 @@ private:
 
     using release_map_t = cth::dt::flat_hash_map<Queue*, cvk::Barrier>;
 
-    /**
-     * skips the stages of the frame in the slot without `Stage::submit()` or `Stage::skip()`
-     * @details a skipped stage that other stages wait for: warns
-     * @details no frame in the slot -> nothing
-     */
     void skipUnsubmitted(dev::FrameSlot&);
 
     //TODO review one helper for submit() and skip(): they differ in the status only
-    /**
-     * detaches the submit job, then sets the status of the stage
-     * @details
-     * - takes `Stasis::end()` of the stage slot and the retained resources of the stage under
-     *   `StageSlot::stasisMutex`
-     * - a failed allocation: the stage stays `UNSUBMITTED` without its retained resources, the exception destroys
-     *   the graph
-     * @param targetStatus `SUBMITTED` or `SKIPPED`
-     */
     void detachJob(Stage&, Stage::Status targetStatus);
 
     // no marks as parameters: the job awaits Semaphore::submitted() of the slots, they live as
     // long as the graph
     // next() before the mark: the job of the next frame of the slot awaits the mark, it reads the
     // values
-    /**
-     * submit job of `submit()` and `skip()`
-     * @details the order:
-     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before, of the
-     *   waits of `StageSlot::slotSubmit` and of every jvk extra wait: the appends follow the
-     *   dependency order
-     * - the binary extra waits: no await on the cpu
-     * - `SlotSubmit::skipInfo()` of the frame into `StageSlot::submitInfo`, clears the extra waits
-     *   of the slot, then `SlotSubmit::next()`
-     * - `SUBMITTED`: `append()` of the states of the primary under `StageGraph::_statesMutex`, `release()` of the
-     *   release halves, records the prologue, an empty prologue: no record, the submit without it
-     * - `SUBMITTED`: `presentBarriers()` under the same lock, records the epilogue, no presents: no
-     *   record, the submit without it
-     * - `SUBMITTED`: `submitAndPresent()` with the release waits, the submit marks the slot with
-     *   the frame number
-     * - `SKIPPED` or a failed submit: `dev::skip_submit()` of the skip info, then drops the
-     *   presents after the gpu finished it
-     * - then sets `StageSlot::submitDone`: the job ended its use of the slot before the gpu wait
-     * - on the workers of the core: after the gpu finished, erases the states of the retained resources, then
-     *   `Stasis::clear()` to `stasisEnd`
-     * @details the errors:
-     * - a failed submit: stores the error in `StageGraph::_jobs`, then skips
-     * - a failed skip: `VK_ERROR_DEVICE_LOST` -> stores the error, marks the slot, else terminates:
-     *   the waiters would hang
-     * - before the mark: every other failure terminates, the waiters would hang
-     * - after the mark: an escaped exception ends the job, `StageGraph::_jobs` stores it
-     * - a failed gpu wait escapes: the retained objects stay for the destruction of the graph
-     * @param targetStatus the status the job reaches: `SUBMITTED` or `SKIPPED`
-     * @param stasisEnd `Stasis::end()` of the stage slot at the submit or the skip
-     * @see `Stage::submitted()`
-     */
     [[nodiscard]] cth::co::executor_task<void> submitJob(
         dev::StageSlot&,
         uint64_t frameNumber,
@@ -235,21 +190,7 @@ private:
         Stage::Status targetStatus
     );
 
-    /**
-     * appends the states of a submit on the queue to the resource states after all submits
-     * @details the first use of a mip level or a buffer after the last state:
-     * - unknown image: from `VK_IMAGE_LAYOUT_UNDEFINED`
-     * - unknown buffer: no barrier
-     * - the same queue family, or `VK_SHARING_MODE_CONCURRENT`: the barrier of
-     *   `ResourceTracker::append()`
-     * - another queue family, `EXCLUSIVE`, contents needed: release half for the last queue, acquire half
-     * - another queue family, discard or `VK_IMAGE_LAYOUT_UNDEFINED`: from `VK_IMAGE_LAYOUT_UNDEFINED`, no transfer
-     * - an `assume()` before the first use: no barrier
-     * @details sets the queue as the last queue of the resources
-     * @param[out] prologue gets the barriers for the first uses of the submit, the acquire halves included
-     * @param[out] releases gets the release halves per last queue of another family
-     * @pre the caller holds `StageGraph::_statesMutex`
-     */
+    // the caller holds `_statesMutex`
     void append(
         ResourceTracker const& recording,
         Queue& queue,
@@ -258,97 +199,46 @@ private:
     );
 
     // jvk waits: they join the jvk extra waits of the stage
-    /**
-     * releases the resources on their last queues
-     * @param releases the release halves per last queue, from `append()`
-     * @return the waits for the releases
-     * @see `Queue::transfer()`
-     */
     [[nodiscard]] cth::co::executor_task<std::vector<SemaphoreSubmitInfo>> release(
         release_map_t releases
     );
 
-    /**
-     * fills `StageSlot::epilogueBarriers` with the barriers of the presented images
-     * @details per image of `StageSlot::presents`, from its state after all submits:
-     * - the queue of its surface has the family of the stage: to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
-     * - another family: the release half towards the family of the surface
-     * @details stores the state before the barrier in `StageSlot::presentStates`, sets the state
-     *  after it in `StageGraph::_states`
-     * @pre the caller holds `StageGraph::_statesMutex`
-     * @pre `append()` of the recording of the stage ran
-     */
+    // the caller holds `_statesMutex`, after `append()`
     void presentBarriers(dev::StageSlot&);
 
-    /**
-     * submits `StageSlot::submitInfo`, presents the images of `StageSlot::presents` after it
-     * @details the images grouped by the queues of their surfaces:
-     * - the queue of the stage: `Queue::present()` with the submit, one strand job
-     * - another queue of the family: the submit signals their present semaphores, then
-     *   `Queue::present()` without a submit on that queue
-     * - another family: after the submit `Queue::transfer()` of the acquire halves on that queue,
-     *   it signals the present semaphores, then the present, then the wait until the gpu finished
-     *   the transfer: it waits for the semaphore of the slot
-     * @details the end: each image resolves with its result, an image without a present (failed
-     *  transfer) drops after the gpu finished the submit, then clears `StageSlot::presents`
-     * @details a failed present or transfer: `StageGraph::_jobs` stores the error
-     * @throws std::exception reason: the submit failed, nothing is presented or resolved
-     */
+    // throws only for a failed submit: nothing is presented or resolved then
     [[nodiscard]] cth::co::executor_task<void> submitAndPresent(
         dev::StageSlot&,
         uint64_t frameNumber
     );
 
-    /**
-     * removes the states and the last queues of the mip levels
-     * @pre the caller holds `StageGraph::_statesMutex`
-     */
+    // the caller holds `_statesMutex`
     void eraseStates(VkImage, uint32_t mipLevels);
 
-    /**
-     * removes the state and the last queue of the buffer
-     * @pre the caller holds `StageGraph::_statesMutex`
-     */
+    // the caller holds `_statesMutex`
     void eraseStates(VkBuffer);
 
-    /**
-     * ends an open rendering and the primary
-     */
     static void endPrimary(PrimaryCmdBuffer&);
 
     cth::ref_wrapper<Core> _core;
     Config _config;
 
-    std::deque<dev::FrameSlot> _frameSlots{}; ///< one per frame slot, with its stage slots
+    std::deque<dev::FrameSlot> _frameSlots{};
 
-    /**
-     * locks `StageGraph::_states`, `StageGraph::_imageQueues` and `StageGraph::_bufferQueues`
-     */
+    // locks `_states`, `_imageQueues` and `_bufferQueues`
     std::mutex _statesMutex{};
 
-    ResourceTracker _states{}; ///< resource states after all submits
+    ResourceTracker _states{};
 
-    /**
-     * last queue per mip level of an image, for the queue family ownership transfers
-     */
     last_queue_map_t<image_mip_t> _imageQueues{};
 
-    /** last queue per buffer, for the queue family ownership transfers */
     last_queue_map_t<VkBuffer> _bufferQueues{};
 
     //TODO review the error stays: every nextFrame() rethrows it, the errors of the jobs are fatal
-    /**
-     * the running submit jobs, `~StageGraph()` waits for them
-     * @details the first error of a job or a scope of a stage, `nextFrame()` rethrows it
-     */
     cth::co::catching_scope _jobs{};
 
-    uint64_t _firstFrameNumber; ///< see `firstFrameNumber()`
+    uint64_t _firstFrameNumber;
 
-    /**
-     * number of the last frame that `nextFrame()` handed out
-     * @details `firstFrameNumber() - 1` before the first frame
-     */
     uint64_t _frameNumber;
 
 public:

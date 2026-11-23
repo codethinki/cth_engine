@@ -32,14 +32,8 @@ public:
     [[nodiscard]] static bool initialized();
 
 private:
-    /**
-     * @return the switch that loads and unloads the loader
-     */
     [[nodiscard]] static cth::co::global_switch& loader();
 
-    /**
-     * @throws cvk::vk_result_exception result of `volkInitialize()`
-     */
     static void load();
     static void unload();
 

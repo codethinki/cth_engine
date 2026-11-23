@@ -45,9 +45,7 @@
 
 namespace timgui::dev {
 namespace {
-    /**
-     * `Frame` of an `Imgui` exists, one in the program: ImGui keeps the current context in a global
-     */
+    // one `Frame` in the program: ImGui keeps the current context in a global
     bool frameExists = false;
 }
 
@@ -132,7 +130,7 @@ struct ImguiState {
 
 namespace timgui {
 namespace {
-    constexpr float FIRST_DELTA_TIME = 1.f / 60.f; ///< seconds, ImGui needs a positive time
+    constexpr float FIRST_DELTA_TIME = 1.f / 60.f; // seconds, ImGui needs a positive time
 
     constexpr cvk::ImageConfig TEXTURE_CONFIG{
         .format = VK_FORMAT_R8G8B8A8_UNORM,
@@ -161,9 +159,7 @@ namespace {
         .maxAnisotropy = 0.f,
     };
 
-    /**
-     * alpha blending, the alpha of the attachment gets the coverage of the draws
-     */
+    // the alpha of the attachment gets the coverage of the draws
     constexpr VkPipelineColorBlendAttachmentState BLENDING{
         .blendEnable = VK_TRUE,
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
@@ -179,38 +175,21 @@ namespace {
 
     constexpr auto TEXTURE_OFFSET = static_cast<uint32_t>(offsetof(dev::Draw, texture));
 
-    /**
-     * makes the ImGui and the ImPlot context of the state current
-     */
     void make_current(dev::ImguiState const& state) {
         ImGui::SetCurrentContext(state.context.get());
         ImPlot::SetCurrentContext(state.plotContext.get());
     }
 
-    /**
-     * the heap index as ImGui texture id
-     * @details `+ 1`: `ImTextureID_Invalid` is `0`, the heap index `0` is a valid cell
-     * @see `to_heap_idx()`
-     */
+    // `+ 1`: `ImTextureID_Invalid` is `0`, the heap index `0` is a valid cell
     [[nodiscard]] constexpr ImTextureID to_texture_id(jvk::heap_idx<jvk::SampledImage> idx) {
         return ImTextureID{idx.get()} + 1;
     }
 
-    /**
-     * the heap index of the ImGui texture id
-     * @pre `id != ImTextureID_Invalid`
-     * @see `to_texture_id()`
-     */
     [[nodiscard]] constexpr jvk::heap_idx<jvk::SampledImage> to_heap_idx(ImTextureID id) {
         CTH_CRITICAL(id == ImTextureID_Invalid, "the texture id must be valid") {}
         return jvk::heap_idx<jvk::SampledImage>{static_cast<uint32_t>(id - 1)};
     }
 
-    /**
-     * @return the clip rectangle in the framebuffer, clamped to it, `std::nullopt` -> empty
-     * @param offset of the display
-     * @param scale from the display to the framebuffer
-     */
     [[nodiscard]] constexpr std::optional<VkRect2D> to_scissor(
         ImVec4 const& clipRect,
         ImVec2 offset,
@@ -232,10 +211,7 @@ namespace {
         };
     }
 
-    /**
-     * creates the pipeline of the draws
-     * @details the config of the pipeline keeps the destroyed shaders: no second `create()`
-     */
+    // the config of the pipeline keeps the destroyed shaders: no second `create()`
     [[nodiscard]] cvk::GraphicsPipeline create_pipeline(
         jvk::Core const& core,
         Imgui::Config const& config
@@ -274,12 +250,6 @@ namespace {
         return cvk::GraphicsPipeline{core, std::move(pipelineConfig), cvk::create};
     }
 
-    /**
-     * records the copy of every pixel of the texture data into the image
-     * @details
-     * - copies through a staging buffer, `stage` retains it
-     * - leaves the sampled image ready for the fragment shader
-     */
     void copy_pixels(
         jvk::Stage& stage,
         dev::cmd_buffer auto& cmd,
@@ -299,10 +269,6 @@ namespace {
         stage.retain(std::move(staging));
     }
 
-    /**
-     * writes the vertices or the indices of the draw lists one after the other
-     * @param member `ImDrawList::VtxBuffer` or `ImDrawList::IdxBuffer`
-     */
     template<class T>
     void write_lists(
         cvk::Buffer<T> const& buffer,

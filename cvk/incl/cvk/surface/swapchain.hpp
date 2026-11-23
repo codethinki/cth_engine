@@ -287,10 +287,7 @@ public:
 private:
     // the element wrappers: = default moves of the swapchain tear down in the member order, the
     // swapchain destroys its images itself, the present fences must signal before their destruction
-    /**
-     * image of the swapchain, the swapchain destroys it
-     * @details the destruction releases the image, it does not destroy it
-     */
+    // the destruction releases the image, it does not destroy it: the swapchain destroys its images
     struct ReleasingImage {
         explicit ReleasingImage(Image image) : image{std::move(image)} {}
         ~ReleasingImage() {
@@ -305,10 +302,7 @@ private:
         ReleasingImage& operator=(ReleasingImage&& other) noexcept = default;
     };
 
-    /**
-     * present fence of an image
-     * @details the destruction waits for the present that signals it
-     */
+    // the destruction waits for the present that signals the fence
     struct WaitingFence {
         explicit WaitingFence(Fence fence) : fence{std::move(fence)} {}
         ~WaitingFence() {
@@ -323,16 +317,8 @@ private:
         WaitingFence& operator=(WaitingFence&& other) noexcept = default;
     };
 
-    /**
-     * @return the first allowed format and present mode of the config that the surface offers
-     * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
-     */
     [[nodiscard]] std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> pick(Config const&) const;
 
-    /**
-     * gets the images, creates their views, present semaphores and present fences
-     * @throws cvk::vk_result_exception result of `vkGetSwapchainImagesKHR()` or of a create
-     */
     void createImages();
 
     void forget();

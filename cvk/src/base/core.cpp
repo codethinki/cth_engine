@@ -18,9 +18,6 @@ using std::span;
 using std::vector;
 
 namespace {
-    /**
-     * @return the uuid as hex in the 8-4-4-4-12 form
-     */
     [[nodiscard]] std::string uuid_string(device_uuid_t const& uuid) {
         std::string result{};
         for(auto const [index, byte] : std::views::enumerate(uuid)) {
