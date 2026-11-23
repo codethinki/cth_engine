@@ -170,7 +170,7 @@ private:
     /**
      * constructs the driver threads and one queue per vulkan queue
      * @pre the cvk core and the reactor are created
-     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the release counters
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` for the transfer counters
      */
     void createQueues();
 

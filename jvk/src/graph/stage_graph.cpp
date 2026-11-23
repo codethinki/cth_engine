@@ -454,7 +454,7 @@ cth::co::executor_task<vector<SemaphoreSubmitInfo>> StageGraph::release(release_
     vector<SemaphoreSubmitInfo> waits{};
     waits.reserve(releases.size());
     for(auto& [queuePtr, barrier] : releases)
-        waits.push_back(co_await queuePtr->release(std::move(barrier)));
+        waits.push_back(co_await queuePtr->transfer(std::move(barrier)));
     co_return waits;
 }
 

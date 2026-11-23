@@ -796,7 +796,7 @@ JVK_TEST(Presenter, present_queue_of_another_family) {
     presenter.destroy();
 
     // one release on the stage queue per frame: the next release gets the next value of its counter
-    auto const next = core.executor().sync_wait(stageQueue.release(cvk::Barrier{}));
+    auto const next = core.executor().sync_wait(stageQueue.transfer(cvk::Barrier{}));
     EXPECT_EQ(next.value, FRAMES + 1);
     stageQueue.waitIdle();
 }

@@ -249,7 +249,7 @@ cth::co::executor_task<void> Presenter::presentJob(
                 aspectMask,
                 dev::release_half(lastState, presentState, stageFamily, family, 0)
             );
-            info.waits.push_back(co_await stageQueue.release(std::move(release)));
+            info.waits.push_back(co_await stageQueue.transfer(std::move(release)));
 
             barrier.add(
                 vkImage,
@@ -282,7 +282,12 @@ cth::co::executor_task<void> Presenter::presentJob(
 
         // the swapchain of the image is the current one: a recreation only happens in acquire(),
         // after the end of the last present job
-        auto const result = co_await queue.present(info, _swapchain.current(), image.imageIdx);
+        std::array const images{
+            PresentImage{.swapchain = _swapchain.current(), .imageIdx = image.imageIdx}
+        };
+        std::array<VkResult, 1> results{};
+        co_await queue.present(info, images, results);
+        auto const result = results[0];
         // before _presented.set(): the next acquire() reads it
         if(result == VK_ERROR_OUT_OF_DATE_KHR)
             _outOfDate = true;

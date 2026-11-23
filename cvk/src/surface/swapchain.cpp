@@ -176,6 +176,29 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
 }
 
 VkResult Swapchain::present(uint32_t imageIndex) {
+    auto const handles = preparePresent(imageIndex);
+
+    VkSwapchainPresentFenceInfoKHR const fenceInfo{
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR,
+        .pNext = nullptr,
+        .swapchainCount = 1,
+        .pFences = &handles.vkFence,
+    };
+    VkPresentInfoKHR const info{
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .pNext = &fenceInfo,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &handles.vkWaitSemaphore,
+        .swapchainCount = 1,
+        .pSwapchains = &handles.vkSwapchain,
+        .pImageIndices = &handles.imageIndex,
+        .pResults = nullptr,
+    };
+
+    return _presentQueue.rawPresent(info);
+}
+
+auto Swapchain::preparePresent(uint32_t imageIndex) -> PresentHandles {
     debug_check(*this);
     CTH_CRITICAL(
         imageIndex >= imageCount() || !acquired(imageIndex),
@@ -187,30 +210,14 @@ VkResult Swapchain::present(uint32_t imageIndex) {
     auto const& fence = presentFence(imageIndex);
     fence.waitReset();
 
-    VkFence const vkFence = fence.get();
-    VkSwapchainPresentFenceInfoKHR const fenceInfo{
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR,
-        .pNext = nullptr,
-        .swapchainCount = 1,
-        .pFences = &vkFence,
-    };
-
-    VkSemaphore const vkSemaphore = presentSemaphore(imageIndex).get();
-    VkSwapchainKHR const vkSwapchain = get();
-    VkPresentInfoKHR const info{
-        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-        .pNext = &fenceInfo,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &vkSemaphore,
-        .swapchainCount = 1,
-        .pSwapchains = &vkSwapchain,
-        .pImageIndices = &imageIndex,
-        .pResults = nullptr,
-    };
-
-    auto const result = _presentQueue.rawPresent(info);
+    // before the present: also a failed present ends the acquire of the image
     _acquired[imageIndex] = false;
-    return result;
+    return PresentHandles{
+        .vkSwapchain = get(),
+        .imageIndex = imageIndex,
+        .vkWaitSemaphore = presentSemaphore(imageIndex).get(),
+        .vkFence = fence.get(),
+    };
 }
 
 void Swapchain::unacquire(span<uint32_t const> imageIndices) {

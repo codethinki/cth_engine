@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <span>
 #include <vector>
 
 
@@ -63,19 +64,27 @@ struct SubmitInfo {
 };
 
 /**
+ * acquired image of a swapchain for `Queue::present()`
+ */
+struct PresentImage {
+    cth::ref_wrapper<cvk::Swapchain> swapchain;
+    uint32_t imageIdx; ///< index of the acquired image in the swapchain
+};
+
+/**
  * serialized vulkan queue
  * @details
  * - refers to the queue of the cvk core
  * - runs its work in one strand
  * - submits and presents, marks the jvk signals of its submits
- * - releases the queue family ownership of resources
- * @see `submit()`, `present()`, `release()`
+ * - transfers the queue family ownership of resources
+ * @see `submit()`, `present()`, `transfer()`
  */
 class Queue {
 public:
     /**
-     * constructs the strand on the scheduler, creates the release counter
-     * @details the release command buffers and the release counter come from the core
+     * constructs the strand on the scheduler, creates the transfer counter
+     * @details the transfer command buffers and the transfer counter come from the core
      * @pre the cvk core and the reactor of the core are created
      * @throws cvk::vk_result_exception result of `vkCreateSemaphore()`
      */
@@ -100,48 +109,78 @@ public:
     [[nodiscard]] cth::co::executor_task<void> submit(SubmitInfo const&) const;
 
     /**
-     * submits the batch and presents the image in one job of the strand, then marks the jvk signals
+     * submits the batch and presents the images in one strand job, then marks the jvk signals
      * @details
-     * - the submit signals `cvk::Swapchain::presentSemaphore()` of the image too
+     * - the submit signals `cvk::Swapchain::presentSemaphore()` of every image too
+     * - one `vkQueuePresentKHR()` for all images
      * - no other job of the strand runs between the submit and the present
      * - a failed submit marks nothing and presents nothing
      * - a failed present marks the signals before it throws: the submit reached the queue
-     * @param swapchain of the image
-     * @param imageIdx of the acquired image
-     * @return `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` or `VK_ERROR_OUT_OF_DATE_KHR`
+     * @param images one per swapchain
+     * @param[out] results one per image: `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR`,
+     *  `VK_ERROR_OUT_OF_DATE_KHR` or the error of its swapchain, also after a failed present
      * @pre `cvk::Queue::canPresent()`
-     * @pre the info lives until the end of the task, nothing changes it
-     * @pre the preconditions of `cvk::Queue::submit()` and of `cvk::Swapchain::present()`
+     * @pre `results.size() == images.size()`
+     * @pre the info, the images and the results live until the end of the task, unchanged
+     * @pre the preconditions of `cvk::Queue::submit()` and of `cvk::Swapchain::preparePresent()`
+     * @pre the swapchains present through this queue
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
      */
-    [[nodiscard]] cth::co::executor_task<VkResult> present(
+    [[nodiscard]] cth::co::executor_task<void> present(
         SubmitInfo const&,
-        cvk::Swapchain& swapchain,
-        uint32_t imageIdx
+        std::span<PresentImage const> images,
+        std::span<VkResult> results
     ) const;
 
-    // an executor_task: the receiving submit job awaits it before its own submit, so the release is
-    // submitted first and the counter only changes in the strand (returning at once needs a lock around the value
-    // and the post)
-    // const like executor(): the core hands out Queue const&, the release members are mutable
+    /**
+     * presents the images in one job of the strand, without a submit
+     * @details one `vkQueuePresentKHR()` for all images
+     * @param images one per swapchain, a submit before signals their present semaphores
+     * @param[out] results one per image, see the submit overload
+     * @pre `cvk::Queue::canPresent()`
+     * @pre `results.size() == images.size()`
+     * @pre the images and the results live until the end of the task, nothing changes them
+     * @pre the preconditions of `cvk::Swapchain::preparePresent()`
+     * @pre the swapchains present through this queue
+     * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
+     */
+    [[nodiscard]] cth::co::executor_task<void> present(
+        std::span<PresentImage const> images,
+        std::span<VkResult> results
+    ) const;
+
+    // an executor_task: the receiving submit job awaits it before its own submit, so the transfer
+    // is submitted first and the counter only changes in the strand (returning at once needs a lock
+    // around the value and the post)
+    // const like executor(): the core hands out Queue const&, the transfer members are mutable
     // returns the jvk SemaphoreSubmitInfo: it keeps the counter for Semaphore::submitted(), it
     // converts to the cvk one
     /**
-     * releases the queue family ownership of the resources in the strand
+     * transfers the queue family ownership of resources in the strand: release or acquire halves
      * @details
-     * - records the barriers into a release command buffer of the queue family of the queue, submits it
-     * - the submit signals the next value of the release counter, `Semaphore::markSubmitted()` marks it
+     * - records the barriers into a transfer command buffer of the family of the queue, submits it
+     * - the submit waits for the waits, signals the next value of the transfer counter and the
+     *   binary signals, `Semaphore::markSubmitted()` marks the counter
      * - reuses the command buffers whose value the counter reached
-     * @param barriers the release halves of the queue family ownership transfers
-     * @return wait for the release counter, stages `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`, the receiver can narrow them
-     * @pre the barriers hold only queue family releases from the queue family of the queue
-     * @pre the barriers come after the last use of the resources on this queue
-     * @pre the receiver records the acquire halves and waits for the returned value
+     * @param barriers the release or the acquire halves of the ownership transfers, for the family
+     *  of the queue
+     * @param waits of the submit, e.g. the submit of the release halves before acquire halves
+     * @param binarySignals of the submit, e.g. the present semaphores of the transferred images
+     * @return wait for the transfer counter, stages `VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT`, the
+     *  receiver can narrow them
+     * @pre release halves: after the last use of the resources on this queue, the receiver records
+     *  the acquire halves and waits for the returned value
+     * @pre acquire halves: the waits cover the submit of their release halves
+     * @pre the waits and the binary signals live until the end of the task, unchanged
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      * @throws cvk::vk_result_exception result of `vkCreateCommandPool()` or `vkAllocateCommandBuffers()`
      */
-    [[nodiscard]] cth::co::executor_task<SemaphoreSubmitInfo> release(cvk::Barrier barriers) const;
+    [[nodiscard]] cth::co::executor_task<SemaphoreSubmitInfo> transfer(
+        cvk::Barrier barriers,
+        std::span<SemaphoreSubmitInfo const> waits = {},
+        std::span<cvk::SemaphoreSubmitInfo const> binarySignals = {}
+    ) const;
 
     /**
      * @return executor of the strand
@@ -169,43 +208,48 @@ private:
     /**
      * submits the batch through `cvk::Queue::rawSubmit()`
      * @details resolves the `std::nullopt` timeline values in order: the waits, then the signals
-     * @param presentSemaphorePtr `nullptr` -> no present semaphore, else signaled after the signals
-     *  of the info
+     * @param presents their present semaphores are signaled after the signals of the info
      * @pre runs in the strand
      * @pre the preconditions of `cvk::Queue::submit()`
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
      */
-    void submitInStrand(
-        SubmitInfo const&,
-        cvk::Semaphore const* presentSemaphorePtr = nullptr
-    ) const;
+    void submitInStrand(SubmitInfo const&, std::span<PresentImage const> presents = {}) const;
 
     /**
-     * command buffer of one release
+     * presents the images in one `cvk::Queue::rawPresent()`
+     * @param[out] results one per image, also written by a failed present
+     * @pre runs in the strand
+     * @pre the preconditions of `present()`
+     * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
+     */
+    void presentInStrand(std::span<PresentImage const> images, std::span<VkResult> results) const;
+
+    /**
+     * command buffer of one transfer
      * @details owns its command pool, see `PrimaryCmdBuffer`
      */
-    struct ReleaseCmd {
+    struct TransferCmd {
         PrimaryCmdBuffer cmd;
 
-        /**
-         * value of the release counter for the last submit of `ReleaseCmd::cmd`, free once reached
-         */
+        /** value of the transfer counter for the last submit of `cmd`, free once reached */
         uint64_t value = 0;
     };
 
     /**
-     * a command buffer whose last release the gpu finished, or a new one
+     * a command buffer whose last transfer the gpu finished, or a new one
      * @details reads the counter, no wait
      * @pre runs in the strand
      */
-    [[nodiscard]] ReleaseCmd& freeReleaseCmd() const;
+    [[nodiscard]] TransferCmd& freeTransferCmd() const;
 
     cth::ref_wrapper<Core const> _core;
     cth::ref_wrapper<cvk::Queue const> _queue;
     cth::ref_wrapper<cth::co::scheduler const> _scheduler;
     cth::co::strand _strand;
 
-    mutable std::deque<ReleaseCmd> _releaseCmds{}; ///< used in the strand only
+    mutable std::deque<TransferCmd> _transferCmds{}; ///< used in the strand only
+    /** the submit of `transfer()`, used in the strand only: it keeps its capacity */
+    mutable SubmitInfo _transferInfo{};
 
     // members, no locals: submitInStrand() refills them, they keep their capacity
     /** the command buffers of the submit in `submitInStrand()`, used in the strand only */
@@ -215,8 +259,19 @@ private:
     /** the signals of the submit in `submitInStrand()`, used in the strand only */
     mutable std::vector<VkSemaphoreSubmitInfo> _signalInfos{};
 
-    //TODO review the counter decides the reuse of the release command buffers, no reactor wait: a release reads it
-    mutable Semaphore _released; ///< the release counter, raised by each release submit
+    // members, no locals: presentInStrand() refills them, they keep their capacity
+    /** the swapchains of the present in `presentInStrand()`, used in the strand only */
+    mutable std::vector<VkSwapchainKHR> _presentSwapchains{};
+    /** the image indices of the present in `presentInStrand()`, used in the strand only */
+    mutable std::vector<uint32_t> _presentImageIndices{};
+    /** the present semaphores of the present in `presentInStrand()`, used in the strand only */
+    mutable std::vector<VkSemaphore> _presentWaits{};
+    /** the present fences of the present in `presentInStrand()`, used in the strand only */
+    mutable std::vector<VkFence> _presentFences{};
+
+    //TODO review the counter decides the reuse of the transfer command buffers, no reactor wait: a
+    // transfer reads it
+    mutable Semaphore _transferred; ///< the transfer counter, raised by each transfer submit
 
 public:
     Queue(Queue const& other) = delete;

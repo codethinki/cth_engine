@@ -795,7 +795,7 @@ JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
 
     // one release on the writer queue for both: the next release gets the second value of its counter
     auto const& writerQueue = core.queue(0);
-    auto const next = core.executor().sync_wait(writerQueue.release(cvk::Barrier{}));
+    auto const next = core.executor().sync_wait(writerQueue.transfer(cvk::Barrier{}));
     EXPECT_EQ(next.value, 2);
     writerQueue.waitIdle();
 }
@@ -835,7 +835,7 @@ JVK_TEST(StageGraph, erase_removes_the_state_and_the_last_queue_of_an_image) {
     wait(core, second.stage(1));
     EXPECT_TRUE(counts(readback));
 
-    auto const next = core.executor().sync_wait(firstQueue.release(cvk::Barrier{}));
+    auto const next = core.executor().sync_wait(firstQueue.transfer(cvk::Barrier{}));
     EXPECT_EQ(next.value, 1);
     firstQueue.waitIdle();
 }

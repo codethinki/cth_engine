@@ -250,7 +250,7 @@ private:
      * - off the strand: awaits `Presenter::_presented` of the job before: the present jobs run one
      *   at a time, in the order of `present()`
      * - fills `Presenter::_submitInfo`: the job before ended its use
-     * - stage of another family -> `Queue::release()` of the image on the stage queue
+     * - stage of another family -> `Queue::transfer()` of the release half on the stage queue
      * - off the strand: records the command buffer, the present jobs run one at a time
      * - `Queue::present()` with the current swapchain: a recreation only happens in `acquire()`,
      *   after the last present

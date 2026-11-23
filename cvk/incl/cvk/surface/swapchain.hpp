@@ -57,6 +57,16 @@ public:
     };
 
     /**
+     * handles of one image in a `vkQueuePresentKHR()`, see `preparePresent()`
+     */
+    struct PresentHandles {
+        VkSwapchainKHR vkSwapchain;
+        uint32_t imageIndex;
+        VkSemaphore vkWaitSemaphore; ///< `presentSemaphore()` of the image
+        VkFence vkFence; ///< `presentFence()` of the image, reset
+    };
+
+    /**
      * base constructor
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config);
@@ -166,6 +176,18 @@ public:
     [[nodiscard]] VkResult present(uint32_t imageIndex);
 
     /**
+     * prepares the present of the image in a `vkQueuePresentKHR()` of the caller
+     * @details waits for the present fence of the last present of the image first, then resets it
+     * @details the image counts as presented: the caller presents it through the present queue at
+     *  once
+     * @return the handles for the present info, the fence for `VkSwapchainPresentFenceInfoKHR`
+     * @pre the image is acquired
+     * @pre a submit signals `presentSemaphore()` of the image
+     * @see `present()`
+     */
+    [[nodiscard]] PresentHandles preparePresent(uint32_t imageIndex);
+
+    /**
      * gives acquired images back without a present
      * @pre the images are acquired and all uses of them completed
      * @attention the acquire semaphores of the images still signal, wait for them before reuse
@@ -198,7 +220,7 @@ public:
     [[nodiscard]] bool presented() const;
 
     /**
-     * @return an image is acquired, without its `present()` or `unacquire()`
+     * @return an image is acquired, without its `present()`, `preparePresent()` or `unacquire()`
      */
     [[nodiscard]] constexpr bool acquired() const { return std::ranges::contains(_acquired, true); }
 

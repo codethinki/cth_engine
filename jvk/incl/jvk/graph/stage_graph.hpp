@@ -99,7 +99,8 @@ public:
      * - returns at once, the strand of the queue submits after the waited stages submitted
      * - resolves the first uses of the primary against the resource states after all submits
      * - an unknown image: the prologue transitions it from `VK_IMAGE_LAYOUT_UNDEFINED`
-     * - an `EXCLUSIVE` resource of another queue family: `Queue::release()` on its last queue, the prologue acquires it
+     * - an `EXCLUSIVE` resource of another queue family: `Queue::transfer()` of the release half on
+     *   its last queue, the prologue acquires it
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
      * - an error: skips, `nextFrame()` rethrows the error
@@ -254,7 +255,7 @@ private:
      * releases the resources on their last queues
      * @param releases the release halves per last queue, from `append()`
      * @return the waits for the releases
-     * @see `Queue::release()`
+     * @see `Queue::transfer()`
      */
     [[nodiscard]] cth::co::executor_task<std::vector<SemaphoreSubmitInfo>> release(
         release_map_t releases
