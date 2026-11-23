@@ -65,8 +65,7 @@ public:
      * waits until the gpu finished the submits of every slot, destroys the slots
      * @details
      * - skips the unsubmitted stages first, e.g. after an exception in their recording: their waiters go on
-     * - the skip of an unsubmitted stage drops its binary waits: their semaphores, e.g. the acquire semaphores of a
-     *   `Surface`, can be destroyed before the graph
+     * - the skip drops the presents of the stage, see `Surface::acquire()`
      * - waits for the end of every submit job
      * - a failed skip or wait does not stop the destruction
      * @attention blocks the calling thread: a worker of the core must be free for the jobs
@@ -78,8 +77,9 @@ public:
     /**
      * constructs the frame and its stages in the next slot
      * @details the frame before: skips its stages without `Stage::submit()` or `Stage::skip()`, warns for a waited one
-     * @details the old frame of the slot: awaits `Stage::submitted()` of its stages, then the
-     *  stages: the gpu finished them, both with `cth::co::all()`
+     * @details the old frame of the slot: awaits `StageSlot::submitDone` of its stages: their jobs
+     *  ended the submits and the presents, then the stages: the gpu finished them, both with
+     *  `cth::co::all()`
      * @return the frame of the slot
      * @pre no stage of the frame before records or submits: `nextFrame()` ends the frame
      * @throws std::exception the first error of a submit job or a scope, stored before the call: an
@@ -103,6 +103,8 @@ public:
      *   its last queue, the prologue acquires it
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
+     * - the images of `Stage::present()`: the epilogue after the primary transitions them, the
+     *   presents follow the submit, see `Surface::acquire()`
      * - an error: skips, `nextFrame()` rethrows the error
      * - after the gpu finished: destroys the retained objects
      * @pre the stage is of this graph
@@ -120,6 +122,7 @@ public:
      * @details skip submit on the queue of the stage, no command buffers:
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
+     * @details drops the images of `Stage::present()`, see `Surface::acquire()`
      * @details after the gpu finished the skip submit: destroys the retained objects
      * @details a begun primary: ends its rendering and the primary, discards the recording
      * @pre the stage is of this graph
@@ -204,9 +207,13 @@ private:
      *   of the slot, then `SlotSubmit::next()`
      * - `SUBMITTED`: `append()` of the states of the primary under `StageGraph::_statesMutex`, `release()` of the
      *   release halves, records the prologue, an empty prologue: no record, the submit without it
-     * - `SUBMITTED`: `Queue::submit()` with the release waits, it marks the slot with the frame
-     *   number
-     * - `SKIPPED` or a failed submit: `dev::skip_submit()` of the skip info
+     * - `SUBMITTED`: `presentBarriers()` under the same lock, records the epilogue, no presents: no
+     *   record, the submit without it
+     * - `SUBMITTED`: `submitAndPresent()` with the release waits, the submit marks the slot with
+     *   the frame number
+     * - `SKIPPED` or a failed submit: `dev::skip_submit()` of the skip info, then drops the
+     *   presents after the gpu finished it
+     * - then sets `StageSlot::submitDone`: the job ended its use of the slot before the gpu wait
      * - on the workers of the core: after the gpu finished, erases the states of the retained resources, then
      *   `Stasis::clear()` to `stasisEnd`
      * @details the errors:
@@ -259,6 +266,37 @@ private:
      */
     [[nodiscard]] cth::co::executor_task<std::vector<SemaphoreSubmitInfo>> release(
         release_map_t releases
+    );
+
+    /**
+     * fills `StageSlot::epilogueBarriers` with the barriers of the presented images
+     * @details per image of `StageSlot::presents`, from its state after all submits:
+     * - the queue of its surface has the family of the stage: to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
+     * - another family: the release half towards the family of the surface
+     * @details stores the state before the barrier in `StageSlot::presentStates`, sets the state
+     *  after it in `StageGraph::_states`
+     * @pre the caller holds `StageGraph::_statesMutex`
+     * @pre `append()` of the recording of the stage ran
+     */
+    void presentBarriers(dev::StageSlot&);
+
+    /**
+     * submits `StageSlot::submitInfo`, presents the images of `StageSlot::presents` after it
+     * @details the images grouped by the queues of their surfaces:
+     * - the queue of the stage: `Queue::present()` with the submit, one strand job
+     * - another queue of the family: the submit signals their present semaphores, then
+     *   `Queue::present()` without a submit on that queue
+     * - another family: after the submit `Queue::transfer()` of the acquire halves on that queue,
+     *   it signals the present semaphores, then the present, then the wait until the gpu finished
+     *   the transfer: it waits for the semaphore of the slot
+     * @details the end: each image resolves with its result, an image without a present (failed
+     *  transfer) drops after the gpu finished the submit, then clears `StageSlot::presents`
+     * @details a failed present or transfer: `StageGraph::_jobs` stores the error
+     * @throws std::exception reason: the submit failed, nothing is presented or resolved
+     */
+    [[nodiscard]] cth::co::executor_task<void> submitAndPresent(
+        dev::StageSlot&,
+        uint64_t frameNumber
     );
 
     /**

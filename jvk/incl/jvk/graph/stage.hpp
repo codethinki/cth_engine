@@ -2,11 +2,14 @@
 #include "jvk/base/queue.hpp"
 #include "jvk/base/stasis.hpp"
 #include "jvk/cmd/cmd_buffer.hpp"
+#include "jvk/graph/pending_present.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 #include "jvk/sync/semaphore.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/data/img/image.hpp"
+#include "cvk/render/sync/barrier.hpp"
 
 #include <volk.h>
 
@@ -46,7 +49,7 @@ namespace jvk::dev {
  * - fills the `SubmitInfo` of the next submit or skip: a skip has no command buffers
  */
 struct SlotSubmit {
-    /** `StageSlot::prologue`, `StageSlot::primary` */
+    /** `StageSlot::prologue`, `StageSlot::primary`, `StageSlot::epilogue` */
     std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{};
 
     // no queueWaits: the submit job awaits the marks of every wait, its append follows the
@@ -76,11 +79,12 @@ struct SlotSubmit {
     ) const;
 
     /**
-     * adds the command buffers of the submit, the prologue first
+     * adds the command buffers of the submit, the prologue first, the epilogue last
      * @param[out] info gets the command buffers
      * @param prologue `false` -> without `StageSlot::prologue`: the prologue is empty
+     * @param epilogue `false` -> without `StageSlot::epilogue`: no image to present
      */
-    void addCmdBuffers(SubmitInfo& info, bool prologue) const;
+    void addCmdBuffers(SubmitInfo& info, bool prologue, bool epilogue) const;
 
     /**
      * advances every wait and signal value to the next frame of the slot
@@ -88,6 +92,20 @@ struct SlotSubmit {
      * @param frameSlots `StageGraphConfig::frameSlots`, the values rise by it
      */
     constexpr void next(size_t frameSlots);
+};
+
+/**
+ * the images of one queue in the presents of a submit job
+ * @see `StageSlot::presentImages`
+ */
+struct PresentGroup {
+    cth::ref_wrapper<Queue const> queue; ///< the queue of the surfaces of the images
+
+    size_t first; ///< index of the first image in `StageSlot::presentImages`
+    size_t count; ///< of the images
+
+    /** the present ran, also a failed one: the images resolve as presented, else dropped */
+    bool presented = false;
 };
 
 /**
@@ -167,13 +185,44 @@ struct StageSlot {
     std::vector<cvk::SemaphoreSubmitInfo> extraBinaryWaits{};
 
     /**
+     * the presents of the frame of the slot, see `Stage::present()`
+     * @details the submit job presents them after the submit or drops them on a skip, then
+     *  clears the list
+     */
+    std::vector<PendingPresent> presents{};
+
+    /**
      * the submit or the skip of the frame of the slot
      * @details
      * - the submit job fills it, see `SlotSubmit::skipInfo()`
-     * - one job at a time: `StageGraph::nextFrame()` hands out the slot again after the mark of
-     *   the job
+     * - one job at a time: `StageGraph::nextFrame()` hands out the slot again after
+     *   `StageSlot::submitDone` of the job
      */
     SubmitInfo submitInfo{};
+
+    // the scratch of the presents: the submit job refills them, they keep their capacity
+    /** the barriers of the presented images, recorded into `StageSlot::epilogue` */
+    cvk::Barrier epilogueBarriers{};
+
+    /** per entry of `StageSlot::presents`: the state of its image before the epilogue */
+    std::vector<ImageState> presentStates{};
+
+    /** the images of `StageSlot::presents`, the images of one queue in a row */
+    std::vector<PresentImage> presentImages{};
+
+    std::vector<VkResult> presentResults{}; ///< per entry of `StageSlot::presentImages`
+
+    std::vector<PresentGroup> presentGroups{}; ///< one per queue of `StageSlot::presents`
+
+    /** the present semaphores of a transfer to the queue family of a surface */
+    std::vector<cvk::SemaphoreSubmitInfo> presentSignals{};
+
+    /**
+     * frame number of the last job of the slot that ended its submit or skip and its presents
+     * @details `StageGraph::nextFrame()` awaits it before it hands out the slot again
+     * @details initial value: `StageGraph::firstFrameNumber() - 1`
+     */
+    cth::co::counter_event submitDone;
 
     /** the stage in the frame slot before, submits first */
     cth::ref_wrapper<StageSlot const> previous;
@@ -181,6 +230,9 @@ struct StageSlot {
     PrimaryCmdBuffer prologue; ///< barriers for the first uses of the primary, submitted before it
 
     PrimaryCmdBuffer primary;
+
+    /** barriers of the presented images, submitted after the primary, see `Stage::present()` */
+    PrimaryCmdBuffer epilogue;
 
     std::vector<SecondaryCmdBuffer> secondaries{}; ///< `StageConfig::secondaries` of them
 
@@ -323,6 +375,20 @@ public:
         cvk::Semaphore const& binary,
         VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
     );
+
+    /**
+     * presents the swapchain image of the present after the submit of this frame
+     * @details `Surface::acquire()` calls it for its present stage
+     * @details the submit job of the frame:
+     * - records the barrier of the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` into the epilogue,
+     *   after the primary, see `StageSlot::epilogue`
+     * - presents the image after the submit, the images of one queue in one `vkQueuePresentKHR()`
+     * - a skip or a failed submit drops the image
+     * @param present of the image, the stage owns it until its job resolves it
+     * @pre `status()` is `UNSUBMITTED`
+     * @attention not thread safe
+     */
+    void present(dev::PendingPresent present);
 
     /**
      * submits the primary of the frame

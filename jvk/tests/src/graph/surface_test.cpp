@@ -71,8 +71,23 @@ namespace {
         return core.executor().sync_wait(graph.nextFrame());
     }
 
-    [[nodiscard]] scoped_acquire acquire(Core const& core, Surface& surface, Stage& stage) {
+    [[nodiscard]] std::optional<SwapchainImage> acquire(
+        Core const& core,
+        Surface& surface,
+        Stage& stage
+    ) {
         return core.executor().sync_wait(surface.acquire(stage, ATTACHMENT_OUTPUT));
+    }
+
+    [[nodiscard]] std::optional<SwapchainImage> acquire(
+        Core const& core,
+        Surface& surface,
+        Stage& acquireStage,
+        Stage& presentStage
+    ) {
+        return core.executor().sync_wait(
+            surface.acquire(acquireStage, presentStage, ATTACHMENT_OUTPUT)
+        );
     }
 
     cth::co::executor_task<void> await_stage(Stage const& stage) { co_await stage; }
@@ -161,8 +176,8 @@ namespace {
     }
 
     /**
-     * acquires and clears the image of the stage, the scopes submit and present
-     * @details the submit job waits for the gate, the present job for the submit: the present stays pending
+     * acquires and clears the image of the stage, the scope submits, the job presents
+     * @details the submit job waits for the gate: the present stays pending
      * @return the image
      */
     SwapchainImage present_behind_gate(
@@ -209,7 +224,7 @@ namespace {
 
     /**
      * acquires the image of the next frame, clears the multisampled target and resolves it into the image
-     * @details only the scopes: `scoped_submit` submits, then `scoped_acquire` presents
+     * @details only the scope: `scoped_submit` submits, the job presents
      * @details a new extent: the stage retains the old target, then a new one
      * @param[out] msaaOpt the target of the frames
      * @return the image
@@ -251,7 +266,7 @@ namespace {
 
     /**
      * acquires, clears and presents the image of the stage in the next frame
-     * @details only the scopes: `scoped_submit` submits, then `scoped_acquire` presents
+     * @details only the scope: `scoped_submit` submits, the job presents
      * @details the acquire comes before `Stage::begin()`
      * @return the image
      */
@@ -261,6 +276,50 @@ namespace {
         EXPECT_TRUE(image);
         auto const primary = stage.begin();
         clear(*primary, *image);
+        return *image;
+    }
+
+    /**
+     * the scene stage clears the image, the ui stage draws over it and presents
+     * @details the ui stage waits for the scene stage in the frame
+     */
+    StageGraph::Config scene_and_ui(size_t uiQueueIdx = 0) {
+        return {.stages = {{.queueIdx = 0}, {.queueIdx = uiQueueIdx, .waits = {{.stageId = 0}}}}};
+    }
+
+    constexpr size_t SCENE = 0;
+    constexpr size_t UI = 1;
+
+    /**
+     * the scene stage clears the image, the ui stage loads and clears its upper half, the ui stage
+     * presents
+     * @return the image
+     */
+    SwapchainImage present_scene_and_ui(Core const& core, StageGraph& graph, Surface& surface) {
+        auto& frame = next_frame(core, graph);
+        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        EXPECT_TRUE(image);
+        {
+            auto const scene = frame[SCENE].begin();
+            clear(*scene, *image);
+        }
+        {
+            auto const ui = frame[UI].begin();
+            auto const rendering = ui->beginRendering(
+                {
+                    .colorAttachments = {
+                        {
+                            .view = image->view,
+                            .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                        }
+                    },
+                    .area = VkRect2D{
+                        .offset = {0, 0},
+                        .extent = {image->extent.width, image->extent.height / 2},
+                    },
+                }
+            );
+        }
         return *image;
     }
 }
@@ -274,8 +333,9 @@ JVK_TEST(Surface, frame_loop_clears_and_presents) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    // before the graph: the presents of the graph refer to the surface
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     ASSERT_TRUE(surface.created());
     ASSERT_TRUE(surface.swapchain().created());
 
@@ -284,7 +344,21 @@ JVK_TEST(Surface, frame_loop_clears_and_presents) {
         EXPECT_EQ(image.extent, test::HEADLESS_EXTENT);
         EXPECT_LT(image.imageIdx, surface.swapchain().current().imageCount());
     }
+}
 
+JVK_TEST(Surface, destroy_waits_for_the_present_of_the_last_image) {
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    {
+        StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+        present_frame(core, graph, surface);
+    }
     surface.destroy();
     EXPECT_FALSE(surface.created());
 }
@@ -298,8 +372,8 @@ JVK_TEST(Surface, frame_loop_with_driver_threads_presents) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
     for(size_t i = 0; i < FRAMES; ++i)
         EXPECT_EQ(present_frame(core, graph, surface).extent, test::HEADLESS_EXTENT);
@@ -317,15 +391,15 @@ JVK_TEST(Surface, extent_0_gives_no_image_until_the_extent_is_larger) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     EXPECT_FALSE(surface.swapchain().created());
 
-    // no image, no wait: the stage submits without the image, the scoped_acquire does nothing
+    // no image, no wait, no present: the stage submits without the image
     auto& stage = next_frame(core, graph).stage(0);
     {
         auto const image = acquire(core, surface, stage);
-        EXPECT_FALSE(image);
+        EXPECT_FALSE(image.has_value());
         auto const primary = stage.begin();
     }
     EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
@@ -348,8 +422,8 @@ JVK_TEST(Surface, new_extent_recreates_the_swapchain) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
     EXPECT_EQ(present_frame(core, graph, surface).extent, (VkExtent2D{32, 32}));
 
@@ -374,8 +448,8 @@ JVK_TEST(Surface, multisampled_frames_resolve_into_the_image_and_present) {
 
     // before the graph: the target lives until the gpu finished the frames
     std::optional<MsaaTarget> msaaOpt{};
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
     // the resolve writes the image, the present transition starts from the resolve state
     for(size_t i = 0; i < FRAMES; ++i)
@@ -400,8 +474,8 @@ JVK_TEST(Surface, recreation_retains_the_multisampled_target_of_the_old_extent) 
         GTEST_SKIP() << "no 4x msaa for color attachments";
 
     std::optional<MsaaTarget> msaaOpt{};
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
     EXPECT_EQ(present_msaa_frame(core, graph, surface, msaaOpt).extent, (VkExtent2D{32, 32}));
 
@@ -423,14 +497,14 @@ JVK_TEST(Surface, acquire_waits_for_the_present_before) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Semaphore const gate{core, cvk::create};
 
     auto& first = next_frame(core, graph).stage(0);
     present_behind_gate(core, first, surface, gate);
 
-    // the present of the first frame waits for the mark of the gate, the next acquire for the present
+    // the job of the first frame waits for the mark of the gate, the next acquire for its present
     auto& second = next_frame(core, graph).stage(0);
     std::binary_semaphore acquiredSignal{0};
     size_t acquiredImages = 0;
@@ -473,8 +547,8 @@ JVK_TEST(Surface, recreation_retires_the_old_swapchain_until_its_presents_ended)
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
     EXPECT_EQ(present_frame(core, graph, surface).extent, (VkExtent2D{32, 32}));
 
@@ -489,42 +563,6 @@ JVK_TEST(Surface, recreation_retires_the_old_swapchain_until_its_presents_ended)
     EXPECT_EQ(surface.swapchain().retired(), 0);
 }
 
-JVK_TEST(Surface, scope_unacquire_leaves_the_image_to_the_next_acquire) {
-    test::Context const context{};
-    auto windowSurface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, windowSurface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
-
-    auto& stage = next_frame(core, graph).stage(0);
-    {
-        auto image = acquire(core, surface, stage);
-        ASSERT_TRUE(image);
-        image.unacquire();
-
-        // the submit waits for the acquire semaphore
-        auto const primary = stage.begin();
-    }
-    // the scoped_acquire did nothing at its end, the image stays acquired
-    EXPECT_EQ(acquired_images(surface), 1);
-
-    // the next acquire waits for the stage on the gpu and gives the image back first
-    auto& next = next_frame(core, graph).stage(0);
-    {
-        auto const image = acquire(core, surface, next);
-        ASSERT_TRUE(image);
-        EXPECT_EQ(acquired_images(surface), 1);
-        auto const primary = next.begin();
-        clear(*primary, *image);
-    }
-
-    present_frame(core, graph, surface);
-}
-
 JVK_TEST(Surface, next_acquire_after_a_skipped_stage_unacquires_the_image) {
     test::Context const context{};
     auto windowSurface = test::headless_surface(context.instance);
@@ -533,18 +571,18 @@ JVK_TEST(Surface, next_acquire_after_a_skipped_stage_unacquires_the_image) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
     // Stage::begin() before the acquire works too
     auto& stage = next_frame(core, graph).stage(0);
     {
         auto const primary = stage.begin();
         auto const image = acquire(core, surface, stage);
-        ASSERT_TRUE(image);
+        ASSERT_TRUE(image.has_value());
         clear(*primary, *image);
 
-        // the skip discards the recording and waits for the acquire semaphore
+        // the skip discards the recording, waits for the acquire semaphore, drops the image
         stage.skip();
     }
     EXPECT_EQ(stage.status(), Stage::Status::SKIPPED);
@@ -554,7 +592,7 @@ JVK_TEST(Surface, next_acquire_after_a_skipped_stage_unacquires_the_image) {
     auto& next = next_frame(core, graph).stage(0);
     {
         auto const image = acquire(core, surface, next);
-        ASSERT_TRUE(image);
+        ASSERT_TRUE(image.has_value());
         EXPECT_EQ(acquired_images(surface), 1);
         auto const primary = next.begin();
         clear(*primary, *image);
@@ -563,7 +601,7 @@ JVK_TEST(Surface, next_acquire_after_a_skipped_stage_unacquires_the_image) {
     present_frame(core, graph, surface);
 }
 
-JVK_TEST(Surface, image_scope_ending_before_the_submit_leaves_the_image_to_the_next_acquire) {
+JVK_TEST(Surface, image_without_a_use_presents_after_the_submit) {
     test::Context const context{};
     auto windowSurface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
@@ -571,84 +609,19 @@ JVK_TEST(Surface, image_scope_ending_before_the_submit_leaves_the_image_to_the_n
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
+    // the epilogue transitions the image from VK_IMAGE_LAYOUT_UNDEFINED
     auto& stage = next_frame(core, graph).stage(0);
+    uint32_t imageIdx = 0;
     {
         auto const image = acquire(core, surface, stage);
-        ASSERT_TRUE(image);
-    }
-    EXPECT_EQ(acquired_images(surface), 1);
-
-    // the submit waits for the acquire semaphore, nothing uses the image
-    {
+        ASSERT_TRUE(image.has_value());
+        imageIdx = image->imageIdx;
         auto const primary = stage.begin();
     }
-
-    // the next acquire waits for the submit on the gpu and gives the image back first
-    auto& next = next_frame(core, graph).stage(0);
-    {
-        auto const image = acquire(core, surface, next);
-        ASSERT_TRUE(image);
-        EXPECT_EQ(acquired_images(surface), 1);
-        auto const primary = next.begin();
-        clear(*primary, *image);
-    }
-
-    present_frame(core, graph, surface);
-}
-
-JVK_TEST(Surface, present_inside_the_rendering_scope_submits_and_presents_once) {
-    test::Context const context{};
-    auto windowSurface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, windowSurface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
-
-    auto& stage = next_frame(core, graph).stage(0);
-    {
-        auto image = acquire(core, surface, stage);
-        ASSERT_TRUE(image);
-        auto const primary = stage.begin();
-        auto const rendering = primary->beginRendering(clear_info(*image));
-
-        // the submit ends the rendering and the primary, the ends of the scopes do nothing
-        image.present();
-        EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
-        EXPECT_EQ(primary->rendering(), nullptr);
-    }
-    wait(core, stage);
-
-    present_frame(core, graph, surface);
-}
-
-JVK_TEST(Surface, moved_scopes_act_once) {
-    test::Context const context{};
-    auto windowSurface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, windowSurface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
-
-    auto& stage = next_frame(core, graph).stage(0);
-    {
-        // the moved-from scopes end after the moved ones: a second submit or present fails
-        auto image = acquire(core, surface, stage);
-        auto const movedImage = std::move(image);
-        ASSERT_TRUE(movedImage);
-        auto primary = stage.begin();
-        auto const movedPrimary = std::move(primary);
-        clear(*movedPrimary, *movedImage);
-    }
-    EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
+    EXPECT_TRUE(reaches_unacquired(core, core.queue(0), surface, imageIdx));
     wait(core, stage);
 
     present_frame(core, graph, surface);
@@ -662,8 +635,8 @@ JVK_TEST(Surface, exception_in_the_recording_submits_and_presents_nothing) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 2}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 2}};
 
     Stage const* stagePtr = nullptr;
     uint32_t imageIdx = 0;
@@ -686,12 +659,12 @@ JVK_TEST(Surface, exception_in_the_recording_submits_and_presents_nothing) {
     EXPECT_EQ(stagePtr->status(), Stage::Status::UNSUBMITTED);
     EXPECT_TRUE(surface.swapchain().current().acquired(imageIdx));
 
-    // the next frame skips the stage, the next acquire gives the image back first
+    // the next frame skips the stage and drops the image, the next acquire gives it back first
     auto& stage = next_frame(core, graph).stage(0);
     EXPECT_EQ(stagePtr->status(), Stage::Status::SKIPPED);
     {
         auto const image = acquire(core, surface, stage);
-        ASSERT_TRUE(image);
+        ASSERT_TRUE(image.has_value());
         EXPECT_EQ(acquired_images(surface), 1);
         auto const primary = stage.begin();
         clear(*primary, *image);
@@ -708,8 +681,8 @@ JVK_TEST(Surface, exception_after_the_submit_presents_the_image) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
     auto& stage = next_frame(core, graph).stage(0);
     std::optional<uint32_t> imageIdxOpt = std::nullopt;
@@ -727,7 +700,7 @@ JVK_TEST(Surface, exception_after_the_submit_presents_the_image) {
     ASSERT_TRUE(imageIdxOpt.has_value());
     EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
 
-    // the frame is complete: the scoped_acquire presents the image
+    // the stage is submitted: its job presents the image
     EXPECT_TRUE(reaches_unacquired(core, core.queue(0), surface, *imageIdxOpt));
     wait(core, stage);
 
@@ -743,8 +716,8 @@ JVK_TEST(Surface, exception_propagated_to_the_end_destroys_graph_and_surface) {
     auto& core = *coreOpt;
 
     auto const run = [&core, &windowSurface] {
-        StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
         Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+        StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
         for(size_t i = 0;; ++i) {
             auto& stage = next_frame(core, graph).stage(0);
             auto const image = acquire(core, surface, stage);
@@ -756,6 +729,184 @@ JVK_TEST(Surface, exception_propagated_to_the_end_destroys_graph_and_surface) {
     };
     EXPECT_THROW(run(), test_exception);
 }
+
+JVK_TEST(Surface, acquire_in_one_stage_presents_after_another) {
+    constexpr size_t FRAMES = 4;
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, scene_and_ui()};
+
+    // the ui stage loads what the scene stage cleared, its epilogue transitions the image
+    for(size_t i = 0; i < FRAMES; ++i)
+        EXPECT_EQ(present_scene_and_ui(core, graph, surface).extent, test::HEADLESS_EXTENT);
+}
+
+JVK_TEST(Surface, present_stage_without_a_use_presents_the_image_of_the_acquire_stage) {
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, scene_and_ui()};
+
+    // the epilogue of the ui stage starts from the state that the scene stage left
+    auto& frame = next_frame(core, graph);
+    uint32_t imageIdx = 0;
+    {
+        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        ASSERT_TRUE(image.has_value());
+        imageIdx = image->imageIdx;
+        auto const scene = frame[SCENE].begin();
+        clear(*scene, *image);
+    }
+    // the scene stage submitted, the image stays acquired until the ui stage
+    EXPECT_EQ(frame[SCENE].status(), Stage::Status::SUBMITTED);
+    wait(core, frame[SCENE]);
+    EXPECT_TRUE(surface.swapchain().current().acquired(imageIdx));
+    {
+        auto const ui = frame[UI].begin();
+    }
+    EXPECT_TRUE(reaches_unacquired(core, core.queue(0), surface, imageIdx));
+
+    present_scene_and_ui(core, graph, surface);
+}
+
+JVK_TEST(Surface, skipped_present_stage_drops_the_image) {
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, scene_and_ui()};
+
+    auto& frame = next_frame(core, graph);
+    {
+        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        ASSERT_TRUE(image.has_value());
+        auto const scene = frame[SCENE].begin();
+        clear(*scene, *image);
+    }
+    frame[UI].skip();
+    EXPECT_EQ(acquired_images(surface), 1);
+
+    // the next acquire waits for the skip on the gpu, then unacquires the image
+    auto& next = next_frame(core, graph);
+    {
+        auto const image = acquire(core, surface, next[SCENE], next[UI]);
+        ASSERT_TRUE(image.has_value());
+        EXPECT_EQ(acquired_images(surface), 1);
+        auto const scene = next[SCENE].begin();
+        clear(*scene, *image);
+    }
+    {
+        auto const ui = next[UI].begin();
+    }
+
+    present_scene_and_ui(core, graph, surface);
+}
+
+JVK_TEST(Surface, exception_in_the_present_stage_drops_the_image) {
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, scene_and_ui()};
+
+    auto& frame = next_frame(core, graph);
+    try {
+        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        ASSERT_TRUE(image.has_value());
+        {
+            auto const scene = frame[SCENE].begin();
+            clear(*scene, *image);
+        }
+        auto const ui = frame[UI].begin();
+        throw test_exception{};
+    }
+    catch(test_exception const&) {}
+    EXPECT_EQ(frame[UI].status(), Stage::Status::UNSUBMITTED);
+
+    // the next frame skips the ui stage and drops the image, the next acquire unacquires it
+    present_scene_and_ui(core, graph, surface);
+    EXPECT_EQ(frame[UI].status(), Stage::Status::SKIPPED);
+    present_scene_and_ui(core, graph, surface);
+}
+
+JVK_TEST(Surface, two_surfaces_present_after_one_stage) {
+    constexpr size_t FRAMES = 4;
+    test::Context const context{};
+    auto firstWindowSurface = test::headless_surface(context.instance);
+    auto secondWindowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, firstWindowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface first{core, core.queue(0), {}, std::move(firstWindowSurface)};
+    Surface second{core, core.queue(0), {}, std::move(secondWindowSurface)};
+    StageGraph graph{core, scene_and_ui()};
+
+    // each surface has its scene stage, both present after the ui stage in one present
+    for(size_t i = 0; i < FRAMES; ++i) {
+        auto& frame = next_frame(core, graph);
+        auto const firstImage = acquire(core, first, frame[SCENE], frame[UI]);
+        auto const secondImage = acquire(core, second, frame[SCENE], frame[UI]);
+        ASSERT_TRUE(firstImage.has_value());
+        ASSERT_TRUE(secondImage.has_value());
+        {
+            auto const scene = frame[SCENE].begin();
+            clear(*scene, *firstImage);
+            clear(*scene, *secondImage);
+        }
+        {
+            auto const ui = frame[UI].begin();
+        }
+        wait(core, frame[UI]);
+        EXPECT_TRUE(reaches_unacquired(core, core.queue(0), first, firstImage->imageIdx));
+        EXPECT_TRUE(reaches_unacquired(core, core.queue(0), second, secondImage->imageIdx));
+    }
+}
+
+#ifdef CTH_DEBUG_MODE
+JVK_TEST(Surface, acquire_for_a_submitted_present_stage_crashes) {
+    // the child runs the test again: the parent has device threads
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, scene_and_ui()};
+
+    auto& frame = next_frame(core, graph);
+    frame[UI].skip();
+    ASSERT_DEATH(
+        [[maybe_unused]]
+        auto const image = acquire(core, surface, frame[SCENE], frame[UI]),
+        ".*"
+    );
+    frame[SCENE].skip();
+}
+#endif
 
 JVK_TEST(Surface, present_queue_of_the_same_family) {
     constexpr size_t FRAMES = 4;
@@ -769,9 +920,10 @@ JVK_TEST(Surface, present_queue_of_the_same_family) {
         || core.queue(0).vk().familyIndex() != core.queue(1).vk().familyIndex())
         GTEST_SKIP() << "needs two vulkan queues of one family, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Surface surface{core, core.queue(1), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
+    // the submit of the stage signals the present semaphores, the queue of the surface presents
     for(size_t i = 0; i < FRAMES; ++i)
         present_frame(core, graph, surface);
 }
@@ -785,19 +937,22 @@ JVK_TEST(Surface, present_queue_of_another_family) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
     auto const& stageQueue = core.queue(0);
-    if(stageQueue.vk().familyIndex() == core.queue(1).vk().familyIndex())
+    auto const& surfaceQueue = core.queue(1);
+    if(stageQueue.vk().familyIndex() == surfaceQueue.vk().familyIndex())
         GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Surface surface{core, core.queue(1), {}, std::move(windowSurface)};
-
-    for(size_t i = 0; i < FRAMES; ++i)
-        present_frame(core, graph, surface);
+    Surface surface{core, surfaceQueue, {}, std::move(windowSurface)};
+    {
+        StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+        for(size_t i = 0; i < FRAMES; ++i)
+            present_frame(core, graph, surface);
+    }
     surface.destroy();
 
-    // one release on the stage queue per frame: the next release gets the next value of its counter
-    auto const next = core.executor().sync_wait(stageQueue.transfer(cvk::Barrier{}));
+    // the epilogue releases the image, one transfer per frame on the queue of the surface acquires
+    // it: the next transfer gets the next value of its counter
+    auto const next = core.executor().sync_wait(surfaceQueue.transfer(cvk::Barrier{}));
     EXPECT_EQ(next.value, FRAMES + 1);
-    stageQueue.waitIdle();
+    surfaceQueue.waitIdle();
 }
 }

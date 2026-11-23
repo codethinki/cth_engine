@@ -11,7 +11,6 @@
 #include <cth/io/log.hpp>
 
 #include <exception>
-#include <ranges>
 #include <span>
 #include <utility>
 #include <vector>
@@ -52,9 +51,13 @@ void SlotSubmit::skipInfo(
     info.signals.push_back(signal);
 }
 
-void SlotSubmit::addCmdBuffers(SubmitInfo& info, bool prologue) const {
-    // the prologue comes first
-    info.cmdBuffers.append_range(cmdBuffers | std::views::drop(prologue ? 0 : 1));
+void SlotSubmit::addCmdBuffers(SubmitInfo& info, bool prologue, bool epilogue) const {
+    // the order of SlotSubmit::cmdBuffers: the prologue, the primary, the epilogue
+    if(prologue)
+        info.cmdBuffers.push_back(cmdBuffers[0]);
+    info.cmdBuffers.push_back(cmdBuffers[1]);
+    if(epilogue)
+        info.cmdBuffers.push_back(cmdBuffers[2]);
 }
 
 StageSlot::StageSlot(
@@ -73,11 +76,13 @@ StageSlot::StageSlot(
     heaps{stage_heaps(graph.core(), queue)},
     semaphore{graph.core(), cvk::create, graph.firstFrameNumber() - 1},
     slotSubmit{.signal = {.semaphore = semaphore, .value = graph.firstFrameNumber() + slot}},
+    submitDone{graph.firstFrameNumber() - 1},
     previous{*this},
     prologue{graph.core(), queue.vk().familyIndex(), cvk::create},
     primary{graph.core(), queue.vk().familyIndex(), cvk::create},
+    epilogue{graph.core(), queue.vk().familyIndex(), cvk::create},
     stasis{graph.core()} {
-    slotSubmit.cmdBuffers = {prologue, primary};
+    slotSubmit.cmdBuffers = {prologue, primary, epilogue};
 
     this->secondaries.reserve(secondaries);
     for(size_t i = 0; i < secondaries; ++i)
@@ -140,6 +145,11 @@ void Stage::await(SemaphoreSubmitInfo const& wait) {
 void Stage::await(cvk::Semaphore const& binary, VkPipelineStageFlags2 stages) {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
     _stageSlot->extraBinaryWaits.emplace_back(binary, stages);
+}
+
+void Stage::present(dev::PendingPresent present) {
+    CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
+    _stageSlot->presents.push_back(std::move(present));
 }
 
 void Stage::submit() { _stageSlot->graph->submit(*this); }

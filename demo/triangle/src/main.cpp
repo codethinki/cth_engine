@@ -83,7 +83,7 @@ struct MsaaTarget {
 
 /**
  * draws the triangle in every frame until the window closes
- * @details only the scopes: the `jvk::scoped_submit` ends first and submits, then the `jvk::scoped_acquire` presents
+ * @details only the scope: the `jvk::scoped_submit` submits, the job of the stage presents
  */
 cth::co::executor_task<void> draw_frames(
     cgfw::Window& window,
@@ -141,7 +141,7 @@ cth::co::executor_task<void> draw_frames(
  * creates the window, the vulkan objects and the pipeline, then draws until the window closes
  * @details the declaration order is the destruction order backwards:
  * - the pipeline and the multisampled target live until `~StageGraph()` waited for the gpu
- * - the surface is destroyed before the graph: its present jobs wait for the semaphores of the graph
+ * - the surface is destroyed after the graph: the stages present to it
  */
 void run() {
     cvk::Cvk const cvk{};
@@ -178,13 +178,13 @@ void run() {
     cvk::GraphicsPipeline const pipeline{core, std::move(pipelineConfig), cvk::create};
 
     std::optional<MsaaTarget> msaaOpt{};
-    jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
     jvk::Surface surface{
         core,
         core.queue(QUEUE_IDX),
         {.swapchain = {.formats = {SURFACE_FORMAT}}},
         std::move(windowSurface),
     };
+    jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
 
     core.executor().sync_wait(draw_frames(window, core, graph, surface, pipeline, msaaOpt));
 }

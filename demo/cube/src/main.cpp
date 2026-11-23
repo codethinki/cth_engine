@@ -419,8 +419,7 @@ void frame_time_window(FrameTimes const& times, bool& collapsed) {
 /**
  * draws the spinning cube and the frame time window in every frame until the window closes
  * @details
- * - only the scopes: the `jvk::scoped_submit` ends first and submits
- * - then the `jvk::scoped_acquire` presents
+ * - only the scope: the `jvk::scoped_submit` submits, the job of the stage presents
  * - the ImGui frame comes first: it takes the events also in a frame without an image
  * - frame time: the time between the starts of two iterations, the first iteration has none
  */
@@ -558,7 +557,7 @@ cth::co::executor_task<void> draw_frames(
  * creates the window, the vulkan objects, the cube and the pipeline, then draws until the window closes
  * @details the declaration order is the destruction order backwards:
  * - the cube, the pipeline, the ImGui and the targets live until `~StageGraph()` waited for the gpu
- * - the surface is destroyed before the graph: its present jobs wait for the semaphores of the graph
+ * - the surface is destroyed after the graph: the stages present to it
  */
 void run() {
     cvk::Cvk const cvk{};
@@ -613,13 +612,13 @@ void run() {
     };
 
     std::optional<Targets> targetsOpt{};
-    jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
     jvk::Surface surface{
         core,
         core.queue(QUEUE_IDX),
         {.swapchain = {.formats = {SURFACE_FORMAT}}},
         std::move(windowSurface),
     };
+    jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
 
     core.executor().sync_wait(
         draw_frames(window, core, graph, surface, pipeline, cube, imgui, targetsOpt)

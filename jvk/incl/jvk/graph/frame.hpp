@@ -40,6 +40,11 @@ public:
     [[nodiscard]] Stage& stage(size_t stageId);
 
     /**
+     * @return the stage in this frame, see `stage()`
+     */
+    [[nodiscard]] Stage& operator[](size_t stageId) { return stage(stageId); }
+
+    /**
      * @return number of the frame, the first frame is `StageGraph::firstFrameNumber()`
      */
     [[nodiscard]] constexpr uint64_t number() const { return _number; }
