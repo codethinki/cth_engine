@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <array>
 #include <exception>
+#include <execution>
 #include <mutex>
 #include <optional>
 #include <ranges>
@@ -180,7 +181,9 @@ cth::co::executor_task<Frame&> StageGraph::nextFrame() {
     if(frameSlot.frameOpt.has_value()) {
         // the submissions first: the gpu can finish before the submission marks the submit, the
         // submission uses the slot until it ended its presents
+        // seq: the children only wait, a post buys nothing
         co_await cth::co::all(
+            std::execution::seq,
             frameSlot.stages
             | std::views::transform(
                 [](Stage const& stage) {
@@ -188,7 +191,7 @@ cth::co::executor_task<Frame&> StageGraph::nextFrame() {
                 }
             )
         );
-        co_await cth::co::all(frameSlot.stages);
+        co_await cth::co::all(std::execution::seq, frameSlot.stages);
     }
 
     frameSlot.frameOpt.reset();

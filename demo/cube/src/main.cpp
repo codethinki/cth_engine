@@ -520,8 +520,8 @@ cth::co::executor_task<void> record_ui(
  * draws the spinning cube and the frame time window in every frame until the window closes
  * @details
  * - the scene stage records the cube, the ui stage records ImGui over it and presents the image
- * - the two stages record in two tasks of one `cth::co::all()`, see `record_scene()`,
- *   `record_ui()`
+ * - the two stages record at the same time: two tasks of one `cth::co::all()` with its default
+ *   `std::execution::par`, see `record_scene()`, `record_ui()`
  * - the ImGui frame comes first: it takes the events also in a frame without an image
  * - no image: both stages skip
  * - frame time: the time between the starts of two iterations, the first iteration has none

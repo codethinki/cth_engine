@@ -82,7 +82,7 @@ public:
      * constructs the frame and its stages in the next slot
      * @details the old frame of the slot: awaits `StageSlot::submitDone` of its stages: their
      *  submissions ended the submits and the presents, then the stages: the gpu finished them, both
-     *  with `cth::co::all()`
+     *  with `cth::co::all()` and `std::execution::seq`
      * @return the frame of the slot
      * @pre every stage of the frame before is submitted or skipped: `Stage::submit()`,
      *  `Stage::skip()` or the end of its `scoped_submit`
