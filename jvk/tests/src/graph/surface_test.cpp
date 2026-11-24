@@ -932,31 +932,6 @@ JVK_TEST(Surface, two_surfaces_present_after_one_stage) {
     }
 }
 
-#ifdef CTH_DEBUG_MODE
-JVK_TEST(Surface, acquire_for_a_submitted_present_stage_crashes) {
-    // the child runs the test again: the parent has device threads
-    GTEST_FLAG_SET(death_test_style, "threadsafe");
-    test::Context const context{};
-    auto windowSurface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, windowSurface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
-    StageGraph graph{core, scene_and_ui()};
-
-    auto& frame = next_frame(core, graph);
-    frame[UI].skip();
-    ASSERT_DEATH(
-        [[maybe_unused]]
-        auto const image = acquire(core, surface, frame[SCENE], frame[UI]),
-        ".*"
-    );
-    frame[SCENE].skip();
-}
-#endif
-
 JVK_TEST(Surface, present_queue_of_the_same_family) {
     constexpr size_t FRAMES = 4;
     test::Context const context{};

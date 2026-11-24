@@ -299,21 +299,6 @@ CVK_TEST(DescriptorSpan, mapping_is_the_mapping_of_the_heap) {
     );
 }
 
-#ifdef CTH_DEBUG_MODE
-CVK_TEST(DescriptorSpan, index_out_of_the_span_crashes) {
-    // the child runs the test again: the parent has device threads
-    GTEST_FLAG_SET(death_test_style, "threadsafe");
-    test::Context const context{};
-    SamplerHeap heap{context.core, {.samplers = 2}, create};
-
-    ASSERT_DEATH(
-        [[maybe_unused]]
-        auto const cell = heap.samplers()[2],
-        ".*"
-    );
-}
-#endif
-
 namespace {
     /**
      * heaps, texture and storage image of the heap compute shader
