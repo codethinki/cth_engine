@@ -63,8 +63,11 @@ public:
 
     /**
      * waits until the gpu finished the submits of every slot, destroys the slots
+     * @details skips the unsubmitted stages first, their waiters go on:
+     * - the stages of the frame of the last `nextFrame()`
+     * - a stage with an exception outside of a `scoped_submit`
+     * - a stage that a failed `submit()` or `skip()` left `UNSUBMITTED`
      * @details
-     * - skips the unsubmitted stages first, e.g. after an exception in their recording: their waiters go on
      * - the skip drops the presents of the stage, see `Surface::acquire()`
      * - waits for the end of every submission
      * - a failed skip or wait does not stop the destruction
@@ -76,14 +79,15 @@ public:
     // the submit
     /**
      * constructs the frame and its stages in the next slot
-     * @details the frame before: skips its stages without `Stage::submit()` or `Stage::skip()`, warns for a waited one
      * @details the old frame of the slot: awaits `StageSlot::submitDone` of its stages: their
      *  submissions ended the submits and the presents, then the stages: the gpu finished them, both
      *  with `cth::co::all()`
      * @return the frame of the slot
+     * @pre every stage of the frame before is submitted or skipped: `Stage::submit()`,
+     *  `Stage::skip()` or the end of its `scoped_submit`
      * @pre no stage of the frame before records or submits: `nextFrame()` ends the frame
-     * @throws std::exception the first error of a submission or a scope, stored before the call: an
-     *  error during the waits -> the next `nextFrame()` rethrows it, see `cth::co::catching_scope`
+     * @throws std::exception the first error of a submission, a `submit()` or a `skip()`, stored
+     *  before the call
      * @throws cth::except::group_coro_exception reason: the wait for a stage of the old frame
      *  failed, after the waits for all its stages: `exceptions()` holds the
      *  `cth::except::coro_exception` per stage
@@ -105,15 +109,20 @@ public:
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
      * - the images of `Stage::present()`: the epilogue after the primary transitions them, the
      *   presents follow the submit, see `Surface::acquire()`
-     * - an error: skips, `nextFrame()` rethrows the error
+     * - an error of the submission: skips, `nextFrame()` rethrows the error
+     * - a failed present: the surface of the image gets the error, see `Surface::acquire()`
      * - after the gpu finished: destroys the retained objects
+     * @details a failure here, `vkEndCommandBuffer()` or the allocation of the submission:
+     * - no throw, the stage stays `UNSUBMITTED`
+     * - the next `nextFrame()` rethrows the failure
+     * - `~StageGraph()` skips the stage
      * @pre the stage is of this graph
      * @pre `Stage::begin()` in this frame
      * @pre `Stage::status()` is `UNSUBMITTED`
      * @pre the primary and its executed secondaries belong to the queue family of `Stage::queue()`
      * @note ends the rendering and the primary
      */
-    void submit(Stage&);
+    void submit(Stage&) noexcept;
 
     /**
      * submits no work for the stage in this frame
@@ -125,10 +134,11 @@ public:
      * @details drops the images of `Stage::present()`, see `Surface::acquire()`
      * @details after the gpu finished the skip submit: destroys the retained objects
      * @details a begun primary: ends its rendering and the primary, discards the recording
+     * @details a failure: the failure of `submit()`
      * @pre the stage is of this graph
      * @pre `Stage::status()` is `UNSUBMITTED`
      */
-    void skip(Stage&);
+    void skip(Stage&) noexcept;
 
     /**
      * sets the state of the image after all submits, without a barrier
@@ -173,10 +183,8 @@ private:
 
     using release_map_t = cth::dt::flat_hash_map<Queue*, cvk::Barrier>;
 
-    void skipUnsubmitted(dev::FrameSlot&);
-
-    //TODO review one helper for submit() and skip(): they differ in the status only
-    void detachSubmission(Stage&, Stage::Status targetStatus);
+    /** a failure stores its error, the stage stays `UNSUBMITTED` */
+    void detachSubmission(Stage&, Stage::Status targetStatus) noexcept;
 
     // no marks as parameters: the submission awaits Semaphore::submitted() of the slots, they live
     // as long as the graph
@@ -233,8 +241,6 @@ private:
 
     last_queue_map_t<VkBuffer> _bufferQueues{};
 
-    //TODO review the error stays: every nextFrame() rethrows it, the errors of the submissions are
-    // fatal
     cth::co::catching_scope _submissions{};
 
     uint64_t _firstFrameNumber;

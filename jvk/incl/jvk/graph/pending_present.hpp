@@ -11,8 +11,10 @@
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstdint>
+#include <exception>
 #include <memory>
 #include <optional>
+#include <utility>
 
 
 namespace cvk {
@@ -37,14 +39,20 @@ struct PresentState {
      */
     bool dropped = false;
 
+    /** error of the failed present of the last image, `Surface::acquire()` rethrows it */
+    std::exception_ptr error = nullptr;
+
     /**
      * resolves the image as presented
      * @details `VK_ERROR_OUT_OF_DATE_KHR` -> sets `PresentState::outOfDate`
+     * @details another result than `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` and `VK_ERROR_OUT_OF_DATE_KHR`
+     *  sets `PresentState::error`: `error`, `nullptr` -> a `cvk::vk_result_exception` of the result
      * @param value of the image
      * @param result of the present of the image
+     * @param error exception of the present, `nullptr` -> none
      * @pre the images before the image are resolved
      */
-    void present(uint64_t value, VkResult result);
+    void present(uint64_t value, VkResult result, std::exception_ptr error);
 
     /**
      * resolves the image as dropped: the next `Surface::acquire()` unacquires it
@@ -98,13 +106,14 @@ public:
     /**
      * resolves the image as presented
      * @param result of the present of the image
+     * @param error exception of the present, `nullptr` -> none
      * @pre not resolved
      * @see `PresentState::present()`
      */
-    void present(VkResult result) {
+    void present(VkResult result, std::exception_ptr error) {
         debug_check(*this);
         auto const value = _state.get_deleter().value;
-        _state.release()->present(value, result);
+        _state.release()->present(value, result, std::move(error));
     }
 
     /**

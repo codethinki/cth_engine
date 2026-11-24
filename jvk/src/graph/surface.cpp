@@ -111,6 +111,9 @@ cth::co::executor_task<std::optional<SwapchainImage>> Surface::acquire(
     // the last image first: the acquire and the present share the swapchain (externally
     // synchronized), a blocking acquire before that present would delay it (FIFO)
     co_await _presentState.resolved.wait(_lastValue);
+    // written before the resolve: the error of the present of the last image
+    if(_presentState.error != nullptr)
+        std::rethrow_exception(std::exchange(_presentState.error, nullptr));
     // outside the strand: the resolve of the last image orders the swapchain uses
     co_await cth::co::executor{_queue->scheduler()}.schedule();
 

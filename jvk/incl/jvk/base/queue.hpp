@@ -234,8 +234,10 @@ private:
     std::vector<VkSemaphore> _presentWaits{};
     std::vector<VkFence> _presentFences{};
 
-    //TODO review the counter decides the reuse of the transfer command buffers, no reactor wait: a
-    // transfer reads it
+    /**
+     * the counter decides the reuse of the transfer command buffers, no reactor wait: a transfer
+     * reads it
+     */
     Semaphore _transferred;
 
 public:

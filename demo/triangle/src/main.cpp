@@ -101,8 +101,9 @@ cth::co::executor_task<void> draw_frames(
             stage,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
         );
-        // extent 0: no image, the next nextFrame() skips the stage
+        // extent 0: no image
         if(!image) {
+            stage.skip();
             co_await cth::co::this_coro::wait(IDLE_WAIT);
             continue;
         }

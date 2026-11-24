@@ -15,6 +15,8 @@
 #include "cvk/utility/vk_exceptions.hpp"
 #include "cvk/utility/vk_overloads.hpp"
 
+#include <volk.h>
+
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
@@ -277,6 +279,21 @@ namespace {
         auto const primary = stage.begin();
         clear(*primary, *image);
         return *image;
+    }
+
+    /** the `vkQueuePresentKHR()` of the device table before `lost_present()` */
+    PFN_vkQueuePresentKHR realQueuePresent = nullptr;
+
+    /**
+     * presents, then reports a lost surface for every swapchain
+     */
+    VKAPI_ATTR VkResult VKAPI_CALL lost_present(VkQueue queue, VkPresentInfoKHR const* info) {
+        if(auto const result = realQueuePresent(queue, info); result < 0)
+            return result;
+        if(info->pResults != nullptr)
+            for(uint32_t i = 0; i < info->swapchainCount; ++i)
+                info->pResults[i] = VK_ERROR_SURFACE_LOST_KHR;
+        return VK_ERROR_SURFACE_LOST_KHR;
     }
 
     /**
@@ -656,13 +673,12 @@ JVK_TEST(Surface, exception_in_the_recording_submits_and_presents_nothing) {
     }
     catch(test_exception const&) {}
 
+    // the scope skipped the stage, the skip drops the image, the next acquire gives it back first
     ASSERT_NE(stagePtr, nullptr);
-    EXPECT_EQ(stagePtr->status(), Stage::Status::UNSUBMITTED);
+    EXPECT_EQ(stagePtr->status(), Stage::Status::SKIPPED);
     EXPECT_TRUE(surface.swapchain().current().acquired(imageIdx));
 
-    // the next frame skips the stage and drops the image, the next acquire gives it back first
     auto& stage = next_frame(core, graph).stage(0);
-    EXPECT_EQ(stagePtr->status(), Stage::Status::SKIPPED);
     {
         auto const image = acquire(core, surface, stage);
         ASSERT_TRUE(image.has_value());
@@ -729,6 +745,39 @@ JVK_TEST(Surface, exception_propagated_to_the_end_destroys_graph_and_surface) {
         }
     };
     EXPECT_THROW(run(), test_exception);
+}
+
+JVK_TEST(Surface, failed_present_arrives_at_the_next_acquire_and_not_at_next_frame) {
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+
+    // the core reads the device table at each call: the presents report a lost surface until the
+    // restore
+    cvk::Core const& vkCore = core;
+    auto* const table = const_cast<VolkDeviceTable*>(vkCore.functions());
+    realQueuePresent = std::exchange(table->vkQueuePresentKHR, lost_present);
+    present_frame(core, graph, surface);
+
+    auto& stage = next_frame(core, graph).stage(0);
+    // the acquire waits for the present of the last image, then rethrows its error
+    try {
+        [[maybe_unused]] auto const image = acquire(core, surface, stage);
+        ADD_FAILURE() << "the acquire must rethrow the error of the present";
+    }
+    catch(cvk::vk_result_exception const& e) { EXPECT_EQ(e.vkResult(), VK_ERROR_SURFACE_LOST_KHR); }
+    table->vkQueuePresentKHR = realQueuePresent;
+    stage.skip();
+
+    // the graph has no error, the surface rethrew it once
+    EXPECT_NO_THROW(present_frame(core, graph, surface));
+    EXPECT_NO_THROW(present_frame(core, graph, surface));
 }
 
 JVK_TEST(Surface, acquire_in_one_stage_presents_after_another) {
@@ -841,11 +890,10 @@ JVK_TEST(Surface, exception_in_the_present_stage_drops_the_image) {
         throw test_exception{};
     }
     catch(test_exception const&) {}
-    EXPECT_EQ(frame[UI].status(), Stage::Status::UNSUBMITTED);
 
-    // the next frame skips the ui stage and drops the image, the next acquire unacquires it
-    present_scene_and_ui(core, graph, surface);
+    // the scope skipped the ui stage, the skip drops the image, the next acquire unacquires it
     EXPECT_EQ(frame[UI].status(), Stage::Status::SKIPPED);
+    present_scene_and_ui(core, graph, surface);
     present_scene_and_ui(core, graph, surface);
 }
 

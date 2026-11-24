@@ -77,8 +77,8 @@ struct SurfaceConfig {
  * - recreates the swapchain in `acquire()`, a retired swapchain stays until its presents ended, see
  *   `Swapchain`
  * - acquires outside the strand of its queue on `Queue::scheduler()`
- * - the present stage of an image presents it after its submit, see `acquire()`: the surface has
- *   no submissions, the errors of the presents go to the graph of the present stage
+ * - the present stage of an image presents it after its submit, see `acquire()`
+ * - a failed present: the next `acquire()` rethrows its error
  * - one acquired image at a time: `acquire()` waits until the last image is presented or dropped
  * - a dropped image: the next `acquire()` or `destroy()` unacquires it after the gpu finished its
  *   stages
@@ -128,6 +128,7 @@ public:
      * - a dropped last image: blocks until the gpu finished its stages, then unacquires it
      * - destroys the acquire semaphores, the swapchain, then the cvk surface
      * - a failed wait does not stop the destruction
+     * - drops the error of a failed present of the last image
      * @pre `created()`
      * @pre no `acquire()` is pending
      * @pre the present stage of the last image is submitted or skipped, or its graph is destroyed:
@@ -159,7 +160,8 @@ public:
      *   queue of the surface acquires it, see `Queue::transfer()`
      * - after its submit: the present on the queue of the surface, one `vkQueuePresentKHR()` for
      *   the images of one queue
-     * - a failed present: the graph stores the error, `StageGraph::nextFrame()` rethrows it
+     * - a failed present, an exception of `Queue::present()` or another result than `VK_SUCCESS`,
+     *   `VK_SUBOPTIMAL_KHR` and `VK_ERROR_OUT_OF_DATE_KHR`: the next `acquire()` rethrows the error
      * - a skip or a failed submit drops the image: the next `acquire()` unacquires it
      * @details the surface:
      * - waits until the last image is presented or dropped
@@ -183,6 +185,7 @@ public:
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or
      *  `vkCreateSwapchainKHR()`
+     * @throws std::exception the error of the failed present of the last image, once
      * @attention `vkAcquireNextImageKHR()` can block (FIFO: the vsync throttle): it occupies a
      *  driver thread, `CoreConfig::driverThreads` `0` -> the calling worker
      * @see `Stage::await()`

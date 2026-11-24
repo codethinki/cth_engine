@@ -59,14 +59,12 @@ void SlotSubmit::addCmdBuffers(SubmitInfo& info, bool prologue, bool epilogue) c
 
 StageSlot::StageSlot(
     StageGraph& graph,
-    cth::co::catching_scope& submissions,
     size_t stageId,
     size_t slot,
     Queue& queue,
     size_t secondaries
 ) :
     graph{graph},
-    submissions{submissions},
     stageId{stageId},
     slot{slot},
     queue{queue},
@@ -104,7 +102,7 @@ scoped_submit Stage::begin() {
     if(samplerHeapPtr != nullptr)
         vk.bind(*samplerHeapPtr);
 
-    return scoped_submit{*this, _stageSlot->submissions};
+    return scoped_submit{*this};
 }
 
 SecondaryCmdBuffer& Stage::beginSecondary(
@@ -149,19 +147,18 @@ void Stage::present(dev::PendingPresent present) {
     _stageSlot->presents.push_back(std::move(present));
 }
 
-void Stage::submit() { _stageSlot->graph->submit(*this); }
+void Stage::submit() noexcept { _stageSlot->graph->submit(*this); }
 
-void Stage::skip() { _stageSlot->graph->skip(*this); }
+void Stage::skip() noexcept { _stageSlot->graph->skip(*this); }
 
 scoped_submit::~scoped_submit() {
-    // an exception: the next nextFrame() skips the stage
-    if(!_stagePtr || std::uncaught_exceptions() > _uncaughtExceptions)
-        return;
-    if(_stagePtr->status() != Stage::Status::UNSUBMITTED)
+    if(!_stagePtr || _stagePtr->status() != Stage::Status::UNSUBMITTED)
         return;
 
-    // a destructor is no task: it stores the failure itself
-    try { _stagePtr->submit(); }
-    catch(...) { _submissions->store(std::current_exception()); }
+    // an exception: the recording is incomplete, the skip lets the waiters go on
+    if(std::uncaught_exceptions() > _uncaughtExceptions)
+        _stagePtr->skip();
+    else
+        _stagePtr->submit();
 }
 }

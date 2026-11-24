@@ -13,7 +13,6 @@
 
 #include <volk.h>
 
-#include <cth/coro/catching_scope.hpp>
 #include <cth/coro/counter_event.hpp>
 #include <cth/io/log.hpp>
 #include <cth/ptr/move_ptr.hpp>
@@ -106,6 +105,9 @@ struct PresentGroup {
 
     /** the present ran, also a failed one: the images resolve as presented, else dropped */
     bool presented = false;
+
+    /** exception of a failed present, the surfaces of its images get it, `nullptr` -> none */
+    std::exception_ptr error = nullptr;
 };
 
 /**
@@ -140,7 +142,6 @@ struct StageSlot {
      */
     StageSlot(
         StageGraph& graph,
-        cth::co::catching_scope& submissions,
         size_t stageId,
         size_t slot,
         Queue& queue,
@@ -148,9 +149,6 @@ struct StageSlot {
     );
 
     cth::ref_wrapper<StageGraph> graph;
-
-    /** the submissions of the graph, the scopes of the stages store their errors into it */
-    cth::ref_wrapper<cth::co::catching_scope> submissions;
 
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
@@ -395,16 +393,18 @@ public:
     /**
      * submits the primary of the frame
      * @details calls `StageGraph::submit()` of the graph of the stage
+     * @details a failure: no throw, see `StageGraph::submit()`
      * @pre the preconditions of `StageGraph::submit()`
      */
-    void submit();
+    void submit() noexcept;
 
     /**
      * submits no work in this frame
      * @details calls `StageGraph::skip()` of the graph of the stage
+     * @details a failure: no throw, see `StageGraph::submit()`
      * @pre the preconditions of `StageGraph::skip()`
      */
-    void skip();
+    void skip() noexcept;
 
     /**
      * keeps the object until the gpu finished the submit or the skip of this frame
@@ -499,25 +499,21 @@ namespace jvk {
  * @details
  * - `Stage::begin()` returns it
  * - normal end: `Stage::submit()` if the stage is `UNSUBMITTED`
- * - exception: nothing, the next `StageGraph::nextFrame()` skips the stage
- * - a moved-from scope does nothing
- * - a failure of the submit at the end, e.g. an allocation: `StageGraph::nextFrame()` rethrows it
+ * - exception: `Stage::skip()` if the stage is `UNSUBMITTED`
+ * - a submitted or skipped stage, a moved-from scope: nothing
+ * - a failure of the submit or the skip at the end: no throw, see `StageGraph::submit()`
  * - `->` and `*` reach the primary
  * @attention a coroutine destroyed while suspended with the scope alive submits the stage
  */
 class scoped_submit {
 public:
-    //TODO review the submissions of the graph as a parameter: scoped_submit is no nested class,
-    // Stage::begin() hands it the submissions of the graph from its stage slot
     /**
      * @details the uncaught exceptions of the calling thread at the construction tell the exception at the end
      * @param stage with the begun primary
-     * @param submissions of the graph, gets a failure of the submit at the end
      * @pre `Stage::begin()` began the primary
      */
-    scoped_submit(Stage& stage, cth::co::catching_scope& submissions) noexcept :
+    explicit scoped_submit(Stage& stage) noexcept :
         _stagePtr{&stage},
-        _submissions{submissions},
         _uncaughtExceptions{std::uncaught_exceptions()} {}
 
     ~scoped_submit();
@@ -527,7 +523,6 @@ public:
 
 private:
     cth::move_ptr<Stage> _stagePtr;
-    cth::ref_wrapper<cth::co::catching_scope> _submissions;
     int _uncaughtExceptions;
 
 public:

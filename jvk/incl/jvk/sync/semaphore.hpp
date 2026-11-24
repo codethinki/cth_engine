@@ -118,7 +118,6 @@ public:
      */
     void create(uint64_t initialValue = 0);
 
-    //TODO evaluate: destroy() with pending waits cancels them (operation_canceled), like asio
     /**
      * destroys and forgets
      * @pre `created()`
