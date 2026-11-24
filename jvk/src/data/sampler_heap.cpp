@@ -10,17 +10,30 @@
 
 namespace jvk {
 SamplerHeap::SamplerHeap(cvk::Core const& core, Config const& config) :
-    _vk{core, config, cvk::create},
+    _vk{core, config},
     _cells{config.samplers},
     _slots(config.samplers) {}
 
-SamplerHeap::~SamplerHeap() {
-    // a moved-from heap has no cvk heap
+SamplerHeap::SamplerHeap(cvk::Core const& core, Config const& config, cvk::create_t) :
+    SamplerHeap{core, config} { create(); }
+
+void SamplerHeap::create() {
+    optDestroy();
+
+    _vk.create();
+}
+
+void SamplerHeap::destroy() {
+    cvk::SamplerHeap::debug_check(_vk);
     CTH_CRITICAL(
-        _vk.created() && _cells.used() != 0,
+        _cells.used() != 0,
         "every sampler of the heap must be gone, got {}",
         _cells.used()
     ) {}
+
+    _vk.destroy();
+
+    forget();
 }
 
 auto SamplerHeap::insert(cvk::SamplerConfig const& config) const -> Sampler {
@@ -69,5 +82,12 @@ void SamplerHeap::unref(uint32_t idx) const {
         return;
     _indices.erase(config);
     _cells.erase(idx);
+}
+
+void SamplerHeap::forget() {
+    auto const& config = _vk.config();
+    _cells = dev::free_list{config.samplers};
+    _indices.clear();
+    _slots.assign(config.samplers, slot{});
 }
 }

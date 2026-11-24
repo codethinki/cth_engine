@@ -97,7 +97,9 @@ public:
     /**
      * destroys the cvk heap and forgets the cells
      * @pre `created()`
-     * @pre no handle and no cell in a stasis of the heap is left
+     * @pre every `ImageHandle` of the heap is destroyed
+     * @pre every `Stasis` with a cell of the heap is destroyed, e.g. the `StageGraph` of a stage
+     *  that retained a handle of the heap
      * @pre the gpu does not use the heap
      */
     void destroy();
@@ -113,6 +115,7 @@ public:
     /**
      * places the descriptor into a free cell of its type
      * @return the owning handle of the cell
+     * @pre `created()`
      * @pre the layout of the descriptor is the `ImageHandle::LAYOUT` of its handle
      * @pre the preconditions of `cvk::ResourceHeap::write()` besides the index
      * @throws jvk::jvk_exception reason: every cell of the type is in use

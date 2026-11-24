@@ -33,7 +33,7 @@ namespace jvk {
  * - `Stage::retain()` keeps a handle while the gpu uses it
  * - the shader convention: `mappings()` and `jvk/heaps.glsl`
  * - owns a `cvk::SamplerHeap`, `vk()` reads it
- * - thread safe
+ * - `insert()` and the handles: thread safe
  */
 class SamplerHeap {
 public:
@@ -43,21 +43,53 @@ public:
     class Sampler;
 
     /**
-     * creates the cvk heap
-     * @pre `cvk::Core::created()`
-     * @pre the preconditions of `cvk::SamplerHeap::create()`
-     * @throws cvk::cvk_exception the exceptions of `cvk::SamplerHeap::create()`
+     * base constructor
      */
     SamplerHeap(cvk::Core const&, Config const&);
 
     /**
-     * @pre no handle and no cell in a stasis of the heap is left
+     * constructs and creates
+     * @details calls @ref SamplerHeap(cvk::Core const&, Config const&), `create()`
      */
-    ~SamplerHeap();
+    explicit SamplerHeap(cvk::Core const&, Config const&, cvk::create_t);
+
+    /**
+     * @note calls `optDestroy()`
+     */
+    ~SamplerHeap() { optDestroy(); }
+
+    /**
+     * creates the cvk heap, every cell is free
+     * @pre `cvk::Core::created()`
+     * @pre the preconditions of `cvk::SamplerHeap::create()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::cvk_exception the exceptions of `cvk::SamplerHeap::create()`
+     */
+    void create();
+
+    /**
+     * destroys the cvk heap and forgets the cells
+     * @pre `created()`
+     * @pre every `Sampler` of the heap is destroyed
+     * @pre every `Stasis` with a cell of the heap is destroyed, e.g. the `StageGraph` of a stage
+     *  that retained a handle of the heap
+     * @pre the gpu does not use the heap
+     */
+    void destroy();
+
+    /**
+     * if `created()` -> calls `destroy()`
+     */
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * the cell of the config: an equal config -> its cell, else a free cell with the config
      * @return a counted handle of the cell
+     * @pre `created()`
      * @throws jvk::jvk_exception reason: every cell is in use
      * @throws cvk::vk_result_exception the exceptions of `cvk::SamplerHeap::write()`
      */
@@ -65,6 +97,7 @@ public:
 
     /**
      * @return the mappings of the shader convention: the samplers
+     * @pre `created()`
      * @details at `constants::HEAP_SET`, `constants::HEAP_SAMPLER_BINDING`
      * @see `jvk/heaps.glsl`, `ResourceHeap::mappings()`
      */
@@ -76,9 +109,12 @@ public:
      */
     [[nodiscard]] constexpr cvk::SamplerHeap const& vk() const { return _vk; }
 
+    [[nodiscard]] constexpr bool created() const { return _vk.created(); }
     [[nodiscard]] constexpr Config const& config() const { return _vk.config(); }
 
 private:
+    void forget();
+
     void ref(uint32_t idx) const;
 
     void unref(uint32_t idx) const;

@@ -102,7 +102,9 @@ public:
      * @details a failed wait does not stop the destruction
      * @pre `created()`
      * @pre the calling thread runs no job of the core
-     * @pre no handle of the heaps is left, the stage graphs of the core are destroyed
+     * @pre every `ResourceHeap::ImageHandle` and every `SamplerHeap::Sampler` of the heaps is
+     *  destroyed
+     * @pre every `StageGraph` of the core is destroyed
      */
     void destroy();
 
@@ -206,8 +208,7 @@ private:
 
     // destroyed before the cvk core
     ResourceHeap _resourceHeap; ///< not created without counts, see `HeapsConfig`
-    // the sampler heap needs the created cvk core, no heap without counts
-    std::optional<SamplerHeap> _samplerHeapOpt{};
+    SamplerHeap _samplerHeap; ///< not created without counts, see `HeapsConfig`
 
 public:
     Core(Core const& other) = delete;

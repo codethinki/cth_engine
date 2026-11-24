@@ -28,7 +28,8 @@ Core::Core(cvk::Instance const& instance, Config config) :
             : _config.workers
     },
     _reactor{*_corePtr},
-    _resourceHeap{*_corePtr, _config.heaps.resources} {}
+    _resourceHeap{*_corePtr, _config.heaps.resources},
+    _samplerHeap{*_corePtr, _config.heaps.samplers} {}
 
 Core::Core(
     cvk::Instance const& instance,
@@ -60,7 +61,7 @@ void Core::create(span<cth::ref_wrapper<cvk::Surface const> const> surfaces) {
         if(_config.heaps.createsResourceHeap())
             _resourceHeap.create();
         if(_config.heaps.createsSamplerHeap())
-            _samplerHeapOpt.emplace(*_corePtr, _config.heaps.samplers);
+            _samplerHeap.create();
     }
     catch(...) {
         _resourceHeap.optDestroy();
@@ -112,7 +113,7 @@ void Core::destroy() {
     }
 
     destroyQueues();
-    _samplerHeapOpt.reset();
+    _samplerHeap.optDestroy();
     _resourceHeap.optDestroy();
     _reactor.destroy();
     _workers.await_stop();
@@ -161,9 +162,9 @@ void Core::destroyQueues() {
 SamplerHeap const& Core::samplerHeap() const {
     debug_check(*this);
     CTH_CRITICAL(
-        !_samplerHeapOpt.has_value(),
+        !_samplerHeap.created(),
         "the core must have a sampler heap, see HeapsConfig"
     ) {}
-    return *_samplerHeapOpt;
+    return _samplerHeap;
 }
 } // namespace jvk

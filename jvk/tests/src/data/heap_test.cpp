@@ -255,9 +255,57 @@ JVK_TEST(ResourceHeap, a_moved_heap_inserts) {
     EXPECT_EQ(other.insert(cvk::SampledImageDescriptor{texture}).idx().get(), 0);
 }
 
-JVK_TEST(SamplerHeap, a_moved_heap_inserts) {
+JVK_TEST(SamplerHeap, base_constructor_does_not_create) {
+    test::Context const context{};
+
+    SamplerHeap const heap{context.core, {.samplers = 2}};
+
+    EXPECT_FALSE(heap.created());
+    EXPECT_EQ(heap.config().samplers, 2);
+}
+
+JVK_TEST(SamplerHeap, create_and_destroy) {
     test::Context const context{};
     SamplerHeap heap{context.core, {.samplers = 2}};
+
+    heap.create();
+    EXPECT_TRUE(heap.created());
+
+    heap.destroy();
+    EXPECT_FALSE(heap.created());
+
+    // a leak shows up when the shared device is destroyed
+    heap.optDestroy();
+    SamplerHeap const created{context.core, {.samplers = 2}, cvk::create};
+    EXPECT_TRUE(created.created());
+}
+
+JVK_TEST(SamplerHeap, destroy_frees_every_cell) {
+    test::Context const context{};
+    SamplerHeap heap{context.core, {.samplers = 2}, cvk::create};
+    cvk::SamplerConfig const nearest{.magFilter = VK_FILTER_NEAREST};
+
+    {
+        auto linearSampler = heap.insert(cvk::SamplerConfig{});
+        auto nearestSampler = heap.insert(nearest);
+        ASSERT_EQ(linearSampler.idx().get(), 0);
+        ASSERT_EQ(nearestSampler.idx().get(), 1);
+
+        // the cell of the last erased handle comes first, cell 1 here
+        { auto const gone = std::move(linearSampler); }
+        { auto const gone = std::move(nearestSampler); }
+    }
+
+    heap.destroy();
+    heap.create();
+
+    // every cell is free and no config is known: the first insert gets cell 0
+    EXPECT_EQ(heap.insert(nearest).idx().get(), 0);
+}
+
+JVK_TEST(SamplerHeap, a_moved_heap_inserts) {
+    test::Context const context{};
+    SamplerHeap heap{context.core, {.samplers = 2}, cvk::create};
     cvk::SamplerConfig const nearest{.magFilter = VK_FILTER_NEAREST};
     // the moved-from heaps keep the count of the returned cell
     EXPECT_EQ(heap.insert(cvk::SamplerConfig{}).idx().get(), 0);
@@ -265,7 +313,7 @@ JVK_TEST(SamplerHeap, a_moved_heap_inserts) {
     SamplerHeap moved{std::move(heap)};
     EXPECT_EQ(moved.insert(cvk::SamplerConfig{}).idx().get(), 0);
 
-    SamplerHeap other{context.core, {.samplers = 1}};
+    SamplerHeap other{context.core, {.samplers = 1}, cvk::create};
     other = std::move(moved);
     EXPECT_EQ(other.config().samplers, 2);
     auto const linearSampler = other.insert(cvk::SamplerConfig{});
