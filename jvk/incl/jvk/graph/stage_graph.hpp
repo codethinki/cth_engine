@@ -70,7 +70,8 @@ public:
      * @details
      * - the skip drops the presents of the stage, see `Surface::acquire()`
      * - waits for the end of every submission
-     * - a failed skip or wait does not stop the destruction
+     * - a failed skip terminates: the waiters of the stage would hang
+     * - a failed wait does not stop the destruction
      * @attention blocks the calling thread: a worker of the core must be free for the submissions
      */
     ~StageGraph();

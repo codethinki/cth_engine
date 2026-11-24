@@ -511,6 +511,21 @@ JVK_TEST(StageGraph, failed_submit_next_frame_rethrows_the_destruction_skips_the
     // ~StageGraph() skipped the stage: its waiter went on, the destruction ended
 }
 
+JVK_TEST(StageGraph, failed_skip_in_the_destruction_terminates) {
+    // the child runs the test again: the parent has device threads
+    GTEST_FLAG_SET(death_test_style, "threadsafe");
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+
+    auto const destroy = [&core] {
+        StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+        [[maybe_unused]] auto const& frame = next_frame(core, graph);
+        // the destruction skips the unsubmitted stage: its first allocation fails
+        test::fail_next_allocation();
+    };
+    ASSERT_DEATH(destroy(), "the skip of an unsubmitted stage in ~StageGraph\\(\\) failed");
+}
+
 JVK_TEST(StageGraph, submitted_and_co_await_of_a_stage) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};

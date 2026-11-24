@@ -116,6 +116,18 @@ StageGraph::~StageGraph() {
                 continue;
             // the skip drops the presents of the stage: the surfaces outlive the graph
             skip(stage);
+            // a failed skip leaves the stage unsubmitted: nothing marks it, its waiters and
+            // _submissions.wait() would hang
+            if(stage.status() == Stage::Status::UNSUBMITTED) {
+                JVK_STABLE_ERR(
+                    true,
+                    "the skip of an unsubmitted stage in ~StageGraph() failed, got stage {} of "
+                    "frame {}",
+                    stage.id(),
+                    stage.frameNumber()
+                ) {}
+                std::terminate();
+            }
         }
 
     _submissions.wait();
