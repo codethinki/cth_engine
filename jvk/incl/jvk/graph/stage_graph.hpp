@@ -108,8 +108,10 @@ public:
      *   its last queue, the prologue acquires it
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
-     * - the images of `Stage::present()`: the epilogue after the primary transitions them, the
-     *   presents follow the submit, see `Surface::acquire()`
+     * - the images of `Stage::present()`: uses after the primary, in the epilogue, the presents
+     *   follow the submit, see `Surface::acquire()`
+     * - another queue family of the last use of a presented image: the last queue releases it,
+     *   the epilogue acquires it
      * - an error of the submission: skips, `nextFrame()` rethrows the error
      * - a failed present: the surface of the image gets the error, see `Surface::acquire()`
      * - after the gpu finished: destroys the retained objects
@@ -212,7 +214,6 @@ private:
         release_map_t releases
     );
 
-    /** the caller holds `_statesMutex`, after `append()` */
     void presentBarriers(dev::StageSlot&);
 
     /** throws only for a failed submit: nothing is presented or resolved then */

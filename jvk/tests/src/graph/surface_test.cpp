@@ -952,6 +952,35 @@ JVK_TEST(Surface, present_queue_of_the_same_family) {
         present_frame(core, graph, surface);
 }
 
+JVK_TEST(Surface, present_stage_of_another_family_without_a_use_acquires_the_image) {
+    constexpr size_t FRAMES = 4;
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface, {GRAPHICS | PRESENT, COMPUTE}))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    if(core.queue(0).vk().familyIndex() == core.queue(1).vk().familyIndex())
+        GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    StageGraph graph{core, scene_and_ui(1)};
+
+    // the scene stage on the family of the surface queue clears the image, the ui stage on the
+    // other family presents it without a use: its epilogue acquires the image from the scene queue
+    // each acquire waits for the present of the image before
+    for(size_t i = 0; i < FRAMES; ++i) {
+        auto& frame = next_frame(core, graph);
+        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        ASSERT_TRUE(image.has_value());
+        {
+            auto const scene = frame[SCENE].begin();
+            clear(*scene, *image);
+        }
+        auto const ui = frame[UI].begin();
+    }
+}
+
 JVK_TEST(Surface, present_queue_of_another_family) {
     constexpr size_t FRAMES = 4;
     test::Context const context{};

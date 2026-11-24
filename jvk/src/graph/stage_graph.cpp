@@ -43,6 +43,14 @@ namespace {
         .scope = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
     };
 
+    /** the present as a use of the image, its state is `PRESENT_STATE` */
+    constexpr ImageAccess PRESENT_ACCESS{
+        .layout = PRESENT_STATE.layout,
+        .stages = PRESENT_STATE.scope.stages,
+        .access = PRESENT_STATE.scope.access,
+        .mipLevels = 1,
+    };
+
     /** `src` waits for the stages of the first use, no access: like `cvk::layout_transition()` */
     [[nodiscard]] constexpr cvk::ImageBarrierInfo from_undefined(
         ImageState const& first,
@@ -299,9 +307,20 @@ cth::co::executor_task<void> StageGraph::submission(
             {
                 std::scoped_lock const lock{_statesMutex};
                 append(stageSlot.primary.states(), queue, prologue, releases);
-                // after the append: the states that the stages before and this one left
-                presentBarriers(stageSlot);
+                // the presents after the primary: uses of the images in the epilogue
+                auto& epilogueUses = stageSlot.epilogueUses;
+                epilogueUses.clear();
+                stageSlot.epilogueBarriers.clear();
+                // the first use of each image in the tracker: no barrier
+                for(auto const& present : stageSlot.presents)
+                    epilogueUses.access(
+                        present.swapchainImage(),
+                        PRESENT_ACCESS,
+                        stageSlot.epilogueBarriers
+                    );
+                append(epilogueUses, queue, stageSlot.epilogueBarriers, releases);
             }
+            presentBarriers(stageSlot);
             // the skip of a failed submit waits for the releases too
             if(!releases.empty())
                 info.waits.append_range(co_await release(std::move(releases)));
@@ -314,10 +333,13 @@ cth::co::executor_task<void> StageGraph::submission(
                 prologue.execute(stageSlot.prologue);
                 stageSlot.prologue.end();
             }
-            bool const withEpilogue = !stageSlot.epilogueBarriers.empty();
+            bool const withEpilogue =
+                !stageSlot.epilogueBarriers.empty() || !stageSlot.presentReleases.empty();
             if(withEpilogue) {
                 stageSlot.epilogue.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+                // two executes: two barriers of one image in one execute have no order
                 stageSlot.epilogueBarriers.execute(stageSlot.epilogue);
+                stageSlot.presentReleases.execute(stageSlot.epilogue);
                 stageSlot.epilogue.end();
             }
 
@@ -463,37 +485,19 @@ void StageGraph::append(
 
 void StageGraph::presentBarriers(dev::StageSlot& stageSlot) {
     auto const family = stageSlot.queue->vk().familyIndex();
-    auto& barriers = stageSlot.epilogueBarriers;
-    barriers.clear();
-    stageSlot.presentStates.clear();
+    auto& releases = stageSlot.presentReleases;
+    releases.clear();
 
     for(auto const& present : stageSlot.presents) {
-        cvk::Image const& image = present.swapchainImage();
-        // Surface::acquire() assumed the image: it has a state
-        auto const lastOpt = _states.last(image.get(), 0);
-        CTH_CRITICAL(!lastOpt.has_value(), "the presented image must have a state") {}
-
         auto const presentFamily = present.queue().vk().familyIndex();
         if(presentFamily == family)
-            barriers.add(
-                image.get(),
-                image.aspectMask(),
-                cvk::ImageBarrierInfo{
-                    .src = lastOpt->scope,
-                    .dst = PRESENT_STATE.scope,
-                    .newLayout = PRESENT_STATE.layout,
-                    .oldLayout = lastOpt->layout,
-                }
-            );
-        else
-            barriers.add(
-                image.get(),
-                image.aspectMask(),
-                dev::release_half(*lastOpt, PRESENT_STATE, family, presentFamily, 0)
-            );
-
-        stageSlot.presentStates.push_back(*lastOpt);
-        _states.assume(image, PRESENT_STATE);
+            continue;
+        cvk::Image const& image = present.swapchainImage();
+        releases.add(
+            image.get(),
+            image.aspectMask(),
+            dev::release_half(PRESENT_STATE, PRESENT_STATE, family, presentFamily, 0)
+        );
     }
 }
 
@@ -576,21 +580,14 @@ cth::co::executor_task<void> StageGraph::submitAndPresent(
                 cvk::Barrier acquire{};
                 auto& signals = stageSlot.presentSignals;
                 signals.clear();
-                for(size_t presentIdx = 0; presentIdx < presents.size(); ++presentIdx) {
-                    auto const& present = presents[presentIdx];
+                for(auto const& present : presents) {
                     if(&present.queue() != &groupQueue)
                         continue;
                     cvk::Image const& image = present.swapchainImage();
                     acquire.add(
                         image.get(),
                         image.aspectMask(),
-                        dev::acquire_half(
-                            stageSlot.presentStates[presentIdx],
-                            PRESENT_STATE,
-                            family,
-                            groupFamily,
-                            0
-                        )
+                        dev::acquire_half(PRESENT_STATE, PRESENT_STATE, family, groupFamily, 0)
                     );
                     auto const [swapchain, imageIdx] = present.image();
                     signals.emplace_back(swapchain->presentSemaphore(imageIdx));

@@ -154,8 +154,10 @@ public:
      * - the state of the image in its graph: `VK_IMAGE_LAYOUT_UNDEFINED` with the wait stages, see
      *   `StageGraph::assume()`: the first barrier of the image chains with the wait
      * @details the present stage gets the present of the image, see `Stage::present()`:
-     * - its submit ends with the barrier of the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`, from
-     *   the state that the stages before left: the epilogue, after the primary
+     * - the present is a use of the image by the present stage after its primary, in the epilogue:
+     *   the barrier to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` from the state that the stages before left
+     * - another queue family of the last use: the last queue releases the image, the epilogue
+     *   acquires it
      * - another queue family than the queue of the surface: the epilogue releases the image, the
      *   queue of the surface acquires it, see `Queue::transfer()`
      * - after its submit: the present on the queue of the surface, one `vkQueuePresentKHR()` for
@@ -177,11 +179,10 @@ public:
      * @pre `created()`
      * @pre `Stage::status()` of both stages is `UNSUBMITTED`
      * @pre both stages belong to one frame of one graph
-     * @pre the present stage is the acquire stage or waits for it in the frame, directly or through
-     *  other stages, see `StageWait`
+     * @pre the present stage waits for every stage of the frame that uses the image, the acquire
+     *  stage included, directly or through other stages, or is that stage, see `StageWait`
      * @pre the present stage of the last image of this surface is submitted or skipped: else the
      *  wait never ends
-     * @pre the last use of the image before the present is on the queue family of the present stage
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or
      *  `vkCreateSwapchainKHR()`

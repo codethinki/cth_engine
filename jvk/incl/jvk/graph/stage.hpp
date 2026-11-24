@@ -199,11 +199,20 @@ struct StageSlot {
     SubmitInfo submitInfo{};
 
     // the scratch of the presents: the submission refills them, they keep their capacity
-    /** the barriers of the presented images, recorded into `StageSlot::epilogue` */
+    /** the presents as uses of their images after the primary, appended to the graph states */
+    ResourceTracker epilogueUses{};
+
+    /**
+     * the barriers of the uses in `StageSlot::epilogueUses`, recorded into `StageSlot::epilogue`
+     * @details first in the epilogue
+     */
     cvk::Barrier epilogueBarriers{};
 
-    /** per entry of `StageSlot::presents`: the state of its image before the epilogue */
-    std::vector<ImageState> presentStates{};
+    /**
+     * the releases of the presented images to the queue family of their surface queue
+     * @details after `StageSlot::epilogueBarriers` in the epilogue
+     */
+    cvk::Barrier presentReleases{};
 
     /** the images of `StageSlot::presents`, the images of one queue in a row */
     std::vector<PresentImage> presentImages{};
@@ -230,7 +239,10 @@ struct StageSlot {
 
     PrimaryCmdBuffer primary;
 
-    /** barriers of the presented images, submitted after the primary, see `Stage::present()` */
+    /**
+     * the uses of the presented images, submitted after the primary, see `Stage::present()`
+     * @details records `StageSlot::epilogueBarriers`, then `StageSlot::presentReleases`
+     */
     PrimaryCmdBuffer epilogue;
 
     std::vector<SecondaryCmdBuffer> secondaries{}; ///< `StageConfig::secondaries` of them
@@ -380,8 +392,12 @@ public:
      * presents the swapchain image of the present after the submit of this frame
      * @details `Surface::acquire()` calls it for its present stage
      * @details the submission of the frame:
-     * - records the barrier of the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` into the epilogue,
-     *   after the primary, see `StageSlot::epilogue`
+     * - the present is a use of the image after the primary, in the epilogue: the barrier to
+     *   `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`, see `StageSlot::epilogue`
+     * - another queue family of the last use: the last queue releases the image, the epilogue
+     *   acquires it
+     * - another queue family of the surface queue: the epilogue releases the image, the queue of
+     *   the surface acquires it
      * - presents the image after the submit, the images of one queue in one `vkQueuePresentKHR()`
      * - a skip or a failed submit drops the image
      * @param present of the image, the stage owns it until its submission resolves it
