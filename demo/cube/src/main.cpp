@@ -29,6 +29,7 @@
 #include <volk.h>
 
 #include <cth/chrono.hpp>
+#include <cth/coro/all.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/coro/this_coro.hpp>
 #include <cth/io/log.hpp>
@@ -73,8 +74,9 @@ constexpr VkSurfaceFormatKHR SURFACE_FORMAT{
 constexpr VkFormat DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT;
 constexpr VkSampleCountFlagBits MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
 
-constexpr size_t QUEUE_IDX = 0; ///< the graphics queue that presents
-constexpr size_t CUBE_STAGE_ID = 0;
+constexpr size_t QUEUE_IDX = 0; ///< the graphics queue of both stages, presents
+constexpr size_t SCENE_STAGE_ID = 0; ///< the cube, waits for the acquire
+constexpr size_t UI_STAGE_ID = 1; ///< ImGui over the scene, presents
 
 /** after a frame without an image, e.g. minimized */
 constexpr auto IDLE_WAIT = std::chrono::milliseconds{16};
@@ -417,10 +419,111 @@ void frame_time_window(FrameTimes const& times, bool& collapsed) {
 }
 
 /**
+ * records the scene stage: the cube into the multisampled targets, resolved into the image
+ * @details
+ * - `upload` -> records the copies of the cube first
+ * - a new extent: the stage retains the old targets until the gpu finished them
+ * - the end of the scope submits
+ */
+cth::co::executor_task<void> record_scene(
+    jvk::Core const& core,
+    jvk::Stage& stage,
+    jvk::SwapchainImage const& image,
+    cvk::GraphicsPipeline const& pipeline,
+    Cube const& cube,
+    Draw const& draw,
+    bool upload,
+    std::optional<Targets>& targetsOpt
+) {
+    if(!targetsOpt.has_value() || targetsOpt->color.extent() != image.extent) {
+        if(targetsOpt.has_value()) {
+            stage.retain(std::move(targetsOpt->colorView));
+            stage.retain(std::move(targetsOpt->depthView));
+            stage.retain(std::move(targetsOpt->color));
+            stage.retain(std::move(targetsOpt->depth));
+        }
+        targetsOpt.emplace(core, image.extent);
+    }
+
+    auto const submit = stage.begin();
+    if(upload)
+        cube.upload(stage, *submit);
+    submit->use(cube.sampled, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
+    submit->use(
+        cube.vertices,
+        {VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_READ_BIT}
+    );
+    // before the rendering: no barrier inside it, the bind inside it then needs none
+    submit->use(cube.indices, {VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
+
+    auto const rendering = submit->beginRendering(
+        {
+            .colorAttachments = {
+                {
+                    .view = targetsOpt->colorView,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .clearValue = {.color = {.float32 = {0.02f, 0.02f, 0.03f, 1.f}}},
+                    .resolveViewPtr = &*image.view,
+                    .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
+                }
+            },
+            .depthAttachment = cvk::RenderingAttachment{
+                .view = targetsOpt->depthView,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .clearValue = {.depthStencil = {.depth = 1.f, .stencil = 0}},
+            },
+        }
+    );
+    submit->bind(pipeline);
+    submit->setViewport(image.extent);
+    submit->setScissor(image.extent);
+    submit->bindIndices(cube.indices);
+    submit->pushData(draw);
+    submit->drawIndexed(36);
+    co_return;
+}
+
+/**
+ * records the ui stage: the ImGui frame over the scene in the image
+ * @details
+ * - its rendering loads the image, the graph orders it after the resolve of the scene stage
+ * - the end of the scope submits
+ */
+cth::co::executor_task<void> record_ui(
+    jvk::Stage& stage,
+    jvk::SwapchainImage const& image,
+    timgui::Imgui& imgui,
+    ImDrawData& drawData
+) {
+    auto const submit = stage.begin();
+    imgui.upload(stage, *submit, drawData);
+
+    auto const rendering = submit->beginRendering(
+        {
+            .colorAttachments = {
+                {
+                    .view = image.view,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                }
+            },
+        }
+    );
+    // the rendering of the ui: the format of the image, one sample, no depth
+    imgui.draw(stage, *submit, drawData);
+    co_return;
+}
+
+/**
  * draws the spinning cube and the frame time window in every frame until the window closes
  * @details
- * - only the scope: the `jvk::scoped_submit` submits, the job of the stage presents
+ * - the scene stage records the cube, the ui stage records ImGui over it and presents the image
+ * - the two stages record in two tasks of one `cth::co::all()`, see `record_scene()`,
+ *   `record_ui()`
  * - the ImGui frame comes first: it takes the events also in a frame without an image
+ * - no image: both stages skip
  * - frame time: the time between the starts of two iterations, the first iteration has none
  */
 cth::co::executor_task<void> draw_frames(
@@ -452,28 +555,22 @@ cth::co::executor_task<void> draw_frames(
         frame_time_window(frameTimes, frameTimeCollapsed);
         auto& drawData = imguiFrame.render();
 
-        auto& stage = (co_await graph.nextFrame()).stage(CUBE_STAGE_ID);
+        auto& frame = co_await graph.nextFrame();
+        auto& scene = frame.stage(SCENE_STAGE_ID);
+        auto& ui = frame.stage(UI_STAGE_ID);
 
+        // the scene stage waits for the acquire, the ui stage presents
         auto const image = co_await surface.acquire(
-            stage,
+            scene,
+            ui,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
         );
         // extent 0: no image
         if(!image) {
-            stage.skip();
+            scene.skip();
+            ui.skip();
             co_await cth::co::this_coro::wait(IDLE_WAIT);
             continue;
-        }
-
-        // a new extent: the frame keeps the old targets until the gpu finished them
-        if(!targetsOpt.has_value() || targetsOpt->color.extent() != image->extent) {
-            if(targetsOpt.has_value()) {
-                stage.retain(std::move(targetsOpt->colorView));
-                stage.retain(std::move(targetsOpt->depthView));
-                stage.retain(std::move(targetsOpt->color));
-                stage.retain(std::move(targetsOpt->depth));
-            }
-            targetsOpt.emplace(core, image->extent);
         }
 
         auto const now = std::chrono::steady_clock::now();
@@ -505,52 +602,11 @@ cth::co::executor_task<void> draw_frames(
             .sampler = cube.sampler.idx(),
         };
 
-        auto const submit = stage.begin();
-        if(!uploaded) {
-            cube.upload(stage, *submit);
-            uploaded = true;
-        }
-        imgui.upload(stage, *submit, drawData);
-        submit->use(cube.sampled, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
-        submit->use(
-            cube.vertices,
-            {VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_READ_BIT}
+        co_await cth::co::all(
+            record_scene(core, scene, *image, pipeline, cube, draw, !uploaded, targetsOpt),
+            record_ui(ui, *image, imgui, drawData)
         );
-        // before the rendering: no barrier inside it, the bind inside it then needs none
-        submit->use(
-            cube.indices,
-            {VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT}
-        );
-
-        auto const rendering = submit->beginRendering(
-            {
-                .colorAttachments = {
-                    {
-                        .view = targetsOpt->colorView,
-                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                        .clearValue = {.color = {.float32 = {0.02f, 0.02f, 0.03f, 1.f}}},
-                        .resolveViewPtr = &*image->view,
-                        .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
-                    }
-                },
-                .depthAttachment = cvk::RenderingAttachment{
-                    .view = targetsOpt->depthView,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                    .clearValue = {.depthStencil = {.depth = 1.f, .stencil = 0}},
-                },
-            }
-        );
-        submit->bind(pipeline);
-        submit->setViewport(extent);
-        submit->setScissor(extent);
-        submit->bindIndices(cube.indices);
-        submit->pushData(draw);
-        submit->drawIndexed(36);
-
-        // the rendering of the cube: the formats and samples of the targets
-        imgui.draw(stage, *submit, drawData);
+        uploaded = true;
     }
 }
 
@@ -606,11 +662,7 @@ void run() {
     pipelineConfig.descriptorMappings.append_range(core.samplerHeap().mappings());
     cvk::GraphicsPipeline const pipeline{core, std::move(pipelineConfig), cvk::create};
 
-    timgui::Imgui imgui{
-        core,
-        window,
-        {.colorFormat = SURFACE_FORMAT.format, .depthFormat = DEPTH_FORMAT, .samples = MSAA_SAMPLES}
-    };
+    timgui::Imgui imgui{core, window, {.colorFormat = SURFACE_FORMAT.format}};
 
     std::optional<Targets> targetsOpt{};
     jvk::Surface surface{
@@ -619,7 +671,24 @@ void run() {
         {.swapchain = {.formats = {SURFACE_FORMAT}}},
         std::move(windowSurface),
     };
-    jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
+    // the ui stage loads the image after the resolve of the scene stage
+    jvk::StageGraph graph{
+        core,
+        {
+            .stages = {
+                {.queueIdx = QUEUE_IDX},
+                {
+                    .queueIdx = QUEUE_IDX,
+                    .waits = {
+                        {
+                            .stageId = SCENE_STAGE_ID,
+                            .stages = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        }
+                    },
+                },
+            },
+        },
+    };
 
     core.executor().sync_wait(
         draw_frames(window, core, graph, surface, pipeline, cube, imgui, targetsOpt)
