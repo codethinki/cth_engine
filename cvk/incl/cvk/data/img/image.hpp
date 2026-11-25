@@ -178,9 +178,6 @@ public:
     }
 
 private:
-    /**
-     * @return region of the whole mip level at the buffer offset
-     */
     [[nodiscard]] VkBufferImageCopy2 bufferCopy(
         BaseCmdBuffer const&,
         BaseBuffer const& buffer,

@@ -1,6 +1,6 @@
 #pragma once
 #include "core_config.hpp"
-#include "queues.hpp"
+#include "queue.hpp"
 
 #include "jvk/data/resource_heap.hpp"
 #include "jvk/data/sampler_heap.hpp"
@@ -15,9 +15,11 @@
 
 #include <cstddef>
 #include <initializer_list>
+#include <memory>
 #include <optional>
 #include <span>
 #include <utility>
+#include <vector>
 
 
 namespace cvk {
@@ -30,6 +32,8 @@ namespace jvk {
  * jvk core
  * @details owns the cvk core, the workers, the timeline reactor, the serialized queues and the descriptor heaps
  * @details the indices of one vulkan queue share one `Queue`
+ * @details a created core neither moves nor takes a move assignment: its queues, heaps, command
+ *  buffers and reactor refer to it
  */
 class Core {
 public:
@@ -40,7 +44,7 @@ public:
      */
     Core(cvk::Instance const&, Config);
 
-    //TODO review no default for the surfaces, like cvk::Core::create(): a core without windows passes {}
+    // no default for the surfaces, like cvk::Core::create(): a core without windows passes {}
     /**
      * constructs and creates
      * @details calls @ref Core(cvk::Instance const&, Config), `create()`
@@ -98,7 +102,9 @@ public:
      * @details a failed wait does not stop the destruction
      * @pre `created()`
      * @pre the calling thread runs no job of the core
-     * @pre no handle of the heaps is left, the stage graphs of the core are destroyed
+     * @pre every `ResourceHeap::ImageHandle` and every `SamplerHeap::Sampler` of the heaps is
+     *  destroyed
+     * @pre every `StageGraph` of the core is destroyed
      */
     void destroy();
 
@@ -112,11 +118,22 @@ public:
 
     /**
      * @param queueIdx index of the queue in `cvk::CoreConfig::queueProperties`
-     * @return serialized queue, the indices of one vulkan queue return the same object
+     * @return serialized queue, the indices of one vulkan queue return the same object, `const` for
+     *  a `const` core: the submits change the queue
      * @pre `created()`
      * @pre `queueIdx` < size of `cvk::CoreConfig::queueProperties`
      */
-    [[nodiscard]] Queue const& queue(size_t queueIdx) const;
+    template<class Self>
+    [[nodiscard]] auto& queue(this Self& self, size_t queueIdx) {
+        debug_check(self);
+        CTH_CRITICAL(
+            queueIdx >= self._queueIndices.size(),
+            "queue index must be < {}, got {}",
+            self._queueIndices.size(),
+            queueIdx
+        ) {}
+        return self._queues[self._queueIndices[queueIdx]];
+    }
 
     /**
      * @return executor of the workers
@@ -154,31 +171,50 @@ public:
      * the cvk core
      * @attention `cvk::Core::queue()` returns the queue without its strand
      */
-    constexpr operator cvk::Core const&() const { return _core; }
+    constexpr operator cvk::Core const&() const { return *_corePtr; }
 
-    [[nodiscard]] constexpr bool created() const { return _core.created(); }
+    // a moved-from core has no cvk core, its destructor asks
+    [[nodiscard]] constexpr bool created() const {
+        return _corePtr != nullptr && _corePtr->created();
+    }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
+    void createQueues();
+
+    /** the queues first: the driver threads run their strands */
+    void destroyQueues();
+
     Config _config;
-    cvk::Core _core;
+
+    // behind a std::unique_ptr: the reactor and the heaps refer to the cvk core also before
+    // create(), the moves stay = default
+    std::unique_ptr<cvk::Core> _corePtr;
+
+    // destroyed after the reactor and the queues, before the cvk core
     cth::co::scheduler _workers;
-    // destroyed after the queues, before the workers and the cvk core: it posts to the workers
+
+    // destroyed after the queues, before the workers and the cvk core: it posts the resumes of its
+    // waiters to their contexts
     TimelineReactor _reactor;
-    //TODO review stays a std::optional: Queues owns no vulkan object, the device owns the queues, its construction
-    // needs the created cvk core and starts the driver threads
+
+    // destroyed after the queues: their strands run on it
+    std::optional<cth::co::scheduler> _driverSchedulerOpt{};
     // destroyed before the reactor, the workers and the cvk core
-    std::optional<Queues> _queuesOpt{};
-    //TODO review std::optional like the queues: the heaps need the created cvk core, no heap without counts
+    /** one per vulkan queue: the indices of one vulkan queue share it */
+    std::vector<Queue> _queues{};
+    /** index in `_queues` per index of `cvk::CoreConfig::queueProperties` */
+    std::vector<size_t> _queueIndices{};
+
     // destroyed before the cvk core
-    std::optional<ResourceHeap> _resourceHeapOpt{};
-    std::optional<SamplerHeap> _samplerHeapOpt{};
+    ResourceHeap _resourceHeap; ///< not created without counts, see `HeapsConfig`
+    SamplerHeap _samplerHeap; ///< not created without counts, see `HeapsConfig`
 
 public:
     Core(Core const& other) = delete;
-    Core(Core&& other) = delete;
+    Core(Core&& other) noexcept = default;
     Core& operator=(Core const& other) = delete;
-    Core& operator=(Core&& other) = delete;
+    Core& operator=(Core&& other) noexcept = default;
 
     static constexpr void debug_check(Core const&);
 };

@@ -11,7 +11,6 @@
 #include <cth/io/log.hpp>
 
 #include <exception>
-#include <ranges>
 #include <span>
 #include <utility>
 #include <vector>
@@ -19,9 +18,6 @@
 
 namespace jvk::dev {
 namespace {
-    /**
-     * @return the heaps of the core, none on a family without graphics and compute
-     */
     [[nodiscard]] cvk::HeapInheritance stage_heaps(Core const& core, Queue const& queue) {
         cvk::Core const& vk = core;
         auto const* familyPtr = vk.physicalDevice().queueFamily(queue.vk().familyIndex());
@@ -37,77 +33,55 @@ namespace {
             .samplerHeapPtr = heaps.createsSamplerHeap() ? &core.samplerHeap().vk() : nullptr,
         };
     }
-
-    /**
-     * the waits of the submit info, then the extra waits
-     */
-    [[nodiscard]] std::vector<cvk::SemaphoreSubmitInfo> all_waits(
-        SubmitInfo const& info,
-        std::span<SemaphoreSubmitInfo const> extraWaits,
-        std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
-    ) {
-        std::vector<cvk::SemaphoreSubmitInfo> waits{};
-        waits.reserve(info.waits.size() + extraWaits.size() + extraBinaryWaits.size());
-        waits.append_range(info.waits);
-        waits.append_range(extraWaits);
-        waits.append_range(extraBinaryWaits);
-        return waits;
-    }
 }
 
-void SubmitInfo::submit(
-    Queue const& queue,
-    std::span<SemaphoreSubmitInfo const> extraWaits,
-    std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits,
-    bool prologue
-) const {
-    cvk::SubmitInfo submitInfo{
-        .waits = all_waits(*this, extraWaits, extraBinaryWaits),
-        .signals = {signal}
-    };
-    submitInfo.cmdBuffers.reserve(cmdBuffers.size());
-    // the prologue comes first
-    for(PrimaryCmdBuffer const& cmdBuffer : cmdBuffers | std::views::drop(prologue ? 0 : 1))
-        submitInfo.cmdBuffers.emplace_back(cmdBuffer);
-
-    queue.vk().submit(submitInfo);
-}
-
-void SubmitInfo::skip(
-    Queue const& queue,
+void SlotSubmit::skipInfo(
+    SubmitInfo& info,
     std::span<SemaphoreSubmitInfo const> extraWaits,
     std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
 ) const {
-    queue.vk().submit(
-        {.waits = all_waits(*this, extraWaits, extraBinaryWaits), .signals = {signal}}
-    );
+    info.clear();
+    info.waits.reserve(waits.size() + extraWaits.size());
+    info.waits.append_range(waits);
+    info.waits.append_range(extraWaits);
+    info.binaryWaits.append_range(extraBinaryWaits);
+    info.signals.push_back(signal);
+}
+
+void SlotSubmit::addCmdBuffers(SubmitInfo& info, bool prologue, bool epilogue) const {
+    // the order of SlotSubmit::cmdBuffers: the prologue, the primary, the epilogue
+    if(prologue)
+        info.cmdBuffers.push_back(cmdBuffers[0]);
+    info.cmdBuffers.push_back(cmdBuffers[1]);
+    if(epilogue)
+        info.cmdBuffers.push_back(cmdBuffers[2]);
 }
 
 StageSlot::StageSlot(
     StageGraph& graph,
-    first_error& error,
     size_t stageId,
     size_t slot,
-    Queue const& queue,
+    Queue& queue,
     size_t secondaries
 ) :
     graph{graph},
-    error{error},
     stageId{stageId},
     slot{slot},
     queue{queue},
     heaps{stage_heaps(graph.core(), queue)},
     semaphore{graph.core(), cvk::create, graph.firstFrameNumber() - 1},
-    submitInfo{.signal = {.semaphore = semaphore, .value = graph.firstFrameNumber() + slot}},
+    slotSubmit{.signal = {.semaphore = semaphore, .value = graph.firstFrameNumber() + slot}},
+    submitDone{graph.firstFrameNumber() - 1},
     previous{*this},
-    prologue{graph.core(), queue.vk().familyIndex()},
-    primary{graph.core(), queue.vk().familyIndex()},
+    prologue{graph.core(), queue.vk().familyIndex(), cvk::create},
+    primary{graph.core(), queue.vk().familyIndex(), cvk::create},
+    epilogue{graph.core(), queue.vk().familyIndex(), cvk::create},
     stasis{graph.core()} {
-    submitInfo.cmdBuffers = {prologue, primary};
+    slotSubmit.cmdBuffers = {prologue, primary, epilogue};
 
     this->secondaries.reserve(secondaries);
     for(size_t i = 0; i < secondaries; ++i)
-        this->secondaries.emplace_back(graph.core(), queue.vk().familyIndex());
+        this->secondaries.emplace_back(graph.core(), queue.vk().familyIndex(), cvk::create);
 }
 }
 
@@ -128,7 +102,7 @@ scoped_submit Stage::begin() {
     if(samplerHeapPtr != nullptr)
         vk.bind(*samplerHeapPtr);
 
-    return scoped_submit{*this, _stageSlot->error};
+    return scoped_submit{*this};
 }
 
 SecondaryCmdBuffer& Stage::beginSecondary(
@@ -155,31 +129,36 @@ SecondaryCmdBuffer& Stage::secondary(size_t secondaryIdx) {
 }
 
 SecondaryCmdBuffer Stage::persistentSecondary() const {
-    return SecondaryCmdBuffer{_stageSlot->graph->core(), queue().vk().familyIndex()};
+    return SecondaryCmdBuffer{_stageSlot->graph->core(), queue().vk().familyIndex(), cvk::create};
 }
 
 void Stage::await(SemaphoreSubmitInfo const& wait) {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
-    _extraWaits.push_back(wait);
+    _stageSlot->extraWaits.push_back(wait);
 }
 
 void Stage::await(cvk::Semaphore const& binary, VkPipelineStageFlags2 stages) {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
-    _extraBinaryWaits.emplace_back(binary, stages);
+    _stageSlot->extraBinaryWaits.emplace_back(binary, stages);
 }
 
-void Stage::submit() { _stageSlot->graph->submit(*this); }
+void Stage::present(Presenter::AcquiredImage image) {
+    CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
+    _stageSlot->presents.push_back(std::move(image));
+}
 
-void Stage::skip() { _stageSlot->graph->skip(*this); }
+void Stage::submit() noexcept { _stageSlot->graph->submit(*this); }
+
+void Stage::skip() noexcept { _stageSlot->graph->skip(*this); }
 
 scoped_submit::~scoped_submit() {
-    // an exception: the next nextFrame() skips the stage
-    if(!_stagePtr || std::uncaught_exceptions() > _uncaughtExceptions)
-        return;
-    if(_stagePtr->status() != Stage::Status::UNSUBMITTED)
+    if(!_stagePtr || _stagePtr->status() != Stage::Status::UNSUBMITTED)
         return;
 
-    try { _stagePtr->submit(); }
-    catch(...) { _error->store(std::current_exception()); }
+    // an exception: the recording is incomplete, the skip lets the waiters go on
+    if(std::uncaught_exceptions() > _uncaughtExceptions)
+        _stagePtr->skip();
+    else
+        _stagePtr->submit();
 }
 }

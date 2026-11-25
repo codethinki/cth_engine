@@ -13,6 +13,7 @@
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <tuple>
 #include <utility>
@@ -32,7 +33,7 @@ namespace jvk {
  * - `Stage::retain()` keeps a handle while the gpu uses it
  * - the shader convention: `mappings()` and `jvk/heaps.glsl`
  * - owns a `cvk::SamplerHeap`, `vk()` reads it
- * - thread safe
+ * - `insert()` and the handles: thread safe
  */
 class SamplerHeap {
 public:
@@ -42,21 +43,53 @@ public:
     class Sampler;
 
     /**
-     * creates the cvk heap
-     * @pre `cvk::Core::created()`
-     * @pre the preconditions of `cvk::SamplerHeap::create()`
-     * @throws cvk::cvk_exception the exceptions of `cvk::SamplerHeap::create()`
+     * base constructor
      */
     SamplerHeap(cvk::Core const&, Config const&);
 
     /**
-     * @pre no handle and no cell in a stasis of the heap is left
+     * constructs and creates
+     * @details calls @ref SamplerHeap(cvk::Core const&, Config const&), `create()`
      */
-    ~SamplerHeap();
+    explicit SamplerHeap(cvk::Core const&, Config const&, cvk::create_t);
+
+    /**
+     * @note calls `optDestroy()`
+     */
+    ~SamplerHeap() { optDestroy(); }
+
+    /**
+     * creates the cvk heap, every cell is free
+     * @pre `cvk::Core::created()`
+     * @pre the preconditions of `cvk::SamplerHeap::create()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::cvk_exception the exceptions of `cvk::SamplerHeap::create()`
+     */
+    void create();
+
+    /**
+     * destroys the cvk heap and forgets the cells
+     * @pre `created()`
+     * @pre every `Sampler` of the heap is destroyed
+     * @pre every `Stasis` with a cell of the heap is destroyed, e.g. the `StageGraph` of a stage
+     *  that retained a handle of the heap
+     * @pre the gpu does not use the heap
+     */
+    void destroy();
+
+    /**
+     * if `created()` -> calls `destroy()`
+     */
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
 
     /**
      * the cell of the config: an equal config -> its cell, else a free cell with the config
      * @return a counted handle of the cell
+     * @pre `created()`
      * @throws jvk::jvk_exception reason: every cell is in use
      * @throws cvk::vk_result_exception the exceptions of `cvk::SamplerHeap::write()`
      */
@@ -64,6 +97,7 @@ public:
 
     /**
      * @return the mappings of the shader convention: the samplers
+     * @pre `created()`
      * @details at `constants::HEAP_SET`, `constants::HEAP_SAMPLER_BINDING`
      * @see `jvk/heaps.glsl`, `ResourceHeap::mappings()`
      */
@@ -75,38 +109,33 @@ public:
      */
     [[nodiscard]] constexpr cvk::SamplerHeap const& vk() const { return _vk; }
 
+    [[nodiscard]] constexpr bool created() const { return _vk.created(); }
     [[nodiscard]] constexpr Config const& config() const { return _vk.config(); }
 
 private:
-    /**
-     * adds a handle of the cell
-     */
+    void forget();
+
     void ref(uint32_t idx) const;
 
-    /**
-     * removes a handle of the cell, the last one returns the cell
-     */
     void unref(uint32_t idx) const;
 
-    /**
-     * the handles and the config of a cell
-     */
     struct slot {
         uint32_t refs = 0;
         cvk::SamplerConfig config{};
     };
 
-    mutable std::mutex _mutex{};
-    mutable cvk::SamplerHeap _vk; ///< written under `_mutex`
-    mutable dev::free_list _cells; ///< under `_mutex`
-    mutable cth::dt::flat_hash_map<cvk::SamplerConfig, uint32_t> _indices{}; ///< under `_mutex`
-    mutable std::vector<slot> _slots; ///< one per cell, under `_mutex`
+    // behind a std::unique_ptr: the mutex is not movable, the moves stay = default
+    std::unique_ptr<std::mutex> _mutexPtr = std::make_unique<std::mutex>();
+    mutable cvk::SamplerHeap _vk; ///< written under `_mutexPtr`
+    mutable dev::free_list _cells; ///< under `_mutexPtr`
+    mutable cth::dt::flat_hash_map<cvk::SamplerConfig, uint32_t> _indices{}; ///< under `_mutexPtr`
+    mutable std::vector<slot> _slots; ///< one per cell, under `_mutexPtr`
 
 public:
     SamplerHeap(SamplerHeap const& other) = delete;
-    SamplerHeap(SamplerHeap&& other) = delete;
+    SamplerHeap(SamplerHeap&& other) noexcept = default;
     SamplerHeap& operator=(SamplerHeap const& other) = delete;
-    SamplerHeap& operator=(SamplerHeap&& other) = delete;
+    SamplerHeap& operator=(SamplerHeap&& other) noexcept = default;
 };
 }
 

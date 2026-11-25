@@ -1,3 +1,4 @@
+// compute shader: local size 64, push data address of `uint values[]`, value `i = 3 * i`
 #version 450
 #extension GL_EXT_buffer_reference : require
 

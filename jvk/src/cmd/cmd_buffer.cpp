@@ -12,15 +12,10 @@
 #include <array>
 #include <bit>
 #include <optional>
-#include <vector>
 
 
 namespace jvk::dev {
 namespace {
-    /**
-     * @return the shader access of the image of the handle, in the layout of its type, on the subresource range of
-     *  its view
-     */
     template<class Handle>
     [[nodiscard]] constexpr ImageAccess shader_access(
         Handle const& handle,
@@ -54,9 +49,6 @@ namespace {
             || layout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
     }
 
-    /**
-     * access of the mip level of the view
-     */
     [[nodiscard]] ImageAccess view_access(
         cvk::ImageView const& view,
         VkImageLayout layout,
@@ -74,9 +66,6 @@ namespace {
         };
     }
 
-    /**
-     * access of a depth or stencil attachment
-     */
     [[nodiscard]] ImageAccess depth_stencil_access(
         cvk::RenderingAttachment const& attachment,
         bool writes
@@ -100,37 +89,23 @@ namespace {
     }
 
 
-    /**
-     * access of an attachment to the mip level of its image
-     */
-    struct AttachmentAccess {
-        cth::ref_wrapper<cvk::Image const> image;
-        ImageAccess access;
-    };
-
-    /**
-     * @return the accesses of the attachments: color, depth and stencil, resolve
-     */
-    [[nodiscard]] std::vector<AttachmentAccess>
-    attachment_accesses(cvk::RenderingInfo const& info) {
-        std::vector<AttachmentAccess> accesses{};
-
+    // a callable, no vector: no allocation per rendering
+    template<class Visit>
+    void visit_attachment_accesses(cvk::RenderingInfo const& info, Visit visit) {
         for(auto const& attachment : info.colorAttachments) {
             auto const access = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
                 | (attachment.loadOp == VK_ATTACHMENT_LOAD_OP_LOAD
                     ? VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT
                     : VK_ACCESS_2_NONE);
-            accesses.push_back(
-                {
-                    attachment.view->image(),
-                    view_access(
-                        attachment.view,
-                        attachment.layout,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        access,
-                        discards(attachment.loadOp)
-                    ),
-                }
+            visit(
+                attachment.view->image(),
+                view_access(
+                    attachment.view,
+                    attachment.layout,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    access,
+                    discards(attachment.loadOp)
+                )
             );
         }
 
@@ -152,21 +127,17 @@ namespace {
                 !stencil_read_only(stencil->layout)
             ).access;
             access.discard = discards(depth->loadOp) && discards(stencil->loadOp);
-            accesses.push_back({depth->view->image(), access});
+            visit(depth->view->image(), access);
         } else {
             if(depth.has_value())
-                accesses.push_back(
-                    {
-                        depth->view->image(),
-                        depth_stencil_access(*depth, !depth_read_only(depth->layout)),
-                    }
+                visit(
+                    depth->view->image(),
+                    depth_stencil_access(*depth, !depth_read_only(depth->layout))
                 );
             if(stencil.has_value())
-                accesses.push_back(
-                    {
-                        stencil->view->image(),
-                        depth_stencil_access(*stencil, !stencil_read_only(stencil->layout)),
-                    }
+                visit(
+                    stencil->view->image(),
+                    depth_stencil_access(*stencil, !stencil_read_only(stencil->layout))
                 );
         }
 
@@ -174,17 +145,15 @@ namespace {
             if(attachment.resolveViewPtr == nullptr)
                 return;
             cvk::ImageView const& resolveView = *attachment.resolveViewPtr;
-            accesses.push_back(
-                {
-                    resolveView.image(),
-                    view_access(
-                        resolveView,
-                        attachment.resolveLayout,
-                        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                        false
-                    ),
-                }
+            visit(
+                resolveView.image(),
+                view_access(
+                    resolveView,
+                    attachment.resolveLayout,
+                    VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                    false
+                )
             );
         };
         for(auto const& attachment : info.colorAttachments)
@@ -194,7 +163,6 @@ namespace {
         if(stencil.has_value() && !(shared && stencil->resolveViewPtr == depth->resolveViewPtr))
             resolve(*stencil);
 
-        return accesses;
     }
 }
 
@@ -206,15 +174,58 @@ BasicCmdBuffer<Cvk>::BasicCmdBuffer(
     BasicCmdBuffer{
         std::make_unique<cvk::CmdPool>(
             core,
-            cvk::CmdPool::Config{.queueFamilyIndex = queueFamilyIndex, .flags = POOL_FLAGS},
-            cvk::create
+            cvk::CmdPool::Config{.queueFamilyIndex = queueFamilyIndex, .flags = POOL_FLAGS}
         )
     } {}
 
 template<class Cvk>
 BasicCmdBuffer<Cvk>::BasicCmdBuffer(std::unique_ptr<cvk::CmdPool> poolPtr) :
-    _cmdBuffer{*poolPtr, cvk::create},
+    _cmdBuffer{*poolPtr},
     _poolPtr{std::move(poolPtr)} {}
+
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::wrap(State const& state) {
+    optDestroy();
+
+    _poolPtr->wrap(cvk::CmdPool::State{.vkPool = state.vkPool});
+    _cmdBuffer.wrap(cvk::BaseCmdBuffer::State{.vkPool = state.vkPool, .vkBuffer = state.vkBuffer});
+}
+
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::create() {
+    optDestroy();
+
+    _poolPtr->create();
+
+    // the command buffer needs the created pool, only a catch destroys the pool when the allocation fails
+    try { _cmdBuffer.create(); }
+    catch(...) {
+        _poolPtr->destroy();
+        throw;
+    }
+}
+
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::destroy() {
+    Cvk::debug_check(_cmdBuffer);
+
+    _cmdBuffer.destroy();
+    _poolPtr->destroy();
+
+    forget();
+}
+
+template<class Cvk>
+auto BasicCmdBuffer<Cvk>::release() -> State {
+    Cvk::debug_check(_cmdBuffer);
+
+    // the command buffer first: the pool releases only without counted command buffers
+    auto const cmdBuffer = _cmdBuffer.release();
+    auto const pool = _poolPtr->release();
+
+    forget();
+    return State{.vkPool = pool.vkPool, .vkBuffer = cmdBuffer.vkBuffer};
+}
 
 template<class Cvk>
 void BasicCmdBuffer<Cvk>::use(cvk::Image const& image, ImageAccess const& access) {
@@ -275,8 +286,12 @@ scoped_rendering<BasicCmdBuffer<Cvk>> BasicCmdBuffer<Cvk>::beginRendering(
     cvk::RenderingInfo const& info
 ) {
     cvk::Barrier barrier{};
-    for(auto const& [image, access] : attachment_accesses(info))
-        _states.access(*image, access, barrier);
+    visit_attachment_accesses(
+        info,
+        [&](cvk::Image const& image, ImageAccess const& access) {
+            _states.access(image, access, barrier);
+        }
+    );
 
     record(barrier);
     _cmdBuffer.beginRendering(info);
@@ -287,13 +302,17 @@ template<class Cvk>
 void BasicCmdBuffer<Cvk>::endRendering() {
     CTH_CRITICAL(rendering() == nullptr, "command buffer must be inside its own rendering") {}
 
-    for(auto const& [image, access] : attachment_accesses(*rendering()))
-        _states.extend(
-            *image,
-            cvk::BarrierScope{.stages = access.stages, .access = access.access},
-            access.firstMipLevel,
-            access.mipLevels
-        );
+    visit_attachment_accesses(
+        *rendering(),
+        [this](cvk::Image const& image, ImageAccess const& access) {
+            _states.extend(
+                image,
+                cvk::BarrierScope{.stages = access.stages, .access = access.access},
+                access.firstMipLevel,
+                access.mipLevels
+            );
+        }
+    );
 
     _cmdBuffer.endRendering();
 }
@@ -356,7 +375,7 @@ void BasicCmdBuffer<Cvk>::reset() {
 }
 
 template<class Cvk>
-void BasicCmdBuffer<Cvk>::appendStates(ResourceStates const& next) {
+void BasicCmdBuffer<Cvk>::appendStates(ResourceTracker const& next) {
     cvk::Barrier barrier{};
     _states.append(next, barrier);
     record(barrier);
@@ -375,6 +394,9 @@ void BasicCmdBuffer<Cvk>::record(cvk::Barrier& barrier) const {
     barrier.execute(_cmdBuffer);
 }
 
+template<class Cvk>
+void BasicCmdBuffer<Cvk>::forget() { _states.clear(); }
+
 template class BasicCmdBuffer<cvk::PrimaryCmdBuffer>;
 template class BasicCmdBuffer<cvk::SecondaryCmdBuffer>;
 }
@@ -386,6 +408,20 @@ PrimaryCmdBuffer::PrimaryCmdBuffer(
     cvk::queue_family_index_t queueFamilyIndex
 ) :
     BasicCmdBuffer{core, queueFamilyIndex} {}
+
+PrimaryCmdBuffer::PrimaryCmdBuffer(
+    cvk::Core const& core,
+    cvk::queue_family_index_t queueFamilyIndex,
+    State const& state
+) :
+    PrimaryCmdBuffer{core, queueFamilyIndex} { wrap(state); }
+
+PrimaryCmdBuffer::PrimaryCmdBuffer(
+    cvk::Core const& core,
+    cvk::queue_family_index_t queueFamilyIndex,
+    cvk::create_t
+) :
+    PrimaryCmdBuffer{core, queueFamilyIndex} { create(); }
 
 void PrimaryCmdBuffer::begin(VkCommandBufferUsageFlags usage) {
     reset();
@@ -416,6 +452,20 @@ SecondaryCmdBuffer::SecondaryCmdBuffer(
     cvk::queue_family_index_t queueFamilyIndex
 ) :
     BasicCmdBuffer{core, queueFamilyIndex} {}
+
+SecondaryCmdBuffer::SecondaryCmdBuffer(
+    cvk::Core const& core,
+    cvk::queue_family_index_t queueFamilyIndex,
+    State const& state
+) :
+    SecondaryCmdBuffer{core, queueFamilyIndex} { wrap(state); }
+
+SecondaryCmdBuffer::SecondaryCmdBuffer(
+    cvk::Core const& core,
+    cvk::queue_family_index_t queueFamilyIndex,
+    cvk::create_t
+) :
+    SecondaryCmdBuffer{core, queueFamilyIndex} { create(); }
 
 void SecondaryCmdBuffer::begin(VkCommandBufferUsageFlags usage, cvk::HeapInheritance const& heaps) {
     reset();

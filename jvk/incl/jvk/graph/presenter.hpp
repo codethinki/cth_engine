@@ -1,27 +1,26 @@
 #pragma once
-#include "jvk/cmd/cmd_buffer.hpp"
-#include "jvk/graph/swapchain.hpp"
-#include "jvk/sync/resource_states.hpp"
 #include "jvk/sync/semaphore.hpp"
-#include "jvk/utility/first_error.hpp"
 
 #include "cvk/render/sync/semaphore.hpp"
-#include "cvk/surface/surface.hpp"
 #include "cvk/surface/swapchain.hpp"
 
 #include <volk.h>
 
-#include <cth/coro/simple_counting_scope.hpp>
+#include <cth/coro/counter_event.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
+#include <cth/data/hash_map.hpp>
 #include <cth/io/log.hpp>
-#include <cth/ptr/move_ptr.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
 
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <memory>
+#include <mutex>
 #include <optional>
+#include <span>
+#include <utility>
+#include <variant>
 #include <vector>
 
 
@@ -31,423 +30,424 @@ class ImageView;
 }
 
 namespace jvk {
-class Core;
 class Queue;
-class Stage;
-class StageGraph;
-class scoped_acquire;
-}
 
-namespace jvk {
 /**
- * acquired swapchain image
+ * orchestrates the images of one swapchain
  * @details
- * - tracked like every image: the commands that use it record its accesses
- * - valid until the end of its scope, see `scoped_acquire`
- */
-struct SwapchainImage {
-    cth::ref_wrapper<cvk::Image const> image;
-    cth::ref_wrapper<cvk::ImageView const> view;
-
-    uint32_t imageIdx; ///< index of the image in the swapchain
-
-    VkExtent2D extent; ///< extent of the swapchain at the acquire
-};
-
-/**
- * config of a `Presenter`
- */
-struct PresenterConfig {
-    /**
-     * @details `cvk::SwapchainConfig::minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`: an
-     *  image for each frame in flight beside the images of the presentation engine
-     * @pre `cvk::SwapchainConfig::queueFamilies.size() < 2`: the images stay `VK_SHARING_MODE_EXCLUSIVE`
-     */
-    cvk::Swapchain::Config swapchain{};
-
-    /**
-     * frames that the gpu works on at the same time, one acquire semaphore each
-     * @pre `framesInFlight > 0`
-     * @pre `framesInFlight >= StageGraphConfig::frameSlots` of the graph of the stages
-     */
-    uint32_t framesInFlight = 2;
-
-    static constexpr void debug_check(PresenterConfig const&);
-};
-
-/**
- * presents to a surface
- * @details
- * - owns the surface and the swapchain
- * - recreates the swapchain in `acquire()`, a retired swapchain stays until its presents ended, see `Swapchain`
- * - submits and presents in the strand of its queue, acquires outside the strand on `Queue::scheduler()`
- * - `Presenter::_semaphore` orders the uses of the swapchain: a present job marks after `vkQueuePresentKHR()`, the
- *   next `acquire()` waits for that mark
- * - one acquired image at a time, in a scope: `scoped_acquire` presents it at its end
- * - an image without a present: the next `acquire()` or `destroy()` unacquires it, `acquire()` after the gpu finished
- *   its stage
- * - the present jobs run detached, `destroy()` waits for them
- * @attention not thread safe
+ * - `acquire()` hands out an `AcquiredImage`, `present()` or `drop()` hands it back
+ * - the presents follow the acquire order
+ * - a dropped image is a spare: the next `acquire()` hands it out first
+ * - owns `framesInFlight()` acquire semaphores and one ready semaphore per image: the ready
+ *   points of the drops
+ * - thread safe: `acquire()`, `present()` and `drop()` from any thread
+ * - the strand of the queue runs the vulkan calls of the swapchain, except the fallback of
+ *   `acquire()`: it excludes the presents and the tries of the presenter
+ * - the destructor releases the spares, see `cvk::Swapchain::unacquire()`
  */
 class Presenter {
 public:
-    using Config = PresenterConfig;
+    class AcquiredImage;
 
     /**
-     * base constructor
-     * @details the queue presents and runs the present submits
-     * @pre the config passes `Config::debug_check()`
+     * wait of the first use of an image: its acquire semaphore or the ready point of its drop
      */
-    Presenter(Core const&, Queue const&, Config);
+    using wait_t = std::variant<cth::ref_wrapper<cvk::Semaphore const>, SemaphoreSubmitInfo>;
 
+    // no base constructor and create(): the presenter has no wrap or release
     /**
-     * constructs and creates
-     * @details calls @ref Presenter(Core const&, Queue const&, Config), `create()`
+     * creates the acquire semaphores and the ready semaphores
+     * @param presentQueue presents the images, its strand runs the tries and the presents
+     * @param swapchain of the images
+     * @param framesInFlight count of the acquire semaphores
+     * @details reads `minImageCount` of the surface for the fallback of `acquire()`
+     * @pre `cvk::Swapchain::created()`
+     * @pre `swapchain` presents through `presentQueue`
+     * @pre `framesInFlight > 0`
+     * @throws cvk::vk_result_exception result of `vkCreateSemaphore()` or
+     *  `vkGetPhysicalDeviceSurfaceCapabilitiesKHR()`
      */
-    Presenter(Core const&, Queue const&, Config, cvk::Surface);
+    Presenter(Queue& presentQueue, cvk::Swapchain& swapchain, uint32_t framesInFlight);
 
     /**
-     * @note calls `optDestroy()`
+     * releases the spares, destroys the acquire semaphores
+     * @details a failed release does not stop the destruction
+     * @pre every `AcquiredImage` of the presenter is handed back
+     * @pre no `acquire()` and no `present()` is pending
+     * @pre the ready points of the spares are reached:
+     *  VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786
+     * @pre the submits that wait for the acquire semaphores or signal the ready semaphores
+     *  completed: VUID-vkDestroySemaphore-semaphore-05149
+     * @see `finished()`
      */
-    ~Presenter() { optDestroy(); }
+    ~Presenter();
 
     /**
-     * takes the surface, creates the swapchain, the semaphores and the command buffers
-     * @details `cvk::Surface::extent()` `0` -> the first `acquire()` with an extent `> 0` creates the swapchain
-     * @details a failure destroys the parts and the surface
-     * @pre `Core::created()`
-     * @pre `cvk::Surface::created()`
-     * @pre the queue can present to the surface
-     * @post `created()`
-     * @note calls `optDestroy()`
-     * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
-     * @throws cvk::vk_result_exception result of a create of the swapchain, semaphores or command buffers
+     * hands out the next image of the swapchain
+     * @details the image:
+     * - a spare first
+     * - else the try: `vkAcquireNextImageKHR()` with timeout `0` in the strand of the queue
+     * - the try returns `VK_NOT_READY` -> the fallback: waits until no present of the presenter
+     *   is pending, then `vkAcquireNextImageKHR()` on a driver thread
+     * - the fallback blocks only with at most `imageCount - minImageCount` of the surface acquired
+     *   images, else it waits for the present fences, then tries:
+     *   VUID-vkAcquireNextImageKHR-swapchain-01802
+     * - `VK_SUBOPTIMAL_KHR` counts as success
+     * @details waits for a hand back:
+     * - every acquire semaphore is with an image that is not presented or dropped
+     * - the try of the fallback returns `VK_NOT_READY`
+     * @details no free acquire semaphore:
+     * - a presented image -> the fallback waits for its present fence
+     * - else waits for the ready point of a drop, see `Semaphore::wait()`
+     * @return the image, `std::nullopt` -> out of date: the acquire or a present returned
+     *  `VK_ERROR_OUT_OF_DATE_KHR`, every later acquire returns `std::nullopt`
+     * @pre the swapchain is not retired: VUID-vkAcquireNextImageKHR-swapchain-01285
+     * @throws std::exception the first failure of a present before, once
+     * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()`
+     * @throws cvk::vk_result_exception result of `vkGetFenceStatus()`, `vkWaitForFences()` or
+     *  `vkGetSemaphoreCounterValue()`
+     * @throws cth::except::coro_exception reason: the wait for a ready point failed
+     * @attention a hand back that never comes -> waits forever, e.g. the caller holds
+     *  `framesInFlight()` images
      */
-    void create(cvk::Surface);
+    [[nodiscard]] cth::co::executor_task<std::optional<AcquiredImage>> acquire();
 
     /**
-     * waits for the present jobs, destroys and forgets
+     * hands the image back for its present
      * @details
-     * - waits for the present jobs, then until the gpu finished the present submits
-     * - then unacquires an image without a present, e.g. after an exception: the earlier frames that used it ended
-     * - destroys the command buffers, the semaphores, the swapchain, then the surface
-     * - a failed wait does not stop the destruction
-     * @pre `created()`
-     * @pre no `acquire()` is pending
-     * @pre every `scoped_acquire` ended
-     * @pre the graph of the presented stages and of the stage of an image without a present lives: the present jobs
-     *  wait for its semaphores
-     * @pre a stage that waits for an acquire without a present: finished on the gpu, or unsubmitted until
-     *  `~StageGraph()`
+     * - waits until every image acquired before is handed back: the presents follow the acquire
+     *   order
+     * - waits for the end of a fallback of `acquire()`
+     * - waits for the present fence of the image while the last present of the image left it
+     *   pending: the present resets it
+     * - one `vkQueuePresentKHR()` in the strand of the queue, see `Queue::present()`
+     * - ends after `vkQueuePresentKHR()`
+     * - never throws: the next `acquire()` rethrows the first failure,
+     *   `VK_ERROR_OUT_OF_DATE_KHR` -> it returns `std::nullopt`
+     * @details the fence of the present:
+     * - pending once the present is enqueued: `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` and the rejected
+     *   presents `VK_ERROR_OUT_OF_DATE_KHR`, `VK_ERROR_SURFACE_LOST_KHR`,
+     *   `VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT`, `VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT`,
+     *   see `vkQueuePresentKHR()`
+     * - another failure enqueues nothing: the image stays acquired and its acquire semaphore
+     *   held until the teardown, `finished()` stays `false`: these results are out of memory,
+     *   device lost or unknown, practically fatal, the next `acquire()` rethrows the error
+     * @pre the image is of this presenter
+     * @pre the image is in `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
+     * @pre a submitted batch signals `AcquiredImage::presentSemaphore()`, after the uses of the
+     *  image and after the wait for `AcquiredImage::wait()`
      */
-    void destroy();
+    [[nodiscard]] cth::co::executor_task<void> present(AcquiredImage image);
 
     /**
-     * if `created()` -> calls `destroy()`
+     * hands the image back without a present: the image becomes a spare that waits for
+     * `AcquiredImage::ready()`
+     * @details the acquire semaphore of the image is free once the ready point is reached
+     * @details the destruction of an image drops it without a ready point: the spare keeps
+     *  `AcquiredImage::wait()`
+     * @pre the image is of this presenter
+     * @pre a batch signals `AcquiredImage::ready()`, after the uses of the image and after the
+     *  wait for `AcquiredImage::wait()`
      */
-    void optDestroy() {
-        if(created())
-            destroy();
-    }
+    void drop(AcquiredImage image);
 
     /**
-     * acquires the next swapchain image for the stage
-     * @details
-     * - adds the wait for the acquire to the stage: `Stage::await()` with the acquire semaphore and the stages
-     * - the state of the image in the graph of the stage: `VK_IMAGE_LAYOUT_UNDEFINED` with the wait stages, see
-     *   `StageGraph::assume()`: the first barrier of the image chains with the wait
-     * - waits until the last present job called `vkQueuePresentKHR()`: the acquire and the present share the
-     *   swapchain, a blocking acquire before that present delays it by one refresh (FIFO)
-     * - runs on `Queue::scheduler()`, outside the strand
-     * - `VK_ERROR_OUT_OF_DATE_KHR` of a present or an acquire of the current swapchain, or a changed
-     *   `cvk::Surface::extent()` -> recreates the swapchain first, erases the old images in the graph of the stage,
-     *   see `StageGraph::erase()`, `Swapchain::recreate()`
-     * - an acquired image without a present, e.g. after an exception or a skip: waits until the gpu finished the
-     *   submit or the skip of its stage, then unacquires it
-     * @param stages pipeline stages of the stage that wait for the acquire
-     * @return scope of the image, see `scoped_acquire`, no image -> surface extent `0`, no wait
-     * @pre `created()`
-     * @pre `Stage::status()` is `UNSUBMITTED`
-     * @pre the `scoped_acquire` of the last acquire ended
-     * @pre an acquired image without a present of this frame: its stage is submitted or skipped
-     * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
-     * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or `vkCreateSwapchainKHR()`
-     * @throws cvk::vk_result_exception the first error of a present job or a scope, stored before the call: an error
-     *  of the last present job during the waits -> the next `acquire()` rethrows it
-     * @attention `vkAcquireNextImageKHR()` can block (FIFO: the vsync throttle): it occupies a driver thread,
-     *  `CoreConfig::driverThreads` `0` -> the calling worker
-     * @see `Stage::await()`
+     * checks without a wait that the presenter has no work left
+     * @return every `AcquiredImage` is handed back, no present is pending, every ready point is
+     *  reached, no present fence is pending, every present was enqueued
+     * @pre no `acquire()` runs at the same time: a present of its image resets a present fence
+     * @throws cvk::vk_result_exception result of `vkGetSemaphoreCounterValue()` or
+     *  `vkGetFenceStatus()`
      */
-    [[nodiscard]] cth::co::executor_task<scoped_acquire> acquire(
-        Stage&,
-        VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
-    );
+    [[nodiscard]] bool finished() const;
 
     /**
-     * presents the acquired image after the submitted stage
-     * @details
-     * - returns at once, a job presents after the submit of the stage reached `vkQueueSubmit2()`
-     * - transitions the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` from its last state in the stage primary
-     * - a stage of another queue family: the job releases the image on the stage queue, the images stay
-     *   `VK_SHARING_MODE_EXCLUSIVE`
-     * - `VK_ERROR_OUT_OF_DATE_KHR` -> the next `acquire()` recreates the swapchain
-     * - a failure of the job: the next `acquire()` rethrows it
-     * @pre an acquired image without a present
-     * @pre `Stage::status()` is `SUBMITTED`
-     * @pre the stage recording uses the image
-     * @pre the stage is the last use of the image in the frame or waits for the other uses
-     * @see `scoped_acquire`
+     * blocks until no present fence of the swapchain is pending
+     * @details for the teardown: `cvk::Swapchain::destroy()` waits for no fence
+     * @pre no `present()` runs at the same time
+     * @throws cvk::vk_result_exception result of `vkWaitForFences()`, e.g. `VK_ERROR_DEVICE_LOST`
      */
-    void present(Stage&);
+    void waitPresents();
 
-    [[nodiscard]] constexpr bool created() const { return _surface.created(); }
-    [[nodiscard]] constexpr Config const& config() const { return _config; }
-
-    /**
-     * @details created once the surface extent is `> 0`
-     * @pre `created()`
-     */
-    [[nodiscard]] constexpr Swapchain const& swapchain() const {
-        debug_check(*this);
-        return _swapchain;
+    [[nodiscard]] constexpr Queue& queue() const { return *_queue; }
+    [[nodiscard]] constexpr cvk::Swapchain& swapchain() const { return *_swapchain; }
+    [[nodiscard]] constexpr uint32_t framesInFlight() const {
+        return static_cast<uint32_t>(_acquireSemaphores.size());
     }
 
 private:
-    /**
-     * submit before the present of one swapchain image
-     * @details signals the present semaphore of the image
-     * @see `cvk::Swapchain::presentSemaphore()`
-     */
-    struct PresentSubmit {
-        PrimaryCmdBuffer cmd; ///< the barrier of the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
+    struct Free {};
 
-        /**
-         * value of `Presenter::_semaphore` for the last submit of `PresentSubmit::cmd`, free once reached
-         */
-        uint64_t value = 0;
+    /** with an image of a caller or a spare */
+    struct Held {};
+
+    /** free once the present fence of the image signals */
+    struct Presented {
+        uint32_t imageIdx;
     };
 
     /**
-     * acquired image without a present
-     * @details its stage waits for the acquire semaphore on the gpu: the unacquire waits until the gpu finished the
-     *  submit or the skip of the stage
+     * state of an acquire semaphore, a `SemaphoreSubmitInfo`: free once the ready point of the
+     * drop is reached
      */
-    struct AcquiredImage {
-        SwapchainImage image;
-        /** `Stage::semaphore()` of the stage of the acquire */
-        cth::ref_wrapper<Semaphore const> stageSemaphore;
-        uint64_t frameNumber; ///< `Stage::frameNumber()`, the value of `stageSemaphore` to wait for
+    using reuse_t = std::variant<Free, Held, Presented, SemaphoreSubmitInfo>;
+
+    struct Spare {
+        uint32_t imageIdx;
+        wait_t wait;
     };
 
-    //TODO review no submitted_awaiter parameter: the job takes it from the stage semaphore and the frame number
-    //TODO review the image as a parameter: the job reads no presenter state outside of the strand
-    //TODO review the submit mark of the present job before awaited: acquire() no longer orders the present jobs
+    /** the state changed during the try, `acquire()` checks it again */
+    struct Retry {};
+
+    struct Fallback {
+        /** `std::nullopt` -> the fallback waits for a present fence */
+        std::optional<size_t> semaphoreIdxOpt;
+        /** count of the started presents at the start, the fallback waits for their end */
+        uint64_t presents;
+    };
+
+    /** result of a try: the image, a retry, the ready point to wait for or the fallback */
+    using try_t = std::variant<AcquiredImage, Retry, SemaphoreSubmitInfo, Fallback>;
+
     /**
-     * present job of `present()`
-     * @details the order:
-     * - off the strand: awaits `Semaphore::submitted()` of the stage semaphore with the frame number
-     * - stage of another family -> `Queue::release()` of the image on the stage queue
-     * - off the strand: awaits `Semaphore::submitted()` of `Presenter::_semaphore` with the value before: the present
-     *   jobs submit and present in the order of `present()`
-     * - off the strand: records the command buffer, the present jobs run one at a time
-     * - in the strand of the queue: submits through `Queue::vk()`, presents through the current swapchain: a
-     *   recreation only happens in `acquire()`, after the last present
-     * - the submit waits for the semaphore of the stage and the release, signals the present semaphore and
-     *   `Presenter::_semaphore` with the value
-     * - the command buffer: the acquire half of another family, the transition to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
-     * - `Semaphore::markSubmitted()` of `Presenter::_semaphore` with the value, after the present
-     * @details the errors:
-     * - a failed submit: stores the error, then an empty submit that signals only `Presenter::_semaphore`, no present
-     * - a failed empty submit: `VK_ERROR_DEVICE_LOST` -> stores the error, else terminates: the waiters would hang
-     * - a failed present: stores the error
-     * @param image the acquired image
-     * @param lastState of the image in the stage primary
-     * @param value of `Presenter::_semaphore` for the submit
-     * @pre the command buffer of the submit belongs to the queue family of the queue
+     * the semaphore choice and the try in the strand
+     * @details `VK_NOT_READY` or only present fences to wait for -> starts the fallback
      */
-    [[nodiscard]] cth::co::executor_task<void> presentJob(
-        Queue const& stageQueue,
-        Semaphore const& stageSemaphore,
-        uint64_t frameNumber,
-        SwapchainImage image,
-        ImageState lastState,
-        uint64_t value
+    [[nodiscard]] cth::co::executor_task<try_t> tryInStrand();
+
+    /**
+     * @return the image, `std::nullopt` -> retry
+     */
+    [[nodiscard]] cth::co::executor_task<std::optional<AcquiredImage>> fallback(Fallback);
+
+    /**
+     * frees the acquire semaphores whose ready point or present fence is reached
+     * @return a free acquire semaphore, `std::nullopt` -> none
+     * @pre in the strand or in the fallback: the presents reset the present fences
+     */
+    [[nodiscard]] std::optional<size_t> recycle();
+
+    /**
+     * blocks until the present fence of a presented image signals
+     * @return the free acquire semaphore
+     * @pre in the fallback, an acquire semaphore is `Presented`
+     */
+    [[nodiscard]] size_t awaitPresentFence();
+
+    /**
+     * @return the images whose present fence is pending, locks
+     */
+    [[nodiscard]] std::vector<uint32_t> pendingFences() const;
+
+    /**
+     * blocks until the present fences of the images signaled, then counts them as not pending
+     * @pre no present of the images runs at the same time: it resets the fence
+     */
+    void waitPresents(std::span<uint32_t const> imageIndices);
+
+    /**
+     * @return the failure of a present, `nullptr` -> none, the presenter forgets it
+     */
+    [[nodiscard]] std::exception_ptr takeError();
+
+    /**
+     * hands the image back as a spare
+     * @param readyOpt `std::nullopt` -> the spare keeps the wait
+     */
+    void spare(
+        uint32_t imageIdx,
+        uint64_t acquireNumber,
+        wait_t const& wait,
+        std::optional<SemaphoreSubmitInfo> const& readyOpt
     );
 
-    /**
-     * creates or recreates the swapchain if it is not created, out of date or of another extent
-     * @details
-     * - the first creation: the config of `swapchainConfig()`
-     * - a recreation erases the old images in the graph first: the new images can reuse their handles
-     * - grows `Presenter::_submits` to the image count
-     * @param extent of the surface, `> 0`
-     * @param graphPtr of the acquiring stage, `nullptr` -> no graph
-     * @pre no present job uses the swapchain: `create()`, or `acquire()` after the mark of the last present
-     * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
-     * @throws cvk::vk_result_exception result of `vkCreateSwapchainKHR()`
-     */
-    void updateSwapchain(VkExtent2D extent, StageGraph* graphPtr);
+    // the helpers below lock nothing, the caller holds _mutex
+    [[nodiscard]] AcquiredImage handOut(uint32_t imageIdx, wait_t wait);
+    [[nodiscard]] Fallback startFallback(std::optional<size_t> semaphoreIdxOpt);
+    void endFallback();
+    /** advances `_handedBack` over the hand backs in acquire order */
+    void handBack(uint64_t acquireNumber);
 
-    /**
-     * @return `PresenterConfig::swapchain`, `minImageCount` `0` -> `minImageCount` of the surface + `framesInFlight`
-     */
-    [[nodiscard]] Swapchain::Config swapchainConfig() const;
+    [[nodiscard]] size_t semaphoreIdx(cvk::Semaphore const& semaphore) const {
+        return static_cast<size_t>(&semaphore - _acquireSemaphores.data());
+    }
 
-    /**
-     * gives the acquired image back to the current swapchain
-     * @pre an acquired image of the current swapchain
-     * @pre no present job uses the swapchain: `acquire()` after the mark of the last present, or `destroy()`
-     * @throws cvk::vk_result_exception result of `vkReleaseSwapchainImagesKHR()`
-     */
-    void unacquireImage();
+    cth::ref_wrapper<Queue> _queue;
+    cth::ref_wrapper<cvk::Swapchain> _swapchain;
 
-    cth::ref_wrapper<Core const> _core;
-    cth::ref_wrapper<Queue const> _queue;
-    Config _config;
-
-    // destroyed after the swapchain
-    cvk::Surface _surface;
-
-    /** created once the surface extent is `> 0`, `Presenter::_semaphore` orders its uses */
-    Swapchain _swapchain;
-
-    /**
-     * ring of `PresenterConfig::framesInFlight`, signaled by the acquires
-     */
+    /** `imageCount - minImageCount` of the surface: more acquired images -> no blocking acquire */
+    uint32_t _blockingAcquireLimit;
     std::vector<cvk::Semaphore> _acquireSemaphores{};
-
-    /** the semaphore in `Presenter::_acquireSemaphores` for the next acquire */
-    size_t _acquireSemaphoreIdx = 0;
-
-    Semaphore _semaphore; ///< signaled by the present submits, each submit signals the next value
-
-    std::vector<PresentSubmit> _submits{}; ///< one per swapchain image
-
-    /** the acquired image without a present */
-    std::optional<AcquiredImage> _acquiredOpt = std::nullopt;
-
     /**
-     * `VK_ERROR_OUT_OF_DATE_KHR` of a present of the current swapchain, the next `acquire()` recreates the swapchain
+     * one per image, a batch signals the acquire number of a drop, see `AcquiredImage::ready()`
+     * @details the batches of one image follow its acquires: the values rise
      */
-    std::atomic<bool> _outOfDate = false;
+    std::vector<Semaphore> _readySemaphores{};
 
-    dev::first_error _error{}; ///< the first error of a job or a scope, `acquire()` rethrows it
+    mutable std::mutex _mutex{};
 
-    /** the running present jobs, `destroy()` waits for them */
-    cth::co::simple_counting_scope _jobs{};
+    // behind _mutex
+    std::vector<reuse_t> _reuses; ///< one per acquire semaphore
+    std::vector<Spare> _spares{};
+    /** acquire number of the last handed out image, the numbers start at `1` */
+    uint64_t _acquires = 0;
+    /** handed back while an image acquired before is not */
+    cth::dt::flat_hash_set<uint64_t> _handedBackAhead{};
+    /** acquired from the swapchain, not presented or released: the images of callers and spares */
+    uint32_t _acquiredImages = 0;
+    /**
+     * per image: an enqueued present left its fence pending, the fence did not signal since
+     * @details the swapchain resets the fence at the next present: the present waits for it first
+     */
+    std::vector<bool> _pendingFences;
+    /**
+     * presents that failed without an enqueue: their images stay acquired, no end of the gpu work
+     * of their submits is known
+     */
+    uint32_t _unenqueuedPresents = 0;
+    uint64_t _presentsStarted = 0;
+    uint64_t _fallbacks = 0; ///< count of the started fallbacks
+    bool _fallback = false; ///< a fallback runs
+    bool _outOfDate = false;
+    std::exception_ptr _error = nullptr; ///< first failure of a present
+
+    // set behind _mutex
+    /** every image up to the acquire number is handed back, a present after its end */
+    cth::co::counter_event _handedBack{};
+    cth::co::counter_event _handBacks{}; ///< count of the hand backs
+    cth::co::counter_event _presentsDone{}; ///< count of the ended presents
+    cth::co::counter_event _fallbacksDone{}; ///< count of the ended fallbacks
 
 public:
     Presenter(Presenter const& other) = delete;
     Presenter(Presenter&& other) = delete;
     Presenter& operator=(Presenter const& other) = delete;
     Presenter& operator=(Presenter&& other) = delete;
-
-    static constexpr void debug_check(Presenter const&);
 };
 }
 
 namespace jvk {
 /**
- * acquired swapchain image of a stage for the scope, presents it at its end
+ * acquired swapchain image of a `Presenter` while the engine holds it, handed back exactly once
  * @details
- * - `Presenter::acquire()` returns it
- * - end, by `Stage::status()`: `SUBMITTED` -> `Presenter::present()`, also after an exception: the frame is complete
- * - end, by `Stage::status()`: `SKIPPED` or `UNSUBMITTED` -> nothing, the next `Presenter::acquire()` or
- *   `Presenter::destroy()` unacquires the image
- * - no image or a moved-from scope: nothing
- * - a failure at the end, e.g. an allocation: the next `Presenter::acquire()` rethrows it
- * - `->` and `*` reach the image
- * - declare it before the `scoped_submit` of the stage: the `scoped_submit` ends first and submits
- * @attention a coroutine destroyed while suspended with the scope alive presents the image of a submitted stage
+ * - `Presenter::present()` or `Presenter::drop()` hands it back, the destruction drops it
+ *   without a ready point
+ * - the content is undefined: the first use transitions it from `VK_IMAGE_LAYOUT_UNDEFINED`
+ * - the first use waits for `wait()`
+ * - a moved-from image hands back nothing
  */
-class scoped_acquire {
+class Presenter::AcquiredImage {
 public:
-    //TODO review the uncaught exceptions as a parameter: acquire() reads them on the calling thread before it moves
-    // onto `Queue::scheduler()`, the scope is constructed there
     /**
+     * constructs the image of an acquire, `Presenter::acquire()` constructs it
      * @param presenter of the image
-     * @param stage of the acquire
-     * @param imageOpt `std::nullopt` -> no image
-     * @param error the first error of the presenter, gets a failure at the end
-     * @param uncaughtExceptions of the calling thread at the start of `Presenter::acquire()`, tell the exception at
-     *  the end
+     * @param imageIdx index of the image in the swapchain
+     * @param acquireNumber order of the acquire, the presents follow it
+     * @param wait of the first use
      */
-    scoped_acquire(
-        Presenter& presenter,
-        Stage& stage,
-        std::optional<SwapchainImage> imageOpt,
-        dev::first_error& error,
-        int uncaughtExceptions
-    ) noexcept;
-
-    ~scoped_acquire();
+    AcquiredImage(Presenter& presenter, uint32_t imageIdx, uint64_t acquireNumber, wait_t wait) :
+        _presenter{
+            &presenter,
+            dropper{.imageIdx = imageIdx, .acquireNumber = acquireNumber, .wait = std::move(wait)}
+        } {}
 
     /**
-     * presents the image now, the end of the scope does nothing
-     * @details `Stage::status()` is `UNSUBMITTED` -> calls `Stage::submit()` first
-     * @pre an image
-     * @pre `Stage::status()` is not `SKIPPED`
-     * @pre the recording of the stage uses the image
-     * @see `Presenter::present()`
+     * @return the presenter of the image
+     * @pre not handed back
      */
-    void present();
+    [[nodiscard]] Presenter& presenter() const {
+        debug_check(*this);
+        return *_presenter;
+    }
 
     /**
-     * ends the scope without a present, the end of the scope does nothing
-     * @details the next `Presenter::acquire()` or `Presenter::destroy()` unacquires the image
-     * @pre an image
-     * @see `Presenter::acquire()`
+     * @return the image in the swapchain
+     * @pre not handed back
      */
-    void unacquire();
-
-    [[nodiscard]] constexpr explicit operator bool() const { return _imageOpt.has_value(); }
+    [[nodiscard]] cvk::Image const& image() const {
+        return presenter().swapchain().image(imageIdx());
+    }
 
     /**
-     * @pre an image
+     * @pre not handed back
      */
-    [[nodiscard]] constexpr SwapchainImage const* operator->() const { return &*_imageOpt; }
+    [[nodiscard]] cvk::ImageView const& view() const {
+        return presenter().swapchain().view(imageIdx());
+    }
 
     /**
-     * @pre an image
+     * @pre not handed back
      */
-    [[nodiscard]] constexpr SwapchainImage const& operator*() const { return *_imageOpt; }
+    [[nodiscard]] VkExtent2D extent() const { return presenter().swapchain().extent(); }
+
+    /**
+     * @return the semaphore that the present waits for, a submit signals it
+     * @pre not handed back
+     */
+    [[nodiscard]] cvk::Semaphore const& presentSemaphore() const {
+        return presenter().swapchain().presentSemaphore(imageIdx());
+    }
+
+    /**
+     * @return wait of the first use, the ready point keeps the stages of its drop
+     */
+    [[nodiscard]] wait_t const& wait() const { return _presenter.get_deleter().wait; }
+
+    /**
+     * @return the ready point of a drop: the ready semaphore of the image with `acquireNumber()`
+     * @details a batch after the uses of the image and after the wait for `wait()` signals it, the
+     *  spare of `Presenter::drop()` waits for it
+     * @pre not handed back
+     */
+    [[nodiscard]] SemaphoreSubmitInfo ready() const {
+        return SemaphoreSubmitInfo{
+            .semaphore = presenter()._readySemaphores[imageIdx()],
+            .value = acquireNumber(),
+        };
+    }
+
+    /**
+     * @return index of the image in the swapchain
+     */
+    [[nodiscard]] uint32_t imageIdx() const { return _presenter.get_deleter().imageIdx; }
+
+    /**
+     * @return order of the acquire, the numbers start at `1`
+     */
+    [[nodiscard]] uint64_t acquireNumber() const { return _presenter.get_deleter().acquireNumber; }
 
 private:
-    cth::move_ptr<Presenter> _presenterPtr; ///< `nullptr` -> the end does nothing
-    cth::ref_wrapper<Stage> _stage;
-    std::optional<SwapchainImage> _imageOpt;
-    cth::ref_wrapper<dev::first_error> _error; ///< the first error of the presenter
-    int _uncaughtExceptions; ///< of the calling thread at the start of `Presenter::acquire()`
+    // the presenter owns the acquired image: its present() and drop() take the hand back
+    friend class Presenter;
+
+    /**
+     * deleter of the image: drops it without a ready point
+     */
+    struct dropper {
+        uint32_t imageIdx;
+        uint64_t acquireNumber;
+        wait_t wait;
+
+        void operator()(Presenter* presenter) const {
+            presenter->spare(imageIdx, acquireNumber, wait, std::nullopt);
+        }
+    };
+
+    std::unique_ptr<Presenter, dropper> _presenter; ///< `nullptr` -> handed back or moved from
 
 public:
-    scoped_acquire(scoped_acquire const& other) = delete;
-    scoped_acquire(scoped_acquire&& other) noexcept = default;
-    scoped_acquire& operator=(scoped_acquire const& other) = delete;
-    scoped_acquire& operator=(scoped_acquire&& other) = delete;
+    AcquiredImage(AcquiredImage const& other) = delete;
+    AcquiredImage(AcquiredImage&& other) noexcept = default;
+    AcquiredImage& operator=(AcquiredImage const& other) = delete;
+    AcquiredImage& operator=(AcquiredImage&& other) noexcept = default;
 
-    static constexpr void debug_check(scoped_acquire const&);
+    static void debug_check(AcquiredImage const&);
 };
 }
 
 namespace jvk {
-constexpr void PresenterConfig::debug_check(PresenterConfig const& config) {
-    CTH_CRITICAL(config.framesInFlight == 0, "framesInFlight must be > 0") {}
-    CTH_CRITICAL(
-        config.swapchain.queueFamilies.size() >= 2,
-        "the swapchain images must stay exclusive, got {} queue families",
-        config.swapchain.queueFamilies.size()
-    ) {}
-}
-
-constexpr void Presenter::debug_check(Presenter const& presenter) {
-    CTH_CRITICAL(!presenter.created(), "presenter must be created") {}
-}
-
-constexpr void scoped_acquire::debug_check(scoped_acquire const& image) {
-    CTH_CRITICAL(
-        !image._presenterPtr,
-        "the scope must hold the image, got a moved-from or ended scope"
-    ) {}
-    CTH_CRITICAL(!image._imageOpt.has_value(), "the scope must hold an image, got none") {}
+inline void Presenter::AcquiredImage::debug_check(AcquiredImage const& image) {
+    CTH_CRITICAL(image._presenter == nullptr, "the image must not be handed back") {}
 }
 }

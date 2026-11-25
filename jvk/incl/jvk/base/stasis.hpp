@@ -110,6 +110,15 @@ public:
         return _handles.empty() && _pooledHandles.empty();
     }
 
+    /**
+     * checks if the handles before the position are destroyed: `clear()` with it destroys nothing
+     * @pre `position` comes from `end()` of this stasis
+     */
+    [[nodiscard]] constexpr bool empty(pos const& position) const {
+        return position.handles <= _clearedHandles
+            && position.pooledHandles <= _clearedPooledHandles;
+    }
+
     [[nodiscard]] constexpr cvk::DeviceTable table() const { return _table; }
     [[nodiscard]] constexpr VmaAllocator allocator() const { return _vmaAllocator; }
 
@@ -123,9 +132,9 @@ private:
     std::vector<handle_t> _handles{};
     std::vector<pooled_t> _pooledHandles{};
 
-    /** handles destroyed by `clear()`, the position of `_handles.front()` */
+    /** handles destroyed by `clear()`: the position of `_handles.front()` */
     size_t _clearedHandles = 0;
-    /** pooled handles destroyed by `clear()`, the position of the first one */
+    /** pooled handles destroyed by `clear()`: the position of the first one */
     size_t _clearedPooledHandles = 0;
 
 public:

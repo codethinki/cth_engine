@@ -144,9 +144,6 @@ public:
     }
 
 private:
-    /**
-     * @param count (`VK_WHOLE_SIZE` => `VK_WHOLE_SIZE`)
-     */
     [[nodiscard]] static constexpr size_t bytes(size_t count) {
         return count == VK_WHOLE_SIZE ? VK_WHOLE_SIZE : count * sizeof(T);
     }

@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <span>
-#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -26,8 +25,6 @@ class Shader {
 public:
     struct State;
     using path_t = std::filesystem::path;
-
-    static constexpr std::string_view DEFAULT_COMPILER = "glslc";
 
     /**
      * base constructor
@@ -52,19 +49,6 @@ public:
      * @details calls @ref Shader(Core const&, VkShaderStageFlagBits), @ref create(path_t const&)
      */
     Shader(Core const&, VkShaderStageFlagBits stage, path_t const& spvPath);
-
-    /**
-     * constructs, compiles the glsl file, loads and creates
-     * @details calls `compile()`, @ref Shader(Core const&, VkShaderStageFlagBits, path_t const&)
-     * @note warns in release builds: compile the shaders at build time
-     */
-    Shader(
-        Core const&,
-        VkShaderStageFlagBits stage,
-        path_t const& spvPath,
-        path_t const& glslPath,
-        path_t const& compilerPath = DEFAULT_COMPILER
-    );
 
     /**
      * @note calls `optDestroy()`
@@ -133,20 +117,6 @@ public:
      * @throws cvk::cvk_exception reason: file missing, size not a multiple of 4 or 0
      */
     [[nodiscard]] static std::vector<uint32_t> load(path_t const& spvPath);
-
-    /**
-     * compiles a glsl file to a SPIR-V file
-     * @param compilerPath glslc compatible compiler
-     * @param flags for the compiler
-     * @details compiler output without error -> logged as warning
-     * @throws cvk::cvk_exception reason: glsl file missing, compiler failed, details: compiler output
-     */
-    static void compile(
-        path_t const& glslPath,
-        path_t const& spvPath,
-        path_t const& compilerPath = DEFAULT_COMPILER,
-        std::string_view flags = "-O"
-    );
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkShaderModule get() const { return _handle.get(); }

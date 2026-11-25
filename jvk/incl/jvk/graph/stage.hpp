@@ -2,15 +2,18 @@
 #include "jvk/base/queue.hpp"
 #include "jvk/base/stasis.hpp"
 #include "jvk/cmd/cmd_buffer.hpp"
+#include "jvk/graph/presenter.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 #include "jvk/sync/semaphore.hpp"
-#include "jvk/utility/first_error.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/data/img/image.hpp"
+#include "cvk/render/sync/barrier.hpp"
 
 #include <volk.h>
 
+#include <cth/coro/counter_event.hpp>
 #include <cth/io/log.hpp>
 #include <cth/ptr/move_ptr.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
@@ -37,19 +40,19 @@ class scoped_submit;
 }
 
 namespace jvk::dev {
-//TODO review name: like cvk::SubmitInfo and the legacy jvk::SubmitInfo
 /**
  * prebuilt submit of a stage slot
  * @details
  * - the graph builds it once, at its construction
  * - holds the values of the next submit or skip of the slot
- * - a skip submits the waits and the signal without the command buffers
+ * - fills the `SubmitInfo` of the next submit or skip: a skip has no command buffers
  */
-struct SubmitInfo {
-    /** `StageSlot::prologue`, `StageSlot::primary` */
+struct SlotSubmit {
+    /** `StageSlot::prologue`, `StageSlot::primary`, `StageSlot::epilogue` */
     std::vector<cth::ref_wrapper<PrimaryCmdBuffer const>> cmdBuffers{};
 
-    //TODO review no queueWaits: the submit job awaits the marks of every wait, its append follows the dependency order
+    // no queueWaits: the submission awaits the marks of every wait, its append follows the
+    // dependency order
     /**
      * one per `StageConfig::waits`: `StageSlot::semaphore` of the waited stage slot
      * @details the waited stage slot: stage `StageWait::stageId`, `StageWait::frameOffset` frame slots before
@@ -61,38 +64,30 @@ struct SubmitInfo {
     SemaphoreSubmitInfo signal; ///< `StageSlot::semaphore` with the frame number
 
     /**
-     * submits the command buffers on the queue
-     * @details waits for `SubmitInfo::waits` and the extra waits, signals `SubmitInfo::signal`
-     * @param queue of the stage slot
-     * @param extraWaits the jvk waits of the stage and of the releases
+     * fills the info with the skip of the slot: the waits and the signal, no command buffers
+     * @details waits for `SlotSubmit::waits` and the extra waits, signals `SlotSubmit::signal`
+     * @param[out] info gets the skip, `SubmitInfo::clear()` first
+     * @param extraWaits the jvk waits of the stage
      * @param extraBinaryWaits the binary waits of the stage
-     * @param prologue `false` -> without `StageSlot::prologue`: the prologue is empty
-     * @pre runs in the strand of the queue
-     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
-     * @see `skip()`
+     * @see `addCmdBuffers()`
      */
-    void submit(
-        Queue const& queue,
-        std::span<SemaphoreSubmitInfo const> extraWaits,
-        std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits,
-        bool prologue
-    ) const;
-
-    /**
-     * submits the waits and the signal without the command buffers
-     * @details the parameters of `submit()`
-     * @pre runs in the strand of the queue
-     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
-     */
-    void skip(
-        Queue const& queue,
+    void skipInfo(
+        SubmitInfo& info,
         std::span<SemaphoreSubmitInfo const> extraWaits,
         std::span<cvk::SemaphoreSubmitInfo const> extraBinaryWaits
     ) const;
 
     /**
+     * adds the command buffers of the submit, the prologue first, the epilogue last
+     * @param[out] info gets the command buffers
+     * @param prologue `false` -> without `StageSlot::prologue`: the prologue is empty
+     * @param epilogue `false` -> without `StageSlot::epilogue`: no image to present
+     */
+    void addCmdBuffers(SubmitInfo& info, bool prologue, bool epilogue) const;
+
+    /**
      * advances every wait and signal value to the next frame of the slot
-     * @details never reads the waited semaphores: their submit jobs run at the same time, a read can see an old frame
+     * @details never reads the waited semaphores: their submissions run at the same time, a read can see an old frame
      * @param frameSlots `StageGraphConfig::frameSlots`, the values rise by it
      */
     constexpr void next(size_t frameSlots);
@@ -100,7 +95,7 @@ struct SubmitInfo {
 
 /**
  * the images and buffers of `Stage::retain()` in one frame
- * @details the submit job erases their graph states before it destroys them, see `StageGraph::erase()`
+ * @details the submission erases their graph states before it destroys them, see `StageGraph::erase()`
  */
 struct RetainedResources {
     /** the handle and the mip levels of each image */
@@ -108,8 +103,8 @@ struct RetainedResources {
     std::vector<VkBuffer> buffers{};
 };
 
-//TODO review a constructor, no aggregate: `SubmitInfo::signal` and `SubmitInfo::cmdBuffers` refer to members, the
-// mutex does not move
+// a constructor, no aggregate: `SlotSubmit::signal` and `SlotSubmit::cmdBuffers` refer to members,
+// the mutex does not move
 /**
  * resources of a stage in one frame slot
  * @details
@@ -121,30 +116,27 @@ struct StageSlot {
      * creates the semaphore and the command buffers of the stage slot
      * @details
      * - the semaphore starts at `StageGraph::firstFrameNumber() - 1`
-     * - `SubmitInfo::signal`: the semaphore with the first frame number of the slot
-     * - the graph sets `StageSlot::previous` and the waits of `StageSlot::submitInfo` once all slots exist
+     * - `SlotSubmit::signal`: the semaphore with the first frame number of the slot
+     * - the graph sets `StageSlot::previous` and the waits of `StageSlot::slotSubmit` once all
+     *   slots exist
      * - `secondaries`: `StageConfig::secondaries` of the stage
      * @pre `StageGraph::firstFrameNumber()` is set
      * @throws cvk::vk_result_exception result of a create of the semaphore or the command buffers
      */
     StageSlot(
         StageGraph& graph,
-        first_error& error,
         size_t stageId,
         size_t slot,
-        Queue const& queue,
+        Queue& queue,
         size_t secondaries
     );
 
     cth::ref_wrapper<StageGraph> graph;
 
-    /** the first error of the graph, the scopes of the stages store into it */
-    cth::ref_wrapper<first_error> error;
-
     size_t stageId; ///< id of the stage, see `StageGraphConfig::stages`
 
     size_t slot;
-    cth::ref_wrapper<Queue const> queue;
+    cth::ref_wrapper<Queue> queue;
 
     /**
      * the heaps of the core that the stage binds and that its secondaries inherit
@@ -159,10 +151,59 @@ struct StageSlot {
      */
     Semaphore semaphore;
 
-    //TODO review a member of the stage slot: it refers to StageSlot::semaphore, StageSlot::prologue,
+    // a member of the stage slot: it refers to StageSlot::semaphore, StageSlot::prologue,
     // StageSlot::primary and the semaphores of the waited stage slots, they live as long as the graph
-    /** the waits and the signal of the next submit or skip, see `SubmitInfo::next()` */
-    SubmitInfo submitInfo;
+    /** the waits and the signal of the next submit or skip, see `SlotSubmit::next()` */
+    SlotSubmit slotSubmit;
+
+    // the next three in the stage slot, not in the stage: they keep their capacity for the next
+    // frames of the slot
+    // one list per kind of wait: the jvk waits keep the jvk semaphore
+    /** the jvk waits of `Stage::await()` in the frame of the slot, the submission clears them */
+    std::vector<SemaphoreSubmitInfo> extraWaits{};
+
+    /** the binary waits of `Stage::await()` in the frame of the slot, the submission clears them */
+    std::vector<cvk::SemaphoreSubmitInfo> extraBinaryWaits{};
+
+    /**
+     * the images to present in the frame of the slot, see `Stage::present()`
+     * @details the submission presents them after the submit or drops them after a skip, then
+     *  clears the list
+     */
+    std::vector<Presenter::AcquiredImage> presents{};
+
+    /**
+     * the submit or the skip of the frame of the slot
+     * @details
+     * - the submission fills it, see `SlotSubmit::skipInfo()`
+     * - one submission at a time: `StageGraph::nextFrame()` hands out the slot again after
+     *   `StageSlot::submitDone` of the submission
+     */
+    SubmitInfo submitInfo{};
+
+    // the scratch of the presents: the submission refills them, they keep their capacity
+    /** the presents as uses of their images after the primary, appended to the graph states */
+    ResourceTracker epilogueUses{};
+
+    /**
+     * the barriers of the uses in `StageSlot::epilogueUses`, recorded into `StageSlot::epilogue`
+     * @details first in the epilogue
+     */
+    cvk::Barrier epilogueBarriers{};
+
+    /**
+     * the releases of the presented images to the queue family of their presenter queue
+     * @details after `StageSlot::epilogueBarriers` in the epilogue
+     */
+    cvk::Barrier presentReleases{};
+
+    /**
+     * frame number of the last submission of the slot that ended its submit or skip, its
+     *  presents and its drops
+     * @details `StageGraph::nextFrame()` awaits it before it hands out the slot again
+     * @details initial value: `StageGraph::firstFrameNumber() - 1`
+     */
+    cth::co::counter_event submitDone;
 
     /** the stage in the frame slot before, submits first */
     cth::ref_wrapper<StageSlot const> previous;
@@ -170,6 +211,12 @@ struct StageSlot {
     PrimaryCmdBuffer prologue; ///< barriers for the first uses of the primary, submitted before it
 
     PrimaryCmdBuffer primary;
+
+    /**
+     * the uses of the presented images, submitted after the primary, see `Stage::present()`
+     * @details records `StageSlot::epilogueBarriers`, then `StageSlot::presentReleases`
+     */
+    PrimaryCmdBuffer epilogue;
 
     std::vector<SecondaryCmdBuffer> secondaries{}; ///< `StageConfig::secondaries` of them
 
@@ -180,7 +227,8 @@ struct StageSlot {
 
     /**
      * the objects of `Stage::retain()`
-     * @details the job of a frame destroys them up to the `Stasis::end()` of its submit or skip
+     * @details the submission of a frame destroys them up to the `Stasis::end()` of its submit or
+     *  skip
      */
     Stasis stasis;
 
@@ -235,7 +283,7 @@ public:
      */
     [[nodiscard]] PrimaryCmdBuffer& primary() { return _stageSlot->primary; }
 
-    //TODO review std::optional instead of a default inheritance {}: an empty inheritance continues a rendering
+    // std::optional instead of a default inheritance {}: an empty inheritance continues a rendering
     /**
      * begins the secondary command buffer of the frame slot
      * @details inherits the heaps of the primary, see `StageSlot::heaps`
@@ -269,7 +317,7 @@ public:
 
     /**
      * adds a wait on a jvk semaphore to the submit of this frame
-     * @details `submit()` and `skip()` wait for it, the submit job first awaits its `Semaphore::submitted()`
+     * @details `submit()` and `skip()` wait for it, the submission first awaits its `Semaphore::submitted()`
      * @pre `status()` is `UNSUBMITTED`
      * @pre the semaphore lives until the gpu finished the submit
      * @attention not thread safe
@@ -288,7 +336,7 @@ public:
         await(SemaphoreSubmitInfo{semaphore, stages, value});
     }
 
-    //TODO review deleted: without it a jvk semaphore takes the binary overload through the private base of
+    // deleted: without it a jvk semaphore takes the binary overload through the private base of
     // cvk::TimelineSemaphore and fails with an inaccessible base error. no reason: MSVC lacks C++26 delete("...")
     /**
      * a jvk semaphore needs a value: `await(semaphore, stages, value)`
@@ -314,25 +362,48 @@ public:
     );
 
     /**
+     * presents the image after the submit of this frame
+     * @details `Frame::acquire()` calls it for its present stage
+     * @details the submission of the frame:
+     * - the present is a use of the image after the primary, in the epilogue: the barrier to
+     *   `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`, see `StageSlot::epilogue`
+     * - another queue family of the last use: the last queue releases the image, the epilogue
+     *   acquires it
+     * - the submit signals `Presenter::AcquiredImage::presentSemaphore()`, the submit or the skip
+     *   signals `Presenter::AcquiredImage::ready()`
+     * - another queue family of the presenter queue: the epilogue releases the image, the
+     *   presenter queue acquires it and signals the present semaphore, see `Queue::transfer()`
+     * - after the submit: erases the state of the image in the graph, `Presenter::present()`
+     * - a skip or a failed submit: erases the state of the image in the graph,
+     *   `Presenter::drop()`
+     * @param image the stage holds it until its submission presents or drops it
+     * @pre `status()` is `UNSUBMITTED`
+     * @attention not thread safe
+     */
+    void present(Presenter::AcquiredImage image);
+
+    /**
      * submits the primary of the frame
      * @details calls `StageGraph::submit()` of the graph of the stage
+     * @details a failure: no throw, see `StageGraph::submit()`
      * @pre the preconditions of `StageGraph::submit()`
      */
-    void submit();
+    void submit() noexcept;
 
     /**
      * submits no work in this frame
      * @details calls `StageGraph::skip()` of the graph of the stage
+     * @details a failure: no throw, see `StageGraph::submit()`
      * @pre the preconditions of `StageGraph::skip()`
      */
-    void skip();
+    void skip() noexcept;
 
     /**
      * keeps the object until the gpu finished the submit or the skip of this frame
      * @details
      * - releases the object at once, the stasis of the stage slot holds its handles
      * - the recordings keep no reference to the object: the caller can destroy it
-     * - an image or a buffer: the job erases its graph state before it destroys it
+     * - an image or a buffer: the submission erases its graph state before it destroys it
      * - thread safe
      * @pre `status()` is `UNSUBMITTED`
      * @pre its users on other queues finish before this submit: this submit waits for them
@@ -374,7 +445,7 @@ public:
      * - `Semaphore::submitted()` of `semaphore()` with `frameNumber()`
      * @see `operator co_await()`
      */
-    [[nodiscard]] constexpr submitted_awaiter submitted() const {
+    [[nodiscard]] constexpr cth::co::counter_event::awaiter submitted() const {
         return _stageSlot->semaphore.submitted(_frameNumber);
     }
 
@@ -404,17 +475,7 @@ private:
     uint64_t _frameNumber;
     Status _status = Status::UNSUBMITTED;
 
-    //TODO review names: the extra waits per kind, the jvk ones keep the jvk semaphore
-    /** the waits of @ref await(SemaphoreSubmitInfo const&) */
-    std::vector<SemaphoreSubmitInfo> _extraWaits{};
-
-    /**
-     * the waits of @ref await(cvk::Semaphore const&, VkPipelineStageFlags2)
-     */
-    std::vector<cvk::SemaphoreSubmitInfo> _extraBinaryWaits{};
-
-    /** the images and buffers of `retain()`, under `StageSlot::stasisMutex` */
-    dev::RetainedResources _retained{};
+    dev::RetainedResources _retained{}; ///< under `StageSlot::stasisMutex`
 
 public:
     Stage(Stage const& other) = delete;
@@ -430,25 +491,21 @@ namespace jvk {
  * @details
  * - `Stage::begin()` returns it
  * - normal end: `Stage::submit()` if the stage is `UNSUBMITTED`
- * - exception: nothing, the next `StageGraph::nextFrame()` skips the stage
- * - a moved-from scope does nothing
- * - a failure of the submit at the end, e.g. an allocation: `StageGraph::nextFrame()` rethrows it
+ * - exception: `Stage::skip()` if the stage is `UNSUBMITTED`
+ * - a submitted or skipped stage, a moved-from scope: nothing
+ * - a failure of the submit or the skip at the end: no throw, see `StageGraph::submit()`
  * - `->` and `*` reach the primary
  * @attention a coroutine destroyed while suspended with the scope alive submits the stage
  */
 class scoped_submit {
 public:
-    //TODO review the first error as a parameter: scoped_submit is no nested class, Stage::begin() hands it the error
-    // of the graph from its stage slot
     /**
      * @details the uncaught exceptions of the calling thread at the construction tell the exception at the end
      * @param stage with the begun primary
-     * @param error the first error of the graph, gets a failure of the submit at the end
      * @pre `Stage::begin()` began the primary
      */
-    scoped_submit(Stage& stage, dev::first_error& error) noexcept :
+    explicit scoped_submit(Stage& stage) noexcept :
         _stagePtr{&stage},
-        _error{error},
         _uncaughtExceptions{std::uncaught_exceptions()} {}
 
     ~scoped_submit();
@@ -458,7 +515,6 @@ public:
 
 private:
     cth::move_ptr<Stage> _stagePtr;
-    cth::ref_wrapper<dev::first_error> _error; ///< the first error of the graph
     int _uncaughtExceptions;
 
 public:
@@ -470,7 +526,7 @@ public:
 }
 
 namespace jvk::dev {
-constexpr void SubmitInfo::next(size_t frameSlots) {
+constexpr void SlotSubmit::next(size_t frameSlots) {
     for(auto& wait : waits)
         wait.value += frameSlots;
     signal.value += frameSlots;

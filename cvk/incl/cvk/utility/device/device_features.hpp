@@ -181,23 +181,15 @@ struct DeviceFeatures {
 }
 
 namespace cvk::dev {
-/**
- * feature bits in `DeviceFeatures`, every field is a bool without padding
- */
+/** every field of `DeviceFeatures` is a bool without padding */
 inline constexpr size_t FEATURE_COUNT = sizeof(DeviceFeatures);
 
 using feature_bits_t = std::array<bool, FEATURE_COUNT>;
 
-/**
- * @return field i of the features as element i
- */
 [[nodiscard]] constexpr feature_bits_t to_bits(DeviceFeatures const& features) {
     return std::bit_cast<feature_bits_t>(features);
 }
 
-/**
- * @return element i of the bits as field i
- */
 [[nodiscard]] constexpr DeviceFeatures to_features(feature_bits_t const& bits) {
     return std::bit_cast<DeviceFeatures>(bits);
 }

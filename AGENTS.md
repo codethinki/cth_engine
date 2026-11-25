@@ -10,6 +10,7 @@ Read it before you change a file. Match the existing code.
 | `cvk/`          | C++ wrapper of the Vulkan C API: one class per Vulkan object, objects own their handle        |
 | `cgfw/`         | C++ wrapper of RGFW: windows of the platform (Win32, Wayland) and their Vulkan surface        |
 | `jvk/`          | coroutine layer on top of `cvk` (in progress): threads, queues, stage graph, object lifetimes |
+| `timgui/`       | ImGui on `jvk` and `cgfw`: input from a window, draws into a rendering                        |
 | `tests/`        | loader smoke tests                                                                            |
 | `lib/cth`       | cth (submodule), `lib/cmake/cth.cmake` adds it with only the components the engine needs      |
 | `lib/cth_cmake` | cmake utilities (submodule)                                                                   |
@@ -33,7 +34,8 @@ Read it before you change a file. Match the existing code.
 ## Branches
 
 - `master` is the main branch.
-- Work happens on a work branch off `master`. Its draft pull request into `master` runs the CI on every push.
+- Work happens on a work branch off `master`. Its pull request into `master` runs the CI on every push.
+- The pull request of a work branch stays a draft until the work is finished.
 - `v2`, `_v2/...`, `dev` and `_dev/...` are old. Do not use them.
 - Work locally. Do not open pull requests for single steps.
 - CI runs on pushes and pull requests to `master`.
@@ -55,6 +57,8 @@ ctest --test-dir out/build/gcc_release --output-on-failure
 - Tests that need a device use `test::Context` (`cvk/tests/src/context.hpp`). It fails the test on validation errors,
   leaked objects included.
 - `VCPKG_ROOT` must point at vcpkg.
+- `glslc` and the validation layers come from the Vulkan SDK (Windows) or the system packages (Linux), not from
+  vcpkg.
 - `doxygen` in the repository root checks the docs (`Doxyfile`, output in `out/doxygen`). A change adds no doxygen
   warning.
 
@@ -323,6 +327,8 @@ this code base.
   ``@details calls @ref Instance(Config), `wrap()` ``, `@ref create(Config const&)`.
   Do not write `(...)`: it does not link.
 - Do not document what the signature already tells. A getter without conditions needs no comment.
+- Docs are for the users of the API: private members and the helpers that only the module uses get a doc only for a
+  quirk that the code cannot say.
 - The brief is the purpose. Side effects the caller must know go to `@details`.
 - `@details` holds one fact per line, starting with its keyword, so a reader can scan for it. No text walls.
     - one item: inline on the tag line: ``@details calls `optEnd()` on the secondaries``

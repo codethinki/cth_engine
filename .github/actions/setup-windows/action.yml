@@ -1,5 +1,5 @@
 name: 'Setup Windows Environment'
-description: 'Sets up MSVC, Vcpkg, BuildCache, CMake and Ninja'
+description: 'Sets up MSVC, Vcpkg, BuildCache, the Vulkan SDK, CMake and Ninja'
 inputs:
   compiler:
     description: 'compiler of the CI preset (msvc or clang)'
@@ -26,6 +26,16 @@ runs:
         Invoke-WebRequest -Uri "https://gitlab.com/bits-n-bites/buildcache/-/releases/v0.31.7/downloads/buildcache-windows.zip" -OutFile "buildcache.zip"
         Expand-Archive buildcache.zip -DestinationPath c:\buildcache
         echo "c:\buildcache\buildcache\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Install Vulkan SDK
+      shell: pwsh
+      run: |
+        # glslc compiles the shaders: the latest SDK of LunarG
+        Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/latest/windows/vulkan-sdk.exe" -OutFile "$env:RUNNER_TEMP\vulkan-sdk.exe"
+        Start-Process -FilePath "$env:RUNNER_TEMP\vulkan-sdk.exe" -ArgumentList "--root", "C:\VulkanSDK", "--accept-licenses", "--default-answer", "--confirm-command", "install" -Wait -NoNewWindow
+        & "C:\VulkanSDK\Bin\glslc.exe" --version
+        "VULKAN_SDK=C:\VulkanSDK" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "C:\VulkanSDK\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Install LLVM
       if: inputs.compiler == 'clang'

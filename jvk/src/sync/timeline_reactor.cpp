@@ -6,23 +6,20 @@
 #include "cvk/utility/vk_error_code.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
-#include <cth/coro/scheduler.hpp>
 #include <cth/io/log.hpp>
 
 #include <algorithm>
 #include <exception>
-#include <functional>
 #include <limits>
+#include <span>
 #include <utility>
+#include <vector>
 
 
 namespace jvk {
 using std::vector;
-using await_func = cth::co::context::await_func;
 
-TimelineReactor::TimelineReactor(cvk::Core const& core, cth::co::scheduler const& workers) :
-    _workers{workers},
-    _wake{core} {}
+TimelineReactor::TimelineReactor(cvk::Core const& core) : _wake{core} {}
 
 void TimelineReactor::create() {
     optDestroy();
@@ -43,11 +40,11 @@ void TimelineReactor::destroy() {
     CTH_CRITICAL(!created(), "reactor must be created") {}
 
     {
-        std::scoped_lock const lock{_mutex};
+        std::scoped_lock const lock{*_mutexPtr};
         CTH_CRITICAL(
-            !_waiters.empty(),
-            "no callback must be pending, got {} semaphores",
-            _waiters.size()
+            !_pending.empty(),
+            "no waiter must be pending, got {}",
+            _pending.size()
         ) {}
 
         _thread.request_stop();
@@ -66,64 +63,83 @@ void TimelineReactor::destroy() {
     _thread.join();
     _thread = {};
 
-    _waiters.clear();
+    _pending.clear();
     _error = {};
     _wake.destroy();
 }
 
-void TimelineReactor::await(VkSemaphore vkSemaphore, uint64_t value, await_func cb) const {
+void TimelineReactor::await(VkSemaphore vkSemaphore, Waiter& waiter) const {
     CTH_CRITICAL(!created(), "reactor must be created") {}
     CTH_CRITICAL(vkSemaphore == VK_NULL_HANDLE, "the semaphore must not be VK_NULL_HANDLE") {}
+    CTH_CRITICAL(waiter.contextPtr == nullptr, "the waiter must have the context of its caller") {}
 
-    std::error_code error{};
     {
-        std::scoped_lock const lock{_mutex};
+        std::scoped_lock const lock{*_mutexPtr};
 
         if(!_error) {
-            // the thread waits for the smallest value per semaphore, a new smallest value needs a new wait
-            auto const it = _waiters.find(vkSemaphore);
-            bool const first = it == _waiters.end();
-            if(first || value < it->second.front().value)
+            // the thread waits for the smallest value per semaphore, a smaller one needs a new wait
+            bool const smallest = std::ranges::none_of(
+                _pending,
+                [&](Pending const& pending) {
+                    return pending.vkSemaphore == vkSemaphore
+                        && pending.waiter->value <= waiter.value;
+                }
+            );
+            if(smallest)
                 wake();
 
             // after the wake: a failed wake registers nothing
-            auto& waiters = first ? _waiters[vkSemaphore] : it->second;
-            waiters.push_back(Waiter{value, std::move(cb)});
-            std::ranges::push_heap(waiters, std::ranges::greater{}, &Waiter::value);
+            _pending.push_back({.vkSemaphore = vkSemaphore, .waiter = waiter});
             return;
         }
 
-        error = _error;
+        waiter.error = _error;
     }
 
-    post(std::move(cb), error);
+    cth::ref_wrapper<Waiter> const failed{waiter};
+    post({&failed, 1});
 }
 
 bool TimelineReactor::pending(VkSemaphore vkSemaphore) const {
-    std::scoped_lock const lock{_mutex};
-    return _waiters.contains(vkSemaphore);
+    std::scoped_lock const lock{*_mutexPtr};
+    return std::ranges::contains(_pending, vkSemaphore, &Pending::vkSemaphore);
 }
 
 void TimelineReactor::run(std::stop_token stop) {
     auto const table = _wake.core().deviceTable();
 
+    // reused per round: the vectors keep their capacity
+    // the wait arrays: the wake semaphore first, then each semaphore with its smallest value
     vector<VkSemaphore> vkSemaphores{};
     vector<uint64_t> values{};
-    vector<await_func> reached{};
-    vector<await_func> failed{};
+    // the counter per semaphore of the wait arrays
+    vector<uint64_t> counters{};
+    // the waiters to post, after a failure every pending one
+    vector<cth::ref_wrapper<Waiter>> reached{};
     std::error_code error{};
+
+    // the index of the semaphore in the wait arrays, the size -> not in them
+    auto const indexOf = [&vkSemaphores](VkSemaphore vkSemaphore) {
+        auto const it = std::ranges::find(vkSemaphores, vkSemaphore);
+        return static_cast<size_t>(it - vkSemaphores.begin());
+    };
 
     while(true) {
         {
-            std::scoped_lock const lock{_mutex};
+            std::scoped_lock const lock{*_mutexPtr};
             if(stop.stop_requested())
                 return;
 
             vkSemaphores.assign({_wake.get()});
             values.assign({_wake.value() + 1});
-            for(auto const& [vkSemaphore, waiters] : _waiters) {
-                vkSemaphores.push_back(vkSemaphore);
-                values.push_back(waiters.front().value);
+            for(auto const& [vkSemaphore, waiter] : _pending) {
+                auto const semaphoreIdx = indexOf(vkSemaphore);
+                if(semaphoreIdx < vkSemaphores.size())
+                    values[semaphoreIdx] = std::min(values[semaphoreIdx], waiter->value);
+                else {
+                    vkSemaphores.push_back(vkSemaphore);
+                    values.push_back(waiter->value);
+                }
             }
         }
 
@@ -141,69 +157,77 @@ void TimelineReactor::run(std::stop_token stop) {
             std::numeric_limits<uint64_t>::max()
         );
 
+        // off the lock: the semaphores of the wait arrays keep their waiters until the partition
+        // below, the wake semaphore needs no counter
+        counters.resize(vkSemaphores.size());
+        for(size_t semaphoreIdx = 1; semaphoreIdx < vkSemaphores.size(); ++semaphoreIdx) {
+            // the first failure ends the reads, also a failed wait
+            if(result != VK_SUCCESS)
+                break;
+            result = table->vkGetSemaphoreCounterValue(
+                table.device(),
+                vkSemaphores[semaphoreIdx],
+                &counters[semaphoreIdx]
+            );
+        }
+
+        reached.clear();
         {
-            std::scoped_lock const lock{_mutex};
+            std::scoped_lock const lock{*_mutexPtr};
 
-            for(auto it = _waiters.begin(); result == VK_SUCCESS && it != _waiters.end();) {
-                auto& [vkSemaphore, waiters] = *it;
-
-                uint64_t counter = 0;
-                result = table->vkGetSemaphoreCounterValue(table.device(), vkSemaphore, &counter);
-                if(result != VK_SUCCESS)
-                    break;
-
-                while(!waiters.empty() && waiters.front().value <= counter) {
-                    std::ranges::pop_heap(waiters, std::ranges::greater{}, &Waiter::value);
-                    reached.push_back(std::move(waiters.back().cb));
-                    waiters.pop_back();
-                }
-
-                // erase() keeps the other iterators valid
-                if(waiters.empty())
-                    _waiters.erase(it++);
-                else
-                    ++it;
-            }
-
-            if(result != VK_SUCCESS) {
+            if(result == VK_SUCCESS) {
+                // the reached waiters to the end, a semaphore outside of the wait arrays stays: its
+                // await() woke the thread for the next wait
+                auto const reachedRange = std::ranges::partition(
+                    _pending,
+                    [&](Pending const& pending) {
+                        auto const semaphoreIdx = indexOf(pending.vkSemaphore);
+                        return semaphoreIdx == vkSemaphores.size()
+                            || pending.waiter->value > counters[semaphoreIdx];
+                    }
+                );
+                for(auto const& pending : reachedRange)
+                    reached.push_back(pending.waiter);
+                _pending.erase(reachedRange.begin(), reachedRange.end());
+            } else {
                 JVK_STABLE_ERR(
                     true,
                     "the reactor failed to wait for the semaphores, got {}",
                     result
                 ) {}
                 error = cvk::make_error_code(result);
-                failed = fail(error);
+                fail(error, reached);
             }
         }
 
-        for(auto& cb : reached)
-            post(std::move(cb), {});
-        reached.clear();
+        post(reached);
 
-        // the error ends the thread, later callbacks get the error at once in await()
-        if(error) {
-            for(auto& cb : failed)
-                post(std::move(cb), error);
+        // the error ends the thread, later waiters get the error at once in await()
+        if(error)
             return;
-        }
     }
 }
 
 void TimelineReactor::wake() const { _wake.signal(); }
 
-vector<await_func> TimelineReactor::fail(std::error_code error) const {
+void TimelineReactor::fail(
+    std::error_code error,
+    vector<cth::ref_wrapper<Waiter>>& waiters
+) const {
     _error = error;
 
-    vector<await_func> callbacks{};
-    for(auto& [vkSemaphore, waiters] : _waiters)
-        for(auto& waiter : waiters)
-            callbacks.push_back(std::move(waiter.cb));
-    _waiters.clear();
-
-    return callbacks;
+    for(auto const& pending : _pending) {
+        pending.waiter->error = error;
+        waiters.push_back(pending.waiter);
+    }
+    _pending.clear();
 }
 
-void TimelineReactor::post(await_func cb, std::error_code error) const {
-    _workers->post([cb = std::move(cb), error]() mutable { cb(error); });
+void TimelineReactor::post(std::span<cth::ref_wrapper<Waiter> const> waiters) {
+    for(Waiter& waiter : waiters) {
+        // the resumed caller can destroy the waiter at once: nothing touches it after the post
+        auto const caller = waiter.caller;
+        waiter.contextPtr->post([caller] { caller.resume(); });
+    }
 }
 }

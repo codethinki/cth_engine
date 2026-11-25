@@ -1,0 +1,60 @@
+#pragma once
+#include "cgfw/window/window.hpp"
+
+#include "cvk/base/instance_config.hpp"
+
+#include <cth/test.hpp>
+
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+#define TIMGUI_TEST(suite, test_name) S_TEST(timgui, suite, test_name)
+
+/**
+ * skips the test without a display
+ */
+#define TIMGUI_SKIP_WITHOUT_DISPLAY() \
+    if(!timgui::test::display_available()) GTEST_SKIP() << "no display"
+
+namespace timgui::test {
+constexpr std::string_view APP_NAME = "timgui_tests";
+
+/**
+ * size of `window_config()`
+ */
+inline constexpr VkExtent2D WINDOW_EXTENT{64, 64};
+
+/**
+ * @return a display exists, linux: `WAYLAND_DISPLAY` is set
+ */
+[[nodiscard]] bool display_available();
+
+/**
+ * hidden window: a test run shows no window
+ */
+[[nodiscard]] inline cgfw::Window::Config window_config() {
+    return cgfw::Window::Config{
+        .title = "timgui test",
+        .extent = WINDOW_EXTENT,
+        .flags = cgfw::WindowFlags::HIDE
+    };
+}
+
+/**
+ * instance config with `APP_NAME`
+ * @param debugMessengerOpt see `cvk::InstanceConfig::debugMessenger`
+ */
+[[nodiscard]] inline cvk::InstanceConfig instance_config(
+    std::vector<std::string> extensions = {},
+    std::optional<cvk::DebugMessenger::Config> debugMessengerOpt = std::nullopt
+) {
+    return cvk::InstanceConfig{
+        .appName = std::string{APP_NAME},
+        .extensions = std::move(extensions),
+        .debugMessenger = debugMessengerOpt,
+    };
+}
+}

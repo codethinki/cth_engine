@@ -53,10 +53,7 @@ concept descriptor_of = descriptor<T> && std::same_as<heap_of_t<T>, Heap>;
 }
 
 namespace cvk::dev {
-/**
- * shader variables that a descriptor of `T` serves
- * @details image descriptors with `Sampled` 2: with and without `NonWritable`
- */
+/** image descriptors with `Sampled` 2: with and without `NonWritable` */
 template<descriptor T>
 inline constexpr VkSpirvResourceTypeFlagsEXT resource_mask = [] {
     if constexpr(std::same_as<T, SampledImageDescriptor>)
@@ -68,15 +65,6 @@ inline constexpr VkSpirvResourceTypeFlagsEXT resource_mask = [] {
             | VK_SPIRV_RESOURCE_TYPE_READ_WRITE_IMAGE_BIT_EXT;
 }();
 
-/**
- * maps a shader array of `T` at the set and binding onto the cells of a heap
- * @details element `i` of the array -> the cell at `offset + i * stride`
- * @param set of the shader array
- * @param binding of the shader array
- * @param offset of the first cell in bytes
- * @param stride of the cells in bytes
- * @pre `offset` and `stride` fit into 32 bits
- */
 template<descriptor T>
 [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT heap_mapping(
     uint32_t set,
@@ -112,24 +100,8 @@ template<descriptor T>
     };
 }
 
-/**
- * checks the push offset of an index for the device
- * @details `pushOffset + 4 <= maxPushDataSize`
- */
 void debug_check_push_offset(Core const&, uint32_t pushOffset);
 
-/**
- * maps a shader variable of `T` at the set and binding onto the cell at an index in the push data
- * @details the cell at `offset + index * stride`, `index`: the `uint32_t` at `pushOffset` in the push data
- * @details an array: element `i` -> `i` cells after it
- * @param set of the shader variable
- * @param binding of the shader variable
- * @param offset of the first cell in bytes
- * @param stride of the cells in bytes
- * @param pushOffset of the index in the push data, in bytes
- * @pre `offset` and `stride` fit into 32 bits
- * @pre `pushOffset` is a multiple of 4
- */
 template<descriptor T>
 [[nodiscard]] constexpr VkDescriptorSetAndBindingMappingEXT heap_push_mapping(
     uint32_t set,
@@ -176,15 +148,6 @@ template<descriptor T>
     };
 }
 
-/**
- * encodes the descriptor into the cell of the heap, then flushes the cell
- * @param heap buffer of the heap
- * @param offset of the cell in bytes
- * @param size of the cell in bytes
- * @pre `ImageViewConfig::debug_check()` passes for the view and the image
- * @throws cvk::vk_result_exception result of `vkWriteResourceDescriptorsEXT()`
- * @throws cvk::vk_result_exception result of `vmaFlushAllocation()`
- */
 void write_descriptor(
     BaseBuffer const& heap,
     size_t offset,
@@ -192,9 +155,6 @@ void write_descriptor(
     SampledImageDescriptor const&
 );
 
-/**
- * @see @ref write_descriptor(BaseBuffer const&, size_t, size_t, SampledImageDescriptor const&)
- */
 void write_descriptor(
     BaseBuffer const& heap,
     size_t offset,
@@ -202,9 +162,6 @@ void write_descriptor(
     StorageImageDescriptor const&
 );
 
-/**
- * @see @ref write_descriptor(BaseBuffer const&, size_t, size_t, SampledImageDescriptor const&)
- */
 void write_descriptor(
     BaseBuffer const& heap,
     size_t offset,
@@ -212,14 +169,5 @@ void write_descriptor(
     InputAttachmentDescriptor const&
 );
 
-/**
- * encodes the sampler into the cell of the heap, then flushes the cell
- * @param heap buffer of the heap
- * @param offset of the cell in bytes
- * @param size of the cell in bytes
- * @details clamps `SamplerConfig::maxAnisotropy` to `maxSamplerAnisotropy` of the device, warns if it clamps
- * @throws cvk::vk_result_exception result of `vkWriteSamplerDescriptorsEXT()`
- * @throws cvk::vk_result_exception result of `vmaFlushAllocation()`
- */
 void write_descriptor(BaseBuffer const& heap, size_t offset, size_t size, SamplerConfig const&);
 }

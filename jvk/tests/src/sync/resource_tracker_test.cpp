@@ -1,4 +1,4 @@
-#include "jvk/sync/resource_states.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 
 #include "context.hpp"
 #include "test.hpp"
@@ -68,10 +68,10 @@ namespace {
     }
 }
 
-JVK_TEST(ResourceStates, unknown_image_has_no_state) {
+JVK_TEST(ResourceTracker, unknown_image_has_no_state) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates const states{};
+    ResourceTracker const states{};
 
     EXPECT_TRUE(states.empty());
     EXPECT_FALSE(states.contains(image));
@@ -79,10 +79,10 @@ JVK_TEST(ResourceStates, unknown_image_has_no_state) {
     EXPECT_FALSE(states.last(image, 2).has_value());
 }
 
-JVK_TEST(ResourceStates, first_access_is_a_first_use) {
+JVK_TEST(ResourceTracker, first_access_is_a_first_use) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
 
     states.access(image, FRAGMENT_READ, barrier);
@@ -95,10 +95,10 @@ JVK_TEST(ResourceStates, first_access_is_a_first_use) {
     EXPECT_FALSE(states.discards(image, 2));
 }
 
-JVK_TEST(ResourceStates, known_state_gets_a_barrier) {
+JVK_TEST(ResourceTracker, known_state_gets_a_barrier) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
     states.assume(image, UNDEFINED);
 
@@ -121,10 +121,10 @@ JVK_TEST(ResourceStates, known_state_gets_a_barrier) {
     EXPECT_EQ(states.last(image, 0)->layout, VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
-JVK_TEST(ResourceStates, read_after_read_needs_no_barrier) {
+JVK_TEST(ResourceTracker, read_after_read_needs_no_barrier) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
 
     states.access(image, FRAGMENT_READ, barrier);
@@ -138,10 +138,10 @@ JVK_TEST(ResourceStates, read_after_read_needs_no_barrier) {
     EXPECT_EQ(states.first(image, 0)->scope.stages, stages);
 }
 
-JVK_TEST(ResourceStates, write_after_write_gets_a_barrier) {
+JVK_TEST(ResourceTracker, write_after_write_gets_a_barrier) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
 
     states.access(image, with_mips(TRANSFER_WRITE, 0, 1), barrier);
@@ -154,10 +154,10 @@ JVK_TEST(ResourceStates, write_after_write_gets_a_barrier) {
     EXPECT_EQ(vkBarrier.srcAccessMask, VK_ACCESS_2_TRANSFER_WRITE_BIT);
 }
 
-JVK_TEST(ResourceStates, a_barrier_ends_the_first_use) {
+JVK_TEST(ResourceTracker, a_barrier_ends_the_first_use) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
 
     states.access(image, FRAGMENT_READ, barrier);
@@ -169,10 +169,10 @@ JVK_TEST(ResourceStates, a_barrier_ends_the_first_use) {
     EXPECT_EQ(states.last(image, 0)->layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 }
 
-JVK_TEST(ResourceStates, read_after_read_only_makes_writes_available) {
+JVK_TEST(ResourceTracker, read_after_read_only_makes_writes_available) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
 
     states.access(image, FRAGMENT_READ, barrier);
@@ -183,10 +183,10 @@ JVK_TEST(ResourceStates, read_after_read_only_makes_writes_available) {
     EXPECT_EQ(barrier.images[0].srcAccessMask, VK_ACCESS_2_NONE);
 }
 
-JVK_TEST(ResourceStates, discard_comes_from_undefined) {
+JVK_TEST(ResourceTracker, discard_comes_from_undefined) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
     auto discard = TRANSFER_WRITE;
     discard.discard = true;
@@ -203,10 +203,10 @@ JVK_TEST(ResourceStates, discard_comes_from_undefined) {
     EXPECT_EQ(barrier.images[1].newLayout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 }
 
-JVK_TEST(ResourceStates, assume_a_mip_range) {
+JVK_TEST(ResourceTracker, assume_a_mip_range) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
 
     states.assume(image, {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .scope = {}}, 1, 2);
 
@@ -218,10 +218,10 @@ JVK_TEST(ResourceStates, assume_a_mip_range) {
     EXPECT_FALSE(states.last(image, 3).has_value());
 }
 
-JVK_TEST(ResourceStates, assume_the_remaining_mip_levels) {
+JVK_TEST(ResourceTracker, assume_the_remaining_mip_levels) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
 
     states.assume(image, {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .scope = {}});
     states.assume(image, {.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, .scope = {}}, 2);
@@ -234,10 +234,10 @@ JVK_TEST(ResourceStates, assume_the_remaining_mip_levels) {
     );
 }
 
-JVK_TEST(ResourceStates, assume_keeps_the_first_use) {
+JVK_TEST(ResourceTracker, assume_keeps_the_first_use) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
 
     states.access(image, FRAGMENT_READ, barrier);
@@ -258,10 +258,10 @@ JVK_TEST(ResourceStates, assume_keeps_the_first_use) {
     );
 }
 
-JVK_TEST(ResourceStates, buffer_barriers) {
+JVK_TEST(ResourceTracker, buffer_barriers) {
     test::Context const context{};
     BaseBuffer const buffer{context.core, BUFFER_CONFIG, SIZE};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
 
     states.access(buffer, SHADER_WRITE, barrier);
@@ -279,10 +279,10 @@ JVK_TEST(ResourceStates, buffer_barriers) {
     EXPECT_EQ(states.last(buffer)->scope.access, VK_ACCESS_2_SHADER_STORAGE_READ_BIT);
 }
 
-JVK_TEST(ResourceStates, assume_a_buffer) {
+JVK_TEST(ResourceTracker, assume_a_buffer) {
     test::Context const context{};
     BaseBuffer const buffer{context.core, BUFFER_CONFIG, SIZE};
-    ResourceStates states{};
+    ResourceTracker states{};
     cvk::Barrier barrier{};
 
     states.assume(
@@ -296,13 +296,13 @@ JVK_TEST(ResourceStates, assume_a_buffer) {
     EXPECT_EQ(barrier.buffers[0].srcAccessMask, VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT);
 }
 
-JVK_TEST(ResourceStates, append_gets_barriers_for_the_first_uses_of_next) {
+JVK_TEST(ResourceTracker, append_gets_barriers_for_the_first_uses_of_next) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
     Image const other{context.core, IMAGE_CONFIG, EXTENT};
     BaseBuffer const buffer{context.core, BUFFER_CONFIG, SIZE};
-    ResourceStates states{};
-    ResourceStates next{};
+    ResourceTracker states{};
+    ResourceTracker next{};
     cvk::Barrier barrier{};
     states.assume(image, UNDEFINED);
     states.access(buffer, SHADER_WRITE, barrier);
@@ -326,11 +326,11 @@ JVK_TEST(ResourceStates, append_gets_barriers_for_the_first_uses_of_next) {
     EXPECT_EQ(states.last(buffer)->scope.access, VK_ACCESS_2_SHADER_STORAGE_READ_BIT);
 }
 
-JVK_TEST(ResourceStates, append_without_a_first_use_of_next_needs_no_barrier) {
+JVK_TEST(ResourceTracker, append_without_a_first_use_of_next_needs_no_barrier) {
     test::Context const context{};
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
-    ResourceStates next{};
+    ResourceTracker states{};
+    ResourceTracker next{};
     cvk::Barrier barrier{};
     states.assume(image, UNDEFINED);
     next.assume(image, {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .scope = {}});
@@ -341,10 +341,10 @@ JVK_TEST(ResourceStates, append_without_a_first_use_of_next_needs_no_barrier) {
     EXPECT_EQ(states.last(image, 0)->layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 }
 
-JVK_TEST(ResourceStates, follows_the_handle_when_the_image_moves) {
+JVK_TEST(ResourceTracker, follows_the_handle_when_the_image_moves) {
     test::Context const context{};
     Image image{context.core, IMAGE_CONFIG, EXTENT};
-    ResourceStates states{};
+    ResourceTracker states{};
     states.assume(image, {.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, .scope = {}});
 
     Image const moved{std::move(image)};
@@ -352,12 +352,12 @@ JVK_TEST(ResourceStates, follows_the_handle_when_the_image_moves) {
     EXPECT_EQ(states.last(moved, 0)->layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 }
 
-JVK_TEST(ResourceStates, erase_and_clear) {
+JVK_TEST(ResourceTracker, erase_and_clear) {
     test::Context const context{};
     Image const first{context.core, IMAGE_CONFIG, EXTENT};
     Image const second{context.core, IMAGE_CONFIG, EXTENT};
     BaseBuffer const buffer{context.core, BUFFER_CONFIG, SIZE};
-    ResourceStates states{};
+    ResourceTracker states{};
     states.assume(first, UNDEFINED);
     states.assume(second, UNDEFINED);
     states.assume(buffer, BufferState{});

@@ -5,14 +5,13 @@
 
 #include "jvk/base/queue.hpp"
 #include "jvk/base/queue_sets.hpp"
-//TEMP compile check of the phase 6 headers until their sources exist
-#include "jvk/graph/presenter.hpp"
-#include "jvk/graph/stage_graph.hpp"
+#include "jvk/data/sampler_heap.hpp"
 #include "jvk/sync/semaphore.hpp"
 #include "jvk/sync/timeline_reactor.hpp"
 
 #include "cvk/base/device.hpp"
 #include "cvk/base/physical_device.hpp"
+#include "cvk/data/img/sampler_config.hpp"
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
 #include "cvk/utility/constant/os_constants.hpp"
@@ -30,6 +29,7 @@
 #include <numeric>
 #include <optional>
 #include <system_error>
+#include <thread>
 #include <utility>
 
 
@@ -129,6 +129,34 @@ JVK_TEST(Core, base_constructor_does_not_create) {
     EXPECT_EQ(core.config().driverThreads, test::Context::CONFIG.driverThreads);
 }
 
+JVK_TEST(Core, a_base_constructed_core_moves_then_creates_and_works) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG};
+
+    Core moved{std::move(core)};
+    Core other{context.instance, test::Context::CONFIG};
+    other = std::move(moved);
+    EXPECT_FALSE(other.created());
+
+    other.create({});
+    ASSERT_TRUE(other.created());
+
+    // the queues, the reactor and the workers of the moved core
+    Semaphore const semaphore{other, cvk::create};
+    auto task = [](Core& c, Semaphore const& s) -> cth::co::executor_task<bool> {
+        co_await c.queue(0).submit({.signals = {{.semaphore = s, .value = 1}}});
+        co_await s.wait(1);
+        co_return c.executor().context().owns_thread();
+    };
+    EXPECT_TRUE(other.executor().sync_wait(task(other, semaphore)));
+
+    auto const& heaps = other.config().heaps;
+    if(heaps.createsResourceHeap())
+        EXPECT_TRUE(other.resourceHeap().created());
+    if(heaps.createsSamplerHeap())
+        EXPECT_EQ(other.samplerHeap().insert(cvk::SamplerConfig{}).idx().get(), 0);
+}
+
 JVK_TEST(Core, create_and_destroy) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG};
@@ -191,21 +219,23 @@ JVK_TEST(Core, reactor_waits_after_a_new_create) {
 
     for(size_t round = 0; round < 2; ++round) {
         ASSERT_TRUE(core.reactor().created());
-        cvk::TimelineSemaphore semaphore{core, cvk::create};
+        Semaphore semaphore{core, cvk::create};
 
-        std::promise<std::error_code> promise{};
-        auto result = promise.get_future();
-        core.reactor().await(
-            semaphore.get(),
-            1,
-            [promise = std::move(promise)](std::error_code error) mutable {
-                promise.set_value(error);
-            }
+        auto wait = [](Semaphore const& s) -> cth::co::executor_task<void> { co_await s.wait(1); };
+        auto result = std::async(
+            std::launch::async,
+            [&core, &semaphore, wait] { core.executor().sync_wait(wait(semaphore)); }
         );
-        [[maybe_unused]] auto const signaled = semaphore.signal();
+        auto const end = std::chrono::steady_clock::now() + std::chrono::seconds{5};
+        while(!core.reactor().pending(semaphore.get()) && std::chrono::steady_clock::now() < end)
+            std::this_thread::yield();
+        ASSERT_TRUE(core.reactor().pending(semaphore.get()));
 
+        core.executor().sync_wait(
+            core.queue(0).submit({.signals = {{.semaphore = semaphore, .value = 1}}})
+        );
         ASSERT_EQ(result.wait_for(std::chrono::seconds{5}), std::future_status::ready);
-        EXPECT_FALSE(result.get());
+        result.get();
 
         semaphore.destroy();
         core.destroy();

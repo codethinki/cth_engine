@@ -228,9 +228,6 @@ public:
     }
 
 private:
-    /**
-     * links the `pNext` members of the structs in `_linked`
-     */
     void link();
 
     feature_structs_t _structs;

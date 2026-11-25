@@ -1,6 +1,8 @@
 #include "cgfw/window/window.hpp"
 
 #include "cgfw/utility/exception.hpp"
+#include "window/rgfw_event.hpp"
+#include "window/rgfw_info.h"
 
 #include "cvk/base/instance.hpp"
 #include "cvk/utility/format.hpp"
@@ -25,7 +27,7 @@ namespace {
 
     static_assert(same_flag(WindowFlags::NO_BORDER, RGFW_windowNoBorder));
     static_assert(same_flag(WindowFlags::NO_RESIZE, RGFW_windowNoResize));
-    static_assert(same_flag(WindowFlags::FULLSCREEN, RGFW_windowFullscreen));
+    static_assert(same_flag(WindowFlags::FULLSCREEN, RGFW_windowFullscreenBorderless));
     static_assert(same_flag(WindowFlags::CENTER, RGFW_windowCenter));
     static_assert(same_flag(WindowFlags::SCALE_TO_MONITOR, RGFW_windowScaleToMonitor));
     static_assert(same_flag(WindowFlags::HIDE, RGFW_windowHide));
@@ -33,9 +35,16 @@ namespace {
     static_assert(same_flag(WindowFlags::FLOATING, RGFW_windowFloating));
     static_assert(same_flag(WindowFlags::FOCUS_ON_SHOW, RGFW_windowFocusOnShow));
     static_assert(same_flag(WindowFlags::MINIMIZE, RGFW_windowMinimize));
+
+    void deinit_without_windows() {
+        if(RGFW_getInfo() != nullptr && cgfw_rgfw_window_count() == 0)
+            RGFW_deinit();
+    }
 }
 
-void dev::window_deleter::operator()(RGFW_window* rgfwWindow) const { Window::destroy(rgfwWindow); }
+void dev::window_deleter::operator()(RGFW_window* rgfwWindow) const {
+    Window::destroy(*rgfwWindow);
+}
 
 Window::Window(Config config) : _config{std::move(config)} {}
 
@@ -53,6 +62,20 @@ void Window::create() {
     Config::debug_check(_config);
     optDestroy();
 
+    // RGFW_initVulkan: RGFW_window_createSurface_Vulkan() needs the Vulkan library of RGFW
+    if(RGFW_getInfo() == nullptr) {
+        auto const initResult = RGFW_init(nullptr, RGFW_initVulkan);
+        CGFW_STABLE_THROW(
+            initResult < 0,
+            "failed to initialize RGFW for the window {}, e.g. no display, got {}",
+            _config.title,
+            initResult
+        ) { forget(); }
+
+        // the queue holds the events between two pollEvents(), also the first ones of a window
+        RGFW_setQueueEvents(RGFW_TRUE);
+    }
+
     auto* const rgfwWindow = RGFW_createWindow(
         _config.title.c_str(),
         0,
@@ -61,11 +84,10 @@ void Window::create() {
         static_cast<i32>(_config.extent.height),
         static_cast<RGFW_windowFlags>(_config.flags)
     );
-    CGFW_STABLE_THROW(
-        rgfwWindow == nullptr,
-        "failed to create the window {}, e.g. no display",
-        _config.title
-    ) { forget(); }
+    CGFW_STABLE_THROW(rgfwWindow == nullptr, "failed to create the window {}", _config.title) {
+        deinit_without_windows();
+        forget();
+    }
 
     _handle.reset(rgfwWindow);
 }
@@ -117,10 +139,20 @@ VkExtent2D Window::extent() const {
     };
 }
 
-void Window::pollEvents() const {
+void Window::pollEvents() {
     debug_check(*this);
 
+    _events.clear();
     RGFW_pollEvents();
+
+    auto const clock = dev::input_clock::Now();
+
+    RGFW_event rgfwEvent{};
+    while(RGFW_window_checkQueuedEvent(_handle.get(), &rgfwEvent) != RGFW_FALSE) {
+        auto event = dev::to_event(rgfwEvent, clock, &RGFW_physicalToKeyChar);
+        if(event)
+            _events.push_back(std::move(*event));
+    }
 }
 
 bool Window::shouldClose() const {
@@ -146,13 +178,12 @@ native_window Window::nativeWindow() const {
 #endif
 }
 
-void Window::destroy(RGFW_window* rgfwWindow) {
-    CTH_CRITICAL(rgfwWindow == nullptr, "rgfwWindow must not be nullptr") {}
-
-    RGFW_window_close(rgfwWindow);
+void Window::destroy(RGFW_window& rgfwWindow) {
+    RGFW_window_close(&rgfwWindow);
+    deinit_without_windows();
 }
 
-void Window::forget() {}
+void Window::forget() { _events.clear(); }
 
 std::vector<std::string> instance_extensions() {
     size_t count = 0;

@@ -4,6 +4,7 @@
 #include "test.hpp"
 
 #include "jvk/base/queue.hpp"
+#include "jvk/base/stasis.hpp"
 #include "jvk/data/buffer.hpp"
 #include "jvk/data/image.hpp"
 
@@ -152,7 +153,7 @@ JVK_TEST(CmdBuffer, use_of_several_resources_records_their_barriers) {
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
     auto const staging = counting_staging(context);
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
     constexpr ImageAccess TRANSFER_DST{
         .layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         .stages = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
@@ -197,7 +198,7 @@ JVK_TEST(CmdBuffer, use_of_several_resources_records_their_barriers) {
 JVK_TEST(CmdBuffer, owns_its_pool) {
     test::Context const context{};
 
-    PrimaryCmdBuffer const primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer const primary{context.core, test::queue_family(context), cvk::create};
 
     ASSERT_TRUE(primary.created());
     EXPECT_EQ(primary.pool().config().flags, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
@@ -207,7 +208,7 @@ JVK_TEST(CmdBuffer, owns_its_pool) {
 JVK_TEST(CmdBuffer, begin_resets_the_states) {
     test::Context const context{};
     cvk::Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     primary.assume(image, UNDEFINED);
@@ -225,7 +226,7 @@ JVK_TEST(CmdBuffer, tracked_copies_are_synchronized) {
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
     auto const staging = counting_staging(context);
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     primary.assume(image, UNDEFINED);
@@ -248,7 +249,7 @@ JVK_TEST(CmdBuffer, submit_twice_without_a_new_recording) {
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
     auto const staging = counting_staging(context);
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     primary.assume(image, UNDEFINED);
@@ -267,9 +268,9 @@ JVK_TEST(CmdBuffer, execute_appends_the_states_of_the_secondaries) {
     Image const image{context.core, IMAGE_CONFIG, EXTENT};
     auto const staging = counting_staging(context);
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
-    SecondaryCmdBuffer first{context.core, test::queue_family(context)};
-    SecondaryCmdBuffer second{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
+    SecondaryCmdBuffer first{context.core, test::queue_family(context), cvk::create};
+    SecondaryCmdBuffer second{context.core, test::queue_family(context), cvk::create};
 
     // the secondaries do not know the image: their accesses are first uses
     first.begin();
@@ -301,7 +302,7 @@ JVK_TEST(CmdBuffer, begin_rendering_records_the_attachments) {
     Image const image{context.core, COLOR_CONFIG, EXTENT};
     cvk::ImageView const view{image, {}, cvk::create};
     cvk::Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     primary.assume(image, UNDEFINED);
@@ -339,7 +340,7 @@ JVK_TEST(CmdBuffer, begin_rendering_records_the_attachments) {
 
 JVK_TEST(CmdBuffer, rendering_scope_ends_the_rendering_at_its_end) {
     test::Context const context{};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     {
@@ -362,7 +363,7 @@ JVK_TEST(CmdBuffer, rendering_scope_ends_the_rendering_at_its_end) {
 
 JVK_TEST(CmdBuffer, rendering_scope_does_nothing_after_an_end_or_a_move) {
     test::Context const context{};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     // a second end fails its check
     primary.begin();
@@ -394,7 +395,7 @@ JVK_TEST(CmdBuffer, use_inside_a_rendering_records_a_local_read_barrier) {
     if(!local_read_supported(context))
         GTEST_SKIP() << "needs dynamicRenderingLocalRead";
     LocalRead const localRead{context};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     primary.assume(localRead.image, UNDEFINED);
@@ -427,7 +428,7 @@ JVK_TEST(CmdBuffer, copy_after_a_rendering_with_a_local_read) {
     LocalRead const localRead{context};
     auto const staging = counting_staging(context);
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     primary.assume(localRead.image, UNDEFINED);
@@ -454,8 +455,8 @@ JVK_TEST(CmdBuffer, continuing_secondary_records_a_local_read_barrier) {
         GTEST_SKIP() << "needs dynamicRenderingLocalRead";
     LocalRead const localRead{context};
     Buffer<uint32_t> const readback{context.core, READBACK_CONFIG, PIXELS};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
-    SecondaryCmdBuffer secondary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
+    SecondaryCmdBuffer secondary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     primary.assume(localRead.image, UNDEFINED);
@@ -504,7 +505,7 @@ JVK_TEST(CmdBuffer, bind_records_the_buffer_access) {
         {.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT},
         PIXELS
     };
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     vertices.copy(primary, staging);
@@ -531,7 +532,7 @@ JVK_TEST(CmdBuffer, converts_to_the_const_cvk_type) {
 
 JVK_TEST(CmdBuffer, submit_info_takes_the_jvk_buffer) {
     test::Context const context{};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
     primary.begin();
     primary.end();
 
@@ -547,7 +548,7 @@ JVK_TEST(CmdBuffer, submit_info_takes_the_jvk_buffer) {
 JVK_TEST(CmdBuffer, cvk_function_records_untracked) {
     test::Context const context{};
     cvk::Image const image{context.core, IMAGE_CONFIG, EXTENT};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
 
     primary.begin();
     cvk::Barrier barrier{};
@@ -571,7 +572,7 @@ JVK_TEST(CmdBuffer, cvk_function_records_untracked) {
 
 JVK_TEST(CmdBuffer, move_keeps_the_pool) {
     test::Context const context{};
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
     auto const vkBuffer = primary.get();
 
     PrimaryCmdBuffer moved{std::move(primary)};
@@ -580,8 +581,108 @@ JVK_TEST(CmdBuffer, move_keeps_the_pool) {
 
     EXPECT_EQ(moved.get(), vkBuffer);
 
-    PrimaryCmdBuffer other{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer other{context.core, test::queue_family(context), cvk::create};
     other = std::move(moved);
     EXPECT_EQ(other.get(), vkBuffer);
+}
+
+JVK_TEST(CmdBuffer, base_constructor_does_not_create) {
+    test::Context const context{};
+
+    PrimaryCmdBuffer const primary{context.core, test::queue_family(context)};
+
+    EXPECT_FALSE(primary.created());
+    EXPECT_FALSE(primary.pool().created());
+}
+
+JVK_TEST(CmdBuffer, create_and_destroy) {
+    test::Context const context{};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+
+    primary.create();
+    ASSERT_TRUE(primary.created());
+    EXPECT_TRUE(primary.pool().created());
+
+    primary.destroy();
+    EXPECT_FALSE(primary.created());
+    EXPECT_FALSE(primary.pool().created());
+
+    // a leak shows up when the shared device is destroyed
+    primary.optDestroy();
+    primary.create();
+    primary.optDestroy();
+    EXPECT_FALSE(primary.created());
+}
+
+JVK_TEST(CmdBuffer, destroy_drops_the_states) {
+    test::Context const context{};
+    cvk::Image const image{context.core, IMAGE_CONFIG, EXTENT};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
+
+    primary.begin();
+    primary.assume(image, UNDEFINED);
+    primary.end();
+    ASSERT_FALSE(primary.states().empty());
+
+    primary.destroy();
+    EXPECT_TRUE(primary.states().empty());
+
+    primary.create();
+    EXPECT_TRUE(primary.states().empty());
+}
+
+JVK_TEST(CmdBuffer, release_and_wrap) {
+    test::Context const context{};
+    cvk::Image const image{context.core, IMAGE_CONFIG, EXTENT};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
+    auto const vkBuffer = primary.get();
+    auto const vkPool = primary.pool().get();
+
+    primary.begin();
+    primary.assume(image, UNDEFINED);
+    primary.end();
+
+    auto const state = primary.release();
+    EXPECT_FALSE(primary.created());
+    EXPECT_FALSE(primary.pool().created());
+    EXPECT_TRUE(primary.states().empty());
+    EXPECT_EQ(state.vkBuffer.get(), vkBuffer);
+    EXPECT_EQ(state.vkPool.get(), vkPool);
+
+    PrimaryCmdBuffer wrapped{context.core, test::queue_family(context), state};
+    ASSERT_TRUE(wrapped.created());
+    EXPECT_EQ(wrapped.get(), vkBuffer);
+    EXPECT_EQ(wrapped.pool().get(), vkPool);
+    EXPECT_TRUE(wrapped.states().empty());
+
+    // the wrapped command buffer records and submits
+    wrapped.begin();
+    wrapped.end();
+    test::submit_and_wait(context, wrapped);
+}
+
+JVK_TEST(CmdBuffer, secondary_release_and_wrap) {
+    test::Context const context{};
+    SecondaryCmdBuffer secondary{context.core, test::queue_family(context), cvk::create};
+    auto const vkBuffer = secondary.get();
+
+    auto const state = secondary.release();
+    SecondaryCmdBuffer const wrapped{context.core, test::queue_family(context), state};
+
+    EXPECT_FALSE(secondary.created());
+    EXPECT_EQ(wrapped.get(), vkBuffer);
+}
+
+JVK_TEST(CmdBuffer, stasis_destroys_the_released_state) {
+    // a leak shows up when the shared device is destroyed
+    test::Context const context{};
+    Stasis stasis{context.core};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
+
+    stasis.add(primary.release());
+
+    // the command buffer, then the pool
+    EXPECT_EQ(stasis.size(), 2);
+    stasis.clear();
 }
 }

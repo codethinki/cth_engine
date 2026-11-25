@@ -42,7 +42,6 @@ struct StageConfig {
  * config of a `StageGraph`
  */
 struct StageGraphConfig {
-    //TODO review id = index instead of the hash map of the old sketch
     std::vector<StageConfig> stages{}; ///< the stages, the id of a stage is its index
 
     /**

@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <optional>
 #include <ranges>
-#include <tuple>
 #include <utility>
 
 
@@ -25,7 +24,7 @@ namespace jvk {
 struct ImageState {
     VkImageLayout layout;
 
-    cvk::BarrierScope scope; ///< `VK_QUEUE_FAMILY_IGNORED` -> the family of the recording
+    cvk::BarrierScope scope; ///< stages and access of the access
 };
 
 /**
@@ -43,7 +42,6 @@ struct ImageAccess {
     /** (`VK_REMAINING_MIP_LEVELS` => to the last mip level) */
     uint32_t mipLevels = VK_REMAINING_MIP_LEVELS;
 
-    //TODO review
     /**
      * the access does not need the previous contents
      * @attention all layers and aspects of the mip levels lose their contents
@@ -55,7 +53,7 @@ struct ImageAccess {
  * state of a buffer after an access
  */
 struct BufferState {
-    cvk::BarrierScope scope; ///< `VK_QUEUE_FAMILY_IGNORED` -> the family of the recording
+    cvk::BarrierScope scope; ///< stages and access of the access
 };
 
 /**
@@ -68,6 +66,16 @@ struct BufferAccess {
 };
 
 /**
+ * mip level of an image with a state in a `ResourceTracker`
+ */
+struct ImageMip {
+    VkImage vkImage;
+    uint32_t mipLevel;
+    VkImageAspectFlags aspectMask; ///< of the image
+    VkSharingMode sharingMode; ///< of the image
+};
+
+/**
  * resource state tracker of one recording
  * @details
  * - one state per (image, mip level), for all layers and aspects
@@ -76,7 +84,7 @@ struct BufferAccess {
  * @attention not thread safe
  * @attention call `erase()` before an image or buffer is destroyed: a new one can get its handle
  */
-class ResourceStates {
+class ResourceTracker {
 public:
     /**
      * records the access of the mip levels
@@ -130,7 +138,7 @@ public:
      * appends the states of a later recording
      * @param[out] barrier gets the barriers, record it before the commands of next
      */
-    void append(ResourceStates const& next, cvk::Barrier& barrier);
+    void append(ResourceTracker const& next, cvk::Barrier& barrier);
 
     /**
      * @return `std::nullopt` -> no access or an `assume()` before it
@@ -215,16 +223,19 @@ public:
 
     [[nodiscard]] bool empty() const { return _images.empty() && _buffers.empty(); }
 
-    //TODO review tuples, no new struct: the callers name the parts with a structured binding
     /**
-     * @return view of the mip levels with a state: `std::tuple` of the image, the mip level, the aspect mask and the
-     *  sharing mode of the image
+     * @return view of the mip levels with a state
      */
     [[nodiscard]] auto images() const {
         return _images | std::views::transform(
             [](auto const& entry) {
                 auto const& [key, states] = entry;
-                return std::tuple{key.first, key.second, states.aspectMask, states.sharingMode};
+                return ImageMip{
+                    .vkImage = key.first,
+                    .mipLevel = key.second,
+                    .aspectMask = states.aspectMask,
+                    .sharingMode = states.sharingMode,
+                };
             }
         );
     }
@@ -242,8 +253,8 @@ private:
     using image_key_t = std::pair<VkImage, uint32_t>;
 
     struct image_states {
-        VkImageAspectFlags aspectMask; ///< of the image, the barriers take it
-        VkSharingMode sharingMode; ///< of the image
+        VkImageAspectFlags aspectMask;
+        VkSharingMode sharingMode;
 
         /** `std::nullopt` -> `assume()` before the first access */
         std::optional<ImageState> firstOpt;
@@ -254,7 +265,7 @@ private:
     };
 
     struct buffer_states {
-        VkSharingMode sharingMode; ///< of the buffer
+        VkSharingMode sharingMode;
 
         /** `std::nullopt` -> `assume()` before the first access */
         std::optional<BufferState> firstOpt;

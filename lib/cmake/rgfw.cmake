@@ -16,12 +16,15 @@ if (NOT TARGET rgfw::rgfw)
     target_include_directories(rgfw INTERFACE "${RGFW_DIR}")
     # RGFWDEF empty: the functions have external linkage, the default inline needs the definitions in every user
     target_compile_definitions(rgfw INTERFACE RGFW_VULKAN "RGFWDEF=")
+    # the queue holds the events of every window between two polls, a full queue drops all events
+    # the default 32 fills with the mouse motion of one frame
+    target_compile_definitions(rgfw INTERFACE "RGFW_MAX_EVENTS=1024")
 
     if (WIN32)
         # RGFW includes windows.h: no min and max macros
         target_compile_definitions(rgfw INTERFACE NOMINMAX)
-        # RGFW loads winmm, dwmapi, shcore and opengl32 at run time
-        target_link_libraries(rgfw INTERFACE gdi32 user32 shell32)
+        # RGFW loads winmm, dwmapi, shcore and opengl32 at run time, advapi32 reads the registry
+        target_link_libraries(rgfw INTERFACE gdi32 user32 shell32 advapi32)
     elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         target_compile_definitions(rgfw INTERFACE RGFW_WAYLAND RGFW_NO_X11)
 
@@ -36,7 +39,7 @@ if (NOT TARGET rgfw::rgfw)
             message(FATAL_ERROR "wayland-protocols not found, vcpkg installs it on linux")
         endif ()
 
-        # the protocols that RGFW includes, see the xdg-shell.c rule in lib/rgfw/Makefile
+        # the protocols that RGFW includes, see WAYLAND_PROTO in lib/rgfw/wayland.mk
         set(RGFW_WAYLAND_PROTOCOLS
                 "stable/xdg-shell/xdg-shell.xml"
                 "unstable/xdg-decoration/xdg-decoration-unstable-v1.xml"
@@ -44,6 +47,7 @@ if (NOT TARGET rgfw::rgfw)
                 "unstable/xdg-output/xdg-output-unstable-v1.xml"
                 "unstable/relative-pointer/relative-pointer-unstable-v1.xml"
                 "unstable/pointer-constraints/pointer-constraints-unstable-v1.xml"
+                "staging/pointer-warp/pointer-warp-v1.xml"
         )
 
         set(RGFW_PROTOCOL_DIR "${CMAKE_BINARY_DIR}/lib/rgfw/wayland")
@@ -71,9 +75,10 @@ if (NOT TARGET rgfw::rgfw)
         target_include_directories(rgfw_wayland_protocols PUBLIC "${RGFW_PROTOCOL_DIR}")
         target_link_libraries(rgfw_wayland_protocols PUBLIC PkgConfig::RGFW_WAYLAND)
 
-        target_link_libraries(rgfw INTERFACE rgfw_wayland_protocols)
+        # RGFW loads libvulkan and libdecor with dlopen()
+        target_link_libraries(rgfw INTERFACE rgfw_wayland_protocols ${CMAKE_DL_LIBS})
 
-        #TODO libdecor for frames on GNOME, GNOME has no xdg-decoration (KDE and sway have it), vcpkg has no port
+        # libdecor: frames on GNOME, which has no xdg-decoration, RGFW loads libdecor-0.so.0 at run time
     else ()
         message(FATAL_ERROR "RGFW: only Windows and Linux (Wayland) are supported, got ${CMAKE_SYSTEM_NAME}")
     endif ()

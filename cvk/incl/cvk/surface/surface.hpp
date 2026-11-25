@@ -97,7 +97,6 @@ public:
      */
     [[nodiscard]] std::vector<VkSurfaceFormatKHR> formats(PhysicalDevice const&) const;
 
-    //TODO review a 0 of the callback stays 0, no clamp: a minimized window has no image
     /**
      * @return extent of the swapchain images for the surface
      * @details
@@ -120,7 +119,7 @@ private:
 
     cth::ref_wrapper<Instance const> _instance;
     instance_handle<VkSurfaceKHR> _handle{nullptr};
-    extent_callback_t _extentCallback{}; ///< see `State::extentCallback`
+    extent_callback_t _extentCallback{};
 
 public:
     Surface(Surface const& other) = delete;

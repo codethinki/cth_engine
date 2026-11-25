@@ -1,4 +1,6 @@
 #pragma once
+#include "cgfw/window/event.hpp"
+
 #include "cvk/surface/surface.hpp"
 #include "cvk/utility/constants.hpp"
 #include "cvk/utility/handle/unique_handle.hpp"
@@ -11,6 +13,7 @@
 #include <cth/ptr/not_null.hpp>
 
 #include <cstdint>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -33,7 +36,7 @@ enum class WindowFlags : uint32_t {
     NONE = 0,
     NO_BORDER = cth::en::flag_val(0),
     NO_RESIZE = cth::en::flag_val(1),
-    FULLSCREEN = cth::en::flag_val(4),
+    FULLSCREEN = cth::en::flag_val(19), ///< borderless, the monitor keeps its video mode
     CENTER = cth::en::flag_val(6),
     SCALE_TO_MONITOR = cth::en::flag_val(8),
     /**
@@ -62,9 +65,6 @@ struct native_window {
 };
 
 namespace dev {
-    /**
-     * deleter of a window, without context
-     */
     struct window_deleter {
         void operator()(RGFW_window*) const;
     };
@@ -75,6 +75,7 @@ namespace dev {
  * @details a window of the platform: Win32 or Wayland
  * @details the first window initializes RGFW, the destruction of the last one deinitializes it
  * @details `pollEvents()` handles the events of every window
+ * @details `events()` holds the input events of the window
  * @attention not thread safe, also across windows
  */
 class Window {
@@ -131,10 +132,11 @@ public:
 
     /**
      * creates the window with the config
-     * @details no window exists -> initializes RGFW first
+     * @details RGFW is not initialized -> initializes RGFW with Vulkan first
      * @pre `Config::debug_check()` passes for the config
      * @post `created()`
      * @note calls `optDestroy()`
+     * @throws cgfw::cgfw_exception reason: `RGFW_init()` failed, e.g. no display
      * @throws cgfw::cgfw_exception reason: `RGFW_createWindow()` failed
      */
     void create();
@@ -171,8 +173,8 @@ public:
      */
     [[nodiscard]] cvk::Surface surface(cvk::Instance const&) const;
 
-    //TODO review the size of RGFW: our fork keeps the buffer scale of Wayland at 1, the size is in buffer pixels
-    //TODO the buffer scale of Wayland (HiDPI): the surface stays at scale 1, a scaled output upscales the window
+    //TODO the buffer scale of Wayland (HiDPI): the size is in buffer pixels, our fork of RGFW keeps
+    // the buffer scale at 1, a scaled output upscales the window
     /**
      * @return current size of the framebuffer in pixels
      * @pre `created()`
@@ -180,11 +182,20 @@ public:
     [[nodiscard]] VkExtent2D extent() const;
 
     /**
-     * handles the pending events of every window
-     * @details returns at once, no wait for an event: for a render loop, it answers the pings of the compositor
+     * handles the pending events of every window, keeps the input events of this window
+     * @details
+     * - returns at once, no wait for an event: for a render loop, it answers the pings of the compositor
+     * - replaces `events()`
+     * - the events of the other windows stay queued until their `pollEvents()`
      * @pre `created()`
      */
-    void pollEvents() const;
+    void pollEvents();
+
+    /**
+     * @return the input events of the last `pollEvents()`, in order
+     * @details valid until the next `pollEvents()`
+     */
+    [[nodiscard]] std::span<window_event const> events() const { return _events; }
 
     /**
      * @return the user or the platform requested to close the window
@@ -201,9 +212,9 @@ public:
 
     /**
      * closes the window and frees it
-     * @pre the window is not `nullptr`
+     * @details the last window of RGFW deinitializes RGFW
      */
-    static void destroy(RGFW_window*);
+    static void destroy(RGFW_window&);
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr handle_t get() const { return _handle.get(); }
@@ -214,6 +225,7 @@ private:
 
     Config _config;
     cvk::unique_handle<handle_t, dev::window_deleter> _handle{};
+    std::vector<window_event> _events{};
 
 public:
     Window(Window const& other) = delete;
@@ -232,7 +244,7 @@ public:
 
 namespace cgfw {
 struct Window::State {
-    //TODO review stays a not_null pointer: the raw handle of RGFW, like vk_not_null for Vulkan handles
+    // stays a not_null pointer: the raw handle of RGFW, like vk_not_null for Vulkan handles
     cth::not_null_ptr<RGFW_window> rgfwWindow;
 };
 }

@@ -1,7 +1,6 @@
 #include "jvk/data/resource_heap.hpp"
 #include "jvk/data/sampler_heap.hpp"
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "jvk/base/core.hpp"
@@ -193,6 +192,135 @@ JVK_TEST(ResourceHeap, a_retained_cell_comes_back_after_the_gpu_finished) {
     EXPECT_TRUE(reaches_cell(heap, descriptor, idx));
 }
 
+JVK_TEST(ResourceHeap, base_constructor_does_not_create) {
+    test::Context const context{};
+
+    ResourceHeap const heap{context.core, {.sampledImages = 4}};
+
+    EXPECT_FALSE(heap.created());
+    EXPECT_EQ(heap.config().sampledImages, 4);
+}
+
+JVK_TEST(ResourceHeap, create_and_destroy) {
+    test::Context const context{};
+    ResourceHeap heap{context.core, {.sampledImages = 4}};
+
+    heap.create();
+    EXPECT_TRUE(heap.created());
+
+    heap.destroy();
+    EXPECT_FALSE(heap.created());
+
+    // a leak shows up when the shared device is destroyed
+    heap.optDestroy();
+    ResourceHeap const created{context.core, {.sampledImages = 4}, cvk::create};
+    EXPECT_TRUE(created.created());
+}
+
+JVK_TEST(ResourceHeap, destroy_frees_every_cell) {
+    test::Context const context{};
+    ResourceHeap heap{context.core, {.sampledImages = 4}, cvk::create};
+    cvk::Image const texture{context.core, TEXTURE_CONFIG, VkExtent2D{1, 1}};
+
+    {
+        auto first = heap.insert(cvk::SampledImageDescriptor{texture});
+        auto second = heap.insert(cvk::SampledImageDescriptor{texture});
+        ASSERT_EQ(first.idx().get(), 0);
+        ASSERT_EQ(second.idx().get(), 1);
+
+        // the cell of the last erased handle comes first, cell 1 here
+        { auto const gone = std::move(first); }
+        { auto const gone = std::move(second); }
+    }
+
+    heap.destroy();
+    heap.create();
+
+    // every cell is free again: the first insert gets cell 0
+    EXPECT_EQ(heap.insert(cvk::SampledImageDescriptor{texture}).idx().get(), 0);
+}
+
+JVK_TEST(ResourceHeap, a_moved_heap_inserts) {
+    test::Context const context{};
+    ResourceHeap heap{context.core, {.sampledImages = 4}, cvk::create};
+    cvk::Image const texture{context.core, TEXTURE_CONFIG, VkExtent2D{1, 1}};
+
+    ResourceHeap moved{std::move(heap)};
+    ASSERT_TRUE(moved.created());
+    EXPECT_EQ(moved.insert(cvk::SampledImageDescriptor{texture}).idx().get(), 0);
+
+    ResourceHeap other{context.core, {.sampledImages = 1}, cvk::create};
+    other = std::move(moved);
+    EXPECT_EQ(other.config().sampledImages, 4);
+    EXPECT_EQ(other.insert(cvk::SampledImageDescriptor{texture}).idx().get(), 0);
+}
+
+JVK_TEST(SamplerHeap, base_constructor_does_not_create) {
+    test::Context const context{};
+
+    SamplerHeap const heap{context.core, {.samplers = 2}};
+
+    EXPECT_FALSE(heap.created());
+    EXPECT_EQ(heap.config().samplers, 2);
+}
+
+JVK_TEST(SamplerHeap, create_and_destroy) {
+    test::Context const context{};
+    SamplerHeap heap{context.core, {.samplers = 2}};
+
+    heap.create();
+    EXPECT_TRUE(heap.created());
+
+    heap.destroy();
+    EXPECT_FALSE(heap.created());
+
+    // a leak shows up when the shared device is destroyed
+    heap.optDestroy();
+    SamplerHeap const created{context.core, {.samplers = 2}, cvk::create};
+    EXPECT_TRUE(created.created());
+}
+
+JVK_TEST(SamplerHeap, destroy_frees_every_cell) {
+    test::Context const context{};
+    SamplerHeap heap{context.core, {.samplers = 2}, cvk::create};
+    cvk::SamplerConfig const nearest{.magFilter = VK_FILTER_NEAREST};
+
+    {
+        auto linearSampler = heap.insert(cvk::SamplerConfig{});
+        auto nearestSampler = heap.insert(nearest);
+        ASSERT_EQ(linearSampler.idx().get(), 0);
+        ASSERT_EQ(nearestSampler.idx().get(), 1);
+
+        // the cell of the last erased handle comes first, cell 1 here
+        { auto const gone = std::move(linearSampler); }
+        { auto const gone = std::move(nearestSampler); }
+    }
+
+    heap.destroy();
+    heap.create();
+
+    // every cell is free and no config is known: the first insert gets cell 0
+    EXPECT_EQ(heap.insert(nearest).idx().get(), 0);
+}
+
+JVK_TEST(SamplerHeap, a_moved_heap_inserts) {
+    test::Context const context{};
+    SamplerHeap heap{context.core, {.samplers = 2}, cvk::create};
+    cvk::SamplerConfig const nearest{.magFilter = VK_FILTER_NEAREST};
+    // the moved-from heaps keep the count of the returned cell
+    EXPECT_EQ(heap.insert(cvk::SamplerConfig{}).idx().get(), 0);
+
+    SamplerHeap moved{std::move(heap)};
+    EXPECT_EQ(moved.insert(cvk::SamplerConfig{}).idx().get(), 0);
+
+    SamplerHeap other{context.core, {.samplers = 1}, cvk::create};
+    other = std::move(moved);
+    EXPECT_EQ(other.config().samplers, 2);
+    auto const linearSampler = other.insert(cvk::SamplerConfig{});
+    auto const nearestSampler = other.insert(nearest);
+    EXPECT_NE(linearSampler.idx(), nearestSampler.idx());
+}
+
 JVK_TEST(SamplerHeap, equal_configs_share_a_cell) {
     test::Context const context{};
     auto const& heap = context.core.samplerHeap();
@@ -285,7 +413,7 @@ JVK_TEST(CmdBuffer, use_of_a_handle_tracks_the_layout_of_its_type_on_the_mip_lev
     auto const storage = heap.insert(cvk::StorageImageDescriptor{.image = image, .view = view(1)});
     auto const input = heap.insert(cvk::InputAttachmentDescriptor{.image = image, .view = view(2)});
 
-    PrimaryCmdBuffer primary{context.core, test::queue_family(context)};
+    PrimaryCmdBuffer primary{context.core, test::queue_family(context), cvk::create};
     primary.begin();
     primary.use(sampled, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
     primary.use(
@@ -318,7 +446,7 @@ namespace {
             sampled{core.resourceHeap().insert(cvk::SampledImageDescriptor{texture})},
             storage{core.resourceHeap().insert(cvk::StorageImageDescriptor{target})},
             sampler{core.samplerHeap().insert(cvk::SamplerConfig{})},
-            shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::shaders::HEAP_COPY_COMP},
+            shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::SHADER_DIR / "heap_copy.comp.spv"},
             pipeline{
                 core,
                 {.stage = shader.stageInfo(), .descriptorMappings = mappings(core)},

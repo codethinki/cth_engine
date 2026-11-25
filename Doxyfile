@@ -1,7 +1,7 @@
 # only the values that differ from the doxygen defaults, run: doxygen (from the repository root)
 PROJECT_NAME           = cth_engine
 OUTPUT_DIRECTORY       = out/doxygen
-INPUT                  = cvk/incl jvk/incl cgfw/incl
+INPUT                  = cvk/incl jvk/incl cgfw/incl timgui/incl
 RECURSIVE              = YES
 FILE_PATTERNS          = *.hpp
 JAVADOC_AUTOBRIEF      = YES

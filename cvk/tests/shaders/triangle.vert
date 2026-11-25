@@ -1,3 +1,4 @@
+// vertex shader: location 0 `vec3` position, push data offset 16 `mat4` view projection
 #version 450
 
 layout(location = 0) in vec3 position;

@@ -423,9 +423,6 @@ protected:
     std::optional<uint32_t> _continuedViewMaskOpt = std::nullopt;
 
 private:
-    /**
-     * frees the command buffer through its pool, the pool stops to count it
-     */
     class pool_deleter {
     public:
         constexpr explicit pool_deleter(CmdPool const& pool) : _pool{pool} {}
@@ -439,14 +436,8 @@ private:
         cth::ref_wrapper<CmdPool const> _pool;
     };
 
-    /**
-     * records the attachment mapping of `rendering()`
-     */
     void recordAttachmentMapping() const;
 
-    /**
-     * records the bytes as push data
-     */
     void pushDataBytes(std::span<std::byte const> data, uint32_t offset) const;
 
     void forget();
@@ -537,6 +528,7 @@ public:
      */
     void execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer const> const> secondaries) const;
 
+    //TEMP until libstdc++ has std::span from a braced list (P2447)
     /**
      * records the secondary command buffers of a braced list
      */
@@ -560,11 +552,6 @@ public:
     [[nodiscard]] RenderingInheritance inheritance() const;
 
 private:
-    /**
-     * records `vkCmdExecuteCommands()` with the command buffers
-     * @pre `recording()`
-     * @pre `rendering()` -> `VK_RENDERING_CONTENTS_SECONDARY_COMMAND_BUFFERS_BIT`
-     */
     void recordExecute(std::span<VkCommandBuffer const>) const;
 };
 }
@@ -645,9 +632,6 @@ public:
     }
 
 private:
-    /**
-     * begins the recording with the inheritance info, chains the inherited heaps in front of its `pNext`
-     */
     void beginInherited(
         VkCommandBufferInheritanceInfo,
         VkCommandBufferUsageFlags usage,

@@ -171,9 +171,6 @@ public:
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
-    /**
-     * @return byte offset of the first descriptor of the type
-     */
     template<descriptor_of<ResourceHeap> Descriptor>
     [[nodiscard]] constexpr size_t offset() const;
 

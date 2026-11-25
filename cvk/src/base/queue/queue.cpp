@@ -2,57 +2,13 @@
 
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/sync/fence.hpp"
-#include "cvk/render/sync/semaphore.hpp"
-#include "cvk/render/sync/timeline_semaphore.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
-#include <concepts>
-#include <variant>
 #include <vector>
 
 
 namespace cvk {
 using std::span;
-
-namespace {
-    VkSemaphoreSubmitInfo vk_semaphore_info(
-        VkSemaphore vkSemaphore,
-        uint64_t value,
-        VkPipelineStageFlags2 stages
-    ) {
-        return VkSemaphoreSubmitInfo{
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-            .pNext = nullptr,
-            .semaphore = vkSemaphore,
-            .value = value,
-            .stageMask = stages,
-            .deviceIndex = 0,
-        };
-    }
-
-    /**
-     * @param resolve the value of a timeline semaphore without value
-     */
-    template<class Resolve>
-    VkSemaphoreSubmitInfo semaphore_info(SemaphoreSubmitInfo const& info, Resolve resolve) {
-        return std::visit(
-            [&]<class T>(cth::ref_wrapper<T const> semaphore) {
-                T::debug_check(semaphore);
-
-                if constexpr(std::same_as<T, TimelineSemaphore>) {
-                    auto const value = info.value.has_value()
-                        ? *info.value
-                        : resolve(semaphore.get());
-                    return vk_semaphore_info(semaphore.get().get(), value, info.stages);
-                } else {
-                    CTH_CRITICAL(info.value.has_value(), "binary semaphores have no value") {}
-                    return vk_semaphore_info(semaphore.get().get(), 0, info.stages);
-                }
-            },
-            info.semaphore
-        );
-    }
-}
 
 Queue::Queue(QueueFamilyProperties familyProperties, State const& state) : _familyProperties
     {familyProperties},
@@ -81,32 +37,18 @@ void Queue::submit(span<SubmitInfo const> infos, Fence const* fencePtr) const {
     std::vector<VkSubmitInfo2> submits{};
     submits.reserve(infos.size());
 
-    auto const waitValue = [](TimelineSemaphore const& timeline) { return timeline.value(); };
-    auto const signalValue = [](TimelineSemaphore const& timeline) { return timeline.next(); };
-
     for(auto const& info : infos) {
         auto const* const waits = semaphores.data() + semaphores.size();
         for(auto const& wait : info.waits)
-            semaphores.push_back(semaphore_info(wait, waitValue));
+            semaphores.push_back(wait_submit_info(wait));
 
         auto const* const signals = semaphores.data() + semaphores.size();
         for(auto const& signal : info.signals)
-            semaphores.push_back(semaphore_info(signal, signalValue));
+            semaphores.push_back(signal_submit_info(signal));
 
         auto const* const buffers = cmdBuffers.data() + cmdBuffers.size();
-        for(PrimaryCmdBuffer const& cmdBuffer : info.cmdBuffers) {
-            BaseCmdBuffer::debug_check(cmdBuffer);
-            CTH_CRITICAL(cmdBuffer.recording(), "command buffers must end their recording first") {}
-
-            cmdBuffers.push_back(
-                VkCommandBufferSubmitInfo{
-                    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-                    .pNext = nullptr,
-                    .commandBuffer = cmdBuffer.get(),
-                    .deviceMask = 0,
-                }
-            );
-        }
+        for(PrimaryCmdBuffer const& cmdBuffer : info.cmdBuffers)
+            cmdBuffers.push_back(cmd_buffer_submit_info(cmdBuffer));
 
         submits.push_back(
             VkSubmitInfo2{

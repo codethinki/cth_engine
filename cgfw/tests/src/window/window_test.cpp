@@ -23,6 +23,12 @@ CGFW_TEST(Window, base_constructor_does_not_create) {
     EXPECT_EQ(window.config().title, test::window_config().title);
 }
 
+CGFW_TEST(Window, events_are_empty_before_poll_events) {
+    Window const window{test::window_config()};
+
+    EXPECT_TRUE(window.events().empty());
+}
+
 CGFW_TEST(Window, create_and_destroy) {
     CGFW_SKIP_WITHOUT_DISPLAY();
     Window window{test::window_config()};
@@ -63,7 +69,7 @@ CGFW_TEST(Window, move_keeps_the_window) {
     Window window{test::window_config(), create};
     auto const rgfwWindow = window.get();
 
-    Window const moved{std::move(window)};
+    Window moved{std::move(window)};
 
     EXPECT_FALSE(window.created());
     EXPECT_EQ(moved.get(), rgfwWindow);
@@ -73,7 +79,7 @@ CGFW_TEST(Window, move_keeps_the_window) {
 
 CGFW_TEST(Window, poll_events_returns_without_events) {
     CGFW_SKIP_WITHOUT_DISPLAY();
-    Window const window{test::window_config(), create};
+    Window window{test::window_config(), create};
 
     // a render loop polls every frame: no wait for an event, the bound is far above a poll
     auto const start = std::chrono::steady_clock::now();
@@ -99,7 +105,7 @@ CGFW_TEST(Window, move_assignment_destroys_the_old_window) {
 CGFW_TEST(Window, windows_exist_at_the_same_time) {
     CGFW_SKIP_WITHOUT_DISPLAY();
 
-    std::array<Window, 3> const windows{
+    std::array<Window, 3> windows{
         Window{test::window_config("first"), create},
         Window{test::window_config("second"), create},
         Window{test::window_config("third"), create},
@@ -149,7 +155,7 @@ CGFW_TEST(Window, surface_of_an_instance_with_the_extensions) {
 
 CGFW_TEST(Window, extent_is_the_size_of_the_window) {
     CGFW_SKIP_WITHOUT_DISPLAY();
-    Window const window{test::window_config(), create};
+    Window window{test::window_config(), create};
     window.pollEvents();
 
     // the window manager can change the size of the config, a tiling one does
@@ -162,7 +168,7 @@ CGFW_TEST(Window, extent_is_the_size_of_the_window) {
 CGFW_TEST(Window, extent_callback_of_the_surface_reads_the_window) {
     CGFW_SKIP_WITHOUT_DISPLAY();
     test::InstanceContext const context{};
-    Window const window{test::window_config(), create};
+    Window window{test::window_config(), create};
     window.pollEvents();
     auto surface = window.surface(context.instance);
 

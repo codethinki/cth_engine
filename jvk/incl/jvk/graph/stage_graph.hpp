@@ -4,15 +4,14 @@
 #include "stage_graph_config.hpp"
 
 #include "jvk/base/stasis.hpp"
-#include "jvk/sync/resource_states.hpp"
-#include "jvk/utility/first_error.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/render/sync/barrier.hpp"
 
 #include <volk.h>
 
-#include <cth/coro/simple_counting_scope.hpp>
+#include <cth/coro/catching_scope.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/data/hash_map.hpp>
 #include <cth/ptr/ref_wrapper.hpp>
@@ -52,7 +51,7 @@ class StageGraph {
 public:
     using Config = StageGraphConfig;
 
-    //TODO review no base constructor and create(): the graph has no wrap or release
+    // no base constructor and create(): the graph has no wrap or release
     /**
      * creates the stage slots and the frame slots
      * @details computes `firstFrameNumber()` from the config
@@ -64,26 +63,35 @@ public:
 
     /**
      * waits until the gpu finished the submits of every slot, destroys the slots
+     * @details skips the unsubmitted stages first, their waiters go on:
+     * - the stages of the frame of the last `nextFrame()`
+     * - a stage with an exception outside of a `scoped_submit`
+     * - a stage that a failed `submit()` or `skip()` left `UNSUBMITTED`
      * @details
-     * - skips the unsubmitted stages first, e.g. after an exception in their recording: their waiters go on
-     * - the skip of an unsubmitted stage drops its binary waits: their semaphores, e.g. the acquire semaphores of a
-     *   `Presenter`, can be destroyed before the graph
-     * - waits for the end of every submit job
-     * - a failed skip or wait does not stop the destruction
-     * @attention blocks the calling thread: a worker of the core must be free for the jobs
+     * - the skip drops the images of `Stage::present()`, see `StageGraph::skip()`
+     * - waits for the end of every submission
+     * - a failed skip terminates: the waiters of the stage would hang
+     * - a failed wait does not stop the destruction
+     * @attention blocks the calling thread: a worker of the core must be free for the submissions
      */
     ~StageGraph();
 
-    //TODO review awaits Stage::submitted() of the old frame: the gpu can finish before the graph job marks the submit
+    // awaits Stage::submitted() of the old frame: the gpu can finish before the submission marks
+    // the submit
     /**
      * constructs the frame and its stages in the next slot
-     * @details the frame before: skips its stages without `Stage::submit()` or `Stage::skip()`, warns for a waited one
-     * @details the old frame of the slot: awaits `Stage::submitted()` of its stages, then each stage: the gpu finished
-     *  it
+     * @details the old frame of the slot: awaits `StageSlot::submitDone` of its stages: their
+     *  submissions ended the submits, the presents and the drops, then the stages: the gpu
+     *  finished them, both with `cth::co::all()` and `std::execution::seq`
      * @return the frame of the slot
+     * @pre every stage of the frame before is submitted or skipped: `Stage::submit()`,
+     *  `Stage::skip()` or the end of its `scoped_submit`
      * @pre no stage of the frame before records or submits: `nextFrame()` ends the frame
-     * @throws cvk::vk_result_exception the first error of a submit job or a scope, stored before the call: an error
-     *  during the waits -> the next `nextFrame()` rethrows it
+     * @throws std::exception the first error of a submission, a `submit()` or a `skip()`, stored
+     *  before the call
+     * @throws cth::except::group_coro_exception reason: the wait for a stage of the old frame
+     *  failed, after the waits for all its stages: `exceptions()` holds the
+     *  `cth::except::coro_exception` per stage
      * @attention not thread safe
      */
     [[nodiscard]] cth::co::executor_task<Frame&> nextFrame();
@@ -96,40 +104,59 @@ public:
      * - returns at once, the strand of the queue submits after the waited stages submitted
      * - resolves the first uses of the primary against the resource states after all submits
      * - an unknown image: the prologue transitions it from `VK_IMAGE_LAYOUT_UNDEFINED`
-     * - an `EXCLUSIVE` resource of another queue family: `Queue::release()` on its last queue, the prologue acquires it
+     * - an `EXCLUSIVE` resource of another queue family: `Queue::transfer()` of the release half on
+     *   its last queue, the prologue acquires it
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
-     * - an error: skips, `nextFrame()` rethrows the error
+     * - the images of `Stage::present()`: uses after the primary, in the epilogue, the submit
+     *   signals their present semaphores and their ready points, `Presenter::present()` follows
+     *   the submit, see `Stage::present()`
+     * - erases the state of a presented image in the graph before `Presenter::present()`: the
+     *   next acquire of the image assumes it again
+     * - another queue family of the last use of a presented image: the last queue releases it,
+     *   the epilogue acquires it
+     * - another queue family of the presenter queue: the epilogue releases the image,
+     *   `Queue::transfer()` on the presenter queue acquires it and signals the present semaphore
+     * - an error of the submission: skips, `nextFrame()` rethrows the error
+     * - a failed present: the presenter of the image gets the error, see `Presenter::present()`
+     * - a failed transfer: drops the image, see `Presenter::drop()`
      * - after the gpu finished: destroys the retained objects
+     * @details a failure here, `vkEndCommandBuffer()` or the allocation of the submission:
+     * - no throw, the stage stays `UNSUBMITTED`
+     * - the next `nextFrame()` rethrows the failure
+     * - `~StageGraph()` skips the stage
      * @pre the stage is of this graph
      * @pre `Stage::begin()` in this frame
      * @pre `Stage::status()` is `UNSUBMITTED`
      * @pre the primary and its executed secondaries belong to the queue family of `Stage::queue()`
      * @note ends the rendering and the primary
      */
-    void submit(Stage&);
+    void submit(Stage&) noexcept;
 
     /**
      * submits no work for the stage in this frame
      * @details sets the status of the stage to `SKIPPED`, thread safe for different stages
      * @details returns at once, the strand of the queue submits after the waited stages submitted
-     * @details empty submit on the queue of the stage:
+     * @details skip submit on the queue of the stage, no command buffers:
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
-     * @details after the gpu finished the empty submit: destroys the retained objects
+     * @details the skip signals the ready points of the images of `Stage::present()`, then erases
+     *  their states in the graph and drops them, see `Presenter::drop()`
+     * @details after the gpu finished the skip submit: destroys the retained objects
      * @details a begun primary: ends its rendering and the primary, discards the recording
+     * @details a failure: the failure of `submit()`
      * @pre the stage is of this graph
      * @pre `Stage::status()` is `UNSUBMITTED`
      */
-    void skip(Stage&);
+    void skip(Stage&) noexcept;
 
     /**
      * sets the state of the image after all submits, without a barrier
      * @details
      * - the first use of the next submit starts from the state
      * - thread safe
-     * @pre the jobs of the submits before that use the image appended their states: they are marked
-     * @see `ResourceStates::assume()`
+     * @pre the submissions before that use the image appended their states: they are marked
+     * @see `ResourceTracker::assume()`
      */
     void assume(cvk::Image const&, ImageState const& state);
 
@@ -162,151 +189,78 @@ private:
     using image_mip_t = std::pair<VkImage, uint32_t>;
 
     template<class Key>
-    using last_queue_map_t = cth::dt::flat_hash_map<Key, cth::ref_wrapper<Queue const>>;
+    using last_queue_map_t = cth::dt::flat_hash_map<Key, cth::ref_wrapper<Queue>>;
 
-    using release_map_t = cth::dt::flat_hash_map<Queue const*, cvk::Barrier>;
+    using release_map_t = cth::dt::flat_hash_map<Queue*, cvk::Barrier>;
 
-    //TODO review name
-    using semaphore_waits_t = std::vector<cvk::SemaphoreSubmitInfo>;
+    /** a failure stores its error, the stage stays `UNSUBMITTED` */
+    void detachSubmission(Stage&, Stage::Status targetStatus) noexcept;
 
-    /**
-     * skips the stages of the frame in the slot without `Stage::submit()` or `Stage::skip()`
-     * @details a skipped stage that other stages wait for: warns
-     * @details no frame in the slot -> nothing
-     */
-    void skipUnsubmitted(dev::FrameSlot&);
-
-    //TODO review one helper for submit() and skip(): they differ in the status only
-    /**
-     * detaches the submit job, then sets the status of the stage
-     * @details
-     * - takes `Stasis::end()` of the stage slot and the retained resources of the stage under
-     *   `StageSlot::stasisMutex`
-     * - a failed allocation: the stage stays `UNSUBMITTED` without its waits and retained resources, the exception
-     *   destroys the graph
-     * @param targetStatus `SUBMITTED` or `SKIPPED`
-     */
-    void detachJob(Stage&, Stage::Status targetStatus);
-
-    //TODO review no marks as parameters: the job awaits Semaphore::submitted() of the slots, they live as long as
-    // the graph
-    //TODO review next() before the mark: the job of the next frame of the slot awaits the mark, it reads the values
-    /**
-     * submit job of `submit()` and `skip()`
-     * @details the order:
-     * - off the strand: awaits `Semaphore::submitted()` of the stage in the frame before, of the waits of
-     *   `StageSlot::submitInfo` and of every jvk extra wait: the appends follow the dependency order
-     * - the binary extra waits: no await on the cpu
-     * - `SUBMITTED`: `append()` of the states of the primary under `StageGraph::_statesMutex`, `release()` of the
-     *   release halves, records the prologue, an empty prologue: no record, the submit without it
-     * - in the strand: `SubmitInfo::submit()` with the release waits
-     * - `SKIPPED` or a failed submit: in the strand, `SubmitInfo::skip()`
-     * - in the strand: `SubmitInfo::next()`, then `Semaphore::markSubmitted()` of the slot with the frame number
-     * - on the workers of the core: after the gpu finished, erases the states of the retained resources, then
-     *   `Stasis::clear()` to `stasisEnd`
-     * @details the errors:
-     * - a failed submit: stores the error, see `dev::first_error`, then skips
-     * - a failed skip: `VK_ERROR_DEVICE_LOST` -> stores the error, else terminates: the waiters would hang
-     * - a failed gpu wait: stores the error, keeps the retained objects for the destruction of the graph
-     * @param targetStatus the status the job reaches: `SUBMITTED` or `SKIPPED`
-     * @param stasisEnd `Stasis::end()` of the stage slot at the submit or the skip
-     * @see `Stage::submitted()`
-     */
-    [[nodiscard]] cth::co::executor_task<void> submitJob(
+    // no marks as parameters: the submission awaits Semaphore::submitted() of the slots, they live
+    // as long as the graph
+    // next() before the mark: the submission of the next frame of the slot awaits the mark, it
+    // reads the values
+    [[nodiscard]] cth::co::executor_task<void> submission(
         dev::StageSlot&,
         uint64_t frameNumber,
-        std::vector<SemaphoreSubmitInfo> extraWaits,
-        semaphore_waits_t extraBinaryWaits,
         dev::RetainedResources retained,
         Stasis::pos stasisEnd,
         Stage::Status targetStatus
     );
 
-    /**
-     * appends the states of a submit on the queue to the resource states after all submits
-     * @details the first use of a mip level or a buffer after the last state:
-     * - unknown image: from `VK_IMAGE_LAYOUT_UNDEFINED`
-     * - unknown buffer: no barrier
-     * - the same queue family, or `VK_SHARING_MODE_CONCURRENT`: the barrier of `ResourceStates::append()`
-     * - another queue family, `EXCLUSIVE`, contents needed: release half for the last queue, acquire half
-     * - another queue family, discard or `VK_IMAGE_LAYOUT_UNDEFINED`: from `VK_IMAGE_LAYOUT_UNDEFINED`, no transfer
-     * - an `assume()` before the first use: no barrier
-     * @details sets the queue as the last queue of the resources
-     * @param[out] prologue gets the barriers for the first uses of the submit, the acquire halves included
-     * @param[out] releases gets the release halves per last queue of another family
-     * @pre the caller holds `StageGraph::_statesMutex`
-     */
+    /** the caller holds `_statesMutex` */
     void append(
-        ResourceStates const& recording,
-        Queue const& queue,
+        ResourceTracker const& recording,
+        Queue& queue,
         cvk::Barrier& prologue,
         release_map_t& releases
     );
 
-    //TODO review jvk waits: they join the jvk extra waits of the stage
-    /**
-     * releases the resources on their last queues
-     * @param releases the release halves per last queue, from `append()`
-     * @return the waits for the releases
-     * @see `Queue::release()`
-     */
+    // jvk waits: they join the jvk extra waits of the stage
     [[nodiscard]] cth::co::executor_task<std::vector<SemaphoreSubmitInfo>> release(
         release_map_t releases
     );
 
+    void presentBarriers(dev::StageSlot&);
+
     /**
-     * removes the states and the last queues of the mip levels
-     * @pre the caller holds `StageGraph::_statesMutex`
+     * presents the images of the stage slot after the submit, a failed transfer drops its image
+     * @details erases the state of each image in the graph before its hand back
+     * @details no throw: a failure goes to `_submissions`
      */
+    [[nodiscard]] cth::co::executor_task<void> present(dev::StageSlot&, uint64_t frameNumber);
+
+    /**
+     * erases the state of the image in the graph, then drops it, see `Presenter::drop()`
+     * @pre the submit or the skip of its stage signaled `Presenter::AcquiredImage::ready()`
+     */
+    void handBack(Presenter::AcquiredImage);
+
+    /** the caller holds `_statesMutex` */
     void eraseStates(VkImage, uint32_t mipLevels);
 
-    /**
-     * removes the state and the last queue of the buffer
-     * @pre the caller holds `StageGraph::_statesMutex`
-     */
+    /** the caller holds `_statesMutex` */
     void eraseStates(VkBuffer);
 
-    /**
-     * ends an open rendering and the primary
-     */
     static void endPrimary(PrimaryCmdBuffer&);
 
     cth::ref_wrapper<Core> _core;
     Config _config;
 
-    std::deque<dev::FrameSlot> _frameSlots{}; ///< one per frame slot, with its stage slots
+    std::deque<dev::FrameSlot> _frameSlots{};
 
-    /**
-     * locks `StageGraph::_states`, `StageGraph::_imageQueues` and `StageGraph::_bufferQueues`
-     */
-    std::mutex _statesMutex{};
+    std::mutex _statesMutex{}; ///< locks `_states`, `_imageQueues` and `_bufferQueues`
 
-    ResourceStates _states{}; ///< resource states after all submits
+    ResourceTracker _states{};
 
-    /**
-     * last queue per mip level of an image, for the queue family ownership transfers
-     */
     last_queue_map_t<image_mip_t> _imageQueues{};
 
-    /** last queue per buffer, for the queue family ownership transfers */
     last_queue_map_t<VkBuffer> _bufferQueues{};
 
-    //TODO review the error stays: every nextFrame() rethrows it, the errors of the jobs are fatal
-    /**
-     * the first error of a submit job or a scope of a stage, `nextFrame()` rethrows it
-     */
-    dev::first_error _error{};
+    cth::co::catching_scope _submissions{};
 
-    /** the running submit jobs, `~StageGraph()` waits for them */
-    cth::co::simple_counting_scope _jobs{};
+    uint64_t _firstFrameNumber;
 
-    //TODO review name firstFrameNumber
-    uint64_t _firstFrameNumber; ///< see `firstFrameNumber()`
-
-    /**
-     * number of the last frame that `nextFrame()` handed out
-     * @details `firstFrameNumber() - 1` before the first frame
-     */
     uint64_t _frameNumber;
 
 public:

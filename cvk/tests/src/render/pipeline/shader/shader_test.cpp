@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "cvk/render/pipeline/shader/shader.hpp"
@@ -9,13 +8,10 @@
 
 #ifdef CTH_PLATFORM_WINDOWS
 #include <process.h>
-#define CVK_NULL_DEVICE "NUL"
 #else
 #include <unistd.h>
-#define CVK_NULL_DEVICE "/dev/null"
 #endif
 
-#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -24,15 +20,7 @@
 
 namespace cvk {
 namespace {
-    using test::shaders::TRIANGLE_VERT;
-
-    /**
-     * @return glslc runs, the check runs once per process
-     */
-    bool glslc_available() {
-        static bool const available = std::system("glslc --version >" CVK_NULL_DEVICE " 2>&1") == 0;
-        return available;
-    }
+    std::filesystem::path const TRIANGLE_VERT = test::SHADER_DIR / "triangle.vert.spv";
 
     auto process_id() {
 #ifdef CTH_PLATFORM_WINDOWS
@@ -83,8 +71,9 @@ CVK_TEST(Shader, base_constructor_does_not_create) {
 
 CVK_TEST(Shader, create_from_spv) {
     test::Context const context{};
+    auto const spv = Shader::load(TRIANGLE_VERT);
 
-    Shader const shader{context.core, VK_SHADER_STAGE_VERTEX_BIT, TRIANGLE_VERT};
+    Shader const shader{context.core, VK_SHADER_STAGE_VERTEX_BIT, spv};
 
     ASSERT_TRUE(shader.created());
 
@@ -98,18 +87,20 @@ CVK_TEST(Shader, create_from_spv) {
 
 CVK_TEST(Shader, create_from_file) {
     test::Context const context{};
-    std::span const bytes{
-        reinterpret_cast<char const*>(TRIANGLE_VERT.data()),
-        sizeof(TRIANGLE_VERT)
-    };
-    auto const path = write_temp("cvk_test_triangle.vert.spv", bytes);
 
-    Shader const shader{context.core, VK_SHADER_STAGE_VERTEX_BIT, path};
+    Shader const shader{context.core, VK_SHADER_STAGE_VERTEX_BIT, TRIANGLE_VERT};
 
     EXPECT_TRUE(shader.created());
-    EXPECT_TRUE(std::ranges::equal(Shader::load(path), TRIANGLE_VERT));
+}
 
-    std::filesystem::remove(path);
+CVK_TEST(Shader, load_reads_the_words) {
+    constexpr uint32_t SPIRV_MAGIC = 0x07230203;
+
+    auto const spv = Shader::load(TRIANGLE_VERT);
+
+    EXPECT_EQ(spv.size() * sizeof(uint32_t), std::filesystem::file_size(TRIANGLE_VERT));
+    ASSERT_FALSE(spv.empty());
+    EXPECT_EQ(spv.front(), SPIRV_MAGIC);
 }
 
 CVK_TEST(Shader, load_rejects_bad_files) {
@@ -141,7 +132,11 @@ CVK_TEST(Shader, release_and_wrap) {
 CVK_TEST(Shader, move_assignment_destroys_the_old_shader) {
     test::Context const context{};
     Shader shader{context.core, VK_SHADER_STAGE_VERTEX_BIT, TRIANGLE_VERT};
-    Shader other{context.core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG};
+    Shader other{
+        context.core,
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        test::SHADER_DIR / "triangle.frag.spv"
+    };
     auto const vkShader = other.get();
 
     shader = std::move(other);
@@ -149,45 +144,6 @@ CVK_TEST(Shader, move_assignment_destroys_the_old_shader) {
     EXPECT_EQ(shader.get(), vkShader);
     EXPECT_EQ(shader.stage(), VK_SHADER_STAGE_FRAGMENT_BIT);
     EXPECT_FALSE(other.created());
-}
-
-CVK_TEST(Shader, compile_and_create) {
-    if(!glslc_available())
-        GTEST_SKIP() << "glslc not found";
-    test::Context const context{};
-    auto const spvPath = temp_dir() / "cvk_test_compiled.vert.spv";
-
-    Shader const shader{
-        context.core,
-        VK_SHADER_STAGE_VERTEX_BIT,
-        spvPath,
-        test::SHADER_DIR / "triangle.vert"
-    };
-
-    EXPECT_TRUE(shader.created());
-    EXPECT_TRUE(std::filesystem::exists(spvPath));
-    EXPECT_FALSE(std::filesystem::exists(spvPath.string() + ".log"));
-
-    std::filesystem::remove(spvPath);
-}
-
-CVK_TEST(Shader, compile_error_throws) {
-    if(!glslc_available())
-        GTEST_SKIP() << "glslc not found";
-    constexpr std::string_view broken = "#version 450\nvoid main() { undeclared = 1; }\n";
-    auto const glslPath = write_temp("cvk_test_broken.vert", broken);
-    auto const spvPath = temp_dir() / "cvk_test_broken.vert.spv";
-
-    EXPECT_THROW(Shader::compile(glslPath, spvPath), cvk_exception);
-    EXPECT_FALSE(std::filesystem::exists(spvPath.string() + ".log"));
-
-    std::filesystem::remove(glslPath);
-}
-
-CVK_TEST(Shader, compile_missing_glsl_throws) {
-    auto const missing = temp_dir() / "cvk_test_missing.vert";
-
-    EXPECT_THROW(Shader::compile(missing, missing.string() + ".spv"), cvk_exception);
 }
 
 CVK_TEST(Shader, decompose_returns_the_released_handle) {

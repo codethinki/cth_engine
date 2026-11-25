@@ -1,14 +1,9 @@
 #include "cvk/render/pipeline/shader/shader.hpp"
 
 #include "cvk/base/core.hpp"
-#include "cvk/utility/constants.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
-#include <cth/io/file.hpp>
-#include <cth/os/osdef.hpp>
-
-#include <cstdlib>
-#include <format>
+#include <filesystem>
 #include <fstream>
 
 
@@ -30,22 +25,6 @@ Shader::Shader(Core const& core, VkShaderStageFlagBits stage, path_t const& spvP
     core,
     stage
 } { create(spvPath); }
-
-Shader::Shader(
-    Core const& core,
-    VkShaderStageFlagBits stage,
-    path_t const& spvPath,
-    path_t const& glslPath,
-    path_t const& compilerPath
-) : Shader{core, stage} {
-    CTH_STABLE_WARN(
-        !constants::DEBUG_MODE,
-        "compiles shaders at run time, use this in debug builds only"
-    ) {}
-
-    compile(glslPath, spvPath, compilerPath);
-    create(spvPath);
-}
 
 void Shader::wrap(State const& state) {
     Core::debug_check(core());
@@ -145,62 +124,6 @@ std::vector<uint32_t> Shader::load(path_t const& spvPath) {
     CVK_STABLE_THROW(!file, "failed to read SPIR-V file {}", spvPath.string()) {}
 
     return spv;
-}
-
-void Shader::compile(
-    path_t const& glslPath,
-    path_t const& spvPath,
-    path_t const& compilerPath,
-    std::string_view flags
-) {
-    CVK_STABLE_THROW(
-        !std::filesystem::exists(glslPath),
-        "glsl file {} does not exist",
-        glslPath.string()
-    ) {}
-
-#ifdef CTH_PLATFORM_WINDOWS
-    constexpr std::string_view nullDevice = "NUL";
-#else
-    constexpr std::string_view nullDevice = "/dev/null";
-#endif
-    // one log per SPIR-V path: two processes that compile into other directories do not share a log
-    auto logPath = spvPath;
-    logPath += ".log";
-
-    auto command = std::format(
-        R"("{}" {} -c "{}" -o "{}" >{} 2>"{}")",
-        compilerPath.string(),
-        flags,
-        glslPath.string(),
-        spvPath.string(),
-        nullDevice,
-        logPath.string()
-    );
-#ifdef CTH_PLATFORM_WINDOWS
-    // cmd.exe /c removes the outer quotes of a command that starts with a quote
-    command = std::format("\"{}\"", command);
-#endif
-
-    int const result = std::system(command.c_str());
-
-    std::vector<std::string> output{};
-    if(std::filesystem::exists(logPath)) {
-        output = cth::io::file::chop(logPath);
-        std::erase_if(output, [](std::string const& line) { return line.empty(); });
-        std::filesystem::remove(logPath);
-    }
-
-    CVK_STABLE_THROW(result != 0, "shader compilation of {} failed", glslPath.string()) {
-        details->add("command: {}", command);
-        for(auto const& line : output)
-            details->add("{}", line);
-    }
-
-    CTH_STABLE_WARN(!output.empty(), "shader compiler output for {}", glslPath.string()) {
-        for(auto const& line : output)
-            details->add("{}", line);
-    }
 }
 
 void destroy(DeviceTable table, VkShaderModule vkShader) {

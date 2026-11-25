@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "cvk/render/cmd/cmd_buffer.hpp"
@@ -24,9 +23,9 @@ namespace {
         explicit Triangle(Core const& core) : vertex{
                 core,
                 VK_SHADER_STAGE_VERTEX_BIT,
-                test::shaders::TRIANGLE_VERT
+                test::SHADER_DIR / "triangle.vert.spv"
             },
-            fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG} {}
+            fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::SHADER_DIR / "triangle.frag.spv"} {}
 
         [[nodiscard]] GraphicsPipeline::Config config() const {
             GraphicsPipeline::Config config{

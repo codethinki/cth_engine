@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
@@ -151,9 +150,9 @@ namespace {
      */
     struct Draws {
         Draws(Core const& core, Image const& first) :
-            vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::shaders::FILL_VERT},
-            color{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
-            localRead{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::LOCAL_READ_FRAG},
+            vertex{core, VK_SHADER_STAGE_VERTEX_BIT, test::SHADER_DIR / "fill.vert.spv"},
+            color{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::SHADER_DIR / "triangle.frag.spv"},
+            localRead{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::SHADER_DIR / "local_read.frag.spv"},
             heap{core, {.inputAttachments = 1}, create},
             pushedHeap{core, {.inputAttachments = PUSHED_IDX + 1}, create},
             write{core, fullscreen(vertex, color, write_first()), create},

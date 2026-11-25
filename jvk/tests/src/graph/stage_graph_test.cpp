@@ -1,5 +1,6 @@
 #include "jvk/graph/stage_graph.hpp"
 
+#include "allocation.hpp"
 #include "context.hpp"
 #include "test.hpp"
 
@@ -20,6 +21,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <new>
 #include <numeric>
 #include <optional>
 #include <semaphore>
@@ -235,7 +237,8 @@ JVK_TEST(StageGraph, chain_on_one_queue_submitted_in_reverse) {
     auto& writer = frame.stage(0);
     auto& reader = frame.stage(1);
 
-    // the reader submits first, from another thread: its job waits for the mark of the writer
+    // the reader submits first, from another thread: its submission waits for the mark of the
+    // writer
     std::jthread{
         [&] {
             auto const primary = reader.begin();
@@ -333,33 +336,23 @@ JVK_TEST(StageGraph, skip_lets_the_waiter_go_on) {
     EXPECT_GE(frame.stage(0).semaphore().gpuValue(), frame.number());
 }
 
-JVK_TEST(StageGraph, next_frame_skips_a_forgotten_stage_of_the_frame_before) {
+JVK_TEST(StageGraph, destruction_skips_a_stage_without_submit_or_skip_its_waiter_goes_on) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
-    StageGraph graph{
-        core,
-        {
-            .stages = {{.queueIdx = 0}, {.queueIdx = 0, .waits = {TRANSFER_WAIT_ON_0}}},
-            .frameSlots = 2
-        },
-    };
 
-    // the writer of the first frame gets no submit or skip, its waiter waits
-    auto& first = next_frame(core, graph);
-    submit_empty(first.stage(1));
+    {
+        StageGraph graph{
+            core,
+            {.stages = {{.queueIdx = 0}, {.queueIdx = 0, .waits = {TRANSFER_WAIT_ON_0}}}}
+        };
 
-    // the next frame skips it, not the reuse of its slot
-    auto& second = next_frame(core, graph);
-    ASSERT_EQ(first.stage(0).status(), Stage::Status::SKIPPED);
-
-    // its waiter and the writer of the next frame go on before the frame after
-    submit_empty(second.stage(0));
-    wait(core, first.stage(1));
-    wait(core, second.stage(0));
-    EXPECT_GE(first.stage(0).semaphore().gpuValue(), first.number());
-
-    submit_empty(second.stage(1));
-    wait(core, second.stage(1));
+        // the writer of the last frame gets no submit or skip, its waiter waits
+        auto& frame = next_frame(core, graph);
+        submit_empty(frame.stage(1));
+        EXPECT_EQ(frame.stage(0).status(), Stage::Status::UNSUBMITTED);
+        EXPECT_LT(frame.stage(1).semaphore().submittedValue(), frame.number());
+    }
+    // ~StageGraph() skipped the writer: its wait for the submission of the waiter ended
 }
 
 JVK_TEST(StageGraph, scoped_submit_submits_at_its_end) {
@@ -438,12 +431,20 @@ JVK_TEST(StageGraph, skip_discards_a_begun_primary) {
     wait(core, next);
 }
 
-JVK_TEST(StageGraph, exception_in_scoped_submit_submits_nothing) {
+JVK_TEST(StageGraph, exception_through_scoped_submit_skips_the_stage_its_waiter_goes_on) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 2}};
+    StageGraph graph{
+        core,
+        {
+            .stages = {{.queueIdx = 0}, {.queueIdx = 0, .waits = {TRANSFER_WAIT_ON_0}}},
+            .frameSlots = 2
+        },
+    };
 
-    auto& stage = next_frame(core, graph).stage(0);
+    auto& frame = next_frame(core, graph);
+    submit_empty(frame.stage(1));
+    auto& stage = frame.stage(0);
     try {
         auto const primary = stage.begin();
         auto const rendering = primary->beginRendering({.area = AREA});
@@ -451,24 +452,26 @@ JVK_TEST(StageGraph, exception_in_scoped_submit_submits_nothing) {
     }
     catch(test_exception const&) {}
 
-    EXPECT_EQ(stage.status(), Stage::Status::UNSUBMITTED);
-    // the scoped_rendering ends the rendering on both paths
-    EXPECT_EQ(stage.primary().rendering(), nullptr);
-    EXPECT_TRUE(stage.primary().recording());
-
-    // the next frame skips the stage
-    auto& next = next_frame(core, graph).stage(0);
+    // the skip discards the recording
     EXPECT_EQ(stage.status(), Stage::Status::SKIPPED);
-    submit_empty(next);
-    wait(core, next);
+    EXPECT_EQ(stage.primary().rendering(), nullptr);
+    EXPECT_FALSE(stage.primary().recording());
+
+    wait(core, frame.stage(1));
     wait(core, stage);
+    EXPECT_GE(stage.semaphore().gpuValue(), frame.number());
+
+    auto& next = next_frame(core, graph);
+    submit_empty(next.stage(0));
+    submit_empty(next.stage(1));
+    wait(core, next.stage(1));
 }
 
 JVK_TEST(StageGraph, destruction_after_an_exception_skips_the_unsubmitted_stage) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
 
-    // the waiter is submitted, ~StageGraph() skips the waited stage, else its job hangs
+    // the waiter is submitted, ~StageGraph() skips the waited stage, else its submission hangs
     auto const run = [&core] {
         StageGraph graph{
             core,
@@ -476,10 +479,36 @@ JVK_TEST(StageGraph, destruction_after_an_exception_skips_the_unsubmitted_stage)
         };
         auto& frame = next_frame(core, graph);
         submit_empty(frame.stage(1));
-        auto const primary = frame.stage(0).begin();
+        // before the scope of the waited stage: it stays unsubmitted
         throw test_exception{};
     };
     EXPECT_THROW(run(), test_exception);
+}
+
+JVK_TEST(StageGraph, failed_submit_next_frame_rethrows_the_destruction_skips_the_stage) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+
+    {
+        StageGraph graph{
+            core,
+            {.stages = {{.queueIdx = 0}, {.queueIdx = 0, .waits = {TRANSFER_WAIT_ON_0}}}}
+        };
+
+        auto& frame = next_frame(core, graph);
+        submit_empty(frame.stage(1));
+        auto& stage = frame.stage(0);
+        {
+            auto const primary = stage.begin();
+            // the end of the scope submits: its first allocation fails
+            test::fail_next_allocation();
+        }
+        EXPECT_EQ(stage.status(), Stage::Status::UNSUBMITTED);
+
+        EXPECT_THROW(next_frame(core, graph), std::bad_alloc);
+        EXPECT_EQ(stage.status(), Stage::Status::UNSUBMITTED);
+    }
+    // ~StageGraph() skipped the stage: its waiter went on, the destruction ended
 }
 
 JVK_TEST(StageGraph, submitted_and_co_await_of_a_stage) {
@@ -517,7 +546,7 @@ JVK_TEST(StageGraph, extra_jvk_wait_and_binary_wait) {
     stage.await(binary);
     submit_empty(stage);
 
-    // the job waits for the mark of the external wait before its submit
+    // the submission waits for the mark of the external wait before its submit
     core.executor().sync_wait(
         submit(queue, {.signals = {SemaphoreSubmitInfo{.semaphore = external, .value = 1}}})
     );
@@ -525,6 +554,27 @@ JVK_TEST(StageGraph, extra_jvk_wait_and_binary_wait) {
 
     wait(core, stage);
     EXPECT_EQ(external.gpuValue(), 1);
+}
+
+JVK_TEST(StageGraph, extra_waits_end_with_their_frame) {
+    test::Context const context{};
+    Core core{context.instance, test::Context::CONFIG, {}};
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    cvk::Semaphore const binary{core, cvk::create};
+
+    core.executor().sync_wait(submit(core.queue(0), {.signals = {binary}}));
+    auto& first = next_frame(core, graph).stage(0);
+    first.await(binary);
+    submit_empty(first);
+    wait(core, first);
+
+    // up to the next frame of the slot: the binary semaphore has no signal, a wait for it fails
+    // the validation
+    for(size_t i = 0; i < graph.config().frameSlots; ++i) {
+        auto& stage = next_frame(core, graph).stage(0);
+        submit_empty(stage);
+        wait(core, stage);
+    }
 }
 
 JVK_TEST(StageGraph, secondaries_record_on_several_threads) {
@@ -592,7 +642,7 @@ JVK_TEST(StageGraph, retain_lives_until_the_gpu_finished_the_submit) {
     EXPECT_TRUE(reaches_allocations(core, before - 1));
 }
 
-JVK_TEST(StageGraph, retain_of_the_next_frame_survives_the_job_of_the_frame_before) {
+JVK_TEST(StageGraph, retain_of_the_next_frame_survives_the_submission_of_the_frame_before) {
     test::Context const context{};
     Core core{context.instance, test::Context::CONFIG, {}};
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
@@ -610,7 +660,7 @@ JVK_TEST(StageGraph, retain_of_the_next_frame_survives_the_job_of_the_frame_befo
     gate.markSubmitted(1);
     core.executor().sync_wait(await_submitted(stage));
 
-    // the job waits for the gpu: its resume comes behind this strand job
+    // the submission waits for the gpu: its resume comes behind this strand job
     std::binary_semaphore blocking{0};
     std::binary_semaphore unblock{0};
     queue.executor().context().post(
@@ -622,12 +672,13 @@ JVK_TEST(StageGraph, retain_of_the_next_frame_survives_the_job_of_the_frame_befo
     ASSERT_TRUE(blocking.try_acquire_for(TIMEOUT));
     host_signal(gate, 1);
 
-    // the same slot: the gpu finished the frame before, its job did not destroy the retained objects yet
+    // the same slot: the gpu finished the frame before, its submission did not destroy the retained
+    // objects yet
     auto& next = next_frame(core, graph).stage(0);
     next.retain(std::move(second));
     unblock.release();
 
-    // the job of the frame before destroys its own retained buffer only
+    // the submission of the frame before destroys its own retained buffer only
     EXPECT_TRUE(reaches_allocations(core, before - 1));
     core.executor().sync_wait(enter_strand(queue));
     EXPECT_EQ(allocations(core), before - 1);
@@ -692,7 +743,7 @@ JVK_TEST(StageGraph, retained_transient_image_starts_from_undefined) {
     image.copy(*primary, staging);
     image.copyTo(*primary, readback);
     primary->use(readback, HOST_READ);
-    // the last use: the job records the transition from undefined after the release
+    // the last use: the submission records the transition from undefined after the release
     stage.retain(std::move(image));
     stage.submit();
 
@@ -717,7 +768,7 @@ JVK_TEST(StageGraph, image_moved_after_the_submit_keeps_its_prologue) {
     std::optional<Image> firstOpt{std::in_place, core, IMAGE_CONFIG, EXTENT};
     std::optional<Image> secondOpt{};
 
-    // the job awaits the mark of the gate before its append
+    // the submission awaits the mark of the gate before its append
     auto& stage = next_frame(core, graph).stage(0);
     stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
     auto const primary = stage.begin();
@@ -726,7 +777,7 @@ JVK_TEST(StageGraph, image_moved_after_the_submit_keeps_its_prologue) {
     primary->use(readback, HOST_READ);
     stage.submit();
 
-    // the recorded object is gone before the job records the prologue
+    // the recorded object is gone before the submission records the prologue
     secondOpt.emplace(std::move(*firstOpt));
     firstOpt.reset();
 
@@ -756,7 +807,8 @@ JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
     auto& writer = frame.stage(0);
     auto& reader = frame.stage(1);
 
-    // the reader submits first: its job appends after the writer, the writer queue releases both
+    // the reader submits first: its submission appends after the writer, the writer queue releases
+    // both
     auto const readerPrimary = reader.begin();
     image.copyTo(*readerPrimary, imageReadback);
     bufferReadback.copy(*readerPrimary, buffer);
@@ -773,8 +825,8 @@ JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
     EXPECT_TRUE(counts(bufferReadback));
 
     // one release on the writer queue for both: the next release gets the second value of its counter
-    auto const& writerQueue = core.queue(0);
-    auto const next = core.executor().sync_wait(writerQueue.release(cvk::Barrier{}));
+    auto& writerQueue = core.queue(0);
+    auto const next = core.executor().sync_wait(writerQueue.transfer(cvk::Barrier{}));
     EXPECT_EQ(next.value, 2);
     writerQueue.waitIdle();
 }
@@ -782,7 +834,7 @@ JVK_TEST(StageGraph, image_and_buffer_move_to_another_queue_family) {
 JVK_TEST(StageGraph, erase_removes_the_state_and_the_last_queue_of_an_image) {
     test::Context const context{};
     Core core{context.instance, two_families(), {}};
-    auto const& firstQueue = core.queue(0);
+    auto& firstQueue = core.queue(0);
     if(firstQueue.vk().familyIndex() == core.queue(1).vk().familyIndex())
         GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
     StageGraph graph{core, {.stages = {{.queueIdx = 0}, {.queueIdx = 1}}}};
@@ -814,7 +866,7 @@ JVK_TEST(StageGraph, erase_removes_the_state_and_the_last_queue_of_an_image) {
     wait(core, second.stage(1));
     EXPECT_TRUE(counts(readback));
 
-    auto const next = core.executor().sync_wait(firstQueue.release(cvk::Barrier{}));
+    auto const next = core.executor().sync_wait(firstQueue.transfer(cvk::Barrier{}));
     EXPECT_EQ(next.value, 1);
     firstQueue.waitIdle();
 }

@@ -179,17 +179,11 @@ public:
     [[nodiscard]] constexpr std::span<size_t const> queueIndices() const { return _queueIndices; }
 
 private:
-    /**
-     * features and extensions of the device
-     */
     struct device_requirements {
         DeviceFeatures features;
         std::vector<std::string> extensions;
     };
 
-    /**
-     * physical device for a queue set and the mapping of the queues
-     */
     struct device_pick {
         std::unique_ptr<PhysicalDevice> physicalDevice;
         std::vector<queue_family_index_t> uniqueQueueFamilyIndices;
@@ -205,16 +199,8 @@ private:
 
     void forget();
 
-    /**
-     * @return the base set, the config and the present set with a present queue
-     */
     [[nodiscard]] static device_requirements requirements(Config const&);
 
-    /**
-     * picks a physical device for the first possible queue set
-     * @throws cvk::cvk_exception reason: no physical device meets the requirements
-     * @throws cvk::cvk_exception reason: `Config::device` is missing or does not meet the requirements
-     */
     [[nodiscard]] device_pick pickPhysicalDevice(
         std::span<cth::ref_wrapper<Surface const> const> surfaces,
         Config const&,
@@ -226,9 +212,6 @@ private:
         std::span<QueueFamilyProperties const> queueProperties
     );
 
-    /**
-     * @return `std::nullopt` -> no physical device supports the queue set
-     */
     [[nodiscard]] std::optional<device_pick> tryPickPhysicalDevice(
         std::span<cth::ref_wrapper<Surface const> const> surfaces,
         Config const&,

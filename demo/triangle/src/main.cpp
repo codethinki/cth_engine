@@ -2,7 +2,7 @@
 #include "jvk/base/queue.hpp"
 #include "jvk/data/image.hpp"
 #include "jvk/graph/frame.hpp"
-#include "jvk/graph/presenter.hpp"
+#include "jvk/graph/surface.hpp"
 #include "jvk/graph/stage.hpp"
 #include "jvk/graph/stage_graph.hpp"
 
@@ -42,7 +42,7 @@ using enum cvk::QueueFamilyProperties;
 constexpr VkExtent2D WINDOW_EXTENT{800, 600};
 
 /**
- * format of the swapchain and the pipeline, fixed: the pipeline is declared before the presenter, see `run()`
+ * format of the swapchain and the pipeline, fixed: the pipeline is declared before the surface, see `run()`
  */
 constexpr VkSurfaceFormatKHR SURFACE_FORMAT{
     VK_FORMAT_B8G8R8A8_SRGB,
@@ -83,26 +83,29 @@ struct MsaaTarget {
 
 /**
  * draws the triangle in every frame until the window closes
- * @details only the scopes: the `jvk::scoped_submit` ends first and submits, then the `jvk::scoped_acquire` presents
+ * @details only the scope: the `jvk::scoped_submit` submits, the job of the stage presents
  */
 cth::co::executor_task<void> draw_frames(
-    cgfw::Window const& window,
+    cgfw::Window& window,
     jvk::Core const& core,
     jvk::StageGraph& graph,
-    jvk::Presenter& presenter,
+    jvk::Surface& surface,
     cvk::GraphicsPipeline const& pipeline,
     std::optional<MsaaTarget>& msaaOpt
 ) {
     while(!window.shouldClose()) {
         window.pollEvents();
-        auto& stage = (co_await graph.nextFrame()).stage(TRIANGLE_STAGE_ID);
+        auto& frame = co_await graph.nextFrame();
+        auto& stage = frame.stage(TRIANGLE_STAGE_ID);
 
-        auto const image = co_await presenter.acquire(
+        auto const image = co_await frame.acquire(
+            surface,
             stage,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
         );
-        // extent 0: no image, the next nextFrame() skips the stage
+        // extent 0: no image
         if(!image) {
+            stage.skip();
             co_await cth::co::this_coro::wait(IDLE_WAIT);
             continue;
         }
@@ -141,11 +144,11 @@ cth::co::executor_task<void> draw_frames(
  * creates the window, the vulkan objects and the pipeline, then draws until the window closes
  * @details the declaration order is the destruction order backwards:
  * - the pipeline and the multisampled target live until `~StageGraph()` waited for the gpu
- * - the presenter is destroyed before the graph: its present jobs wait for the semaphores of the graph
+ * - the surface is destroyed after the graph: the stages present to it
  */
 void run() {
     cvk::Cvk const cvk{};
-    cgfw::Window const window{{.title = "triangle", .extent = WINDOW_EXTENT}, cgfw::create};
+    cgfw::Window window{{.title = "triangle", .extent = WINDOW_EXTENT}, cgfw::create};
 
     // the surface extensions of the window and the instance extensions of a present queue
     auto extensions = cgfw::instance_extensions();
@@ -157,9 +160,9 @@ void run() {
         cvk::create
     };
 
-    // the core picks a queue that presents to the surface, the presenter takes the surface
-    auto surface = window.surface(instance);
-    jvk::Core core{instance, {.vk = {.queueProperties = {GRAPHICS | PRESENT}}}, {surface}};
+    // the core picks a queue that presents to the surface, the jvk surface takes it
+    auto windowSurface = window.surface(instance);
+    jvk::Core core{instance, {.vk = {.queueProperties = {GRAPHICS | PRESENT}}}, {windowSurface}};
     cvk::Core const& vk = core;
     if((vk.physicalDevice().limits().framebufferColorSampleCounts & MSAA_SAMPLES) == 0)
         throw std::runtime_error{
@@ -178,15 +181,15 @@ void run() {
     cvk::GraphicsPipeline const pipeline{core, std::move(pipelineConfig), cvk::create};
 
     std::optional<MsaaTarget> msaaOpt{};
-    jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
-    jvk::Presenter presenter{
+    jvk::Surface surface{
         core,
         core.queue(QUEUE_IDX),
         {.swapchain = {.formats = {SURFACE_FORMAT}}},
-        std::move(surface),
+        std::move(windowSurface),
     };
+    jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
 
-    core.executor().sync_wait(draw_frames(window, core, graph, presenter, pipeline, msaaOpt));
+    core.executor().sync_wait(draw_frames(window, core, graph, surface, pipeline, msaaOpt));
 }
 }
 

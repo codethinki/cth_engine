@@ -136,30 +136,14 @@ public:
 private:
     void forget();
 
-    /**
-     * @param familyIndices family index of each queue
-     * @return count of queues per family, one entry per family of the physical device
-     * @pre the physical device has a family for each index
-     */
     [[nodiscard]] std::vector<uint32_t> calcQueueFamiliesQueueCounts(
         std::span<uint32_t const> familyIndices
     ) const;
 
-    /**
-     * creates the device with `_features` and `_extensions`
-     * @param queueFamiliesQueueCounts count of queues per family, the index is the family index
-     * @pre some count > 0
-     * @throws cvk::vk_result_exception result of `vkCreateDevice()`
-     */
     void createLogicalDevice(std::span<uint32_t const> queueFamiliesQueueCounts);
 
     void loadFunctionTable(VkDevice vkDevice) const;
 
-    /**
-     * retrieves the queues
-     * @param familyIndices family index of each queue
-     * @pre the device has the queues
-     */
     void createQueues(std::span<queue_family_index_t const> familyIndices);
 
 

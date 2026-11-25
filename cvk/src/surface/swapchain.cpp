@@ -116,12 +116,11 @@ void Swapchain::create(VkExtent2D extent, Swapchain const* oldSwapchainPtr) {
 void Swapchain::destroy() {
     debug_check(*this);
 
-    // the teardown order of the members: the presents end, the images release, the swapchain destroys them
+    // the teardown order of the members: the images release, the swapchain destroys them
     _presentFences.clear();
     _presentSemaphores.clear();
     _views.clear();
     _images.clear();
-    _acquired.clear();
     _handle.reset();
 
     forget();
@@ -134,7 +133,6 @@ Swapchain::State Swapchain::release() {
     _presentSemaphores.clear();
     _views.clear();
     _images.clear();
-    _acquired.clear();
 
     State const state{
         .vkSwapchain = _handle.release(),
@@ -161,10 +159,8 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
         &imageIndex
     );
 
-    if(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
-        _acquired[imageIndex] = true;
+    if(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
         return {result, imageIndex};
-    }
 
     CVK_RESULT_STABLE_THROW(
         result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_TIMEOUT && result != VK_NOT_READY,
@@ -177,50 +173,36 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
 
 VkResult Swapchain::present(uint32_t imageIndex) {
     debug_check(*this);
-    CTH_CRITICAL(
-        imageIndex >= imageCount() || !acquired(imageIndex),
-        "image {} must be acquired",
-        imageIndex
-    ) {}
 
-    // signaled by the last present of the image or created signaled
+    // not pending: signaled by the last present of the image, created signaled or not enqueued
     auto const& fence = presentFence(imageIndex);
-    fence.waitReset();
+    fence.reset();
 
-    VkFence const vkFence = fence.get();
+    auto const vkSwapchain = get();
+    auto const vkWaitSemaphore = presentSemaphore(imageIndex).get();
+    auto const vkFence = fence.get();
     VkSwapchainPresentFenceInfoKHR const fenceInfo{
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR,
         .pNext = nullptr,
         .swapchainCount = 1,
         .pFences = &vkFence,
     };
-
-    VkSemaphore const vkSemaphore = presentSemaphore(imageIndex).get();
-    VkSwapchainKHR const vkSwapchain = get();
     VkPresentInfoKHR const info{
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .pNext = &fenceInfo,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &vkSemaphore,
+        .pWaitSemaphores = &vkWaitSemaphore,
         .swapchainCount = 1,
         .pSwapchains = &vkSwapchain,
         .pImageIndices = &imageIndex,
         .pResults = nullptr,
     };
 
-    auto const result = _presentQueue.rawPresent(info);
-    _acquired[imageIndex] = false;
-    return result;
+    return _presentQueue.rawPresent(info);
 }
 
 void Swapchain::unacquire(span<uint32_t const> imageIndices) {
     debug_check(*this);
-    for(auto const index : imageIndices)
-        CTH_CRITICAL(
-        index >= imageCount() || !acquired(index),
-        "image {} must be acquired",
-        index
-    ) {}
 
     if(imageIndices.empty())
         return;
@@ -235,18 +217,6 @@ void Swapchain::unacquire(span<uint32_t const> imageIndices) {
     auto const result = core().functions()->vkReleaseSwapchainImagesKHR(core().vkDevice(), &info);
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to unacquire swapchain images") {}
-
-    for(auto const index : imageIndices)
-        _acquired[index] = false;
-}
-
-bool Swapchain::presented() const {
-    debug_check(*this);
-
-    return std::ranges::all_of(
-        _presentFences,
-        [](PresentFence const& presentFence) { return presentFence.fence.signaled(); }
-    );
 }
 
 void destroy(DeviceTable table, VkSwapchainKHR vkSwapchain) {
@@ -313,16 +283,12 @@ void Swapchain::createImages() {
     for(uint32_t i = 0; i < count; ++i) {
         _presentSemaphores.emplace_back(core(), cvk::create);
         _presentFences.emplace_back(
-            Fence{
-                core(),
-                cvk::create,
-                VK_FENCE_CREATE_SIGNALED_BIT,
-                constants::OS_FENCE_HANDLE_TYPE
-            }
+            core(),
+            cvk::create,
+            VK_FENCE_CREATE_SIGNALED_BIT,
+            constants::OS_FENCE_HANDLE_TYPE
         );
     }
-
-    _acquired.assign(count, false);
 }
 
 void Swapchain::forget() {

@@ -1,4 +1,4 @@
-#include "jvk/sync/resource_states.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 
 #include "cvk/data/buffer/base_buffer.hpp"
 #include "cvk/data/img/image.hpp"
@@ -12,9 +12,6 @@ using cvk::BaseBuffer;
 using cvk::Image;
 
 namespace {
-    /**
-     * the write accesses
-     */
     constexpr VkAccessFlags2 WRITES = VK_ACCESS_2_SHADER_WRITE_BIT
         | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
         | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
@@ -28,28 +25,15 @@ namespace {
 
     [[nodiscard]] constexpr bool writes(VkAccessFlags2 access) { return (access & WRITES) != 0; }
 
-    /**
-     * src of a barrier after the scope, only the writes of its access
-     */
     [[nodiscard]] constexpr BarrierScope src_scope(BarrierScope const& scope) {
-        return BarrierScope{scope.stages, scope.access & WRITES, scope.queueFamilyIndex};
+        return BarrierScope{scope.stages, scope.access & WRITES};
     }
 
-    /**
-     * the stages and accesses of both scopes
-     */
     [[nodiscard]] constexpr BarrierScope
     merge(BarrierScope const& scope, BarrierScope const& other) {
-        return BarrierScope{
-            scope.stages | other.stages,
-            scope.access | other.access,
-            scope.queueFamilyIndex
-        };
+        return BarrierScope{scope.stages | other.stages, scope.access | other.access};
     }
 
-    /**
-     * @return the access after the state needs a barrier
-     */
     [[nodiscard]] constexpr bool needs_barrier(
         ImageState const& last,
         ImageState const& next,
@@ -63,9 +47,6 @@ namespace {
         return writes(last.scope.access) || writes(next.scope.access);
     }
 
-    /**
-     * @return the mip level count, `VK_REMAINING_MIP_LEVELS` resolved
-     */
     [[nodiscard]] uint32_t mip_count(
         Image const& image,
         uint32_t firstMipLevel,
@@ -92,9 +73,6 @@ namespace {
         return count;
     }
 
-    /**
-     * @return the barriers differ in the mip levels only, `next` starts after the levels of `last`
-     */
     [[nodiscard]] constexpr bool next_mip_levels(
         VkImageMemoryBarrier2 const& last,
         VkImageMemoryBarrier2 const& next
@@ -114,10 +92,6 @@ namespace {
             && lastRange.baseMipLevel + lastRange.levelCount == nextRange.baseMipLevel;
     }
 
-    /**
-     * appends the barrier of one mip level, merges it into an equal barrier of the level before
-     * @param[out] barrier
-     */
     void add_image_barrier(
         cvk::Barrier& barrier,
         VkImage vkImage,
@@ -151,7 +125,7 @@ namespace {
     }
 }
 
-void ResourceStates::access(Image const& image, ImageAccess const& access, cvk::Barrier& barrier) {
+void ResourceTracker::access(Image const& image, ImageAccess const& access, cvk::Barrier& barrier) {
     auto const count = mip_count(image, access.firstMipLevel, access.mipLevels);
     ImageState const next{
         .layout = access.layout,
@@ -192,7 +166,7 @@ void ResourceStates::access(Image const& image, ImageAccess const& access, cvk::
     }
 }
 
-void ResourceStates::access(
+void ResourceTracker::access(
     BaseBuffer const& buffer,
     BufferAccess const& access,
     cvk::Barrier& barrier
@@ -223,7 +197,7 @@ void ResourceStates::access(
         states.firstOpt->scope = merge(states.firstOpt->scope, next.scope);
 }
 
-void ResourceStates::assume(
+void ResourceTracker::assume(
     Image const& image,
     ImageState const& state,
     uint32_t firstMipLevel,
@@ -251,7 +225,7 @@ void ResourceStates::assume(
     }
 }
 
-void ResourceStates::assume(BaseBuffer const& buffer, BufferState const& state) {
+void ResourceTracker::assume(BaseBuffer const& buffer, BufferState const& state) {
     BaseBuffer::debug_check(buffer);
 
     auto const [it, inserted] = _buffers.try_emplace(
@@ -271,7 +245,7 @@ void ResourceStates::assume(BaseBuffer const& buffer, BufferState const& state) 
     states.barrier = true;
 }
 
-void ResourceStates::extend(
+void ResourceTracker::extend(
     Image const& image,
     BarrierScope const& scope,
     uint32_t firstMipLevel,
@@ -291,7 +265,7 @@ void ResourceStates::extend(
     }
 }
 
-void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
+void ResourceTracker::append(ResourceTracker const& next, cvk::Barrier& barrier) {
     for(auto const& [key, nextStates] : next._images) {
         auto const [it, inserted] = _images.try_emplace(key, nextStates);
         if(inserted)
@@ -362,72 +336,72 @@ void ResourceStates::append(ResourceStates const& next, cvk::Barrier& barrier) {
     }
 }
 
-std::optional<ImageState> ResourceStates::first(VkImage vkImage, uint32_t mipLevel) const {
+std::optional<ImageState> ResourceTracker::first(VkImage vkImage, uint32_t mipLevel) const {
     auto const it = _images.find(image_key_t{vkImage, mipLevel});
     return it == _images.end() ? std::nullopt : it->second.firstOpt;
 }
 
-bool ResourceStates::discards(VkImage vkImage, uint32_t mipLevel) const {
+bool ResourceTracker::discards(VkImage vkImage, uint32_t mipLevel) const {
     auto const it = _images.find(image_key_t{vkImage, mipLevel});
     return it != _images.end() && it->second.discard;
 }
 
-std::optional<ImageState> ResourceStates::last(VkImage vkImage, uint32_t mipLevel) const {
+std::optional<ImageState> ResourceTracker::last(VkImage vkImage, uint32_t mipLevel) const {
     auto const it = _images.find(image_key_t{vkImage, mipLevel});
     return it == _images.end() ? std::nullopt : std::optional{it->second.last};
 }
 
-std::optional<BufferState> ResourceStates::first(VkBuffer vkBuffer) const {
+std::optional<BufferState> ResourceTracker::first(VkBuffer vkBuffer) const {
     auto const it = _buffers.find(vkBuffer);
     return it == _buffers.end() ? std::nullopt : it->second.firstOpt;
 }
 
-std::optional<BufferState> ResourceStates::last(VkBuffer vkBuffer) const {
+std::optional<BufferState> ResourceTracker::last(VkBuffer vkBuffer) const {
     auto const it = _buffers.find(vkBuffer);
     return it == _buffers.end() ? std::nullopt : std::optional{it->second.last};
 }
 
-std::optional<ImageState> ResourceStates::first(Image const& image, uint32_t mipLevel) const {
+std::optional<ImageState> ResourceTracker::first(Image const& image, uint32_t mipLevel) const {
     return first(image.get(), mipLevel);
 }
 
-bool ResourceStates::discards(Image const& image, uint32_t mipLevel) const {
+bool ResourceTracker::discards(Image const& image, uint32_t mipLevel) const {
     return discards(image.get(), mipLevel);
 }
 
-std::optional<ImageState> ResourceStates::last(Image const& image, uint32_t mipLevel) const {
+std::optional<ImageState> ResourceTracker::last(Image const& image, uint32_t mipLevel) const {
     return last(image.get(), mipLevel);
 }
 
-std::optional<BufferState> ResourceStates::first(BaseBuffer const& buffer) const {
+std::optional<BufferState> ResourceTracker::first(BaseBuffer const& buffer) const {
     return first(buffer.get());
 }
 
-std::optional<BufferState> ResourceStates::last(BaseBuffer const& buffer) const {
+std::optional<BufferState> ResourceTracker::last(BaseBuffer const& buffer) const {
     return last(buffer.get());
 }
 
-void ResourceStates::erase(Image const& image) {
+void ResourceTracker::erase(Image const& image) {
     for(uint32_t level = 0; level < image.mipLevels(); ++level)
         erase(image.get(), level);
 }
 
-void ResourceStates::erase(BaseBuffer const& buffer) { erase(buffer.get()); }
+void ResourceTracker::erase(BaseBuffer const& buffer) { erase(buffer.get()); }
 
-void ResourceStates::erase(VkImage vkImage, uint32_t mipLevel) {
+void ResourceTracker::erase(VkImage vkImage, uint32_t mipLevel) {
     _images.erase(image_key_t{vkImage, mipLevel});
 }
 
-void ResourceStates::erase(VkBuffer vkBuffer) { _buffers.erase(vkBuffer); }
+void ResourceTracker::erase(VkBuffer vkBuffer) { _buffers.erase(vkBuffer); }
 
-bool ResourceStates::contains(Image const& image) const {
+bool ResourceTracker::contains(Image const& image) const {
     for(uint32_t level = 0; level < image.mipLevels(); ++level)
         if(_images.contains(image_key_t{image.get(), level}))
             return true;
     return false;
 }
 
-bool ResourceStates::contains(BaseBuffer const& buffer) const {
+bool ResourceTracker::contains(BaseBuffer const& buffer) const {
     return _buffers.contains(buffer.get());
 }
 }

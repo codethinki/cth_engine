@@ -15,9 +15,6 @@
 
 namespace jvk {
 namespace {
-    /**
-     * @return number of the handles before the position, the first `cleared` are destroyed
-     */
     [[nodiscard]] constexpr size_t count_before(size_t position, size_t cleared, size_t size) {
         CTH_CRITICAL(
             position > cleared + size,

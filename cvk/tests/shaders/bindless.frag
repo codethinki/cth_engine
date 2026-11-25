@@ -1,3 +1,5 @@
+// fragment shader: set 0 binding 0 runtime array of sampled images, binding 1 sampler, push data
+// `uint` index
 #version 450
 #extension GL_EXT_nonuniform_qualifier : require
 

@@ -6,9 +6,11 @@
 #include "jvk/data/resource_heap.hpp"
 #include "jvk/data/sampler_heap.hpp"
 #include "jvk/graph/frame.hpp"
-#include "jvk/graph/presenter.hpp"
+#include "jvk/graph/surface.hpp"
 #include "jvk/graph/stage.hpp"
 #include "jvk/graph/stage_graph.hpp"
+
+#include "timgui/imgui.hpp"
 
 #include "cgfw/window/window.hpp"
 
@@ -17,6 +19,7 @@
 #include "cvk/base/physical_device.hpp"
 #include "cvk/base/queue/queue_family.hpp"
 #include "cvk/data/buffer/device_ptr.hpp"
+#include "cvk/data/img/image.hpp"
 #include "cvk/data/img/image_view.hpp"
 #include "cvk/render/pipeline/graphics_pipeline.hpp"
 #include "cvk/render/pipeline/shader/shader.hpp"
@@ -25,16 +28,21 @@
 
 #include <volk.h>
 
+#include <cth/chrono.hpp>
+#include <cth/coro/all.hpp>
 #include <cth/coro/tasks/executor_task.hpp>
 #include <cth/coro/this_coro.hpp>
+#include <cth/io/log.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <imgui.h>
+#include <implot.h>
+
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -44,7 +52,9 @@
 #include <format>
 #include <optional>
 #include <print>
+#include <span>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -55,7 +65,7 @@ using enum cvk::QueueFamilyProperties;
 constexpr VkExtent2D WINDOW_EXTENT{800, 600};
 
 /**
- * format of the swapchain and the pipeline, fixed: the pipeline is declared before the presenter, see `run()`
+ * format of the swapchain and the pipeline, fixed: the pipeline is declared before the surface, see `run()`
  */
 constexpr VkSurfaceFormatKHR SURFACE_FORMAT{
     VK_FORMAT_B8G8R8A8_SRGB,
@@ -64,8 +74,9 @@ constexpr VkSurfaceFormatKHR SURFACE_FORMAT{
 constexpr VkFormat DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT;
 constexpr VkSampleCountFlagBits MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
 
-constexpr size_t QUEUE_IDX = 0; ///< the graphics queue that presents
-constexpr size_t CUBE_STAGE_ID = 0;
+constexpr size_t QUEUE_IDX = 0; ///< the graphics queue of both stages, presents
+constexpr size_t SCENE_STAGE_ID = 0; ///< the cube, waits for the acquire
+constexpr size_t UI_STAGE_ID = 1; ///< ImGui over the scene, presents
 
 /** after a frame without an image, e.g. minimized */
 constexpr auto IDLE_WAIT = std::chrono::milliseconds{16};
@@ -74,6 +85,8 @@ constexpr float SPEED = 1.f; ///< radians per second
 glm::vec3 const AXIS = glm::normalize(glm::vec3{0.3f, 1.f, 0.2f});
 
 constexpr uint32_t TEXTURE_SIZE = 256;
+/** full mip chain */
+constexpr uint32_t TEXTURE_MIP_LEVELS = cvk::mip_level_count({TEXTURE_SIZE, TEXTURE_SIZE});
 constexpr uint32_t CHECKER_SIZE = 32; ///< pixels per square of the checkerboard
 
 std::filesystem::path const SHADER_DIR{CUBE_SHADER_DIR};
@@ -233,7 +246,7 @@ struct Cube {
                 .format = VK_FORMAT_R8G8B8A8_SRGB,
                 .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT
                 | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                .mipLevels = std::bit_width(TEXTURE_SIZE),
+                .mipLevels = TEXTURE_MIP_LEVELS,
             },
             VkExtent2D{TEXTURE_SIZE, TEXTURE_SIZE}
         },
@@ -277,46 +290,288 @@ struct Cube {
     jvk::Sampler sampler;
 };
 
+//IMPLEMENT moves into an engine library
 /**
- * draws the spinning cube in every frame until the window closes
- * @details only the scopes: the `jvk::scoped_submit` ends first and submits, then the `jvk::scoped_acquire` presents
+ * frame times of the last `CAPACITY` frames, in ms
+ * @details ring buffer: full -> a new time overwrites the oldest one
  */
-cth::co::executor_task<void> draw_frames(
-    cgfw::Window const& window,
+class FrameTimes {
+public:
+    static constexpr size_t CAPACITY = 240;
+
+    /**
+     * stores the time of a frame, in ms
+     * @details full -> overwrites the oldest time
+     */
+    constexpr void add(cth::chrono::clock_t::duration frameTime) {
+        _times[_nextIdx] = std::chrono::duration<float, std::milli>{frameTime}.count();
+        _nextIdx = (_nextIdx + 1) % CAPACITY;
+        _count = std::min(_count + 1, CAPACITY);
+    }
+
+    /**
+     * @return the stored time at the rank `fraction * (count - 1)` of the sorted times
+     * @details the rank is rounded down
+     * @pre `!empty()`
+     * @pre `0 <= fraction <= 1`
+     */
+    [[nodiscard]] constexpr float percentile(float fraction) const {
+        CTH_CRITICAL(empty(), "no frame time is stored") {}
+        CTH_CRITICAL(
+            fraction < 0.f || fraction > 1.f,
+            "the fraction must be in [0, 1], got {}",
+            fraction
+        ) {}
+
+        auto sorted = _times;
+        auto const stored = std::span{sorted}.first(_count);
+        auto const rank = static_cast<size_t>(fraction * static_cast<float>(_count - 1));
+        std::ranges::nth_element(stored, stored.begin() + static_cast<ptrdiff_t>(rank));
+        return stored[rank];
+    }
+
+    [[nodiscard]] constexpr float median() const { return percentile(0.5f); }
+    [[nodiscard]] constexpr float p75() const { return percentile(0.75f); }
+    [[nodiscard]] constexpr float p99() const { return percentile(0.99f); }
+
+    /**
+     * @return the stored times in storage order, the oldest at `oldestIdx()`
+     */
+    [[nodiscard]] constexpr std::span<float const> values() const {
+        return std::span{_times}.first(_count);
+    }
+
+    /**
+     * @return index of the oldest time in `values()`
+     */
+    [[nodiscard]] constexpr size_t oldestIdx() const { return _count < CAPACITY ? 0 : _nextIdx; }
+
+    [[nodiscard]] constexpr bool empty() const { return _count == 0; }
+
+private:
+    std::array<float, CAPACITY> _times{};
+    size_t _nextIdx = 0; ///< of the next `add()`
+    size_t _count = 0;
+};
+
+constexpr float FRAME_TIME_WINDOW_WIDTH = 360.f; ///< at the first frame, the user can resize it
+constexpr float FRAME_TIME_PLOT_HEIGHT = 120.f;
+
+/**
+ * ImGui window of the frame times: the percentiles and a plot of the stored times
+ * @details the collapsed window shows the percentiles in its title
+ * @param[out] collapsed the window was collapsed in the last frame, gets the state of this frame
+ */
+void frame_time_window(FrameTimes const& times, bool& collapsed) {
+    // ImGui knows the collapsed state only inside Begin(): the title follows one frame later
+    auto const title = collapsed && !times.empty()
+        ? std::format(
+            "frame time (med {:.2f}ms, p75 {:.2f}ms, p99 {:.2f}ms)###frame_time",
+            times.median(),
+            times.p75(),
+            times.p99()
+        )
+        : std::string{"frame time###frame_time"};
+
+    ImGui::SetNextWindowSize(ImVec2{FRAME_TIME_WINDOW_WIDTH, 0.f}, ImGuiCond_FirstUseEver);
+    bool const visible = ImGui::Begin(title.c_str());
+    collapsed = ImGui::IsWindowCollapsed();
+
+    if(visible && !times.empty()) {
+        ImGui::TextUnformatted(std::format("med {:.2f}ms", times.median()).c_str());
+        ImGui::TextUnformatted(std::format("p75 {:.2f}ms", times.p75()).c_str());
+        ImGui::TextUnformatted(std::format("p99 {:.2f}ms", times.p99()).c_str());
+
+        if(ImPlot::BeginPlot(
+            "##frame_times",
+            ImVec2{-1.f, FRAME_TIME_PLOT_HEIGHT},
+            ImPlotFlags_NoLegend | ImPlotFlags_NoMenus
+        )) {
+            // x: the frames, the newest at 0; y: the ms, labels on the right
+            ImPlot::SetupAxes(
+                nullptr,
+                nullptr,
+                ImPlotAxisFlags_None,
+                ImPlotAxisFlags_AutoFit | ImPlotAxisFlags_Opposite
+            );
+            ImPlot::SetupAxisLimits(
+                ImAxis_X1,
+                -static_cast<double>(FrameTimes::CAPACITY),
+                0.,
+                ImPlotCond_Always
+            );
+
+            auto const values = times.values();
+            ImPlotSpec spec{};
+            spec.Offset = static_cast<int>(times.oldestIdx());
+            ImPlot::PlotLine(
+                "##ms",
+                values.data(),
+                static_cast<int>(values.size()),
+                1.,
+                -static_cast<double>(values.size() - 1),
+                spec
+            );
+            ImPlot::EndPlot();
+        }
+    }
+    ImGui::End();
+}
+
+/**
+ * records the scene stage: the cube into the multisampled targets, resolved into the image
+ * @details
+ * - `upload` -> records the copies of the cube first
+ * - a new extent: the stage retains the old targets until the gpu finished them
+ * - the end of the scope submits
+ */
+cth::co::executor_task<void> record_scene(
     jvk::Core const& core,
-    jvk::StageGraph& graph,
-    jvk::Presenter& presenter,
+    jvk::Stage& stage,
+    jvk::SwapchainImage const& image,
     cvk::GraphicsPipeline const& pipeline,
     Cube const& cube,
+    Draw const& draw,
+    bool upload,
+    std::optional<Targets>& targetsOpt
+) {
+    if(!targetsOpt.has_value() || targetsOpt->color.extent() != image.extent) {
+        if(targetsOpt.has_value()) {
+            stage.retain(std::move(targetsOpt->colorView));
+            stage.retain(std::move(targetsOpt->depthView));
+            stage.retain(std::move(targetsOpt->color));
+            stage.retain(std::move(targetsOpt->depth));
+        }
+        targetsOpt.emplace(core, image.extent);
+    }
+
+    auto const submit = stage.begin();
+    if(upload)
+        cube.upload(stage, *submit);
+    submit->use(cube.sampled, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
+    submit->use(
+        cube.vertices,
+        {VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_READ_BIT}
+    );
+    // before the rendering: no barrier inside it, the bind inside it then needs none
+    submit->use(cube.indices, {VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT});
+
+    auto const rendering = submit->beginRendering(
+        {
+            .colorAttachments = {
+                {
+                    .view = targetsOpt->colorView,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                    .clearValue = {.color = {.float32 = {0.02f, 0.02f, 0.03f, 1.f}}},
+                    .resolveViewPtr = &*image.view,
+                    .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
+                }
+            },
+            .depthAttachment = cvk::RenderingAttachment{
+                .view = targetsOpt->depthView,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .clearValue = {.depthStencil = {.depth = 1.f, .stencil = 0}},
+            },
+        }
+    );
+    submit->bind(pipeline);
+    submit->setViewport(image.extent);
+    submit->setScissor(image.extent);
+    submit->bindIndices(cube.indices);
+    submit->pushData(draw);
+    submit->drawIndexed(36);
+    co_return;
+}
+
+/**
+ * records the ui stage: the ImGui frame over the scene in the image
+ * @details
+ * - its rendering loads the image, the graph orders it after the resolve of the scene stage
+ * - the end of the scope submits
+ */
+cth::co::executor_task<void> record_ui(
+    jvk::Stage& stage,
+    jvk::SwapchainImage const& image,
+    timgui::Imgui& imgui,
+    ImDrawData& drawData
+) {
+    auto const submit = stage.begin();
+    imgui.upload(stage, *submit, drawData);
+
+    auto const rendering = submit->beginRendering(
+        {
+            .colorAttachments = {
+                {
+                    .view = image.view,
+                    .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                }
+            },
+        }
+    );
+    // the rendering of the ui: the format of the image, one sample, no depth
+    imgui.draw(stage, *submit, drawData);
+    co_return;
+}
+
+/**
+ * draws the spinning cube and the frame time window in every frame until the window closes
+ * @details
+ * - the scene stage records the cube, the ui stage records ImGui over it and presents the image
+ * - the two stages record at the same time: two tasks of one `cth::co::all()` with its default
+ *   `std::execution::par`, see `record_scene()`, `record_ui()`
+ * - the ImGui frame comes first: it takes the events also in a frame without an image
+ * - no image: both stages skip
+ * - frame time: the time between the starts of two iterations, the first iteration has none
+ */
+cth::co::executor_task<void> draw_frames(
+    cgfw::Window& window,
+    jvk::Core const& core,
+    jvk::StageGraph& graph,
+    jvk::Surface& surface,
+    cvk::GraphicsPipeline const& pipeline,
+    Cube const& cube,
+    timgui::Imgui& imgui,
     std::optional<Targets>& targetsOpt
 ) {
     bool uploaded = false;
     glm::quat rotation{1.f, 0.f, 0.f, 0.f};
     auto last = std::chrono::steady_clock::now();
 
-    while(!window.shouldClose()) {
-        window.pollEvents();
-        auto& stage = (co_await graph.nextFrame()).stage(CUBE_STAGE_ID);
+    FrameTimes frameTimes{};
+    std::optional<cth::chrono::time_point_t> lastIterationStartOpt{};
+    bool frameTimeCollapsed = false;
 
-        auto const image = co_await presenter.acquire(
-            stage,
+    while(!window.shouldClose()) {
+        auto const iterationStart = cth::chrono::clock_t::now();
+        if(lastIterationStartOpt.has_value())
+            frameTimes.add(iterationStart - *lastIterationStartOpt);
+        lastIterationStartOpt = iterationStart;
+
+        window.pollEvents();
+        auto imguiFrame = imgui.frame();
+        frame_time_window(frameTimes, frameTimeCollapsed);
+        auto& drawData = imguiFrame.render();
+
+        auto& frame = co_await graph.nextFrame();
+        auto& scene = frame.stage(SCENE_STAGE_ID);
+        auto& ui = frame.stage(UI_STAGE_ID);
+
+        // the scene stage waits for the acquire, the ui stage presents
+        auto const image = co_await frame.acquire(
+            surface,
+            scene,
+            ui,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
         );
-        // extent 0: no image, the next nextFrame() skips the stage
+        // extent 0: no image
         if(!image) {
+            scene.skip();
+            ui.skip();
             co_await cth::co::this_coro::wait(IDLE_WAIT);
             continue;
-        }
-
-        // a new extent: the frame keeps the old targets until the gpu finished them
-        if(!targetsOpt.has_value() || targetsOpt->color.extent() != image->extent) {
-            if(targetsOpt.has_value()) {
-                stage.retain(std::move(targetsOpt->colorView));
-                stage.retain(std::move(targetsOpt->depthView));
-                stage.retain(std::move(targetsOpt->color));
-                stage.retain(std::move(targetsOpt->depth));
-            }
-            targetsOpt.emplace(core, image->extent);
         }
 
         auto const now = std::chrono::steady_clock::now();
@@ -348,60 +603,23 @@ cth::co::executor_task<void> draw_frames(
             .sampler = cube.sampler.idx(),
         };
 
-        auto const submit = stage.begin();
-        if(!uploaded) {
-            cube.upload(stage, *submit);
-            uploaded = true;
-        }
-        submit->use(cube.sampled, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
-        submit->use(
-            cube.vertices,
-            {VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT, VK_ACCESS_2_SHADER_STORAGE_READ_BIT}
+        co_await cth::co::all(
+            record_scene(core, scene, *image, pipeline, cube, draw, !uploaded, targetsOpt),
+            record_ui(ui, *image, imgui, drawData)
         );
-        // before the rendering: no barrier inside it, the bind inside it then needs none
-        submit->use(
-            cube.indices,
-            {VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT}
-        );
-
-        auto const rendering = submit->beginRendering(
-            {
-                .colorAttachments = {
-                    {
-                        .view = targetsOpt->colorView,
-                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                        .clearValue = {.color = {.float32 = {0.02f, 0.02f, 0.03f, 1.f}}},
-                        .resolveViewPtr = &*image->view,
-                        .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
-                    }
-                },
-                .depthAttachment = cvk::RenderingAttachment{
-                    .view = targetsOpt->depthView,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                    .clearValue = {.depthStencil = {.depth = 1.f, .stencil = 0}},
-                },
-            }
-        );
-        submit->bind(pipeline);
-        submit->setViewport(extent);
-        submit->setScissor(extent);
-        submit->bindIndices(cube.indices);
-        submit->pushData(draw);
-        submit->drawIndexed(36);
+        uploaded = true;
     }
 }
 
 /**
  * creates the window, the vulkan objects, the cube and the pipeline, then draws until the window closes
  * @details the declaration order is the destruction order backwards:
- * - the cube, the pipeline and the targets live until `~StageGraph()` waited for the gpu
- * - the presenter is destroyed before the graph: its present jobs wait for the semaphores of the graph
+ * - the cube, the pipeline, the ImGui and the targets live until `~StageGraph()` waited for the gpu
+ * - the surface is destroyed after the graph: the stages present to it
  */
 void run() {
     cvk::Cvk const cvk{};
-    cgfw::Window const window{{.title = "cube", .extent = WINDOW_EXTENT}, cgfw::create};
+    cgfw::Window window{{.title = "cube", .extent = WINDOW_EXTENT}, cgfw::create};
 
     // the surface extensions of the window and the instance extensions of a present queue
     auto extensions = cgfw::instance_extensions();
@@ -413,13 +631,13 @@ void run() {
         cvk::create
     };
 
-    // the core picks a queue that presents to the surface, the presenter takes the surface
+    // the core picks a queue that presents to the surface, the jvk surface takes it
     // scalar block layout: the vertices and the push data of cube.glsl
-    auto surface = window.surface(instance);
+    auto windowSurface = window.surface(instance);
     jvk::Core core{
         instance,
         {.vk = {.queueProperties = {GRAPHICS | PRESENT}, .features = {.scalarBlockLayout = true}}},
-        {surface}
+        {windowSurface}
     };
     cvk::Core const& vk = core;
     auto const& limits = vk.physicalDevice().limits();
@@ -445,17 +663,36 @@ void run() {
     pipelineConfig.descriptorMappings.append_range(core.samplerHeap().mappings());
     cvk::GraphicsPipeline const pipeline{core, std::move(pipelineConfig), cvk::create};
 
+    timgui::Imgui imgui{core, window, {.colorFormat = SURFACE_FORMAT.format}};
+
     std::optional<Targets> targetsOpt{};
-    jvk::StageGraph graph{core, {.stages = {{.queueIdx = QUEUE_IDX}}}};
-    jvk::Presenter presenter{
+    jvk::Surface surface{
         core,
         core.queue(QUEUE_IDX),
         {.swapchain = {.formats = {SURFACE_FORMAT}}},
-        std::move(surface),
+        std::move(windowSurface),
+    };
+    // the ui stage loads the image after the resolve of the scene stage
+    jvk::StageGraph graph{
+        core,
+        {
+            .stages = {
+                {.queueIdx = QUEUE_IDX},
+                {
+                    .queueIdx = QUEUE_IDX,
+                    .waits = {
+                        {
+                            .stageId = SCENE_STAGE_ID,
+                            .stages = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        }
+                    },
+                },
+            },
+        },
     };
 
     core.executor().sync_wait(
-        draw_frames(window, core, graph, presenter, pipeline, cube, targetsOpt)
+        draw_frames(window, core, graph, surface, pipeline, cube, imgui, targetsOpt)
     );
 }
 }

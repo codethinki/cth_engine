@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "cvk/data/buffer/buffer.hpp"
@@ -57,9 +56,9 @@ namespace {
         explicit Fill(Core const& core) : vertex{
                 core,
                 VK_SHADER_STAGE_VERTEX_BIT,
-                test::shaders::FILL_VERT
+                test::SHADER_DIR / "fill.vert.spv"
             },
-            fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::shaders::TRIANGLE_FRAG},
+            fragment{core, VK_SHADER_STAGE_FRAGMENT_BIT, test::SHADER_DIR / "triangle.frag.spv"},
             pipeline{core, test::fullscreen_config(vertex, fragment, COLOR_FORMATS), create},
             vertices{
                 core,

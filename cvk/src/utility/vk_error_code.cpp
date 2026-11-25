@@ -7,9 +7,6 @@
 
 namespace cvk {
 namespace {
-    /**
-     * error category of `VkResult`, see `vk_category()`
-     */
     class vk_error_category final : public std::error_category {
     public:
         [[nodiscard]] char const* name() const noexcept override { return "vulkan"; }

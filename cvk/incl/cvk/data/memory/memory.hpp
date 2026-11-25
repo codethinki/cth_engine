@@ -171,9 +171,6 @@ private:
     template<class T>
     friend class Mapping;
 
-    /**
-     * unmaps the memory once, the destructor of a `Mapping` calls it
-     */
     void unmap() const;
 
     void forget();

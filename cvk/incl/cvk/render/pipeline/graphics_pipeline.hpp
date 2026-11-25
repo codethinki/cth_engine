@@ -68,7 +68,7 @@ public:
     [[nodiscard]] constexpr Config const& config() const { return _config; }
 
 private:
-    GraphicsPipeline const* _parentPtr = nullptr; ///< `nullptr` -> not a derivative pipeline
+    GraphicsPipeline const* _parentPtr = nullptr;
     Config _config;
 };
 }

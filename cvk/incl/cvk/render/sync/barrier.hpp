@@ -23,11 +23,6 @@ class Image;
 struct BarrierScope {
     VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_NONE;
     VkAccessFlags2 access = VK_ACCESS_2_NONE;
-
-    /**
-     * `VK_QUEUE_FAMILY_IGNORED` -> no queue family ownership transfer
-     */
-    queue_family_index_t queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 };
 
 /**
@@ -36,6 +31,10 @@ struct BarrierScope {
 struct ImageBarrierInfo {
     BarrierScope src{};
     BarrierScope dst{};
+
+    /** `== dstQueueFamilyIndex` -> no queue family ownership transfer */
+    queue_family_index_t srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    queue_family_index_t dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
     VkImageLayout newLayout = VK_IMAGE_LAYOUT_UNDEFINED; ///< `== oldLayout` -> no layout transition
 
@@ -74,16 +73,6 @@ struct ImageBarrierInfo {
             .mipLevels = mipLevels,
         };
     }
-
-    /**
-     * queue family ownership transfer without layout transition, `dst` and `src` name the families
-     * @param layout of the image
-     */
-    [[nodiscard]] static constexpr ImageBarrierInfo QueueTransition(
-        VkImageLayout layout,
-        BarrierScope const& dst,
-        BarrierScope const& src
-    ) { return ImageBarrierInfo{.src = src, .dst = dst, .newLayout = layout, .oldLayout = layout}; }
 };
 
 /**
@@ -93,36 +82,22 @@ struct BufferBarrierInfo {
     BarrierScope src{};
     BarrierScope dst{};
 
+    /** `== dstQueueFamilyIndex` -> no queue family ownership transfer */
+    queue_family_index_t srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    queue_family_index_t dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
     size_t offset = 0; ///< in bytes
 
     size_t size = VK_WHOLE_SIZE; ///< in bytes (`VK_WHOLE_SIZE` => to the end)
-
-    /**
-     * queue family ownership transfer, `dst` and `src` name the families
-     */
-    [[nodiscard]] static constexpr BufferBarrierInfo QueueTransition(
-        BarrierScope const& dst,
-        BarrierScope const& src
-    ) { return BufferBarrierInfo{.src = src, .dst = dst}; }
 };
 
-/**
- * global memory part of a barrier
- */
-struct MemoryBarrierInfo {
-    BarrierScope src{};
-    BarrierScope dst{};
-};
-
-//TODO review the memory barriers stay infos: they refer to no object, the family check stays in execute()
 /**
  * pipeline barrier
  * @details
  * - memory, buffer and image barriers in one `vkCmdPipelineBarrier2()`
- * - the buffer and image barriers are the vulkan structs: they keep no reference to the objects
+ * - the barriers are the vulkan structs: they keep no reference to the objects
  */
 struct Barrier {
-    using MemoryInfo = MemoryBarrierInfo;
     using ImageInfo = ImageBarrierInfo;
     using BufferInfo = BufferBarrierInfo;
 
@@ -134,7 +109,7 @@ struct Barrier {
     /** `VK_DEPENDENCY_BY_REGION_BIT` -> the dependency is per framebuffer region */
     VkDependencyFlags flags = 0;
 
-    std::vector<MemoryInfo> memory{};
+    std::vector<VkMemoryBarrier2> memory{};
     std::vector<VkBufferMemoryBarrier2> buffers{};
     std::vector<VkImageMemoryBarrier2> images{};
 
@@ -142,8 +117,31 @@ struct Barrier {
      * adds a global memory barrier
      */
     constexpr void add(BarrierScope const& dst, BarrierScope const& src) {
-        memory.push_back({.src = src, .dst = dst});
+        memory.push_back(
+            VkMemoryBarrier2{
+                .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+                .pNext = nullptr,
+                .srcStageMask = src.stages,
+                .srcAccessMask = src.access,
+                .dstStageMask = dst.stages,
+                .dstAccessMask = dst.access,
+            }
+        );
     }
+
+    /**
+     * adds a buffer barrier
+     * @pre the buffer is created
+     * @pre the range lies in the buffer
+     */
+    void add(BaseBuffer const&, BufferInfo const&);
+
+    // the handle overloads: the add() of the objects calls them, the jvk tracking has no objects
+    /**
+     * adds a buffer barrier of the buffer handle
+     * @details no check of the buffer: the caller knows its size
+     */
+    constexpr void add(VkBuffer, BufferInfo const&);
 
     /**
      * adds an image barrier
@@ -153,7 +151,6 @@ struct Barrier {
      */
     void add(Image const&, ImageInfo const&);
 
-    //TODO review the handle overloads: the add() of the objects calls them, the jvk tracking has no objects
     /**
      * adds an image barrier of the image handle
      * @details
@@ -180,23 +177,9 @@ struct Barrier {
     );
 
     /**
-     * adds a buffer barrier
-     * @pre the buffer is created
-     * @pre the range lies in the buffer
-     */
-    void add(BaseBuffer const&, BufferInfo const&);
-
-    /**
-     * adds a buffer barrier of the buffer handle
-     * @details no check of the buffer: the caller knows its size
-     */
-    constexpr void add(VkBuffer, BufferInfo const&);
-
-    /**
      * records the barriers
      * @pre `BaseCmdBuffer::recording()`
      * @pre the images and buffers are not destroyed
-     * @pre memory barriers have no queue family ownership transfer
      * @pre `BaseCmdBuffer::insideRendering()` -> framebuffer space stages and `VK_DEPENDENCY_BY_REGION_BIT`
      * @pre `BaseCmdBuffer::insideRendering()` -> no layout transition and no queue family ownership transfer
      * @pre `BaseCmdBuffer::insideRendering()` with multiview -> `VK_DEPENDENCY_VIEW_LOCAL_BIT`
@@ -218,11 +201,6 @@ struct Barrier {
     }
 
 private:
-    /**
-     * checks the rules of barriers inside a dynamic rendering
-     * @param renderingPtr the rendering the command buffer began, `nullptr` -> a secondary continues the rendering
-     * @param viewMask of the rendering
-     */
     void debug_check_rendering(
         RenderingInfo const* renderingPtr,
         uint32_t viewMask,
@@ -234,11 +212,29 @@ private:
 }
 
 namespace cvk {
+constexpr void Barrier::add(VkBuffer vkBuffer, BufferInfo const& info) {
+    buffers.push_back(
+        VkBufferMemoryBarrier2{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+            .pNext = nullptr,
+            .srcStageMask = info.src.stages,
+            .srcAccessMask = info.src.access,
+            .dstStageMask = info.dst.stages,
+            .dstAccessMask = info.dst.access,
+            .srcQueueFamilyIndex = info.srcQueueFamilyIndex,
+            .dstQueueFamilyIndex = info.dstQueueFamilyIndex,
+            .buffer = vkBuffer,
+            .offset = info.offset,
+            .size = info.size,
+        }
+    );
+}
+
 constexpr void Barrier::add(VkImage vkImage, VkImageAspectFlags aspectMask, ImageInfo const& info) {
     CTH_CRITICAL(info.mipLevels == 0, "mip levels must not be 0") {}
     CTH_CRITICAL(info.arrayLayers == 0, "array layers must not be 0") {}
 
-    bool const transfer = info.src.queueFamilyIndex != info.dst.queueFamilyIndex;
+    bool const transfer = info.srcQueueFamilyIndex != info.dstQueueFamilyIndex;
     CTH_CRITICAL(
         (info.oldLayout != info.newLayout || transfer)
         && (info.newLayout == VK_IMAGE_LAYOUT_UNDEFINED
@@ -258,8 +254,8 @@ constexpr void Barrier::add(VkImage vkImage, VkImageAspectFlags aspectMask, Imag
             .dstAccessMask = info.dst.access,
             .oldLayout = info.oldLayout,
             .newLayout = info.newLayout,
-            .srcQueueFamilyIndex = info.src.queueFamilyIndex,
-            .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
+            .srcQueueFamilyIndex = info.srcQueueFamilyIndex,
+            .dstQueueFamilyIndex = info.dstQueueFamilyIndex,
             .image = vkImage,
             .subresourceRange = {
                 .aspectMask = info.aspectMask != 0 ? info.aspectMask : aspectMask,
@@ -268,24 +264,6 @@ constexpr void Barrier::add(VkImage vkImage, VkImageAspectFlags aspectMask, Imag
                 .baseArrayLayer = info.firstArrayLayer,
                 .layerCount = info.arrayLayers,
             },
-        }
-    );
-}
-
-constexpr void Barrier::add(VkBuffer vkBuffer, BufferInfo const& info) {
-    buffers.push_back(
-        VkBufferMemoryBarrier2{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
-            .pNext = nullptr,
-            .srcStageMask = info.src.stages,
-            .srcAccessMask = info.src.access,
-            .dstStageMask = info.dst.stages,
-            .dstAccessMask = info.dst.access,
-            .srcQueueFamilyIndex = info.src.queueFamilyIndex,
-            .dstQueueFamilyIndex = info.dst.queueFamilyIndex,
-            .buffer = vkBuffer,
-            .offset = info.offset,
-            .size = info.size,
         }
     );
 }

@@ -5,28 +5,29 @@
 
 #include "jvk/base/core.hpp"
 #include "jvk/base/queue.hpp"
-#include "jvk/data/image.hpp"
-#include "jvk/graph/stage_graph.hpp"
+#include "jvk/cmd/cmd_buffer.hpp"
 #include "jvk/sync/semaphore.hpp"
 
-#include "cvk/base/physical_device.hpp"
-#include "cvk/data/img/image_view.hpp"
 #include "cvk/render/sync/barrier.hpp"
+#include "cvk/render/sync/semaphore.hpp"
+#include "cvk/surface/swapchain.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
-#include "cvk/utility/vk_overloads.hpp"
 
-#include <cth/coro/tasks/executor_task.hpp>
+#include <volk.h>
+
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <array>
 #include <atomic>
 #include <chrono>
-#include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <optional>
+#include <ranges>
 #include <semaphore>
 #include <thread>
 #include <utility>
+#include <variant>
 #include <vector>
 
 
@@ -34,26 +35,21 @@ namespace jvk {
 namespace {
     using enum cvk::QueueFamilyProperties;
 
-    constexpr VkPipelineStageFlags2 ATTACHMENT_OUTPUT =
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-
     constexpr auto TIMEOUT = std::chrono::seconds{5};
+    /** a wait that ends in this time counts as not pending */
+    constexpr auto PENDING = std::chrono::milliseconds{50};
 
     /**
-     * creates a core with the queues that present to the surface
-     * @param[out] coreOpt gets the core
+     * @param[out] coreOpt gets a core with a queue that presents to the surface
      * @return `false` -> no device presents to a headless surface
      */
     [[nodiscard]] bool create_present_core(
         std::optional<Core>& coreOpt,
         test::Context const& context,
-        cvk::Surface const& surface,
-        std::vector<cvk::QueueFamilyProperties> queueProperties = {GRAPHICS | PRESENT},
-        size_t driverThreads = 0
+        cvk::Surface const& surface
     ) {
         auto config = test::Context::CONFIG;
-        config.vk.queueProperties = std::move(queueProperties);
-        config.driverThreads = driverThreads;
+        config.vk.queueProperties = {GRAPHICS | PRESENT};
         try {
             coreOpt.emplace(
                 context.instance,
@@ -64,18 +60,6 @@ namespace {
         catch(cvk::cvk_exception const&) { return false; }
         return true;
     }
-
-    struct test_exception {};
-
-    Frame& next_frame(Core const& core, StageGraph& graph) {
-        return core.executor().sync_wait(graph.nextFrame());
-    }
-
-    [[nodiscard]] scoped_acquire acquire(Core const& core, Presenter& presenter, Stage& stage) {
-        return core.executor().sync_wait(presenter.acquire(stage, ATTACHMENT_OUTPUT));
-    }
-
-    cth::co::executor_task<void> await_stage(Stage const& stage) { co_await stage; }
 
     /**
      * signals the semaphore from the host, without a mark
@@ -91,713 +75,716 @@ namespace {
         ASSERT_EQ(vk.functions()->vkSignalSemaphore(vk.vkDevice(), &info), VK_SUCCESS);
     }
 
-
-    void wait(Core const& core, Stage const& stage) {
-        core.executor().sync_wait(await_stage(stage));
+    /**
+     * @return the acquire semaphore of the wait of the image, `nullptr` -> a ready point
+     */
+    [[nodiscard]] cvk::Semaphore const* acquire_semaphore(Presenter::AcquiredImage const& image) {
+        auto const* const semaphorePtr =
+            std::get_if<cth::ref_wrapper<cvk::Semaphore const>>(&image.wait());
+        return semaphorePtr != nullptr ? &semaphorePtr->get() : nullptr;
     }
 
     /**
-     * @return number of the acquired images of the swapchain
+     * adds the wait of the image and the gate to the submit
+     * @param gatePtr `nullptr` -> no gate, else the submit waits for its value `1`
      */
-    [[nodiscard]] size_t acquired_images(Presenter const& presenter) {
-        size_t acquired = 0;
-        for(uint32_t imageIdx = 0; imageIdx < presenter.swapchain().current().imageCount(); ++
-            imageIdx)
-            if(presenter.swapchain().current().acquired(imageIdx))
-                ++acquired;
-        return acquired;
-    }
-
-    /**
-     * reads the acquire state of the image in the strand of the presenter queue
-     */
-    cth::co::executor_task<bool> acquired_in_strand(
-        Queue const& queue,
-        Presenter const& presenter,
-        uint32_t imageIdx
+    void add_waits(
+        SubmitInfo& info,
+        Presenter::AcquiredImage const& image,
+        Semaphore const* gatePtr
     ) {
-        co_await queue.executor().schedule();
-        co_return presenter.swapchain().current().acquired(imageIdx);
+        if(gatePtr != nullptr)
+            info.waits.push_back({.semaphore = *gatePtr, .value = 1});
+        if(auto const* const semaphorePtr = acquire_semaphore(image))
+            info.binaryWaits.emplace_back(*semaphorePtr);
+        else
+            info.waits.push_back(std::get<SemaphoreSubmitInfo>(image.wait()));
     }
 
     /**
-     * @return the image is no longer acquired before the timeout, e.g. presented
+     * the submits of a test
+     * @details the destructor waits until the queue is idle: the command buffers and the
+     *  semaphores go after the gpu
      */
-    [[nodiscard]] bool reaches_unacquired(
-        Core const& core,
-        Queue const& queue,
-        Presenter const& presenter,
-        uint32_t imageIdx
-    ) {
-        auto const deadline = std::chrono::steady_clock::now() + TIMEOUT;
-        while(core.executor().sync_wait(acquired_in_strand(queue, presenter, imageIdx))) {
-            if(std::chrono::steady_clock::now() > deadline)
-                return false;
-            std::this_thread::sleep_for(std::chrono::milliseconds{1});
-        }
-        return true;
-    }
+    struct Submits {
+        Submits(Core const& core, Queue& queue) :
+            core{core},
+            queue{queue},
+            done{core, cvk::create} {}
+        ~Submits() { queue->waitIdle(); }
 
-    /**
-     * rendering that clears the image
-     */
-    [[nodiscard]] cvk::RenderingInfo clear_info(SwapchainImage const& image) {
-        return cvk::RenderingInfo{
-            .colorAttachments = {
-                {
-                    .view = image.view,
-                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                    .clearValue = {.color = {{0.f, 0.5f, 1.f, 1.f}}},
+        /**
+         * transitions the image to `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR` after its wait, signals its
+         * present semaphore
+         * @param gatePtr `nullptr` -> no gate, else the submit waits for its value `1` too
+         */
+        void transition(Presenter::AcquiredImage const& image, Semaphore const* gatePtr = nullptr) {
+            auto& cmd = cmds.emplace_back(*core, queue->vk().familyIndex(), cvk::create);
+            cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+            cvk::Barrier barrier{};
+            barrier.add(
+                image.image(),
+                cvk::ImageBarrierInfo{
+                    .src = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
+                    .dst = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
+                    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                 }
-            },
-        };
-    }
+            );
+            barrier.execute(cmd);
+            cmd.end();
 
-    /**
-     * records a clear of the image, the scope ends the rendering
-     */
-    void clear(PrimaryCmdBuffer& primary, SwapchainImage const& image) {
-        auto const rendering = primary.beginRendering(clear_info(image));
-    }
+            SubmitInfo info{
+                .cmdBuffers = {cmd},
+                .signals = {{.semaphore = done, .value = done.next()}},
+                .binarySignals = {image.presentSemaphore()},
+            };
+            add_waits(info, image, gatePtr);
+            core->executor().sync_wait(queue->submit(info));
+        }
 
-    /**
-     * acquires and clears the image of the stage, the scopes submit and present
-     * @details the submit job waits for the gate, the present job for the submit: the present stays pending
-     * @return the image
-     */
-    SwapchainImage present_behind_gate(
+        /**
+         * waits for the image without a use, signals its ready point
+         * @param gatePtr `nullptr` -> no gate, else the submit waits for its value `1` too
+         * @return the ready point of a drop, see `Presenter::AcquiredImage::ready()`
+         */
+        SemaphoreSubmitInfo ready(
+            Presenter::AcquiredImage const& image,
+            Semaphore const* gatePtr = nullptr
+        ) {
+            SubmitInfo info{.signals = {image.ready()}};
+            add_waits(info, image, gatePtr);
+            core->executor().sync_wait(queue->submit(info));
+            return image.ready();
+        }
+
+        /**
+         * transitions and presents the image
+         */
+        void present(Presenter& presenter, Presenter::AcquiredImage image) {
+            transition(image);
+            core->executor().sync_wait(presenter.present(std::move(image)));
+        }
+
+        cth::ref_wrapper<Core const> core;
+        cth::ref_wrapper<Queue> queue;
+        Semaphore done;
+        std::deque<PrimaryCmdBuffer> cmds{};
+    };
+
+    [[nodiscard]] std::optional<Presenter::AcquiredImage> acquire(
         Core const& core,
-        Stage& stage,
-        Presenter& presenter,
-        Semaphore const& gate
+        Presenter& presenter
     ) {
-        stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
-        auto const image = acquire(core, presenter, stage);
-        EXPECT_TRUE(image);
-        auto const primary = stage.begin();
-        clear(*primary, *image);
-        return *image;
+        return core.executor().sync_wait(presenter.acquire());
     }
 
-    constexpr VkSampleCountFlagBits MSAA_SAMPLES = VK_SAMPLE_COUNT_4_BIT;
+    /** the `vkQueuePresentKHR()` of the device table before the hook */
+    PFN_vkQueuePresentKHR realQueuePresent = nullptr;
 
-    [[nodiscard]] bool supports_msaa(Core const& core) {
-        cvk::Core const& vk = core;
-        return (vk.physicalDevice().limits().framebufferColorSampleCounts & MSAA_SAMPLES) != 0;
+    /** the images of the presents through `recording_present()`, in present order */
+    std::vector<uint32_t> presentedIndices{};
+
+    VKAPI_ATTR VkResult VKAPI_CALL recording_present(VkQueue queue, VkPresentInfoKHR const* info) {
+        for(uint32_t i = 0; i < info->swapchainCount; ++i)
+            presentedIndices.push_back(info->pImageIndices[i]);
+        return realQueuePresent(queue, info);
     }
 
     /**
-     * multisampled color image of the frames and its view, the rendering resolves it into the swapchain image
+     * presents, then reports the result for every swapchain
      */
-    struct MsaaTarget {
-        MsaaTarget(Core const& core, VkFormat format, VkExtent2D extent) :
-            image{
-                core,
-                {
-                    .format = format,
-                    .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-                    | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,
-                    .samples = MSAA_SAMPLES,
-                },
-                extent
-            },
-            view{image, {}, cvk::create} {}
+    template<VkResult Result>
+    VKAPI_ATTR VkResult VKAPI_CALL failing_present(VkQueue queue, VkPresentInfoKHR const* info) {
+        if(auto const result = realQueuePresent(queue, info); result < 0)
+            return result;
+        if(info->pResults != nullptr)
+            for(uint32_t i = 0; i < info->swapchainCount; ++i)
+                info->pResults[i] = Result;
+        return Result;
+    }
 
-        Image image;
-        cvk::ImageView view;
+    /**
+     * reports a failure without an enqueue: nothing presents, the fence and the semaphores stay
+     */
+    VKAPI_ATTR VkResult VKAPI_CALL unenqueued_present(VkQueue, VkPresentInfoKHR const*) {
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    /** count of the calls of `out_of_date_acquire()` */
+    std::atomic<size_t> outOfDateAcquires = 0;
+
+    VKAPI_ATTR VkResult VKAPI_CALL out_of_date_acquire(
+        VkDevice,
+        VkSwapchainKHR,
+        uint64_t,
+        VkSemaphore,
+        VkFence,
+        uint32_t*
+    ) {
+        ++outOfDateAcquires;
+        return VK_ERROR_OUT_OF_DATE_KHR;
+    }
+
+    PFN_vkGetFenceStatus realGetFenceStatus = nullptr;
+    PFN_vkWaitForFences realWaitForFences = nullptr;
+
+    /** `true` -> `held_fence_status()` reports every fence as unsignaled */
+    std::atomic<bool> fencesHeld = false;
+    /** count of the calls of `releasing_fence_wait()` */
+    std::atomic<size_t> fenceWaits = 0;
+
+    VKAPI_ATTR VkResult VKAPI_CALL held_fence_status(VkDevice device, VkFence fence) {
+        return fencesHeld ? VK_NOT_READY : realGetFenceStatus(device, fence);
+    }
+
+    /**
+     * ends the hold of the fences, then waits
+     */
+    VKAPI_ATTR VkResult VKAPI_CALL releasing_fence_wait(
+        VkDevice device,
+        uint32_t fenceCount,
+        VkFence const* fences,
+        VkBool32 waitAll,
+        uint64_t timeout
+    ) {
+        ++fenceWaits;
+        fencesHeld = false;
+        return realWaitForFences(device, fenceCount, fences, waitAll, timeout);
+    }
+
+    /**
+     * the device table of the core, it reads the table at each call
+     */
+    [[nodiscard]] VolkDeviceTable& device_table(Core const& core) {
+        return *const_cast<VolkDeviceTable*>(static_cast<cvk::Core const&>(core).functions());
+    }
+
+    /**
+     * replaces a function in the device table of the core until the destruction
+     */
+    template<class Pfn>
+    struct Hook {
+        Hook(Pfn& function, Pfn hook, Pfn& real) : function{function}, real{real} {
+            real = std::exchange(function, hook);
+        }
+        ~Hook() { function.get() = real.get(); }
+
+        cth::ref_wrapper<Pfn> function;
+        cth::ref_wrapper<Pfn> real;
+
+        Hook(Hook const& other) = delete;
+        Hook& operator=(Hook const& other) = delete;
     };
 
     /**
-     * acquires the image of the next frame, clears the multisampled target and resolves it into the image
-     * @details only the scopes: `scoped_submit` submits, then `scoped_acquire` presents
-     * @details a new extent: the stage retains the old target, then a new one
-     * @param[out] msaaOpt the target of the frames
-     * @return the image
+     * replaces `vkQueuePresentKHR()` of the core until the destruction
      */
-    SwapchainImage present_msaa_frame(
-        Core const& core,
-        StageGraph& graph,
-        Presenter& presenter,
-        std::optional<MsaaTarget>& msaaOpt
-    ) {
-        auto& stage = next_frame(core, graph).stage(0);
-        auto const image = acquire(core, presenter, stage);
-        EXPECT_TRUE(image);
-        if(!msaaOpt.has_value() || msaaOpt->image.extent() != image->extent) {
-            if(msaaOpt.has_value()) {
-                stage.retain(std::move(msaaOpt->view));
-                stage.retain(std::move(msaaOpt->image));
-            }
-            msaaOpt.emplace(core, presenter.swapchain().current().format(), image->extent);
-        }
-
-        auto const primary = stage.begin();
-        auto const rendering = primary->beginRendering(
-            {
-                .colorAttachments = {
-                    {
-                        .view = msaaOpt->view,
-                        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                        .clearValue = {.color = {{0.f, 0.5f, 1.f, 1.f}}},
-                        .resolveViewPtr = &*image->view,
-                        .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
-                    }
-                },
-            }
-        );
-        return *image;
-    }
-
-    /**
-     * acquires, clears and presents the image of the stage in the next frame
-     * @details only the scopes: `scoped_submit` submits, then `scoped_acquire` presents
-     * @details the acquire comes before `Stage::begin()`
-     * @return the image
-     */
-    SwapchainImage present_frame(Core const& core, StageGraph& graph, Presenter& presenter) {
-        auto& stage = next_frame(core, graph).stage(0);
-        auto const image = acquire(core, presenter, stage);
-        EXPECT_TRUE(image);
-        auto const primary = stage.begin();
-        clear(*primary, *image);
-        return *image;
-    }
+    struct PresentHook : Hook<PFN_vkQueuePresentKHR> {
+        PresentHook(Core const& core, PFN_vkQueuePresentKHR hook) :
+            Hook{device_table(core).vkQueuePresentKHR, hook, realQueuePresent} {}
+    };
 }
 
-JVK_TEST(Presenter, frame_loop_clears_and_presents) {
-    constexpr size_t FRAMES = 6;
+JVK_TEST(Presenter, acquire_and_present_round_trips) {
+    constexpr size_t FRAMES = 8;
     test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
+    auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
     if(!create_present_core(coreOpt, context, surface))
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
+    auto& queue = core.queue(0);
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-    ASSERT_TRUE(presenter.created());
-    ASSERT_TRUE(presenter.swapchain().created());
-
-    for(size_t i = 0; i < FRAMES; ++i) {
-        auto const image = present_frame(core, graph, presenter);
-        EXPECT_EQ(image.extent, test::HEADLESS_EXTENT);
-        EXPECT_LT(image.imageIdx, presenter.swapchain().current().imageCount());
-    }
-
-    presenter.destroy();
-    EXPECT_FALSE(presenter.created());
-}
-
-JVK_TEST(Presenter, frame_loop_with_driver_threads_presents) {
-    constexpr size_t FRAMES = 6;
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface, {GRAPHICS | PRESENT}, 2))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-
-    for(size_t i = 0; i < FRAMES; ++i)
-        EXPECT_EQ(present_frame(core, graph, presenter).extent, test::HEADLESS_EXTENT);
-}
-
-JVK_TEST(Presenter, extent_0_gives_no_image_until_the_extent_is_larger) {
-    test::Context const context{};
-    std::atomic<VkExtent2D> windowExtent{VkExtent2D{0, 0}};
-    auto surface = test::headless_surface(
-        context.instance,
-        [&windowExtent] { return windowExtent.load(); }
-    );
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-    EXPECT_FALSE(presenter.swapchain().created());
-
-    // no image, no wait: the stage submits without the image, the scoped_acquire does nothing
-    auto& stage = next_frame(core, graph).stage(0);
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    EXPECT_EQ(presenter.framesInFlight(), 2);
     {
-        auto const image = acquire(core, presenter, stage);
-        EXPECT_FALSE(image);
-        auto const primary = stage.begin();
+        Submits submits{core, queue};
+        for(size_t i = 0; i < FRAMES; ++i) {
+            auto imageOpt = acquire(core, presenter);
+            ASSERT_TRUE(imageOpt.has_value());
+            EXPECT_EQ(imageOpt->acquireNumber(), i + 1);
+            EXPECT_EQ(imageOpt->extent(), test::HEADLESS_EXTENT);
+            EXPECT_LT(imageOpt->imageIdx(), swapchain.imageCount());
+            EXPECT_EQ(&imageOpt->image(), &swapchain.image(imageOpt->imageIdx()));
+            // a new image waits for its acquire
+            EXPECT_NE(acquire_semaphore(*imageOpt), nullptr);
+            submits.present(presenter, std::move(*imageOpt));
+        }
     }
-    EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
 
-    windowExtent = VkExtent2D{32, 24};
-    auto const image = present_frame(core, graph, presenter);
-    EXPECT_EQ(image.extent, (VkExtent2D{32, 24}));
-    EXPECT_TRUE(presenter.swapchain().created());
+    // the queue is idle: the present fences signaled
+    EXPECT_TRUE(presenter.finished());
 }
 
-JVK_TEST(Presenter, new_extent_recreates_the_swapchain) {
+JVK_TEST(Presenter, presents_follow_the_acquire_order) {
     test::Context const context{};
-    std::atomic<VkExtent2D> windowExtent{VkExtent2D{32, 32}};
-    auto surface = test::headless_surface(
-        context.instance,
-        [&windowExtent] { return windowExtent.load(); }
-    );
+    auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
     if(!create_present_core(coreOpt, context, surface))
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
+    auto& queue = core.queue(0);
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
+    presentedIndices.clear();
+    PresentHook const hook{core, recording_present};
 
-    EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{32, 32}));
+    auto firstOpt = acquire(core, presenter);
+    auto secondOpt = acquire(core, presenter);
+    ASSERT_TRUE(firstOpt.has_value());
+    ASSERT_TRUE(secondOpt.has_value());
+    auto const firstIdx = firstOpt->imageIdx();
+    auto const secondIdx = secondOpt->imageIdx();
+    submits.transition(*firstOpt);
+    submits.transition(*secondOpt);
 
-    windowExtent = VkExtent2D{48, 40};
-    EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{48, 40}));
-    EXPECT_EQ(presenter.swapchain().current().extent(), (VkExtent2D{48, 40}));
+    // the second image is handed back first, its present waits for the first image
+    std::binary_semaphore presentedSignal{0};
+    std::jthread presenting{
+        [&] {
+            core.executor().sync_wait(presenter.present(std::move(*secondOpt)));
+            presentedSignal.release();
+        }
+    };
+    EXPECT_FALSE(presentedSignal.try_acquire_for(PENDING));
 
-    // the next frames present on the new swapchain
-    EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{48, 40}));
+    core.executor().sync_wait(presenter.present(std::move(*firstOpt)));
+    EXPECT_TRUE(presentedSignal.try_acquire_for(TIMEOUT));
+    presenting.join();
+
+    EXPECT_EQ(presentedIndices, (std::vector{firstIdx, secondIdx}));
 }
 
-JVK_TEST(Presenter, multisampled_frames_resolve_into_the_image_and_present) {
-    constexpr size_t FRAMES = 4;
+JVK_TEST(Presenter, drop_spares_the_image_with_its_acquire_semaphore) {
     test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
+    auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
     if(!create_present_core(coreOpt, context, surface))
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
-    if(!supports_msaa(core))
-        GTEST_SKIP() << "no 4x msaa for color attachments";
+    auto& queue = core.queue(0);
 
-    // before the graph: the target lives until the gpu finished the frames
-    std::optional<MsaaTarget> msaaOpt{};
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
 
-    // the resolve writes the image, the present transition starts from the resolve state
-    for(size_t i = 0; i < FRAMES; ++i)
-        EXPECT_EQ(
-        present_msaa_frame(core, graph, presenter, msaaOpt).extent,
-        test::HEADLESS_EXTENT
-    );
+    auto droppedOpt = acquire(core, presenter);
+    ASSERT_TRUE(droppedOpt.has_value());
+    auto const imageIdx = droppedOpt->imageIdx();
+    auto const* const semaphorePtr = acquire_semaphore(*droppedOpt);
+    // the destruction drops the image without a ready point
+    droppedOpt.reset();
+
+    // the spare comes first, with the wait of the drop
+    auto spareOpt = acquire(core, presenter);
+    ASSERT_TRUE(spareOpt.has_value());
+    EXPECT_EQ(spareOpt->imageIdx(), imageIdx);
+    EXPECT_EQ(acquire_semaphore(*spareOpt), semaphorePtr);
+    EXPECT_EQ(spareOpt->acquireNumber(), 2);
+    submits.present(presenter, std::move(*spareOpt));
 }
 
-JVK_TEST(Presenter, recreation_retains_the_multisampled_target_of_the_old_extent) {
+JVK_TEST(Presenter, drop_with_a_ready_point_spares_the_image_behind_it) {
     test::Context const context{};
-    std::atomic<VkExtent2D> windowExtent{VkExtent2D{32, 32}};
-    auto surface = test::headless_surface(
-        context.instance,
-        [&windowExtent] { return windowExtent.load(); }
-    );
+    auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
     if(!create_present_core(coreOpt, context, surface))
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
-    if(!supports_msaa(core))
-        GTEST_SKIP() << "no 4x msaa for color attachments";
+    auto& queue = core.queue(0);
 
-    std::optional<MsaaTarget> msaaOpt{};
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-
-    EXPECT_EQ(present_msaa_frame(core, graph, presenter, msaaOpt).extent, (VkExtent2D{32, 32}));
-
-    // the new extent recreates the swapchain, the frame retains the old target
-    windowExtent = VkExtent2D{48, 40};
-    EXPECT_EQ(present_msaa_frame(core, graph, presenter, msaaOpt).extent, (VkExtent2D{48, 40}));
-    EXPECT_EQ(msaaOpt->image.extent(), (VkExtent2D{48, 40}));
-
-    // the graph destroys the old target after the gpu finished its frame
-    for(size_t i = 0; i < 3; ++i)
-        EXPECT_EQ(present_msaa_frame(core, graph, presenter, msaaOpt).extent, (VkExtent2D{48, 40}));
-}
-
-JVK_TEST(Presenter, acquire_waits_for_the_present_before) {
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    // one acquire semaphore: the acquire after the drop reuses it once the ready point is reached
+    Presenter presenter{queue, swapchain, 1};
+    Submits submits{core, queue};
     Semaphore const gate{core, cvk::create};
 
-    auto& first = next_frame(core, graph).stage(0);
-    present_behind_gate(core, first, presenter, gate);
+    auto droppedOpt = acquire(core, presenter);
+    ASSERT_TRUE(droppedOpt.has_value());
+    auto const imageIdx = droppedOpt->imageIdx();
+    auto const ready = submits.ready(*droppedOpt, &gate);
+    presenter.drop(std::move(*droppedOpt));
+    EXPECT_FALSE(presenter.finished());
 
-    // the present of the first frame waits for the mark of the gate, the next acquire for the present
-    auto& second = next_frame(core, graph).stage(0);
-    std::binary_semaphore acquiredSignal{0};
-    size_t acquiredImages = 0;
-    std::jthread frame{
-        [&] {
-            auto const image = acquire(core, presenter, second);
-            acquiredImages = acquired_images(presenter);
-            acquiredSignal.release();
-            EXPECT_TRUE(image);
-            auto const primary = second.begin();
-            if(image)
-                clear(*primary, *image);
-        }
-    };
+    // the spare waits for the ready point
+    auto spareOpt = acquire(core, presenter);
+    ASSERT_TRUE(spareOpt.has_value());
+    EXPECT_EQ(spareOpt->imageIdx(), imageIdx);
+    ASSERT_TRUE(std::holds_alternative<SemaphoreSubmitInfo>(spareOpt->wait()));
+    auto const& wait = std::get<SemaphoreSubmitInfo>(spareOpt->wait());
+    EXPECT_EQ(&*wait.semaphore, &*ready.semaphore);
+    EXPECT_EQ(wait.value, ready.value);
 
-    EXPECT_FALSE(acquiredSignal.try_acquire_for(std::chrono::milliseconds{50}));
-
-    // the signal before the mark: the present waits for no signal that is not submitted
+    // the gate before the present: the present waits for no signal that the gpu holds back
     host_signal(gate, 1);
-    gate.markSubmitted(1);
-    EXPECT_TRUE(acquiredSignal.try_acquire_for(TIMEOUT));
-    frame.join();
-    // the first image is presented
-    EXPECT_EQ(acquiredImages, 1);
+    submits.present(presenter, std::move(*spareOpt));
 
-    wait(core, second);
-
-    present_frame(core, graph, presenter);
+    // the acquire semaphore is free once the gpu reached the ready point
+    auto nextOpt = acquire(core, presenter);
+    ASSERT_TRUE(nextOpt.has_value());
+    EXPECT_NE(acquire_semaphore(*nextOpt), nullptr);
+    submits.present(presenter, std::move(*nextOpt));
 }
 
-JVK_TEST(Presenter, recreation_retires_the_old_swapchain_until_its_presents_ended) {
+JVK_TEST(Presenter, ready_point_of_the_last_acquire_semaphore_holds_the_acquire_back) {
     test::Context const context{};
-    std::atomic<VkExtent2D> windowExtent{VkExtent2D{32, 32}};
-    auto surface = test::headless_surface(
-        context.instance,
-        [&windowExtent] { return windowExtent.load(); }
-    );
+    auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
     if(!create_present_core(coreOpt, context, surface))
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
+    auto& queue = core.queue(0);
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 1};
+    Submits submits{core, queue};
+    Semaphore const gate{core, cvk::create};
 
-    EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{32, 32}));
+    auto droppedOpt = acquire(core, presenter);
+    ASSERT_TRUE(droppedOpt.has_value());
+    submits.ready(*droppedOpt, &gate);
+    presenter.drop(std::move(*droppedOpt));
+    auto spareOpt = acquire(core, presenter);
+    ASSERT_TRUE(spareOpt.has_value());
 
-    // the new extent recreates the swapchain, the old one stays until its presents ended
-    windowExtent = VkExtent2D{48, 40};
-    EXPECT_EQ(present_frame(core, graph, presenter).extent, (VkExtent2D{48, 40}));
-    EXPECT_LE(presenter.swapchain().retired(), 1);
-
-    // a later acquire destroys the retired swapchain once its presents ended, the bound only ends a broken loop
-    for(size_t i = 0; i < 16 && presenter.swapchain().retired() != 0; ++i)
-        present_frame(core, graph, presenter);
-    EXPECT_EQ(presenter.swapchain().retired(), 0);
-}
-
-JVK_TEST(Presenter, scope_unacquire_leaves_the_image_to_the_next_acquire) {
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-
-    auto& stage = next_frame(core, graph).stage(0);
-    {
-        auto image = acquire(core, presenter, stage);
-        ASSERT_TRUE(image);
-        image.unacquire();
-
-        // the submit waits for the acquire semaphore
-        auto const primary = stage.begin();
-    }
-    // the scoped_acquire did nothing at its end, the image stays acquired
-    EXPECT_EQ(acquired_images(presenter), 1);
-
-    // the next acquire waits for the stage on the gpu and gives the image back first
-    auto& next = next_frame(core, graph).stage(0);
-    {
-        auto const image = acquire(core, presenter, next);
-        ASSERT_TRUE(image);
-        EXPECT_EQ(acquired_images(presenter), 1);
-        auto const primary = next.begin();
-        clear(*primary, *image);
-    }
-
-    present_frame(core, graph, presenter);
-}
-
-JVK_TEST(Presenter, next_acquire_after_a_skipped_stage_unacquires_the_image) {
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-
-    // Stage::begin() before the acquire works too
-    auto& stage = next_frame(core, graph).stage(0);
-    {
-        auto const primary = stage.begin();
-        auto const image = acquire(core, presenter, stage);
-        ASSERT_TRUE(image);
-        clear(*primary, *image);
-
-        // the skip discards the recording and waits for the acquire semaphore
-        stage.skip();
-    }
-    EXPECT_EQ(stage.status(), Stage::Status::SKIPPED);
-    EXPECT_EQ(acquired_images(presenter), 1);
-
-    // at once: the acquire waits for the skip on the gpu before the unacquire, no validation error
-    auto& next = next_frame(core, graph).stage(0);
-    {
-        auto const image = acquire(core, presenter, next);
-        ASSERT_TRUE(image);
-        EXPECT_EQ(acquired_images(presenter), 1);
-        auto const primary = next.begin();
-        clear(*primary, *image);
-    }
-
-    present_frame(core, graph, presenter);
-}
-
-JVK_TEST(Presenter, image_scope_ending_before_the_submit_leaves_the_image_to_the_next_acquire) {
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-
-    auto& stage = next_frame(core, graph).stage(0);
-    {
-        auto const image = acquire(core, presenter, stage);
-        ASSERT_TRUE(image);
-    }
-    EXPECT_EQ(acquired_images(presenter), 1);
-
-    // the submit waits for the acquire semaphore, nothing uses the image
-    {
-        auto const primary = stage.begin();
-    }
-
-    // the next acquire waits for the submit on the gpu and gives the image back first
-    auto& next = next_frame(core, graph).stage(0);
-    {
-        auto const image = acquire(core, presenter, next);
-        ASSERT_TRUE(image);
-        EXPECT_EQ(acquired_images(presenter), 1);
-        auto const primary = next.begin();
-        clear(*primary, *image);
-    }
-
-    present_frame(core, graph, presenter);
-}
-
-JVK_TEST(Presenter, present_inside_the_rendering_scope_submits_and_presents_once) {
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-
-    auto& stage = next_frame(core, graph).stage(0);
-    {
-        auto image = acquire(core, presenter, stage);
-        ASSERT_TRUE(image);
-        auto const primary = stage.begin();
-        auto const rendering = primary->beginRendering(clear_info(*image));
-
-        // the submit ends the rendering and the primary, the ends of the scopes do nothing
-        image.present();
-        EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
-        EXPECT_EQ(primary->rendering(), nullptr);
-    }
-    wait(core, stage);
-
-    present_frame(core, graph, presenter);
-}
-
-JVK_TEST(Presenter, moved_scopes_act_once) {
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-
-    auto& stage = next_frame(core, graph).stage(0);
-    {
-        // the moved-from scopes end after the moved ones: a second submit or present fails
-        auto image = acquire(core, presenter, stage);
-        auto const movedImage = std::move(image);
-        ASSERT_TRUE(movedImage);
-        auto primary = stage.begin();
-        auto const movedPrimary = std::move(primary);
-        clear(*movedPrimary, *movedImage);
-    }
-    EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
-    wait(core, stage);
-
-    present_frame(core, graph, presenter);
-}
-
-JVK_TEST(Presenter, exception_in_the_recording_submits_and_presents_nothing) {
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 2}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-
-    Stage const* stagePtr = nullptr;
-    uint32_t imageIdx = 0;
-    try {
-        for(size_t i = 0;; ++i) {
-            auto& stage = next_frame(core, graph).stage(0);
-            auto const image = acquire(core, presenter, stage);
-            auto const primary = stage.begin();
-            auto const rendering = primary->beginRendering(clear_info(*image));
-            if(i == 2) {
-                stagePtr = &stage;
-                imageIdx = image->imageIdx;
-                throw test_exception{};
-            }
-        }
-    }
-    catch(test_exception const&) {}
-
-    ASSERT_NE(stagePtr, nullptr);
-    EXPECT_EQ(stagePtr->status(), Stage::Status::UNSUBMITTED);
-    EXPECT_TRUE(presenter.swapchain().current().acquired(imageIdx));
-
-    // the next frame skips the stage, the next acquire gives the image back first
-    auto& stage = next_frame(core, graph).stage(0);
-    EXPECT_EQ(stagePtr->status(), Stage::Status::SKIPPED);
-    {
-        auto const image = acquire(core, presenter, stage);
-        ASSERT_TRUE(image);
-        EXPECT_EQ(acquired_images(presenter), 1);
-        auto const primary = stage.begin();
-        clear(*primary, *image);
-    }
-
-    present_frame(core, graph, presenter);
-}
-
-JVK_TEST(Presenter, exception_after_the_submit_presents_the_image) {
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-
-    auto& stage = next_frame(core, graph).stage(0);
-    std::optional<uint32_t> imageIdxOpt = std::nullopt;
-    try {
-        auto const image = acquire(core, presenter, stage);
-        auto const primary = stage.begin();
-        if(image) {
-            imageIdxOpt = image->imageIdx;
-            clear(*primary, *image);
-        }
-        stage.submit();
-        throw test_exception{};
-    }
-    catch(test_exception const&) {}
-    ASSERT_TRUE(imageIdxOpt.has_value());
-    EXPECT_EQ(stage.status(), Stage::Status::SUBMITTED);
-
-    // the frame is complete: the scoped_acquire presents the image
-    EXPECT_TRUE(reaches_unacquired(core, core.queue(0), presenter, *imageIdxOpt));
-    wait(core, stage);
-
-    present_frame(core, graph, presenter);
-}
-
-JVK_TEST(Presenter, exception_propagated_to_the_end_destroys_graph_and_presenter) {
-    test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-
-    auto const run = [&core, &surface] {
-        StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-        Presenter presenter{core, core.queue(0), {}, std::move(surface)};
-        for(size_t i = 0;; ++i) {
-            auto& stage = next_frame(core, graph).stage(0);
-            auto const image = acquire(core, presenter, stage);
-            auto const primary = stage.begin();
-            auto const rendering = primary->beginRendering(clear_info(*image));
-            if(i == 2)
-                throw test_exception{};
+    // no spare, the only acquire semaphore waits for the ready point
+    std::optional<Presenter::AcquiredImage> nextOpt{};
+    std::binary_semaphore acquiredSignal{0};
+    std::jthread acquiring{
+        [&] {
+            nextOpt = acquire(core, presenter);
+            acquiredSignal.release();
         }
     };
-    EXPECT_THROW(run(), test_exception);
+    EXPECT_FALSE(acquiredSignal.try_acquire_for(PENDING));
+
+    host_signal(gate, 1);
+    EXPECT_TRUE(acquiredSignal.try_acquire_for(TIMEOUT));
+    acquiring.join();
+    ASSERT_TRUE(nextOpt.has_value());
+    EXPECT_NE(nextOpt->imageIdx(), spareOpt->imageIdx());
+
+    submits.present(presenter, std::move(*spareOpt));
+    submits.present(presenter, std::move(*nextOpt));
 }
 
-JVK_TEST(Presenter, present_queue_of_the_same_family) {
-    constexpr size_t FRAMES = 4;
+JVK_TEST(Presenter, destroyed_image_is_dropped) {
     test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
+    auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface, {GRAPHICS, GRAPHICS | PRESENT}))
+    if(!create_present_core(coreOpt, context, surface))
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
-    if(&core.queue(0) == &core.queue(1)
-        || core.queue(0).vk().familyIndex() != core.queue(1).vk().familyIndex())
-        GTEST_SKIP() << "needs two vulkan queues of one family, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
+    auto& queue = core.queue(0);
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(1), {}, std::move(surface)};
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
 
-    for(size_t i = 0; i < FRAMES; ++i)
-        present_frame(core, graph, presenter);
+    uint32_t firstIdx = 0;
+    {
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        firstIdx = imageOpt->imageIdx();
+    }
+    auto firstOpt = acquire(core, presenter);
+    ASSERT_TRUE(firstOpt.has_value());
+    EXPECT_EQ(firstOpt->imageIdx(), firstIdx);
+
+    // the move assignment drops the image it replaces
+    auto secondOpt = acquire(core, presenter);
+    ASSERT_TRUE(secondOpt.has_value());
+    auto const secondIdx = secondOpt->imageIdx();
+    *secondOpt = std::move(*firstOpt);
+    EXPECT_EQ(secondOpt->imageIdx(), firstIdx);
+    auto spareOpt = acquire(core, presenter);
+    ASSERT_TRUE(spareOpt.has_value());
+    EXPECT_EQ(spareOpt->imageIdx(), secondIdx);
+
+    submits.present(presenter, std::move(*secondOpt));
+    submits.present(presenter, std::move(*spareOpt));
 }
 
-JVK_TEST(Presenter, present_queue_of_another_family) {
-    constexpr size_t FRAMES = 4;
+JVK_TEST(Presenter, destructor_releases_the_spares) {
     test::Context const context{};
-    auto surface = test::headless_surface(context.instance);
+    auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface, {GRAPHICS, COMPUTE | PRESENT}))
+    if(!create_present_core(coreOpt, context, surface))
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
-    auto const& stageQueue = core.queue(0);
-    if(stageQueue.vk().familyIndex() == core.queue(1).vk().familyIndex())
-        GTEST_SKIP() << "needs two queue families, e.g. ANV_QUEUE_OVERRIDE=gc=2,c=1";
+    auto& queue = core.queue(0);
 
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
-    Presenter presenter{core, core.queue(1), {}, std::move(surface)};
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    auto const imageCount = swapchain.imageCount();
+    {
+        Presenter presenter{queue, swapchain, 2};
+        Submits submits{core, queue};
 
-    for(size_t i = 0; i < FRAMES; ++i)
-        present_frame(core, graph, presenter);
-    presenter.destroy();
+        // a spare with its acquire semaphore and a spare behind a ready point
+        auto firstOpt = acquire(core, presenter);
+        auto secondOpt = acquire(core, presenter);
+        ASSERT_TRUE(firstOpt.has_value());
+        ASSERT_TRUE(secondOpt.has_value());
+        submits.ready(*secondOpt);
+        firstOpt.reset();
+        presenter.drop(std::move(*secondOpt));
+    }
 
-    // one release on the stage queue per frame: the next release gets the next value of its counter
-    auto const next = core.executor().sync_wait(stageQueue.release(cvk::Barrier{}));
-    EXPECT_EQ(next.value, FRAMES + 1);
-    stageQueue.waitIdle();
+    // the spares are back in the swapchain: the next presenter acquires every image
+    Presenter presenter{queue, swapchain, imageCount};
+    std::vector<Presenter::AcquiredImage> images{};
+    for(uint32_t i = 0; i < imageCount; ++i) {
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        images.push_back(std::move(*imageOpt));
+    }
+    // the destructor of the images drops them, the destructor of the presenter releases them
+}
+
+JVK_TEST(Presenter, not_ready_try_falls_back_until_a_hand_back) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    auto const imageCount = swapchain.imageCount();
+    // a semaphore for every image and one for the acquire that finds none
+    Presenter presenter{queue, swapchain, imageCount + 1};
+    Submits submits{core, queue};
+
+    std::vector<Presenter::AcquiredImage> images{};
+    for(uint32_t i = 0; i < imageCount; ++i) {
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        images.push_back(std::move(*imageOpt));
+    }
+
+    // every image is acquired: the try returns VK_NOT_READY, the fallback does not block
+    std::optional<Presenter::AcquiredImage> nextOpt{};
+    std::binary_semaphore acquiredSignal{0};
+    std::jthread acquiring{
+        [&] {
+            nextOpt = acquire(core, presenter);
+            acquiredSignal.release();
+        }
+    };
+    EXPECT_FALSE(acquiredSignal.try_acquire_for(PENDING));
+
+    auto const firstIdx = images.front().imageIdx();
+    submits.present(presenter, std::move(images.front()));
+    EXPECT_TRUE(acquiredSignal.try_acquire_for(TIMEOUT));
+    acquiring.join();
+    ASSERT_TRUE(nextOpt.has_value());
+    // the headless surface gives the presented image back at once
+    EXPECT_EQ(nextOpt->imageIdx(), firstIdx);
+
+    for(auto& image : images | std::views::drop(1))
+        submits.present(presenter, std::move(image));
+    submits.present(presenter, std::move(*nextOpt));
+}
+
+JVK_TEST(Presenter, fallback_waits_for_the_present_fence_of_the_last_acquire_semaphore) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 1};
+    Submits submits{core, queue};
+
+    auto firstOpt = acquire(core, presenter);
+    ASSERT_TRUE(firstOpt.has_value());
+    submits.present(presenter, std::move(*firstOpt));
+
+    // the present fence counts as unsignaled until a wait for it: no try, the fallback waits
+    auto& table = device_table(core);
+    fencesHeld = true;
+    fenceWaits = 0;
+    std::optional<Presenter::AcquiredImage> nextOpt{};
+    {
+        Hook const status{table.vkGetFenceStatus, held_fence_status, realGetFenceStatus};
+        Hook const wait{table.vkWaitForFences, releasing_fence_wait, realWaitForFences};
+        nextOpt = acquire(core, presenter);
+    }
+    EXPECT_EQ(fenceWaits, 1);
+    ASSERT_TRUE(nextOpt.has_value());
+    EXPECT_NE(acquire_semaphore(*nextOpt), nullptr);
+    submits.present(presenter, std::move(*nextOpt));
+}
+
+JVK_TEST(Presenter, failed_present_arrives_once_at_the_next_acquire) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
+
+    {
+        PresentHook const hook{core, failing_present<VK_ERROR_SURFACE_LOST_KHR>};
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        // the present does not throw
+        EXPECT_NO_THROW(submits.present(presenter, std::move(*imageOpt)));
+    }
+
+    try {
+        [[maybe_unused]] auto const imageOpt = acquire(core, presenter);
+        ADD_FAILURE() << "the acquire must rethrow the failure of the present";
+    }
+    catch(cvk::vk_result_exception const& e) { EXPECT_EQ(e.vkResult(), VK_ERROR_SURFACE_LOST_KHR); }
+
+    auto imageOpt = acquire(core, presenter);
+    ASSERT_TRUE(imageOpt.has_value());
+    submits.present(presenter, std::move(*imageOpt));
+}
+
+JVK_TEST(Presenter, present_without_an_enqueue_leaves_no_fence_pending) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
+
+    {
+        PresentHook const hook{core, unenqueued_present};
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        EXPECT_NO_THROW(submits.present(presenter, std::move(*imageOpt)));
+    }
+
+    try {
+        [[maybe_unused]] auto const imageOpt = acquire(core, presenter);
+        ADD_FAILURE() << "the acquire must rethrow the failure of the present";
+    }
+    catch(cvk::vk_result_exception const& e) {
+        EXPECT_EQ(e.vkResult(), VK_ERROR_OUT_OF_HOST_MEMORY);
+    }
+
+    // the image stays acquired: the presenter has work left, no fence of it is pending
+    EXPECT_FALSE(presenter.finished());
+    fencesHeld = false;
+    fenceWaits = 0;
+    {
+        auto& table = device_table(core);
+        Hook const wait{table.vkWaitForFences, releasing_fence_wait, realWaitForFences};
+        presenter.waitPresents();
+    }
+    EXPECT_EQ(fenceWaits, 0);
+
+    // the other images still present, the teardown waits for no fence of the failed present
+    auto nextOpt = acquire(core, presenter);
+    ASSERT_TRUE(nextOpt.has_value());
+    submits.present(presenter, std::move(*nextOpt));
+    presenter.waitPresents();
+}
+
+JVK_TEST(Presenter, rejected_present_leaves_its_fence_pending) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
+
+    // the presentation engine rejects the present: it is enqueued, its fence signals
+    {
+        PresentHook const hook{core, failing_present<VK_ERROR_SURFACE_LOST_KHR>};
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        submits.present(presenter, std::move(*imageOpt));
+    }
+
+    fencesHeld = false;
+    fenceWaits = 0;
+    {
+        auto& table = device_table(core);
+        Hook const wait{table.vkWaitForFences, releasing_fence_wait, realWaitForFences};
+        presenter.waitPresents();
+    }
+    EXPECT_EQ(fenceWaits, 1);
+    EXPECT_TRUE(presenter.finished());
+}
+
+JVK_TEST(Presenter, out_of_date_present_gives_no_image_from_then_on) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
+
+    {
+        PresentHook const hook{core, failing_present<VK_ERROR_OUT_OF_DATE_KHR>};
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        submits.present(presenter, std::move(*imageOpt));
+    }
+
+    EXPECT_FALSE(acquire(core, presenter).has_value());
+    EXPECT_FALSE(acquire(core, presenter).has_value());
+}
+
+JVK_TEST(Presenter, out_of_date_acquire_gives_no_image_from_then_on) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
+
+    auto imageOpt = acquire(core, presenter);
+    ASSERT_TRUE(imageOpt.has_value());
+
+    outOfDateAcquires = 0;
+    {
+        PFN_vkAcquireNextImageKHR real = nullptr;
+        Hook const hook{device_table(core).vkAcquireNextImageKHR, out_of_date_acquire, real};
+        EXPECT_FALSE(acquire(core, presenter).has_value());
+        // out of date stays: no second try
+        EXPECT_FALSE(acquire(core, presenter).has_value());
+    }
+    EXPECT_EQ(outOfDateAcquires, 1);
+
+    // the image acquired before still presents
+    submits.present(presenter, std::move(*imageOpt));
 }
 }

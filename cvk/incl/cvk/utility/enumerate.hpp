@@ -11,9 +11,6 @@
 
 
 namespace cvk::dev {
-/**
- * element type of a two-call query: the pointee of its last parameter
- */
 template<class Fn>
 struct enumerate_element {};
 
@@ -27,23 +24,8 @@ struct enumerate_element<Result (*)(Params...)> {
 template<class Fn>
 using enumerate_element_t = enumerate_element<Fn>::type;
 
-/**
- * max count and write rounds of `enumerate()` while the result is `VK_INCOMPLETE`
- */
 constexpr uint32_t MAX_QUERY_ATTEMPTS = 4;
 
-/**
- * calls a two-call query as `fn(args..., &count, data)`, first for the count, then for the elements
- * @param what name of the elements for the error message
- * @param fn function pointer: a volk global or a `VolkDeviceTable` member
- * @param args arguments before the count
- * @details `VkResult` `fn` -> repeats both calls while the result is `VK_INCOMPLETE`,
- *  at most `MAX_QUERY_ATTEMPTS` rounds
- * @details `void` `fn` -> one count and one write call
- * @return the elements, as many as the last call wrote
- * @throws cvk::vk_result_exception result of `fn` other than `VK_SUCCESS` or `VK_INCOMPLETE`
- * @throws cvk::vk_result_exception `VK_INCOMPLETE` in all `MAX_QUERY_ATTEMPTS` rounds
- */
 template<class Fn, class... Args>
 [[nodiscard]] std::vector<enumerate_element_t<Fn>> enumerate(
     [[maybe_unused]] std::string_view what,

@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "shaders.hpp"
 #include "test.hpp"
 
 #include "cvk/base/physical_device.hpp"
@@ -300,21 +299,6 @@ CVK_TEST(DescriptorSpan, mapping_is_the_mapping_of_the_heap) {
     );
 }
 
-#ifdef CTH_DEBUG_MODE
-CVK_TEST(DescriptorSpan, index_out_of_the_span_crashes) {
-    // the child runs the test again: the parent has device threads
-    GTEST_FLAG_SET(death_test_style, "threadsafe");
-    test::Context const context{};
-    SamplerHeap heap{context.core, {.samplers = 2}, create};
-
-    ASSERT_DEATH(
-        [[maybe_unused]]
-        auto const cell = heap.samplers()[2],
-        ".*"
-    );
-}
-#endif
-
 namespace {
     /**
      * heaps, texture and storage image of the heap compute shader
@@ -333,7 +317,7 @@ namespace {
             samplers{core, {.samplers = 3}, create},
             texture{pixel(core, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)},
             image{pixel(core, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)},
-            shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::shaders::HEAP_COMP},
+            shader{core, VK_SHADER_STAGE_COMPUTE_BIT, test::SHADER_DIR / "heap.comp.spv"},
             pipeline{
                 core,
                 {

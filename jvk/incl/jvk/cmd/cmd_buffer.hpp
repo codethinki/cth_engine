@@ -1,12 +1,14 @@
 #pragma once
 #include "jvk/data/resource_heap.hpp"
-#include "jvk/sync/resource_states.hpp"
+#include "jvk/sync/resource_tracker.hpp"
 
 #include "cvk/base/queue/queue_family.hpp"
 #include "cvk/data/buffer/buffer.hpp"
 #include "cvk/render/cmd/cmd_buffer.hpp"
 #include "cvk/render/cmd/cmd_pool.hpp"
 #include "cvk/render/cmd/rendering_info.hpp"
+#include "cvk/utility/constants.hpp"
+#include "cvk/utility/types.hpp"
 
 #include <volk.h>
 
@@ -19,6 +21,7 @@
 #include <initializer_list>
 #include <memory>
 #include <span>
+#include <tuple>
 #include <type_traits>
 
 
@@ -98,8 +101,6 @@ public:
 }
 
 namespace jvk::dev {
-//TODO review no wrap(), create(), destroy() or release(): the constructor creates the pool and the command buffer,
-// they live with the object
 /**
  * base of the jvk command buffers
  * @details
@@ -113,7 +114,55 @@ namespace jvk::dev {
 template<class Cvk>
 class BasicCmdBuffer {
 public:
+    struct State;
+
     static constexpr VkCommandPoolCreateFlags POOL_FLAGS = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+
+    /**
+     * wraps the state
+     * @details the resource states start empty
+     * @pre `cvk::Core::created()`
+     * @pre `State::vkPool` was created with the queue family of the object and `POOL_FLAGS`
+     * @pre `State::vkPool` allocated `State::vkBuffer` with the level of `Cvk`
+     * @pre the command buffer is not recording
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @note takes the whole pool: `reset()` and `destroy()` act on every command buffer of the pool
+     */
+    void wrap(State const&);
+
+    /**
+     * creates the own command pool and the command buffer
+     * @details the resource states start empty
+     * @pre `cvk::Core::created()`
+     * @post `created()`
+     * @note calls `optDestroy()`
+     * @throws cvk::vk_result_exception result of `vkCreateCommandPool()` or `vkAllocateCommandBuffers()`
+     */
+    void create();
+
+    /**
+     * frees the command buffer, destroys the pool and forgets
+     * @details drops the resource states
+     * @pre `created()`
+     * @pre the command buffer is not pending
+     */
+    void destroy();
+
+    /**
+     * if `created()` -> calls `destroy()`
+     */
+    void optDestroy() {
+        if(created())
+            destroy();
+    }
+
+    /**
+     * releases ownership of the command buffer and the pool, returns the state and forgets
+     * @details drops the resource states
+     * @pre `created()`
+     */
+    State release();
 
     /**
      * ends the recording
@@ -191,7 +240,7 @@ public:
     /**
      * sets the tracked state of the mip levels after untracked code
      * @pre `recording()`
-     * @see `ResourceStates::assume()`
+     * @see `ResourceTracker::assume()`
      */
     void assume(
         cvk::Image const&,
@@ -203,7 +252,7 @@ public:
     /**
      * sets the tracked state of the buffer after untracked code
      * @pre `recording()`
-     * @see `ResourceStates::assume()`
+     * @see `ResourceTracker::assume()`
      */
     void assume(cvk::BaseBuffer const&, BufferState const& state);
 
@@ -278,7 +327,7 @@ public:
      */
     void dispatchIndirect(cvk::BaseBuffer const&, size_t offset = 0);
 
-    //TODO review the forwarders keep the constness of cvk
+    // the forwarders keep the constness of cvk
     /**
      * @see `cvk::BaseCmdBuffer::setAttachmentMapping()`
      */
@@ -354,9 +403,9 @@ public:
         _cmdBuffer.dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
-    [[nodiscard]] constexpr ResourceStates const& states() const { return _states; }
+    [[nodiscard]] constexpr ResourceTracker const& states() const { return _states; }
 
-    //TODO review no level() forwarder: the type tells it
+    // no level() forwarder: the type tells it
     [[nodiscard]] constexpr bool created() const { return _cmdBuffer.created(); }
     [[nodiscard]] constexpr VkCommandBuffer get() const { return _cmdBuffer.get(); }
     [[nodiscard]] constexpr cvk::Core const& core() const { return _cmdBuffer.core(); }
@@ -395,12 +444,14 @@ public:
 
 protected:
     /**
-     * creates the own command pool and the command buffer
+     * base constructor
      */
     BasicCmdBuffer(cvk::Core const&, cvk::queue_family_index_t);
 
-    // frees the command buffer before the members destroy the pool
-    ~BasicCmdBuffer() { _cmdBuffer.optDestroy(); }
+    /**
+     * @note calls `optDestroy()`
+     */
+    ~BasicCmdBuffer() { optDestroy(); }
 
     /**
      * resets the pool and the resource states
@@ -414,20 +465,18 @@ protected:
      * @details records the barriers for its first accesses
      * @pre the preconditions of `cvk::Barrier::execute()`
      */
-    void appendStates(ResourceStates const& next);
+    void appendStates(ResourceTracker const& next);
 
-    //TODO review protected member: begin() and execute() of the derived classes record into it
+    // protected member: begin() and execute() of the derived classes record into it
     // declared before the pool: the move assignment frees the old command buffer before the old pool
     Cvk _cmdBuffer;
 
 private:
     explicit BasicCmdBuffer(std::unique_ptr<cvk::CmdPool>);
 
-    /**
-     * records the barrier if it is not empty
-     * @details inside a rendering: adds `VK_DEPENDENCY_BY_REGION_BIT`, with multiview `VK_DEPENDENCY_VIEW_LOCAL_BIT`
-     */
     void record(cvk::Barrier&) const;
+
+    void forget();
 
     template<class Resource, class Access, class... Rest>
     void addAccesses(
@@ -441,7 +490,7 @@ private:
             addAccesses(barrier, rest...);
     }
 
-    ResourceStates _states{};
+    ResourceTracker _states{};
 
     std::unique_ptr<cvk::CmdPool> _poolPtr;
 
@@ -450,6 +499,22 @@ public:
     BasicCmdBuffer(BasicCmdBuffer&& other) noexcept = default;
     BasicCmdBuffer& operator=(BasicCmdBuffer const& other) = delete;
     BasicCmdBuffer& operator=(BasicCmdBuffer&& other) noexcept = default;
+};
+}
+
+namespace jvk::dev {
+template<class Cvk>
+struct BasicCmdBuffer<Cvk>::State {
+    cvk::vk_not_null<VkCommandPool> vkPool; ///< the own pool, it allocated `vkBuffer`
+    cvk::vk_not_null<VkCommandBuffer> vkBuffer;
+
+    /**
+     * the raw handles to destroy, in destruction order: the command buffer, then the pool
+     */
+    [[nodiscard]] constexpr std::tuple<std::tuple<VkCommandPool, VkCommandBuffer>, VkCommandPool>
+    decompose() && {
+        return {std::tuple{vkPool.get(), vkBuffer.get()}, vkPool.get()};
+    }
 };
 }
 
@@ -472,11 +537,26 @@ class SecondaryCmdBuffer;
 class PrimaryCmdBuffer : public dev::BasicCmdBuffer<cvk::PrimaryCmdBuffer> {
 public:
     /**
-     * creates the own command pool and the command buffer
+     * base constructor
      * @param queueFamilyIndex of the queues it is submitted to
-     * @throws cvk::vk_result_exception result of `vkCreateCommandPool()` or `vkAllocateCommandBuffers()`
      */
     PrimaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t queueFamilyIndex);
+
+    /**
+     * constructs and wraps
+     * @details calls @ref PrimaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t), `wrap()`
+     */
+    PrimaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t queueFamilyIndex, State const&);
+
+    /**
+     * constructs and creates
+     * @details calls @ref PrimaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t), `create()`
+     */
+    explicit PrimaryCmdBuffer(
+        cvk::Core const&,
+        cvk::queue_family_index_t queueFamilyIndex,
+        cvk::create_t
+    );
 
     /**
      * begins the recording
@@ -498,7 +578,7 @@ public:
      */
     void execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer> const>);
 
-    //TODO review braced list overload like cvk: libstdc++ 16 has no std::span constructor from a braced list
+    //TEMP until libstdc++ has std::span from a braced list (P2447)
     /**
      * executes the secondaries of a braced list
      * @see @ref execute(std::span<cth::ref_wrapper<SecondaryCmdBuffer> const>)
@@ -533,11 +613,26 @@ public:
     using Inheritance = cvk::SecondaryCmdBuffer::Inheritance;
 
     /**
-     * creates the own command pool and the command buffer
+     * base constructor
      * @param queueFamilyIndex of the queues its primaries are submitted to
-     * @throws cvk::vk_result_exception result of `vkCreateCommandPool()` or `vkAllocateCommandBuffers()`
      */
     SecondaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t queueFamilyIndex);
+
+    /**
+     * constructs and wraps
+     * @details calls @ref SecondaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t), `wrap()`
+     */
+    SecondaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t queueFamilyIndex, State const&);
+
+    /**
+     * constructs and creates
+     * @details calls @ref SecondaryCmdBuffer(cvk::Core const&, cvk::queue_family_index_t), `create()`
+     */
+    explicit SecondaryCmdBuffer(
+        cvk::Core const&,
+        cvk::queue_family_index_t queueFamilyIndex,
+        cvk::create_t
+    );
 
     /**
      * begins the recording outside of a rendering

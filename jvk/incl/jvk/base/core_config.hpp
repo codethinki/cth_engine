@@ -63,7 +63,7 @@ struct CoreConfig {
      * @details `std::thread::hardware_concurrency()` is `0` -> one thread
      * @details `driverThreads` `0` -> the workers call the driver too
      */
-    size_t workers = 0;
+    size_t workers = 4;
 
     /**
      * threads for the vulkan driver calls, `0` -> the workers
