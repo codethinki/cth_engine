@@ -38,7 +38,8 @@ namespace dev {
 /**
  * ImGui on a cgfw window, drawn with a jvk core
  * @details
- * - owns: the ImGui context, the ImPlot context, the pipeline, the ImGui textures (font atlas)
+ * - owns: the ImGui context, the ImPlot context, the pipeline, the ImGui textures (font atlas),
+ *   the vertex and index buffers of the draws
  * - one object per window: input from the window, draws for its renderings
  * - ImGui and ImPlot calls only inside a `Frame` of this object
  * @attention one `Frame` at a time: ImGui and ImPlot keep the current context in a global
@@ -59,7 +60,7 @@ public:
     Imgui(jvk::Core const&, cgfw::Window const& window, Config const&);
 
     /**
-     * destroys the ImPlot context, the ImGui context, the pipeline and the textures
+     * destroys the ImPlot context, the ImGui context, the pipeline, the textures and the buffers
      * @pre the gpu finished every frame that `draw()` recorded into, e.g. `~StageGraph()` waited
      */
     ~Imgui();
@@ -92,16 +93,20 @@ public:
     /**
      * records the draws of the draw data
      * @details
-     * - writes the vertices and indices into host buffers
-     * - `stage` retains the buffers until the gpu finished
+     * - writes the vertices and indices into a vertex and an index buffer of the frame slot of
+     *   `stage`, mapped for their lifetime
+     * - a buffer too small -> a new one with the next power of two of the count replaces it at
+     *   once, the buffers never shrink
      * - binds the pipeline, sets the viewport and a scissor per draw command
      * - `TotalVtxCount == 0` or an empty framebuffer -> records nothing
      * @param stage of `cmd`
      * @param cmd inside a rendering with the formats and samples of `Config`
      * @param drawData of `Frame::render()`
      * @pre `upload()` of `drawData` before
+     * @pre at most one `draw()` per frame, the stages of one graph at a time: the frame slot
+     *  reuses the buffers once `jvk::StageGraph::nextFrame()` waited for the frame before
      */
-    void draw(jvk::Stage& stage, dev::cmd_buffer auto& cmd, ImDrawData const& drawData) const;
+    void draw(jvk::Stage& stage, dev::cmd_buffer auto& cmd, ImDrawData const& drawData);
 
     /**
      * ImGui texture of an image of the resource heap, for `ImGui::Image()`

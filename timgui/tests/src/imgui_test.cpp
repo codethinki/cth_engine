@@ -391,6 +391,45 @@ TIMGUI_TEST(Imgui, draw_without_vertices_records_nothing) {
     EXPECT_EQ(target.pixel(EXTENT.width / 2, EXTENT.height / 2), CLEAR);
 }
 
+TIMGUI_TEST(Imgui, draw_grows_its_buffers_over_the_frames) {
+    // the rects per side of the grid in each frame: more vertices than the buffers of the slot
+    // hold, then fewer
+    constexpr std::array<uint32_t, 7> SIDES{1, 2, 4, 8, 16, 32, 1};
+
+    test::Context context{};
+    cgfw::Window const window{test::window_config()};
+    Imgui imgui{context.core, window, {.colorFormat = VK_FORMAT_R8G8B8A8_UNORM}};
+    Target const target{context.core, VK_FORMAT_R8G8B8A8_UNORM};
+    jvk::StageGraph graph{context.core, {.stages = {{.queueIdx = 0}}}};
+
+    for(size_t frameIdx = 0; frameIdx < SIDES.size(); ++frameIdx) {
+        auto const side = SIDES[frameIdx];
+        auto const color = frameIdx % 2 == 0 ? RED : GRAY;
+        auto& drawData = windowless_frame(
+            [side, color](ImDrawList& drawList) {
+                auto const display = ImGui::GetIO().DisplaySize;
+                auto const count = static_cast<float>(side);
+                ImVec2 const cell{display.x / count, display.y / count};
+                for(uint32_t i = 0; i < side; ++i)
+                    for(uint32_t j = 0; j < side; ++j) {
+                        ImVec2 const min{
+                            static_cast<float>(i) * cell.x,
+                            static_cast<float>(j) * cell.y
+                        };
+                        drawList.AddRectFilled(min, ImVec2{min.x + cell.x, min.y + cell.y}, color);
+                    }
+            }
+        );
+        // 4 vertices per rect
+        ASSERT_EQ(drawData.TotalVtxCount, static_cast<int>(4 * side * side));
+        draw_frame(context.core, graph, imgui, drawData, target);
+
+        EXPECT_EQ(target.pixel(0, 0), color) << "frame " << frameIdx;
+        EXPECT_EQ(target.pixel(EXTENT.width / 2, EXTENT.height / 2), color) << "frame " << frameIdx;
+        EXPECT_EQ(target.pixel(EXTENT.width - 1, EXTENT.height - 1), color) << "frame " << frameIdx;
+    }
+}
+
 TIMGUI_TEST(Imgui, texture_draws_an_image_of_the_heap) {
     constexpr std::array<uint8_t, 4> GREEN{0, 255, 0, 255};
 

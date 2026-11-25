@@ -10,6 +10,7 @@
 #include "jvk/data/image.hpp"
 #include "jvk/data/sampler_heap.hpp"
 #include "jvk/graph/stage.hpp"
+#include "jvk/graph/stage_graph.hpp"
 
 #include "cgfw/window/window.hpp"
 
@@ -33,6 +34,7 @@
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -41,6 +43,7 @@
 #include <span>
 #include <string>
 #include <utility>
+#include <vector>
 
 
 namespace timgui::dev {
@@ -78,6 +81,20 @@ struct Texture {
 
     jvk::Image image;
     jvk::SampledImage sampled;
+};
+
+/**
+ * vertex and index buffer of the draws of one frame slot
+ * @details persistently mapped host memory, the buffers only grow
+ */
+struct DrawBuffers {
+    /**
+     * constructs the buffers, creates none
+     */
+    explicit DrawBuffers(cvk::Core const& core);
+
+    jvk::Buffer<ImDrawVert> vertices;
+    jvk::Buffer<ImDrawIdx> indices;
 };
 
 /**
@@ -122,6 +139,12 @@ struct ImguiState {
      */
     cth::dt::flat_hash_map<ImTextureData const*, std::unique_ptr<Texture>> textures{};
 
+    /**
+     * the buffers of `Imgui::draw()`, one per frame slot of the graph of its stages
+     * @details `StageGraph::nextFrame()` waited for the gpu work of the frame before in the slot
+     */
+    std::vector<DrawBuffers> drawBuffers{};
+
     modifier_keys modifiers{};
 
     std::optional<cth::chrono::time_point_t> lastFrameOpt{}; ///< `std::nullopt` -> no frame yet
@@ -142,14 +165,22 @@ namespace {
         .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
     };
 
+    /** mapped for the lifetime of the buffer: no map per frame */
     constexpr cvk::BaseBuffer::Config VERTEX_CONFIG{
         .usage = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
+        .memory = {
+            .flags = VMA_ALLOCATION_CREATE_MAPPED_BIT
+            | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+        },
     };
 
+    /** mapped for the lifetime of the buffer: no map per frame */
     constexpr cvk::BaseBuffer::Config INDEX_CONFIG{
         .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-        .memory = {.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT},
+        .memory = {
+            .flags = VMA_ALLOCATION_CREATE_MAPPED_BIT
+            | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+        },
     };
 
     constexpr cvk::SamplerConfig SAMPLER_CONFIG{
@@ -269,22 +300,62 @@ namespace {
         stage.retain(std::move(staging));
     }
 
+    /**
+     * makes room for the elements
+     * @details too small -> a new buffer with the next power of two of `count` elements replaces
+     *  it, the old one is destroyed at once: its last use was the frame before in the slot
+     * @param[out] buffer gets the new buffer
+     */
+    template<class T>
+    void reserve(
+        cvk::Core const& core,
+        jvk::Buffer<T>& buffer,
+        cvk::BaseBuffer::Config const& config,
+        size_t count
+    ) {
+        if(buffer.created() && buffer.elements() >= count)
+            return;
+
+        buffer = jvk::Buffer<T>{core, config, std::bit_ceil(count)};
+    }
+
+    /**
+     * writes the elements of the lists one after the other into the mapped memory of the buffer
+     * @pre the memory is mapped, the elements fit
+     */
     template<class T>
     void write_lists(
         cvk::Buffer<T> const& buffer,
         ImVector<ImDrawList*> const& lists,
         ImVector<T> ImDrawList::* member
     ) {
-        auto const mapping = buffer.map();
-        auto out = mapping.begin();
-        for(ImDrawList const* list : lists)
-            out = std::ranges::copy(list->*member, out).out;
-        buffer.flush();
+        auto const mapped = buffer.memory()->mapped();
+        CTH_CRITICAL(mapped.empty(), "the memory of the buffer must be mapped") {}
+
+        auto out = mapped.begin();
+        size_t count = 0;
+        for(ImDrawList const* list : lists) {
+            std::span<T const> const elements{(list->*member).begin(), (list->*member).end()};
+            CTH_CRITICAL(
+                count + elements.size() > buffer.elements(),
+                "the elements must fit into the buffer, got {} of {}",
+                count + elements.size(),
+                buffer.elements()
+            ) {}
+            out = std::ranges::copy(std::as_bytes(elements), out).out;
+            count += elements.size();
+        }
+        // host coherent memory -> no flush, see `cvk::Memory::flush()`
+        buffer.flush({.size = count});
     }
 }
 }
 
 namespace timgui::dev {
+DrawBuffers::DrawBuffers(cvk::Core const& core) :
+    vertices{core, VERTEX_CONFIG},
+    indices{core, INDEX_CONFIG} {}
+
 Texture::Texture(jvk::Core const& core, ImTextureData const& data) :
     image{
         core,
@@ -378,7 +449,7 @@ void Imgui::upload(jvk::Stage& stage, dev::cmd_buffer auto& cmd, ImDrawData& dra
     }
 }
 
-void Imgui::draw(jvk::Stage& stage, dev::cmd_buffer auto& cmd, ImDrawData const& drawData) const {
+void Imgui::draw(jvk::Stage& stage, dev::cmd_buffer auto& cmd, ImDrawData const& drawData) {
     CTH_CRITICAL(!cmd.insideRendering(), "the command buffer must be inside a rendering") {}
 
     VkExtent2D const extent{
@@ -388,13 +459,17 @@ void Imgui::draw(jvk::Stage& stage, dev::cmd_buffer auto& cmd, ImDrawData const&
     if(drawData.TotalVtxCount == 0 || extent.width == 0 || extent.height == 0)
         return;
 
-    auto const& state = *_state;
+    auto& state = *_state;
     cvk::Core const& vk = *state.core;
 
-    auto const vertexCount = static_cast<size_t>(drawData.TotalVtxCount);
-    auto const indexCount = static_cast<size_t>(drawData.TotalIdxCount);
-    jvk::Buffer<ImDrawVert> vertices{vk, VERTEX_CONFIG, vertexCount};
-    jvk::Buffer<ImDrawIdx> indices{vk, INDEX_CONFIG, indexCount};
+    // the gpu finished the frame before in the slot: its buffers are free to overwrite
+    auto const frameSlots = stage.graph().config().frameSlots;
+    while(state.drawBuffers.size() < frameSlots)
+        state.drawBuffers.emplace_back(vk);
+    auto& [vertices, indices] = state.drawBuffers[stage.slot()];
+
+    reserve(vk, vertices, VERTEX_CONFIG, static_cast<size_t>(drawData.TotalVtxCount));
+    reserve(vk, indices, INDEX_CONFIG, static_cast<size_t>(drawData.TotalIdxCount));
     write_lists(vertices, drawData.CmdLists, &ImDrawList::VtxBuffer);
     write_lists(indices, drawData.CmdLists, &ImDrawList::IdxBuffer);
 
@@ -453,9 +528,6 @@ void Imgui::draw(jvk::Stage& stage, dev::cmd_buffer auto& cmd, ImDrawData const&
         firstIndex += static_cast<uint32_t>(list->IdxBuffer.Size);
         firstVertex += list->VtxBuffer.Size;
     }
-
-    stage.retain(std::move(vertices));
-    stage.retain(std::move(indices));
 }
 
 ImTextureRef Imgui::texture(jvk::heap_idx<jvk::SampledImage> imageIdx) const {
@@ -467,8 +539,8 @@ Imgui& Imgui::operator=(Imgui&&) noexcept = default;
 
 template void Imgui::upload(jvk::Stage&, jvk::PrimaryCmdBuffer&, ImDrawData&);
 template void Imgui::upload(jvk::Stage&, jvk::SecondaryCmdBuffer&, ImDrawData&);
-template void Imgui::draw(jvk::Stage&, jvk::PrimaryCmdBuffer&, ImDrawData const&) const;
-template void Imgui::draw(jvk::Stage&, jvk::SecondaryCmdBuffer&, ImDrawData const&) const;
+template void Imgui::draw(jvk::Stage&, jvk::PrimaryCmdBuffer&, ImDrawData const&);
+template void Imgui::draw(jvk::Stage&, jvk::SecondaryCmdBuffer&, ImDrawData const&);
 }
 
 namespace timgui {
