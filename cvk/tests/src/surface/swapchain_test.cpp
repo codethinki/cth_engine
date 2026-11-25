@@ -19,7 +19,6 @@
 #include <array>
 #include <chrono>
 #include <limits>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -49,7 +48,7 @@ namespace {
     }
 
     /**
-     * acquires an image, clears it and presents it
+     * acquires an image, clears it and presents it, waits for its present fence
      * @return result of `Swapchain::present()`
      */
     VkResult present_cleared_image(test::PresentContext const& context, Swapchain& swapchain) {
@@ -107,8 +106,17 @@ namespace {
         );
         auto const presented = swapchain.present(*index);
         fence.wait();
+        // not pending afterwards: the next present of the image and the destruction need it
+        swapchain.presentFence(*index).wait();
 
         return presented;
+    }
+
+    /**
+     * reports a failure without an enqueue: nothing presents, the fence and the semaphore stay
+     */
+    VKAPI_ATTR VkResult VKAPI_CALL unenqueued_present(VkQueue, VkPresentInfoKHR const*) {
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 
     /**
@@ -278,22 +286,74 @@ CVK_TEST(Swapchain, old_swapchain_presents_its_acquired_image) {
     )
         << "present result: " << presented;
     fence.wait();
+    // the destruction waits for no present fence
+    old.presentFence(*index).wait();
 
     old.destroy();
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }
 
-CVK_TEST(Swapchain, presented_once_the_presents_ended) {
+CVK_TEST(Swapchain, present_fences_are_created_signaled) {
     test::PresentContext const context{};
     Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
-    // the present fences are created signaled
-    EXPECT_TRUE(swapchain.presented());
+    for(uint32_t i = 0; i < swapchain.imageCount(); ++i)
+        EXPECT_TRUE(swapchain.presentFence(i).signaled());
 
+    // the present resets the fence of its image, the presentation engine signals it again
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-    // the headless surface completes presents at once, the bound only ends a broken loop
-    for(uint32_t i = 0; i < 1000 && !swapchain.presented(); ++i)
-        std::this_thread::sleep_for(std::chrono::milliseconds{1});
-    EXPECT_TRUE(swapchain.presented());
+    for(uint32_t i = 0; i < swapchain.imageCount(); ++i)
+        EXPECT_TRUE(swapchain.presentFence(i).signaled());
+}
+
+CVK_TEST(Swapchain, present_after_a_present_that_was_not_enqueued) {
+    test::PresentContext const context{};
+    Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
+    Semaphore const acquired{context.core, create};
+    auto const [result, index] = swapchain.acquire(acquired);
+    ASSERT_TRUE(index.has_value());
+
+    CmdPool const pool{context.core, test::pool_config(context.core), create};
+    PrimaryCmdBuffer cmd{pool, create};
+    cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    Barrier toPresent{};
+    toPresent.addTransition(
+        swapchain.image(*index),
+        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        VK_IMAGE_LAYOUT_UNDEFINED
+    );
+    toPresent.execute(cmd);
+    cmd.end();
+    Fence const fence{context.core, create};
+    context.queue().submit(
+        {
+            .cmdBuffers = {cmd},
+            .waits = {{acquired, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT}},
+            .signals = {swapchain.presentSemaphore(*index)},
+        },
+        &fence
+    );
+
+    // the core reads the device table at each call: the present fails without an enqueue
+    auto* const table = const_cast<VolkDeviceTable*>(context.core.functions());
+    auto const realQueuePresent = std::exchange(table->vkQueuePresentKHR, unenqueued_present);
+    try {
+        static_cast<void>(swapchain.present(*index));
+        ADD_FAILURE() << "the present must throw";
+    }
+    catch(vk_result_exception const& e) { EXPECT_EQ(e.vkResult(), VK_ERROR_OUT_OF_HOST_MEMORY); }
+    table->vkQueuePresentKHR = realQueuePresent;
+
+    // the image stays acquired, its semaphore signaled, its fence reset and not pending
+    EXPECT_FALSE(swapchain.presentFence(*index).signaled());
+    auto const presented = swapchain.present(*index);
+    EXPECT_TRUE(presented == VK_SUCCESS || presented == VK_SUBOPTIMAL_KHR)
+        << "present result: " << presented;
+    fence.wait();
+    swapchain.presentFence(*index).wait();
+
+    // no wait in the destruction
+    swapchain.destroy();
+    EXPECT_FALSE(swapchain.created());
 }
 
 CVK_TEST(Swapchain, present_fences_are_exportable) {
@@ -315,7 +375,7 @@ CVK_TEST(Swapchain, present_fences_are_exportable) {
         EXPECT_TRUE(fence.signaled());
     }
 
-    // the presents and the destruction wait for the exported fences
+    // the presents after the export reset the fences, the presentation engine signals them again
     for(uint32_t frame = 0; frame < swapchain.imageCount() + 1; ++frame)
         EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 
@@ -395,11 +455,11 @@ CVK_TEST(Swapchain, move_assignment_destroys_the_old_swapchain) {
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }
 
-CVK_TEST(Swapchain, move_assignment_over_a_swapchain_with_a_present_in_flight) {
+CVK_TEST(Swapchain, move_assignment_over_a_swapchain_after_a_present) {
     test::PresentContext const context{};
     auto const other = test::headless_surface(context.instance);
     Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
-    // the move assignment waits for the present fence, then destroys the swapchain
+    // the present fence signaled: the move assignment destroys the swapchain without a wait
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 
     Swapchain moved{context.core, context.queue(), other, {}, EXTENT};

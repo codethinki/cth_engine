@@ -116,7 +116,7 @@ void Swapchain::create(VkExtent2D extent, Swapchain const* oldSwapchainPtr) {
 void Swapchain::destroy() {
     debug_check(*this);
 
-    // the teardown order of the members: the presents end, the images release, the swapchain destroys them
+    // the teardown order of the members: the images release, the swapchain destroys them
     _presentFences.clear();
     _presentSemaphores.clear();
     _views.clear();
@@ -174,9 +174,9 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
 VkResult Swapchain::present(uint32_t imageIndex) {
     debug_check(*this);
 
-    // signaled by the last present of the image or created signaled
+    // not pending: signaled by the last present of the image, created signaled or not enqueued
     auto const& fence = presentFence(imageIndex);
-    fence.waitReset();
+    fence.reset();
 
     auto const vkSwapchain = get();
     auto const vkWaitSemaphore = presentSemaphore(imageIndex).get();
@@ -217,15 +217,6 @@ void Swapchain::unacquire(span<uint32_t const> imageIndices) {
     auto const result = core().functions()->vkReleaseSwapchainImagesKHR(core().vkDevice(), &info);
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to unacquire swapchain images") {}
-}
-
-bool Swapchain::presented() const {
-    debug_check(*this);
-
-    return std::ranges::all_of(
-        _presentFences,
-        [](WaitingFence const& presentFence) { return presentFence.fence.signaled(); }
-    );
 }
 
 void destroy(DeviceTable table, VkSwapchainKHR vkSwapchain) {
@@ -292,12 +283,10 @@ void Swapchain::createImages() {
     for(uint32_t i = 0; i < count; ++i) {
         _presentSemaphores.emplace_back(core(), cvk::create);
         _presentFences.emplace_back(
-            Fence{
-                core(),
-                cvk::create,
-                VK_FENCE_CREATE_SIGNALED_BIT,
-                constants::OS_FENCE_HANDLE_TYPE
-            }
+            core(),
+            cvk::create,
+            VK_FENCE_CREATE_SIGNALED_BIT,
+            constants::OS_FENCE_HANDLE_TYPE
         );
     }
 }

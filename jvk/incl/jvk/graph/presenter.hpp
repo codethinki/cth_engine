@@ -18,6 +18,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <span>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -116,10 +117,19 @@ public:
      * - waits until every image acquired before is handed back: the presents follow the acquire
      *   order
      * - waits for the end of a fallback of `acquire()`
+     * - waits for the present fence of the image while the last present of the image left it
+     *   pending: the present resets it
      * - one `vkQueuePresentKHR()` in the strand of the queue, see `Queue::present()`
      * - ends after `vkQueuePresentKHR()`
      * - never throws: the next `acquire()` rethrows the first failure,
      *   `VK_ERROR_OUT_OF_DATE_KHR` -> it returns `std::nullopt`
+     * @details the fence of the present:
+     * - pending once the present is enqueued: `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` and the rejected
+     *   presents `VK_ERROR_OUT_OF_DATE_KHR`, `VK_ERROR_SURFACE_LOST_KHR`,
+     *   `VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT`, `VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT`,
+     *   see `vkQueuePresentKHR()`
+     * - another failure enqueues nothing: the image stays acquired and its acquire semaphore
+     *   held, `finished()` stays `false`
      * @pre the image is of this presenter
      * @pre the image is in `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
      * @pre a submitted batch signals `AcquiredImage::presentSemaphore()`, after the uses of the
@@ -149,12 +159,20 @@ public:
     /**
      * checks without a wait that the presenter has no work left
      * @return every `AcquiredImage` is handed back, no present is pending, every ready point is
-     *  reached, every present fence of the swapchain is signaled
+     *  reached, no present fence is pending, every present was enqueued
      * @pre no `acquire()` runs at the same time: a present of its image resets a present fence
      * @throws cvk::vk_result_exception result of `vkGetSemaphoreCounterValue()` or
      *  `vkGetFenceStatus()`
      */
     [[nodiscard]] bool finished() const;
+
+    /**
+     * blocks until no present fence of the swapchain is pending
+     * @details for the teardown: `cvk::Swapchain::destroy()` waits for no fence
+     * @pre no `present()` runs at the same time
+     * @throws cvk::vk_result_exception result of `vkWaitForFences()`, e.g. `VK_ERROR_DEVICE_LOST`
+     */
+    void waitPresents();
 
     [[nodiscard]] constexpr Queue& queue() const { return *_queue; }
     [[nodiscard]] constexpr cvk::Swapchain& swapchain() const { return *_swapchain; }
@@ -222,7 +240,16 @@ private:
      */
     [[nodiscard]] size_t awaitPresentFence();
 
-    [[nodiscard]] bool reached(reuse_t const&) const;
+    /**
+     * @return the images whose present fence is pending, locks
+     */
+    [[nodiscard]] std::vector<uint32_t> pendingFences() const;
+
+    /**
+     * blocks until the present fences of the images signaled, then counts them as not pending
+     * @pre no present of the images runs at the same time: it resets the fence
+     */
+    void waitPresents(std::span<uint32_t const> imageIndices);
 
     /**
      * @return the failure of a present, `nullptr` -> none, the presenter forgets it
@@ -269,6 +296,16 @@ private:
     cth::dt::flat_hash_set<uint64_t> _handedBackAhead{};
     /** acquired from the swapchain, not presented or released: the images of callers and spares */
     uint32_t _acquiredImages = 0;
+    /**
+     * per image: an enqueued present left its fence pending, the fence did not signal since
+     * @details the swapchain resets the fence at the next present: the present waits for it first
+     */
+    std::vector<bool> _pendingFences;
+    /**
+     * presents that failed without an enqueue: their images stay acquired, no end of the gpu work
+     * of their submits is known
+     */
+    uint32_t _unenqueuedPresents = 0;
     uint64_t _presentsStarted = 0;
     uint64_t _fallbacks = 0; ///< count of the started fallbacks
     bool _fallback = false; ///< a fallback runs

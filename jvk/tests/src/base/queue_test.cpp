@@ -601,8 +601,10 @@ JVK_TEST(Queue, present_after_the_submit_of_the_present_semaphore) {
 
         EXPECT_TRUE(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
             << "present result: " << result;
-        // the acquire semaphore goes after the gpu waited for it
+        // the acquire semaphore goes after the gpu waited for it, the next present of the image
+        // and the destruction need the present fence signaled
         static_cast<cvk::TimelineSemaphore const&>(presented).wait(value);
+        swapchain.presentFence(*imageIdxOpt).wait();
     }
 }
 }

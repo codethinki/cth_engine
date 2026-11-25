@@ -118,10 +118,12 @@ public:
     void create(VkExtent2D extent, Swapchain const* oldSwapchainPtr = nullptr);
 
     /**
-     * waits for the present fences, destroys the swapchain and forgets
+     * destroys the swapchain and forgets
      * @details destroys the views, present semaphores and present fences, the swapchain destroys its images
      * @pre `created()`
-     * @pre no present semaphore is signaled without its present
+     * @pre no present fence is pending: the presentation engine took its reference to the payloads
+     * @pre the submits that signal the present semaphores completed:
+     *  VUID-vkDestroySemaphore-semaphore-05149
      */
     void destroy();
 
@@ -134,10 +136,10 @@ public:
     }
 
     /**
-     * waits for the present fences, releases ownership, returns the state and forgets
+     * releases ownership, returns the state and forgets
      * @details destroys the views, present semaphores and present fences
      * @pre `created()`
-     * @pre no present semaphore is signaled without its present
+     * @pre the preconditions of `destroy()` for the present fences and semaphores
      */
     State release();
 
@@ -157,10 +159,11 @@ public:
     /**
      * presents the image once its present semaphore signals
      * @return `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` or `VK_ERROR_OUT_OF_DATE_KHR`
-     * @details waits for the present fence of the last present of the image first, the present
-     *  signals it again, see `presentFence()`
+     * @details resets the present fence of the image, the present signals it, see `presentFence()`
      * @details `VK_ERROR_OUT_OF_DATE_KHR` -> the present still waits for the semaphore
      * @pre the image is acquired
+     * @pre the present fence of the image is not pending: signaled, or reset by a present that was
+     *  not enqueued, see `vkQueuePresentKHR()`
      * @pre a submit signals `presentSemaphore()` of the image
      * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
      */
@@ -190,13 +193,6 @@ public:
         uint32_t minImageCount,
         VkSurfaceCapabilitiesKHR const&
     );
-
-    /**
-     * @return every present fence is signaled: the presentation engine finished the presents
-     * @details reads the fence status, one `vkGetFenceStatus()` per image
-     * @pre `created()`
-     */
-    [[nodiscard]] bool presented() const;
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkSwapchainKHR get() const { return _handle.get(); }
@@ -245,16 +241,17 @@ public:
     /**
      * @return the fence that the last present of the image signals, created signaled
      * @details exportable with `constants::OS_FENCE_HANDLE_TYPE`
+     * @details the swapchain waits on none of them: the caller knows which ones are pending
      * @pre `imageIndex < imageCount()`
      * @see `Fence::extractOsHandle()`
      */
     [[nodiscard]] constexpr Fence const& presentFence(uint32_t imageIndex) const {
-        return _presentFences[imageIndex].fence;
+        return _presentFences[imageIndex];
     }
 
 private:
-    // the element wrappers: = default moves of the swapchain tear down in the member order, the
-    // swapchain destroys its images itself, the present fences must signal before their destruction
+    // the element wrapper: = default moves of the swapchain tear down in the member order, the
+    // swapchain destroys its images itself
     /**
      * the destruction releases the image, it does not destroy it: the swapchain destroys its images
      */
@@ -272,21 +269,6 @@ private:
         ReleasingImage& operator=(ReleasingImage&& other) noexcept = default;
     };
 
-    /** the destruction waits for the present that signals the fence */
-    struct WaitingFence {
-        explicit WaitingFence(Fence fence) : fence{std::move(fence)} {}
-        ~WaitingFence() {
-            if(fence.created())
-                fence.wait();
-        }
-
-        Fence fence;
-
-        // the user-declared destructor suppresses the implicit moves
-        WaitingFence(WaitingFence&& other) noexcept = default;
-        WaitingFence& operator=(WaitingFence&& other) noexcept = default;
-    };
-
     [[nodiscard]] std::pair<VkSurfaceFormatKHR, VkPresentModeKHR> pick(Config const&) const;
 
     void createImages();
@@ -297,9 +279,9 @@ private:
     cth::ref_wrapper<Surface const> _surface;
     Config _config;
 
-    // the objects of the images before the handle, in the order of their teardown: = default moves wait for the
-    // presents, release the images, destroy the views and semaphores, then the swapchain
-    std::vector<WaitingFence> _presentFences{};
+    // the objects of the images before the handle, in the order of their teardown: = default moves destroy the
+    // fences and semaphores, release the images, destroy the views, then the swapchain
+    std::vector<Fence> _presentFences{};
     std::vector<Semaphore> _presentSemaphores{};
     std::vector<ImageView> _views{};
     std::vector<ReleasingImage> _images{};

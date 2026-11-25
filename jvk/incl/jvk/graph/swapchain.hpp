@@ -116,10 +116,15 @@ public:
 
     /**
      * destroys every presenter and its swapchain and forgets
-     * @details the oldest first, the presenter before its swapchain
+     * @details
+     * - the oldest first, the presenter before its swapchain
+     * - waits for the pending present fences first, see `Presenter::waitPresents()`
+     * - a failed wait does not stop the destruction, e.g. `VK_ERROR_DEVICE_LOST`
      * @pre `created()`
-     * @pre the preconditions of `~Presenter()` and of `cvk::Swapchain::destroy()` for every
-     *  swapchain
+     * @pre no `Presenter::present()` runs
+     * @pre the preconditions of `~Presenter()` for every presenter
+     * @pre the submits that signal the present semaphores completed, see
+     *  `cvk::Swapchain::destroy()`
      */
     void destroy();
 
@@ -133,7 +138,7 @@ public:
 
     /**
      * destroys the finished retired swapchains, then acquires the next image of the current one
-     * @details finished: `Presenter::finished()`, from the oldest on
+     * @details finished: `Presenter::finished()`, from the oldest on: no present fence is pending
      * @details erases the images of a destroyed swapchain in the graph, see `StageGraph::erase()`
      * @details the current swapchain retired by a failed `recreate()` -> `std::nullopt`
      * @param graphPtr of the images, `nullptr` -> none

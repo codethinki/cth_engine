@@ -205,6 +205,13 @@ namespace {
         return Result;
     }
 
+    /**
+     * reports a failure without an enqueue: nothing presents, the fence and the semaphores stay
+     */
+    VKAPI_ATTR VkResult VKAPI_CALL unenqueued_present(VkQueue, VkPresentInfoKHR const*) {
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
     /** count of the calls of `out_of_date_acquire()` */
     std::atomic<size_t> outOfDateAcquires = 0;
 
@@ -647,6 +654,84 @@ JVK_TEST(Presenter, failed_present_arrives_once_at_the_next_acquire) {
     auto imageOpt = acquire(core, presenter);
     ASSERT_TRUE(imageOpt.has_value());
     submits.present(presenter, std::move(*imageOpt));
+}
+
+JVK_TEST(Presenter, present_without_an_enqueue_leaves_no_fence_pending) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
+
+    {
+        PresentHook const hook{core, unenqueued_present};
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        EXPECT_NO_THROW(submits.present(presenter, std::move(*imageOpt)));
+    }
+
+    try {
+        [[maybe_unused]] auto const imageOpt = acquire(core, presenter);
+        ADD_FAILURE() << "the acquire must rethrow the failure of the present";
+    }
+    catch(cvk::vk_result_exception const& e) {
+        EXPECT_EQ(e.vkResult(), VK_ERROR_OUT_OF_HOST_MEMORY);
+    }
+
+    // the image stays acquired: the presenter has work left, no fence of it is pending
+    EXPECT_FALSE(presenter.finished());
+    fencesHeld = false;
+    fenceWaits = 0;
+    {
+        auto& table = device_table(core);
+        Hook const wait{table.vkWaitForFences, releasing_fence_wait, realWaitForFences};
+        presenter.waitPresents();
+    }
+    EXPECT_EQ(fenceWaits, 0);
+
+    // the other images still present, the teardown waits for no fence of the failed present
+    auto nextOpt = acquire(core, presenter);
+    ASSERT_TRUE(nextOpt.has_value());
+    submits.present(presenter, std::move(*nextOpt));
+    presenter.waitPresents();
+}
+
+JVK_TEST(Presenter, rejected_present_leaves_its_fence_pending) {
+    test::Context const context{};
+    auto const surface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, surface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    Presenter presenter{queue, swapchain, 2};
+    Submits submits{core, queue};
+
+    // the presentation engine rejects the present: it is enqueued, its fence signals
+    {
+        PresentHook const hook{core, failing_present<VK_ERROR_SURFACE_LOST_KHR>};
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        submits.present(presenter, std::move(*imageOpt));
+    }
+
+    fencesHeld = false;
+    fenceWaits = 0;
+    {
+        auto& table = device_table(core);
+        Hook const wait{table.vkWaitForFences, releasing_fence_wait, realWaitForFences};
+        presenter.waitPresents();
+    }
+    EXPECT_EQ(fenceWaits, 1);
+    EXPECT_TRUE(presenter.finished());
 }
 
 JVK_TEST(Presenter, out_of_date_present_gives_no_image_from_then_on) {

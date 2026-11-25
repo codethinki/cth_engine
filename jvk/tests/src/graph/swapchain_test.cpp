@@ -46,12 +46,7 @@ namespace {
     }
 
     /** the functions of the device table before the hooks */
-    PFN_vkGetFenceStatus realGetFenceStatus = nullptr;
     PFN_vkCreateSwapchainKHR realCreateSwapchain = nullptr;
-
-    VKAPI_ATTR VkResult VKAPI_CALL unsignaled_fence_status(VkDevice, VkFence) {
-        return VK_NOT_READY;
-    }
 
     VKAPI_ATTR VkResult VKAPI_CALL failing_create_swapchain(
         VkDevice,
@@ -116,30 +111,24 @@ JVK_TEST(Swapchain, acquire_destroys_the_finished_retired_swapchains) {
 
     Swapchain swapchain{core, core.queue(0), surface, 2};
     swapchain.create({}, EXTENT);
+    auto& oldPresenter = swapchain.presenter();
 
-    // a spare of the retired presenter: it finished, its destruction releases the spare
+    // an image of the retired presenter is not handed back: it did not finish
     auto oldImageOpt = acquire(core, swapchain);
     ASSERT_TRUE(oldImageOpt.has_value());
-    swapchain.presenter().drop(std::move(*oldImageOpt));
     swapchain.recreate({32, 32});
+    auto firstOpt = acquire(core, swapchain);
+    ASSERT_TRUE(firstOpt.has_value());
     EXPECT_EQ(swapchain.retired(), 1);
 
-    // the present fences count as unsignaled: the retired presenter did not finish
-    {
-        auto& table = device_table(core);
-        realGetFenceStatus = std::exchange(table.vkGetFenceStatus, unsignaled_fence_status);
-        auto imageOpt = acquire(core, swapchain);
-        table.vkGetFenceStatus = realGetFenceStatus;
-        ASSERT_TRUE(imageOpt.has_value());
-        swapchain.presenter().drop(std::move(*imageOpt));
-    }
-    EXPECT_EQ(swapchain.retired(), 1);
-
-    auto imageOpt = acquire(core, swapchain);
-    ASSERT_TRUE(imageOpt.has_value());
+    // handed back as a spare: the retired presenter finished, its destruction releases the spare
+    oldPresenter.drop(std::move(*oldImageOpt));
+    auto secondOpt = acquire(core, swapchain);
+    ASSERT_TRUE(secondOpt.has_value());
     EXPECT_EQ(swapchain.retired(), 0);
-    swapchain.presenter().drop(std::move(*imageOpt));
 
+    swapchain.presenter().drop(std::move(*firstOpt));
+    swapchain.presenter().drop(std::move(*secondOpt));
     swapchain.destroy();
     EXPECT_FALSE(swapchain.created());
 }

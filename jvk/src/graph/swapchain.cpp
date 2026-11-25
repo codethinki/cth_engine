@@ -2,6 +2,7 @@
 
 #include "jvk/base/queue.hpp"
 #include "jvk/graph/stage_graph.hpp"
+#include "jvk/utility/exception.hpp"
 
 #include "cvk/base/core.hpp"
 #include "cvk/surface/surface.hpp"
@@ -80,8 +81,19 @@ void Swapchain::destroy() {
     debug_check(*this);
 
     // the oldest first: the retired swapchains end before the current one
-    while(!_swapchains.empty())
+    while(!_swapchains.empty()) {
+        // the swapchain destroys its present fences without a wait, a failed wait does not stop
+        // the destruction: the device is lost
+        try { _swapchains.front().presenter.waitPresents(); }
+        catch(cvk::vk_result_exception const& e) {
+            JVK_STABLE_ERR(
+                true,
+                "failed to wait for the present fences in destroy(), got {}",
+                e.vkResult()
+            ) {}
+        }
         _swapchains.pop_front();
+    }
     _currentRetired = false;
 }
 

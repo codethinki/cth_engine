@@ -11,7 +11,9 @@
 #include <cth/coro/scheduler.hpp>
 
 #include <algorithm>
+#include <array>
 #include <ranges>
+#include <span>
 #include <utility>
 
 
@@ -34,13 +36,26 @@ namespace {
     [[nodiscard]] constexpr bool holds(auto const& variant) {
         return std::holds_alternative<T>(variant);
     }
+
+    /**
+     * @return the queue operations of the present are enqueued: its fence signals
+     * @details the rejected presents too: "the set of queue operations is still considered to be
+     *  enqueued", see `vkQueuePresentKHR()`
+     */
+    [[nodiscard]] constexpr bool enqueued(VkResult result) {
+        return result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR
+            || result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_ERROR_SURFACE_LOST_KHR
+            || result == VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT
+            || result == VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT;
+    }
 }
 
 Presenter::Presenter(Queue& presentQueue, cvk::Swapchain& swapchain, uint32_t framesInFlight) :
     _queue{presentQueue},
     _swapchain{swapchain},
     _blockingAcquireLimit{blocking_acquire_limit(swapchain)},
-    _reuses(framesInFlight, Free{}) {
+    _reuses(framesInFlight, Free{}),
+    _pendingFences(swapchain.imageCount(), false) {
     CTH_CRITICAL(framesInFlight == 0, "framesInFlight must be > 0") {}
 
     _acquireSemaphores.reserve(framesInFlight);
@@ -121,14 +136,17 @@ cth::co::executor_task<void> Presenter::present(AcquiredImage image) {
     // the images acquired before first: the presents follow the acquire order
     co_await _handedBack.wait(acquireNumber - 1);
 
+    bool fencePending = false;
     for(;;) {
         uint64_t fallbackValue = 0;
         {
             std::scoped_lock const lock{_mutex};
             if(_fallback)
                 fallbackValue = _fallbacks;
-            else
+            else {
                 ++_presentsStarted;
+                fencePending = _pendingFences[imageIdx];
+            }
         }
         if(fallbackValue == 0)
             break;
@@ -137,14 +155,31 @@ cth::co::executor_task<void> Presenter::present(AcquiredImage image) {
 
     VkResult result = VK_ERROR_UNKNOWN;
     std::exception_ptr error = nullptr;
-    try { result = co_await _queue->present(*_swapchain, imageIdx); }
+    try {
+        // the present resets the fence: the last present of the image signals it first
+        if(fencePending)
+            waitPresents(std::array{imageIdx});
+        result = co_await _queue->present(*_swapchain, imageIdx);
+    }
+    catch(cvk::vk_result_exception const& e) {
+        result = e.vkResult();
+        error = std::current_exception();
+    }
     catch(...) { error = std::current_exception(); }
 
     std::scoped_lock const lock{_mutex};
-    // a failed present counts too: nothing presents the image again
-    --_acquiredImages;
-    if(auto const* const semaphorePtr = std::get_if<cth::ref_wrapper<cvk::Semaphore const>>(&wait))
-        _reuses[semaphoreIdx(**semaphorePtr)] = Presented{imageIdx};
+    if(enqueued(result)) {
+        // the present ends the acquire, its fence signals once the presentation engine has the
+        // references
+        _pendingFences[imageIdx] = true;
+        --_acquiredImages;
+        if(auto const* const semaphorePtr =
+            std::get_if<cth::ref_wrapper<cvk::Semaphore const>>(&wait))
+            _reuses[semaphoreIdx(**semaphorePtr)] = Presented{imageIdx};
+    } else
+        // not enqueued: the image stays acquired, the acquire semaphore stays held, no end of the
+        // gpu work of its submit is known
+        ++_unenqueuedPresents;
 
     if(error != nullptr) {
         if(_error == nullptr)
@@ -172,11 +207,16 @@ void Presenter::drop(AcquiredImage image, SemaphoreSubmitInfo ready) {
 
 bool Presenter::finished() const {
     std::vector<SemaphoreSubmitInfo> readyPoints{};
+    std::vector<uint32_t> pendingIndices{};
     {
         std::scoped_lock const lock{_mutex};
         // a present hands back after vkQueuePresentKHR()
-        if(_handedBack.value() != _acquires)
+        if(_handedBack.value() != _acquires || _unenqueuedPresents != 0)
             return false;
+
+        for(uint32_t imageIdx = 0; imageIdx < _pendingFences.size(); ++imageIdx)
+            if(_pendingFences[imageIdx])
+                pendingIndices.push_back(imageIdx);
 
         for(auto const& reuse : _reuses)
             if(auto const* const readyPtr = std::get_if<SemaphoreSubmitInfo>(&reuse))
@@ -193,8 +233,13 @@ bool Presenter::finished() const {
                 return ready.semaphore->gpuValue() >= ready.value;
             }
         )
-        && _swapchain->presented();
+        && std::ranges::all_of(
+            pendingIndices,
+            [this](uint32_t imageIdx) { return _swapchain->presentFence(imageIdx).signaled(); }
+        );
 }
+
+void Presenter::waitPresents() { waitPresents(pendingFences()); }
 
 cth::co::executor_task<Presenter::try_t> Presenter::tryInStrand() {
     // the strand serializes the tries and the presents of the presenter, a try starts the fallback
@@ -273,8 +318,7 @@ cth::co::executor_task<std::optional<Presenter::AcquiredImage>> Presenter::fallb
         else if(!spare) {
             // the presents before reach the presentation engine first, it can give their images
             // back: no present resets a fence during the fallback
-            for(uint32_t imageIdx = 0; imageIdx < _swapchain->imageCount(); ++imageIdx)
-                _swapchain->presentFence(imageIdx).wait();
+            waitPresents(pendingFences());
             acquiredOpt = _swapchain->acquire(_acquireSemaphores[*semaphoreIdxOpt], 0);
         }
     }
@@ -309,15 +353,33 @@ cth::co::executor_task<std::optional<Presenter::AcquiredImage>> Presenter::fallb
 
 std::optional<size_t> Presenter::recycle() {
     std::vector<reuse_t> reuses{};
+    std::vector<bool> pendingFences{};
     {
         std::scoped_lock const lock{_mutex};
         auto const freeIt = std::ranges::find_if(_reuses, holds<Free, reuse_t>);
         if(freeIt != _reuses.end())
             return static_cast<size_t>(freeIt - _reuses.begin());
         reuses = _reuses;
+        pendingFences = _pendingFences;
     }
 
     // no vulkan call behind the mutex, only the recycle frees a presented or dropped semaphore
+    std::vector<uint32_t> signaledIndices{};
+    auto const reached = [&](reuse_t const& reuse) {
+        if(auto const* const presentedPtr = std::get_if<Presented>(&reuse)) {
+            auto const imageIdx = presentedPtr->imageIdx;
+            if(!pendingFences[imageIdx])
+                return true;
+            if(!_swapchain->presentFence(imageIdx).signaled())
+                return false;
+            signaledIndices.push_back(imageIdx);
+            return true;
+        }
+        if(auto const* const readyPtr = std::get_if<SemaphoreSubmitInfo>(&reuse))
+            return readyPtr->semaphore->gpuValue() >= readyPtr->value;
+        return false;
+    };
+
     std::optional<size_t> semaphoreIdxOpt = std::nullopt;
     for(size_t i = 0; i < reuses.size(); ++i)
         if(reached(reuses[i])) {
@@ -331,6 +393,9 @@ std::optional<size_t> Presenter::recycle() {
     for(size_t i = 0; i < reuses.size(); ++i)
         if(holds<Free>(reuses[i]))
             _reuses[i] = Free{};
+    // in the strand or the fallback: no present of the images reset the fences since the reads
+    for(auto const imageIdx : signaledIndices)
+        _pendingFences[imageIdx] = false;
     return semaphoreIdxOpt;
 }
 
@@ -349,8 +414,9 @@ size_t Presenter::awaitPresentFence() {
             ) {}
             imageIdx = std::get<Presented>(*presentedIt).imageIdx;
         }
-        // the fallback holds the presents back: no reset of the fence during the wait
-        _swapchain->presentFence(imageIdx).wait();
+        // the fallback holds the presents back: no reset of the fence during the wait, a fence
+        // that is not pending is free at the next recycle
+        waitPresents(std::array{imageIdx});
     }
 }
 
@@ -359,12 +425,23 @@ std::exception_ptr Presenter::takeError() {
     return std::exchange(_error, nullptr);
 }
 
-bool Presenter::reached(reuse_t const& reuse) const {
-    if(auto const* const presentedPtr = std::get_if<Presented>(&reuse))
-        return _swapchain->presentFence(presentedPtr->imageIdx).signaled();
-    if(auto const* const readyPtr = std::get_if<SemaphoreSubmitInfo>(&reuse))
-        return readyPtr->semaphore->gpuValue() >= readyPtr->value;
-    return false;
+std::vector<uint32_t> Presenter::pendingFences() const {
+    std::scoped_lock const lock{_mutex};
+    std::vector<uint32_t> imageIndices{};
+    for(uint32_t imageIdx = 0; imageIdx < _pendingFences.size(); ++imageIdx)
+        if(_pendingFences[imageIdx])
+            imageIndices.push_back(imageIdx);
+    return imageIndices;
+}
+
+void Presenter::waitPresents(std::span<uint32_t const> imageIndices) {
+    // no vulkan call behind the mutex
+    for(auto const imageIdx : imageIndices)
+        _swapchain->presentFence(imageIdx).wait();
+
+    std::scoped_lock const lock{_mutex};
+    for(auto const imageIdx : imageIndices)
+        _pendingFences[imageIdx] = false;
 }
 
 auto Presenter::handOut(uint32_t imageIdx, wait_t wait) -> AcquiredImage {
