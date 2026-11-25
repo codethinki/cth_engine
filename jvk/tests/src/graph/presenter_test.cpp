@@ -78,7 +78,7 @@ namespace {
     /**
      * @return the acquire semaphore of the wait of the image, `nullptr` -> a ready point
      */
-    [[nodiscard]] cvk::Semaphore const* acquire_semaphore(Presenter::Image const& image) {
+    [[nodiscard]] cvk::Semaphore const* acquire_semaphore(Presenter::AcquiredImage const& image) {
         auto const* const semaphorePtr =
             std::get_if<cth::ref_wrapper<cvk::Semaphore const>>(&image.wait());
         return semaphorePtr != nullptr ? &semaphorePtr->get() : nullptr;
@@ -88,7 +88,11 @@ namespace {
      * adds the wait of the image and the gate to the submit
      * @param gatePtr `nullptr` -> no gate, else the submit waits for its value `1`
      */
-    void add_waits(SubmitInfo& info, Presenter::Image const& image, Semaphore const* gatePtr) {
+    void add_waits(
+        SubmitInfo& info,
+        Presenter::AcquiredImage const& image,
+        Semaphore const* gatePtr
+    ) {
         if(gatePtr != nullptr)
             info.waits.push_back({.semaphore = *gatePtr, .value = 1});
         if(auto const* const semaphorePtr = acquire_semaphore(image))
@@ -114,7 +118,7 @@ namespace {
          * present semaphore
          * @param gatePtr `nullptr` -> no gate, else the submit waits for its value `1` too
          */
-        void transition(Presenter::Image const& image, Semaphore const* gatePtr = nullptr) {
+        void transition(Presenter::AcquiredImage const& image, Semaphore const* gatePtr = nullptr) {
             auto& cmd = cmds.emplace_back(*core, queue->vk().familyIndex(), cvk::create);
             cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
             cvk::Barrier barrier{};
@@ -145,7 +149,7 @@ namespace {
          * @return the signal of the submit, the ready point of a drop
          */
         [[nodiscard]] SemaphoreSubmitInfo ready(
-            Presenter::Image const& image,
+            Presenter::AcquiredImage const& image,
             Semaphore const* gatePtr = nullptr
         ) {
             SemaphoreSubmitInfo const signal{.semaphore = done, .value = done.next()};
@@ -158,7 +162,7 @@ namespace {
         /**
          * transitions and presents the image
          */
-        void present(Presenter& presenter, Presenter::Image image) {
+        void present(Presenter& presenter, Presenter::AcquiredImage image) {
             transition(image);
             core->executor().sync_wait(presenter.present(std::move(image)));
         }
@@ -169,7 +173,10 @@ namespace {
         std::deque<PrimaryCmdBuffer> cmds{};
     };
 
-    [[nodiscard]] std::optional<Presenter::Image> acquire(Core const& core, Presenter& presenter) {
+    [[nodiscard]] std::optional<Presenter::AcquiredImage> acquire(
+        Core const& core,
+        Presenter& presenter
+    ) {
         return core.executor().sync_wait(presenter.acquire());
     }
 
@@ -438,7 +445,7 @@ JVK_TEST(Presenter, ready_point_of_the_last_acquire_semaphore_holds_the_acquire_
     ASSERT_TRUE(spareOpt.has_value());
 
     // no spare, the only acquire semaphore waits for the ready point
-    std::optional<Presenter::Image> nextOpt{};
+    std::optional<Presenter::AcquiredImage> nextOpt{};
     std::binary_semaphore acquiredSignal{0};
     std::jthread acquiring{
         [&] {
@@ -522,7 +529,7 @@ JVK_TEST(Presenter, destructor_releases_the_spares) {
 
     // the spares are back in the swapchain: the next presenter acquires every image
     Presenter presenter{queue, swapchain, imageCount};
-    std::vector<Presenter::Image> images{};
+    std::vector<Presenter::AcquiredImage> images{};
     for(uint32_t i = 0; i < imageCount; ++i) {
         auto imageOpt = acquire(core, presenter);
         ASSERT_TRUE(imageOpt.has_value());
@@ -546,7 +553,7 @@ JVK_TEST(Presenter, not_ready_try_falls_back_until_a_hand_back) {
     Presenter presenter{queue, swapchain, imageCount + 1};
     Submits submits{core, queue};
 
-    std::vector<Presenter::Image> images{};
+    std::vector<Presenter::AcquiredImage> images{};
     for(uint32_t i = 0; i < imageCount; ++i) {
         auto imageOpt = acquire(core, presenter);
         ASSERT_TRUE(imageOpt.has_value());
@@ -554,7 +561,7 @@ JVK_TEST(Presenter, not_ready_try_falls_back_until_a_hand_back) {
     }
 
     // every image is acquired: the try returns VK_NOT_READY, the fallback does not block
-    std::optional<Presenter::Image> nextOpt{};
+    std::optional<Presenter::AcquiredImage> nextOpt{};
     std::binary_semaphore acquiredSignal{0};
     std::jthread acquiring{
         [&] {
@@ -598,7 +605,7 @@ JVK_TEST(Presenter, fallback_waits_for_the_present_fence_of_the_last_acquire_sem
     auto& table = device_table(core);
     fencesHeld = true;
     fenceWaits = 0;
-    std::optional<Presenter::Image> nextOpt{};
+    std::optional<Presenter::AcquiredImage> nextOpt{};
     {
         Hook const status{table.vkGetFenceStatus, held_fence_status, realGetFenceStatus};
         Hook const wait{table.vkWaitForFences, releasing_fence_wait, realWaitForFences};

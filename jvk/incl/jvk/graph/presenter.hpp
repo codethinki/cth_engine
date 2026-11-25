@@ -34,7 +34,7 @@ class Queue;
 /**
  * orchestrates the images of one swapchain
  * @details
- * - `acquire()` hands out an `Image`, `present()` or `drop()` hands it back
+ * - `acquire()` hands out an `AcquiredImage`, `present()` or `drop()` hands it back
  * - the presents follow the acquire order
  * - a dropped image is a spare: the next `acquire()` hands it out first
  * - owns `framesInFlight()` acquire semaphores
@@ -45,7 +45,7 @@ class Queue;
  */
 class Presenter {
 public:
-    class Image;
+    class AcquiredImage;
 
     /**
      * wait of the first use of an image: its acquire semaphore or the ready point of a drop
@@ -70,7 +70,7 @@ public:
     /**
      * releases the spares, destroys the acquire semaphores
      * @details a failed release does not stop the destruction
-     * @pre every `Image` of the presenter is handed back
+     * @pre every `AcquiredImage` of the presenter is handed back
      * @pre no `acquire()` and no `present()` is pending
      * @pre the ready points of the spares are reached:
      *  VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786
@@ -108,7 +108,7 @@ public:
      * @attention a hand back that never comes -> waits forever, e.g. the caller holds
      *  `framesInFlight()` images
      */
-    [[nodiscard]] cth::co::executor_task<std::optional<Image>> acquire();
+    [[nodiscard]] cth::co::executor_task<std::optional<AcquiredImage>> acquire();
 
     /**
      * hands the image back for its present
@@ -122,33 +122,34 @@ public:
      *   `VK_ERROR_OUT_OF_DATE_KHR` -> it returns `std::nullopt`
      * @pre the image is of this presenter
      * @pre the image is in `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
-     * @pre a submitted batch signals `Image::presentSemaphore()`, after the uses of the image and
-     *  after the wait for `Image::wait()`
+     * @pre a submitted batch signals `AcquiredImage::presentSemaphore()`, after the uses of the
+     *  image and after the wait for `AcquiredImage::wait()`
      */
-    [[nodiscard]] cth::co::executor_task<void> present(Image image);
+    [[nodiscard]] cth::co::executor_task<void> present(AcquiredImage image);
 
     /**
      * hands the image back without a present: the image becomes a spare
-     * @details the spare keeps `Image::wait()`
+     * @details the spare keeps `AcquiredImage::wait()`
      * @pre the image is of this presenter
-     * @pre no submitted batch uses the image or waits for `Image::wait()`
+     * @pre no submitted batch uses the image or waits for `AcquiredImage::wait()`
      */
-    void drop(Image image);
+    void drop(AcquiredImage image);
 
     /**
      * hands the image back without a present: the image becomes a spare that waits for the ready
      * point
      * @details the acquire semaphore of the image is free once the ready point is reached
      * @param image to drop
-     * @param ready reached after the uses of the image and after the wait for `Image::wait()`
+     * @param ready reached after the uses of the image and after the wait for
+     *  `AcquiredImage::wait()`
      * @pre the image is of this presenter
      */
-    void drop(Image image, SemaphoreSubmitInfo ready);
+    void drop(AcquiredImage image, SemaphoreSubmitInfo ready);
 
     /**
      * checks without a wait that the presenter has no work left
-     * @return every `Image` is handed back, no present is pending, every ready point is reached,
-     *  every present fence of the swapchain is signaled
+     * @return every `AcquiredImage` is handed back, no present is pending, every ready point is
+     *  reached, every present fence of the swapchain is signaled
      * @pre no `acquire()` runs at the same time: a present of its image resets a present fence
      * @throws cvk::vk_result_exception result of `vkGetSemaphoreCounterValue()` or
      *  `vkGetFenceStatus()`
@@ -194,7 +195,7 @@ private:
     };
 
     /** result of a try: the image, a retry, the ready point to wait for or the fallback */
-    using try_t = std::variant<Image, Retry, SemaphoreSubmitInfo, Fallback>;
+    using try_t = std::variant<AcquiredImage, Retry, SemaphoreSubmitInfo, Fallback>;
 
     /**
      * the semaphore choice and the try in the strand
@@ -205,7 +206,7 @@ private:
     /**
      * @return the image, `std::nullopt` -> retry
      */
-    [[nodiscard]] cth::co::executor_task<std::optional<Image>> fallback(Fallback);
+    [[nodiscard]] cth::co::executor_task<std::optional<AcquiredImage>> fallback(Fallback);
 
     /**
      * frees the acquire semaphores whose ready point or present fence is reached
@@ -240,7 +241,7 @@ private:
     );
 
     // the helpers below lock nothing, the caller holds _mutex
-    [[nodiscard]] Image handOut(uint32_t imageIdx, wait_t wait);
+    [[nodiscard]] AcquiredImage handOut(uint32_t imageIdx, wait_t wait);
     [[nodiscard]] Fallback startFallback(std::optional<size_t> semaphoreIdxOpt);
     void endFallback();
     /** advances `_handedBack` over the hand backs in acquire order */
@@ -291,14 +292,14 @@ public:
 
 namespace jvk {
 /**
- * image of a `Presenter`, handed back exactly once
+ * acquired swapchain image of a `Presenter` while the engine holds it, handed back exactly once
  * @details
  * - `Presenter::present()` or `Presenter::drop()` hands it back, the destruction drops it
  * - the content is undefined: the first use transitions it from `VK_IMAGE_LAYOUT_UNDEFINED`
  * - the first use waits for `wait()`
  * - a moved-from image hands back nothing
  */
-class Presenter::Image {
+class Presenter::AcquiredImage {
 public:
     /**
      * constructs the image of an acquire, `Presenter::acquire()` constructs it
@@ -307,7 +308,7 @@ public:
      * @param acquireNumber order of the acquire, the presents follow it
      * @param wait of the first use
      */
-    Image(Presenter& presenter, uint32_t imageIdx, uint64_t acquireNumber, wait_t wait) :
+    AcquiredImage(Presenter& presenter, uint32_t imageIdx, uint64_t acquireNumber, wait_t wait) :
         _presenter{
             &presenter,
             dropper{.imageIdx = imageIdx, .acquireNumber = acquireNumber, .wait = std::move(wait)}
@@ -366,8 +367,7 @@ public:
     [[nodiscard]] uint64_t acquireNumber() const { return _presenter.get_deleter().acquireNumber; }
 
 private:
-    // the presenter takes the hand back in present() and drop(): a public way to take it would let
-    // a caller skip the hand back
+    // the presenter owns the acquired image: its present() and drop() take the hand back
     friend class Presenter;
 
     /**
@@ -386,17 +386,17 @@ private:
     std::unique_ptr<Presenter, dropper> _presenter; ///< `nullptr` -> handed back or moved from
 
 public:
-    Image(Image const& other) = delete;
-    Image(Image&& other) noexcept = default;
-    Image& operator=(Image const& other) = delete;
-    Image& operator=(Image&& other) noexcept = default;
+    AcquiredImage(AcquiredImage const& other) = delete;
+    AcquiredImage(AcquiredImage&& other) noexcept = default;
+    AcquiredImage& operator=(AcquiredImage const& other) = delete;
+    AcquiredImage& operator=(AcquiredImage&& other) noexcept = default;
 
-    static void debug_check(Image const&);
+    static void debug_check(AcquiredImage const&);
 };
 }
 
 namespace jvk {
-inline void Presenter::Image::debug_check(Image const& image) {
+inline void Presenter::AcquiredImage::debug_check(AcquiredImage const& image) {
     CTH_CRITICAL(image._presenter == nullptr, "the image must not be handed back") {}
 }
 }

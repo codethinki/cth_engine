@@ -66,7 +66,7 @@ Presenter::~Presenter() {
     }
 }
 
-cth::co::executor_task<std::optional<Presenter::Image>> Presenter::acquire() {
+cth::co::executor_task<std::optional<Presenter::AcquiredImage>> Presenter::acquire() {
     if(auto const error = takeError(); error != nullptr)
         std::rethrow_exception(error);
 
@@ -100,7 +100,7 @@ cth::co::executor_task<std::optional<Presenter::Image>> Presenter::acquire() {
         }
 
         auto tried = co_await tryInStrand();
-        if(auto* const imagePtr = std::get_if<Image>(&tried))
+        if(auto* const imagePtr = std::get_if<AcquiredImage>(&tried))
             co_return std::move(*imagePtr);
 
         if(auto const* const readyPtr = std::get_if<SemaphoreSubmitInfo>(&tried))
@@ -113,7 +113,7 @@ cth::co::executor_task<std::optional<Presenter::Image>> Presenter::acquire() {
     }
 }
 
-cth::co::executor_task<void> Presenter::present(Image image) {
+cth::co::executor_task<void> Presenter::present(AcquiredImage image) {
     CTH_CRITICAL(image._presenter.get() != this, "the image must be of this presenter") {}
     auto const [imageIdx, acquireNumber, wait] = image._presenter.get_deleter();
     // the present hands the image back
@@ -158,13 +158,13 @@ cth::co::executor_task<void> Presenter::present(Image image) {
     _presentsDone.set(_presentsDone.value() + 1);
 }
 
-void Presenter::drop(Image image) {
+void Presenter::drop(AcquiredImage image) {
     CTH_CRITICAL(image._presenter.get() != this, "the image must be of this presenter") {}
     // the dropper spares the image
     image._presenter.reset();
 }
 
-void Presenter::drop(Image image, SemaphoreSubmitInfo ready) {
+void Presenter::drop(AcquiredImage image, SemaphoreSubmitInfo ready) {
     CTH_CRITICAL(image._presenter.get() != this, "the image must be of this presenter") {}
     auto const [imageIdx, acquireNumber, wait] = image._presenter.get_deleter();
     static_cast<void>(image._presenter.release());
@@ -243,7 +243,9 @@ cth::co::executor_task<Presenter::try_t> Presenter::tryInStrand() {
     co_return startFallback(semaphoreIdxOpt);
 }
 
-cth::co::executor_task<std::optional<Presenter::Image>> Presenter::fallback(Fallback start) {
+cth::co::executor_task<std::optional<Presenter::AcquiredImage>> Presenter::fallback(
+    Fallback start
+) {
     // no present of the presenter is pending: the blocking acquire waits for no present that the
     // fallback holds back
     co_await _presentsDone.wait(start.presents);
@@ -367,8 +369,8 @@ bool Presenter::reached(reuse_t const& reuse) const {
     return false;
 }
 
-auto Presenter::handOut(uint32_t imageIdx, wait_t wait) -> Image {
-    return Image{*this, imageIdx, ++_acquires, std::move(wait)};
+auto Presenter::handOut(uint32_t imageIdx, wait_t wait) -> AcquiredImage {
+    return AcquiredImage{*this, imageIdx, ++_acquires, std::move(wait)};
 }
 
 auto Presenter::startFallback(std::optional<size_t> semaphoreIdxOpt) -> Fallback {
