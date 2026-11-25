@@ -43,7 +43,7 @@ void Swapchain::destroy() {
 cvk::Swapchain::Acquired Swapchain::acquire(cvk::Semaphore const& signal, uint64_t timeout) {
     debug_check(*this);
 
-    while(retired() != 0 && !_swapchains.front().acquired() && _swapchains.front().presented())
+    while(retired() != 0 && _swapchains.front().presented())
         _swapchains.pop_front();
 
     return current().acquire(signal, timeout);

@@ -25,7 +25,6 @@ namespace jvk {
  * @details
  * - holds the current `cvk::Swapchain` and the retired ones, at stable addresses
  * - `recreate()` creates the next swapchain with the current one as the old swapchain, the old one retires
- * - a retired swapchain still presents its acquired images
  * - `acquire()` destroys the retired swapchains that finished their presents first
  * @attention not thread safe: the surface orders its uses, see `Surface`
  */
@@ -58,6 +57,8 @@ public:
      * creates the next swapchain with the current one as the old swapchain, the old one retires
      * @details with the config of the current swapchain, see `cvk::Swapchain::create()`
      * @pre `created()`
+     * @pre no image of the current swapchain is acquired: `acquire()` destroys a retired
+     *  swapchain once its presents ended
      * @pre the preconditions of `cvk::Swapchain::create()`
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode, the current swapchain
      *  stays
@@ -83,7 +84,7 @@ public:
 
     /**
      * destroys the finished retired swapchains, then acquires the next image of the current swapchain
-     * @details finished: `cvk::Swapchain::presented()` and not `cvk::Swapchain::acquired()`, from the oldest on
+     * @details finished: `cvk::Swapchain::presented()`, from the oldest on
      * @pre `created()`
      * @see `cvk::Swapchain::acquire()`
      */

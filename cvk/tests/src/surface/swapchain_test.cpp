@@ -279,27 +279,17 @@ CVK_TEST(Swapchain, old_swapchain_presents_its_acquired_image) {
         << "present result: " << presented;
     fence.wait();
 
-    EXPECT_FALSE(old.acquired());
     old.destroy();
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }
 
-CVK_TEST(Swapchain, acquired_and_presented) {
+CVK_TEST(Swapchain, presented_once_the_presents_ended) {
     test::PresentContext const context{};
     Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
-    EXPECT_FALSE(swapchain.acquired());
+    // the present fences are created signaled
     EXPECT_TRUE(swapchain.presented());
 
-    Semaphore const acquired{context.core, create};
-    auto const [result, index] = swapchain.acquire(acquired);
-    ASSERT_TRUE(index.has_value());
-    EXPECT_TRUE(swapchain.acquired());
-    swapchain.unacquire(std::array{*index});
-    EXPECT_FALSE(swapchain.acquired());
-    consume(context, acquired);
-
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
-    EXPECT_FALSE(swapchain.acquired());
     // the headless surface completes presents at once, the bound only ends a broken loop
     for(uint32_t i = 0; i < 1000 && !swapchain.presented(); ++i)
         std::this_thread::sleep_for(std::chrono::milliseconds{1});
@@ -336,16 +326,29 @@ CVK_TEST(Swapchain, present_fences_are_exportable) {
 CVK_TEST(Swapchain, unacquire_gives_the_image_back) {
     test::PresentContext const context{};
     Swapchain swapchain{context.core, context.queue(), context.surface(), {}, EXTENT};
-    Semaphore const acquired{context.core, create};
 
-    auto const [result, index] = swapchain.acquire(acquired);
-    ASSERT_TRUE(index.has_value());
-    EXPECT_TRUE(swapchain.acquired(*index));
+    // every image acquired: the next acquire without a wait finds none
+    std::vector<Semaphore> signals{};
+    for(uint32_t i = 0; i <= swapchain.imageCount(); ++i)
+        signals.emplace_back(context.core, create);
+    std::vector<uint32_t> indices{};
+    for(uint32_t i = 0; i < swapchain.imageCount(); ++i) {
+        auto const [result, index] = swapchain.acquire(signals[i], 0);
+        ASSERT_TRUE(index.has_value()) << "acquire result: " << result;
+        indices.push_back(*index);
+    }
+    for(uint32_t i = 0; i < swapchain.imageCount(); ++i)
+        consume(context, signals[i]);
+    EXPECT_EQ(swapchain.acquire(signals.back(), 0).result, VK_NOT_READY);
 
-    swapchain.unacquire(std::array{*index});
+    // the image goes back to the swapchain: the next acquire gets it
+    swapchain.unacquire(std::array{indices.front()});
+    auto const [result, index] = swapchain.acquire(signals.back(), 0);
+    ASSERT_TRUE(index.has_value()) << "acquire result: " << result;
+    EXPECT_EQ(*index, indices.front());
+    consume(context, signals.back());
 
-    EXPECT_FALSE(swapchain.acquired(*index));
-    consume(context, acquired);
+    swapchain.unacquire(indices);
 }
 
 CVK_TEST(Swapchain, old_swapchain_unacquires_its_image) {
@@ -360,7 +363,6 @@ CVK_TEST(Swapchain, old_swapchain_unacquires_its_image) {
     old.unacquire(std::array{*index});
 
     consume(context, acquired);
-    EXPECT_FALSE(old.acquired());
     EXPECT_EQ(present_cleared_image(context, swapchain), VK_SUCCESS);
 }
 

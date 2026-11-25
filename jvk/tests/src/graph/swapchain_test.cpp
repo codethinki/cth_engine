@@ -11,6 +11,8 @@
 #include "cvk/render/sync/semaphore.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
+#include <volk.h>
+
 #include <cth/ptr/ref_wrapper.hpp>
 
 #include <array>
@@ -44,6 +46,13 @@ namespace {
         }
         catch(cvk::cvk_exception const&) { return false; }
         return true;
+    }
+
+    /** the `vkGetFenceStatus()` of the device table before `unsignaled_fence_status()` */
+    PFN_vkGetFenceStatus realGetFenceStatus = nullptr;
+
+    VKAPI_ATTR VkResult VKAPI_CALL unsignaled_fence_status(VkDevice, VkFence) {
+        return VK_NOT_READY;
     }
 
     /**
@@ -94,17 +103,21 @@ JVK_TEST(Swapchain, acquire_destroys_the_finished_retired_swapchains) {
 
     Swapchain swapchain{core, core.queue(0).vk(), surface};
     swapchain.create({}, EXTENT);
-    auto& old = swapchain.current();
-    auto const oldIdx = acquire(core, swapchain);
-
-    // the retired swapchain holds an acquired image: the acquire keeps it
+    swapchain.current().unacquire(std::array{acquire(core, swapchain)});
     swapchain.recreate({32, 32});
-    auto const currentIdx = acquire(core, swapchain);
     EXPECT_EQ(swapchain.retired(), 1);
 
-    old.unacquire(std::array{oldIdx});
-    swapchain.current().unacquire(std::array{currentIdx});
-    static_cast<void>(acquire(core, swapchain));
+    // the present fences count as unsignaled: the presents of the retired swapchain did not end
+    {
+        cvk::Core const& vk = core;
+        auto& table = *const_cast<VolkDeviceTable*>(vk.functions());
+        realGetFenceStatus = std::exchange(table.vkGetFenceStatus, unsignaled_fence_status);
+        swapchain.current().unacquire(std::array{acquire(core, swapchain)});
+        table.vkGetFenceStatus = realGetFenceStatus;
+    }
+    EXPECT_EQ(swapchain.retired(), 1);
+
+    swapchain.current().unacquire(std::array{acquire(core, swapchain)});
     EXPECT_EQ(swapchain.retired(), 0);
 
     swapchain.destroy();

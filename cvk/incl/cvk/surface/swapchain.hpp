@@ -178,8 +178,7 @@ public:
     /**
      * prepares the present of the image in a `vkQueuePresentKHR()` of the caller
      * @details waits for the present fence of the last present of the image first, then resets it
-     * @details the image counts as presented: the caller presents it through the present queue at
-     *  once
+     * @details present the image at once, through the present queue: the fence is reset
      * @return the handles for the present info, the fence for `VkSwapchainPresentFenceInfoKHR`
      * @pre the image is acquired
      * @pre a submit signals `presentSemaphore()` of the image
@@ -218,18 +217,6 @@ public:
      * @pre `created()`
      */
     [[nodiscard]] bool presented() const;
-
-    /**
-     * @return an image is acquired, without its `present()`, `preparePresent()` or `unacquire()`
-     */
-    [[nodiscard]] constexpr bool acquired() const { return std::ranges::contains(_acquired, true); }
-
-    /**
-     * @pre `imageIndex < imageCount()`
-     */
-    [[nodiscard]] constexpr bool acquired(uint32_t imageIndex) const {
-        return _acquired[imageIndex];
-    }
 
     [[nodiscard]] constexpr bool created() const { return static_cast<bool>(_handle); }
     [[nodiscard]] constexpr VkSwapchainKHR get() const { return _handle.get(); }
@@ -336,7 +323,6 @@ private:
     std::vector<Semaphore> _presentSemaphores{};
     std::vector<ImageView> _views{};
     std::vector<ReleasingImage> _images{};
-    std::vector<bool> _acquired{};
 
     core_handle<VkSwapchainKHR> _handle;
 

@@ -505,6 +505,7 @@ JVK_TEST(Presenter, destructor_releases_the_spares) {
     auto& queue = core.queue(0);
 
     cvk::Swapchain swapchain{core, queue.vk(), surface, {}, test::HEADLESS_EXTENT};
+    auto const imageCount = swapchain.imageCount();
     {
         Presenter presenter{queue, swapchain, 2};
         Submits submits{core, queue};
@@ -517,10 +518,17 @@ JVK_TEST(Presenter, destructor_releases_the_spares) {
         auto const ready = submits.ready(*secondOpt);
         presenter.drop(std::move(*firstOpt));
         presenter.drop(std::move(*secondOpt), ready);
-        EXPECT_TRUE(swapchain.acquired());
     }
 
-    EXPECT_FALSE(swapchain.acquired());
+    // the spares are back in the swapchain: the next presenter acquires every image
+    Presenter presenter{queue, swapchain, imageCount};
+    std::vector<Presenter::Image> images{};
+    for(uint32_t i = 0; i < imageCount; ++i) {
+        auto imageOpt = acquire(core, presenter);
+        ASSERT_TRUE(imageOpt.has_value());
+        images.push_back(std::move(*imageOpt));
+    }
+    // the destructor of the images drops them, the destructor of the presenter releases them
 }
 
 JVK_TEST(Presenter, not_ready_try_falls_back_until_a_hand_back) {

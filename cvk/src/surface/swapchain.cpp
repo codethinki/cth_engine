@@ -121,7 +121,6 @@ void Swapchain::destroy() {
     _presentSemaphores.clear();
     _views.clear();
     _images.clear();
-    _acquired.clear();
     _handle.reset();
 
     forget();
@@ -134,7 +133,6 @@ Swapchain::State Swapchain::release() {
     _presentSemaphores.clear();
     _views.clear();
     _images.clear();
-    _acquired.clear();
 
     State const state{
         .vkSwapchain = _handle.release(),
@@ -161,10 +159,8 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
         &imageIndex
     );
 
-    if(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
-        _acquired[imageIndex] = true;
+    if(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
         return {result, imageIndex};
-    }
 
     CVK_RESULT_STABLE_THROW(
         result != VK_ERROR_OUT_OF_DATE_KHR && result != VK_TIMEOUT && result != VK_NOT_READY,
@@ -200,18 +196,11 @@ VkResult Swapchain::present(uint32_t imageIndex) {
 
 auto Swapchain::preparePresent(uint32_t imageIndex) -> PresentHandles {
     debug_check(*this);
-    CTH_CRITICAL(
-        imageIndex >= imageCount() || !acquired(imageIndex),
-        "image {} must be acquired",
-        imageIndex
-    ) {}
 
     // signaled by the last present of the image or created signaled
     auto const& fence = presentFence(imageIndex);
     fence.waitReset();
 
-    // before the present: also a failed present ends the acquire of the image
-    _acquired[imageIndex] = false;
     return PresentHandles{
         .vkSwapchain = get(),
         .imageIndex = imageIndex,
@@ -222,12 +211,6 @@ auto Swapchain::preparePresent(uint32_t imageIndex) -> PresentHandles {
 
 void Swapchain::unacquire(span<uint32_t const> imageIndices) {
     debug_check(*this);
-    for(auto const index : imageIndices)
-        CTH_CRITICAL(
-        index >= imageCount() || !acquired(index),
-        "image {} must be acquired",
-        index
-    ) {}
 
     if(imageIndices.empty())
         return;
@@ -242,9 +225,6 @@ void Swapchain::unacquire(span<uint32_t const> imageIndices) {
     auto const result = core().functions()->vkReleaseSwapchainImagesKHR(core().vkDevice(), &info);
 
     CVK_RESULT_STABLE_THROW(result != VK_SUCCESS, result, "failed to unacquire swapchain images") {}
-
-    for(auto const index : imageIndices)
-        _acquired[index] = false;
 }
 
 bool Swapchain::presented() const {
@@ -328,8 +308,6 @@ void Swapchain::createImages() {
             }
         );
     }
-
-    _acquired.assign(count, false);
 }
 
 void Swapchain::forget() {

@@ -143,7 +143,7 @@ cth::co::executor_task<void> Presenter::present(Image image) {
     catch(...) { error = std::current_exception(); }
 
     std::scoped_lock const lock{_mutex};
-    // also a failed present ends the acquire, see cvk::Swapchain::preparePresent()
+    // a failed present counts too: nothing presents the image again
     --_acquiredImages;
     if(auto const* const semaphorePtr = std::get_if<cth::ref_wrapper<cvk::Semaphore const>>(&wait))
         _reuses[semaphoreIdx(**semaphorePtr)] = Presented{imageIdx};

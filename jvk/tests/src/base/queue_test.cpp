@@ -669,8 +669,6 @@ JVK_TEST(Queue, present_of_two_swapchains_in_one_call) {
     for(auto const result : results)
         EXPECT_TRUE(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
             << "present result: " << result;
-    EXPECT_FALSE(first.current().acquired());
-    EXPECT_FALSE(second.current().acquired());
     static_cast<cvk::TimelineSemaphore const&>(presented).wait(1);
 }
 
@@ -725,7 +723,6 @@ JVK_TEST(Queue, present_without_a_submit_after_the_submit_of_the_present_semapho
 
     EXPECT_TRUE(results[0] == VK_SUCCESS || results[0] == VK_SUBOPTIMAL_KHR)
         << "present result: " << results[0];
-    EXPECT_FALSE(current.acquired());
     static_cast<cvk::TimelineSemaphore const&>(presented).wait(1);
 }
 }
