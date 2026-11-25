@@ -108,34 +108,50 @@ cth::co::executor_task<std::optional<SwapchainImage>> Surface::acquire(
         "the acquire stage and the present stage must belong to one frame of one graph"
     ) {}
 
-    // the last image first: the acquire and the present share the swapchain (externally
-    // synchronized), a blocking acquire before that present would delay it (FIFO)
-    co_await _presentState.resolved.wait(_lastValue);
-    // written before the resolve: the error of the present of the last image
-    if(_presentState.error != nullptr)
-        std::rethrow_exception(std::exchange(_presentState.error, nullptr));
-    // outside the strand: the resolve of the last image orders the swapchain uses
-    co_await cth::co::executor{_queue->scheduler()}.schedule();
-
-    // the drop resolved after the gpu finished the stages of the image:
-    // VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786
-    if(std::exchange(_presentState.dropped, false))
-        _swapchain.current().unacquire(std::array{_lastImageIdx});
-
     cvk::Core const& vkCore = *_core;
     std::optional<uint32_t> imageIdxOpt = std::nullopt;
     auto const& acquireSemaphore = _acquireSemaphores[_acquireSemaphoreIdx];
 
-    while(!imageIdxOpt.has_value()) {
+    //TEMP the try only after the resolve of the last image: the present state holds one image, a
+    // try while the last image presents needs the state of several images
+    if(_presentState.resolved.value() >= _lastValue) {
+        handleLastPresent();
+
         auto const extent = _surface.extent(vkCore.physicalDevice());
         if(extent.width == 0 || extent.height == 0)
             co_return std::nullopt;
-        updateSwapchain(extent, &acquireStage.graph());
 
-        // no image -> out of date, the next round recreates the swapchain
-        imageIdxOpt = _swapchain.acquire(acquireSemaphore).imageIndex;
-        if(!imageIdxOpt.has_value())
-            _presentState.outOfDate = true;
+        // a recreation takes the fallback: in the strand it would hold up the submits
+        if(_swapchain.created() && !_presentState.outOfDate
+            && _swapchain.current().extent() == extent) {
+            auto const acquired = co_await _queue->tryAcquire(_swapchain, acquireSemaphore);
+            imageIdxOpt = acquired.imageIndex;
+            if(acquired.result == VK_ERROR_OUT_OF_DATE_KHR)
+                _presentState.outOfDate = true;
+        }
+    }
+
+    // the fallback: no image from the try, a new extent or out of date
+    if(!imageIdxOpt.has_value()) {
+        // the last image first: then no present of the surface is pending, the blocking acquire
+        // and the recreation need no strand, a blocking acquire before that present would delay it
+        // (FIFO)
+        co_await _presentState.resolved.wait(_lastValue);
+        // outside the strand: the resolve of the last image orders the swapchain uses
+        co_await cth::co::executor{_queue->scheduler()}.schedule();
+        handleLastPresent();
+
+        while(!imageIdxOpt.has_value()) {
+            auto const extent = _surface.extent(vkCore.physicalDevice());
+            if(extent.width == 0 || extent.height == 0)
+                co_return std::nullopt;
+            updateSwapchain(extent, &acquireStage.graph());
+
+            // no image -> out of date, the next round recreates the swapchain
+            imageIdxOpt = _swapchain.acquire(acquireSemaphore).imageIndex;
+            if(!imageIdxOpt.has_value())
+                _presentState.outOfDate = true;
+        }
     }
 
     auto const imageIdx = *imageIdxOpt;
@@ -162,6 +178,17 @@ cth::co::executor_task<std::optional<SwapchainImage>> Surface::acquire(
     presentStage.present(dev::PendingPresent{_presentState, value, *_queue, swapchain, imageIdx});
 
     co_return image;
+}
+
+void Surface::handleLastPresent() {
+    // written before the resolve: the error of the present of the last image
+    if(_presentState.error != nullptr)
+        std::rethrow_exception(std::exchange(_presentState.error, nullptr));
+
+    // the drop resolved after the gpu finished the stages of the image:
+    // VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786
+    if(std::exchange(_presentState.dropped, false))
+        _swapchain.current().unacquire(std::array{_lastImageIdx});
 }
 
 void Surface::updateSwapchain(VkExtent2D extent, StageGraph* graphPtr) {

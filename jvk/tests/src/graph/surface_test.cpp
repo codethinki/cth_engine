@@ -7,6 +7,7 @@
 #include "jvk/base/queue.hpp"
 #include "jvk/data/image.hpp"
 #include "jvk/graph/stage_graph.hpp"
+#include "jvk/graph/swapchain.hpp"
 #include "jvk/sync/semaphore.hpp"
 
 #include "cvk/base/physical_device.hpp"
@@ -930,6 +931,48 @@ JVK_TEST(Surface, two_surfaces_present_after_one_stage) {
         EXPECT_TRUE(reaches_unacquired(core, core.queue(0), first, firstImage->imageIdx));
         EXPECT_TRUE(reaches_unacquired(core, core.queue(0), second, secondImage->imageIdx));
     }
+}
+
+JVK_TEST(Surface, try_acquire_in_the_strand_gives_images_until_not_ready) {
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+    auto& queue = core.queue(0);
+    cvk::Core const& vk = core;
+
+    Swapchain swapchain{vk, queue.vk(), windowSurface};
+    swapchain.create({}, test::HEADLESS_EXTENT);
+    auto const imageCount = swapchain.current().imageCount();
+
+    // one acquire semaphore per try, one more than the images: the last try finds no image
+    std::vector<cvk::Semaphore> signals{};
+    for(uint32_t i = 0; i <= imageCount; ++i)
+        signals.emplace_back(vk, cvk::create);
+    std::vector<uint32_t> acquired{};
+    VkResult last = VK_SUCCESS;
+    for(auto const& signal : signals) {
+        auto const result = core.executor().sync_wait(queue.tryAcquire(swapchain, signal));
+        if(!result.imageIndex.has_value()) {
+            last = result.result;
+            break;
+        }
+        acquired.push_back(*result.imageIndex);
+    }
+    EXPECT_FALSE(acquired.empty());
+    EXPECT_LE(acquired.size(), imageCount);
+    EXPECT_EQ(last, VK_NOT_READY);
+
+    // the acquire semaphores signal: a submit waits for them before the unacquire and their
+    // destruction
+    SubmitInfo info{};
+    for(size_t i = 0; i < acquired.size(); ++i)
+        info.binaryWaits.emplace_back(signals[i]);
+    core.executor().sync_wait(queue.submit(info));
+    queue.waitIdle();
+    swapchain.current().unacquire(acquired);
 }
 
 JVK_TEST(Surface, present_queue_of_the_same_family) {

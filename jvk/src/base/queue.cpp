@@ -1,6 +1,7 @@
 #include "jvk/base/queue.hpp"
 
 #include "jvk/base/core.hpp"
+#include "jvk/graph/swapchain.hpp"
 #include "jvk/utility/exception.hpp"
 
 #include "cvk/surface/swapchain.hpp"
@@ -73,6 +74,14 @@ cth::co::executor_task<void> Queue::present(
 ) {
     co_await executor().schedule();
     presentInStrand(images, results);
+}
+
+cth::co::executor_task<cvk::Swapchain::Acquired> Queue::tryAcquire(
+    Swapchain& swapchain,
+    cvk::Semaphore const& signal
+) {
+    co_await executor().schedule();
+    co_return swapchain.acquire(signal, 0);
 }
 
 cth::co::executor_task<SemaphoreSubmitInfo> Queue::transfer(

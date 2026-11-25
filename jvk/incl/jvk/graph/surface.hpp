@@ -76,7 +76,8 @@ struct SurfaceConfig {
  * - owns the cvk surface and the swapchain
  * - recreates the swapchain in `acquire()`, a retired swapchain stays until its presents ended, see
  *   `Swapchain`
- * - acquires outside the strand of its queue on `Queue::scheduler()`
+ * - tries the acquire in the strand of its queue without a wait, else acquires outside the strand
+ *   on `Queue::scheduler()`, see `acquire()`
  * - the present stage of an image presents it after its submit, see `acquire()`
  * - a failed present: the next `acquire()` rethrows its error
  * - one acquired image at a time: `acquire()` waits until the last image is presented or dropped
@@ -168,10 +169,12 @@ public:
      * @details the surface:
      * - waits until the last image is presented or dropped
      * - a dropped last image: waits until the gpu finished its stages, then unacquires it
-     * - an out of date acquire or present, or a changed `cvk::Surface::extent()` -> recreates the
-     *   swapchain first, erases the old images in the graph, see `StageGraph::erase()`,
-     *   `Swapchain::recreate()`
-     * - runs on `Queue::scheduler()`, outside the strand
+     * - the try: `vkAcquireNextImageKHR()` with timeout `0` in the strand of the queue, see
+     *   `Queue::tryAcquire()`
+     * - no image from the try (`VK_NOT_READY`), out of date or a changed `cvk::Surface::extent()`
+     *   -> the fallback: a blocking acquire on `Queue::scheduler()`, outside the strand
+     * - the fallback recreates an out of date swapchain or one with another extent first, erases
+     *   the old images in the graph, see `StageGraph::erase()`, `Swapchain::recreate()`
      * @param acquireStage waits for the acquire, the first use of the image
      * @param presentStage presents the image after its submit
      * @param stages pipeline stages of the acquire stage that wait for the acquire
@@ -222,6 +225,12 @@ public:
     }
 
 private:
+    /**
+     * rethrows the error of the present of the last image, unacquires a dropped last image
+     * @details only after the resolve of the last image
+     */
+    void handleLastPresent();
+
     /**
      * a recreation erases the old images in the graph first: the new images can reuse their handles
      * only when no present uses the swapchain

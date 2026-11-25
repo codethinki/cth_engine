@@ -5,6 +5,7 @@
 #include "cvk/base/queue/queue.hpp"
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/render/sync/barrier.hpp"
+#include "cvk/surface/swapchain.hpp"
 
 #include <volk.h>
 
@@ -26,11 +27,11 @@ class scheduler;
 
 namespace cvk {
 class Semaphore;
-class Swapchain;
 }
 
 namespace jvk {
 class Core;
+class Swapchain;
 
 // in queue.hpp next to Queue: it is small, no own header
 /**
@@ -148,6 +149,24 @@ public:
     [[nodiscard]] cth::co::executor_task<void> present(
         std::span<PresentImage const> images,
         std::span<VkResult> results
+    );
+
+    /**
+     * tries to acquire the next image of the swapchain in the strand, without a wait
+     * @details `vkAcquireNextImageKHR()` with timeout `0`: never blocks the strand
+     * @details serialized with the presents of the queue: the external synchronization of the
+     *  swapchain
+     * @details the retired swapchains: see `Swapchain::acquire()`
+     * @param swapchain to acquire from
+     * @param signal signaled when the image is ready
+     * @return `VK_NOT_READY` -> no image now, see `cvk::Swapchain::acquire()`
+     * @pre the preconditions of `Swapchain::acquire()`
+     * @pre the swapchains present through this queue
+     * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()`
+     */
+    [[nodiscard]] cth::co::executor_task<cvk::Swapchain::Acquired> tryAcquire(
+        Swapchain& swapchain,
+        cvk::Semaphore const& signal
     );
 
     // an executor_task: the receiving submission awaits it before its own submit, so the transfer
