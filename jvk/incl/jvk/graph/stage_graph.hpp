@@ -68,7 +68,7 @@ public:
      * - a stage with an exception outside of a `scoped_submit`
      * - a stage that a failed `submit()` or `skip()` left `UNSUBMITTED`
      * @details
-     * - the skip drops the presents of the stage, see `Surface::acquire()`
+     * - the skip drops the images of `Stage::present()`, see `StageGraph::skip()`
      * - waits for the end of every submission
      * - a failed skip terminates: the waiters of the stage would hang
      * - a failed wait does not stop the destruction
@@ -81,8 +81,8 @@ public:
     /**
      * constructs the frame and its stages in the next slot
      * @details the old frame of the slot: awaits `StageSlot::submitDone` of its stages: their
-     *  submissions ended the submits and the presents, then the stages: the gpu finished them, both
-     *  with `cth::co::all()` and `std::execution::seq`
+     *  submissions ended the submits, the presents and the drops, then the stages: the gpu
+     *  finished them, both with `cth::co::all()` and `std::execution::seq`
      * @return the frame of the slot
      * @pre every stage of the frame before is submitted or skipped: `Stage::submit()`,
      *  `Stage::skip()` or the end of its `scoped_submit`
@@ -108,12 +108,16 @@ public:
      *   its last queue, the prologue acquires it
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
-     * - the images of `Stage::present()`: uses after the primary, in the epilogue, the presents
-     *   follow the submit, see `Surface::acquire()`
+     * - the images of `Stage::present()`: uses after the primary, in the epilogue, the submit
+     *   signals their present semaphores, `Presenter::present()` follows the submit, see
+     *   `Stage::present()`
      * - another queue family of the last use of a presented image: the last queue releases it,
      *   the epilogue acquires it
+     * - another queue family of the presenter queue: the epilogue releases the image,
+     *   `Queue::transfer()` on the presenter queue acquires it and signals the present semaphore
      * - an error of the submission: skips, `nextFrame()` rethrows the error
-     * - a failed present: the surface of the image gets the error, see `Surface::acquire()`
+     * - a failed present: the presenter of the image gets the error, see `Presenter::present()`
+     * - a failed transfer: drops the image with the signal of the submit as the ready point
      * - after the gpu finished: destroys the retained objects
      * @details a failure here, `vkEndCommandBuffer()` or the allocation of the submission:
      * - no throw, the stage stays `UNSUBMITTED`
@@ -134,7 +138,8 @@ public:
      * @details skip submit on the queue of the stage, no command buffers:
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
-     * @details drops the images of `Stage::present()`, see `Surface::acquire()`
+     * @details drops the images of `Stage::present()` with the signal of the skip as the ready
+     *  point, see `Presenter::drop()`: the skip waited for the acquire semaphores
      * @details after the gpu finished the skip submit: destroys the retained objects
      * @details a begun primary: ends its rendering and the primary, discards the recording
      * @details a failure: the failure of `submit()`
@@ -216,11 +221,11 @@ private:
 
     void presentBarriers(dev::StageSlot&);
 
-    /** throws only for a failed submit: nothing is presented or resolved then */
-    [[nodiscard]] cth::co::executor_task<void> submitAndPresent(
-        dev::StageSlot&,
-        uint64_t frameNumber
-    );
+    /**
+     * presents the images of the stage slot after the submit, a failed transfer drops its image
+     * @details no throw: a failure goes to `_submissions`
+     */
+    [[nodiscard]] cth::co::executor_task<void> present(dev::StageSlot&, uint64_t frameNumber);
 
     /** the caller holds `_statesMutex` */
     void eraseStates(VkImage, uint32_t mipLevels);

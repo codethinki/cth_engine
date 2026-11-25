@@ -142,9 +142,9 @@ void Stage::await(cvk::Semaphore const& binary, VkPipelineStageFlags2 stages) {
     _stageSlot->extraBinaryWaits.emplace_back(binary, stages);
 }
 
-void Stage::present(dev::PendingPresent present) {
+void Stage::present(Presenter::AcquiredImage image) {
     CTH_CRITICAL(_status != Status::UNSUBMITTED, "the stage must be unsubmitted") {}
-    _stageSlot->presents.push_back(std::move(present));
+    _stageSlot->presents.push_back(std::move(image));
 }
 
 void Stage::submit() noexcept { _stageSlot->graph->submit(*this); }

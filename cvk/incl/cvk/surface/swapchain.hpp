@@ -57,16 +57,6 @@ public:
     };
 
     /**
-     * handles of one image in a `vkQueuePresentKHR()`, see `preparePresent()`
-     */
-    struct PresentHandles {
-        VkSwapchainKHR vkSwapchain;
-        uint32_t imageIndex;
-        VkSemaphore vkWaitSemaphore; ///< `presentSemaphore()` of the image
-        VkFence vkFence; ///< `presentFence()` of the image, reset
-    };
-
-    /**
      * base constructor
      */
     Swapchain(Core const&, Queue const& presentQueue, Surface const&, Config);
@@ -113,8 +103,8 @@ public:
      * @param extent of the window, a fixed `currentExtent` of the surface wins
      * @param oldSwapchainPtr the swapchain that this one replaces, `nullptr` -> none
      * @details the first entries of `Config::formats` and `Config::presentModes` that the surface offers win
-     * @details an old swapchain retires, also on a failure: it presents its acquired images, its acquires fail with
-     *  `VK_ERROR_OUT_OF_DATE_KHR`, see `vkCreateSwapchainKHR()`
+     * @details an old swapchain retires, also on a failure: its acquired images still present, no
+     *  acquire on it (VUID-vkAcquireNextImageKHR-swapchain-01285), see `vkCreateSwapchainKHR()`
      * @pre `Core::created()`, `Surface::created()`
      * @pre the queue can present to the surface
      * @pre the device enables `constants::PRESENT_DEVICE_EXTENSIONS`, a present queue of the core does
@@ -167,24 +157,14 @@ public:
     /**
      * presents the image once its present semaphore signals
      * @return `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` or `VK_ERROR_OUT_OF_DATE_KHR`
-     * @details waits for the present fence of the last present of the image first
+     * @details waits for the present fence of the last present of the image first, the present
+     *  signals it again, see `presentFence()`
      * @details `VK_ERROR_OUT_OF_DATE_KHR` -> the present still waits for the semaphore
      * @pre the image is acquired
      * @pre a submit signals `presentSemaphore()` of the image
      * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
      */
     [[nodiscard]] VkResult present(uint32_t imageIndex);
-
-    /**
-     * prepares the present of the image in a `vkQueuePresentKHR()` of the caller
-     * @details waits for the present fence of the last present of the image first, then resets it
-     * @details present the image at once, through the present queue: the fence is reset
-     * @return the handles for the present info, the fence for `VkSwapchainPresentFenceInfoKHR`
-     * @pre the image is acquired
-     * @pre a submit signals `presentSemaphore()` of the image
-     * @see `present()`
-     */
-    [[nodiscard]] PresentHandles preparePresent(uint32_t imageIndex);
 
     /**
      * gives acquired images back without a present

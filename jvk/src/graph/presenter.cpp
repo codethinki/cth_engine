@@ -11,7 +11,6 @@
 #include <cth/coro/scheduler.hpp>
 
 #include <algorithm>
-#include <array>
 #include <ranges>
 #include <utility>
 
@@ -136,10 +135,9 @@ cth::co::executor_task<void> Presenter::present(AcquiredImage image) {
         co_await _fallbacksDone.wait(fallbackValue);
     }
 
-    std::array const images{PresentImage{.swapchain = *_swapchain, .imageIdx = imageIdx}};
-    std::array results{VK_ERROR_UNKNOWN};
+    VkResult result = VK_ERROR_UNKNOWN;
     std::exception_ptr error = nullptr;
-    try { co_await _queue->present(images, results); }
+    try { result = co_await _queue->present(*_swapchain, imageIdx); }
     catch(...) { error = std::current_exception(); }
 
     std::scoped_lock const lock{_mutex};
@@ -151,7 +149,7 @@ cth::co::executor_task<void> Presenter::present(AcquiredImage image) {
     if(error != nullptr) {
         if(_error == nullptr)
             _error = error;
-    } else if(results[0] == VK_ERROR_OUT_OF_DATE_KHR)
+    } else if(result == VK_ERROR_OUT_OF_DATE_KHR)
         _outOfDate = true;
 
     handBack(acquireNumber);

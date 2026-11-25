@@ -5,7 +5,6 @@
 #include "cvk/base/queue/queue.hpp"
 #include "cvk/base/queue/submit_info.hpp"
 #include "cvk/render/sync/barrier.hpp"
-#include "cvk/surface/swapchain.hpp"
 
 #include <volk.h>
 
@@ -27,17 +26,17 @@ class scheduler;
 
 namespace cvk {
 class Semaphore;
+class Swapchain;
 }
 
 namespace jvk {
 class Core;
-class Swapchain;
 
 // in queue.hpp next to Queue: it is small, no own header
 /**
  * one batch of a submit on a `Queue`
  * @details
- * - `Queue::submit()` and `Queue::present()` mark the jvk signals after the submit, see
+ * - `Queue::submit()` and `Queue::transfer()` mark the jvk signals after the submit, see
  *   `Semaphore::markSubmitted()`
  * - the binary semaphores get no mark
  */
@@ -62,14 +61,6 @@ struct SubmitInfo {
         signals.clear();
         binarySignals.clear();
     }
-};
-
-/**
- * acquired image of a swapchain for `Queue::present()`
- */
-struct PresentImage {
-    cth::ref_wrapper<cvk::Swapchain> swapchain;
-    uint32_t imageIdx; ///< index of the acquired image in the swapchain
 };
 
 /**
@@ -105,68 +96,24 @@ public:
      * @pre the info lives until the end of the task, nothing changes it
      * @pre the preconditions of `cvk::Queue::submit()`
      * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
-     * @see `present()`
      */
     [[nodiscard]] cth::co::executor_task<void> submit(SubmitInfo const&);
 
     /**
-     * submits the batch and presents the images in one strand job, then marks the jvk signals
-     * @details
-     * - the submit signals `cvk::Swapchain::presentSemaphore()` of every image too
-     * - one `vkQueuePresentKHR()` for all images
-     * - no other job of the strand runs between the submit and the present
-     * - a failed submit marks nothing and presents nothing
-     * - a failed present marks the signals before it throws: the submit reached the queue
-     * @param images one per swapchain
-     * @param[out] results one per image: `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR`,
-     *  `VK_ERROR_OUT_OF_DATE_KHR` or the error of its swapchain, also after a failed present
+     * presents the image in one job of the strand
+     * @details one `vkQueuePresentKHR()` with the present fence of the image, see
+     *  `cvk::Swapchain::present()`
+     * @param swapchain of the image, presents through this queue
+     * @param imageIdx of the acquired image, a submit before signals its present semaphore
+     * @return `VK_SUCCESS`, `VK_SUBOPTIMAL_KHR` or `VK_ERROR_OUT_OF_DATE_KHR`
      * @pre `cvk::Queue::canPresent()`
-     * @pre `results.size() == images.size()`
-     * @pre the info, the images and the results live until the end of the task, unchanged
-     * @pre the preconditions of `cvk::Queue::submit()` and of `cvk::Swapchain::preparePresent()`
-     * @pre the swapchains present through this queue
-     * @throws cvk::vk_result_exception result of `vkQueueSubmit2()`
+     * @pre the swapchain lives until the end of the task
+     * @pre the preconditions of `cvk::Swapchain::present()`
      * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
      */
-    [[nodiscard]] cth::co::executor_task<void> present(
-        SubmitInfo const&,
-        std::span<PresentImage const> images,
-        std::span<VkResult> results
-    );
-
-    /**
-     * presents the images in one job of the strand, without a submit
-     * @details one `vkQueuePresentKHR()` for all images
-     * @param images one per swapchain, a submit before signals their present semaphores
-     * @param[out] results one per image, see the submit overload
-     * @pre `cvk::Queue::canPresent()`
-     * @pre `results.size() == images.size()`
-     * @pre the images and the results live until the end of the task, nothing changes them
-     * @pre the preconditions of `cvk::Swapchain::preparePresent()`
-     * @pre the swapchains present through this queue
-     * @throws cvk::vk_result_exception other result of `vkQueuePresentKHR()`
-     */
-    [[nodiscard]] cth::co::executor_task<void> present(
-        std::span<PresentImage const> images,
-        std::span<VkResult> results
-    );
-
-    /**
-     * tries to acquire the next image of the swapchain in the strand, without a wait
-     * @details `vkAcquireNextImageKHR()` with timeout `0`: never blocks the strand
-     * @details serialized with the presents of the queue: the external synchronization of the
-     *  swapchain
-     * @details the retired swapchains: see `Swapchain::acquire()`
-     * @param swapchain to acquire from
-     * @param signal signaled when the image is ready
-     * @return `VK_NOT_READY` -> no image now, see `cvk::Swapchain::acquire()`
-     * @pre the preconditions of `Swapchain::acquire()`
-     * @pre the swapchains present through this queue
-     * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()`
-     */
-    [[nodiscard]] cth::co::executor_task<cvk::Swapchain::Acquired> tryAcquire(
-        Swapchain& swapchain,
-        cvk::Semaphore const& signal
+    [[nodiscard]] cth::co::executor_task<VkResult> present(
+        cvk::Swapchain& swapchain,
+        uint32_t imageIdx
     );
 
     // an executor_task: the receiving submission awaits it before its own submit, so the transfer
@@ -223,9 +170,7 @@ public:
     [[nodiscard]] constexpr VkQueue get() const { return _queue->get(); }
 
 private:
-    void submitInStrand(SubmitInfo const&, std::span<PresentImage const> presents = {});
-
-    void presentInStrand(std::span<PresentImage const> images, std::span<VkResult> results);
+    void submitInStrand(SubmitInfo const&);
 
     struct TransferCmd {
         PrimaryCmdBuffer cmd;
@@ -247,11 +192,6 @@ private:
     std::vector<VkCommandBufferSubmitInfo> _cmdBufferInfos{};
     std::vector<VkSemaphoreSubmitInfo> _waitInfos{};
     std::vector<VkSemaphoreSubmitInfo> _signalInfos{};
-
-    std::vector<VkSwapchainKHR> _presentSwapchains{};
-    std::vector<uint32_t> _presentImageIndices{};
-    std::vector<VkSemaphore> _presentWaits{};
-    std::vector<VkFence> _presentFences{};
 
     /**
      * the counter decides the reuse of the transfer command buffers, no reactor wait: a transfer

@@ -7,7 +7,6 @@
 #include "jvk/base/queue.hpp"
 #include "jvk/data/image.hpp"
 #include "jvk/graph/stage_graph.hpp"
-#include "jvk/graph/swapchain.hpp"
 #include "jvk/sync/semaphore.hpp"
 
 #include "cvk/base/physical_device.hpp"
@@ -450,7 +449,7 @@ JVK_TEST(Surface, frame_loop_clears_and_presents) {
     }
 }
 
-JVK_TEST(Surface, destroy_waits_for_the_present_of_the_last_image) {
+JVK_TEST(Surface, destroy_after_the_graph_of_the_stages) {
     test::Context const context{};
     auto windowSurface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
@@ -593,7 +592,7 @@ JVK_TEST(Surface, recreation_retains_the_multisampled_target_of_the_old_extent) 
         EXPECT_EQ(present_msaa_frame(core, graph, surface, msaaOpt).extent, (VkExtent2D{48, 40}));
 }
 
-JVK_TEST(Surface, acquire_waits_for_the_present_before) {
+JVK_TEST(Surface, acquire_does_not_wait_for_the_present_before) {
     test::Context const context{};
     auto windowSurface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
@@ -607,41 +606,37 @@ JVK_TEST(Surface, acquire_waits_for_the_present_before) {
     Semaphore const gate{core, cvk::create};
 
     auto& first = next_frame(core, graph).stage(0);
-    present_behind_gate(core, first, surface, gate);
+    auto const firstImage = present_behind_gate(core, first, surface, gate);
 
-    // the submission of the first frame waits for the mark of the gate, the next acquire for its
-    // present
+    // the submission of the first frame waits for the mark of the gate: its present is pending,
+    // the next acquire gives another image at once
     auto& second = next_frame(core, graph).stage(0);
+    std::optional<SwapchainImage> secondImageOpt{};
     std::binary_semaphore acquiredSignal{0};
-    size_t acquiredImages = 0;
     std::jthread frame{
         [&] {
-            auto const image = acquire(core, surface, second);
-            acquiredImages = acquired_images(tracker, surface);
+            secondImageOpt = acquire(core, surface, second);
             acquiredSignal.release();
-            EXPECT_TRUE(image);
-            auto const primary = second.begin();
-            if(image)
-                clear(*primary, *image);
         }
     };
-
-    EXPECT_FALSE(acquiredSignal.try_acquire_for(std::chrono::milliseconds{50}));
+    EXPECT_TRUE(acquiredSignal.try_acquire_for(TIMEOUT));
+    EXPECT_EQ(acquired_images(tracker, surface), 2);
 
     // the signal before the mark: the present waits for no signal that is not submitted
     host_signal(gate, 1);
     gate.markSubmitted(1);
-    EXPECT_TRUE(acquiredSignal.try_acquire_for(TIMEOUT));
     frame.join();
-    // the first image is presented
-    EXPECT_EQ(acquiredImages, 1);
-
-    wait(core, second);
+    ASSERT_TRUE(secondImageOpt.has_value());
+    EXPECT_NE(secondImageOpt->imageIdx, firstImage.imageIdx);
+    {
+        auto const primary = second.begin();
+        clear(*primary, *secondImageOpt);
+    }
 
     present_frame(core, graph, surface);
 }
 
-JVK_TEST(Surface, recreation_retires_the_old_swapchain_until_its_presents_ended) {
+JVK_TEST(Surface, recreation_retires_the_old_swapchain_until_its_presenter_finished) {
     test::Context const context{};
     std::atomic<VkExtent2D> windowExtent{VkExtent2D{32, 32}};
     auto windowSurface = test::headless_surface(
@@ -658,18 +653,19 @@ JVK_TEST(Surface, recreation_retires_the_old_swapchain_until_its_presents_ended)
 
     EXPECT_EQ(present_frame(core, graph, surface).extent, (VkExtent2D{32, 32}));
 
-    // the new extent recreates the swapchain, the old one stays until its presents ended
+    // the new extent recreates the swapchain, the old one stays until its presenter finished
     windowExtent = VkExtent2D{48, 40};
     EXPECT_EQ(present_frame(core, graph, surface).extent, (VkExtent2D{48, 40}));
     EXPECT_LE(surface.swapchain().retired(), 1);
 
-    // a later acquire destroys the retired swapchain once its presents ended, the bound only ends a broken loop
+    // a later acquire destroys the retired swapchain once its presenter finished, the bound only
+    // ends a broken loop
     for(size_t i = 0; i < 16 && surface.swapchain().retired() != 0; ++i)
         present_frame(core, graph, surface);
     EXPECT_EQ(surface.swapchain().retired(), 0);
 }
 
-JVK_TEST(Surface, next_acquire_after_a_skipped_stage_unacquires_the_image) {
+JVK_TEST(Surface, skipped_stage_drops_the_image_for_the_next_acquire) {
     test::Context const context{};
     auto windowSurface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
@@ -679,14 +675,17 @@ JVK_TEST(Surface, next_acquire_after_a_skipped_stage_unacquires_the_image) {
     AcquireTracker const tracker{core};
 
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    // one frame slot: the next frame waits for the submission of the skip, its drop included
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
 
     // Stage::begin() before the acquire works too
     auto& stage = next_frame(core, graph).stage(0);
+    uint32_t imageIdx = 0;
     {
         auto const primary = stage.begin();
         auto const image = acquire(core, surface, stage);
         ASSERT_TRUE(image.has_value());
+        imageIdx = image->imageIdx;
         clear(*primary, *image);
 
         // the skip discards the recording, waits for the acquire semaphore, drops the image
@@ -695,11 +694,12 @@ JVK_TEST(Surface, next_acquire_after_a_skipped_stage_unacquires_the_image) {
     EXPECT_EQ(stage.status(), Stage::Status::SKIPPED);
     EXPECT_EQ(acquired_images(tracker, surface), 1);
 
-    // at once: the acquire waits for the skip on the gpu before the unacquire, no validation error
+    // the dropped image comes first, it waits for the skip on the gpu: no validation error
     auto& next = next_frame(core, graph).stage(0);
     {
         auto const image = acquire(core, surface, next);
         ASSERT_TRUE(image.has_value());
+        EXPECT_EQ(image->imageIdx, imageIdx);
         EXPECT_EQ(acquired_images(tracker, surface), 1);
         auto const primary = next.begin();
         clear(*primary, *image);
@@ -745,7 +745,8 @@ JVK_TEST(Surface, exception_in_the_recording_submits_and_presents_nothing) {
     AcquireTracker const tracker{core};
 
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 2}};
+    // one frame slot: the next frame waits for the submission of the skip, its drop included
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
 
     Stage const* stagePtr = nullptr;
     uint32_t imageIdx = 0;
@@ -773,6 +774,7 @@ JVK_TEST(Surface, exception_in_the_recording_submits_and_presents_nothing) {
     {
         auto const image = acquire(core, surface, stage);
         ASSERT_TRUE(image.has_value());
+        EXPECT_EQ(image->imageIdx, imageIdx);
         EXPECT_EQ(acquired_images(tracker, surface), 1);
         auto const primary = stage.begin();
         clear(*primary, *image);
@@ -848,7 +850,8 @@ JVK_TEST(Surface, failed_present_arrives_at_the_next_acquire_and_not_at_next_fra
     auto& core = *coreOpt;
 
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
-    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    // one frame slot: the next frame waits for the present of the frame before
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
 
     // the core reads the device table at each call: the presents report a lost surface until the
     // restore
@@ -858,7 +861,7 @@ JVK_TEST(Surface, failed_present_arrives_at_the_next_acquire_and_not_at_next_fra
     present_frame(core, graph, surface);
 
     auto& stage = next_frame(core, graph).stage(0);
-    // the acquire waits for the present of the last image, then rethrows its error
+    // the acquire rethrows the error of the present before
     try {
         [[maybe_unused]] auto const image = acquire(core, surface, stage);
         ADD_FAILURE() << "the acquire must rethrow the error of the present";
@@ -933,23 +936,29 @@ JVK_TEST(Surface, skipped_present_stage_drops_the_image) {
     AcquireTracker const tracker{core};
 
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
-    StageGraph graph{core, scene_and_ui()};
+    // one frame slot: the next frame waits for the submission of the skip, its drop included
+    auto config = scene_and_ui();
+    config.frameSlots = 1;
+    StageGraph graph{core, std::move(config)};
 
     auto& frame = next_frame(core, graph);
+    uint32_t imageIdx = 0;
     {
         auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
         ASSERT_TRUE(image.has_value());
+        imageIdx = image->imageIdx;
         auto const scene = frame[SCENE].begin();
         clear(*scene, *image);
     }
     frame[UI].skip();
     EXPECT_EQ(acquired_images(tracker, surface), 1);
 
-    // the next acquire waits for the skip on the gpu, then unacquires the image
+    // the dropped image comes first, it waits for the skip of the ui stage on the gpu
     auto& next = next_frame(core, graph);
     {
         auto const image = acquire(core, surface, next[SCENE], next[UI]);
         ASSERT_TRUE(image.has_value());
+        EXPECT_EQ(image->imageIdx, imageIdx);
         EXPECT_EQ(acquired_images(tracker, surface), 1);
         auto const scene = next[SCENE].begin();
         clear(*scene, *image);
@@ -985,7 +994,7 @@ JVK_TEST(Surface, exception_in_the_present_stage_drops_the_image) {
     }
     catch(test_exception const&) {}
 
-    // the scope skipped the ui stage, the skip drops the image, the next acquire unacquires it
+    // the scope skipped the ui stage, the skip drops the image, a later acquire gives it back
     EXPECT_EQ(frame[UI].status(), Stage::Status::SKIPPED);
     present_scene_and_ui(core, graph, surface);
     present_scene_and_ui(core, graph, surface);
@@ -1025,48 +1034,6 @@ JVK_TEST(Surface, two_surfaces_present_after_one_stage) {
         EXPECT_TRUE(reaches_unacquired(tracker, first, firstImage->imageIdx));
         EXPECT_TRUE(reaches_unacquired(tracker, second, secondImage->imageIdx));
     }
-}
-
-JVK_TEST(Surface, try_acquire_in_the_strand_gives_images_until_not_ready) {
-    test::Context const context{};
-    auto windowSurface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, windowSurface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-    auto& queue = core.queue(0);
-    cvk::Core const& vk = core;
-
-    Swapchain swapchain{vk, queue.vk(), windowSurface};
-    swapchain.create({}, test::HEADLESS_EXTENT);
-    auto const imageCount = swapchain.current().imageCount();
-
-    // one acquire semaphore per try, one more than the images: the last try finds no image
-    std::vector<cvk::Semaphore> signals{};
-    for(uint32_t i = 0; i <= imageCount; ++i)
-        signals.emplace_back(vk, cvk::create);
-    std::vector<uint32_t> acquired{};
-    VkResult last = VK_SUCCESS;
-    for(auto const& signal : signals) {
-        auto const result = core.executor().sync_wait(queue.tryAcquire(swapchain, signal));
-        if(!result.imageIndex.has_value()) {
-            last = result.result;
-            break;
-        }
-        acquired.push_back(*result.imageIndex);
-    }
-    EXPECT_FALSE(acquired.empty());
-    EXPECT_LE(acquired.size(), imageCount);
-    EXPECT_EQ(last, VK_NOT_READY);
-
-    // the acquire semaphores signal: a submit waits for them before the unacquire and their
-    // destruction
-    SubmitInfo info{};
-    for(size_t i = 0; i < acquired.size(); ++i)
-        info.binaryWaits.emplace_back(signals[i]);
-    core.executor().sync_wait(queue.submit(info));
-    queue.waitIdle();
-    swapchain.current().unacquire(acquired);
 }
 
 JVK_TEST(Surface, present_queue_of_the_same_family) {

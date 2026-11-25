@@ -1,7 +1,6 @@
 #include "jvk/base/queue.hpp"
 
 #include "jvk/base/core.hpp"
-#include "jvk/graph/swapchain.hpp"
 #include "jvk/utility/exception.hpp"
 
 #include "cvk/surface/swapchain.hpp"
@@ -48,40 +47,9 @@ cth::co::executor_task<void> Queue::submit(SubmitInfo const& info) {
     mark(info.signals);
 }
 
-cth::co::executor_task<void> Queue::present(
-    SubmitInfo const& info,
-    span<PresentImage const> images,
-    span<VkResult> results
-) {
-    // no suspension between the submit and the present: the presents follow the order of the
-    // submits
+cth::co::executor_task<VkResult> Queue::present(cvk::Swapchain& swapchain, uint32_t imageIdx) {
     co_await executor().schedule();
-    submitInStrand(info, images);
-
-    // the marks after the present: a waiter for them uses the swapchains after vkQueuePresentKHR()
-    try { presentInStrand(images, results); }
-    catch(cvk::vk_result_exception const&) {
-        // the submit reached the queue: the gpu signals the values
-        mark(info.signals);
-        throw;
-    }
-    mark(info.signals);
-}
-
-cth::co::executor_task<void> Queue::present(
-    span<PresentImage const> images,
-    span<VkResult> results
-) {
-    co_await executor().schedule();
-    presentInStrand(images, results);
-}
-
-cth::co::executor_task<cvk::Swapchain::Acquired> Queue::tryAcquire(
-    Swapchain& swapchain,
-    cvk::Semaphore const& signal
-) {
-    co_await executor().schedule();
-    co_return swapchain.acquire(signal, 0);
+    co_return swapchain.present(imageIdx);
 }
 
 cth::co::executor_task<SemaphoreSubmitInfo> Queue::transfer(
@@ -116,7 +84,7 @@ cth::co::executor_task<SemaphoreSubmitInfo> Queue::transfer(
     co_return signal;
 }
 
-void Queue::submitInStrand(SubmitInfo const& info, span<PresentImage const> presents) {
+void Queue::submitInStrand(SubmitInfo const& info) {
     _cmdBufferInfos.clear();
     for(PrimaryCmdBuffer const& cmdBuffer : info.cmdBuffers)
         _cmdBufferInfos.push_back(cvk::cmd_buffer_submit_info(cmdBuffer));
@@ -133,8 +101,6 @@ void Queue::submitInStrand(SubmitInfo const& info, span<PresentImage const> pres
         _signalInfos.push_back(cvk::signal_submit_info(signal));
     for(auto const& signal : info.binarySignals)
         _signalInfos.push_back(cvk::signal_submit_info(signal));
-    for(auto const& [swapchain, imageIdx] : presents)
-        _signalInfos.push_back(cvk::signal_submit_info({swapchain->presentSemaphore(imageIdx)}));
 
     _queue->rawSubmit(
         VkSubmitInfo2{
@@ -149,46 +115,6 @@ void Queue::submitInStrand(SubmitInfo const& info, span<PresentImage const> pres
             .pSignalSemaphoreInfos = _signalInfos.data(),
         }
     );
-}
-
-void Queue::presentInStrand(span<PresentImage const> images, span<VkResult> results) {
-    CTH_CRITICAL(
-        results.size() != images.size(),
-        "one result per image, got {} results for {} images",
-        results.size(),
-        images.size()
-    ) {}
-
-    _presentSwapchains.clear();
-    _presentImageIndices.clear();
-    _presentWaits.clear();
-    _presentFences.clear();
-    for(auto const& [swapchain, imageIdx] : images) {
-        auto const handles = swapchain->preparePresent(imageIdx);
-        _presentSwapchains.push_back(handles.vkSwapchain);
-        _presentImageIndices.push_back(handles.imageIndex);
-        _presentWaits.push_back(handles.vkWaitSemaphore);
-        _presentFences.push_back(handles.vkFence);
-    }
-
-    VkSwapchainPresentFenceInfoKHR const fenceInfo{
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR,
-        .pNext = nullptr,
-        .swapchainCount = static_cast<uint32_t>(_presentFences.size()),
-        .pFences = _presentFences.data(),
-    };
-    static_cast<void>(_queue->rawPresent(
-        VkPresentInfoKHR{
-            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            .pNext = &fenceInfo,
-            .waitSemaphoreCount = static_cast<uint32_t>(_presentWaits.size()),
-            .pWaitSemaphores = _presentWaits.data(),
-            .swapchainCount = static_cast<uint32_t>(_presentSwapchains.size()),
-            .pSwapchains = _presentSwapchains.data(),
-            .pImageIndices = _presentImageIndices.data(),
-            .pResults = results.data(),
-        }
-    ));
 }
 
 auto Queue::freeTransferCmd() -> TransferCmd& {

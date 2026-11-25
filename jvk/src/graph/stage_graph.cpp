@@ -315,12 +315,8 @@ cth::co::executor_task<void> StageGraph::submission(
                 epilogueUses.clear();
                 stageSlot.epilogueBarriers.clear();
                 // the first use of each image in the tracker: no barrier
-                for(auto const& present : stageSlot.presents)
-                    epilogueUses.access(
-                        present.swapchainImage(),
-                        PRESENT_ACCESS,
-                        stageSlot.epilogueBarriers
-                    );
+                for(auto const& image : stageSlot.presents)
+                    epilogueUses.access(image.image(), PRESENT_ACCESS, stageSlot.epilogueBarriers);
                 append(epilogueUses, queue, stageSlot.epilogueBarriers, releases);
             }
             presentBarriers(stageSlot);
@@ -346,16 +342,25 @@ cth::co::executor_task<void> StageGraph::submission(
                 stageSlot.epilogue.end();
             }
 
+            // the queue of the stage and the presenter queue of one family: the submit signals the
+            // present semaphore, another family: the transfer to the presenter queue signals it
+            auto const family = queue.vk().familyIndex();
+            for(auto const& image : stageSlot.presents)
+                if(image.presenter().queue().vk().familyIndex() == family)
+                    info.binarySignals.emplace_back(image.presentSemaphore());
+
             slotSubmit.addCmdBuffers(info, withPrologue, withEpilogue);
-            co_await submitAndPresent(stageSlot, frameNumber);
+            co_await queue.submit(info);
             submitted = true;
         }
         // the submission goes on with the skip
         catch(...) { _submissions.store(std::current_exception()); }
     }
 
+    if(submitted)
+        co_await present(stageSlot, frameNumber);
     // a skip, also of a failed submit: the gpu waits of other stages and the waits in ~StageGraph() end
-    if(!submitted) {
+    else {
         // noexcept: a failed start of the skip submit leaves the slot unmarked, the waiters would
         // hang
         auto skip = [&]() noexcept {
@@ -366,17 +371,15 @@ cth::co::executor_task<void> StageGraph::submission(
         }();
         co_await std::move(skip);
 
-        // the presents of the skip: dropped after the gpu finished it, the next acquire of each
-        // surface unacquires its image at once
-        if(!stageSlot.presents.empty()) {
-            try { co_await stageSlot.semaphore.wait(frameNumber); }
-            catch(...) { _submissions.store(std::current_exception()); }
-            stageSlot.presents.clear();
-        }
+        // the skip waited for the waits of the stage: the spares wait for its signal
+        SemaphoreSubmitInfo const ready{.semaphore = stageSlot.semaphore, .value = frameNumber};
+        for(auto& image : stageSlot.presents)
+            image.presenter().drop(std::move(image), ready);
+        stageSlot.presents.clear();
     }
 
-    // the last use of the slot by the submission before the gpu wait: nextFrame() hands it out
-    // after it
+    // the last use of the slot by the submission, after the presents and the drops, before the
+    // gpu wait: nextFrame() hands the slot out after it
     stageSlot.submitDone.set(frameNumber);
 
     // nothing to free: no gpu wait, the submission ends
@@ -491,156 +494,62 @@ void StageGraph::presentBarriers(dev::StageSlot& stageSlot) {
     auto& releases = stageSlot.presentReleases;
     releases.clear();
 
-    for(auto const& present : stageSlot.presents) {
-        auto const presentFamily = present.queue().vk().familyIndex();
+    for(auto const& image : stageSlot.presents) {
+        auto const presentFamily = image.presenter().queue().vk().familyIndex();
         if(presentFamily == family)
             continue;
-        cvk::Image const& image = present.swapchainImage();
+        cvk::Image const& vkImage = image.image();
         releases.add(
-            image.get(),
-            image.aspectMask(),
+            vkImage.get(),
+            vkImage.aspectMask(),
             dev::release_half(PRESENT_STATE, PRESENT_STATE, family, presentFamily, 0)
         );
     }
 }
 
-cth::co::executor_task<void> StageGraph::submitAndPresent(
-    dev::StageSlot& stageSlot,
-    uint64_t frameNumber
-) {
-    auto& info = stageSlot.submitInfo;
-    auto& queue = *stageSlot.queue;
-    auto const family = queue.vk().familyIndex();
-    auto& presents = stageSlot.presents;
-    auto& images = stageSlot.presentImages;
-    auto& results = stageSlot.presentResults;
-    auto& groups = stageSlot.presentGroups;
-
-    // the images of one queue in a row, the queue of the stage first: its present follows the
-    // submit in one strand job
-    images.clear();
-    groups.clear();
-    auto const addGroup = [&](Queue& groupQueue) {
-        auto const first = images.size();
-        for(auto const& present : presents)
-            if(&present.queue() == &groupQueue)
-                images.push_back(present.image());
-        groups.push_back({.queue = groupQueue, .first = first, .count = images.size() - first});
-    };
-    auto const queueOf = [](dev::PendingPresent const& present) { return &present.queue(); };
-    if(std::ranges::contains(presents, &queue, queueOf))
-        addGroup(queue);
-    for(auto it = presents.begin(); it != presents.end(); ++it) {
-        auto* const queuePtr = &it->queue();
-        // the first present of a queue opens its group
-        if(queuePtr != &queue && !std::ranges::contains(presents.begin(), it, queuePtr, queueOf))
-            addGroup(*queuePtr);
-    }
-    results.assign(images.size(), VK_ERROR_UNKNOWN);
-
-    // another queue of the family: the submit of the stage signals the present semaphores
-    for(auto const& group : groups)
-        if(&*group.queue != &queue && group.queue->vk().familyIndex() == family)
-            for(auto const& [swapchain, imageIdx] : span{images}.subspan(group.first, group.count))
-                info.binarySignals.emplace_back(swapchain->presentSemaphore(imageIdx));
-
-    bool const ownGroup = !groups.empty() && &*groups.front().queue == &queue;
-    try {
-        if(ownGroup) {
-            auto const& own = groups.front();
-            co_await queue.present(
-                info,
-                span{images}.subspan(own.first, own.count),
-                span{results}.subspan(own.first, own.count)
-            );
-        } else
-            co_await queue.submit(info);
-    }
-    catch(...) {
-        // a failed submit marks nothing: the caller skips, the presents stay pending
-        if(!ownGroup || stageSlot.semaphore.submittedValue() < frameNumber)
-            throw;
-        // a failed present after the submit: the images resolve with their results, the surfaces
-        // get the error
-        groups.front().error = std::current_exception();
-    }
-    if(ownGroup)
-        groups.front().presented = true;
-
-    // the presents on other queues after the submit
+cth::co::executor_task<void> StageGraph::present(dev::StageSlot& stageSlot, uint64_t frameNumber) {
+    auto const family = stageSlot.queue->vk().familyIndex();
     SemaphoreSubmitInfo const submitted{.semaphore = stageSlot.semaphore, .value = frameNumber};
-    for(auto& group : groups) {
-        auto& groupQueue = *group.queue;
-        if(&groupQueue == &queue)
-            continue;
 
+    for(auto& image : stageSlot.presents) {
+        auto& presenter = image.presenter();
+        auto& presentQueue = presenter.queue();
+        auto const presentFamily = presentQueue.vk().familyIndex();
+        if(presentFamily == family) {
+            co_await presenter.present(std::move(image));
+            continue;
+        }
+
+        // another family: the presenter queue acquires the image, the transfer signals its present
+        // semaphore
         std::optional<SemaphoreSubmitInfo> transferredOpt = std::nullopt;
         try {
-            // another family: the queue of the surfaces acquires the images, the transfer signals
-            // their present semaphores
-            auto const groupFamily = groupQueue.vk().familyIndex();
-            if(groupFamily != family) {
-                cvk::Barrier acquire{};
-                auto& signals = stageSlot.presentSignals;
-                signals.clear();
-                for(auto const& present : presents) {
-                    if(&present.queue() != &groupQueue)
-                        continue;
-                    cvk::Image const& image = present.swapchainImage();
-                    acquire.add(
-                        image.get(),
-                        image.aspectMask(),
-                        dev::acquire_half(PRESENT_STATE, PRESENT_STATE, family, groupFamily, 0)
-                    );
-                    auto const [swapchain, imageIdx] = present.image();
-                    signals.emplace_back(swapchain->presentSemaphore(imageIdx));
-                }
-                std::array const waits{submitted};
-                transferredOpt = co_await groupQueue.transfer(std::move(acquire), waits, signals);
-            }
+            cvk::Image const& vkImage = image.image();
+            cvk::Barrier acquire{};
+            acquire.add(
+                vkImage.get(),
+                vkImage.aspectMask(),
+                dev::acquire_half(PRESENT_STATE, PRESENT_STATE, family, presentFamily, 0)
+            );
+            std::array const waits{submitted};
+            std::array const signals{cvk::SemaphoreSubmitInfo{image.presentSemaphore()}};
+            transferredOpt = co_await presentQueue.transfer(std::move(acquire), waits, signals);
         }
-        // a failed transfer drops the images of the queue
-        catch(...) {
-            _submissions.store(std::current_exception());
+        // a failed transfer: the image goes back behind the submit that released it
+        catch(...) { _submissions.store(std::current_exception()); }
+        if(!transferredOpt.has_value()) {
+            presenter.drop(std::move(image), submitted);
             continue;
         }
 
-        // a failed present presented the images: they resolve with their results, the surfaces get
-        // the error
-        group.presented = true;
-        try {
-            co_await groupQueue.present(
-                span{images}.subspan(group.first, group.count),
-                span{results}.subspan(group.first, group.count)
-            );
-        }
-        catch(...) { group.error = std::current_exception(); }
+        co_await presenter.present(std::move(image));
 
         // the transfer waits for the semaphore of the slot: ~StageGraph() destroys it after the
         // submissions ended
-        if(transferredOpt.has_value()) {
-            try { co_await transferredOpt->semaphore->wait(transferredOpt->value); }
-            catch(...) { _submissions.store(std::current_exception()); }
-        }
-    }
-
-    // each image of a group resolves with its result, in the order of the group
-    for(auto const& group : groups) {
-        if(!group.presented)
-            continue;
-        auto resultIdx = group.first;
-        for(auto& present : presents)
-            if(&present.queue() == &*group.queue)
-                present.present(results[resultIdx++], group.error);
-    }
-
-    // the images of a failed transfer: dropped after the gpu finished the submit, the clear drops
-    // them
-    if(std::ranges::any_of(groups, [](auto const& group) { return !group.presented; })) {
-        try { co_await stageSlot.semaphore.wait(frameNumber); }
+        try { co_await transferredOpt->semaphore->wait(transferredOpt->value); }
         catch(...) { _submissions.store(std::current_exception()); }
     }
-    presents.clear();
+    stageSlot.presents.clear();
 }
 
 cth::co::executor_task<vector<SemaphoreSubmitInfo>> StageGraph::release(release_map_t releases) {

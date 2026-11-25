@@ -2,7 +2,7 @@
 #include "jvk/base/queue.hpp"
 #include "jvk/base/stasis.hpp"
 #include "jvk/cmd/cmd_buffer.hpp"
-#include "jvk/graph/pending_present.hpp"
+#include "jvk/graph/presenter.hpp"
 #include "jvk/sync/resource_tracker.hpp"
 #include "jvk/sync/semaphore.hpp"
 
@@ -94,23 +94,6 @@ struct SlotSubmit {
 };
 
 /**
- * the images of one queue in the presents of a submission
- * @see `StageSlot::presentImages`
- */
-struct PresentGroup {
-    cth::ref_wrapper<Queue> queue; ///< the queue of the surfaces of the images
-
-    size_t first; ///< index of the first image in `StageSlot::presentImages`
-    size_t count; ///< of the images
-
-    /** the present ran, also a failed one: the images resolve as presented, else dropped */
-    bool presented = false;
-
-    /** exception of a failed present, the surfaces of its images get it, `nullptr` -> none */
-    std::exception_ptr error = nullptr;
-};
-
-/**
  * the images and buffers of `Stage::retain()` in one frame
  * @details the submission erases their graph states before it destroys them, see `StageGraph::erase()`
  */
@@ -183,11 +166,11 @@ struct StageSlot {
     std::vector<cvk::SemaphoreSubmitInfo> extraBinaryWaits{};
 
     /**
-     * the presents of the frame of the slot, see `Stage::present()`
-     * @details the submission presents them after the submit or drops them on a skip, then
+     * the images to present in the frame of the slot, see `Stage::present()`
+     * @details the submission presents them after the submit or drops them after a skip, then
      *  clears the list
      */
-    std::vector<PendingPresent> presents{};
+    std::vector<Presenter::AcquiredImage> presents{};
 
     /**
      * the submit or the skip of the frame of the slot
@@ -209,24 +192,14 @@ struct StageSlot {
     cvk::Barrier epilogueBarriers{};
 
     /**
-     * the releases of the presented images to the queue family of their surface queue
+     * the releases of the presented images to the queue family of their presenter queue
      * @details after `StageSlot::epilogueBarriers` in the epilogue
      */
     cvk::Barrier presentReleases{};
 
-    /** the images of `StageSlot::presents`, the images of one queue in a row */
-    std::vector<PresentImage> presentImages{};
-
-    std::vector<VkResult> presentResults{}; ///< per entry of `StageSlot::presentImages`
-
-    std::vector<PresentGroup> presentGroups{}; ///< one per queue of `StageSlot::presents`
-
-    /** the present semaphores of a transfer to the queue family of a surface */
-    std::vector<cvk::SemaphoreSubmitInfo> presentSignals{};
-
     /**
-     * frame number of the last submission of the slot that ended its submit or skip and its
-     *  presents
+     * frame number of the last submission of the slot that ended its submit or skip, its
+     *  presents and its drops
      * @details `StageGraph::nextFrame()` awaits it before it hands out the slot again
      * @details initial value: `StageGraph::firstFrameNumber() - 1`
      */
@@ -389,22 +362,24 @@ public:
     );
 
     /**
-     * presents the swapchain image of the present after the submit of this frame
+     * presents the image after the submit of this frame
      * @details `Surface::acquire()` calls it for its present stage
      * @details the submission of the frame:
      * - the present is a use of the image after the primary, in the epilogue: the barrier to
      *   `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`, see `StageSlot::epilogue`
      * - another queue family of the last use: the last queue releases the image, the epilogue
      *   acquires it
-     * - another queue family of the surface queue: the epilogue releases the image, the queue of
-     *   the surface acquires it
-     * - presents the image after the submit, the images of one queue in one `vkQueuePresentKHR()`
-     * - a skip or a failed submit drops the image
-     * @param present of the image, the stage owns it until its submission resolves it
+     * - the submit signals `Presenter::AcquiredImage::presentSemaphore()`
+     * - another queue family of the presenter queue: the epilogue releases the image, the
+     *   presenter queue acquires it and signals the present semaphore, see `Queue::transfer()`
+     * - after the submit: `Presenter::present()`
+     * - a skip or a failed submit: `Presenter::drop()` with the signal of the skip as the ready
+     *   point
+     * @param image the stage holds it until its submission presents or drops it
      * @pre `status()` is `UNSUBMITTED`
      * @attention not thread safe
      */
-    void present(dev::PendingPresent present);
+    void present(Presenter::AcquiredImage image);
 
     /**
      * submits the primary of the frame

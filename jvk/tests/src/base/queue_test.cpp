@@ -5,7 +5,6 @@
 
 #include "jvk/data/buffer.hpp"
 #include "jvk/data/image.hpp"
-#include "jvk/graph/swapchain.hpp"
 
 #include "cvk/base/core.hpp"
 #include "cvk/base/queue/submit_info.hpp"
@@ -13,6 +12,7 @@
 #include "cvk/render/sync/fence.hpp"
 #include "cvk/render/sync/semaphore.hpp"
 #include "cvk/render/sync/timeline_semaphore.hpp"
+#include "cvk/surface/swapchain.hpp"
 #include "cvk/utility/vk_exceptions.hpp"
 
 #include <cth/coro/scheduler.hpp>
@@ -549,7 +549,7 @@ JVK_TEST(Queue, skip_submit_marks_through_the_submit) {
     static_cast<cvk::TimelineSemaphore const&>(semaphore).wait(1);
 }
 
-JVK_TEST(Queue, present_submits_presents_and_marks) {
+JVK_TEST(Queue, present_after_the_submit_of_the_present_semaphore) {
     test::Context const context{};
     auto const surface = test::headless_surface(context.instance);
     std::optional<Core> coreOpt{};
@@ -557,10 +557,9 @@ JVK_TEST(Queue, present_submits_presents_and_marks) {
         GTEST_SKIP() << "no device presents to a headless surface";
     auto& core = *coreOpt;
     auto& queue = core.queue(0);
+    auto const& executor = core.executor();
 
-    Swapchain swapchain{core, queue.vk(), surface};
-    swapchain.create({}, EXTENT);
-    auto& current = swapchain.current();
+    cvk::Swapchain swapchain{core, queue.vk(), surface, {}, EXTENT};
     Semaphore const presented{core, cvk::create};
     PrimaryCmdBuffer cmd{core, queue.vk().familyIndex(), cvk::create};
 
@@ -575,7 +574,7 @@ JVK_TEST(Queue, present_submits_presents_and_marks) {
         cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
         cvk::Barrier barrier{};
         barrier.add(
-            current.image(*imageIdxOpt),
+            swapchain.image(*imageIdxOpt),
             cvk::ImageBarrierInfo{
                 .src = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
                 .dst = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
@@ -586,143 +585,24 @@ JVK_TEST(Queue, present_submits_presents_and_marks) {
         barrier.execute(cmd);
         cmd.end();
 
-        std::array const images{PresentImage{.swapchain = current, .imageIdx = *imageIdxOpt}};
-        std::array<VkResult, 1> results{VK_ERROR_UNKNOWN};
-        core.executor().sync_wait(
-            queue.present(
+        // the submit signals the present semaphore, the present follows in its own job
+        executor.sync_wait(
+            queue.submit(
                 {
                     .cmdBuffers = {cmd},
                     .binaryWaits = {acquired},
                     .signals = {{.semaphore = presented, .value = value}},
-                },
-                images,
-                results
+                    .binarySignals = {swapchain.presentSemaphore(*imageIdxOpt)},
+                }
             )
         );
-
-        EXPECT_TRUE(results[0] == VK_SUCCESS || results[0] == VK_SUBOPTIMAL_KHR)
-            << "present result: " << results[0];
         EXPECT_EQ(presented.submittedValue(), value);
+        auto const result = executor.sync_wait(queue.present(swapchain, *imageIdxOpt));
+
+        EXPECT_TRUE(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
+            << "present result: " << result;
         // the acquire semaphore goes after the gpu waited for it
         static_cast<cvk::TimelineSemaphore const&>(presented).wait(value);
     }
-}
-
-JVK_TEST(Queue, present_of_two_swapchains_in_one_call) {
-    test::Context const context{};
-    auto const firstSurface = test::headless_surface(context.instance);
-    auto const secondSurface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, firstSurface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-    auto& queue = core.queue(0);
-
-    Swapchain first{core, queue.vk(), firstSurface};
-    first.create({}, EXTENT);
-    Swapchain second{core, queue.vk(), secondSurface};
-    second.create({}, EXTENT);
-    Semaphore const presented{core, cvk::create};
-
-    // one submit transitions both images, one vkQueuePresentKHR() presents both
-    cvk::Semaphore const firstAcquired{core, cvk::create};
-    cvk::Semaphore const secondAcquired{core, cvk::create};
-    auto const firstIdxOpt = first.acquire(firstAcquired).imageIndex;
-    auto const secondIdxOpt = second.acquire(secondAcquired).imageIndex;
-    ASSERT_TRUE(firstIdxOpt.has_value());
-    ASSERT_TRUE(secondIdxOpt.has_value());
-
-    PrimaryCmdBuffer cmd{core, queue.vk().familyIndex(), cvk::create};
-    cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    cvk::Barrier barrier{};
-    for(auto const& [swapchainPtr, imageIdx] :
-        std::array{std::pair{&first, *firstIdxOpt}, std::pair{&second, *secondIdxOpt}})
-        barrier.add(
-            swapchainPtr->current().image(imageIdx),
-            cvk::ImageBarrierInfo{
-                .src = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
-                .dst = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
-                .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            }
-        );
-    barrier.execute(cmd);
-    cmd.end();
-
-    std::array const images{
-        PresentImage{.swapchain = first.current(), .imageIdx = *firstIdxOpt},
-        PresentImage{.swapchain = second.current(), .imageIdx = *secondIdxOpt},
-    };
-    std::array<VkResult, 2> results{VK_ERROR_UNKNOWN, VK_ERROR_UNKNOWN};
-    core.executor().sync_wait(
-        queue.present(
-            {
-                .cmdBuffers = {cmd},
-                .binaryWaits = {firstAcquired, secondAcquired},
-                .signals = {{.semaphore = presented, .value = 1}},
-            },
-            images,
-            results
-        )
-    );
-
-    for(auto const result : results)
-        EXPECT_TRUE(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
-            << "present result: " << result;
-    static_cast<cvk::TimelineSemaphore const&>(presented).wait(1);
-}
-
-JVK_TEST(Queue, present_without_a_submit_after_the_submit_of_the_present_semaphore) {
-    test::Context const context{};
-    auto const surface = test::headless_surface(context.instance);
-    std::optional<Core> coreOpt{};
-    if(!create_present_core(coreOpt, context, surface))
-        GTEST_SKIP() << "no device presents to a headless surface";
-    auto& core = *coreOpt;
-    auto& queue = core.queue(0);
-
-    Swapchain swapchain{core, queue.vk(), surface};
-    swapchain.create({}, EXTENT);
-    auto& current = swapchain.current();
-    Semaphore const presented{core, cvk::create};
-
-    cvk::Semaphore const acquired{core, cvk::create};
-    auto const imageIdxOpt = swapchain.acquire(acquired).imageIndex;
-    ASSERT_TRUE(imageIdxOpt.has_value());
-
-    PrimaryCmdBuffer cmd{core, queue.vk().familyIndex(), cvk::create};
-    cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-    cvk::Barrier barrier{};
-    barrier.add(
-        current.image(*imageIdxOpt),
-        cvk::ImageBarrierInfo{
-            .src = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
-            .dst = {.stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT},
-            .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        }
-    );
-    barrier.execute(cmd);
-    cmd.end();
-
-    // the submit signals the present semaphore, the present follows without a submit
-    auto const& executor = core.executor();
-    executor.sync_wait(
-        queue.submit(
-            {
-                .cmdBuffers = {cmd},
-                .binaryWaits = {acquired},
-                .signals = {{.semaphore = presented, .value = 1}},
-                .binarySignals = {current.presentSemaphore(*imageIdxOpt)},
-            }
-        )
-    );
-    std::array const images{PresentImage{.swapchain = current, .imageIdx = *imageIdxOpt}};
-    std::array<VkResult, 1> results{VK_ERROR_UNKNOWN};
-    executor.sync_wait(queue.present(images, results));
-
-    EXPECT_TRUE(results[0] == VK_SUCCESS || results[0] == VK_SUBOPTIMAL_KHR)
-        << "present result: " << results[0];
-    static_cast<cvk::TimelineSemaphore const&>(presented).wait(1);
 }
 }

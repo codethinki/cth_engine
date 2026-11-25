@@ -172,41 +172,33 @@ Swapchain::Acquired Swapchain::acquire(Semaphore const& signal, uint64_t timeout
 }
 
 VkResult Swapchain::present(uint32_t imageIndex) {
-    auto const handles = preparePresent(imageIndex);
-
-    VkSwapchainPresentFenceInfoKHR const fenceInfo{
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR,
-        .pNext = nullptr,
-        .swapchainCount = 1,
-        .pFences = &handles.vkFence,
-    };
-    VkPresentInfoKHR const info{
-        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-        .pNext = &fenceInfo,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &handles.vkWaitSemaphore,
-        .swapchainCount = 1,
-        .pSwapchains = &handles.vkSwapchain,
-        .pImageIndices = &handles.imageIndex,
-        .pResults = nullptr,
-    };
-
-    return _presentQueue.rawPresent(info);
-}
-
-auto Swapchain::preparePresent(uint32_t imageIndex) -> PresentHandles {
     debug_check(*this);
 
     // signaled by the last present of the image or created signaled
     auto const& fence = presentFence(imageIndex);
     fence.waitReset();
 
-    return PresentHandles{
-        .vkSwapchain = get(),
-        .imageIndex = imageIndex,
-        .vkWaitSemaphore = presentSemaphore(imageIndex).get(),
-        .vkFence = fence.get(),
+    auto const vkSwapchain = get();
+    auto const vkWaitSemaphore = presentSemaphore(imageIndex).get();
+    auto const vkFence = fence.get();
+    VkSwapchainPresentFenceInfoKHR const fenceInfo{
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_FENCE_INFO_KHR,
+        .pNext = nullptr,
+        .swapchainCount = 1,
+        .pFences = &vkFence,
     };
+    VkPresentInfoKHR const info{
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .pNext = &fenceInfo,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &vkWaitSemaphore,
+        .swapchainCount = 1,
+        .pSwapchains = &vkSwapchain,
+        .pImageIndices = &imageIndex,
+        .pResults = nullptr,
+    };
+
+    return _presentQueue.rawPresent(info);
 }
 
 void Swapchain::unacquire(span<uint32_t const> imageIndices) {
