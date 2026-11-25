@@ -235,6 +235,7 @@ public:
     [[nodiscard]] constexpr VkSwapchainKHR get() const { return _handle.get(); }
     [[nodiscard]] constexpr Core const& core() const { return _handle.core(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }
+    [[nodiscard]] constexpr Surface const& surface() const { return *_surface; }
 
     [[nodiscard]] constexpr VkExtent2D extent() const { return _extent; }
     [[nodiscard]] constexpr VkFormat format() const { return _surfaceFormat.format; }
