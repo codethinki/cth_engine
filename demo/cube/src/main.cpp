@@ -560,7 +560,8 @@ cth::co::executor_task<void> draw_frames(
         auto& ui = frame.stage(UI_STAGE_ID);
 
         // the scene stage waits for the acquire, the ui stage presents
-        auto const image = co_await surface.acquire(
+        auto const image = co_await frame.acquire(
+            surface,
             scene,
             ui,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT

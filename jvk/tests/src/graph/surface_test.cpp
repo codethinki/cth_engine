@@ -77,20 +77,22 @@ namespace {
 
     [[nodiscard]] std::optional<SwapchainImage> acquire(
         Core const& core,
+        Frame& frame,
         Surface& surface,
         Stage& stage
     ) {
-        return core.executor().sync_wait(surface.acquire(stage, ATTACHMENT_OUTPUT));
+        return core.executor().sync_wait(frame.acquire(surface, stage, ATTACHMENT_OUTPUT));
     }
 
     [[nodiscard]] std::optional<SwapchainImage> acquire(
         Core const& core,
+        Frame& frame,
         Surface& surface,
         Stage& acquireStage,
         Stage& presentStage
     ) {
         return core.executor().sync_wait(
-            surface.acquire(acquireStage, presentStage, ATTACHMENT_OUTPUT)
+            frame.acquire(surface, acquireStage, presentStage, ATTACHMENT_OUTPUT)
         );
     }
 
@@ -264,18 +266,20 @@ namespace {
     }
 
     /**
-     * acquires and clears the image of the stage, the scope submits, the submission presents
+     * acquires and clears the image of stage `0` of the frame, the scope submits, the submission
+     *  presents
      * @details the submission waits for the gate: the present stays pending
      * @return the image
      */
     SwapchainImage present_behind_gate(
         Core const& core,
-        Stage& stage,
+        Frame& frame,
         Surface& surface,
         Semaphore const& gate
     ) {
+        auto& stage = frame.stage(0);
         stage.await(gate, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, 1);
-        auto const image = acquire(core, surface, stage);
+        auto const image = acquire(core, frame, surface, stage);
         EXPECT_TRUE(image);
         auto const primary = stage.begin();
         clear(*primary, *image);
@@ -323,8 +327,9 @@ namespace {
         Surface& surface,
         std::optional<MsaaTarget>& msaaOpt
     ) {
-        auto& stage = next_frame(core, graph).stage(0);
-        auto const image = acquire(core, surface, stage);
+        auto& frame = next_frame(core, graph);
+        auto& stage = frame.stage(0);
+        auto const image = acquire(core, frame, surface, stage);
         EXPECT_TRUE(image);
         if(!msaaOpt.has_value() || msaaOpt->image.extent() != image->extent) {
             if(msaaOpt.has_value()) {
@@ -359,8 +364,9 @@ namespace {
      * @return the image
      */
     SwapchainImage present_frame(Core const& core, StageGraph& graph, Surface& surface) {
-        auto& stage = next_frame(core, graph).stage(0);
-        auto const image = acquire(core, surface, stage);
+        auto& frame = next_frame(core, graph);
+        auto& stage = frame.stage(0);
+        auto const image = acquire(core, frame, surface, stage);
         EXPECT_TRUE(image);
         auto const primary = stage.begin();
         clear(*primary, *image);
@@ -400,7 +406,7 @@ namespace {
      */
     SwapchainImage present_scene_and_ui(Core const& core, StageGraph& graph, Surface& surface) {
         auto& frame = next_frame(core, graph);
-        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        auto const image = acquire(core, frame, surface, frame[SCENE], frame[UI]);
         EXPECT_TRUE(image);
         {
             auto const scene = frame[SCENE].begin();
@@ -499,9 +505,10 @@ JVK_TEST(Surface, extent_0_gives_no_image_until_the_extent_is_larger) {
     EXPECT_FALSE(surface.swapchain().created());
 
     // no image, no wait, no present: the stage submits without the image
-    auto& stage = next_frame(core, graph).stage(0);
+    auto& frame = next_frame(core, graph);
+    auto& stage = frame.stage(0);
     {
-        auto const image = acquire(core, surface, stage);
+        auto const image = acquire(core, frame, surface, stage);
         EXPECT_FALSE(image.has_value());
         auto const primary = stage.begin();
     }
@@ -605,17 +612,18 @@ JVK_TEST(Surface, acquire_does_not_wait_for_the_present_before) {
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
     Semaphore const gate{core, cvk::create};
 
-    auto& first = next_frame(core, graph).stage(0);
-    auto const firstImage = present_behind_gate(core, first, surface, gate);
+    auto& firstFrame = next_frame(core, graph);
+    auto const firstImage = present_behind_gate(core, firstFrame, surface, gate);
 
     // the submission of the first frame waits for the mark of the gate: its present is pending,
     // the next acquire gives another image at once
-    auto& second = next_frame(core, graph).stage(0);
+    auto& secondFrame = next_frame(core, graph);
+    auto& second = secondFrame.stage(0);
     std::optional<SwapchainImage> secondImageOpt{};
     std::binary_semaphore acquiredSignal{0};
     std::jthread frame{
         [&] {
-            secondImageOpt = acquire(core, surface, second);
+            secondImageOpt = acquire(core, secondFrame, surface, second);
             acquiredSignal.release();
         }
     };
@@ -679,11 +687,12 @@ JVK_TEST(Surface, skipped_stage_drops_the_image_for_the_next_acquire) {
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}, .frameSlots = 1}};
 
     // Stage::begin() before the acquire works too
-    auto& stage = next_frame(core, graph).stage(0);
+    auto& frame = next_frame(core, graph);
+    auto& stage = frame.stage(0);
     uint32_t imageIdx = 0;
     {
         auto const primary = stage.begin();
-        auto const image = acquire(core, surface, stage);
+        auto const image = acquire(core, frame, surface, stage);
         ASSERT_TRUE(image.has_value());
         imageIdx = image->imageIdx;
         clear(*primary, *image);
@@ -695,9 +704,10 @@ JVK_TEST(Surface, skipped_stage_drops_the_image_for_the_next_acquire) {
     EXPECT_EQ(acquired_images(tracker, surface), 1);
 
     // the dropped image comes first, it waits for the skip on the gpu: no validation error
-    auto& next = next_frame(core, graph).stage(0);
+    auto& nextFrame = next_frame(core, graph);
+    auto& next = nextFrame.stage(0);
     {
-        auto const image = acquire(core, surface, next);
+        auto const image = acquire(core, nextFrame, surface, next);
         ASSERT_TRUE(image.has_value());
         EXPECT_EQ(image->imageIdx, imageIdx);
         EXPECT_EQ(acquired_images(tracker, surface), 1);
@@ -705,6 +715,32 @@ JVK_TEST(Surface, skipped_stage_drops_the_image_for_the_next_acquire) {
         clear(*primary, *image);
     }
 
+    present_frame(core, graph, surface);
+}
+
+JVK_TEST(Surface, dropped_image_of_a_destroyed_graph_comes_to_the_next_graph) {
+    test::Context const context{};
+    auto windowSurface = test::headless_surface(context.instance);
+    std::optional<Core> coreOpt{};
+    if(!create_present_core(coreOpt, context, windowSurface))
+        GTEST_SKIP() << "no device presents to a headless surface";
+    auto& core = *coreOpt;
+
+    Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
+    uint32_t imageIdx = 0;
+    {
+        StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+        auto& frame = next_frame(core, graph);
+        auto& stage = frame.stage(0);
+        auto const image = acquire(core, frame, surface, stage);
+        ASSERT_TRUE(image.has_value());
+        imageIdx = image->imageIdx;
+        stage.skip();
+    }
+
+    // the spare waits for the ready semaphore of the presenter: the destroyed graph does not matter
+    StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
+    EXPECT_EQ(present_frame(core, graph, surface).imageIdx, imageIdx);
     present_frame(core, graph, surface);
 }
 
@@ -721,10 +757,11 @@ JVK_TEST(Surface, image_without_a_use_presents_after_the_submit) {
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
     // the epilogue transitions the image from VK_IMAGE_LAYOUT_UNDEFINED
-    auto& stage = next_frame(core, graph).stage(0);
+    auto& frame = next_frame(core, graph);
+    auto& stage = frame.stage(0);
     uint32_t imageIdx = 0;
     {
-        auto const image = acquire(core, surface, stage);
+        auto const image = acquire(core, frame, surface, stage);
         ASSERT_TRUE(image.has_value());
         imageIdx = image->imageIdx;
         auto const primary = stage.begin();
@@ -752,8 +789,9 @@ JVK_TEST(Surface, exception_in_the_recording_submits_and_presents_nothing) {
     uint32_t imageIdx = 0;
     try {
         for(size_t i = 0;; ++i) {
-            auto& stage = next_frame(core, graph).stage(0);
-            auto const image = acquire(core, surface, stage);
+            auto& frame = next_frame(core, graph);
+            auto& stage = frame.stage(0);
+            auto const image = acquire(core, frame, surface, stage);
             auto const primary = stage.begin();
             auto const rendering = primary->beginRendering(clear_info(*image));
             if(i == 2) {
@@ -770,9 +808,10 @@ JVK_TEST(Surface, exception_in_the_recording_submits_and_presents_nothing) {
     EXPECT_EQ(stagePtr->status(), Stage::Status::SKIPPED);
     EXPECT_TRUE(tracker.acquired(surface.swapchain().current(), imageIdx));
 
-    auto& stage = next_frame(core, graph).stage(0);
+    auto& frame = next_frame(core, graph);
+    auto& stage = frame.stage(0);
     {
-        auto const image = acquire(core, surface, stage);
+        auto const image = acquire(core, frame, surface, stage);
         ASSERT_TRUE(image.has_value());
         EXPECT_EQ(image->imageIdx, imageIdx);
         EXPECT_EQ(acquired_images(tracker, surface), 1);
@@ -795,10 +834,11 @@ JVK_TEST(Surface, exception_after_the_submit_presents_the_image) {
     Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
     StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
 
-    auto& stage = next_frame(core, graph).stage(0);
+    auto& frame = next_frame(core, graph);
+    auto& stage = frame.stage(0);
     std::optional<uint32_t> imageIdxOpt = std::nullopt;
     try {
-        auto const image = acquire(core, surface, stage);
+        auto const image = acquire(core, frame, surface, stage);
         auto const primary = stage.begin();
         if(image) {
             imageIdxOpt = image->imageIdx;
@@ -830,8 +870,9 @@ JVK_TEST(Surface, exception_propagated_to_the_end_destroys_graph_and_surface) {
         Surface surface{core, core.queue(0), {}, std::move(windowSurface)};
         StageGraph graph{core, {.stages = {{.queueIdx = 0}}}};
         for(size_t i = 0;; ++i) {
-            auto& stage = next_frame(core, graph).stage(0);
-            auto const image = acquire(core, surface, stage);
+            auto& frame = next_frame(core, graph);
+            auto& stage = frame.stage(0);
+            auto const image = acquire(core, frame, surface, stage);
             auto const primary = stage.begin();
             auto const rendering = primary->beginRendering(clear_info(*image));
             if(i == 2)
@@ -860,10 +901,11 @@ JVK_TEST(Surface, failed_present_arrives_at_the_next_acquire_and_not_at_next_fra
     realQueuePresent = std::exchange(table->vkQueuePresentKHR, lost_present);
     present_frame(core, graph, surface);
 
-    auto& stage = next_frame(core, graph).stage(0);
+    auto& frame = next_frame(core, graph);
+    auto& stage = frame.stage(0);
     // the acquire rethrows the error of the present before
     try {
-        [[maybe_unused]] auto const image = acquire(core, surface, stage);
+        [[maybe_unused]] auto const image = acquire(core, frame, surface, stage);
         ADD_FAILURE() << "the acquire must rethrow the error of the present";
     }
     catch(cvk::vk_result_exception const& e) { EXPECT_EQ(e.vkResult(), VK_ERROR_SURFACE_LOST_KHR); }
@@ -908,7 +950,7 @@ JVK_TEST(Surface, present_stage_without_a_use_presents_the_image_of_the_acquire_
     auto& frame = next_frame(core, graph);
     uint32_t imageIdx = 0;
     {
-        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        auto const image = acquire(core, frame, surface, frame[SCENE], frame[UI]);
         ASSERT_TRUE(image.has_value());
         imageIdx = image->imageIdx;
         auto const scene = frame[SCENE].begin();
@@ -944,7 +986,7 @@ JVK_TEST(Surface, skipped_present_stage_drops_the_image) {
     auto& frame = next_frame(core, graph);
     uint32_t imageIdx = 0;
     {
-        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        auto const image = acquire(core, frame, surface, frame[SCENE], frame[UI]);
         ASSERT_TRUE(image.has_value());
         imageIdx = image->imageIdx;
         auto const scene = frame[SCENE].begin();
@@ -956,7 +998,7 @@ JVK_TEST(Surface, skipped_present_stage_drops_the_image) {
     // the dropped image comes first, it waits for the skip of the ui stage on the gpu
     auto& next = next_frame(core, graph);
     {
-        auto const image = acquire(core, surface, next[SCENE], next[UI]);
+        auto const image = acquire(core, next, surface, next[SCENE], next[UI]);
         ASSERT_TRUE(image.has_value());
         EXPECT_EQ(image->imageIdx, imageIdx);
         EXPECT_EQ(acquired_images(tracker, surface), 1);
@@ -983,7 +1025,7 @@ JVK_TEST(Surface, exception_in_the_present_stage_drops_the_image) {
 
     auto& frame = next_frame(core, graph);
     try {
-        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        auto const image = acquire(core, frame, surface, frame[SCENE], frame[UI]);
         ASSERT_TRUE(image.has_value());
         {
             auto const scene = frame[SCENE].begin();
@@ -1018,8 +1060,8 @@ JVK_TEST(Surface, two_surfaces_present_after_one_stage) {
     // each surface has its scene stage, both present after the ui stage in one present
     for(size_t i = 0; i < FRAMES; ++i) {
         auto& frame = next_frame(core, graph);
-        auto const firstImage = acquire(core, first, frame[SCENE], frame[UI]);
-        auto const secondImage = acquire(core, second, frame[SCENE], frame[UI]);
+        auto const firstImage = acquire(core, frame, first, frame[SCENE], frame[UI]);
+        auto const secondImage = acquire(core, frame, second, frame[SCENE], frame[UI]);
         ASSERT_TRUE(firstImage.has_value());
         ASSERT_TRUE(secondImage.has_value());
         {
@@ -1075,7 +1117,7 @@ JVK_TEST(Surface, present_stage_of_another_family_without_a_use_acquires_the_ima
     // each acquire waits for the present of the image before
     for(size_t i = 0; i < FRAMES; ++i) {
         auto& frame = next_frame(core, graph);
-        auto const image = acquire(core, surface, frame[SCENE], frame[UI]);
+        auto const image = acquire(core, frame, surface, frame[SCENE], frame[UI]);
         ASSERT_TRUE(image.has_value());
         {
             auto const scene = frame[SCENE].begin();

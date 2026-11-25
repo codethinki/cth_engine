@@ -302,6 +302,10 @@ cth::co::executor_task<void> StageGraph::submission(
     stageSlot.extraBinaryWaits.clear();
     slotSubmit.next(_config.frameSlots);
 
+    // the submit or the skip comes after every use of the images: the ready point of a drop
+    for(auto const& image : stageSlot.presents)
+        info.signals.push_back(image.ready());
+
     bool submitted = false;
     if(targetStatus == Stage::Status::SUBMITTED) {
         try {
@@ -371,10 +375,9 @@ cth::co::executor_task<void> StageGraph::submission(
         }();
         co_await std::move(skip);
 
-        // the skip waited for the waits of the stage: the spares wait for its signal
-        SemaphoreSubmitInfo const ready{.semaphore = stageSlot.semaphore, .value = frameNumber};
+        // the skip signaled the ready points: the spares wait for them
         for(auto& image : stageSlot.presents)
-            image.presenter().drop(std::move(image), ready);
+            handBack(std::move(image));
         stageSlot.presents.clear();
     }
 
@@ -516,6 +519,7 @@ cth::co::executor_task<void> StageGraph::present(dev::StageSlot& stageSlot, uint
         auto& presentQueue = presenter.queue();
         auto const presentFamily = presentQueue.vk().familyIndex();
         if(presentFamily == family) {
+            erase(image.image());
             co_await presenter.present(std::move(image));
             continue;
         }
@@ -535,13 +539,15 @@ cth::co::executor_task<void> StageGraph::present(dev::StageSlot& stageSlot, uint
             std::array const signals{cvk::SemaphoreSubmitInfo{image.presentSemaphore()}};
             transferredOpt = co_await presentQueue.transfer(std::move(acquire), waits, signals);
         }
-        // a failed transfer: the image goes back behind the submit that released it
+        // a failed transfer: the image goes back behind the submit that released it, the submit
+        // signaled its ready point
         catch(...) { _submissions.store(std::current_exception()); }
         if(!transferredOpt.has_value()) {
-            presenter.drop(std::move(image), submitted);
+            handBack(std::move(image));
             continue;
         }
 
+        erase(image.image());
         co_await presenter.present(std::move(image));
 
         // the transfer waits for the semaphore of the slot: ~StageGraph() destroys it after the
@@ -550,6 +556,13 @@ cth::co::executor_task<void> StageGraph::present(dev::StageSlot& stageSlot, uint
         catch(...) { _submissions.store(std::current_exception()); }
     }
     stageSlot.presents.clear();
+}
+
+void StageGraph::handBack(Presenter::AcquiredImage image) {
+    // the image leaves the graph: an acquire of the image assumes its state again
+    erase(image.image());
+    auto& presenter = image.presenter();
+    presenter.drop(std::move(image));
 }
 
 cth::co::executor_task<vector<SemaphoreSubmitInfo>> StageGraph::release(release_map_t releases) {

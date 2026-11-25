@@ -23,8 +23,6 @@ class ImageView;
 
 namespace jvk {
 class Core;
-class Stage;
-class StageGraph;
 }
 
 namespace jvk {
@@ -34,7 +32,7 @@ namespace jvk {
  * - tracked like every image: the commands that use it record its accesses
  * - a view of the `Presenter::AcquiredImage` that the present stage holds
  * - valid until the present stage of its acquire presented or dropped it, see
- *   `Surface::acquire()`
+ *   `Frame::acquire()`
  */
 struct SwapchainImage {
     cth::ref_wrapper<cvk::Image const> image;
@@ -60,7 +58,7 @@ struct SurfaceConfig {
 
     /**
      * frames that the gpu works on at the same time, the acquire semaphores of each presenter
-     * @details `< StageGraphConfig::frameSlots` of the graph of the stages -> an acquire can wait
+     * @details `< StageGraphConfig::frameSlots` of the graph of the images -> an acquire can wait
      *  for the present of an earlier frame, see `Presenter::acquire()`
      * @pre `framesInFlight > 0`
      */
@@ -70,14 +68,13 @@ struct SurfaceConfig {
 };
 
 /**
- * cvk surface with its swapchain, acquires its images for stages that present them
+ * cvk surface with its swapchain, acquires the images of the current swapchain
  * @details
  * - owns the cvk surface and the swapchain with its presenters, see `Swapchain`
  * - recreates the swapchain in `acquire()`, a retired swapchain stays until its presenter
  *   finished
  * - the presenter of the current swapchain acquires the images, see `Presenter::acquire()`
- * - the present stage of an image presents it after its submit, a skip drops it, see
- *   `Stage::present()`
+ * - knows no graph: `Frame::acquire()` hands an image to the stages of a frame
  * - a failed present: the next `acquire()` rethrows its error
  * @attention not thread safe
  */
@@ -137,54 +134,23 @@ public:
     }
 
     /**
-     * acquires the next swapchain image, the present stage presents it after its submit
-     * @details the surface:
+     * acquires the next image of the current swapchain
+     * @details
      * - a new `cvk::Surface::extent()` or out of date -> recreates the swapchain, see
      *   `Swapchain::recreate()`
      * - the presenter of the current swapchain acquires the image, see `Presenter::acquire()`
      * - out of date -> recreates the swapchain and acquires again
-     * @details the acquire stage:
-     * - waits for `Presenter::AcquiredImage::wait()` with the stages, see `Stage::await()`: the
-     *   acquire semaphore or the ready point of a dropped image
-     * - the state of the image in its graph: `VK_IMAGE_LAYOUT_UNDEFINED` with the wait stages, see
-     *   `StageGraph::assume()`: the first barrier of the image chains with the wait
-     * @details the present stage holds the image until its submission presents or drops it, see
-     *  `Stage::present()`
-     * @param acquireStage waits for the acquire, the first use of the image
-     * @param presentStage presents the image after its submit
-     * @param stages pipeline stages of the acquire stage that wait for the acquire
-     * @return the image, `std::nullopt` -> surface extent `0`: no image, no wait, no present
+     * @return the image, `std::nullopt` -> surface extent `0`: no image
      * @pre `created()`
-     * @pre `Stage::status()` of both stages is `UNSUBMITTED`
-     * @pre both stages belong to one frame of one graph
-     * @pre the present stage waits for every stage of the frame that uses the image, the acquire
-     *  stage included, directly or through other stages, or is that stage, see `StageWait`
-     * @pre the graphs of the images that a skip dropped exist: the image waits for the semaphore
-     *  of the stage, see `StageGraph::skip()`
      * @throws cvk::cvk_exception reason: the surface offers no allowed format or present mode
      * @throws cvk::vk_result_exception other result of `vkAcquireNextImageKHR()` or
      *  `vkCreateSwapchainKHR()`
      * @throws std::exception the error of a failed present before, once, see `Presenter::acquire()`
      * @attention the fallback of `Presenter::acquire()` can block (FIFO: the vsync throttle): it
      *  occupies a driver thread, `CoreConfig::driverThreads` `0` -> a worker
-     * @see `Stage::await()`
+     * @see `Frame::acquire()`
      */
-    [[nodiscard]] cth::co::executor_task<std::optional<SwapchainImage>> acquire(
-        Stage& acquireStage,
-        Stage& presentStage,
-        VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
-    );
-
-    /**
-     * acquires the next swapchain image for one stage that uses and presents it
-     * @details calls @ref acquire(Stage&, Stage&, VkPipelineStageFlags2) with the stage for both
-     */
-    [[nodiscard]] cth::co::executor_task<std::optional<SwapchainImage>> acquire(
-        Stage& stage,
-        VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
-    ) {
-        return acquire(stage, stage, stages);
-    }
+    [[nodiscard]] cth::co::executor_task<std::optional<Presenter::AcquiredImage>> acquire();
 
     [[nodiscard]] constexpr bool created() const { return _surface.created(); }
     [[nodiscard]] constexpr Config const& config() const { return _config; }

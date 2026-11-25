@@ -154,6 +154,8 @@ public:
         return cth::co::executor{_strand};
     }
 
+    [[nodiscard]] constexpr Core const& core() const { return *_core; }
+
     /**
      * @return the scheduler of the strand, for work of the queue outside the strand
      */

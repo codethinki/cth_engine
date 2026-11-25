@@ -61,6 +61,11 @@ Presenter::Presenter(Queue& presentQueue, cvk::Swapchain& swapchain, uint32_t fr
     _acquireSemaphores.reserve(framesInFlight);
     for(uint32_t i = 0; i < framesInFlight; ++i)
         _acquireSemaphores.emplace_back(swapchain.core(), cvk::create);
+
+    // reserved: a semaphore with a pending Semaphore::submitted() does not move
+    _readySemaphores.reserve(swapchain.imageCount());
+    for(uint32_t imageIdx = 0; imageIdx < swapchain.imageCount(); ++imageIdx)
+        _readySemaphores.emplace_back(presentQueue.core(), cvk::create);
 }
 
 Presenter::~Presenter() {
@@ -193,12 +198,7 @@ cth::co::executor_task<void> Presenter::present(AcquiredImage image) {
 
 void Presenter::drop(AcquiredImage image) {
     CTH_CRITICAL(image._presenter.get() != this, "the image must be of this presenter") {}
-    // the dropper spares the image
-    image._presenter.reset();
-}
-
-void Presenter::drop(AcquiredImage image, SemaphoreSubmitInfo ready) {
-    CTH_CRITICAL(image._presenter.get() != this, "the image must be of this presenter") {}
+    auto const ready = image.ready();
     auto const [imageIdx, acquireNumber, wait] = image._presenter.get_deleter();
     static_cast<void>(image._presenter.release());
 

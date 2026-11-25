@@ -363,18 +363,19 @@ public:
 
     /**
      * presents the image after the submit of this frame
-     * @details `Surface::acquire()` calls it for its present stage
+     * @details `Frame::acquire()` calls it for its present stage
      * @details the submission of the frame:
      * - the present is a use of the image after the primary, in the epilogue: the barrier to
      *   `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`, see `StageSlot::epilogue`
      * - another queue family of the last use: the last queue releases the image, the epilogue
      *   acquires it
-     * - the submit signals `Presenter::AcquiredImage::presentSemaphore()`
+     * - the submit signals `Presenter::AcquiredImage::presentSemaphore()`, the submit or the skip
+     *   signals `Presenter::AcquiredImage::ready()`
      * - another queue family of the presenter queue: the epilogue releases the image, the
      *   presenter queue acquires it and signals the present semaphore, see `Queue::transfer()`
-     * - after the submit: `Presenter::present()`
-     * - a skip or a failed submit: `Presenter::drop()` with the signal of the skip as the ready
-     *   point
+     * - after the submit: erases the state of the image in the graph, `Presenter::present()`
+     * - a skip or a failed submit: erases the state of the image in the graph,
+     *   `Presenter::drop()`
      * @param image the stage holds it until its submission presents or drops it
      * @pre `status()` is `UNSUBMITTED`
      * @attention not thread safe

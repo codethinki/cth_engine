@@ -65,13 +65,13 @@ namespace {
     }
 
     /**
-     * acquires an image of the current presenter, without a graph
+     * acquires an image of the current presenter
      */
     [[nodiscard]] std::optional<Presenter::AcquiredImage> acquire(
         Core const& core,
         Swapchain& swapchain
     ) {
-        return core.executor().sync_wait(swapchain.acquire(nullptr));
+        return core.executor().sync_wait(swapchain.acquire());
     }
 }
 
@@ -111,7 +111,6 @@ JVK_TEST(Swapchain, acquire_destroys_the_finished_retired_swapchains) {
 
     Swapchain swapchain{core, core.queue(0), surface, 2};
     swapchain.create({}, EXTENT);
-    auto& oldPresenter = swapchain.presenter();
 
     // an image of the retired presenter is not handed back: it did not finish
     auto oldImageOpt = acquire(core, swapchain);
@@ -121,14 +120,15 @@ JVK_TEST(Swapchain, acquire_destroys_the_finished_retired_swapchains) {
     ASSERT_TRUE(firstOpt.has_value());
     EXPECT_EQ(swapchain.retired(), 1);
 
-    // handed back as a spare: the retired presenter finished, its destruction releases the spare
-    oldPresenter.drop(std::move(*oldImageOpt));
+    // destroyed without a use: a spare of the retired presenter that finished, the destruction
+    // of the presenter releases it
+    oldImageOpt.reset();
     auto secondOpt = acquire(core, swapchain);
     ASSERT_TRUE(secondOpt.has_value());
     EXPECT_EQ(swapchain.retired(), 0);
 
-    swapchain.presenter().drop(std::move(*firstOpt));
-    swapchain.presenter().drop(std::move(*secondOpt));
+    firstOpt.reset();
+    secondOpt.reset();
     swapchain.destroy();
     EXPECT_FALSE(swapchain.created());
 }
@@ -163,6 +163,6 @@ JVK_TEST(Swapchain, failed_recreate_gives_no_image_until_the_next_recreate) {
     swapchain.recreate({32, 32});
     auto imageOpt = acquire(core, swapchain);
     ASSERT_TRUE(imageOpt.has_value());
-    swapchain.presenter().drop(std::move(*imageOpt));
+    imageOpt.reset();
 }
 }

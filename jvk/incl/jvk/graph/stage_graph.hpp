@@ -109,15 +109,17 @@ public:
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
      * - the images of `Stage::present()`: uses after the primary, in the epilogue, the submit
-     *   signals their present semaphores, `Presenter::present()` follows the submit, see
-     *   `Stage::present()`
+     *   signals their present semaphores and their ready points, `Presenter::present()` follows
+     *   the submit, see `Stage::present()`
+     * - erases the state of a presented image in the graph before `Presenter::present()`: the
+     *   next acquire of the image assumes it again
      * - another queue family of the last use of a presented image: the last queue releases it,
      *   the epilogue acquires it
      * - another queue family of the presenter queue: the epilogue releases the image,
      *   `Queue::transfer()` on the presenter queue acquires it and signals the present semaphore
      * - an error of the submission: skips, `nextFrame()` rethrows the error
      * - a failed present: the presenter of the image gets the error, see `Presenter::present()`
-     * - a failed transfer: drops the image with the signal of the submit as the ready point
+     * - a failed transfer: drops the image, see `Presenter::drop()`
      * - after the gpu finished: destroys the retained objects
      * @details a failure here, `vkEndCommandBuffer()` or the allocation of the submission:
      * - no throw, the stage stays `UNSUBMITTED`
@@ -138,8 +140,8 @@ public:
      * @details skip submit on the queue of the stage, no command buffers:
      * - waits for the stage waits of the config and the waits of `Stage::await()`
      * - signals `Stage::semaphore()` with `Stage::frameNumber()`
-     * @details drops the images of `Stage::present()` with the signal of the skip as the ready
-     *  point, see `Presenter::drop()`: the skip waited for the acquire semaphores
+     * @details the skip signals the ready points of the images of `Stage::present()`, then erases
+     *  their states in the graph and drops them, see `Presenter::drop()`
      * @details after the gpu finished the skip submit: destroys the retained objects
      * @details a begun primary: ends its rendering and the primary, discards the recording
      * @details a failure: the failure of `submit()`
@@ -223,9 +225,16 @@ private:
 
     /**
      * presents the images of the stage slot after the submit, a failed transfer drops its image
+     * @details erases the state of each image in the graph before its hand back
      * @details no throw: a failure goes to `_submissions`
      */
     [[nodiscard]] cth::co::executor_task<void> present(dev::StageSlot&, uint64_t frameNumber);
+
+    /**
+     * erases the state of the image in the graph, then drops it, see `Presenter::drop()`
+     * @pre the submit or the skip of its stage signaled `Presenter::AcquiredImage::ready()`
+     */
+    void handBack(Presenter::AcquiredImage);
 
     /** the caller holds `_statesMutex` */
     void eraseStates(VkImage, uint32_t mipLevels);

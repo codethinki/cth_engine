@@ -144,19 +144,18 @@ namespace {
         }
 
         /**
-         * waits for the image without a use
+         * waits for the image without a use, signals its ready point
          * @param gatePtr `nullptr` -> no gate, else the submit waits for its value `1` too
-         * @return the signal of the submit, the ready point of a drop
+         * @return the ready point of a drop, see `Presenter::AcquiredImage::ready()`
          */
-        [[nodiscard]] SemaphoreSubmitInfo ready(
+        SemaphoreSubmitInfo ready(
             Presenter::AcquiredImage const& image,
             Semaphore const* gatePtr = nullptr
         ) {
-            SemaphoreSubmitInfo const signal{.semaphore = done, .value = done.next()};
-            SubmitInfo info{.signals = {signal}};
+            SubmitInfo info{.signals = {image.ready()}};
             add_waits(info, image, gatePtr);
             core->executor().sync_wait(queue->submit(info));
-            return signal;
+            return image.ready();
         }
 
         /**
@@ -377,7 +376,8 @@ JVK_TEST(Presenter, drop_spares_the_image_with_its_acquire_semaphore) {
     ASSERT_TRUE(droppedOpt.has_value());
     auto const imageIdx = droppedOpt->imageIdx();
     auto const* const semaphorePtr = acquire_semaphore(*droppedOpt);
-    presenter.drop(std::move(*droppedOpt));
+    // the destruction drops the image without a ready point
+    droppedOpt.reset();
 
     // the spare comes first, with the wait of the drop
     auto spareOpt = acquire(core, presenter);
@@ -407,7 +407,7 @@ JVK_TEST(Presenter, drop_with_a_ready_point_spares_the_image_behind_it) {
     ASSERT_TRUE(droppedOpt.has_value());
     auto const imageIdx = droppedOpt->imageIdx();
     auto const ready = submits.ready(*droppedOpt, &gate);
-    presenter.drop(std::move(*droppedOpt), ready);
+    presenter.drop(std::move(*droppedOpt));
     EXPECT_FALSE(presenter.finished());
 
     // the spare waits for the ready point
@@ -446,8 +446,8 @@ JVK_TEST(Presenter, ready_point_of_the_last_acquire_semaphore_holds_the_acquire_
 
     auto droppedOpt = acquire(core, presenter);
     ASSERT_TRUE(droppedOpt.has_value());
-    auto const ready = submits.ready(*droppedOpt, &gate);
-    presenter.drop(std::move(*droppedOpt), ready);
+    submits.ready(*droppedOpt, &gate);
+    presenter.drop(std::move(*droppedOpt));
     auto spareOpt = acquire(core, presenter);
     ASSERT_TRUE(spareOpt.has_value());
 
@@ -529,9 +529,9 @@ JVK_TEST(Presenter, destructor_releases_the_spares) {
         auto secondOpt = acquire(core, presenter);
         ASSERT_TRUE(firstOpt.has_value());
         ASSERT_TRUE(secondOpt.has_value());
-        auto const ready = submits.ready(*secondOpt);
-        presenter.drop(std::move(*firstOpt));
-        presenter.drop(std::move(*secondOpt), ready);
+        submits.ready(*secondOpt);
+        firstOpt.reset();
+        presenter.drop(std::move(*secondOpt));
     }
 
     // the spares are back in the swapchain: the next presenter acquires every image

@@ -38,7 +38,8 @@ class Queue;
  * - `acquire()` hands out an `AcquiredImage`, `present()` or `drop()` hands it back
  * - the presents follow the acquire order
  * - a dropped image is a spare: the next `acquire()` hands it out first
- * - owns `framesInFlight()` acquire semaphores
+ * - owns `framesInFlight()` acquire semaphores and one ready semaphore per image: the ready
+ *   points of the drops
  * - thread safe: `acquire()`, `present()` and `drop()` from any thread
  * - the strand of the queue runs the vulkan calls of the swapchain, except the fallback of
  *   `acquire()`: it excludes the presents and the tries of the presenter
@@ -49,13 +50,13 @@ public:
     class AcquiredImage;
 
     /**
-     * wait of the first use of an image: its acquire semaphore or the ready point of a drop
+     * wait of the first use of an image: its acquire semaphore or the ready point of its drop
      */
     using wait_t = std::variant<cth::ref_wrapper<cvk::Semaphore const>, SemaphoreSubmitInfo>;
 
     // no base constructor and create(): the presenter has no wrap or release
     /**
-     * creates the acquire semaphores
+     * creates the acquire semaphores and the ready semaphores
      * @param presentQueue presents the images, its strand runs the tries and the presents
      * @param swapchain of the images
      * @param framesInFlight count of the acquire semaphores
@@ -75,8 +76,8 @@ public:
      * @pre no `acquire()` and no `present()` is pending
      * @pre the ready points of the spares are reached:
      *  VUID-VkReleaseSwapchainImagesInfoKHR-pImageIndices-07786
-     * @pre the submits that wait for the acquire semaphores completed:
-     *  VUID-vkDestroySemaphore-semaphore-05149
+     * @pre the submits that wait for the acquire semaphores or signal the ready semaphores
+     *  completed: VUID-vkDestroySemaphore-semaphore-05149
      * @see `finished()`
      */
     ~Presenter();
@@ -129,7 +130,8 @@ public:
      *   `VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT`, `VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT`,
      *   see `vkQueuePresentKHR()`
      * - another failure enqueues nothing: the image stays acquired and its acquire semaphore
-     *   held, `finished()` stays `false`
+     *   held until the teardown, `finished()` stays `false`: these results are out of memory,
+     *   device lost or unknown, practically fatal, the next `acquire()` rethrows the error
      * @pre the image is of this presenter
      * @pre the image is in `VK_IMAGE_LAYOUT_PRESENT_SRC_KHR`
      * @pre a submitted batch signals `AcquiredImage::presentSemaphore()`, after the uses of the
@@ -138,23 +140,16 @@ public:
     [[nodiscard]] cth::co::executor_task<void> present(AcquiredImage image);
 
     /**
-     * hands the image back without a present: the image becomes a spare
-     * @details the spare keeps `AcquiredImage::wait()`
-     * @pre the image is of this presenter
-     * @pre no submitted batch uses the image or waits for `AcquiredImage::wait()`
-     */
-    void drop(AcquiredImage image);
-
-    /**
-     * hands the image back without a present: the image becomes a spare that waits for the ready
-     * point
+     * hands the image back without a present: the image becomes a spare that waits for
+     * `AcquiredImage::ready()`
      * @details the acquire semaphore of the image is free once the ready point is reached
-     * @param image to drop
-     * @param ready reached after the uses of the image and after the wait for
+     * @details the destruction of an image drops it without a ready point: the spare keeps
      *  `AcquiredImage::wait()`
      * @pre the image is of this presenter
+     * @pre a batch signals `AcquiredImage::ready()`, after the uses of the image and after the
+     *  wait for `AcquiredImage::wait()`
      */
-    void drop(AcquiredImage image, SemaphoreSubmitInfo ready);
+    void drop(AcquiredImage image);
 
     /**
      * checks without a wait that the presenter has no work left
@@ -284,6 +279,11 @@ private:
     /** `imageCount - minImageCount` of the surface: more acquired images -> no blocking acquire */
     uint32_t _blockingAcquireLimit;
     std::vector<cvk::Semaphore> _acquireSemaphores{};
+    /**
+     * one per image, a batch signals the acquire number of a drop, see `AcquiredImage::ready()`
+     * @details the batches of one image follow its acquires: the values rise
+     */
+    std::vector<Semaphore> _readySemaphores{};
 
     mutable std::mutex _mutex{};
 
@@ -332,6 +332,7 @@ namespace jvk {
  * acquired swapchain image of a `Presenter` while the engine holds it, handed back exactly once
  * @details
  * - `Presenter::present()` or `Presenter::drop()` hands it back, the destruction drops it
+ *   without a ready point
  * - the content is undefined: the first use transitions it from `VK_IMAGE_LAYOUT_UNDEFINED`
  * - the first use waits for `wait()`
  * - a moved-from image hands back nothing
@@ -392,6 +393,19 @@ public:
      * @return wait of the first use, the ready point keeps the stages of its drop
      */
     [[nodiscard]] wait_t const& wait() const { return _presenter.get_deleter().wait; }
+
+    /**
+     * @return the ready point of a drop: the ready semaphore of the image with `acquireNumber()`
+     * @details a batch after the uses of the image and after the wait for `wait()` signals it, the
+     *  spare of `Presenter::drop()` waits for it
+     * @pre not handed back
+     */
+    [[nodiscard]] SemaphoreSubmitInfo ready() const {
+        return SemaphoreSubmitInfo{
+            .semaphore = presenter()._readySemaphores[imageIdx()],
+            .value = acquireNumber(),
+        };
+    }
 
     /**
      * @return index of the image in the swapchain

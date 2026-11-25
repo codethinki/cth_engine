@@ -1,7 +1,6 @@
 #include "jvk/graph/swapchain.hpp"
 
 #include "jvk/base/queue.hpp"
-#include "jvk/graph/stage_graph.hpp"
 #include "jvk/utility/exception.hpp"
 
 #include "cvk/base/core.hpp"
@@ -97,20 +96,11 @@ void Swapchain::destroy() {
     _currentRetired = false;
 }
 
-cth::co::executor_task<std::optional<Presenter::AcquiredImage>> Swapchain::acquire(
-    StageGraph* graphPtr
-) {
+cth::co::executor_task<std::optional<Presenter::AcquiredImage>> Swapchain::acquire() {
     debug_check(*this);
 
-    while(retired() != 0 && _swapchains.front().presenter.finished()) {
-        // the gpu finished the uses of the images: a new image can get their handles
-        if(graphPtr != nullptr) {
-            auto const& retiredSwapchain = _swapchains.front().swapchain;
-            for(uint32_t imageIdx = 0; imageIdx < retiredSwapchain.imageCount(); ++imageIdx)
-                graphPtr->erase(retiredSwapchain.image(imageIdx));
-        }
+    while(retired() != 0 && _swapchains.front().presenter.finished())
         _swapchains.pop_front();
-    }
 
     if(_currentRetired)
         co_return std::nullopt;

@@ -95,9 +95,11 @@ cth::co::executor_task<void> draw_frames(
 ) {
     while(!window.shouldClose()) {
         window.pollEvents();
-        auto& stage = (co_await graph.nextFrame()).stage(TRIANGLE_STAGE_ID);
+        auto& frame = co_await graph.nextFrame();
+        auto& stage = frame.stage(TRIANGLE_STAGE_ID);
 
-        auto const image = co_await surface.acquire(
+        auto const image = co_await frame.acquire(
+            surface,
             stage,
             VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
         );

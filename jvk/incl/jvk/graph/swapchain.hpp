@@ -22,7 +22,6 @@ class Surface;
 
 namespace jvk {
 class Queue;
-class StageGraph;
 }
 
 namespace jvk::dev {
@@ -139,16 +138,12 @@ public:
     /**
      * destroys the finished retired swapchains, then acquires the next image of the current one
      * @details finished: `Presenter::finished()`, from the oldest on: no present fence is pending
-     * @details erases the images of a destroyed swapchain in the graph, see `StageGraph::erase()`
      * @details the current swapchain retired by a failed `recreate()` -> `std::nullopt`
-     * @param graphPtr of the images, `nullptr` -> none
      * @return the image, `std::nullopt` -> out of date, `recreate()` the swapchain
      * @pre `created()`
      * @see `Presenter::acquire()`
      */
-    [[nodiscard]] cth::co::executor_task<std::optional<Presenter::AcquiredImage>> acquire(
-        StageGraph* graphPtr
-    );
+    [[nodiscard]] cth::co::executor_task<std::optional<Presenter::AcquiredImage>> acquire();
 
     /**
      * @return the swapchain of the next acquires, its address stays until its destruction
